@@ -8,7 +8,6 @@ const currency = new Intl.NumberFormat("es-CO", { style: "currency", currency: "
 
 function PlaygroundDemo({ label, min, max, step, showValue, disabled, error }: { label: string; min: number; max: number; step: number; showValue: boolean; disabled: boolean; error: string }) {
   const [value, setValue] = React.useState<Pair>([min, max]);
-  React.useEffect(() => setValue([min, max]), [min, max]);
   return (
     <div className="w-80 space-y-3">
       <RangeSlider value={value} onChange={setValue} label={label || undefined} min={min} max={max} step={step} showValue={showValue} disabled={disabled} error={error || undefined} />
@@ -77,7 +76,8 @@ export const rangeSliderEntry = defineEntry({
       error: { type: "text", default: "" },
       disabled: { type: "boolean", default: false },
     },
-    render: (values) => <PlaygroundDemo {...values} />,
+    // `key` reinicia el valor cuando cambian los límites, sin efectos.
+    render: (values) => <PlaygroundDemo key={`${values.min}-${values.max}`} {...values} />,
     code: ({ label, min, max, step, showValue, disabled, error }) => {
       const attrs = [
         label ? `label="${label}"` : "",

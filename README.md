@@ -9,7 +9,16 @@ donde cada componente se puede ver, probar e inspeccionar.
 npm run dev        # documentación en http://localhost:5173
 npm run build      # build de producción
 npm run type-check # tsc -b
+npm test           # pruebas unitarias (Vitest)
+npm run lint       # eslint
 ```
+
+## Qué incluye
+
+- **131 componentes documentados** en 16 familias, cada uno con playground interactivo, ejemplos con código, tabla de props y guías de uso.
+- **10 temas** (UBITS Azul, Índigo, Violeta, Esmeralda, Teal, Cian, Naranja, Rosa, Ámbar, Grafito), 4 escalas de radio y modo claro/oscuro/sistema, con exportación del tema como CSS estático.
+- Páginas de fundamentos: temas, colores y tokens, tipografía, radios y sombras, iconos y motion.
+- Guía de theming en [docs/THEMING.md](docs/THEMING.md).
 
 ## Estructura
 

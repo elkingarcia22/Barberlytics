@@ -20,17 +20,19 @@ function Slide({ label, className }: { label: string; className?: string }) {
 
 function CarouselWithApi() {
   const [api, setApi] = React.useState<CarouselApi>();
-  const [current, setCurrent] = React.useState(0);
-  const [count, setCount] = React.useState(0);
+  // El índice y el total se leen del api en cada render; el evento `select`
+  // solo fuerza un re-render, así no hay setState dentro del efecto.
+  const [, forceRender] = React.useReducer((tick: number) => tick + 1, 0);
+  const count = api ? api.scrollSnapList().length : 0;
+  const current = api ? api.selectedScrollSnap() : 0;
 
   React.useEffect(() => {
     if (!api) return;
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap());
-    const onSelect = () => setCurrent(api.selectedScrollSnap());
-    api.on("select", onSelect);
+    api.on("select", forceRender);
+    api.on("reInit", forceRender);
     return () => {
-      api.off("select", onSelect);
+      api.off("select", forceRender);
+      api.off("reInit", forceRender);
     };
   }, [api]);
 

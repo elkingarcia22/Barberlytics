@@ -19,4 +19,10 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Las entradas del registro de documentación exportan un `DocEntry` junto a
+    // pequeños componentes de demo; Fast Refresh no aplica ahí.
+    files: ['src/docs/registry/**/*.{ts,tsx}', 'src/docs/components/knobValues.ts'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

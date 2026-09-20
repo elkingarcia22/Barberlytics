@@ -1,5 +1,11 @@
-import { DocsApp } from "./docs/DocsApp";
+import { RouterProvider } from "react-router";
+import { AppProviders } from "./app/providers";
+import { router } from "./app/router";
 
 export default function App() {
-  return <DocsApp />;
+  return (
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
+  );
 }

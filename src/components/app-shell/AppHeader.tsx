@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { SHELL_MENU_PANEL } from "./shellPanel";
-import { AI_GRADIENT, CURRENT_USER, NEWS_ITEMS, NOTIFICATIONS } from "./appShellData";
+import { AI_GRADIENT } from "./appShellData";
+import { useShellConfig, userInitials } from "./shellConfig";
 
 /**
  * Radix's own `--radix-popover-content-transform-origin` only approximates a
@@ -95,7 +96,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const avatarOrigin = useLiquidOrigin();
 
   // Primeras 2 notificaciones marcadas como "nuevas" en los datos de demo
-  const unreadCount = 2;
+  const { user, news, notifications, onLogout, headerActions } = useShellConfig();
+  const unreadCount = Math.min(2, notifications.length);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 px-1">
@@ -155,7 +157,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* Items con stagger */}
             <div className="flex flex-col gap-0.5 p-2">
-              {NEWS_ITEMS.map((item, index) => (
+              {news.map((item, index) => (
                 <button
                   key={item.title}
                   className={cn(
@@ -194,6 +196,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
 
         {/* ---------- Notifications ---------- */}
+        {headerActions}
         <Popover open={notifOpen} onOpenChange={setNotifOpen}>
           <PopoverTrigger asChild>
             <button
@@ -231,7 +234,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* Lista con stagger */}
             <div className="flex flex-col gap-0.5 overflow-y-auto p-2" style={{ maxHeight: "380px" }}>
-              {NOTIFICATIONS.map((notification, index) => (
+              {notifications.map((notification, index) => (
                 <button
                   key={notification.title}
                   className={cn(
@@ -279,10 +282,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               ref={avatarOrigin.triggerRef}
               className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border/70 transition-transform hover:scale-105"
-              title={CURRENT_USER.name}
+              title={user.name}
               aria-label="Perfil"
+              data-testid="shell-avatar"
             >
-              <img src={CURRENT_USER.avatarUrl} alt={CURRENT_USER.name} className="h-full w-full object-cover" />
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center bg-primary text-[11px] font-bold text-primary-foreground">
+                  {userInitials(user.name)}
+                </span>
+              )}
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -294,11 +304,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             className={cn("w-[230px] overflow-hidden", SHELL_MENU_PANEL)}
           >
             <div className="-mx-2 mb-2 border-b border-border/60 px-5 pb-3 pt-1">
-              <div className="text-sm font-bold text-text-primary">{CURRENT_USER.name}</div>
-              <div className="mt-0.5 text-xs text-text-muted">{CURRENT_USER.email}</div>
-              <span className="mt-2 inline-flex h-5 items-center rounded-full bg-surface-muted px-2.5 text-[11px] font-bold text-primary">
-                {CURRENT_USER.role}
-              </span>
+              <div className="text-sm font-bold text-text-primary">{user.name}</div>
+              <div className="mt-0.5 text-xs text-text-muted">{user.email}</div>
+              {user.role && (
+                <span className="mt-2 inline-flex h-5 items-center rounded-full bg-surface-muted px-2.5 text-[11px] font-bold text-primary">
+                  {user.role}
+                </span>
+              )}
             </div>
             {(
               [
@@ -345,7 +357,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <Switch checked={isDark} onCheckedChange={onToggleDark} aria-label="Cambiar tema" />
             </div>
             <button
-              onClick={() => setAvatarMenuOpen(false)}
+              onClick={() => {
+                setAvatarMenuOpen(false);
+                onLogout?.();
+              }}
+              data-testid="shell-logout"
               className={cn(
                 "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
               )}

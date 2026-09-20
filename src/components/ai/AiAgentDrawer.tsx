@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 import { ShellAgentPanelSlot } from "@/components/app-shell";
 import { MovingBorderBeam } from "@/components/ui/moving-border-beam";
 import { ArrowUp, Plus, Sparkles, X } from "lucide-react";
-import { AI_GRADIENT, CURRENT_USER } from "@/components/app-shell/appShellData";
+import { AI_GRADIENT } from "@/components/app-shell/appShellData";
+import { useShellConfig } from "@/components/app-shell/shellConfig";
 import { AGENT_PANEL_WIDTH, agentPanelTransition } from "./agentPanelMotion";
 
 /** Width of the open panel — the content column narrows by exactly this much. */
@@ -66,7 +67,8 @@ const CONTEXT_CONFIG = {
 export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", customPanel }: AiAgentDrawerProps) {
   const [prompt, setPrompt] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
-  const firstName = CURRENT_USER?.name || "Usuario";
+  const { user } = useShellConfig();
+  const firstName = user.name.split(" ")[0] || "Usuario";
 
   const isCustom = context === "custom";
 

@@ -1,6 +1,3 @@
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemaToaster } from "@/components/feedback";
-import { ThemeProvider } from "@/themes";
 import { DocsShell } from "./DocsShell";
 import { useHashRoute } from "./router";
 import { findEntry, findGroup } from "./registry";
@@ -48,15 +45,14 @@ function RouteView() {
   }
 }
 
+/**
+ * La documentación. Los providers (tema, tooltips, toasts, sesión) los pone
+ * la app en `src/app/providers.tsx`; aquí solo va el shell de docs.
+ */
 export function DocsApp() {
   return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={200}>
-        <DocsShell>
-          <RouteView />
-        </DocsShell>
-        <ThemaToaster />
-      </TooltipProvider>
-    </ThemeProvider>
+    <DocsShell>
+      <RouteView />
+    </DocsShell>
   );
 }

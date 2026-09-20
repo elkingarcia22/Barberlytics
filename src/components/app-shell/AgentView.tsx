@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ArrowUp, Plus } from "lucide-react";
 import { MovingBorderBeam } from "@/components/ui/moving-border-beam";
-import { AGENT_SUGGESTIONS, AI_GRADIENT, CURRENT_USER } from "./appShellData";
+import { AI_GRADIENT } from "./appShellData";
+import { useShellConfig } from "./shellConfig";
 
 /**
  * Visual-only representation of the Agente IA surface. It mirrors the
@@ -11,7 +12,8 @@ import { AGENT_SUGGESTIONS, AI_GRADIENT, CURRENT_USER } from "./appShellData";
 export const AgentView: React.FC = () => {
   const [prompt, setPrompt] = React.useState("");
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
-  const firstName = CURRENT_USER.name;
+  const { user, agentSuggestions, onAgentPrompt } = useShellConfig();
+  const firstName = user.name.split(" ")[0] ?? user.name;
 
   return (
     <div className="flex h-full flex-col items-center justify-center overflow-y-auto px-6">
@@ -54,6 +56,11 @@ export const AgentView: React.FC = () => {
                 <Plus className="h-4 w-4" strokeWidth={2} />
               </button>
               <button
+                onClick={() => {
+                  if (!prompt.trim()) return;
+                  onAgentPrompt?.(prompt.trim());
+                  setPrompt("");
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-all hover:-translate-y-0.5 hover:brightness-110"
                 style={{ background: AI_GRADIENT }}
                 title="Enviar"
@@ -69,7 +76,7 @@ export const AgentView: React.FC = () => {
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {AGENT_SUGGESTIONS.map((suggestion) => (
+          {agentSuggestions.map((suggestion) => (
             <button
               key={suggestion}
               onClick={() => {

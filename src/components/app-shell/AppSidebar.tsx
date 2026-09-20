@@ -22,16 +22,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  AI_GRADIENT,
-  CHAT_HISTORY,
-  COMPANIES,
-  COMPANY_MENU_LINKS,
-  NAV_TREE,
-  type Company,
-  type NavChild,
-  type NavRoot,
-} from "./appShellData";
+import { AI_GRADIENT, type Company, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
+import { useShellConfig } from "./shellConfig";
 import { SHELL_MENU_PANEL } from "./shellPanel";
 import type { ShellMode } from "./shellTypes";
 
@@ -92,6 +84,25 @@ interface AppSidebarProps {
 
 const numberFormat = new Intl.NumberFormat("es-CO");
 
+/** Raíces que contienen (directa o indirectamente) el nodo `id`, para abrirlas. */
+function rootsHolding(navigation: readonly NavEntry[], id: string | undefined): string[] {
+  if (!id) return [];
+  return navigation.flatMap((entry) => (entry.kind === "item" && accordionHoldsCurrentNode(entry, id) ? [entry.id] : []));
+}
+
+/** `path` del nodo `id` en cualquier nivel del árbol. */
+function findNodePath(navigation: readonly NavEntry[], id: string): string | undefined {
+  for (const entry of navigation) {
+    if (entry.kind !== "item") continue;
+    if (entry.id === id) return entry.path;
+    for (const child of entry.children ?? []) {
+      if (child.id === id) return child.path;
+      for (const leaf of child.children ?? []) if (leaf.id === id) return leaf.path;
+    }
+  }
+  return undefined;
+}
+
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   collapsed,
   mobileOpen,
@@ -102,10 +113,30 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onToggleCollapse,
   onOpenFeedback,
 }) => {
-  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({ desempeno: true });
-  // This build is the Objetivos module, so that is the node the rail lands on
-  // and the one that means "back to the list".
-  const [currentNodeId, setCurrentNodeId] = React.useState("objetivos");
+  const {
+    navigation,
+    activeNavId,
+    onNavigate,
+    companies,
+    companyMenuLinks,
+    chatHistory,
+    promo,
+  } = useShellConfig();
+  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>(() => {
+    const opened = rootsHolding(navigation, activeNavId);
+    return opened.length > 0 ? Object.fromEntries(opened.map((id) => [id, true])) : { desempeno: true };
+  });
+  // Sin `activeNavId` el sidebar recuerda por sí mismo dónde está; con él,
+  // el router manda y el sidebar solo refleja.
+  const [localNodeId, setLocalNodeId] = React.useState(activeNavId ?? "objetivos");
+  const currentNodeId = activeNavId ?? localNodeId;
+
+  React.useEffect(() => {
+    if (!activeNavId) return;
+    const opened = rootsHolding(navigation, activeNavId);
+    if (opened.length === 0) return;
+    setOpenSections((sections) => ({ ...sections, ...Object.fromEntries(opened.map((id) => [id, true])) }));
+  }, [activeNavId, navigation]);
   const [drillStack, setDrillStack] = React.useState<readonly DrillLevel[]>([]);
   const [drillDirection, setDrillDirection] = React.useState<"forward" | "back">("forward");
   const [activeCompanyId, setActiveCompanyId] = React.useState("google");
@@ -113,7 +144,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const [adDismissed, setAdDismissed] = React.useState(false);
   const [activeChatIndex, setActiveChatIndex] = React.useState(0);
 
-  const activeCompany = COMPANIES.find((company) => company.id === activeCompanyId) ?? COMPANIES[0];
+  const activeCompany = companies.find((company) => company.id === activeCompanyId) ?? companies[0];
 
   // Collapsing wipes the drill: the collapsed rail always shows the root icons.
   React.useEffect(() => {
@@ -121,8 +152,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   }, [collapsed]);
 
   const selectNode = (id: string) => {
-    setCurrentNodeId(id);
+    setLocalNodeId(id);
     onCloseMobile?.();
+    onNavigate?.(id, findNodePath(navigation, id));
     if (id === "objetivos") onNavigateHome?.();
   };
 
@@ -375,7 +407,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </div>
           <div className="-mx-2 my-2 h-px bg-border/60" />
           <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-text-muted">Configuración</div>
-          {COMPANY_MENU_LINKS.map((label, index) => (
+          {companyMenuLinks.map((label, index) => (
             <button
               key={label}
               onClick={() => setCompanyMenuOpen(false)}
@@ -396,7 +428,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div className="-mx-2 my-2 h-px bg-border/60" />
           <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-text-muted">Empresas</div>
           <div className="flex flex-col gap-0.5">
-            {COMPANIES.map((company, index) => {
+            {companies.map((company, index) => {
               const isActive = company.id === activeCompanyId;
               return (
                 <button
@@ -413,7 +445,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   )}
                   style={{
                     transition: companyMenuOpen
-                      ? `opacity 260ms cubic-bezier(0.16,1,0.3,1) ${(COMPANY_MENU_LINKS.length * 40) + index * 40}ms, transform 260ms cubic-bezier(0.16,1,0.3,1) ${(COMPANY_MENU_LINKS.length * 40) + index * 40}ms`
+                      ? `opacity 260ms cubic-bezier(0.16,1,0.3,1) ${(companyMenuLinks.length * 40) + index * 40}ms, transform 260ms cubic-bezier(0.16,1,0.3,1) ${(companyMenuLinks.length * 40) + index * 40}ms`
                       : "none",
                   }}
                 >
@@ -474,7 +506,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
               Nuevo chat
             </button>
-            {CHAT_HISTORY.map((group, groupIndex) => (
+            {chatHistory.map((group, groupIndex) => (
               <React.Fragment key={group.label}>
                 <div className="shrink-0 px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   {group.label}
@@ -537,7 +569,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               drillDirection === "back" && "slide-in-from-left-2"
             )}
           >
-            {NAV_TREE.map((entry, index) => {
+            {navigation.map((entry, index) => {
               if (entry.kind === "group") {
                 return collapsed ? (
                   <div key={`group-${index}`} className="mx-2 my-2 h-px shrink-0 bg-border/60" />
@@ -554,7 +586,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* ---------- LMS promo card ---------- */}
-      {!collapsed && !adDismissed && mode === "workspace" && (
+      {!collapsed && !adDismissed && promo && mode === "workspace" && (
         <div className="relative mt-2 shrink-0 rounded-2xl bg-surface-muted p-4 text-center">
           <button
             onClick={() => setAdDismissed(true)}
@@ -569,12 +601,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           >
             <Sparkles className="h-4 w-4 text-white" strokeWidth={2} />
           </div>
-          <h4 className="mb-1 text-[13px] font-bold leading-tight text-text-primary">El LMS que trabaja por ti</h4>
-          <p className="mb-3 text-xs font-medium leading-snug text-text-secondary">
-            Conoce nuestro nuevo sistema inteligente para crear contenido.
-          </p>
-          <button className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--color-brand-hover)]">
-            Conocer más
+          <h4 className="mb-1 text-[13px] font-bold leading-tight text-text-primary">{promo.title}</h4>
+          <p className="mb-3 text-xs font-medium leading-snug text-text-secondary">{promo.description}</p>
+          <button
+            onClick={promo.onClick}
+            className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--color-brand-hover)]"
+          >
+            {promo.cta}
           </button>
         </div>
       )}

@@ -1,7 +1,17 @@
 # Thema
 
-Sistema de diseño Thema con temas intercambiables (estilo shadcn) y una página de documentación
-donde cada componente se puede ver, probar e inspeccionar.
+Sistema de diseño con temas intercambiables (estilo shadcn), documentación interactiva de cada
+componente y un esqueleto de aplicación listo para conectar a un backend: enrutado, sesión,
+capa de datos con caché, formularios validados, backend simulado, pruebas y CI.
+
+## Empezar
+
+```bash
+npm ci --legacy-peer-deps
+npm run dev            # http://localhost:5173 · login: admin@thema.dev / thema123 (backend simulado)
+```
+
+Rutas: `/login`, `/dashboard`, `/usuarios` (app) y `/docs` (sistema de diseño).
 
 ## Scripts
 
@@ -9,8 +19,11 @@ donde cada componente se puede ver, probar e inspeccionar.
 npm run dev        # documentación en http://localhost:5173
 npm run build      # build de producción
 npm run type-check # tsc -b
-npm test           # pruebas unitarias (Vitest)
+npm test           # unitarias e integración (Vitest + Testing Library + MSW)
+npm run e2e        # end-to-end (Playwright; antes: npm run e2e:install)
 npm run lint       # eslint
+npm run verify     # lint + tipos + pruebas + build
+npm run build:lib  # la librería en dist-lib/ (ESM + styles.css)
 ```
 
 ## Qué incluye
@@ -20,6 +33,14 @@ npm run lint       # eslint
 - Páginas de fundamentos: temas, colores y tokens, tipografía, radios y sombras, iconos y motion.
 - Guía de theming en [docs/THEMING.md](docs/THEMING.md).
 
+## Conectar un backend real
+
+1. Implementa el contrato de [docs/API_CONTRACT.md](docs/API_CONTRACT.md) (el backend simulado en `src/mocks/` es la referencia ejecutable).
+2. `VITE_API_URL=https://tu-api` y `VITE_USE_MOCKS=false`.
+3. Si el backend emite cookies httpOnly, sustituye `sessionTokenStorage` en `src/features/auth`.
+
+Arquitectura y reglas en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); despliegue y cabeceras en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Estructura
 
 - `src/styles/tokens.css` — tokens Thema (colores, radios, sombras, fuentes).
@@ -28,6 +49,11 @@ npm run lint       # eslint
 - `src/components/ui/` — primitivos shadcn/Radix afinados con los tokens.
 - `src/components/<familia>/` — familias de componentes del producto.
 - `src/docs/` — la página de documentación (registro, shell, páginas de fundamentos).
+- `src/app/` — router, providers, layout con el shell y páginas de error.
+- `src/features/` — auth, users, dashboard: esquemas Zod, API, hooks de TanStack Query, pantallas y pruebas.
+- `src/lib/api/`, `src/lib/query/` — cliente HTTP tipado, modelo de error, `QueryBoundary`.
+- `src/mocks/` — backend simulado con MSW (auth, dashboard, CRUD de personas).
+- `src/index.ts` — punto de entrada de la librería (`npm run build:lib`).
 
 ## Añadir un tema
 

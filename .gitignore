@@ -25,3 +25,9 @@ dist-ssr
 
 # Reference repos (cloned locally, not tracked)
 references/
+dist-lib
+test-results
+playwright-report
+coverage
+.env
+.env.local

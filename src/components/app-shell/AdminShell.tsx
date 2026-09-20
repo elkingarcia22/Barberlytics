@@ -9,6 +9,7 @@ import { ShellHeaderSlotProvider } from "./shellHeaderSlot";
 import { ShellRailSlotProvider } from "./shellRailSlot";
 import { ShellAgentPanelSlotProvider } from "./shellAgentPanelSlot";
 import type { ShellMode } from "./shellTypes";
+import { ShellConfigContext, resolveShellConfig, type ShellConfigOverrides } from "./shellConfig";
 
 interface AdminShellProps {
   /**
@@ -20,6 +21,8 @@ interface AdminShellProps {
   onNavigateHome?: () => void;
   /** Force the footer to show even if scrollContent is false. */
   showFooter?: boolean;
+  /** Usuario, navegación, notificaciones y callbacks; lo que falte usa los valores demo. */
+  config?: ShellConfigOverrides;
   children: React.ReactNode;
 }
 
@@ -28,14 +31,23 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   scrollContent = true,
   showFooter,
   onNavigateHome,
+  config: overrides,
   children,
 }) => {
+  const config = React.useMemo(() => resolveShellConfig(overrides), [overrides]);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [mode, setMode] = React.useState<ShellMode>("workspace");
-  const [isDark, setIsDark] = React.useState(() =>
+  const [localDark, setLocalDark] = React.useState(() =>
     typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false
   );
+  // Controlado desde fuera (ThemeProvider) o gestionado aquí mismo.
+  const isDarkControlled = config.onToggleDark !== undefined;
+  const isDark = isDarkControlled ? Boolean(config.isDark) : localDark;
+  const toggleDark = () => {
+    if (isDarkControlled) config.onToggleDark?.(!isDark);
+    else setLocalDark((value) => !value);
+  };
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackSent, setFeedbackSent] = React.useState(false);
   const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
@@ -47,8 +59,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const autoCollapseTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-  }, [isDark]);
+    if (isDarkControlled) return;
+    document.documentElement.classList.toggle("dark", localDark);
+  }, [localDark, isDarkControlled]);
 
   React.useEffect(() => {
     const AUTO_COLLAPSE_DELAY_MS = 2200;
@@ -77,6 +90,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const isAgent = mode === "agent";
 
   return (
+    <ShellConfigContext.Provider value={config}>
     <div
       className={cn(
         "flex h-dvh w-full gap-2 overflow-hidden bg-background p-2 font-sans",
@@ -110,7 +124,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         <AppHeader
           onToggleSidebar={toggleSidebar}
           isDark={isDark}
-          onToggleDark={() => setIsDark((value) => !value)}
+          onToggleDark={toggleDark}
           onOpenNews={() => {/* handled inside AppHeader */}}
           onSlotRef={setHeaderSlot}
         />
@@ -148,7 +162,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         {(showFooter ?? (scrollContent || isAgent)) && (
           <footer className="flex shrink-0 flex-wrap items-center justify-center gap-2 px-4 py-2.5 text-xs text-text-muted">
             <ThemaLogo size={16} color="var(--color-text-muted)" className="hover:scale-100" />
-            <span className="font-bold tracking-tight">Thema</span>
+            <span className="font-bold tracking-tight">{config.brand.productName}</span>
             <span className="opacity-50">|</span>
             <button className="transition-colors hover:text-text-secondary hover:underline">
               Términos y condiciones de uso de la plataforma
@@ -202,5 +216,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         </DialogContent>
       </Dialog>
     </div>
+    </ShellConfigContext.Provider>
   );
 };

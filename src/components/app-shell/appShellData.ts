@@ -13,12 +13,15 @@ import type { LucideIcon } from "lucide-react";
 export interface NavLeaf {
   id: string;
   label: string;
+  /** Ruta de la app; el shell la entrega en `onNavigate`. */
+  path?: string;
 }
 
 /** Second-level item: with children it drills into its own panel. */
 export interface NavChild {
   id: string;
   label: string;
+  path?: string;
   children?: readonly NavLeaf[];
 }
 
@@ -29,6 +32,7 @@ export interface NavRoot {
   label: string;
   icon: LucideIcon;
   badge?: string;
+  path?: string;
   children?: readonly NavChild[];
 }
 
@@ -187,12 +191,13 @@ export const AGENT_SUGGESTIONS: readonly string[] = [
   "Detecta señales de riesgo de rotación en mi empresa.",
 ];
 
+/** Persona de demostración; la app real inyecta la suya vía `ShellConfig.user`. */
 export const CURRENT_USER = {
   name: "Carolina Vargas",
-  email: "carolina.vargas@google.com",
+  email: "carolina.vargas@ejemplo.com",
   role: "Admin",
   avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150",
-} as const;
+};
 
 /** Shared AI gradient used by the shell (segmented thumb, agent send button, ad icon). */
 export const AI_GRADIENT =

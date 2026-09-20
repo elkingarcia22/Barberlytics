@@ -45,7 +45,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
   {
     id: "thema",
     name: "Azul",
-    description: "El tema oficial: azul de marca sobre neutros fríos.",
+    description: "Azul clásico sobre neutros fríos; el punto de partida.",
     primary: { light: "#0C5BEF", dark: "#3865F5" },
     neutral: "tinted",
     neutralHue: 222,

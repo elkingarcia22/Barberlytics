@@ -16,7 +16,7 @@ npm run lint       # eslint
 ## Qué incluye
 
 - **131 componentes documentados** en 16 familias, cada uno con playground interactivo, ejemplos con código, tabla de props y guías de uso.
-- **10 temas** (Thema Azul, Índigo, Violeta, Esmeralda, Teal, Cian, Naranja, Rosa, Ámbar, Grafito), 4 escalas de radio y modo claro/oscuro/sistema, con exportación del tema como CSS estático.
+- **10 temas** (Azul, Índigo, Violeta, Esmeralda, Teal, Cian, Naranja, Rosa, Ámbar, Grafito), 4 escalas de radio, tipografía de cuerpo y títulos configurable (10 familias) y modo claro/oscuro/sistema, con exportación del tema como CSS estático. Cada tema deriva su propio gradiente de IA del color primario.
 - Páginas de fundamentos: temas, colores y tokens, tipografía, radios y sombras, iconos y motion.
 - Guía de theming en [docs/THEMING.md](docs/THEMING.md).
 

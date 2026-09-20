@@ -35,6 +35,18 @@ function FieldError({ message }: { message?: string }) {
  * por campo que devuelva el backend se pintan sobre el campo correspondiente.
  */
 export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+        {/* El cuerpo se monta al abrir y se desmonta al cerrar: cada apertura
+            arranca con el formulario limpio sin efectos de reinicio. */}
+        <UserFormBody user={user ?? null} onClose={() => onOpenChange(false)} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function UserFormBody({ user, onClose }: { user: User | null; onClose: () => void }) {
   const isEdit = Boolean(user);
   const create = useCreateUser();
   const update = useUpdateUser();
@@ -42,21 +54,15 @@ export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps
 
   const form = useForm<UserInput>({
     resolver: zodResolver(userInputSchema),
-    defaultValues: EMPTY,
+    defaultValues: user ? { name: user.name, email: user.email, area: user.area, role: user.role, status: user.status } : EMPTY,
   });
-
-  React.useEffect(() => {
-    if (!open) return;
-    setFormError(null);
-    form.reset(user ? { name: user.name, email: user.email, area: user.area, role: user.role, status: user.status } : EMPTY);
-  }, [open, user, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
       if (user) await update.mutateAsync({ id: user.id, input: values });
       else await create.mutateAsync(values);
-      onOpenChange(false);
+      onClose();
     } catch (error) {
       const fields = isApiError(error) ? error.fieldErrors : undefined;
       if (fields) {
@@ -71,8 +77,7 @@ export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps
   const { errors, isSubmitting } = form.formState;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+    <>
         <SheetHeader className="border-b border-border/60 px-6 py-5">
           <SheetTitle>{isEdit ? "Editar persona" : "Nueva persona"}</SheetTitle>
           <SheetDescription>{isEdit ? "Los cambios se aplican al guardar." : "Recibirá una invitación al correo indicado."}</SheetDescription>
@@ -163,7 +168,7 @@ export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps
         </form>
 
         <SheetFooter className="border-t border-border/60 px-6 py-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
           <Button type="submit" form="user-form" disabled={isSubmitting} data-testid="user-form-submit">
@@ -171,7 +176,6 @@ export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps
             {isEdit ? "Guardar cambios" : "Crear persona"}
           </Button>
         </SheetFooter>
-      </SheetContent>
-    </Sheet>
+    </>
   );
 }

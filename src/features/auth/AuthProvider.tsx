@@ -4,17 +4,7 @@ import { apiAuth, isApiError } from "@/lib/api";
 import { authApi } from "./api";
 import { sessionTokenStorage, type TokenStorage } from "./tokenStorage";
 import type { AuthStatus, AuthUser, Credentials } from "./types";
-
-export interface AuthContextValue {
-  status: AuthStatus;
-  user: AuthUser | null;
-  login: (credentials: Credentials) => Promise<AuthUser>;
-  logout: () => Promise<void>;
-  /** Vuelve a pedir el perfil (p. ej. tras editarlo). */
-  refresh: () => Promise<void>;
-}
-
-export const AuthContext = React.createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from "./authContext";
 
 export interface AuthProviderProps {
   children: React.ReactNode;

@@ -1,4 +1,5 @@
-export { AuthProvider, AuthContext, type AuthContextValue, type AuthProviderProps } from "./AuthProvider";
+export { AuthProvider, type AuthProviderProps } from "./AuthProvider";
+export { AuthContext, type AuthContextValue } from "./authContext";
 export { useAuth, useCurrentUser } from "./useAuth";
 export { RequireAuth } from "./RequireAuth";
 export { authApi } from "./api";

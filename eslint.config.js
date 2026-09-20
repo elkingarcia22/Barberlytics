@@ -20,6 +20,22 @@ export default defineConfig([
     },
   },
   {
+    // Deuda heredada del proyecto de origen: los componentes copiados usan
+    // patrones que las reglas nuevas de react-hooks marcan (setState en
+    // efectos, refs durante el render, `any` puntual). Se dejan como
+    // advertencia para no reescribir semántica sin pruebas; al migrar cada
+    // archivo, vuelve a subirlas a error. El código nuevo (app, features,
+    // lib/api, lib/query, themes, mocks) sí las tiene como error.
+    files: ['src/components/**/*.{ts,tsx}', 'src/lib/use*.ts', 'src/config/**/*.ts', 'src/hooks/**/*.ts'],
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'react-refresh/only-export-components': 'warn',
+    },
+  },
+  {
     // Las entradas del registro de documentación exportan un `DocEntry` junto a
     // pequeños componentes de demo; Fast Refresh no aplica ahí.
     files: ['src/docs/registry/**/*.{ts,tsx}', 'src/docs/components/knobValues.ts', 'src/test/**/*.{ts,tsx}'],

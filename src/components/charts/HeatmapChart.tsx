@@ -62,7 +62,7 @@ export interface HeatmapChartProps {
  * Uses ChartCard for structural layout (header, meta, actions, filters).
  * Delegates ECharts rendering to the ChartCard → ChartShell → EChart pipeline.
  *
- * Color scale is automatically resolved from UBITS theme tokens at runtime,
+ * Color scale is automatically resolved from Thema theme tokens at runtime,
  * ensuring proper light/dark mode support without hardcoded HEX values.
  *
  * @example

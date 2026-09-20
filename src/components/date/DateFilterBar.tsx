@@ -36,7 +36,7 @@ export interface DateFilterBarProps {
 }
 
 /**
- * DateFilterBar - UBITS component that composes multiple date selection modes.
+ * DateFilterBar - Thema component that composes multiple date selection modes.
  * Desktop-first, horizontal layout, B2B enterprise style.
  */
 export function DateFilterBar({

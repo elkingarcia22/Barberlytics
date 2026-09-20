@@ -38,7 +38,7 @@ export interface DatePickerProps {
 }
 
 /**
- * DatePicker - UBITS wrapper for single date selection.
+ * DatePicker - Thema wrapper for single date selection.
  * Combines Popover and Calendar for a date input experience.
  * Uses native Date and Intl.DateTimeFormat.
  *

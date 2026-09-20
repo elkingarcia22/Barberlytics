@@ -32,7 +32,7 @@ export interface FileUploadProps {
 }
 
 /**
- * FileUpload - UBITS component for selecting files via button.
+ * FileUpload - Thema component for selecting files via button.
  * Uses native HTML5 File API.
  */
 export function FileUpload({

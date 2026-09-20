@@ -3,7 +3,7 @@ import { useTheme } from "@/themes";
 
 /**
  * Remonta a sus hijos cada vez que cambia el preset o el modo del tema de la
- * documentación. `getUbitsChartTheme` lee los tokens con `getComputedStyle`
+ * documentación. `getChartTheme` lee los tokens con `getComputedStyle`
  * solo al montar el gráfico, y el observer interno de `EChart` reacciona
  * únicamente a la clase `.dark` (y solo refresca color, textStyle y tooltip).
  * Sin este remount, cambiar de preset dejaría el lienzo con los colores

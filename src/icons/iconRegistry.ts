@@ -47,8 +47,8 @@ import {
 import type { IconName } from './iconTypes';
 
 /**
- * Central Registry for UBITS Icon System.
- * Maps semantic UBITS names to provider icons (currently Lucide fallback).
+ * Central Registry for Thema Icon System.
+ * Maps semantic Thema names to provider icons (currently Lucide fallback).
  *
  * NOTE: This is the only file where direct icon provider imports are allowed.
  * To migrate to Iconly, replace the Lucide imports here with Iconly TSX/SVG components.

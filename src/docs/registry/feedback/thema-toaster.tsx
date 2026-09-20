@@ -33,14 +33,14 @@ function LoadingToastDemo() {
   );
 }
 
-export const ubitsToasterEntry = defineEntry({
-  id: "ubits-toaster",
-  name: "UbitsToaster",
+export const themaToasterEntry = defineEntry({
+  id: "thema-toaster",
+  name: "ThemaToaster",
   group: "feedback",
   description:
-    "El contenedor de toasts de Sonner con los ajustes UBITS: apilados arriba a la derecha, por debajo del header, sin colores saturados y con botón de cierre. Se monta una sola vez a nivel de app (esta documentación ya lo hace); desde cualquier pantalla solo se llama a `toast()` de `sonner`.",
-  importPath: 'import { UbitsToaster } from "@/components/feedback/UbitsToaster"',
-  sourcePath: "src/components/feedback/UbitsToaster.tsx",
+    "El contenedor de toasts de Sonner con los ajustes Thema: apilados arriba a la derecha, por debajo del header, sin colores saturados y con botón de cierre. Se monta una sola vez a nivel de app (esta documentación ya lo hace); desde cualquier pantalla solo se llama a `toast()` de `sonner`.",
+  importPath: 'import { ThemaToaster } from "@/components/feedback/ThemaToaster"',
+  sourcePath: "src/components/feedback/ThemaToaster.tsx",
   status: "stable",
   tags: ["sonner", "app-level"],
   playground: definePlayground({
@@ -59,7 +59,7 @@ export const ubitsToasterEntry = defineEntry({
       const args = description ? `"${title}", { description: "${description}" }` : `"${title}"`;
       return `import { toast } from "sonner";
 
-// <UbitsToaster /> ya está montado en el root de la app.
+// <ThemaToaster /> ya está montado en el root de la app.
 <Button onClick={() => ${fn}(${args})}>Mostrar toast</Button>`;
     },
   }),
@@ -145,7 +145,7 @@ toast.success("Reporte listo", { id, description: "Se descargó reporte-ciclo-20
     { name: "style", type: "React.CSSProperties", description: "Estilos inline sobre el contenedor." },
   ],
   guidelines: {
-    do: ["Monta `<UbitsToaster />` una sola vez, en el root de la app.", "Usa `toast.success` para confirmar lo que acaba de pasar y `toast.error` para lo que falló.", "Añade `action` cuando el usuario pueda deshacer o ir al resultado."],
+    do: ["Monta `<ThemaToaster />` una sola vez, en el root de la app.", "Usa `toast.success` para confirmar lo que acaba de pasar y `toast.error` para lo que falló.", "Añade `action` cuando el usuario pueda deshacer o ir al resultado."],
     dont: ["No montes un segundo Toaster en una pantalla: cada toast se pintaría dos veces.", "No uses toasts para validaciones de formulario; el error va junto al campo.", "No uses `richColors`: el sistema mantiene el fondo sobrio y colorea solo icono y borde."],
   },
   related: ["alert", "button", "alert-dialog"],

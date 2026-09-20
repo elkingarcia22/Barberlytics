@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Home, Menu, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UbitsLogo } from "@/components/ui/UbitsLogo";
+import { ThemaLogo } from "@/components/ui/ThemaLogo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ThemeModeToggle, ThemeSelector } from "@/themes";
@@ -66,10 +66,10 @@ function SidebarNav({ route, onNavigate }: { route: DocsRoute; onNavigate?: () =
     <div className="flex h-full flex-col">
       <a href="#/" onClick={onNavigate} className="flex items-center gap-3 px-3 pb-5 pt-1">
         <span className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-card">
-          <UbitsLogo size={18} />
+          <ThemaLogo size={18} />
         </span>
         <span className="leading-tight">
-          <span className="block text-[15px] font-bold tracking-tight text-text-primary">UBITS Thema</span>
+          <span className="block text-[15px] font-bold tracking-tight text-text-primary">Thema</span>
           <span className="block text-[11px] text-text-muted">Sistema de diseño · v0.1</span>
         </span>
       </a>

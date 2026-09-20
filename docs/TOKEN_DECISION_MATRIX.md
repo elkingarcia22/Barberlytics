@@ -1,6 +1,6 @@
 # Token Decision Matrix
 
-| Categoría | Starter actual | Comparativo | Legacy David | Oficial UBITS | Decisión final | Motivo |
+| Categoría | Starter actual | Comparativo | Legacy David | Oficial Thema | Decisión final | Motivo |
 |---|---|---|---|---|---|---|
 | **Brand Primary** | `#0c5bef` | `#0C5BEF` | `#0c5bef` | `#0C5BEF` | `#0C5BEF` | Consenso total. |
 | **Brand Hover** | `#0a4dcc` | `#1E4ABF` | N/A | N/A | `#1E4ABF` | Adoptar lógica del Comparativo (más probada). |
@@ -19,7 +19,7 @@
 | **AI Border** | N/A | `#97A5FD` | N/A | `#97A5FD` | `#97A5FD` | DS Oficial. |
 | **Heatmap Pos** | N/A | `#17B16D` | N/A | `#17B16D` | `#17B16D` | DS Oficial. |
 | **Heatmap Neg** | N/A | `#CF0E34` | N/A | `#CF0E34` | `#CF0E34` | DS Oficial. |
-| **Radius lg** | `0.5rem` | `16px` | N/A | `16px` | **`16px`** | UBITS prefiere radios amplios. |
+| **Radius lg** | `0.5rem` | `16px` | N/A | `16px` | **`16px`** | Thema prefiere radios amplios. |
 | **Shadow Card** | Generic | Subtle | N/A | `0 1px 2px (0.06)`| DS Oficial. |
 | **Typography** | Inter | Inter | Inter | Inter | `Inter` | Consenso total. |
 | **Spacing** | 4px base | 4px base | 4px base | 4px base | `4px base` | Consenso total. |

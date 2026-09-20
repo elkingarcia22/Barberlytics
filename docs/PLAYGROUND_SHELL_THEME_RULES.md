@@ -5,7 +5,7 @@
 ### 1. Fondos y Superficies
 - **App Background**: `bg-surface-main` (Gris muy claro #F4F4F9 aprox).
 - **Content Card**: `bg-surface-card` (Blanco puro #FFFFFF).
-- **Sidebar**: `bg-surface-nav` (Navy Blue #0A0A60 - Token UBITS).
+- **Sidebar**: `bg-surface-nav` (Navy Blue #0A0A60 - Token Thema).
 
 ### 2. Estados de Navegación (Sidebar)
 - **Active Item**: Fondo con opacidad suave del color primario o borde lateral.

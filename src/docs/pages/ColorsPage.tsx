@@ -142,7 +142,7 @@ export function ColorsPage() {
       <PageIntro
         eyebrow="Fundamentos"
         title="Colores y tokens"
-        description="Dos capas: los tokens UBITS (tokens.css, nombrados por lo que son: marca, superficie, texto, estado) y el mapa semántico shadcn (globals.css) que los expone a los primitivos. Los valores de esta página se leen en vivo del documento: cambia el tema o el modo y se actualizan."
+        description="Dos capas: los tokens Thema (tokens.css, nombrados por lo que son: marca, superficie, texto, estado) y el mapa semántico shadcn (globals.css) que los expone a los primitivos. Los valores de esta página se leen en vivo del documento: cambia el tema o el modo y se actualizan."
       />
       <DocSection id="brand" title="Marca" description="El primario y sus dos pasos de interacción. Es lo único que un tema cambia de verdad; el resto de la paleta se deriva de él.">
         <SwatchGrid specs={BRAND} />

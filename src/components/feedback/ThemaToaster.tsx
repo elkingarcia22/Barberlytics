@@ -8,9 +8,9 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 const DEFAULT_TOP_OFFSET_PX = 76
 
 /**
- * UbitsToaster
+ * ThemaToaster
  *
- * Wrapper for Sonner notifications following UBITS B2B standards. Stacked in
+ * Wrapper for Sonner notifications following Thema B2B standards. Stacked in
  * the top-right corner, clear of the header, so feedback about what just
  * happened doesn't sit on top of — or get mistaken for — the screen's own
  * bottom action bar. Detects the system theme (light/dark) from
@@ -19,7 +19,7 @@ const DEFAULT_TOP_OFFSET_PX = 76
  * Mounted once, at the app level — a second instance elsewhere would render
  * every toast twice, since both would read the same toast queue.
  */
-export function UbitsToaster({
+export function ThemaToaster({
   className,
   style,
   topOffset = DEFAULT_TOP_OFFSET_PX,
@@ -61,7 +61,7 @@ export function UbitsToaster({
       position="top-right"
       offset={{ top: topOffset }}
       closeButton
-      richColors={false} // Keeping it sober as per UBITS rules
+      richColors={false} // Keeping it sober as per Thema rules
       expand={false}
       className={className}
       style={style}

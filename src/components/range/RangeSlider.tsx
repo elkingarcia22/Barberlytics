@@ -30,7 +30,7 @@ export interface RangeSliderProps {
 }
 
 /**
- * RangeSlider - UBITS wrapper for range selection.
+ * RangeSlider - Thema wrapper for range selection.
  * Built on top of shadcn/ui Slider base.
  */
 export const RangeSlider = React.forwardRef<

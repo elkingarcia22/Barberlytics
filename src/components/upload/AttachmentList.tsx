@@ -23,7 +23,7 @@ export interface AttachmentListProps {
 }
 
 /**
- * AttachmentList - UBITS component for managing a collection of files.
+ * AttachmentList - Thema component for managing a collection of files.
  * Supports list, grid, and compact layouts.
  */
 export function AttachmentList({

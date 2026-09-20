@@ -31,7 +31,7 @@ export interface DocGroup {
 }
 
 export const DOC_GROUPS: readonly DocGroup[] = [
-  { id: "ui", label: "Primitivos", description: "Base shadcn/Radix afinada con los tokens UBITS." },
+  { id: "ui", label: "Primitivos", description: "Base shadcn/Radix afinada con los tokens Thema." },
   { id: "forms", label: "Formularios", description: "Campos, secciones y selects compuestos." },
   { id: "selection", label: "Selección", description: "Tarjetas, tiles y controles segmentados para elegir." },
   { id: "navigation", label: "Navegación", description: "Tabs, sub-navegación, breadcrumbs y paginación." },
@@ -40,7 +40,7 @@ export const DOC_GROUPS: readonly DocGroup[] = [
   { id: "data-display", label: "Datos", description: "Tablas configurables y badges de estado." },
   { id: "date", label: "Fechas y rangos", description: "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango." },
   { id: "upload", label: "Archivos", description: "Zonas de carga, previsualización y progreso." },
-  { id: "charts", label: "Gráficos", description: "ECharts con el tema UBITS resuelto en tiempo real." },
+  { id: "charts", label: "Gráficos", description: "ECharts con el tema Thema resuelto en tiempo real." },
   { id: "ai", label: "IA", description: "Botones, loaders, badges y paneles con la identidad de IA." },
   { id: "action-rail", label: "Action rail", description: "La barra de acciones flotante y sus piezas." },
   { id: "layout", label: "Layout y shell", description: "Sidebar, header, shell de administración y páginas." },

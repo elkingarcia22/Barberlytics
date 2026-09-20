@@ -41,7 +41,7 @@ export interface UploadZoneProps {
 }
 
 /**
- * UploadZone - UBITS component for drag & drop file selection.
+ * UploadZone - Thema component for drag & drop file selection.
  * Desktop-first, B2B enterprise style using native Drag/Drop API.
  */
 export function UploadZone({

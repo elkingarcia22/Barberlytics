@@ -13,7 +13,7 @@ export interface SubNavVariant {
 }
 
 /**
- * UBITS SUB-NAV VARIANTS CONFIGURATION
+ * Thema SUB-NAV VARIANTS CONFIGURATION
  * Complete mapping of all legacy and modern variants.
  */
 export const SUB_NAV_VARIANTS: Record<string, SubNavVariant> = {

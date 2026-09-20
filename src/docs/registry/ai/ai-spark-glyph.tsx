@@ -60,5 +60,5 @@ export const aiSparkGlyphEntry = defineEntry({
     do: ["Úsala como marca de «la IA está trabajando» junto a un texto que lo diga.", "Prefiere AiAnalyzingState o AiGeneratedBadge; usa el glifo suelto solo para composiciones nuevas de IA."],
     dont: ["No la uses como icono decorativo en superficies que no son de IA: el degradado está reservado.", "No dupliques el SVG en otro componente; importa este para que el dibujo no se separe."],
   },
-  related: ["ai-analyzing-state", "ai-generated-badge", "ubits-icon"],
+  related: ["ai-analyzing-state", "ai-generated-badge", "thema-icon"],
 });

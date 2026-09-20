@@ -92,7 +92,7 @@ export function ConfirmDialog({
   const typedConfirmationMismatch = Boolean(confirmationText) && typedConfirmation !== confirmationText
   
   /**
-   * PATRÓN UBITS: Cierre manual tras éxito
+   * PATRÓN Thema: Cierre manual tras éxito
    * 
    * Debido al uso de e.preventDefault() en la acción de confirmación para soportar
    * procesos asíncronos (loading), el diálogo NO se cerrará automáticamente si el

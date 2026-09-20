@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { UbitsIcon } from "@/icons";
+import { ThemaIcon } from "@/icons";
 import {
   Tooltip,
   TooltipContent,
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 /**
- * UBITS PREMIUM RAIL SIDEBAR
+ * Thema PREMIUM RAIL SIDEBAR
  * Stabilized version for Hotfix 8.6C.1.
  * Uses semantic tokens only: bg-nav, text-nav-foreground, bg-primary.
  */
@@ -55,7 +55,7 @@ export const PlaygroundSidebar: React.FC<SidebarProps> = ({
                 : "text-nav-foreground/40 hover:bg-white/10 hover:text-nav-foreground"
             )}
           >
-            <UbitsIcon 
+            <ThemaIcon 
               name={item.icon as IconName} 
               size="sm" 
               tone="inverse"
@@ -80,7 +80,7 @@ export const PlaygroundSidebar: React.FC<SidebarProps> = ({
     <TooltipProvider>
       <aside
         className={cn(
-          "fixed left-6 top-4 bottom-4 w-20 ubits-premium-sidebar-rail flex flex-col items-center py-6 rounded-[32px] shadow-drawer z-50 border border-white/5",
+          "fixed left-6 top-4 bottom-4 w-20 thema-premium-sidebar-rail flex flex-col items-center py-6 rounded-[32px] shadow-drawer z-50 border border-white/5",
           className
         )}
       >

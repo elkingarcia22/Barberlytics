@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { UbitsLogo } from "@/components/ui/UbitsLogo";
+import { ThemaLogo } from "@/components/ui/ThemaLogo";
 import { cn } from "@/lib/utils";
 import { defineEntry, definePlayground } from "../types";
 
@@ -10,14 +10,14 @@ function DarkCard({ children, className }: { children: React.ReactNode; classNam
   return <div className={cn("flex items-center justify-center gap-6 rounded-xl bg-neutral-900 p-6", className)}>{children}</div>;
 }
 
-export const ubitsLogoEntry = defineEntry({
-  id: "ubits-logo",
-  name: "UbitsLogo",
+export const themaLogoEntry = defineEntry({
+  id: "thema-logo",
+  name: "ThemaLogo",
   group: "ui",
   description:
-    "El isotipo UBITS como SVG inline, blanco por defecto y con una leve escala al pasar el cursor. Pensado para superficies oscuras (sidebar, header, pantallas de acceso); en fondos claros pásale un color explícito o `currentColor`.",
-  importPath: 'import { UbitsLogo } from "@/components/ui/UbitsLogo"',
-  sourcePath: "src/components/ui/UbitsLogo.tsx",
+    "El isotipo Thema como SVG inline, blanco por defecto y con una leve escala al pasar el cursor. Pensado para superficies oscuras (sidebar, header, pantallas de acceso); en fondos claros pásale un color explícito o `currentColor`.",
+  importPath: 'import { ThemaLogo } from "@/components/ui/ThemaLogo"',
+  sourcePath: "src/components/ui/ThemaLogo.tsx",
   status: "stable",
   tags: ["marca", "svg"],
   playground: definePlayground({
@@ -27,14 +27,14 @@ export const ubitsLogoEntry = defineEntry({
     },
     render: ({ size, color }) => (
       <DarkCard className={cn(color !== "white" && "bg-surface border border-border/60 text-primary")}>
-        <UbitsLogo size={size} color={color} />
+        <ThemaLogo size={size} color={color} />
       </DarkCard>
     ),
     code: ({ size, color }) => {
       const attrs = [size !== 24 ? `size={${size}}` : "", color !== "white" ? `color="${color}"` : ""].filter(Boolean).join(" ");
       const wrapper = color === "white" ? 'bg-neutral-900' : 'bg-surface text-primary';
       return `<div className="${wrapper} p-6">
-  <UbitsLogo${attrs ? ` ${attrs}` : ""} />
+  <ThemaLogo${attrs ? ` ${attrs}` : ""} />
 </div>`;
     },
   }),
@@ -43,14 +43,14 @@ export const ubitsLogoEntry = defineEntry({
       id: "sizes",
       title: "Tamaños",
       description: "`size` fija el ancho; el alto se deriva de la proporción 24:25 del isotipo.",
-      code: `<UbitsLogo size={16} />
-<UbitsLogo size={24} />
-<UbitsLogo size={32} />
-<UbitsLogo size={48} />`,
+      code: `<ThemaLogo size={16} />
+<ThemaLogo size={24} />
+<ThemaLogo size={32} />
+<ThemaLogo size={48} />`,
       render: () => (
         <DarkCard>
           {SIZES.map((size) => (
-            <UbitsLogo key={size} size={size} />
+            <ThemaLogo key={size} size={size} />
           ))}
         </DarkCard>
       ),
@@ -60,14 +60,14 @@ export const ubitsLogoEntry = defineEntry({
       title: "Con nombre de marca",
       description: "Isotipo más texto: el patrón del sidebar y del header de producto.",
       code: `<div className="flex items-center gap-2 text-white">
-  <UbitsLogo size={20} />
-  <span className="text-sm font-semibold tracking-tight">UBITS</span>
+  <ThemaLogo size={20} />
+  <span className="text-sm font-semibold tracking-tight">Thema</span>
 </div>`,
       render: () => (
         <DarkCard>
           <div className="flex items-center gap-2 text-white">
-            <UbitsLogo size={20} />
-            <span className="text-sm font-semibold tracking-tight">UBITS</span>
+            <ThemaLogo size={20} />
+            <span className="text-sm font-semibold tracking-tight">Thema</span>
           </div>
         </DarkCard>
       ),
@@ -77,18 +77,18 @@ export const ubitsLogoEntry = defineEntry({
       title: "En superficie clara",
       description: "Con `color=\"currentColor\"` hereda el color del texto: aquí, el primario.",
       code: `<div className="text-primary">
-  <UbitsLogo size={32} color="currentColor" />
+  <ThemaLogo size={32} color="currentColor" />
 </div>`,
       render: () => (
         <div className="flex items-center gap-6 rounded-xl border border-border/60 bg-surface p-6">
           <span className="text-primary">
-            <UbitsLogo size={32} color="currentColor" />
+            <ThemaLogo size={32} color="currentColor" />
           </span>
           <span className="text-text-primary">
-            <UbitsLogo size={32} color="currentColor" />
+            <ThemaLogo size={32} color="currentColor" />
           </span>
           <span className="text-text-muted">
-            <UbitsLogo size={32} color="currentColor" />
+            <ThemaLogo size={32} color="currentColor" />
           </span>
         </div>
       ),
@@ -103,5 +103,5 @@ export const ubitsLogoEntry = defineEntry({
     do: ["Úsalo sobre fondos oscuros o pásale un color con contraste suficiente.", "Respeta la proporción: cambia solo `size`, nunca estires el SVG.", "Deja aire alrededor: al menos la mitad del tamaño del isotipo."],
     dont: ["No lo recolorees con degradados ni sombras.", "No lo uses como botón sin envolverlo en un enlace o botón real."],
   },
-  related: ["ubits-icon", "ubits-product-header"],
+  related: ["thema-icon", "thema-product-header"],
 });

@@ -23,7 +23,7 @@ interface PaginationShellProps {
 /**
  * PaginationShell
  * 
- * UBITS Enterprise wrapper for list/table pagination.
+ * Thema Enterprise wrapper for list/table pagination.
  * Handles page logic and summary display without business logic or routing dependencies.
  */
 export function PaginationShell({

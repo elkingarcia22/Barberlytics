@@ -1,27 +1,27 @@
 # Icon System Implementation - Phase 8.5B
 
 ## Overview
-This document describes the technical implementation of the UBITS Icon System infrastructure. The system uses a **Registry & Wrapper** pattern to abstract icon providers and enable a phased migration to Iconly Pro while maintaining Lucide as a technical fallback.
+This document describes the technical implementation of the Thema Icon System infrastructure. The system uses a **Registry & Wrapper** pattern to abstract icon providers and enable a phased migration to Iconly Pro while maintaining Lucide as a technical fallback.
 
 ## Components
 
-### 1. `UbitsIcon` Wrapper
+### 1. `ThemaIcon` Wrapper
 The central component for all icon usage. It ensures consistency in sizing, toning, and accessibility.
 
-- **Path**: `src/icons/UbitsIcon.tsx`
+- **Path**: `src/icons/ThemaIcon.tsx`
 - **Usage**:
 ```tsx
-import { UbitsIcon } from '@/icons';
+import { ThemaIcon } from '@/icons';
 
 // Decorative icon
-<UbitsIcon name="dashboard" size="md" tone="primary" />
+<ThemaIcon name="dashboard" size="md" tone="primary" />
 
 // Meaningful icon with label
-<UbitsIcon name="warning" tone="warning" decorative={false} label="Atención: Riesgo alto" />
+<ThemaIcon name="warning" tone="warning" decorative={false} label="Atención: Riesgo alto" />
 ```
 
 ### 2. `IconRegistry`
-A central mapping of semantic UBITS names to actual icon components.
+A central mapping of semantic Thema names to actual icon components.
 
 - **Path**: `src/icons/iconRegistry.ts`
 - **Status**: Currently using **Lucide-react** as a fallback.
@@ -44,7 +44,7 @@ Strict TypeScript definitions for names, sizes, and tones.
 | `xl` | `size-10` | 40px |
 
 ### Tones
-Uses semantic UBITS tokens via Tailwind classes:
+Uses semantic Thema tokens via Tailwind classes:
 - `default`: `text-foreground`
 - `muted`: `text-muted-foreground`
 - `primary`: `text-primary`

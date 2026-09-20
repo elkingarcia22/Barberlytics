@@ -20,7 +20,7 @@ describe("hexToRgb / rgbToHex", () => {
 });
 
 describe("hexToHsl / hslToHex", () => {
-  test("converts the UBITS brand blue to its documented channels", () => {
+  test("converts the Thema brand blue to its documented channels", () => {
     // tokens.css documents --color-brand-hsl as 219 90% 49%
     expect(hexToChannels("#0C5BEF")).toBe("219 90.4% 49.2%");
   });

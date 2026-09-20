@@ -1,7 +1,7 @@
 import * as React from "react"
 import echarts from "./registerECharts"
 import type { EChartsInstance, EChartProps } from "./types"
-import { getUbitsChartTheme } from "./theme"
+import { getChartTheme } from "./theme"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/feedback"
@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/feedback"
 /**
  * EChart
  *
- * Core UBITS wrapper for Apache ECharts.
+ * Core Thema wrapper for Apache ECharts.
  * Handles lifecycle (init, dispose), responsiveness (resize), and theming.
  *
  * The chart container div is always present in the DOM so that ECharts
@@ -51,7 +51,7 @@ export function EChart({
   React.useEffect(() => {
     if (!chartRef.current) return
 
-    const theme = getUbitsChartTheme()
+    const theme = getChartTheme()
     let instance = echarts.getInstanceByDom(chartRef.current)
     if (!instance) {
       instance = echarts.init(chartRef.current, theme)
@@ -114,7 +114,7 @@ export function EChart({
   React.useEffect(() => {
     const observer = new MutationObserver(() => {
       if (!instanceRef.current) return
-      const newTheme = getUbitsChartTheme()
+      const newTheme = getChartTheme()
       instanceRef.current.setOption({
         color: newTheme.color,
         textStyle: newTheme.textStyle,

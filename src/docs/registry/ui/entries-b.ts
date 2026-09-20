@@ -18,7 +18,7 @@ import { tableEntry } from "./table";
 import { tabsEntry } from "./tabs";
 import { textareaEntry } from "./textarea";
 import { tooltipEntry } from "./tooltip";
-import { ubitsLogoEntry } from "./ubits-logo";
+import { themaLogoEntry } from "./thema-logo";
 
 /** Primitivos, segunda mitad (magic-card … activity-dropdown). */
 export const uiEntriesB: readonly DocEntry[] = [
@@ -40,6 +40,6 @@ export const uiEntriesB: readonly DocEntry[] = [
   tabsEntry,
   textareaEntry,
   tooltipEntry,
-  ubitsLogoEntry,
+  themaLogoEntry,
   activityDropdownEntry,
 ];

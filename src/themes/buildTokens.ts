@@ -1,4 +1,5 @@
-import { hexToChannels, hexToHsl, hslChannels, hslToHex, readableForeground, shiftLightness } from "./color";
+import { hexToChannels, hexToHsl, hexToRgb, hslChannels, hslToHex, readableForeground, shiftLightness } from "./color";
+import { findFont, resolveHeadingFont, type FontId, type HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -33,6 +34,61 @@ export function buildRadiusTokens(scale: RadiusScale): ThemeTokens {
   );
 }
 
+export interface ThemeFonts {
+  body: FontId;
+  heading: HeadingFontId;
+}
+
+export function buildFontTokens(fonts: ThemeFonts): ThemeTokens {
+  return {
+    "--font-body": findFont(fonts.body).family,
+    "--font-heading": resolveHeadingFont(fonts.heading, fonts.body).family,
+  };
+}
+
+/**
+ * La familia de IA es siempre un gradiente y ahora sigue al tema: arranca en
+ * el primario y recorre ~120° del círculo cromático, con paradas intermedias
+ * para las mallas y el loader. Un preset puede fijar sus dos extremos.
+ */
+function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
+  const primary = hexToHsl(preset.primary[mode]);
+  const lift = mode === "dark" ? 8 : 0;
+  const start = preset.ai
+    ? shiftLightness(preset.ai.start, lift)
+    : hslToHex({ h: primary.h, s: Math.max(primary.s, 70), l: Math.min(Math.max(primary.l, 45), 62) + lift });
+  const end = preset.ai
+    ? shiftLightness(preset.ai.end, lift)
+    : hslToHex({ h: primary.h + 120, s: Math.max(primary.s, 72), l: 52 + lift });
+  const hue = hexToHsl(start).h;
+  const stop = (offset: number, s: number, l: number) => hslToHex({ h: hue + offset, s, l: l + lift });
+  const stops = [start, stop(50, 82, 53), stop(115, 95, 47), stop(115, 95, 47), stop(155, 100, 54)];
+  const rgb = (hex: string) => hexToRgb(hex).join(", ");
+  const pastel = (hex: string) => hslChannels({ ...hexToHsl(hex), l: Math.min(hexToHsl(hex).l + 10, 78) });
+  const tokens: Record<string, string> = {
+    "--color-ai-gradient-start": start,
+    "--color-ai-gradient-end": end,
+    "--color-ai-gradient-start-hsl": hexToChannels(start),
+    "--color-ai-gradient-end-hsl": hexToChannels(end),
+    "--color-ai-gradient-start-pastel-hsl": pastel(start),
+    "--color-ai-gradient-end-pastel-hsl": pastel(end),
+    "--ai-gradient-start": hexToChannels(start),
+    "--ai-gradient-end": hexToChannels(end),
+    "--ai-gradient-start-pastel": pastel(start),
+    "--ai-gradient-end-pastel": pastel(end),
+    "--color-ai-bg":
+      mode === "light" ? hslToHex({ h: hue + 20, s: 100, l: 97 }) : hslToHex({ h: hue + 20, s: 33, l: 15 }),
+    "--color-ai-border":
+      mode === "light" ? hslToHex({ h: hue + 12, s: 96, l: 79 }) : hslToHex({ h: hue + 14, s: 38, l: 48 }),
+    "--shadow-ai-premium": `0 4px 15px rgba(${rgb(start)}, 0.3), 0 2px 5px rgba(${rgb(end)}, 0.2)`,
+  };
+  stops.forEach((hex, index) => {
+    tokens[`--color-ai-stop-${index + 1}`] = hex;
+    tokens[`--color-ai-stop-${index + 1}-rgb`] = rgb(hex);
+  });
+  return tokens;
+}
+
 /**
  * Los neutros del sistema son blancos y grises con un ligero tinte del matiz
  * del primario. Cada tema define ese matiz y cuánta saturación admite: los
@@ -60,7 +116,7 @@ function neutralScale(preset: ThemePreset, mode: ResolvedMode) {
       textMuted: at(sat(6, 4), 62),
     };
   }
-  // En oscuro la saturación base la fija el preset (45 para el navy UBITS,
+  // En oscuro la saturación base la fija el preset (45 para el navy Thema,
   // 24 por defecto) y cada superficie se escala respecto a ella, así la
   // relación entre fondo, card y borde es la misma en todos los temas.
   const base = tinted ? (preset.darkNeutralSaturation ?? 24) : 10;
@@ -137,15 +193,18 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
     "--color-text-muted": hslToHex(n.textMuted),
   };
 
+  const ai = buildAiTokens(preset, mode);
   if (mode === "light") {
     return {
       ...common,
+      ...ai,
       "--popover": hslChannels(n.surface),
       "--muted": hslChannels(n.surfaceMuted),
     };
   }
   return {
     ...common,
+    ...ai,
     "--popover": hslChannels(n.popover ?? n.surface),
     "--muted": hslChannels(n.surfaceSubtle),
   };
@@ -156,12 +215,16 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
  * página de temas: `:root` con el modo claro y `.dark` con el oscuro. Sirve
  * para llevarse un tema a otro proyecto sin cargar el provider.
  */
-export function themeToCss(preset: ThemePreset, radius: RadiusScale = "md"): string {
+export function themeToCss(preset: ThemePreset, radius: RadiusScale = "md", fonts?: ThemeFonts): string {
   const block = (selector: string, tokens: ThemeTokens) =>
     `${selector} {\n${Object.entries(tokens)
       .map(([name, value]) => `  ${name}: ${value};`)
       .join("\n")}\n}`;
-  const light = { ...buildThemeTokens(preset, "light"), ...buildRadiusTokens(radius) };
+  const light = {
+    ...buildThemeTokens(preset, "light"),
+    ...buildRadiusTokens(radius),
+    ...(fonts ? buildFontTokens(fonts) : {}),
+  };
   const dark = buildThemeTokens(preset, "dark");
-  return `/* Tema "${preset.name}" — generado por UBITS Thema */\n${block(":root", light)}\n\n${block(".dark", dark)}\n`;
+  return `/* Tema "${preset.name}" — generado por Thema */\n${block(":root", light)}\n\n${block(".dark", dark)}\n`;
 }

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UbitsIcon, iconRegistry, type IconName, type IconSize, type IconTone } from "@/icons";
+import { ThemaIcon, iconRegistry, type IconName, type IconSize, type IconTone } from "@/icons";
 import { CodeBlock } from "../components/CodeBlock";
 import { useCopy } from "../hooks/useCopy";
 import { DocSection, PageIntro } from "../components/PageIntro";
@@ -15,15 +15,15 @@ function IconTile({ name }: { name: IconName }) {
   return (
     <button
       type="button"
-      onClick={() => copy(`<UbitsIcon name="${name}" />`)}
-      title={`Copiar <UbitsIcon name="${name}" />`}
+      onClick={() => copy(`<ThemaIcon name="${name}" />`)}
+      title={`Copiar <ThemaIcon name="${name}" />`}
       className={cn(
         "group flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-surface p-3 shadow-card transition-colors hover:border-primary/40",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       )}
     >
       <span className="relative flex size-10 items-center justify-center rounded-lg bg-surface-subtle text-text-primary group-hover:text-primary">
-        <UbitsIcon name={name} size="md" />
+        <ThemaIcon name={name} size="md" />
         {copied && (
           <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Check className="size-4" />
@@ -35,11 +35,11 @@ function IconTile({ name }: { name: IconName }) {
   );
 }
 
-const USAGE = `import { UbitsIcon } from "@/icons";
+const USAGE = `import { ThemaIcon } from "@/icons";
 
-<UbitsIcon name="survey" />                       // 24px, color heredado
-<UbitsIcon name="warning" size="sm" tone="warning" />
-<UbitsIcon name="success" label="Completado" decorative={false} />
+<ThemaIcon name="survey" />                       // 24px, color heredado
+<ThemaIcon name="warning" size="sm" tone="warning" />
+<ThemaIcon name="success" label="Completado" decorative={false} />
 
 // Para iconos fuera del registro, Lucide directo:
 import { Sparkles } from "lucide-react";
@@ -89,7 +89,7 @@ export function IconsPage() {
         <div className="flex flex-wrap items-end gap-6 rounded-2xl border border-border/60 bg-surface p-6 shadow-card">
           {SIZES.map((size) => (
             <div key={size} className="flex flex-col items-center gap-2">
-              <UbitsIcon name="sparkles" size={size} />
+              <ThemaIcon name="sparkles" size={size} />
               <span className="font-mono text-[11px] text-text-muted">{size}</span>
             </div>
           ))}
@@ -100,7 +100,7 @@ export function IconsPage() {
         <div className="flex flex-wrap items-end gap-6 rounded-2xl border border-border/60 bg-surface p-6 shadow-card">
           {TONES.map((tone) => (
             <div key={tone} className="flex flex-col items-center gap-2">
-              <UbitsIcon name="info" size="lg" tone={tone} />
+              <ThemaIcon name="info" size="lg" tone={tone} />
               <span className="font-mono text-[11px] text-text-muted">{tone}</span>
             </div>
           ))}

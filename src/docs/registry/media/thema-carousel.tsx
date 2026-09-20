@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { UbitsCarousel, PreviewCard, type CarouselOrientation } from "@/components/media";
+import { ThemaCarousel, PreviewCard, type CarouselOrientation } from "@/components/media";
 import { Button } from "@/components/ui/button";
 import { defineEntry, definePlayground } from "../types";
 import { COURSE_ITEMS, PLACEHOLDER_SNIPPET, placeholder } from "./fixtures";
@@ -15,14 +15,14 @@ function Slide({ label, tone, className }: { label: string; tone: Parameters<typ
   );
 }
 
-export const ubitsCarouselEntry = defineEntry({
-  id: "ubits-carousel",
-  name: "UbitsCarousel",
+export const themaCarouselEntry = defineEntry({
+  id: "thema-carousel",
+  name: "ThemaCarousel",
   group: "media",
   description:
     "Envoltorio del Carousel de shadcn con cabecera de sección, flechas y puntos de paginación resueltos. Recibe cualquier hijo como slide y deja el ancho de cada ítem en manos de `itemClassName`.",
-  importPath: 'import { UbitsCarousel } from "@/components/media"',
-  sourcePath: "src/components/media/UbitsCarousel.tsx",
+  importPath: 'import { ThemaCarousel } from "@/components/media"',
+  sourcePath: "src/components/media/ThemaCarousel.tsx",
   status: "stable",
   tags: ["embla", "carousel", "seccion"],
   playground: definePlayground({
@@ -38,7 +38,7 @@ export const ubitsCarouselEntry = defineEntry({
       const isVertical = orientation === "vertical";
       return (
         <div className="w-full px-10">
-          <UbitsCarousel
+          <ThemaCarousel
             key={`${orientation}-${loop}`}
             title={title || undefined}
             description={title ? "Seleccionados según tu rol y tus últimas rutas." : undefined}
@@ -52,7 +52,7 @@ export const ubitsCarouselEntry = defineEntry({
             {COURSE_ITEMS.map((item) => (
               <PreviewCard key={item.id} item={item} />
             ))}
-          </UbitsCarousel>
+          </ThemaCarousel>
         </div>
       );
     },
@@ -70,12 +70,12 @@ export const ubitsCarouselEntry = defineEntry({
         .filter(Boolean)
         .map((attr) => `\n  ${attr}`)
         .join("");
-      return `<UbitsCarousel${attrs}
+      return `<ThemaCarousel${attrs}
 >
   {courses.map((item) => (
     <PreviewCard key={item.id} item={item} />
   ))}
-</UbitsCarousel>`;
+</ThemaCarousel>`;
     },
   }),
   examples: [
@@ -84,7 +84,7 @@ export const ubitsCarouselEntry = defineEntry({
       title: "Sección de tarjetas",
       description: "El caso típico: título, acción a la derecha y tres tarjetas por vista en escritorio.",
       layout: "stretch",
-      code: `<UbitsCarousel
+      code: `<ThemaCarousel
   title="Cursos recomendados"
   description="Seleccionados según tu rol."
   actions={<Button size="sm" variant="outline"><Plus /> Añadir</Button>}
@@ -93,10 +93,10 @@ export const ubitsCarouselEntry = defineEntry({
   {courses.map((item) => (
     <PreviewCard key={item.id} item={item} />
   ))}
-</UbitsCarousel>`,
+</ThemaCarousel>`,
       render: () => (
         <div className="w-full px-10">
-          <UbitsCarousel
+          <ThemaCarousel
             title="Cursos recomendados"
             description="Seleccionados según tu rol."
             actions={
@@ -109,7 +109,7 @@ export const ubitsCarouselEntry = defineEntry({
             {COURSE_ITEMS.map((item) => (
               <PreviewCard key={item.id} item={item} />
             ))}
-          </UbitsCarousel>
+          </ThemaCarousel>
         </div>
       ),
     },
@@ -120,18 +120,18 @@ export const ubitsCarouselEntry = defineEntry({
       layout: "stretch",
       code: `${PLACEHOLDER_SNIPPET}
 
-<UbitsCarousel loop showControls={false} showDots ariaLabel="Novedades">
+<ThemaCarousel loop showControls={false} showDots ariaLabel="Novedades">
   {["Onboarding", "Liderazgo", "Bienestar"].map((label) => (
     <img key={label} src={placeholder(label)} alt={label} className="aspect-[21/9] w-full rounded-lg object-cover" />
   ))}
-</UbitsCarousel>`,
+</ThemaCarousel>`,
       render: () => (
         <div className="w-full">
-          <UbitsCarousel loop showControls={false} showDots ariaLabel="Novedades">
+          <ThemaCarousel loop showControls={false} showDots ariaLabel="Novedades">
             <Slide label="Onboarding" tone="azul" className="aspect-[21/9]" />
             <Slide label="Liderazgo" tone="violeta" className="aspect-[21/9]" />
             <Slide label="Bienestar" tone="verde" className="aspect-[21/9]" />
-          </UbitsCarousel>
+          </ThemaCarousel>
         </div>
       ),
     },
@@ -141,19 +141,19 @@ export const ubitsCarouselEntry = defineEntry({
       description: "En vertical el contenedor necesita una altura fija vía `contentClassName`; cada ítem toma su fracción con `basis-*`.",
       layout: "stretch",
       frameClassName: "min-h-[320px]",
-      code: `<UbitsCarousel orientation="vertical" contentClassName="h-[260px]" itemClassName="basis-1/2">
+      code: `<ThemaCarousel orientation="vertical" contentClassName="h-[260px]" itemClassName="basis-1/2">
   {slides.map((slide) => (
     <img key={slide} src={placeholder(slide)} alt={slide} className="h-full w-full rounded-lg object-cover" />
   ))}
-</UbitsCarousel>`,
+</ThemaCarousel>`,
       render: () => (
         <div className="w-full max-w-md py-10">
-          <UbitsCarousel orientation="vertical" contentClassName="h-[260px]" itemClassName="basis-1/2">
+          <ThemaCarousel orientation="vertical" contentClassName="h-[260px]" itemClassName="basis-1/2">
             <Slide label="Excel" tone="verde" className="h-full" />
             <Slide label="Ventas" tone="rosa" className="h-full" />
             <Slide label="Feedback" tone="naranja" className="h-full" />
             <Slide label="Seguridad" tone="gris" className="h-full" />
-          </UbitsCarousel>
+          </ThemaCarousel>
         </div>
       ),
     },

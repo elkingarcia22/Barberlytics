@@ -30,7 +30,7 @@ export interface RadioCardGroupProps {
 }
 
 /**
- * RadioCardGroup - UBITS component for choosing one option from a set of cards.
+ * RadioCardGroup - Thema component for choosing one option from a set of cards.
  * Powered by Radix UI RadioGroup for native accessibility and keyboard navigation.
  */
 export function RadioCardGroup({

@@ -47,7 +47,7 @@ export interface ImportCsvPanelProps {
 }
 
 /**
- * ImportCsvPanel - UBITS component for CSV import experience.
+ * ImportCsvPanel - Thema component for CSV import experience.
  * Orchestrates upload, progress, and data preview.
  */
 export function ImportCsvPanel({

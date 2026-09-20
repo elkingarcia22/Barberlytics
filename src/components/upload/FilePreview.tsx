@@ -44,7 +44,7 @@ const KIND_ICONS = {
 }
 
 /**
- * FilePreview - UBITS component for visualizing file metadata.
+ * FilePreview - Thema component for visualizing file metadata.
  * Supports different layouts (card, row, compact).
  */
 export function FilePreview({

@@ -21,7 +21,7 @@ import {
  * final de la fila.
  */
 
-const STORAGE_PREFIX = "ubits.tabla.";
+const STORAGE_PREFIX = "thema.tabla.";
 
 const readStored = (tableId: string): StoredTableConfig | null => {
   try {

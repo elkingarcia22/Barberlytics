@@ -175,5 +175,5 @@ export const previewCardEntry = defineEntry({
       "No metas más de tres acciones en el pie; el resto va a un menú.",
     ],
   },
-  related: ["image-grid", "ubits-carousel", "card", "file-preview"],
+  related: ["image-grid", "thema-carousel", "card", "file-preview"],
 });

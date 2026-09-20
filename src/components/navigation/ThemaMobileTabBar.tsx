@@ -1,9 +1,9 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { UbitsIcon } from "@/icons";
+import { ThemaIcon } from "@/icons";
 import type { NavigationComponentProps, NavigationItem } from "./navigationTypes";
 
-export const UbitsMobileTabBar: React.FC<NavigationComponentProps<NavigationItem>> = ({
+export const ThemaMobileTabBar: React.FC<NavigationComponentProps<NavigationItem>> = ({
   items,
   activeItemId,
   onItemSelect,
@@ -40,7 +40,7 @@ export const UbitsMobileTabBar: React.FC<NavigationComponentProps<NavigationItem
           >
             <div className="relative">
               {item.icon && (
-                <UbitsIcon
+                <ThemaIcon
                   name={item.icon}
                   size="md"
                   tone={isActive ? "primary" : "default"}

@@ -33,7 +33,7 @@ export interface MonthPickerProps {
 }
 
 /**
- * MonthPicker - UBITS component for selecting a specific month and year.
+ * MonthPicker - Thema component for selecting a specific month and year.
  * Desktop-first, B2B enterprise style.
  */
 export function MonthPicker({

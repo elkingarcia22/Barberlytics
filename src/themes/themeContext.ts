@@ -1,8 +1,9 @@
 import * as React from "react";
 import type { RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } from "./buildTokens";
+import type { FontId, FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
-export const THEME_STORAGE_KEY = "ubits-theme";
+export const THEME_STORAGE_KEY = "thema-theme";
 
 export interface ThemeContextValue {
   preset: ThemePreset;
@@ -14,7 +15,13 @@ export interface ThemeContextValue {
   resolvedMode: ResolvedMode;
   radius: RadiusScale;
   setRadius: (radius: RadiusScale) => void;
-  /** Los tokens de color activos en este momento. */
+  /** Fuente del cuerpo y de los títulos ("same" = la misma del cuerpo). */
+  font: FontId;
+  setFont: (font: FontId) => void;
+  headingFont: HeadingFontId;
+  setHeadingFont: (font: HeadingFontId) => void;
+  fonts: readonly FontOption[];
+  /** Los tokens activos en este momento (color, radio y tipografía). */
   tokens: ThemeTokens;
 }
 

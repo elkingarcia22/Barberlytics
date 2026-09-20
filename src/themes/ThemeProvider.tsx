@@ -1,12 +1,16 @@
 import * as React from "react";
-import { buildRadiusTokens, buildThemeTokens, type RadiusScale, type ResolvedMode, type ThemeMode, type ThemeTokens } from "./buildTokens";
+import { buildFontTokens, buildRadiusTokens, buildThemeTokens, type RadiusScale, type ResolvedMode, type ThemeMode, type ThemeTokens } from "./buildTokens";
 import { DEFAULT_THEME_ID, findPreset, THEME_PRESETS } from "./presets";
+import { DEFAULT_BODY_FONT, DEFAULT_HEADING_FONT, ensureFontLoaded, findFont, FONT_OPTIONS, isFontId, resolveHeadingFont, type FontId, type HeadingFontId } from "./fonts";
 import { ThemeContext, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
 
 interface StoredTheme {
   preset: string;
   mode: ThemeMode;
   radius: RadiusScale;
+  /** Ausente = usar la sugerencia del preset (o Inter). */
+  font?: FontId;
+  headingFont?: HeadingFontId;
 }
 
 const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "light", radius: "md" };
@@ -21,6 +25,8 @@ function readStored(): StoredTheme {
       preset: findPreset(parsed.preset).id,
       mode: parsed.mode === "dark" || parsed.mode === "system" ? parsed.mode : "light",
       radius: parsed.radius === "none" || parsed.radius === "sm" || parsed.radius === "lg" ? parsed.radius : "md",
+      font: isFontId(parsed.font) ? parsed.font : undefined,
+      headingFont: parsed.headingFont === "same" || isFontId(parsed.headingFont) ? parsed.headingFont : undefined,
     };
   } catch {
     return DEFAULT_STORED;
@@ -75,10 +81,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const resolvedMode: ResolvedMode =
     stored.mode === "system" ? (prefersDark ? "dark" : "light") : stored.mode;
 
+  // La tipografía guardada gana; si no hay, la sugerencia del preset; si no, Inter.
+  const font: FontId = stored.font ?? preset.fonts?.body ?? DEFAULT_BODY_FONT;
+  const headingFont: HeadingFontId = stored.headingFont ?? preset.fonts?.heading ?? DEFAULT_HEADING_FONT;
+
   const tokens = React.useMemo<ThemeTokens>(
-    () => ({ ...buildThemeTokens(preset, resolvedMode), ...buildRadiusTokens(stored.radius) }),
-    [preset, resolvedMode, stored.radius]
+    () => ({
+      ...buildThemeTokens(preset, resolvedMode),
+      ...buildRadiusTokens(stored.radius),
+      ...buildFontTokens({ body: font, heading: headingFont }),
+    }),
+    [preset, resolvedMode, stored.radius, font, headingFont]
   );
+
+  React.useEffect(() => {
+    ensureFontLoaded(findFont(font));
+    ensureFontLoaded(resolveHeadingFont(headingFont, font));
+  }, [font, headingFont]);
 
   const appliedRef = React.useRef<string[]>([]);
   React.useLayoutEffect(() => {
@@ -100,9 +119,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       resolvedMode,
       radius: stored.radius,
       setRadius: (radius) => setStored((prev) => ({ ...prev, radius })),
+      font,
+      setFont: (next) => setStored((prev) => ({ ...prev, font: next })),
+      headingFont,
+      setHeadingFont: (next) => setStored((prev) => ({ ...prev, headingFont: next })),
+      fonts: FONT_OPTIONS,
       tokens,
     }),
-    [preset, stored.mode, stored.radius, resolvedMode, tokens]
+    [preset, stored.mode, stored.radius, resolvedMode, tokens, font, headingFont]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -1,5 +1,5 @@
 /**
- * Upload & Files Types for UBITS Enterprise System.
+ * Upload & Files Types for Thema Enterprise System.
  */
 
 export type UploadFileStatus = 'idle' | 'selected' | 'error'

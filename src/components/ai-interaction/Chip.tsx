@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { UbitsIcon } from "@/icons/UbitsIcon";
+import { ThemaIcon } from "@/icons/ThemaIcon";
 import type { ChipProps } from "./aiInteractionTypes";
 
 const chipVariants = cva(
@@ -76,7 +76,7 @@ export function Chip({
   const Content = (
     <>
       {icon && (
-        <UbitsIcon 
+        <ThemaIcon 
           name={icon} 
           size={size === "sm" ? "xs" : "sm"} 
           className={cn(
@@ -108,7 +108,7 @@ export function Chip({
           )}
           aria-label={`Remove ${label}`}
         >
-          <UbitsIcon name="close" size="xs" className={cn(isAI && "text-ai-gradient")} />
+          <ThemaIcon name="close" size="xs" className={cn(isAI && "text-ai-gradient")} />
         </button>
       )}
     </>

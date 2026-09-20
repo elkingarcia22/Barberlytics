@@ -129,7 +129,7 @@ export const aiButtonEntry = defineEntry({
     {
       id: "icons",
       title: "Iconos personalizados",
-      description: "`leftIcon` reemplaza la chispa por defecto; `rightIcon` añade uno al final. Ambos son nombres del registro UbitsIcon.",
+      description: "`leftIcon` reemplaza la chispa por defecto; `rightIcon` añade uno al final. Ambos son nombres del registro ThemaIcon.",
       code: `<AIButton label="Analizar resultados" leftIcon="analytics" />
 <AIButton label="Continuar" variant="outline" rightIcon="arrowRight" />`,
       render: () => (

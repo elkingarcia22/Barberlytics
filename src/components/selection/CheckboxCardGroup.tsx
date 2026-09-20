@@ -27,7 +27,7 @@ export interface CheckboxCardGroupProps {
 }
 
 /**
- * CheckboxCardGroup - UBITS component for multiple selection via visual cards.
+ * CheckboxCardGroup - Thema component for multiple selection via visual cards.
  */
 export function CheckboxCardGroup({
   options,

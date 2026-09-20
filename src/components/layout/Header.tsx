@@ -44,7 +44,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
           <div className="relative group">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-primary" />
             <div className="h-10 w-64 rounded-xl border border-input bg-surface-muted pl-10 pr-4 text-sm text-text-muted flex items-center transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30">
-              Buscar en UBITS...
+              Buscar en Thema...
             </div>
           </div>
           <button className="relative h-10 w-10 flex items-center justify-center rounded-lg hover:bg-surface-muted transition-all duration-200">

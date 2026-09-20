@@ -44,6 +44,7 @@ function ThemeCard({ preset }: { preset: ThemePreset }) {
             Avance del ciclo y acciones.
           </p>
           <Progress value={64} className="mt-3" />
+          <div className="mt-3 h-2 rounded-full bg-ai-gradient" title="Gradiente de IA del tema" />
           <div className="mt-3 flex items-center gap-2">
             <Button size="sm">Guardar</Button>
             <Button size="sm" variant="outline">
@@ -107,18 +108,23 @@ const PRESET_CODE = `// src/themes/presets.ts
   description: "Cálido, para campañas internas.",
   primary: { light: "#F43F5E", dark: "#FB7185" },
   neutral: "gray",       // "tinted" tiñe los neutros con el matiz del primario
+  fonts: { body: "manrope", heading: "fraunces" },   // opcional
+  ai: { start: "#F43F5E", end: "#F59E0B" },           // opcional
 }`;
 
 export function ThemesPage() {
-  const { preset, radius, tokens, resolvedMode } = useTheme();
-  const css = React.useMemo(() => themeToCss(preset, radius), [preset, radius]);
+  const { preset, radius, tokens, resolvedMode, font, headingFont } = useTheme();
+  const css = React.useMemo(
+    () => themeToCss(preset, radius, { body: font, heading: headingFont }),
+    [preset, radius, font, headingFont]
+  );
 
   return (
     <div className="cascade-enter space-y-12">
       <PageIntro
         eyebrow="Fundamentos"
         title="Temas"
-        description="Un tema es un color primario por modo y una decisión sobre los neutros. Todo lo demás se deriva: hover, pressed, fondo de app, pista de pestañas, superficies del modo oscuro y el anillo de foco. Los estados semánticos (positivo, negativo, warning, info, IA) no cambian entre temas porque son significado, no decoración."
+        description="Un tema es un color primario por modo, una decisión sobre los neutros y una tipografía. Todo lo demás se deriva: hover, pressed, fondo de app, pista de pestañas, superficies del modo oscuro, el anillo de foco y el gradiente de IA, que arranca en el primario y recorre 120° del círculo cromático. Los estados semánticos (positivo, negativo, warning, info) no cambian entre temas porque son significado, no decoración."
       />
 
       <DocSection id="catalog" title="Catálogo" description="Cada tarjeta se renderiza con los tokens de su tema, aislada del tema activo del documento. Aplica uno o copia su CSS estático para llevarlo a otro proyecto.">
@@ -135,9 +141,11 @@ export function ThemesPage() {
           <div className="space-y-3">
             <CodeBlock code={PRESET_CODE} />
             <ul className="space-y-1.5 text-[13px] text-text-secondary">
-              <li>• La preferencia se guarda en <code className="rounded bg-muted px-1 font-mono text-[12px]">localStorage["ubits-theme"]</code>.</li>
+              <li>• La preferencia se guarda en <code className="rounded bg-muted px-1 font-mono text-[12px]">localStorage["thema-theme"]</code>.</li>
               <li>• El modo <em>Sistema</em> sigue a <code className="rounded bg-muted px-1 font-mono text-[12px]">prefers-color-scheme</code>.</li>
               <li>• El radio escala los siete pasos (xs → 3xl) con un factor: recto ×0, suave ×0.6, normal ×1, amplio ×1.45.</li>
+              <li>• La tipografía (cuerpo y títulos) se elige en el selector; un preset puede sugerir la suya con <code className="rounded bg-muted px-1 font-mono text-[12px]">fonts</code> y las de Google se cargan solo al elegirlas.</li>
+              <li>• El gradiente de IA se deriva del primario; un preset puede fijar el suyo con <code className="rounded bg-muted px-1 font-mono text-[12px]">ai</code>.</li>
             </ul>
           </div>
         </div>
@@ -150,8 +158,8 @@ export function ThemesPage() {
       <DocSection id="live-tokens" title={`Tokens en vivo · modo ${resolvedMode === "dark" ? "oscuro" : "claro"}`} description="Los valores que el provider está aplicando ahora mismo al documento.">
         <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(tokens).map(([name, value]) => {
-            const isColorish = value.startsWith("#") || /^\d/.test(value);
-            const swatch = value.startsWith("#") ? value : value.endsWith("px") ? undefined : `hsl(${value})`;
+            const isColorish = value.startsWith("#") || /^\d+ \d/.test(value);
+            const swatch = value.startsWith("#") ? value : /^\d+ [\d.]+% [\d.]+%$/.test(value) ? `hsl(${value})` : undefined;
             return (
               <div key={name} className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-surface px-2.5 py-2">
                 {isColorish && swatch ? (

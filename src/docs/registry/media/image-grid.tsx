@@ -161,5 +161,5 @@ const toggle = (id: string) =>
       "No mezcles `colSpan`/`rowSpan` fuera de la variante bento; se ignoran.",
     ],
   },
-  related: ["gallery", "preview-card", "card", "ubits-carousel"],
+  related: ["gallery", "preview-card", "card", "thema-carousel"],
 });

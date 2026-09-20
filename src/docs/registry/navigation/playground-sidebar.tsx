@@ -2,7 +2,7 @@ import * as React from "react";
 import { PlaygroundSidebar } from "@/components/navigation";
 import type { NavigationSection } from "@/components/navigation";
 import { getPlaygroundNavigation, type PlaygroundRole } from "@/config/playgroundNavigation";
-import { UbitsIcon } from "@/icons";
+import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { defineEntry, definePlayground } from "../types";
 
@@ -10,7 +10,7 @@ const ROLES = ["admin", "collaborator", "creator", "recruitment"] as const;
 
 const LOGO = (
   <div className="flex size-10 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30">
-    <UbitsIcon name="sparkles" size="sm" tone="inverse" />
+    <ThemaIcon name="sparkles" size="sm" tone="inverse" />
   </div>
 );
 
@@ -126,5 +126,5 @@ const [active, setActive] = React.useState("inicio");
     do: ["Usa los `NavigationSection` de `@/config/playgroundNavigation` para los roles oficiales.", "Deja siempre un `header` con el logo: el rail sin marca parece un panel de herramientas.", "Mantén los ítems por debajo de ocho; el rail no colapsa ni agrupa."],
     dont: ["No lo combines con la sub-navegación para el mismo nivel: el rail cambia de módulo, la sub-nav de pestaña.", "No metas texto en los ítems; la etiqueta vive en el tooltip."],
   },
-  related: ["ubits-sub-nav", "ubits-mobile-tab-bar", "sidebar", "tooltip"],
+  related: ["thema-sub-nav", "thema-mobile-tab-bar", "sidebar", "tooltip"],
 });

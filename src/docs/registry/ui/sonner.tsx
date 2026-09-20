@@ -80,7 +80,7 @@ export const sonnerEntry = defineEntry({
   name: "Toaster / toast()",
   group: "ui",
   description:
-    "El Toaster de Sonner afinado con los tokens UBITS: iconos por tipo, bordes tintados y un botón de cierre de 28px que sí se puede pulsar. Se monta una sola vez (la app ya lo hace vía UbitsToaster) y desde cualquier pantalla se dispara con `toast()`.",
+    "El Toaster de Sonner afinado con los tokens Thema: iconos por tipo, bordes tintados y un botón de cierre de 28px que sí se puede pulsar. Se monta una sola vez (la app ya lo hace vía ThemaToaster) y desde cualquier pantalla se dispara con `toast()`.",
   importPath: 'import { toast } from "sonner"',
   sourcePath: "src/components/ui/sonner.tsx",
   status: "stable",
@@ -177,11 +177,11 @@ toast.dismiss(id);`,
     { name: "options.duration", type: "number", default: "4000", description: "Milisegundos en pantalla; `Infinity` lo hace persistente." },
     { name: "options.id", type: "string | number", description: "Reutiliza un toast existente (p. ej. actualizar un `loading`)." },
     { name: "toast.promise(promise, { loading, success, error })", type: "función", description: "Encadena los tres estados en un mismo toast." },
-    { name: "<Toaster />", type: "componente", description: "El contenedor de `@/components/ui/sonner`. Ya está montado a través de UbitsToaster; no montes otro." },
+    { name: "<Toaster />", type: "componente", description: "El contenedor de `@/components/ui/sonner`. Ya está montado a través de ThemaToaster; no montes otro." },
   ],
   guidelines: {
     do: ["Confirma lo que acaba de ocurrir en una línea; usa la descripción para el detalle.", "Ofrece «Deshacer» en lugar de pedir confirmación previa cuando la acción es reversible.", "Reutiliza el `id` para actualizar un toast de carga en vez de apilar dos."],
     dont: ["No montes un segundo `<Toaster />`: cada toast saldría duplicado.", "No uses toasts para errores que bloquean el flujo; ahí va Alert o AlertDialog.", "No abuses de `duration: Infinity`; solo para avisos que requieren acción."],
   },
-  related: ["ubits-toaster", "alert", "alert-dialog", "button"],
+  related: ["thema-toaster", "alert", "alert-dialog", "button"],
 });

@@ -27,7 +27,7 @@ export interface CardSelectionProps {
 }
 
 /**
- * CardSelection - UBITS component for choosing one option from a set of cards.
+ * CardSelection - Thema component for choosing one option from a set of cards.
  * Uses semantic button elements for accessibility.
  */
 export function CardSelection({

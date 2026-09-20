@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UbitsIcon } from "@/icons/UbitsIcon";
+import { ThemaIcon } from "@/icons/ThemaIcon";
 import type { AILoaderProps } from "./aiInteractionTypes";
 
 export function AILoader({
@@ -39,7 +39,7 @@ export function AILoader({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ai-gradient text-primary-foreground shadow-drawer">
-              <UbitsIcon name="sparkles" size="sm" tone="inverse" />
+              <ThemaIcon name="sparkles" size="sm" tone="inverse" />
             </div>
             <div>
               <p className="text-sm font-bold">{currentLabel}</p>
@@ -80,7 +80,7 @@ export function AILoader({
   return (
     <div className={cn("flex flex-col gap-4 p-4 rounded-xl border border-dashed border-ai-border bg-ai-bg", className)} role="status" aria-live="polite">
       <div className="flex items-center gap-2">
-        <UbitsIcon name="sparkles" size="sm" className="animate-pulse text-ai-gradient" />
+        <ThemaIcon name="sparkles" size="sm" className="animate-pulse text-ai-gradient" />
         <span className="text-sm font-bold text-ai-gradient uppercase tracking-tight">{currentLabel}</span>
       </div>
       <div className="space-y-2.5">

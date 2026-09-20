@@ -1,7 +1,7 @@
-# Diseño UBITS (B2B Enterprise)
+# Diseño Thema (B2B Enterprise)
 
 ## Filosofía Visual
-El sistema de diseño de UBITS para esta plantilla se aleja de los estilos SaaS genéricos (gradientes, glassmorphism, decoraciones excesivas) para centrarse en la eficiencia operativa y la sobriedad corporativa.
+El sistema de diseño de Thema para esta plantilla se aleja de los estilos SaaS genéricos (gradientes, glassmorphism, decoraciones excesivas) para centrarse en la eficiencia operativa y la sobriedad corporativa.
 
 ## Estrategia de Temas (Fase 5D)
 1. **Light Mode (Principal):** Es el modo oficial y prioritario de la plataforma. Toda la arquitectura está optimizada para máxima legibilidad en este modo.
@@ -16,7 +16,7 @@ El sistema de diseño de UBITS para esta plantilla se aleja de los estilos SaaS 
 - **Fondo de Aplicación:** Gris claro (`#F4F6F8`) para generar contraste suave con las superficies de trabajo.
 - **Cards:** Fondos blancos sólidos (`#FFFFFF`) con bordes sutiles de 1px.
 - **Texto Primario:** Azul grisáceo oscuro (`#303A47`) para máxima legibilidad.
-- **Acción Primaria:** Azul UBITS (`#0C5BEF`) utilizado de forma estratégica para botones primarios.
+- **Acción Primaria:** Azul Thema (`#0C5BEF`) utilizado de forma estratégica para botones primarios.
 - **Navegación:** Sidebar Navy Blue (`#0A0A60`) compacto (80px).
 - **Tablas:** Densidad de información optimizada, legibilidad alta, bordes claros.
 - **IA Accionable:** Los elementos de IA se presentan como herramientas de soporte y análisis, no como elementos decorativos.

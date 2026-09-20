@@ -2,7 +2,7 @@
  * Media & Display Components Suite
  */
 
-export { UbitsCarousel } from './UbitsCarousel'
+export { ThemaCarousel } from './ThemaCarousel'
 export { ImageGrid } from './ImageGrid'
 export { Gallery } from './Gallery'
 export { PreviewCard } from './PreviewCard'

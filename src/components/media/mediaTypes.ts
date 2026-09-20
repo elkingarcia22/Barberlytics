@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 export type CarouselOrientation = 'horizontal' | 'vertical'
 
-export interface UbitsCarouselProps {
+export interface ThemaCarouselProps {
   /** The content items to display in the carousel */
   children: ReactNode
   /** Optional title for the carousel section */

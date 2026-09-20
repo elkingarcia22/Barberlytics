@@ -85,7 +85,7 @@ export const inputGroupEntry = defineEntry({
     },
     render: ({ align, kind, placeholder, disabled }) => {
       const addon =
-        kind === "icon" ? <Mail /> : kind === "text" ? <InputGroupText>@ubits.co</InputGroupText> : <InputGroupButton variant="outline">Verificar</InputGroupButton>;
+        kind === "icon" ? <Mail /> : kind === "text" ? <InputGroupText>@thema.co</InputGroupText> : <InputGroupButton variant="outline">Verificar</InputGroupButton>;
       return (
         <InputGroup className="w-full max-w-sm">
           <InputGroupInput placeholder={placeholder} disabled={disabled} aria-label="Correo" />
@@ -94,7 +94,7 @@ export const inputGroupEntry = defineEntry({
       );
     },
     code: ({ align, kind, placeholder, disabled }) => {
-      const addon = kind === "icon" ? "<Mail />" : kind === "text" ? "<InputGroupText>@ubits.co</InputGroupText>" : '<InputGroupButton variant="outline">Verificar</InputGroupButton>';
+      const addon = kind === "icon" ? "<Mail />" : kind === "text" ? "<InputGroupText>@thema.co</InputGroupText>" : '<InputGroupButton variant="outline">Verificar</InputGroupButton>';
       const alignAttr = align !== "inline-start" ? ` align="${align}"` : "";
       return `<InputGroup>
   <InputGroupInput placeholder="${placeholder}"${disabled ? " disabled" : ""} />
@@ -142,7 +142,7 @@ export const inputGroupEntry = defineEntry({
       code: `<InputGroup>
   <InputGroupAddon><InputGroupText><Link2 /> https://</InputGroupText></InputGroupAddon>
   <InputGroupInput placeholder="mi-empresa" />
-  <InputGroupAddon align="inline-end"><InputGroupText>.ubits.co</InputGroupText></InputGroupAddon>
+  <InputGroupAddon align="inline-end"><InputGroupText>.thema.co</InputGroupText></InputGroupAddon>
 </InputGroup>`,
       render: () => (
         <InputGroup className="w-full max-w-sm">
@@ -153,7 +153,7 @@ export const inputGroupEntry = defineEntry({
           </InputGroupAddon>
           <InputGroupInput placeholder="mi-empresa" aria-label="Subdominio" />
           <InputGroupAddon align="inline-end">
-            <InputGroupText>.ubits.co</InputGroupText>
+            <InputGroupText>.thema.co</InputGroupText>
           </InputGroupAddon>
         </InputGroup>
       ),

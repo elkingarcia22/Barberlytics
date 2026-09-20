@@ -13,7 +13,7 @@ import * as React from "react";
 
 export type RailOrientation = "horizontal" | "vertical";
 
-const STORAGE_KEY = "ubits.actionRail.orientation.v1";
+const STORAGE_KEY = "thema.actionRail.orientation.v1";
 
 function read(): RailOrientation {
   if (typeof window === "undefined") return "horizontal";

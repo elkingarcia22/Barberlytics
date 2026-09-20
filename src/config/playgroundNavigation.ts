@@ -2,7 +2,7 @@ import type { NavigationSection, NavigationRole } from "@/components/navigation/
 import type { IconName } from "@/icons/iconTypes";
 
 /**
- * UBITS PLAYGROUND NAVIGATION CONFIGURATION
+ * Thema PLAYGROUND NAVIGATION CONFIGURATION
  * Contains the 4 official navigation modes extracted from legacy architecture.
  */
 

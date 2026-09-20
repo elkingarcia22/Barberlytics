@@ -30,7 +30,7 @@ export interface SegmentedControlProps {
 }
 
 /**
- * SegmentedControl - UBITS component for toggling between compact options.
+ * SegmentedControl - Thema component for toggling between compact options.
  * Ideal for view switchers, status toggles, or period selection.
  */
 export function SegmentedControl({

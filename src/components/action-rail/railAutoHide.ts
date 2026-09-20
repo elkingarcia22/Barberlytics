@@ -10,7 +10,7 @@ import * as React from "react";
  * also survives a reload.
  */
 
-const STORAGE_KEY = "ubits.actionRail.autoHide.v1";
+const STORAGE_KEY = "thema.actionRail.autoHide.v1";
 
 function read(): boolean {
   if (typeof window === "undefined") return false;

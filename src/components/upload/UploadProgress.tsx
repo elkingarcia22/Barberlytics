@@ -21,7 +21,7 @@ export interface UploadProgressProps {
 }
 
 /**
- * UploadProgress - UBITS component for visualizing upload and processing state.
+ * UploadProgress - Thema component for visualizing upload and processing state.
  * Fully controlled by props, no internal timers.
  */
 export function UploadProgress({

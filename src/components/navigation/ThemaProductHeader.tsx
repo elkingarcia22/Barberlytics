@@ -1,14 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface UbitsProductHeaderProps {
+interface ThemaProductHeaderProps {
   title: string;
   logo?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
 }
 
-export const UbitsProductHeader: React.FC<UbitsProductHeaderProps> = ({
+export const ThemaProductHeader: React.FC<ThemaProductHeaderProps> = ({
   title,
   logo,
   children,

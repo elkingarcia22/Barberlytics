@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { defineEntry, definePlayground } from "../types";
 
 function EmailValidationDemo() {
-  const [value, setValue] = React.useState("ana@ubits");
+  const [value, setValue] = React.useState("ana@thema");
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   return (
     <Field
@@ -91,7 +91,7 @@ export const fieldEntry = defineEntry({
       title: "Error en vivo",
       description: "Cuando hay error, la descripción se oculta y el mensaje toma su lugar. Edita el correo para verlo.",
       layout: "stretch",
-      code: `const [value, setValue] = React.useState("ana@ubits");
+      code: `const [value, setValue] = React.useState("ana@thema");
 const isValid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
 
 <Field

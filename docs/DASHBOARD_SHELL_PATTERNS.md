@@ -36,7 +36,7 @@ A dashboard shell is a **layout composition** that:
 - Props-driven data flow only
 - Library components only
 - No hardcoded data
-- UBITS tokens only
+- Thema tokens only
 - Accessibility by default
 
 ✅ **Supports multiple layouts:**
@@ -403,7 +403,7 @@ These auto-adjust with gap-6
 
 ## Light Mode & Dark Mode Rules
 
-### Rule 1: Use UBITS Tokens ONLY
+### Rule 1: Use Thema Tokens ONLY
 
 **Allowed:**
 ```typescript
@@ -428,7 +428,7 @@ className="text-[#333333]"
 ### Rule 2: Component Theme Compliance
 
 **All components must:**
-- [ ] Use UBITS tokens (auto light/dark)
+- [ ] Use Thema tokens (auto light/dark)
 - [ ] Support both light and dark modes
 - [ ] Have sufficient contrast in both modes
 - [ ] Be visually intentional in both modes
@@ -614,7 +614,7 @@ Requirements:
 - [ ] Props: data, title, xAxisLabel, yAxisLabel
 - [ ] Legend: visible and labeled
 - [ ] Responsive height (250-400px)
-- [ ] Color scheme: auto (inherited from UBITS)
+- [ ] Color scheme: auto (inherited from Thema)
 ```
 
 **Allowed configurations:**
@@ -854,7 +854,7 @@ Before building any dashboard, verify:
 - [ ] Screen reader compatible
 
 ### Styling
-- [ ] UBITS tokens only (no hardcoded colors)
+- [ ] Thema tokens only (no hardcoded colors)
 - [ ] Light mode verified
 - [ ] Dark mode verified
 - [ ] Spacing consistent (24px, 32px gaps)

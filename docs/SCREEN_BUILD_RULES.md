@@ -361,7 +361,7 @@ return <MetricCard {...data} />
 
 ### Rule 1: Both Modes Intentional
 ```typescript
-// ✅ CORRECT: Use UBITS tokens (auto light/dark)
+// ✅ CORRECT: Use Thema tokens (auto light/dark)
 className="bg-card text-foreground border border-border"
 
 // ❌ WRONG: Light mode only
@@ -452,7 +452,7 @@ Helper function:      < 100 lines
 - [ ] Mock data only
 - [ ] URL state for filters
 - [ ] All 3 states (loading/empty/loaded)
-- [ ] UBITS tokens only
+- [ ] Thema tokens only
 - [ ] Responsive tested
 
 ### After Build

@@ -14,23 +14,23 @@
 | **ui** | Command | shadcn directo | ✅ Aprobado | Dependencia técnica de Selects avanzados. |
 | **ui** | Popover | shadcn directo | ✅ Aprobado | Dependencia técnica de Selects avanzados. |
 | **ui** | Dialog | shadcn directo | ✅ Aprobado | Dependencia técnica. |
-| **ui** | InputGroup | Propio UBITS | ✅ Aprobado | Agrupador de inputs con iconos. |
-| **forms** | Field | Propio UBITS | ✅ Aprobado | Wrapper con Label, Description y Error. |
-| **forms** | FormSection | Propio UBITS | ✅ Aprobado | Agrupador visual de campos. |
-| **forms** | SearchableSelect| Propio UBITS | ✅ Aprobado | Combobox con búsqueda interna. |
-| **forms** | MultiSelect | Propio UBITS | ✅ Aprobado | Selección múltiple con tags. |
-| **data-display**| StatusBadge | Propio UBITS | ✅ Aprobado | Badge semántico para estados (Activo, etc). |
-| **data-display**| TableShell | Propio UBITS | ✅ Aprobado | Contenedor estructural para tablas. |
-| **feedback** | EmptyState | Propio UBITS | ✅ Aprobado | Placeholder visual para falta de datos. |
-| **filters** | FilterBar | Propio UBITS | ✅ Aprobado | Infraestructura de filtrado de datos. |
-| **layout** | AppShell | Propio UBITS | ✅ Aprobado | Layout principal de la aplicación. |
-| **layout** | Header | Propio UBITS | ✅ Aprobado | Cabecera global. |
-| **layout** | PageShell | Propio UBITS | ✅ Aprobado | Contenedor de página con ScrollArea. |
-| **layout** | SidebarRail | Propio UBITS | ✅ Aprobado | Navegación lateral compacta UBITS. |
-| **navigation** | Breadcrumbs | Propio UBITS | ✅ Aprobado | Navegación jerárquica. |
-| **navigation** | TabsNav | Propio UBITS | ✅ Aprobado | Navegación por pestañas. |
-| **ai** | AIInsightCard | Propio UBITS | ✅ Aprobado | Visualización de hallazgos IA. |
-| **ai** | AIPanel | Propio UBITS | ✅ Aprobado | Contenedor semántico para capas IA. |
+| **ui** | InputGroup | Propio Thema | ✅ Aprobado | Agrupador de inputs con iconos. |
+| **forms** | Field | Propio Thema | ✅ Aprobado | Wrapper con Label, Description y Error. |
+| **forms** | FormSection | Propio Thema | ✅ Aprobado | Agrupador visual de campos. |
+| **forms** | SearchableSelect| Propio Thema | ✅ Aprobado | Combobox con búsqueda interna. |
+| **forms** | MultiSelect | Propio Thema | ✅ Aprobado | Selección múltiple con tags. |
+| **data-display**| StatusBadge | Propio Thema | ✅ Aprobado | Badge semántico para estados (Activo, etc). |
+| **data-display**| TableShell | Propio Thema | ✅ Aprobado | Contenedor estructural para tablas. |
+| **feedback** | EmptyState | Propio Thema | ✅ Aprobado | Placeholder visual para falta de datos. |
+| **filters** | FilterBar | Propio Thema | ✅ Aprobado | Infraestructura de filtrado de datos. |
+| **layout** | AppShell | Propio Thema | ✅ Aprobado | Layout principal de la aplicación. |
+| **layout** | Header | Propio Thema | ✅ Aprobado | Cabecera global. |
+| **layout** | PageShell | Propio Thema | ✅ Aprobado | Contenedor de página con ScrollArea. |
+| **layout** | SidebarRail | Propio Thema | ✅ Aprobado | Navegación lateral compacta Thema. |
+| **navigation** | Breadcrumbs | Propio Thema | ✅ Aprobado | Navegación jerárquica. |
+| **navigation** | TabsNav | Propio Thema | ✅ Aprobado | Navegación por pestañas. |
+| **ai** | AIInsightCard | Propio Thema | ✅ Aprobado | Visualización de hallazgos IA. |
+| **ai** | AIPanel | Propio Thema | ✅ Aprobado | Contenedor semántico para capas IA. |
 
 ---
 
@@ -57,8 +57,8 @@
 | **Tabs** | Navigation | Opcional | shadcn directo (internal) | Bajo |
 | **Slider** | Form | Opcional | shadcn directo | Bajo |
 | **Toggle Group** | Form | Opcional | shadcn directo | Bajo |
-| **FileUpload** | Form | Futuro | Propio UBITS | Alto |
-| **UploadZone** | Form | Futuro | Propio UBITS | Alto |
+| **FileUpload** | Form | Futuro | Propio Thema | Alto |
+| **UploadZone** | Form | Futuro | Propio Thema | Alto |
 
 ## Resumen de Brechas
 1. **Overlays:** Falta estandarizar el uso de Modales y Drawers como contenedores de alto nivel (Shells).

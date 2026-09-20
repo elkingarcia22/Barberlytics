@@ -200,7 +200,7 @@ interface SurveyMetricCardProps {
 - **Reglas:**
   - Máximo control visual en segmentos.
   - Accesibilidad: `role="img"` + `aria-label`.
-  - Colores semánticos UBITS.
+  - Colores semánticos Thema.
 
 ### ResponseStackedBarGroup
 - **Estado:** ✅ Implementado (7D.5B).
@@ -256,7 +256,7 @@ interface SurveyMetricCardProps {
 
 ---
 
-## Reglas Visuales UBITS
+## Reglas Visuales Thema
 
 ### Colores por Concepto
 

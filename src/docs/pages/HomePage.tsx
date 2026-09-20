@@ -103,13 +103,13 @@ export function HomePage() {
       <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-surface p-8 shadow-card sm:p-12">
         <div className="pointer-events-none absolute inset-0 bg-ai-mesh-agent opacity-70" aria-hidden />
         <div className="relative z-10 max-w-2xl space-y-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Sistema de diseño UBITS</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Sistema de diseño Thema</p>
           <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-text-primary sm:text-5xl">
             Un solo sistema. <span className="text-ai-gradient">Los temas que necesites.</span>
           </h1>
           <p className="text-[15px] leading-relaxed text-text-secondary sm:text-base">
             Todos los componentes del producto, con sus tokens de color, tipografía, radios y motion, documentados y
-            listos para probar. Cambia el tema y cada pieza lo sigue: como en shadcn, pero con la identidad UBITS.
+            listos para probar. Cambia el tema y cada pieza lo sigue: como en shadcn, pero con la identidad Thema.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button asChild size="lg">

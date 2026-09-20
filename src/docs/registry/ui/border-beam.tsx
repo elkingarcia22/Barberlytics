@@ -80,7 +80,7 @@ export const borderBeamEntry = defineEntry({
       description: "Pasa cualquier color CSS; aquí se usan las variables del tema para que siga al modo claro/oscuro.",
       code: `<Card className="relative">
   <CardHeader>
-    <CardTitle>Asistente UBITS</CardTitle>
+    <CardTitle>Asistente Thema</CardTitle>
     <CardDescription>Pregunta sobre tu progreso o pide una recomendación.</CardDescription>
   </CardHeader>
   <BorderBeam duration={10} colorFrom="var(--primary)" colorTo="var(--info)" />
@@ -88,7 +88,7 @@ export const borderBeamEntry = defineEntry({
       render: () => (
         <Card className="relative w-full max-w-sm">
           <CardHeader>
-            <CardTitle>Asistente UBITS</CardTitle>
+            <CardTitle>Asistente Thema</CardTitle>
             <CardDescription>Pregunta sobre tu progreso o pide una recomendación.</CardDescription>
           </CardHeader>
           <BorderBeam duration={10} colorFrom="var(--primary)" colorTo="var(--info)" />

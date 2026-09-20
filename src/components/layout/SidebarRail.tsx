@@ -41,7 +41,7 @@ const SidebarRail = React.forwardRef<HTMLDivElement, SidebarRailProps>(
         )}
         {...props}
       >
-        {/* Official UBITS Logo */}
+        {/* Official Thema Logo */}
         <div className="mb-8 flex items-center justify-center">
           <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
             <path d="M12.0042 7.67725V17.5612C12.0042 20.2653 13.3633 21.8609 16.1197 21.8609C18.8284 21.8609 20.1821 20.2653 20.1821 17.9489V8.08158H23.9999V18.0484C23.9999 22.1849 21.4774 24.9999 16.1169 24.9999C10.7008 24.9999 8.17822 22.1594 8.17822 18.0727V11.2653C8.17822 10.3137 8.58103 9.40103 9.29803 8.72815C10.015 8.05527 10.9875 7.67725 12.0015 7.67725" fill="currentColor"/>

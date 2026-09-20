@@ -1,21 +1,21 @@
 import * as React from "react";
 import { Bell, Search } from "lucide-react";
-import { UbitsProductHeader } from "@/components/navigation";
+import { ThemaProductHeader } from "@/components/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UbitsIcon } from "@/icons";
+import { ThemaIcon } from "@/icons";
 import { defineEntry, definePlayground } from "../types";
 
 const Avatar = () => (
   <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-[12px] font-bold text-primary ring-1 ring-primary/20">EM</div>
 );
 
-const UbitsLogo = () => (
+const ThemaLogo = () => (
   <div className="flex items-center gap-2 border-r border-border pr-4">
     <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-      <UbitsIcon name="sparkles" size="xs" tone="inverse" />
+      <ThemaIcon name="sparkles" size="xs" tone="inverse" />
     </div>
-    <span className="text-[13px] font-bold tracking-tight text-text-primary">UBITS</span>
+    <span className="text-[13px] font-bold tracking-tight text-text-primary">Thema</span>
   </div>
 );
 
@@ -27,7 +27,7 @@ function NotificationsDemo() {
   const [unread, setUnread] = React.useState(4);
   return (
     <Shell>
-      <UbitsProductHeader title="Aprendizaje" logo={<UbitsLogo />}>
+      <ThemaProductHeader title="Aprendizaje" logo={<ThemaLogo />}>
         <Button variant="ghost" size="icon" aria-label="Buscar">
           <Search />
         </Button>
@@ -38,7 +38,7 @@ function NotificationsDemo() {
           )}
         </Button>
         <Avatar />
-      </UbitsProductHeader>
+      </ThemaProductHeader>
     </Shell>
   );
 }
@@ -46,7 +46,7 @@ function NotificationsDemo() {
 function PlaygroundDemo({ title, customLogo, withActions }: { title: string; customLogo: boolean; withActions: boolean }) {
   return (
     <Shell>
-      <UbitsProductHeader title={title} logo={customLogo ? <UbitsLogo /> : undefined}>
+      <ThemaProductHeader title={title} logo={customLogo ? <ThemaLogo /> : undefined}>
         {withActions && (
           <>
             <Badge variant="secondary">Beta</Badge>
@@ -54,19 +54,19 @@ function PlaygroundDemo({ title, customLogo, withActions }: { title: string; cus
             <Avatar />
           </>
         )}
-      </UbitsProductHeader>
+      </ThemaProductHeader>
     </Shell>
   );
 }
 
-export const ubitsProductHeaderEntry = defineEntry({
-  id: "ubits-product-header",
-  name: "UbitsProductHeader",
+export const themaProductHeaderEntry = defineEntry({
+  id: "thema-product-header",
+  name: "ThemaProductHeader",
   group: "navigation",
   description:
     "La cabecera de un producto dentro de la plataforma: logo del cliente a la izquierda, título del módulo y un hueco a la derecha para acciones, notificaciones y perfil. Sin logo propio muestra la marca del cliente por defecto.",
-  importPath: 'import { UbitsProductHeader } from "@/components/navigation"',
-  sourcePath: "src/components/navigation/UbitsProductHeader.tsx",
+  importPath: 'import { ThemaProductHeader } from "@/components/navigation"',
+  sourcePath: "src/components/navigation/ThemaProductHeader.tsx",
   status: "stable",
   tags: ["header", "slot"],
   playground: definePlayground({
@@ -78,9 +78,9 @@ export const ubitsProductHeaderEntry = defineEntry({
     layout: "stretch",
     render: ({ title, customLogo, withActions }) => <PlaygroundDemo title={title} customLogo={customLogo} withActions={withActions} />,
     code: ({ title, customLogo, withActions }) => {
-      const open = `<UbitsProductHeader title="${title}"${customLogo ? " logo={<UbitsLogo />}" : ""}>`;
+      const open = `<ThemaProductHeader title="${title}"${customLogo ? " logo={<ThemaLogo />}" : ""}>`;
       const body = withActions ? `\n  <Badge variant="secondary">Beta</Badge>\n  <Button size="sm">Nueva ruta</Button>\n  <Avatar />\n` : "";
-      return `${open}${body}</UbitsProductHeader>`;
+      return `${open}${body}</ThemaProductHeader>`;
     },
   }),
   examples: [
@@ -91,14 +91,14 @@ export const ubitsProductHeaderEntry = defineEntry({
       layout: "stretch",
       code: `const [unread, setUnread] = React.useState(4);
 
-<UbitsProductHeader title="Aprendizaje" logo={<UbitsLogo />}>
+<ThemaProductHeader title="Aprendizaje" logo={<ThemaLogo />}>
   <Button variant="ghost" size="icon" aria-label="Buscar"><Search /></Button>
   <Button variant="ghost" size="icon" className="relative" onClick={() => setUnread(0)}>
     <Bell />
     {unread > 0 && <span className="…badge…">{unread}</span>}
   </Button>
   <Avatar />
-</UbitsProductHeader>`,
+</ThemaProductHeader>`,
       render: () => <NotificationsDemo />,
     },
     {
@@ -106,14 +106,14 @@ export const ubitsProductHeaderEntry = defineEntry({
       title: "Logo por defecto",
       description: "Sin `logo` aparece la marca del cliente de ejemplo; en producción pásale siempre la real.",
       layout: "stretch",
-      code: `<UbitsProductHeader title="Encuestas">
+      code: `<ThemaProductHeader title="Encuestas">
   <Button size="sm" variant="outline">Exportar</Button>
-</UbitsProductHeader>`,
+</ThemaProductHeader>`,
       render: () => (
         <Shell>
-          <UbitsProductHeader title="Encuestas">
+          <ThemaProductHeader title="Encuestas">
             <Button size="sm" variant="outline">Exportar</Button>
-          </UbitsProductHeader>
+          </ThemaProductHeader>
         </Shell>
       ),
     },
@@ -128,5 +128,5 @@ export const ubitsProductHeaderEntry = defineEntry({
     do: ["Una sola cabecera por producto, encima de la sub-navegación.", "Coloca el perfil siempre como último hijo, a la derecha del todo.", "Usa botones `ghost` de icono para búsqueda y notificaciones."],
     dont: ["No metas el título de la página aquí: este es el nombre del producto, no de la vista.", "No pases más de tres o cuatro acciones; el resto va a un menú."],
   },
-  related: ["ubits-sub-nav", "page-header", "button", "badge"],
+  related: ["thema-sub-nav", "page-header", "button", "badge"],
 });

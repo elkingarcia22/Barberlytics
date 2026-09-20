@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { iconRegistry, IconFallback } from './iconRegistry';
-import type { UbitsIconProps } from './iconTypes';
+import type { ThemaIconProps } from './iconTypes';
 
 /**
- * UbitsIcon Wrapper Component.
+ * ThemaIcon Wrapper Component.
  * Standardizes icon rendering across the application.
  *
  * Handles:
@@ -14,7 +14,7 @@ import type { UbitsIconProps } from './iconTypes';
  * - Accessibility (decorative vs meaningful)
  * - Token consistency
  */
-export const UbitsIcon: React.FC<UbitsIconProps> = ({
+export const ThemaIcon: React.FC<ThemaIconProps> = ({
   name,
   size = 'md',
   tone = 'default',
@@ -66,4 +66,4 @@ export const UbitsIcon: React.FC<UbitsIconProps> = ({
   );
 };
 
-UbitsIcon.displayName = 'UbitsIcon';
+ThemaIcon.displayName = 'ThemaIcon';

@@ -17,7 +17,7 @@ export interface TabItem {
   /**
    * De qué color va el contador. Por defecto es sólido en azul de marca —un
    * contador es una cantidad, no un estado—, pero una tira cuyas pestañas
-   * *son* estados (lo que falta alinear, lo que UBITS rechaza, lo que ya
+   * *son* estados (lo que falta alinear, lo que Thema rechaza, lo que ya
    * puede cargar) lee mejor si cada número lleva el tono de su pestaña, con
    * el mismo tratamiento que cualquier otro badge de estado del sistema:
    * fondo claro, texto del color, nunca un relleno sólido.
@@ -25,7 +25,7 @@ export interface TabItem {
   badgeTone?: Tone;
 }
 
-interface UbitsTabsProps {
+interface ThemaTabsProps {
   tabs: TabItem[];
   activeTabId: string;
   onTabChange: (id: string) => void;
@@ -53,13 +53,13 @@ interface UbitsTabsProps {
 }
 
 /**
- * UBITS TABS
+ * Thema TABS
  *
  * The two tiers above are the only two tab treatments in the app. Everything
  * that switches a view builds on `ui/tabs`, so a strip declared here and a
  * strip declared inline in a results panel come out identical.
  */
-export const UbitsTabs: React.FC<UbitsTabsProps> = ({
+export const ThemaTabs: React.FC<ThemaTabsProps> = ({
   tabs,
   activeTabId,
   onTabChange,

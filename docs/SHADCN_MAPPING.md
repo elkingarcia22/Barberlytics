@@ -1,6 +1,6 @@
 # shadcn Mapping
 
-| Necesidad UBITS | Componente shadcn | Directorio | Adaptación / Estilo |
+| Necesidad Thema | Componente shadcn | Directorio | Adaptación / Estilo |
 |---|---|---|---|
 | Botón Primario | Button | `ui/` | Sólido, azul brand, sin gradientes |
 | Inputs / Forms | Input, Select | `ui/` | Bordes 1px, sobrio, desktop-first |

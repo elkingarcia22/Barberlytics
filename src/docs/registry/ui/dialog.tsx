@@ -99,7 +99,7 @@ export const dialogEntry = defineEntry({
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="pg-dialog-link">Enlace</Label>
-            <Input id="pg-dialog-link" readOnly value="https://app.ubits.co/c/liderazgo-101" />
+            <Input id="pg-dialog-link" readOnly value="https://app.thema.co/c/liderazgo-101" />
           </div>
           {withFooter && (
             <DialogFooter showCloseButton={footerClose}>
@@ -119,7 +119,7 @@ export const dialogEntry = defineEntry({
       <DialogDescription>Cualquiera con el enlace podrá ver el contenido.</DialogDescription>
     </DialogHeader>
     <Label htmlFor="link">Enlace</Label>
-    <Input id="link" readOnly value="https://app.ubits.co/c/liderazgo-101" />${
+    <Input id="link" readOnly value="https://app.thema.co/c/liderazgo-101" />${
       withFooter ? `\n    <DialogFooter${footerClose ? " showCloseButton" : ""}>\n      <Button>Copiar enlace</Button>\n    </DialogFooter>` : ""
     }
   </DialogContent>

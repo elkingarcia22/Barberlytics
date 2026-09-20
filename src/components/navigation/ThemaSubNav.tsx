@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { UbitsIcon } from "@/icons";
+import { ThemaIcon } from "@/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
 import { SUB_NAV_VARIANTS } from "@/config/subNavNavigation";
 import type { SubNavVariantKey } from "@/config/subNavNavigation";
 
-export interface UbitsSubNavProps {
+export interface ThemaSubNavProps {
   variant?: SubNavVariantKey;
   activeTabId?: string;
   onTabChange?: (id: string) => void;
@@ -21,11 +21,11 @@ export interface UbitsSubNavProps {
 }
 
 /**
- * UBITS ULTRA-CLEAN SUB-NAV
+ * Thema ULTRA-CLEAN SUB-NAV
  * Stabilized version for Hotfix 8.6C.1.
  * Removed hardcoded HEX and non-semantic classes.
  */
-export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
+export const ThemaSubNav: React.FC<ThemaSubNavProps> = ({
   variant = 'template',
   activeTabId,
   onTabChange,
@@ -60,7 +60,7 @@ export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
         {showLogo && (
           <div className="flex items-center gap-2 pr-5 border-r border-border/60 h-4">
             <div className="w-5 h-5 bg-primary rounded flex items-center justify-center">
-               <UbitsIcon name="sparkles" size="xs" tone="inverse" />
+               <ThemaIcon name="sparkles" size="xs" tone="inverse" />
             </div>
             <span className="text-[12px] font-bold tracking-tight text-foreground/70">{clientName}</span>
           </div>
@@ -73,7 +73,7 @@ export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
                <DropdownMenuTrigger asChild>
                  <button className="flex items-center gap-1 text-[13px] font-bold text-foreground hover:text-primary transition-colors">
                    {activeTab.label}
-                   <UbitsIcon name="chevronDown" size="xs" className="opacity-30" />
+                   <ThemaIcon name="chevronDown" size="xs" className="opacity-30" />
                  </button>
                </DropdownMenuTrigger>
                <DropdownMenuContent align="start" className="w-56 rounded-lg p-1 border-border/60 shadow-drawer">
@@ -86,7 +86,7 @@ export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
                        tab.id === currentTabId ? "text-primary font-bold bg-primary/5" : "text-muted-foreground"
                      )}
                    >
-                     {tab.icon && <UbitsIcon name={tab.icon} size="xs" />}
+                     {tab.icon && <ThemaIcon name={tab.icon} size="xs" />}
                      {tab.label}
                    </DropdownMenuItem>
                  ))}
@@ -108,7 +108,7 @@ export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
                   )}
                 >
                   {tab.icon && (
-                    <UbitsIcon 
+                    <ThemaIcon 
                       name={tab.icon} 
                       size="xs" 
                       className={cn(
@@ -136,10 +136,10 @@ export const UbitsSubNav: React.FC<UbitsSubNavProps> = ({
       {/* Right Area: Minimal Tools */}
       <div className="flex items-center gap-1.5 ml-4">
          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/40 transition-colors text-muted-foreground/50 hover:text-foreground">
-            <UbitsIcon name="search" size="xs" />
+            <ThemaIcon name="search" size="xs" />
          </button>
          <button className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/40 transition-colors text-muted-foreground/50 hover:text-foreground">
-            <UbitsIcon name="settings" size="xs" />
+            <ThemaIcon name="settings" size="xs" />
          </button>
       </div>
     </header>

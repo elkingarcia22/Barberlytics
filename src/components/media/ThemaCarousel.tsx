@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/carousel"
 import { SectionHeader } from "@/components/utility/SectionHeader"
 import { cn } from "@/lib/utils"
-import type { UbitsCarouselProps } from "./mediaTypes"
+import type { ThemaCarouselProps } from "./mediaTypes"
 
 /**
- * UbitsCarousel - Enterprise wrapper for shadcn Carousel.
+ * ThemaCarousel - Enterprise wrapper for shadcn Carousel.
  * Provides a consistent layout with titles, controls, and dot indicators.
  */
-export function UbitsCarousel({
+export function ThemaCarousel({
   children,
   title,
   description,
@@ -28,7 +28,7 @@ export function UbitsCarousel({
   contentClassName,
   itemClassName,
   ariaLabel,
-}: UbitsCarouselProps) {
+}: ThemaCarouselProps) {
   const [api, setApi] = React.useState<CarouselApi>()
   const [current, setCurrent] = React.useState(0)
   const [count, setCount] = React.useState(0)

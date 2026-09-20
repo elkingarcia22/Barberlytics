@@ -111,8 +111,8 @@ export const tabsNavEntry = defineEntry({
     { name: "...props", type: 'React.HTMLAttributes<HTMLDivElement>', description: "Cualquier atributo nativo del contenedor." },
   ],
   guidelines: {
-    do: ["Úsalo para filtros y periodos donde el cambio es inmediato y sin carga.", "Limita el grupo a cinco píldoras; más allá, pasa a `UbitsTabs` o a un select."],
-    dont: ["No lo uses como navegación principal de página: para eso está `UbitsTabs` en variante `page`.", "No mezcles iconos: el componente solo pinta la etiqueta."],
+    do: ["Úsalo para filtros y periodos donde el cambio es inmediato y sin carga.", "Limita el grupo a cinco píldoras; más allá, pasa a `ThemaTabs` o a un select."],
+    dont: ["No lo uses como navegación principal de página: para eso está `ThemaTabs` en variante `page`.", "No mezcles iconos: el componente solo pinta la etiqueta."],
   },
-  related: ["ubits-tabs", "tabs", "ubits-sub-nav"],
+  related: ["thema-tabs", "tabs", "thema-sub-nav"],
 });

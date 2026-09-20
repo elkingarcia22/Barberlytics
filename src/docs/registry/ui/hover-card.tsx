@@ -19,7 +19,7 @@ function ProfilePreview() {
         <p className="text-sm font-semibold text-text-primary">Ana Torres</p>
         <p className="text-[13px] text-text-secondary">Líder de Talento · Bogotá</p>
         <p className="flex items-center gap-1 text-xs text-text-muted">
-          <CalendarDays className="size-3" /> En UBITS desde marzo 2023
+          <CalendarDays className="size-3" /> En Thema desde marzo 2023
         </p>
       </div>
     </div>

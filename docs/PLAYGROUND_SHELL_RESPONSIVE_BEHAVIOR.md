@@ -4,7 +4,7 @@
 
 | Breakpoint | Sidebar Behavior | Navigation Strategy | Content Density |
 | :--- | :--- | :--- | :--- |
-| **Mobile** (375px) | Hidden (Hamburguer) | **UbitsMobileTabBar** | One Column |
+| **Mobile** (375px) | Hidden (Hamburguer) | **ThemaMobileTabBar** | One Column |
 | **Tablet** (768px) | Collapsed (Icon Rail) | Sidebar Rail | Adaptive Grid |
 | **Desktop** (1024px)| Fixed (Full) | Sidebar + SubNav | Max-width 1200px |
 | **Large** (1440px) | Fixed (Full) | Sidebar + SubNav | Max-width 1440px |

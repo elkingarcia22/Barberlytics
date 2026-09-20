@@ -1,3 +1,4 @@
+import { findFont, resolveHeadingFont, useTheme } from "@/themes";
 import { CodeBlock } from "../components/CodeBlock";
 import { DocSection, PageIntro } from "../components/PageIntro";
 
@@ -31,27 +32,31 @@ const WEIGHTS = [
 ] as const;
 
 const BODY_CODE = `body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-feature-settings: "cv05", "cv08", "cv11", "ss01"; /* alternativas de Inter */
+  font-family: var(--font-body);        /* la elige el selector de tema */
+  font-feature-settings: "cv05", "cv08", "cv11", "ss01";
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
 }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
 h1 { @apply text-2xl font-bold tracking-tight text-text-primary; }
 p, span, div { @apply leading-relaxed; }`;
 
 export function TypographyPage() {
+  const { font, headingFont } = useTheme();
+  const body = findFont(font);
+  const heading = resolveHeadingFont(headingFont, font);
   return (
     <div className="cascade-enter space-y-12">
       <PageIntro
         eyebrow="Fundamentos"
         title="Tipografía"
-        description="Una sola familia, Inter variable, con alternativas estilísticas activadas y un tracking ligeramente negativo. La escala es compacta: la UI vive en 13px, el cuerpo en 14 y los títulos rara vez superan los 24."
+        description="La tipografía forma parte del tema: el selector elige una familia para el cuerpo y otra (o la misma) para los títulos, y todo el sistema las lee desde --font-body y --font-heading. La escala es compacta: la UI vive en 13px, el cuerpo en 14 y los títulos rara vez superan los 24."
       />
 
-      <DocSection id="specimen" title="Espécimen">
+      <DocSection id="specimen" title="Espécimen" description={`Cuerpo: ${body.name} · Títulos: ${heading.name}. Cámbialas desde el selector de tema en la cabecera.`}>
         <div className="rounded-2xl border border-border/60 bg-surface p-8 shadow-card">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Inter · variable 100–900</p>
-          <p className="mt-3 text-5xl font-bold leading-none tracking-tight text-text-primary">Aa Bb Cc 0123</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">{heading.name} · {body.name}</p>
+          <p className="mt-3 text-5xl font-bold leading-none tracking-tight text-text-primary" style={{ fontFamily: "var(--font-heading)" }}>Aa Bb Cc 0123</p>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-text-secondary">
             Objetivos claros, resultados visibles. La plataforma de personas que conecta aprendizaje, desempeño y clima en
             una sola experiencia.
@@ -105,7 +110,7 @@ export function TypographyPage() {
       <DocSection id="rules" title="Reglas de base" description="Lo que globals.css fija para todo el documento.">
         <CodeBlock code={BODY_CODE} language="css" />
         <ul className="space-y-1.5 text-[13px] text-text-secondary">
-          <li>• Máximo dos familias: Inter para todo; la monoespaciada del sistema solo para código y tokens.</li>
+          <li>• Máximo dos familias: una para el cuerpo y una para títulos; la monoespaciada del sistema solo para código y tokens.</li>
           <li>• Eyebrows y etiquetas en mayúsculas llevan tracking amplio (0.12–0.16em) y 11px.</li>
           <li>• Los títulos no superan los 24px dentro del producto; 30px+ queda para páginas de documentación y marketing.</li>
         </ul>

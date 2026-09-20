@@ -57,7 +57,7 @@ export const sidebarRailEntry = defineEntry({
   name: "SidebarRail",
   group: "layout",
   description:
-    "El rail oscuro de 80px con el logo UBITS, un icono por sección de navigationConfig y, abajo, el cambio de tema y el perfil. Al pasar el cursor cada icono despliega un panel con su nombre y su submenú; el rail no navega, solo avisa con onItemSelect.",
+    "El rail oscuro de 80px con el logo Thema, un icono por sección de navigationConfig y, abajo, el cambio de tema y el perfil. Al pasar el cursor cada icono despliega un panel con su nombre y su submenú; el rail no navega, solo avisa con onItemSelect.",
   importPath: 'import { SidebarRail } from "@/components/layout"',
   sourcePath: "src/components/layout/SidebarRail.tsx",
   status: "stable",

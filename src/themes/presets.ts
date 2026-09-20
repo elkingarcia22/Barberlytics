@@ -8,6 +8,8 @@
  * con el tema: son significado, no decoración.
  */
 
+import type { FontId, HeadingFontId } from "./fonts";
+
 export type NeutralTint = "tinted" | "gray";
 
 export interface ThemePreset {
@@ -17,30 +19,38 @@ export interface ThemePreset {
   primary: { light: string; dark: string };
   /**
    * `tinted` tiñe fondos y superficies con el matiz del primario (como el
-   * azul UBITS original, cuyo fondo de app es un blanco azulado). `gray`
+   * azul Thema original, cuyo fondo de app es un blanco azulado). `gray`
    * mantiene los neutros neutros: útil para temas oscuros o monocromos.
    */
   neutral: NeutralTint;
   /** Matiz alternativo para los neutros; por defecto el del primario. */
   neutralHue?: number;
   /**
-   * Saturación de los neutros en modo oscuro (0–100). El navy UBITS original
+   * Saturación de los neutros en modo oscuro (0–100). El navy Thema original
    * es muy saturado (45%) y funciona porque es azul; para el resto de matices
    * el valor por defecto (24%) evita que toda la pantalla se vuelva verde o
    * morada.
    */
   darkNeutralSaturation?: number;
+  /**
+   * Gradiente de IA. Por defecto arranca en el primario y termina 120° más
+   * allá en el círculo cromático; aquí se puede fijar otro par de colores.
+   */
+  ai?: { start: string; end: string };
+  /** Tipografías sugeridas por el tema; el selector permite cambiarlas. */
+  fonts?: { body?: FontId; heading?: HeadingFontId };
 }
 
 export const THEME_PRESETS: readonly ThemePreset[] = [
   {
-    id: "ubits",
-    name: "UBITS Azul",
+    id: "thema",
+    name: "Azul",
     description: "El tema oficial: azul de marca sobre neutros fríos.",
     primary: { light: "#0C5BEF", dark: "#3865F5" },
     neutral: "tinted",
     neutralHue: 222,
     darkNeutralSaturation: 45,
+    ai: { start: "#2d5cf7", end: "#e11d48" },
   },
   {
     id: "indigo",
@@ -55,6 +65,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     description: "Creativo, cercano a la familia de IA.",
     primary: { light: "#7C3AED", dark: "#A78BFA" },
     neutral: "tinted",
+    fonts: { body: "manrope", heading: "space-grotesk" },
   },
   {
     id: "emerald",
@@ -90,6 +101,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     description: "Cálido y humano, para experiencias de personas.",
     primary: { light: "#E11D48", dark: "#FB7185" },
     neutral: "gray",
+    fonts: { body: "nunito-sans" },
   },
   {
     id: "amber",
@@ -105,10 +117,11 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     primary: { light: "#1F2937", dark: "#E5E7EB" },
     neutral: "gray",
     neutralHue: 220,
+    fonts: { body: "geist", heading: "fraunces" },
   },
 ];
 
-export const DEFAULT_THEME_ID = "ubits";
+export const DEFAULT_THEME_ID = "thema";
 
 export function findPreset(id: string | null | undefined): ThemePreset {
   return THEME_PRESETS.find((preset) => preset.id === id) ?? THEME_PRESETS[0];

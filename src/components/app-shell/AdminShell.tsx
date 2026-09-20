@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { UbitsLogo } from "@/components/ui/UbitsLogo";
+import { ThemaLogo } from "@/components/ui/ThemaLogo";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { AgentView } from "./AgentView";
@@ -147,8 +147,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
         {(showFooter ?? (scrollContent || isAgent)) && (
           <footer className="flex shrink-0 flex-wrap items-center justify-center gap-2 px-4 py-2.5 text-xs text-text-muted">
-            <UbitsLogo size={16} color="var(--color-text-muted)" className="hover:scale-100" />
-            <span className="font-bold tracking-tight">UBITS</span>
+            <ThemaLogo size={16} color="var(--color-text-muted)" className="hover:scale-100" />
+            <span className="font-bold tracking-tight">Thema</span>
             <span className="opacity-50">|</span>
             <button className="transition-colors hover:text-text-secondary hover:underline">
               Términos y condiciones de uso de la plataforma

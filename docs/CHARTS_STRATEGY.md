@@ -1,13 +1,13 @@
-# Charts Strategy · UBITS Enterprise
+# Charts Strategy · Thema Enterprise
 
 ## Visión General
-La visualización de datos en el ecosistema UBITS debe ser analítica, sobria y orientada a la toma de decisiones. No buscamos gráficos decorativos, sino herramientas de claridad para usuarios enterprise.
+La visualización de datos en el ecosistema Thema debe ser analítica, sobria y orientada a la toma de decisiones. No buscamos gráficos decorativos, sino herramientas de claridad para usuarios enterprise.
 
 ## Principios Visuales
 1. **Sobriedad Analítica**: El dato es el protagonista. Los ejes, grids y labels deben ser discretos para no competir con la información.
 2. **Cero HEX**: El uso de colores se hará exclusivamente mediante tokens CSS (`tokens.css`). Los charts deben responder automáticamente al cambio de tema (light/dark).
 3. **Cromatismo Semántico**:
-   - **Énfasis**: Azul UBITS (`--brand-primary`).
+   - **Énfasis**: Azul Thema (`--brand-primary`).
    - **Estados**: Uso de tokens `--status-*` para positivo, negativo, advertencia e información.
    - **Neutralidad**: Escala de grises (`--muted-foreground`, `--border`) para elementos estructurales.
 4. **Desktop-First**: Diseñados para pantallas grandes con alta densidad de información, pero con escalabilidad responsiva.
@@ -33,7 +33,7 @@ La visualización de datos en el ecosistema UBITS debe ser analítica, sobria y 
 ### Resolución de tokens CSS para Canvas
 ECharts renderiza sobre Canvas. El Canvas API **no resuelve** CSS custom properties (`var(--token)`).
 Pasar strings tipo `var(--token)` directamente a ECharts resulta en colores inválidos y ECharts
-cae a sus defaults internos — el theming UBITS no se aplica.
+cae a sus defaults internos — el theming Thema no se aplica.
 
 **Regla obligatoria:** siempre resolver los valores reales de los tokens antes de pasarlos a ECharts:
 ```ts

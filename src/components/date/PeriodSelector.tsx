@@ -47,7 +47,7 @@ const DEFAULT_OPTIONS: PeriodSelectorOption[] = [
 ]
 
 /**
- * PeriodSelector - UBITS component for selecting predefined time periods.
+ * PeriodSelector - Thema component for selecting predefined time periods.
  * Uses a Select component for B2B enterprise style.
  */
 export function PeriodSelector({

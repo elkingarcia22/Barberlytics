@@ -1,7 +1,7 @@
 /**
  * Datos y helpers que comparten las entradas de los presets de gráficos.
  * Etiquetas realistas en español para que los ejemplos parezcan un dashboard
- * de UBITS y no un placeholder.
+ * de Thema y no un placeholder.
  */
 
 export const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"] as const;

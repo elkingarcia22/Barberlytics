@@ -163,7 +163,7 @@ export interface NewsItem {
 
 export const NEWS_ITEMS: readonly NewsItem[] = [
   { title: "Nuevo Home operativo", description: "Tu Home ahora es un centro de mando: métricas clave, quick actions y lo que necesita tu atención, todo en un solo lugar.", isNew: true },
-  { title: "Agente IA de UBITS", description: "Pregúntale al agente sobre pendientes, participación o evaluaciones sin salir del Home. Actívalo desde el tab \"Agente IA\" en el sidebar.", isNew: true },
+  { title: "Agente IA de Thema", description: "Pregúntale al agente sobre pendientes, participación o evaluaciones sin salir del Home. Actívalo desde el tab \"Agente IA\" en el sidebar.", isNew: true },
   { title: "Alertas de vencimiento", description: "Recibe avisos automáticos cuando una evaluación, encuesta o assessment esté por vencer, antes de que se convierta en un pendiente oculto." },
   { title: "Modo oscuro", description: "Actívalo desde tu perfil, en la esquina superior derecha. Tu preferencia se mantiene en toda la plataforma." },
   { title: "Exportar reportes a Excel", description: "Los paneles de participación y evaluaciones ahora se pueden exportar directamente en formato .xlsx para compartir con liderazgo." },

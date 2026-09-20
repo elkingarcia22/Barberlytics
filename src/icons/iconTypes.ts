@@ -1,5 +1,5 @@
 /**
- * Icon system types for UBITS Enterprise Design System.
+ * Icon system types for Thema Enterprise Design System.
  * Defines standard sizes, tones, and properties for icons.
  */
 
@@ -16,7 +16,7 @@ export type IconTone =
   | 'inverse';
 
 /**
- * Semantic icon names for the UBITS system.
+ * Semantic icon names for the Thema system.
  * These are mapped to specific providers (Lucide, Iconly) in the registry.
  */
 export type IconName =
@@ -64,7 +64,7 @@ export type IconName =
   | 'templates'
   | 'logout';
 
-export interface UbitsIconProps {
+export interface ThemaIconProps {
   /** The semantic name of the icon from the registry */
   name: IconName;
   /** standard T-shirt sizes */

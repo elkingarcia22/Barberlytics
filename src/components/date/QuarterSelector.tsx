@@ -33,7 +33,7 @@ export interface QuarterSelectorProps {
 }
 
 /**
- * QuarterSelector - UBITS component for selecting a fiscal quarter and year.
+ * QuarterSelector - Thema component for selecting a fiscal quarter and year.
  * Desktop-first, B2B enterprise style.
  */
 export function QuarterSelector({

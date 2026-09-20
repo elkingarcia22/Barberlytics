@@ -38,7 +38,7 @@ export interface DateRangePickerProps {
 }
 
 /**
- * DateRangePicker - UBITS wrapper for date range selection.
+ * DateRangePicker - Thema wrapper for date range selection.
  * Combines Popover and Calendar for a date range input experience.
  * Uses native Date and Intl.DateTimeFormat.
  *

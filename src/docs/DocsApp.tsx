@@ -1,5 +1,5 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { UbitsToaster } from "@/components/feedback";
+import { ThemaToaster } from "@/components/feedback";
 import { ThemeProvider } from "@/themes";
 import { DocsShell } from "./DocsShell";
 import { useHashRoute } from "./router";
@@ -55,7 +55,7 @@ export function DocsApp() {
         <DocsShell>
           <RouteView />
         </DocsShell>
-        <UbitsToaster />
+        <ThemaToaster />
       </TooltipProvider>
     </ThemeProvider>
   );

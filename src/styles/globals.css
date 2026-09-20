@@ -40,7 +40,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -49,7 +49,8 @@
     letter-spacing: -0.011em;
   }
 
-  /* ── Typography Scale (UBITS Premium) ──────────────────── */
+  /* ── Typography Scale (Thema Premium) ──────────────────── */
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
   h1 { @apply text-2xl font-bold tracking-tight text-text-primary; }
   h2 { @apply text-xl font-bold tracking-tight text-text-primary; }
   h3 { @apply text-lg font-semibold tracking-tight text-text-primary; }
@@ -66,7 +67,7 @@
     @apply leading-relaxed;
   }
 
-  /* ── Icons — thinner stroke to match UBITS style ────────── */
+  /* ── Icons — thinner stroke to match Thema style ────────── */
   svg.lucide:not(.animate-spin),
   [data-slot] svg,
   button svg,
@@ -75,7 +76,7 @@
   }
 
   :root {
-    /* Mapeo de variables shadcn a tokens oficiales UBITS (usando canales HSL para soporte de opacidad) */
+    /* Mapeo de variables shadcn a tokens oficiales Thema (usando canales HSL para soporte de opacidad) */
     --background: var(--color-bg-app-hsl);
     --foreground: var(--color-text-primary-hsl);
     
@@ -154,7 +155,7 @@
   }
 
   .dark {
-    /* ── Overrides de tokens UBITS directos (text-text-*, bg-surface-*) ── */
+    /* ── Overrides de tokens Thema directos (text-text-*, bg-surface-*) ── */
     /* Sin esto, clases como text-text-secondary quedan oscuras sobre fondo oscuro */
 
     /* `--primary` ya sube a #3865f5 más abajo para que el azul aguante sobre
@@ -175,8 +176,8 @@
     --color-positive-dark: #6EE7B7;
     --color-warning-light: #7a4415;
 
-    --color-text-primary: #edeeef;    /* ubits-fg-1-high dark */
-    --color-text-secondary: #9aa0aa;  /* ubits fg-1-medium dark, paso intermedio */
+    --color-text-primary: #edeeef;    /* thema-fg-1-high dark */
+    --color-text-secondary: #9aa0aa;  /* thema fg-1-medium dark, paso intermedio */
     --color-text-muted: #6b7480;      /* reducido para hint/placeholder */
     --color-text-inverse: #303a47;
     --color-bg-app: #0c1120;          /* Deep Navy Base (Kept for Harmony) */
@@ -204,7 +205,7 @@
     --popover-foreground: 210 6% 93%;
 
     /* ── Primario ─────────────────────────────────────────── */
-    /* #3865f5 — azul UBITS brillante en dark */
+    /* #3865f5 — azul Thema brillante en dark */
     --primary: 222 91% 58%;
     --primary-foreground: 0 0% 100%;
 
@@ -277,7 +278,7 @@
     color: hsl(0 0% 100%) !important;
   }
 
-  .ubits-premium-sidebar-rail {
+  .thema-premium-sidebar-rail {
     background-color: hsl(222 47% 11%) !important;
   }
 
@@ -384,9 +385,9 @@
   .bg-ai-mesh-card {
     background-color: var(--color-surface);
     background-image:
-      radial-gradient(55% 34% at 18% 0%, rgba(46, 198, 255, 0.16), transparent 65%),
-      radial-gradient(45% 30% at 55% 0%, rgba(124, 58, 237, 0.08), transparent 65%),
-      radial-gradient(50% 34% at 88% 0%, rgba(244, 63, 94, 0.12), transparent 65%);
+      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.16), transparent 65%),
+      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.08), transparent 65%),
+      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 65%);
     background-size: 140% 140%;
     animation: mesh-drift 12s ease-in-out infinite alternate;
   }
@@ -404,9 +405,9 @@
   .bg-ai-mesh-nav {
     background-color: var(--color-surface-nav);
     background-image:
-      radial-gradient(60% 140% at 8% 50%, rgba(46, 198, 255, 0.13), transparent 70%),
-      radial-gradient(52% 140% at 50% 50%, rgba(124, 58, 237, 0.16), transparent 70%),
-      radial-gradient(58% 140% at 94% 50%, rgba(244, 63, 94, 0.12), transparent 70%);
+      radial-gradient(60% 140% at 8% 50%, rgba(var(--color-ai-stop-1-rgb), 0.13), transparent 70%),
+      radial-gradient(52% 140% at 50% 50%, rgba(var(--color-ai-stop-2-rgb), 0.16), transparent 70%),
+      radial-gradient(58% 140% at 94% 50%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 70%);
     background-size: 150% 150%;
     animation: mesh-drift 16s ease-in-out infinite alternate;
   }
@@ -414,9 +415,9 @@
   /* Animated subtle mesh background for the agent page */
   .bg-ai-mesh-agent {
     background-image:
-      radial-gradient(55% 34% at 18% 0%, rgba(46, 198, 255, 0.16), transparent 65%),
-      radial-gradient(45% 30% at 55% 0%, rgba(124, 58, 237, 0.08), transparent 65%),
-      radial-gradient(50% 34% at 88% 0%, rgba(244, 63, 94, 0.12), transparent 65%);
+      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.16), transparent 65%),
+      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.08), transparent 65%),
+      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 65%);
     background-size: 140% 140%;
     animation: mesh-drift 14s ease-in-out infinite alternate;
   }
@@ -529,9 +530,9 @@
   .magic-card-sweep-ai::after {
     background: linear-gradient(
       135deg,
-      rgba(46, 198, 255, 0.07) 0%,
-      rgba(124, 58, 237, 0.05) 50%,
-      rgba(244, 63, 94, 0.06) 100%
+      rgba(var(--color-ai-stop-1-rgb), 0.07) 0%,
+      rgba(var(--color-ai-stop-2-rgb), 0.05) 50%,
+      rgba(var(--color-ai-stop-3-rgb), 0.06) 100%
     );
   }
 
@@ -551,7 +552,7 @@
   }
 
   .magic-card-lift.magic-card-sweep-ai:hover {
-    box-shadow: 0 6px 16px -12px rgba(124, 58, 237, 0.22);
+    box-shadow: 0 6px 16px -12px rgba(var(--color-ai-stop-2-rgb), 0.22);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -562,7 +563,7 @@
 
   /* ── Tooltip & UI Inverse Surfaces ─────────────────────── */
   .bg-surface-inverse {
-    background-color: #111827 !important; /* Deep Navy (UBITS Dark) */
+    background-color: #111827 !important; /* Deep Navy (Thema Dark) */
   }
 
   .text-text-inverse {

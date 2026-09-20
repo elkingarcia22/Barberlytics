@@ -1,5 +1,5 @@
 import * as React from "react";
-import { UbitsMobileTabBar } from "@/components/navigation";
+import { ThemaMobileTabBar } from "@/components/navigation";
 import type { NavigationItem } from "@/components/navigation";
 import { cn } from "@/lib/utils";
 import { defineEntry, definePlayground } from "../types";
@@ -39,7 +39,7 @@ function BarDemo({ items, initial = "home" }: { items: NavigationItem[]; initial
         <h3 className="mt-1 text-lg font-bold text-text-primary">{current?.label}</h3>
         <p className="mt-1 text-[13px] text-text-secondary">{COPY[active] ?? "Sección seleccionada."}</p>
       </div>
-      <UbitsMobileTabBar items={items} activeItemId={active} onItemSelect={setActive} />
+      <ThemaMobileTabBar items={items} activeItemId={active} onItemSelect={setActive} />
     </Phone>
   );
 }
@@ -53,14 +53,14 @@ function PlaygroundDemo({ count, withBadges, disableLast }: { count: number; wit
   return <BarDemo key={`${count}-${disableLast}`} items={items} />;
 }
 
-export const ubitsMobileTabBarEntry = defineEntry({
-  id: "ubits-mobile-tab-bar",
-  name: "UbitsMobileTabBar",
+export const themaMobileTabBarEntry = defineEntry({
+  id: "thema-mobile-tab-bar",
+  name: "ThemaMobileTabBar",
   group: "navigation",
   description:
     "La barra inferior de la app móvil: hasta cinco destinos con icono, etiqueta y un badge opcional (contador o punto). Marca el activo en primario y expone `aria-current` para lectores de pantalla.",
-  importPath: 'import { UbitsMobileTabBar } from "@/components/navigation"',
-  sourcePath: "src/components/navigation/UbitsMobileTabBar.tsx",
+  importPath: 'import { ThemaMobileTabBar } from "@/components/navigation"',
+  sourcePath: "src/components/navigation/ThemaMobileTabBar.tsx",
   status: "stable",
   tags: ["mobile", "controlled", "badge"],
   playground: definePlayground({
@@ -79,7 +79,7 @@ export const ubitsMobileTabBarEntry = defineEntry({
         ].filter(Boolean);
         return `  { id: "${item.id}", label: "${item.label}", icon: "${item.icon}"${extra.length ? `, ${extra.join(", ")}` : ""} },`;
       });
-      return `const items: NavigationItem[] = [\n${rows.join("\n")}\n];\nconst [active, setActive] = React.useState("home");\n\n<UbitsMobileTabBar items={items} activeItemId={active} onItemSelect={setActive} />`;
+      return `const items: NavigationItem[] = [\n${rows.join("\n")}\n];\nconst [active, setActive] = React.useState("home");\n\n<ThemaMobileTabBar items={items} activeItemId={active} onItemSelect={setActive} />`;
     },
   }),
   examples: [
@@ -91,7 +91,7 @@ export const ubitsMobileTabBarEntry = defineEntry({
       frameClassName: "min-h-[380px]",
       code: `const [active, setActive] = React.useState("home");
 
-<UbitsMobileTabBar
+<ThemaMobileTabBar
   items={[
     { id: "home", label: "Inicio", icon: "home" },
     { id: "learning", label: "Aprender", icon: "graduation" },
@@ -110,7 +110,7 @@ export const ubitsMobileTabBarEntry = defineEntry({
       description: "Con menos ítems cada uno ocupa más ancho; el componente reparte el espacio con `flex-1`.",
       layout: "stretch",
       frameClassName: "min-h-[380px]",
-      code: `<UbitsMobileTabBar
+      code: `<ThemaMobileTabBar
   items={[
     { id: "home", label: "Inicio", icon: "home" },
     { id: "learning", label: "Aprender", icon: "graduation" },
@@ -132,5 +132,5 @@ export const ubitsMobileTabBarEntry = defineEntry({
     do: ["Entre tres y cinco destinos, siempre con etiqueta.", "Usa `badge.dot` para «hay novedades» y `badge.count` solo cuando el número importa.", "Ánclala al fondo de la pantalla con `fixed bottom-0` en la app real."],
     dont: ["No la muestres en escritorio: ahí la navegación es el rail lateral.", "No pongas acciones (crear, subir) como destinos; son navegación, no comandos."],
   },
-  related: ["playground-sidebar", "ubits-sub-nav", "badge"],
+  related: ["playground-sidebar", "thema-sub-nav", "badge"],
 });

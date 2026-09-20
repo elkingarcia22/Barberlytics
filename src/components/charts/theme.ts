@@ -1,10 +1,10 @@
 /**
- * UbitsChartTheme
+ * ChartTheme
  *
- * Typed structure of the ECharts theme object produced by getUbitsChartTheme.
+ * Typed structure of the ECharts theme object produced by getChartTheme.
  * Exported so consumers can type references to the theme if needed.
  */
-export interface UbitsChartTheme {
+export interface ChartTheme {
   color: string[]
   textStyle: { fontFamily: string; color: string }
   title: { textStyle: { fontWeight: string; color: string } }
@@ -48,9 +48,9 @@ export interface UbitsChartTheme {
 }
 
 /**
- * getUbitsChartTheme
+ * getChartTheme
  *
- * Resolves UBITS Design System tokens at runtime via getComputedStyle and maps
+ * Resolves Thema Design System tokens at runtime via getComputedStyle and maps
  * them to an ECharts visual configuration object.
  *
  * IMPORTANT: CSS custom properties (var(--token)) cannot be used directly with
@@ -58,7 +58,7 @@ export interface UbitsChartTheme {
  * color values ready for canvas rendering.
  *
  * Token resolution strategy:
- *  - Direct UBITS tokens (tokens.css): return raw HEX values, stable across
+ *  - Direct Thema tokens (tokens.css): return raw HEX values, stable across
  *    light/dark because brand colors are intentionally theme-invariant.
  *    Used for series colors to maintain semantic visual consistency.
  *  - shadcn HSL-channel tokens (globals.css): values are space-separated HSL
@@ -66,7 +66,7 @@ export interface UbitsChartTheme {
  *    for compatibility with zrender (ECharts canvas renderer).
  *    These tokens switch values under the .dark class on <html>.
  */
-export function getUbitsChartTheme(): UbitsChartTheme {
+export function getChartTheme(): ChartTheme {
   const css = getComputedStyle(document.documentElement)
   const get = (name: string): string => css.getPropertyValue(name).trim()
 
@@ -78,7 +78,7 @@ export function getUbitsChartTheme(): UbitsChartTheme {
   const hsl = (channels: string): string =>
     `hsl(${channels.replace(/\s+/g, ', ')})`
 
-  // --- Series colors: direct UBITS brand tokens (tokens.css → HEX values) ---
+  // --- Series colors: direct Thema brand tokens (tokens.css → HEX values) ---
   // These are intentionally theme-invariant. Brand, positive, warning, negative,
   // and neutral gray provide a semantically grounded 5-color palette.
   // If a chart requires more than 5 series, override option.color directly.
@@ -98,7 +98,7 @@ export function getUbitsChartTheme(): UbitsChartTheme {
   return {
     color: [brand, positive, warning, negative, neutral],
     textStyle: {
-      fontFamily: 'Geist, sans-serif',
+      fontFamily: get('--font-body') || 'system-ui, sans-serif',
       color: colorText,
     },
     title: {

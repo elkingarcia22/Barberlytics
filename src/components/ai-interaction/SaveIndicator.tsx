@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { UbitsIcon } from "@/icons/UbitsIcon";
+import { ThemaIcon } from "@/icons/ThemaIcon";
 import type { IconName } from "@/icons/iconTypes";
 import type { SaveIndicatorProps } from "./aiInteractionTypes";
 
@@ -51,7 +51,7 @@ export function SaveIndicator({
       role="status"
       aria-live="polite"
     >
-      <UbitsIcon 
+      <ThemaIcon 
         name={icon} 
         size="xs" 
         className={cn(status === "saving" && "animate-spin")} 

@@ -154,7 +154,7 @@ const toggle = (area: string) =>
     { name: "size", type: '"sm" | "md"', default: '"md"', description: "Altura de 24px o 32px." },
     { name: "selected", type: "boolean", default: "false", description: "Estado activo; cambia el relleno en los tonos default, primary y positive." },
     { name: "removable", type: "boolean", default: "false", description: "Muestra el botón de cierre que dispara `onRemove`." },
-    { name: "icon", type: "IconName", description: "Icono del registro UBITS a la izquierda del texto." },
+    { name: "icon", type: "IconName", description: "Icono del registro Thema a la izquierda del texto." },
     { name: "count", type: "number", description: "Contador pequeño a la derecha del texto." },
     { name: "disabled", type: "boolean", default: "false", description: "Desactiva el chip y baja la opacidad." },
     { name: "onClick", type: "() => void", description: "Si se pasa, el chip se renderiza como <button> con `aria-pressed`." },

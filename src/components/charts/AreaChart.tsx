@@ -105,7 +105,7 @@ export function AreaChart({
           symbol: "circle",
           symbolSize: 4,
           areaStyle: {
-            // Subtle area fill with low opacity for UBITS visual style
+            // Subtle area fill with low opacity for Thema visual style
             opacity: 0.15,
           },
         },

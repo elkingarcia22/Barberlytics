@@ -1,5 +1,5 @@
 import * as React from "react";
-import { EChart, getUbitsChartTheme, type EChartsOption, type UbitsChartTheme } from "@/components/charts";
+import { EChart, getChartTheme, type EChartsOption, type ChartTheme } from "@/components/charts";
 import { defineEntry, definePlayground } from "../types";
 import { ThemedChart } from "./themed";
 
@@ -50,7 +50,7 @@ function Swatch({ label, color }: { label: string; color: string }) {
 
 /** Lee el tema tal como lo haría EChart al montar y muestra los valores resueltos. */
 function ResolvedTheme() {
-  const theme = React.useMemo<UbitsChartTheme>(() => getUbitsChartTheme(), []);
+  const theme = React.useMemo<ChartTheme>(() => getChartTheme(), []);
   const ui = [
     { label: "textStyle.color (--foreground)", color: theme.textStyle.color },
     { label: "axisLabel.color (--muted-foreground)", color: theme.valueAxis.axisLabel.color },
@@ -84,8 +84,8 @@ export const echartEntry = defineEntry({
   name: "EChart",
   group: "charts",
   description:
-    "El wrapper base de Apache ECharts: inicializa la instancia una sola vez, la redimensiona con ResizeObserver y la destruye al desmontar. Al montar resuelve el tema con getUbitsChartTheme(), que lee los tokens del <html> con getComputedStyle porque el canvas no entiende var(--token); en esta docs los ejemplos se remontan al cambiar de tema para reflejar los colores actuales.",
-  importPath: 'import { EChart, getUbitsChartTheme } from "@/components/charts"',
+    "El wrapper base de Apache ECharts: inicializa la instancia una sola vez, la redimensiona con ResizeObserver y la destruye al desmontar. Al montar resuelve el tema con getChartTheme(), que lee los tokens del <html> con getComputedStyle porque el canvas no entiende var(--token); en esta docs los ejemplos se remontan al cambiar de tema para reflejar los colores actuales.",
+  importPath: 'import { EChart, getChartTheme } from "@/components/charts"',
   sourcePath: "src/components/charts/EChart.tsx",
   status: "stable",
   tags: ["echarts", "canvas", "theme-tokens"],
@@ -122,13 +122,13 @@ export const echartEntry = defineEntry({
       id: "theme-resolution",
       title: "Cómo se resuelve el tema",
       description:
-        "getUbitsChartTheme() se ejecuta en el momento del init. Las series usan los HEX de --color-brand, positive, warning, negative y text-secondary; los ejes, la leyenda y el tooltip envuelven los canales HSL de shadcn (--foreground, --muted-foreground, --border, --background) en hsl(). Cambia el tema arriba: estos valores se recalculan.",
+        "getChartTheme() se ejecuta en el momento del init. Las series usan los HEX de --color-brand, positive, warning, negative y text-secondary; los ejes, la leyenda y el tooltip envuelven los canales HSL de shadcn (--foreground, --muted-foreground, --border, --background) en hsl(). Cambia el tema arriba: estos valores se recalculan.",
       layout: "stretch",
-      code: `import { getUbitsChartTheme } from "@/components/charts";
+      code: `import { getChartTheme } from "@/components/charts";
 
 // Se llama al montar el gráfico. Lee <html> con getComputedStyle, así que
 // el resultado depende del preset y del modo activos en ese instante.
-const theme = getUbitsChartTheme();
+const theme = getChartTheme();
 
 theme.color;
 // → ["#0c5bef", "#059669", "#ff7b0d", "#e9343c", "#5c646f"]

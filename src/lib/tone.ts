@@ -38,7 +38,7 @@ const TONES: Readonly<Record<Tone, ToneDefinition>> = {
   positive: { accent: "var(--color-positive)" },
   warning: { accent: "var(--color-warning)" },
   /* El rojo de los estados, con las mismas tres intensidades que el resto de
-     los tonos. Sin él, cualquier superficie que necesite decir "esto UBITS lo
+     los tonos. Sin él, cualquier superficie que necesite decir "esto Thema lo
      rechaza" tenía que salirse del sistema y escribir sus propias clases. */
   negative: { accent: "var(--color-negative)" },
   neutral: { accent: NEUTRAL_ACCENT },

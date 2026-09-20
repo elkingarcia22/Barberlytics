@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "./themeContext";
 import type { RadiusScale, ThemeMode } from "./buildTokens";
+import type { FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
 const MODES: readonly { id: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -74,6 +76,48 @@ function SegmentedGroup<T extends string>({
   );
 }
 
+function FontSelect({
+  id,
+  label,
+  value,
+  onChange,
+  fonts,
+  allowSame,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  fonts: readonly FontOption[];
+  allowSame?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[11px] font-medium text-text-secondary">
+        {label}
+      </label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id} className="h-8 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {allowSame && (
+            <SelectItem value="same" className="text-xs">
+              Igual que el cuerpo
+            </SelectItem>
+          )}
+          {fonts.map((font) => (
+            <SelectItem key={font.id} value={font.id} className="text-xs" style={{ fontFamily: font.family }}>
+              {font.name}
+              <span className="ml-1.5 text-[10px] text-text-muted">{font.category === "serif" ? "serif" : ""}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export interface ThemeSelectorProps {
   /** Botón compacto (solo icono) para cabeceras estrechas. */
   compact?: boolean;
@@ -85,7 +129,7 @@ export interface ThemeSelectorProps {
  * aplica al instante y queda guardado en localStorage a través del provider.
  */
 export function ThemeSelector({ compact = false, className }: ThemeSelectorProps) {
-  const { preset, presets, setPreset, mode, setMode, radius, setRadius } = useTheme();
+  const { preset, presets, setPreset, mode, setMode, radius, setRadius, font, setFont, headingFont, setHeadingFont, fonts } = useTheme();
 
   return (
     <Popover>
@@ -155,6 +199,24 @@ export function ThemeSelector({ compact = false, className }: ThemeSelectorProps
             ),
           }))}
         />
+
+        <fieldset className="space-y-2">
+          <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tipografía</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <FontSelect id="theme-font-body" label="Cuerpo" value={font} onChange={(value) => setFont(value as FontOption["id"])} fonts={fonts} />
+            <FontSelect
+              id="theme-font-heading"
+              label="Títulos"
+              value={headingFont}
+              onChange={(value) => setHeadingFont(value as HeadingFontId)}
+              fonts={fonts}
+              allowSame
+            />
+          </div>
+          <p className="text-[11px] leading-snug text-text-muted" style={{ fontFamily: "var(--font-heading)" }}>
+            Los títulos se ven así. <span style={{ fontFamily: "var(--font-body)" }}>Y el cuerpo, así.</span>
+          </p>
+        </fieldset>
 
         <SegmentedGroup
           label="Modo"

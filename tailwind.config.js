@@ -110,7 +110,7 @@ export default {
         "ai-premium": "var(--shadow-ai-premium)",
       },
       fontFamily: {
-        sans: ["'Inter'", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-body)"],
         body: ["var(--font-body)"],
         heading: ["var(--font-heading)"],
       },

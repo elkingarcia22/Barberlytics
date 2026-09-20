@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { UbitsIcon } from "@/icons/UbitsIcon";
+import { ThemaIcon } from "@/icons/ThemaIcon";
 import type { AIButtonProps } from "./aiInteractionTypes";
 
 export function AIButton({
@@ -66,7 +66,7 @@ export function AIButton({
         ) : (
           <div className="flex items-center gap-2">
             {leftIcon && (
-              <UbitsIcon 
+              <ThemaIcon 
                 name={leftIcon} 
                 size={size === "xs" ? "xs" : "sm"} 
                 tone={isPrimary ? "inverse" : "default"}
@@ -74,7 +74,7 @@ export function AIButton({
               />
             )}
             {!leftIcon && (
-              <UbitsIcon 
+              <ThemaIcon 
                 name="sparkles" 
                 size={size === "xs" ? "xs" : "sm"} 
                 tone={isPrimary ? "inverse" : "default"}
@@ -83,7 +83,7 @@ export function AIButton({
             )}
             <span className={cn(isPrimary && "text-primary-foreground")}>{label || children}</span>
             {rightIcon && (
-              <UbitsIcon 
+              <ThemaIcon 
                 name={rightIcon} 
                 size={size === "xs" ? "xs" : "sm"} 
                 tone={isPrimary ? "inverse" : "default"}

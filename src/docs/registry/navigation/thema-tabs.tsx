@@ -1,6 +1,6 @@
 import * as React from "react";
 import { BarChart3, CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
-import { UbitsTabs } from "@/components/navigation";
+import { ThemaTabs } from "@/components/navigation";
 import type { TabItem } from "@/components/navigation";
 import { defineEntry, definePlayground } from "../types";
 
@@ -28,7 +28,7 @@ function TabsDemo({ tabs, variant = "view", fitContent = false }: { tabs: TabIte
   const label = tabs.find((tab) => tab.id === active)?.label;
   return (
     <div className="w-full space-y-4">
-      <UbitsTabs tabs={tabs} activeTabId={active} onTabChange={setActive} variant={variant} fitContent={fitContent} className="mb-0" />
+      <ThemaTabs tabs={tabs} activeTabId={active} onTabChange={setActive} variant={variant} fitContent={fitContent} className="mb-0" />
       <div className="rounded-xl border border-border/60 bg-surface p-4 text-[13px] text-text-secondary">
         Mostrando <span className="font-semibold text-text-primary">{label}</span>.
       </div>
@@ -41,14 +41,14 @@ function PlaygroundDemo({ variant, fitContent, withBadges, count }: { variant: "
   return <TabsDemo key={count} tabs={tabs} variant={variant} fitContent={fitContent} />;
 }
 
-export const ubitsTabsEntry = defineEntry({
-  id: "ubits-tabs",
-  name: "UbitsTabs",
+export const themaTabsEntry = defineEntry({
+  id: "thema-tabs",
+  name: "ThemaTabs",
   group: "navigation",
   description:
     "Las dos únicas tiras de pestañas de la app, sobre el primitivo `ui/tabs`: `view` cambia un panel dentro de la página con un track hundido, `page` cambia la pantalla entera con la píldora rellena. Cada pestaña admite icono y un contador con tono.",
-  importPath: 'import { UbitsTabs } from "@/components/navigation"',
-  sourcePath: "src/components/navigation/UbitsTabs.tsx",
+  importPath: 'import { ThemaTabs } from "@/components/navigation"',
+  sourcePath: "src/components/navigation/ThemaTabs.tsx",
   status: "stable",
   tags: ["radix-tabs", "framer-motion", "badge"],
   playground: definePlayground({
@@ -68,7 +68,7 @@ export const ubitsTabsEntry = defineEntry({
         return `  { id: "${tab.id}", label: "${tab.label}", icon: <Icon />${badge} },`;
       });
       const attrs = ["tabs={tabs}", "activeTabId={active}", "onTabChange={setActive}", variant !== "view" ? `variant="${variant}"` : "", fitContent ? "fitContent" : ""].filter(Boolean);
-      return `const tabs: TabItem[] = [\n${rows.join("\n")}\n];\nconst [active, setActive] = React.useState("pending");\n\n<UbitsTabs ${attrs.join(" ")} />`;
+      return `const tabs: TabItem[] = [\n${rows.join("\n")}\n];\nconst [active, setActive] = React.useState("pending");\n\n<ThemaTabs ${attrs.join(" ")} />`;
     },
   }),
   examples: [
@@ -79,7 +79,7 @@ export const ubitsTabsEntry = defineEntry({
       layout: "stretch",
       code: `const [active, setActive] = React.useState("summary");
 
-<UbitsTabs
+<ThemaTabs
   tabs={[{ id: "summary", label: "Resumen" }, { id: "detail", label: "Detalle" }, { id: "history", label: "Historial" }]}
   activeTabId={active}
   onTabChange={setActive}
@@ -91,7 +91,7 @@ export const ubitsTabsEntry = defineEntry({
       title: "Variante page",
       description: "Para cambiar lo que muestra toda la pantalla: píldora primaria rellena. Con dos pestañas conviene `fitContent`.",
       layout: "stretch",
-      code: `<UbitsTabs
+      code: `<ThemaTabs
   variant="page"
   fitContent
   tabs={[
@@ -108,7 +108,7 @@ export const ubitsTabsEntry = defineEntry({
       title: "Contadores con tono",
       description: "Cuando las pestañas son estados, cada contador lleva el tono de su estado. Sin `badgeTone` el contador es sólido en primario.",
       layout: "stretch",
-      code: `<UbitsTabs
+      code: `<ThemaTabs
   tabs={[
     { id: "pending", label: "Pendientes", icon: <Clock />, badge: 12, badgeTone: "warning" },
     { id: "approved", label: "Aprobadas", icon: <CheckCircle2 />, badge: 48, badgeTone: "positive" },
@@ -132,5 +132,5 @@ export const ubitsTabsEntry = defineEntry({
     do: ["Una sola tira `page` por pantalla, arriba del todo.", "Usa `fitContent` con dos o tres pestañas; con cinco o seis deja que repartan el ancho.", "Da `badgeTone` a los contadores solo cuando la pestaña es un estado."],
     dont: ["No anides una tira `page` dentro de un panel `view`.", "No pongas un contador en cero: el componente lo oculta, pero mejor no lo mandes."],
   },
-  related: ["tabs", "tabs-nav", "ubits-sub-nav", "badge"],
+  related: ["tabs", "tabs-nav", "thema-sub-nav", "badge"],
 });

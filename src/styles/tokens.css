@@ -1,0 +1,120 @@
+:root {
+  /* --- UBITS Brand Tokens (Figma Exact HEX) --- */
+  --color-brand: #0C5BEF;
+  --color-brand-hover: #1e4abf;
+  --color-brand-pressed: #223a91;
+  
+  /* Surfaces */
+  --color-bg-app: #f8faff;
+  --color-surface: #ffffff;
+  --color-surface-nav: #111827;
+  --color-surface-muted: #f0f4ff;
+  --color-tab-track: #ecf1fa;   /* pista de pestañas — un paso de luz sobre bg-app, sin gris */
+  --color-surface-subtle: #fbfcfe;
+  
+  /* Typography (Figma Exact HEX) */
+  --color-text-primary: #303A47;   /* Títulos */
+  --color-text-secondary: #5C646F; /* Subtítulos y Cuerpo */
+  --color-text-muted: #979ba3;
+  --color-text-inverse: #ffffff;
+  
+  /* Borders */
+  --color-border: #D0D2D5;
+  --color-border-strong: #979ba3;
+  
+  /* States (Figma Update) */
+  /* Same green family as the table's status badges (StatusBadge, emerald-*),
+     so an "En curso"/"Finalizado" chip and a metric card never read as two
+     different greens. */
+  --color-positive: #059669;
+  --color-positive-dark: #064E3B;
+  --color-positive-bg: #E8FCF2;
+  
+  --color-negative: #E9343C;
+  
+  --color-warning: #FF7B0D;
+  --color-warning-light: #FFB37F;
+
+  --color-yellow: #EAB308;
+
+  /* The "official / other" accent — the fifth tone, next to brand blue,
+     positive green and warning orange. Used by the NOM 035 template family,
+     the anonymous-visibility card and anything else that needs a hue of its
+     own without claiming a status. */
+  --color-indigo: #6366f1;
+  
+  --color-info: #4A74EE;
+  
+  /* AI Features */
+  --color-ai-bg: #f3f2ff;
+  --color-ai-border: #97a5fd;
+  --color-ai-gradient-start: #2d5cf7;
+  --color-ai-gradient-end: #e11d48;
+  --color-ai-gradient-start-hsl: 226 92% 57%;
+  --color-ai-gradient-end-hsl: 347 77% 50%;
+  --color-ai-gradient-start-pastel-hsl: 226 85% 66%;
+  --color-ai-gradient-end-pastel-hsl: 347 70% 62%;
+  --shadow-ai-premium: 0 4px 15px rgba(45, 92, 247, 0.3), 0 2px 5px rgba(225, 29, 72, 0.2);
+  
+  /* AI Multi-stop Gradient (full-screen loaders, premium overlays) */
+  --color-ai-stop-1: #0c5bef;
+  --color-ai-stop-2: #8823ea;
+  --color-ai-stop-3: #ea066f;
+  --color-ai-stop-4: #ea066f;
+  --color-ai-stop-5: #ff5416;
+  --color-ai-stop-1-rgb: 12, 91, 239;
+  --color-ai-stop-2-rgb: 136, 35, 234;
+  --color-ai-stop-3-rgb: 234, 6, 111;
+  --color-ai-stop-4-rgb: 234, 6, 111;
+  --color-ai-stop-5-rgb: 255, 84, 22;
+  
+  /* Radius — monotonic scale anchored on the shell.
+     The sidebar and header only ever use two: 16px for the panel itself and
+     10px for anything pressable. Those two are the fixed points (md and 2xl);
+     the rest are the steps in between and the one above, so a card nested
+     inside a panel is always rounded a little less than the panel holding it.
+     Every step is a real Tailwind class — nothing here is a default left over
+     from Tailwind, which is what let `lg` grow past `2xl` before. */
+  --radius-xs: 6px;    /* checkboxes, code inline, marcas de 20px */
+  --radius-sm: 8px;    /* badges, chips, avatares cuadrados */
+  --radius-md: 10px;   /* botones, inputs, filas — el radio del header */
+  --radius-lg: 12px;   /* tiles, filas de lista, celdas */
+  --radius-xl: 14px;   /* cards dentro de un panel */
+  --radius-2xl: 16px;  /* paneles y contenedores — el radio del aside */
+  --radius-3xl: 24px;  /* drawers, diálogos, barra de acciones flotante */
+  --radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 2px 6px rgba(15, 23, 42, 0.02);
+  --shadow-drawer: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.05);
+  /* The floating action bar is the only thing that hovers over live content
+     rather than sitting in the page, so it carries more separation than a
+     drawer. Tinted navy like the rest, never neutral black. */
+  --shadow-rail: 0 8px 30px rgba(15, 23, 42, 0.24), 0 2px 8px rgba(15, 23, 42, 0.12);
+  --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.02);
+  
+  /* Fonts */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* --- HSL Channels for Opacity Support (Calculated from HEX) --- */
+  --color-brand-hsl: 219 90% 49%;
+  --color-bg-app-hsl: 225 100% 98.5%;
+  --color-surface-hsl: 0 0% 100%;
+  --color-text-primary-hsl: 214 19% 23%;
+  --color-text-secondary-hsl: 214 10% 40%;
+  --color-text-inverse-hsl: 0 0% 100%;
+  --color-border-hsl: 210 4% 82%;
+  --color-border-strong-hsl: 220 6% 62%;
+  --color-negative-hsl: 357 80% 56%;
+  --color-positive-hsl: 161.4 93.5% 30.4%;
+  --color-positive-dark-hsl: 164.2 85.7% 16.5%;
+  --color-positive-bg-hsl: 150 76.9% 94.9%;
+  --color-warning-hsl: 27 100% 52%;
+  --color-warning-light-hsl: 24 100% 75%;
+  --color-yellow-hsl: 48 96% 46%;
+  --color-info-hsl: 225 83% 61%;
+  --color-surface-muted-hsl: 225 100% 97%;
+  --color-surface-subtle-hsl: 225 100% 99%;
+  --color-surface-nav-hsl: 222 47% 11%;
+}

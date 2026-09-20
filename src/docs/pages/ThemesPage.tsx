@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { buildRadiusTokens, buildThemeTokens, themeToCss, THEME_PRESETS, ThemeSwatch, useTheme, type ThemePreset, type ThemeTokens } from "@/themes";
-import { CodeBlock, useCopy } from "../components/CodeBlock";
+import { CodeBlock } from "../components/CodeBlock";
+import { useCopy } from "../hooks/useCopy";
 import { DocSection, PageIntro } from "../components/PageIntro";
 
 /** Convierte un mapa de tokens en estilos inline para un preview aislado. */

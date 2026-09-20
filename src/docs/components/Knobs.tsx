@@ -5,10 +5,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ControlValue, DocControl } from "../registry/types";
 
-export function defaultValues(controls: Record<string, DocControl>): Record<string, ControlValue> {
-  return Object.fromEntries(Object.entries(controls).map(([key, control]) => [key, control.default]));
-}
-
 export interface KnobsProps {
   controls: Record<string, DocControl>;
   values: Record<string, ControlValue>;

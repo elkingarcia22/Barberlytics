@@ -60,16 +60,21 @@ function neutralScale(preset: ThemePreset, mode: ResolvedMode) {
       textMuted: at(sat(6, 4), 62),
     };
   }
+  // En oscuro la saturación base la fija el preset (45 para el navy UBITS,
+  // 24 por defecto) y cada superficie se escala respecto a ella, así la
+  // relación entre fondo, card y borde es la misma en todos los temas.
+  const base = tinted ? (preset.darkNeutralSaturation ?? 24) : 10;
+  const scaled = (ratio: number) => Math.round(base * ratio);
   return {
-    bgApp: at(sat(45, 12), 9),
-    surface: at(sat(36, 10), 14),
-    popover: at(sat(37, 10), 17),
-    surfaceMuted: at(sat(31, 9), 19),
-    surfaceSubtle: at(sat(47, 12), 11),
-    tabTrack: at(sat(29, 8), 16),
-    accent: at(sat(47, 12), 20),
-    border: at(sat(16, 6), 29),
-    borderStrong: at(sat(10, 5), 35),
+    bgApp: at(scaled(1), 9),
+    surface: at(scaled(0.8), 14),
+    popover: at(scaled(0.82), 17),
+    surfaceMuted: at(scaled(0.69), 19),
+    surfaceSubtle: at(scaled(1.04), 11),
+    tabTrack: at(scaled(0.64), 16),
+    accent: at(scaled(1.04), 20),
+    border: at(scaled(0.36), 29),
+    borderStrong: at(scaled(0.22), 35),
     textPrimary: at(sat(6, 3), 93),
     textSecondary: at(sat(6, 3), 64),
     textMuted: at(sat(6, 3), 46),

@@ -2,7 +2,8 @@ import * as React from "react";
 import { Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UbitsIcon, iconRegistry, type IconName, type IconSize, type IconTone } from "@/icons";
-import { CodeBlock, useCopy } from "../components/CodeBlock";
+import { CodeBlock } from "../components/CodeBlock";
+import { useCopy } from "../hooks/useCopy";
 import { DocSection, PageIntro } from "../components/PageIntro";
 
 const ICON_NAMES = Object.keys(iconRegistry) as IconName[];

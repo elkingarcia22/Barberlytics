@@ -23,6 +23,13 @@ export interface ThemePreset {
   neutral: NeutralTint;
   /** Matiz alternativo para los neutros; por defecto el del primario. */
   neutralHue?: number;
+  /**
+   * Saturación de los neutros en modo oscuro (0–100). El navy UBITS original
+   * es muy saturado (45%) y funciona porque es azul; para el resto de matices
+   * el valor por defecto (24%) evita que toda la pantalla se vuelva verde o
+   * morada.
+   */
+  darkNeutralSaturation?: number;
 }
 
 export const THEME_PRESETS: readonly ThemePreset[] = [
@@ -33,6 +40,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     primary: { light: "#0C5BEF", dark: "#3865F5" },
     neutral: "tinted",
     neutralHue: 222,
+    darkNeutralSaturation: 45,
   },
   {
     id: "indigo",

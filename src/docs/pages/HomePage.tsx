@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { THEME_PRESETS, ThemeSwatch, useTheme } from "@/themes";
 import { ALL_ENTRIES, DOC_GROUPS, entriesByGroup } from "../registry";
 import { routeToHash } from "../router";
-import { FOUNDATION_PAGES } from "../DocsShell";
+import { FOUNDATION_PAGES } from "../foundationPages";
 
 function Stat({ value, label }: { value: React.ReactNode; label: string }) {
   return (

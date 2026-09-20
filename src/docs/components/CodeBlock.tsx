@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCopy } from "../hooks/useCopy";
 
 /** Resalta de forma ligera JSX/TS: cadenas, etiquetas, palabras clave y comentarios. */
 function highlight(code: string): React.ReactNode[] {
@@ -31,23 +32,6 @@ function highlight(code: string): React.ReactNode[] {
   }
   if (last < code.length) nodes.push(code.slice(last));
   return nodes;
-}
-
-export function useCopy(timeout = 1600) {
-  const [copied, setCopied] = React.useState(false);
-  const copy = React.useCallback(
-    async (text: string) => {
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), timeout);
-      } catch {
-        setCopied(false);
-      }
-    },
-    [timeout]
-  );
-  return { copied, copy };
 }
 
 export function CopyButton({ text, className }: { text: string; className?: string }) {

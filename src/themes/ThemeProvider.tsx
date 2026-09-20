@@ -1,8 +1,7 @@
 import * as React from "react";
 import { buildRadiusTokens, buildThemeTokens, type RadiusScale, type ResolvedMode, type ThemeMode, type ThemeTokens } from "./buildTokens";
-import { DEFAULT_THEME_ID, findPreset, THEME_PRESETS, type ThemePreset } from "./presets";
-
-export const THEME_STORAGE_KEY = "ubits-theme";
+import { DEFAULT_THEME_ID, findPreset, THEME_PRESETS } from "./presets";
+import { ThemeContext, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
 
 interface StoredTheme {
   preset: string;
@@ -11,22 +10,6 @@ interface StoredTheme {
 }
 
 const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "light", radius: "md" };
-
-export interface ThemeContextValue {
-  preset: ThemePreset;
-  presets: readonly ThemePreset[];
-  setPreset: (id: string) => void;
-  mode: ThemeMode;
-  setMode: (mode: ThemeMode) => void;
-  /** El modo realmente aplicado, con `system` ya resuelto. */
-  resolvedMode: ResolvedMode;
-  radius: RadiusScale;
-  setRadius: (radius: RadiusScale) => void;
-  /** Los tokens de color activos en este momento. */
-  tokens: ThemeTokens;
-}
-
-const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
 function readStored(): StoredTheme {
   if (typeof window === "undefined") return DEFAULT_STORED;
@@ -123,12 +106,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme(): ThemeContextValue {
-  const context = React.useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme debe usarse dentro de <ThemeProvider>");
-  }
-  return context;
 }

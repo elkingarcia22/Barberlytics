@@ -2,7 +2,7 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCssVars } from "../hooks/useCssVar";
-import { useCopy } from "../components/CodeBlock";
+import { useCopy } from "../hooks/useCopy";
 import { DocSection, PageIntro } from "../components/PageIntro";
 import { CodeBlock } from "../components/CodeBlock";
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Droplets, Home, Menu, Palette, Search, Shapes, Sparkles, Square, Type, X } from "lucide-react";
+import { Home, Menu, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UbitsLogo } from "@/components/ui/UbitsLogo";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ThemeModeToggle, ThemeSelector } from "@/themes";
 import { ALL_ENTRIES, DOC_GROUPS, entriesByGroup } from "./registry";
 import { routeToHash, useHashRoute, type DocsRoute } from "./router";
+import { FOUNDATION_PAGES } from "./foundationPages";
 
-export interface FoundationPage {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
 
-export const FOUNDATION_PAGES: readonly FoundationPage[] = [
-  { id: "themes", label: "Temas", icon: Palette },
-  { id: "colors", label: "Colores y tokens", icon: Droplets },
-  { id: "typography", label: "Tipografía", icon: Type },
-  { id: "radius", label: "Radios y sombras", icon: Square },
-  { id: "icons", label: "Iconos", icon: Shapes },
-  { id: "motion", label: "Motion", icon: Sparkles },
-];
 
 function isActive(route: DocsRoute, target: DocsRoute): boolean {
   if (route.kind !== target.kind) return false;

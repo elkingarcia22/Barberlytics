@@ -42,7 +42,7 @@ export function hexToHsl(hex: string): Hsl {
   if (max === min) return { h: 0, s: 0, l: l * 100 };
   const d = max - min;
   const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
+  let h: number;
   if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
   else if (max === g) h = (b - r) / d + 2;
   else h = (r - g) / d + 4;
@@ -56,7 +56,9 @@ export function hslToHex({ h, s, l }: Hsl): string {
   const c = (1 - Math.abs(2 * lig - 1)) * sat;
   const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
   const m = lig - c / 2;
-  let [r, g, b] = [0, 0, 0];
+  let r: number;
+  let g: number;
+  let b: number;
   if (hue < 60) [r, g, b] = [c, x, 0];
   else if (hue < 120) [r, g, b] = [x, c, 0];
   else if (hue < 180) [r, g, b] = [0, c, x];

@@ -1,4 +1,8 @@
 import type { DocEntry } from "../types";
+import { confirmDialogEntry } from "./confirm-dialog";
+import { drawerSectionEntry } from "./drawer-section";
+import { drawerShellEntry } from "./drawer-shell";
+import { modalShellEntry } from "./modal-shell";
 
 /** Entradas del grupo "overlays". Cada componente vive en su propio archivo de esta carpeta. */
-export const overlaysEntries: readonly DocEntry[] = [];
+export const overlaysEntries: readonly DocEntry[] = [confirmDialogEntry, drawerSectionEntry, drawerShellEntry, modalShellEntry];

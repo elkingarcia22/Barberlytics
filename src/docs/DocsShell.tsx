@@ -197,15 +197,18 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación">
             <Menu />
           </Button>
-          <ol className="flex min-w-0 items-center gap-1.5 text-[13px] text-text-muted">
-            {crumbs.map((crumb, index) => (
-              <li key={`${crumb}-${index}`} className="flex items-center gap-1.5">
-                {index > 0 && <span aria-hidden>/</span>}
-                <span className={cn("truncate", index === crumbs.length - 1 && "font-medium text-text-primary")}>{crumb}</span>
-              </li>
-            ))}
+          <ol className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden text-[13px] text-text-muted">
+            {crumbs.map((crumb, index) => {
+              const isLast = index === crumbs.length - 1;
+              return (
+                <li key={`${crumb}-${index}`} className={cn("flex min-w-0 items-center gap-1.5", !isLast && "hidden sm:flex")}>
+                  {index > 0 && <span aria-hidden className="hidden sm:inline">/</span>}
+                  <span className={cn("truncate", isLast && "font-medium text-text-primary")}>{crumb}</span>
+                </li>
+              );
+            })}
           </ol>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <ThemeSelector />
             <ThemeModeToggle />
           </div>

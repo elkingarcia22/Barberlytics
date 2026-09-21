@@ -65,7 +65,7 @@ export const appSidebarEntry = defineEntry({
   name: "AppSidebar",
   group: "layout",
   description:
-    "El sidebar del AdminShell: identidad de la empresa con su menú, el segmentado Workspace / Agente IA, un árbol de navegación con acordeones y paneles que se abren en profundidad (drill), la tarjeta promocional del LMS y el acceso a feedback. Es un componente controlado: AdminShell le dice si está plegado, si el cajón móvil está abierto y en qué modo está.",
+    "El sidebar del AdminShell, en dos capas: un rail de iconos de 64px que está siempre y no se mueve, y un panel de 240px que se desliza por encima con la identidad de la empresa, el segmentado Workspace / Agente IA, el árbol con acordeones y drill, la tarjeta promocional y el feedback. Plegar no encoge el panel: lo aparta y descubre el rail, así los iconos se quedan quietos y las etiquetas nunca se estrujan. Es un componente controlado: AdminShell le dice si está plegado, si el cajón móvil está abierto y en qué modo está.",
   importPath: 'import { AppSidebar } from "@/components/app-shell/AppSidebar"',
   sourcePath: "src/components/app-shell/AppSidebar.tsx",
   status: "stable",
@@ -119,14 +119,14 @@ const [mode, setMode] = React.useState<ShellMode>("${mode}");
     {
       id: "collapsed",
       title: "Plegado",
-      description: "64px de ancho: solo iconos, el logo de la empresa como disparador de su menú y los grupos convertidos en separadores. Cualquier pliegue borra el drill.",
+      description: "El panel se aparta y queda el rail: los iconos de cada sección con su etiqueta en tooltip, el conmutador de modo apilado y los grupos convertidos en separadores. Una sección con hijos no cabe en 64px, así que su icono vuelve a abrir el panel con ese acordeón desplegado en vez de no hacer nada. Cualquier pliegue borra el drill.",
       layout: "stretch",
       code: `<AppSidebar collapsed onToggleCollapse={toggle} … />`,
       render: () => <SidebarDemo initialCollapsed height={480} />,
     },
   ],
   props: [
-    { name: "collapsed", type: "boolean", description: "Rail de 64px con tooltips en vez de 240px con rótulos." },
+    { name: "collapsed", type: "boolean", description: "Aparta el panel de 240px y deja a la vista el rail de 64px con tooltips." },
     { name: "mobileOpen", type: "boolean", description: "Por debajo de `lg` el sidebar es un cajón fijo; esto lo muestra." },
     { name: "mode", type: '"workspace" | "agent"', description: "Qué muestra el segmentado y el árbol: navegación o historial de chats." },
     { name: "onModeChange", type: "(mode: ShellMode) => void", description: "Al pulsar el segmentado." },

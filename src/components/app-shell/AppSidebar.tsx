@@ -8,7 +8,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Sparkles,
   X,
@@ -25,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AI_GRADIENT, type Company, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
 import { useShellConfig } from "./shellConfig";
 import { SHELL_MENU_PANEL } from "./shellPanel";
+import { SidebarIconRail } from "./SidebarIconRail";
 import type { ShellMode } from "./shellTypes";
 
 const GoogleMark: React.FC<{ className?: string }> = ({ className }) => (
@@ -158,6 +158,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     if (id === "objetivos") onNavigateHome?.();
   };
 
+  /**
+   * Click en un icono del rail. Una raíz sin hijos navega y ya; una con hijos
+   * no puede mostrarlos en 64px, así que abre el panel con su acordeón
+   * desplegado. Antes ese icono no hacía nada y la sección quedaba sin salida.
+   */
+  const selectRootFromRail = (item: NavRoot) => {
+    if (item.children?.length) {
+      setOpenSections((sections) => ({ ...sections, [item.id]: true }));
+      onToggleCollapse();
+      return;
+    }
+    selectNode(item.id);
+  };
+
   const pushDrill = (item: NavChild) => {
     if (!item.children) return;
     setDrillDirection("forward");
@@ -178,13 +192,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         className={cn(
           "relative flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
           item.id === "inicio" && "font-semibold",
-          isCurrent && "bg-surface-muted font-semibold text-primary hover:bg-surface-muted hover:text-primary",
-          collapsed && "justify-center px-0"
+          isCurrent && "bg-surface-muted font-semibold text-primary hover:bg-surface-muted hover:text-primary"
         )}
       >
         <item.icon className={cn("h-4 w-4 shrink-0", isCurrent ? "text-primary" : "text-text-muted")} strokeWidth={2} />
-        {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>}
-        {!collapsed && item.badge && (
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+        {item.badge && (
           <span
             className={cn(
               "flex h-4 shrink-0 items-center rounded-full px-2 text-[10px] font-extrabold tracking-wide",
@@ -194,18 +207,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             {item.badge}
           </span>
         )}
-        {collapsed && item.badge && (
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
-        )}
       </button>
     );
-    if (!collapsed) return row;
-    return (
-      <Tooltip key={item.id} delayDuration={0}>
-        <TooltipTrigger asChild>{row}</TooltipTrigger>
-        <TooltipContent side="right">{item.label}</TooltipContent>
-      </Tooltip>
-    );
+    return row;
   };
 
   const renderChildRow = (child: NavChild) => {
@@ -230,50 +234,34 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
   const renderAccordion = (item: NavRoot) => {
     const isOpen = !!openSections[item.id];
-    // Expanded, the active leaf's own bar already marks "where you are" — the
-    // header doesn't need to repeat it. Collapsed, that leaf is invisible, so
-    // this is the only signal left that the module is the active one.
-    const isCurrentCollapsed = collapsed && accordionHoldsCurrentNode(item, currentNodeId);
+    // La barra del hijo activo ya dice dónde estás, así que la cabecera no lo
+    // repite; en el rail sí, porque ahí los hijos no se ven.
     const head = (
       <button
-        onClick={() => !collapsed && setOpenSections((sections) => ({ ...sections, [item.id]: !isOpen }))}
+        onClick={() => setOpenSections((sections) => ({ ...sections, [item.id]: !isOpen }))}
+        aria-expanded={isOpen}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
-          collapsed && "justify-center px-0",
-          isCurrentCollapsed && "bg-surface-muted font-semibold text-primary hover:bg-surface-muted hover:text-primary"
+          "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary"
         )}
       >
-        <item.icon
-          className={cn("h-4 w-4 shrink-0", isCurrentCollapsed ? "text-primary" : "text-text-muted")}
-          strokeWidth={2}
-        />
-        {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>}
-        {!collapsed && item.badge && (
+        <item.icon className="h-4 w-4 shrink-0 text-text-muted" strokeWidth={2} />
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+        {item.badge && (
           <span className="flex h-4 shrink-0 items-center rounded-full bg-surface-muted px-2 text-[10px] font-extrabold tracking-wide text-primary">
             {item.badge}
           </span>
         )}
-        {!collapsed && (
-          <ChevronDown
-            className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform duration-200", isOpen && "rotate-180")}
-            strokeWidth={2.5}
-          />
-        )}
+        <ChevronDown
+          className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform duration-200", isOpen && "rotate-180")}
+          strokeWidth={2.5}
+        />
       </button>
     );
 
     return (
       <div key={item.id}>
-        {collapsed ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>{head}</TooltipTrigger>
-            <TooltipContent side="right">{item.label}</TooltipContent>
-          </Tooltip>
-        ) : (
-          head
-        )}
-        {!collapsed && (
-          <div
+        {head}
+        <div
             className={cn(
               "grid transition-[grid-template-rows,margin-top] duration-200 ease-out",
               isOpen ? "mt-1 grid-rows-[1fr]" : "grid-rows-[0fr]"
@@ -292,8 +280,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 {item.children!.map((child) => renderChildRow(child))}
               </motion.div>
             </div>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -301,44 +288,84 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const drillLevel = drillStack[drillStack.length - 1];
 
   return (
-    <aside
+    /*
+     * Dos capas, no un panel que se encoge.
+     *
+     * Este div exterior es solo el hueco: es lo único que cambia de ancho, y
+     * de él depende cuánto se corre el contenido de al lado. Dentro, el rail
+     * (64px) y el panel (240px) tienen ancho fijo y no se enteran: el panel
+     * se desliza hacia la izquierda hasta dejar ver el rail, que está encima
+     * y se desvanece cuando el panel vuelve. Antes era un solo elemento
+     * animando su ancho, así que en cada transición los iconos viajaban y
+     * las etiquetas se estrujaban contra el borde.
+     */
+    <div
       className={cn(
-        "relative flex h-full shrink-0 flex-col rounded-2xl border border-border/60 bg-surface p-3 pt-4 shadow-card transition-[width,transform] duration-200",
+        "relative h-full shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         collapsed ? "w-16" : "w-60",
+        /* Recorta el panel a este hueco: al estar recogido su borde asomaba
+           en los 8px de aire que el shell deja a la izquierda del rail. En
+           móvil el panel es `fixed` y se sale a propósito, así que ahí no. */
+        "overflow-hidden max-lg:overflow-visible",
+        // En móvil el panel es un cajón flotante, así que no reserva hueco.
+        "max-lg:w-0"
+      )}
+    >
+      {/* Rail de iconos: siempre montado y siempre en el mismo sitio. */}
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 z-20 w-16 transition-opacity duration-200 max-lg:hidden",
+          collapsed ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        aria-hidden={!collapsed}
+      >
+        <SidebarIconRail
+          navigation={navigation}
+          currentNodeId={currentNodeId}
+          holdsCurrent={accordionHoldsCurrentNode}
+          onSelectRoot={selectRootFromRail}
+          mode={mode}
+          onModeChange={onModeChange}
+          onExpand={onToggleCollapse}
+          onOpenFeedback={onOpenFeedback}
+          brandMark={<CompanyMark company={activeCompany} />}
+          brandLabel={activeCompany.name}
+        />
+      </div>
+
+      <aside
+        className={cn(
+        "absolute inset-y-0 left-0 z-10 flex w-60 flex-col rounded-2xl border border-border/60 bg-surface p-3 pt-4 shadow-card",
+        "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        // Se va hasta dejar asomando justo el ancho del rail.
+        collapsed && "-translate-x-[calc(100%-4rem)]",
         // Mobile: the sidebar floats as a drawer above the content.
         "max-lg:fixed max-lg:bottom-2 max-lg:left-2 max-lg:top-2 max-lg:z-50 max-lg:w-60 max-lg:shadow-drawer",
         mobileOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-[calc(100%+16px)]"
       )}
     >
       {/* ---------- Collapse toggle ----------
-          Sits above the company logo, inside the panel, instead of riding
-          the sidebar's outer edge — same row shape whether collapsed
-          (centered, on top of the icon rail) or expanded (top-right, over
-          the identity row). Below lg the sidebar is an off-canvas drawer —
-          it would slide out of reach — so the header's button keeps that
-          job there. */}
-      <div className={cn("mb-2 flex", collapsed ? "justify-center" : "justify-end", "max-lg:hidden")}>
+          Contrae el panel y deja el rail a la vista. Debajo de lg el panel es
+          un cajón que se sale de la pantalla, así que ahí el botón del header
+          es el que manda. */}
+      <div className="mb-2 flex justify-end max-lg:hidden">
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <button
               type="button"
               onClick={onToggleCollapse}
-              aria-label={collapsed ? "Expandir menú" : "Contraer menú"}
-              aria-expanded={!collapsed}
+              aria-label="Contraer menú"
+              aria-expanded
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-lg text-text-muted transition-colors",
                 "hover:bg-background hover:text-text-primary",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               )}
             >
-              {collapsed ? (
-                <PanelLeftOpen className="h-4 w-4" strokeWidth={2} />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" strokeWidth={2} />
-              )}
+              <PanelLeftClose className="h-4 w-4" strokeWidth={2} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">{collapsed ? "Expandir menú" : "Contraer menú"}</TooltipContent>
+          <TooltipContent side="right">Contraer menú</TooltipContent>
         </Tooltip>
       </div>
 
@@ -348,19 +375,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             hangs from the sidebar's left edge in both states instead of
             jumping to wherever the "..." button happens to sit. */}
         <PopoverAnchor asChild>
-          <div className={cn("mb-4 flex h-8 items-center gap-1", collapsed && "justify-center")}>
-            {collapsed ? (
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg"
-                  title={activeCompany.name}
-                  aria-label={`Menú de ${activeCompany.name}`}
-                >
-                  <CompanyMark company={activeCompany} />
-                </button>
-              </PopoverTrigger>
-            ) : (
+          <div className="mb-4 flex h-8 items-center gap-1">
               <>
                 <div className="flex h-8 min-w-0 flex-1 items-center gap-2 px-1" title={activeCompany.name}>
                   <CompanyMark company={activeCompany} />
@@ -383,7 +398,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   </button>
                 </PopoverTrigger>
               </>
-            )}
           </div>
         </PopoverAnchor>
         <PopoverContent
@@ -460,8 +474,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </Popover>
 
       {/* ---------- Workspace / Agente IA segmented ---------- */}
-      {!collapsed && (
-        <div className="relative mb-4 flex shrink-0 rounded-md bg-background p-1">
+      <div className="relative mb-4 flex shrink-0 rounded-md bg-background p-1">
           <span
             className="absolute bottom-1 left-1 top-1 z-0 w-[calc(50%-4px)] rounded-lg bg-surface shadow-card transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.5,1)]"
             style={{ transform: mode === "agent" ? "translateX(100%)" : "translateX(0)" }}
@@ -492,12 +505,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           >
             Agente IA
           </button>
-        </div>
-      )}
+      </div>
 
       {/* ---------- Nav viewport ---------- */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {mode === "agent" && !collapsed ? (
+        {mode === "agent" ? (
           <nav className="flex h-full flex-col gap-1 overflow-y-auto pr-1 animate-in fade-in duration-200">
             <button
               onClick={() => setActiveChatIndex(-1)}
@@ -529,7 +541,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </React.Fragment>
             ))}
           </nav>
-        ) : drillLevel && !collapsed ? (
+        ) : drillLevel ? (
           <nav
             key={`drill-${drillStack.length}-${drillLevel.title}`}
             className={cn(
@@ -562,18 +574,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </nav>
         ) : (
           <nav
-            key={`root-${collapsed}`}
+            key="root"
             className={cn(
-              "flex h-full flex-col gap-1 overflow-y-auto duration-200 animate-in fade-in",
-              !collapsed && "pr-1",
+              "flex h-full flex-col gap-1 overflow-y-auto pr-1 duration-200 animate-in fade-in",
               drillDirection === "back" && "slide-in-from-left-2"
             )}
           >
             {navigation.map((entry, index) => {
               if (entry.kind === "group") {
-                return collapsed ? (
-                  <div key={`group-${index}`} className="mx-2 my-2 h-px shrink-0 bg-border/60" />
-                ) : (
+                return (
                   <div key={`group-${index}`} className="shrink-0 truncate px-2 pb-0.5 pt-3 text-xs font-medium text-text-muted">
                     {entry.label}
                   </div>
@@ -586,7 +595,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* ---------- LMS promo card ---------- */}
-      {!collapsed && !adDismissed && promo && mode === "workspace" && (
+      {!adDismissed && promo && mode === "workspace" && (
         <div className="relative mt-2 shrink-0 rounded-2xl bg-surface-muted p-4 text-center">
           <button
             onClick={() => setAdDismissed(true)}
@@ -617,14 +626,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         <button
           onClick={onOpenFeedback}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-background hover:text-text-secondary",
-            collapsed && "justify-center px-0"
+            "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-background hover:text-text-secondary"
           )}
         >
           <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
-          {!collapsed && <span>Feedback</span>}
+          <span>Feedback</span>
         </button>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 };

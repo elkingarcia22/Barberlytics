@@ -100,7 +100,14 @@ function FontSelect({
         <SelectTrigger id={id} className="h-8 text-xs">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        {/*
+          `position="popper"` en vez del `item-aligned` por defecto: solo el
+          contenido posicionado por Popper lleva el atributo que globals.css
+          usa para forzar `z-index: 9999` en los overlays (línea ~575). Sin
+          esto, el listado de fuentes se queda con su z-index base y sale
+          detrás del popover "Personalizar tema" que lo contiene.
+        */}
+        <SelectContent position="popper">
           {allowSame && (
             <SelectItem value="same" className="text-xs">
               Igual que el cuerpo

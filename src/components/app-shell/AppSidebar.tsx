@@ -184,7 +184,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <span
             className={cn(
               "flex h-4 shrink-0 items-center rounded-full px-2 text-[10px] font-extrabold tracking-wide",
-              isCurrent ? "bg-primary text-white" : "bg-surface-muted text-primary"
+              isCurrent ? "bg-primary text-primary-foreground" : "bg-surface-muted text-primary"
             )}
           >
             {item.badge}
@@ -319,14 +319,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       <aside
         className={cn(
-        "absolute inset-y-0 left-0 z-10 flex w-60 flex-col rounded-2xl border border-border/60 bg-surface p-3 pt-4 shadow-card",
+        "absolute inset-y-0 left-0 z-10 flex w-60 flex-col border-r border-border/60 bg-surface p-3 pt-4",
         "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         /* Se va entero. Si solo se metía detrás del rail, su esquina cuadrada
            asomaba por el redondeo de 16px del rail y se veía sucio. */
         collapsed && "-translate-x-full",
         // Mobile: the sidebar floats as a drawer above the content.
-        "max-lg:fixed max-lg:bottom-2 max-lg:left-2 max-lg:top-2 max-lg:z-50 max-lg:w-60 max-lg:shadow-drawer",
-        mobileOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-[calc(100%+16px)]"
+        "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:w-60 max-lg:shadow-drawer",
+        mobileOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
       )}
     >
       {/* ---------- Collapse toggle ----------

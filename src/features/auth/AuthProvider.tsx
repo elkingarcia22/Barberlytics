@@ -41,18 +41,40 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
   React.useEffect(() => {
     if (!storage.get()) return;
     const controller = new AbortController();
-    authApi
-      .me(controller.signal)
-      .then((profile) => {
-        setUser(profile);
-        setStatus("authenticated");
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        // Un 401 ya cerró la sesión desde el puente; cualquier otro fallo
-        // (red caída) también nos deja fuera: sin perfil no hay app.
-        if (!isApiError(error) || error.code !== "unauthorized") clearSession();
-      });
+
+    /*
+     * Recuperar la sesión al cargar reintenta antes de rendirse.
+     *
+     * Solo un 401 significa "este token ya no vale": ahí se cierra y punto.
+     * Un fallo de red o una respuesta que no cuadra son transitorios —una
+     * recarga con el service worker aún tomando el control los produce— y
+     * echar a la persona por eso es perder su sesión por un parpadeo.
+     */
+    const RETRY_DELAYS_MS = [180, 600];
+
+    const attempt = (tries: number): void => {
+      authApi
+        .me(controller.signal)
+        .then((profile) => {
+          if (controller.signal.aborted) return;
+          setUser(profile);
+          setStatus("authenticated");
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          if (isApiError(error) && error.code === "unauthorized") return; // el puente ya cerró
+          const delay = RETRY_DELAYS_MS[tries];
+          if (delay === undefined) {
+            clearSession();
+            return;
+          }
+          window.setTimeout(() => {
+            if (!controller.signal.aborted) attempt(tries + 1);
+          }, delay);
+        });
+    };
+
+    attempt(0);
     return () => controller.abort();
   }, [storage, clearSession]);
 

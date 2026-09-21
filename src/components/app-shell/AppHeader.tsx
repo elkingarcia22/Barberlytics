@@ -100,7 +100,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const unreadCount = Math.min(2, notifications.length);
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 px-1">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/60 bg-gradient-to-b from-surface to-surface-subtle px-6">
       {/* ---------- Sidebar toggle ----------
           Only below lg: there the sidebar is an off-canvas drawer, so its own
           edge handle is out of reach. On desktop that handle takes over. */}
@@ -226,7 +226,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
               <span className="text-[13px] font-bold text-text-primary">Notificaciones</span>
               {unreadCount > 0 && (
-                <span className="inline-flex h-5 items-center rounded-full bg-primary px-2 text-[11px] font-bold text-white">
+                <span className="inline-flex h-5 items-center rounded-full bg-primary px-2 text-[11px] font-bold text-primary-foreground">
                   {unreadCount} nuevas
                 </span>
               )}

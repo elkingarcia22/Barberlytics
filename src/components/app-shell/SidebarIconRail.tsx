@@ -201,7 +201,7 @@ export function SidebarIconRail({
     <nav
       aria-label="Navegación compacta"
       className={cn(
-        "flex h-full w-16 flex-col items-center gap-1 overflow-y-auto rounded-2xl border border-border/60 bg-surface px-2 py-4 shadow-card",
+        "flex h-full w-16 flex-col items-center gap-1 overflow-y-auto border-r border-border/60 bg-surface px-2 py-4",
         className
       )}
     >

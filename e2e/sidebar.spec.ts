@@ -40,9 +40,9 @@ test.describe("Menú lateral", () => {
 
     await page.locator(RAIL).getByLabel("Expandir menú").click();
     await expect(spacer).toHaveCSS("width", "240px");
-    // Ya desplegado, el panel entra en su sitio.
+    // Ya desplegado, el panel entra en su sitio: pegado al borde, sin aire.
     const caja = await panel.boundingBox();
-    expect(caja?.x).toBeCloseTo(8, 0);
+    expect(caja?.x).toBe(0);
   });
 
   test("una sección con hijos se abre desde el rail", async ({ page }) => {
@@ -104,13 +104,23 @@ test.describe("Navegación anidada", () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     const rail = page.locator('[aria-label="Navegación compacta"]').nth(idx);
     await rail.scrollIntoViewIfNeeded();
+    // La página de documentación sigue asentándose (gráficos diferidos); si el
+    // layout se mueve bajo el puntero, el menú se cierra solo.
+    await page.waitForTimeout(500);
 
-    // Sin clic: solo el puntero encima abre el segundo nivel…
-    await rail.getByLabel("Aprendizaje").hover();
-    await expect(page.getByRole("menuitem", { name: "LMS Creator" })).toBeVisible();
+    // Sin clic: solo el puntero encima abre el segundo nivel. El menú se
+    // cierra solo si el puntero sale, así que reintentamos el gesto entero
+    // en vez de dar por hecho que el primer hover cae en el sitio.
+    await expect(async () => {
+      await rail.getByLabel("Aprendizaje").hover();
+      await expect(page.getByRole("menuitem", { name: "LMS Creator" })).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15000 });
+
     // …y desde ahí, el tercero.
-    await page.getByRole("menuitem", { name: "LMS Creator" }).hover();
-    await expect(page.getByRole("menuitem", { name: "Universidad corporativa" })).toBeVisible();
+    await expect(async () => {
+      await page.getByRole("menuitem", { name: "LMS Creator" }).hover();
+      await expect(page.getByRole("menuitem", { name: "Universidad corporativa" })).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15000 });
   });
 
   test("dentro de una sección se salta de hermano sin volver atrás", async ({ page }) => {

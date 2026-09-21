@@ -135,3 +135,30 @@ test.describe("Navegación anidada", () => {
     await expect(switcher).toContainText("Planes de Formación");
   });
 });
+
+test.describe("Submenús", () => {
+  /**
+   * Un submenú debe abrirse al lado del menú que lo contiene, no encima.
+   * Se montaban uno sobre otro porque el SubContent del primitivo no iba en
+   * un portal y floating-ui lo colocaba contra su padre, no contra la
+   * ventana.
+   */
+  test("el submenú de empresas abre al lado, sin tapar al padre", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.getByRole("button", { name: "Expandir menú" }).click();
+    await page.getByTestId("company-trigger").click();
+    await page.getByTestId("company-switch").hover();
+    await expect(page.getByText("Tus empresas")).toBeVisible();
+    // El panel entra con un zoom del 95%: medir a media animación da una
+    // caja más pequeña y desplazada.
+    await page.waitForTimeout(400);
+
+    const padre = await page.locator('[data-slot="dropdown-menu-content"]').first().boundingBox();
+    const sub = await page.locator('[data-slot="dropdown-menu-sub-content"]').first().boundingBox();
+    expect(padre).not.toBeNull();
+    expect(sub).not.toBeNull();
+    // El submenú empieza donde acaba el padre: ni lo pisa ni se le monta.
+    expect(sub!.x).toBeGreaterThanOrEqual(padre!.x + padre!.width);
+  });
+});

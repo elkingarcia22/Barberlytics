@@ -73,8 +73,8 @@ describe("AI gradient", () => {
 
 describe("buildFontTokens", () => {
   test("heading 'same' reuses the body family", () => {
-    const tokens = buildFontTokens({ body: "manrope", heading: "same" });
-    expect(tokens["--font-body"]).toContain("Manrope");
+    const tokens = buildFontTokens({ body: "plus-jakarta", heading: "same" });
+    expect(tokens["--font-body"]).toContain("Plus Jakarta Sans");
     expect(tokens["--font-heading"]).toBe(tokens["--font-body"]);
   });
 
@@ -113,9 +113,9 @@ describe("themeToCss", () => {
   });
 
   test("includes font tokens when asked", () => {
-    const css = themeToCss(thema, "md", { body: "dm-sans", heading: "playfair" });
+    const css = themeToCss(thema, "md", { body: "dm-sans", heading: "fraunces" });
     expect(css).toContain("--font-body: 'DM Sans'");
-    expect(css).toContain("--font-heading: 'Playfair Display'");
+    expect(css).toContain("--font-heading: 'Fraunces'");
   });
 });
 

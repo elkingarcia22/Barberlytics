@@ -65,7 +65,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     description: "Creativo, cercano a la familia de IA.",
     primary: { light: "#7C3AED", dark: "#A78BFA" },
     neutral: "tinted",
-    fonts: { body: "manrope", heading: "space-grotesk" },
+    fonts: { body: "satoshi", heading: "space-grotesk" },
   },
   {
     id: "emerald",
@@ -101,7 +101,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     description: "Cálido y humano, para experiencias de personas.",
     primary: { light: "#E11D48", dark: "#FB7185" },
     neutral: "gray",
-    fonts: { body: "nunito-sans" },
+    fonts: { body: "plus-jakarta" },
   },
   {
     id: "amber",

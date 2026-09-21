@@ -27,7 +27,25 @@ Lo que **no** cambia con el tema, a propósito: positivo, negativo, warning, inf
 
 ## Tipografía
 
-El catálogo vive en `src/themes/fonts.ts`: Inter, Geist (local, vía `@fontsource-variable/geist`), Manrope, DM Sans, IBM Plex Sans, Space Grotesk, Nunito Sans, Fraunces y Playfair Display (serif, pensadas para títulos) y Sistema. Las de Google se cargan bajo demanda con un `<link>` que `ThemeProvider` inyecta solo al elegirlas. Para añadir una fuente basta con una entrada más en `FONT_OPTIONS`.
+El catálogo vive en `src/themes/fonts.ts` y es corto a propósito: cada familia cubre un papel distinto
+y todas están entre las mejor valoradas para interfaz. Se cargan bajo demanda con un `<link>` que
+`ThemeProvider` inyecta solo al elegirlas.
+
+| Fuente | Papel | Origen |
+|---|---|---|
+| **Inter** | El referente de interfaz; neutra y legible a 12px. Es la que viene por defecto. | Google |
+| **Geist** | Mecánica y compacta, para paneles densos y herramientas técnicas. | Local (`@fontsource-variable/geist`) |
+| **Plus Jakarta Sans** | Profesional pero cálida; cansa menos en pantallas de uso prolongado. | Google |
+| **Satoshi** | Grotesca con esqueleto geométrico: carácter propio sin perder neutralidad. | Fontshare |
+| **DM Sans** | Geométrica de bajo contraste, para tamaños pequeños y tablas. | Google |
+| **IBM Plex Sans** | Humanista con aire corporativo y cobertura multilingüe amplia. | Google |
+| **Space Grotesk** | La más marcada; para titulares y producto con tono técnico. | Google |
+| **Fraunces** | La serif variable de referencia, con ejes ópticos. Solo para títulos. | Google |
+| **Sistema** | La nativa de cada plataforma; cero descarga y cero desplazamiento. | — |
+
+Para añadir una fuente basta con una entrada más en `FONT_OPTIONS`: `stylesheet` lleva la URL completa
+de la hoja de estilos, así que sirve cualquier proveedor. Si añades uno nuevo, acuérdate de sumar su
+origen a la CSP (ver [DEPLOYMENT.md](DEPLOYMENT.md)).
 
 ## Aplicación en runtime
 

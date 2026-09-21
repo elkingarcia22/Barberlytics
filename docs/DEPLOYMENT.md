@@ -15,6 +15,12 @@ VITE_API_URL=https://api.tu-dominio.com/v1 npm run build
 
 Los estilos usan `'unsafe-inline'` porque Tailwind y los tokens del tema se aplican en línea; los scripts no lo necesitan.
 
+Las tipografías del selector de tema se cargan bajo demanda desde dos proveedores, así que la CSP los
+incluye: Google Fonts (`fonts.googleapis.com` para el CSS, `fonts.gstatic.com` para los archivos) y
+Fontshare (`api.fontshare.com` y `cdn.fontshare.com`), este último solo por Satoshi. Si prefieres no
+depender de terceros, autoaloja los `woff2` y sustituye la URL de `stylesheet` en
+`src/themes/fonts.ts`; Geist ya funciona así, empaquetada con la aplicación.
+
 ## Variables
 
 | Variable | Descripción |

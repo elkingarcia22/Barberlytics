@@ -108,7 +108,7 @@ const PRESET_CODE = `// src/themes/presets.ts
   description: "Cálido, para campañas internas.",
   primary: { light: "#F43F5E", dark: "#FB7185" },
   neutral: "gray",       // "tinted" tiñe los neutros con el matiz del primario
-  fonts: { body: "manrope", heading: "fraunces" },   // opcional
+  fonts: { body: "satoshi", heading: "fraunces" },   // opcional
   ai: { start: "#F43F5E", end: "#F59E0B" },           // opcional
 }`;
 

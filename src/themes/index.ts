@@ -12,6 +12,7 @@ export {
   type FontId,
   type HeadingFontId,
   type FontOption,
+  type FontSource,
 } from "./fonts";
 export {
   buildThemeTokens,

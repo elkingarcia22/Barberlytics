@@ -1,24 +1,31 @@
 /**
- * Catálogo de tipografías que un tema puede usar. Cada opción es una familia
- * con su pila CSS y, si viene de Google Fonts, la consulta para cargarla bajo
- * demanda. La carga es perezosa: solo se inyecta el `<link>` de la fuente que
+ * Catálogo de tipografías que un tema puede usar.
+ *
+ * Es una lista corta a propósito: cada familia ocupa un papel distinto y no
+ * hay dos que resuelvan lo mismo. Todas están entre las mejor valoradas para
+ * interfaz hoy —alto x-height, aperturas abiertas, formas desambiguadas y
+ * ejes variables— y todas son gratuitas y de licencia abierta.
+ *
+ * La carga es perezosa: solo se inyecta la hoja de estilos de la fuente que
  * se elige, nunca todo el catálogo.
  */
 
 export type FontId =
   | "inter"
   | "geist"
-  | "manrope"
+  | "plus-jakarta"
+  | "satoshi"
   | "dm-sans"
   | "plex-sans"
   | "space-grotesk"
-  | "nunito-sans"
   | "fraunces"
-  | "playfair"
   | "system";
 
 /** Fuente de títulos: una del catálogo o la misma del cuerpo. */
 export type HeadingFontId = FontId | "same";
+
+/** De dónde sale la fuente; determina qué orígenes debe permitir la CSP. */
+export type FontSource = "google" | "fontshare" | "local" | "system";
 
 export interface FontOption {
   id: FontId;
@@ -27,91 +34,95 @@ export interface FontOption {
   /** Pila CSS completa. */
   family: string;
   category: "sans" | "serif" | "system";
-  /** Parámetro `family=` de Google Fonts; ausente si es local o del sistema. */
-  google?: string;
+  source: FontSource;
+  /** Hoja de estilos a inyectar; ausente si es local o del sistema. */
+  stylesheet?: string;
 }
 
 const SANS_FALLBACK = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 const SERIF_FALLBACK = "Georgia, 'Times New Roman', serif";
 
+const google = (family: string) => `https://fonts.googleapis.com/css2?family=${family}&display=swap`;
+
 export const FONT_OPTIONS: readonly FontOption[] = [
   {
     id: "inter",
     name: "Inter",
-    description: "Neutra y densa; la fuente base del sistema.",
+    description: "El referente de interfaz: neutra, densa y legible a 12px. La opción segura.",
     family: `'Inter', ${SANS_FALLBACK}`,
     category: "sans",
-    google: "Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900",
+    source: "google",
+    stylesheet: google("Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900"),
   },
   {
     id: "geist",
     name: "Geist",
-    description: "Geométrica y técnica, empaquetada localmente.",
+    description: "Mecánica y compacta. Hecha para paneles densos y herramientas técnicas.",
     family: `'Geist Variable', ${SANS_FALLBACK}`,
     category: "sans",
+    source: "local",
   },
   {
-    id: "manrope",
-    name: "Manrope",
-    description: "Redondeada y amable, buena para producto.",
-    family: `'Manrope', ${SANS_FALLBACK}`,
+    id: "plus-jakarta",
+    name: "Plus Jakarta Sans",
+    description: "Profesional pero cálida. Cansa menos en pantallas que se miran horas.",
+    family: `'Plus Jakarta Sans', ${SANS_FALLBACK}`,
     category: "sans",
-    google: "Manrope:wght@300..800",
+    source: "google",
+    stylesheet: google("Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800"),
+  },
+  {
+    id: "satoshi",
+    name: "Satoshi",
+    description: "Grotesca con esqueleto geométrico: carácter propio sin perder neutralidad.",
+    family: `'Satoshi', ${SANS_FALLBACK}`,
+    category: "sans",
+    source: "fontshare",
+    stylesheet: "https://api.fontshare.com/v2/css?f%5B%5D=satoshi@300,400,500,700,900&display=swap",
   },
   {
     id: "dm-sans",
     name: "DM Sans",
-    description: "Geométrica de trazo bajo, muy legible en tablas.",
+    description: "Geométrica de bajo contraste, pensada para tamaños pequeños y tablas.",
     family: `'DM Sans', ${SANS_FALLBACK}`,
     category: "sans",
-    google: "DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000",
+    source: "google",
+    stylesheet: google("DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000"),
   },
   {
     id: "plex-sans",
     name: "IBM Plex Sans",
-    description: "Carácter corporativo con un punto humanista.",
+    description: "Humanista con aire corporativo y cobertura multilingüe amplia.",
     family: `'IBM Plex Sans', ${SANS_FALLBACK}`,
     category: "sans",
-    google: "IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400",
+    source: "google",
+    stylesheet: google("IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400"),
   },
   {
     id: "space-grotesk",
     name: "Space Grotesk",
-    description: "Con personalidad; ideal para títulos.",
+    description: "La más marcada del catálogo. Para titulares y producto con tono técnico.",
     family: `'Space Grotesk', ${SANS_FALLBACK}`,
     category: "sans",
-    google: "Space+Grotesk:wght@300..700",
-  },
-  {
-    id: "nunito-sans",
-    name: "Nunito Sans",
-    description: "Suave y cercana, para experiencias de personas.",
-    family: `'Nunito Sans', ${SANS_FALLBACK}`,
-    category: "sans",
-    google: "Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000",
+    source: "google",
+    stylesheet: google("Space+Grotesk:wght@300..700"),
   },
   {
     id: "fraunces",
     name: "Fraunces",
-    description: "Serif editorial con ópticos variables; solo para títulos.",
+    description: "La serif variable de referencia, con ejes ópticos. Solo para títulos.",
     family: `'Fraunces', ${SERIF_FALLBACK}`,
     category: "serif",
-    google: "Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900",
-  },
-  {
-    id: "playfair",
-    name: "Playfair Display",
-    description: "Serif de alto contraste, elegante en grandes tamaños.",
-    family: `'Playfair Display', ${SERIF_FALLBACK}`,
-    category: "serif",
-    google: "Playfair+Display:ital,wght@0,400..900;1,400..900",
+    source: "google",
+    stylesheet: google("Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900"),
   },
   {
     id: "system",
     name: "Sistema",
-    description: "La fuente nativa de cada plataforma; cero descarga.",
+    description: "La fuente nativa de cada plataforma; cero descarga y cero desplazamiento.",
     family: SANS_FALLBACK,
     category: "system",
+    source: "system",
   },
 ];
 
@@ -131,13 +142,13 @@ export function resolveHeadingFont(heading: HeadingFontId, body: FontId): FontOp
 }
 
 export function fontStylesheetUrl(font: FontOption): string | undefined {
-  if (!font.google) return undefined;
-  return `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
+  return font.stylesheet;
 }
 
 /**
- * Inyecta la hoja de estilos de una fuente de Google una sola vez. Inter ya
- * viene en index.html; Geist y Sistema no necesitan descarga.
+ * Inyecta la hoja de estilos de una fuente una sola vez. Geist viene en el
+ * paquete (`@fontsource-variable/geist`) y Sistema no descarga nada, así que
+ * ninguna de las dos pasa por aquí.
  */
 export function ensureFontLoaded(font: FontOption): void {
   if (typeof document === "undefined") return;

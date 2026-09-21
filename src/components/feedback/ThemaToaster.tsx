@@ -37,7 +37,7 @@ export function ThemaToaster({
     const isDark = document.documentElement.classList.contains("dark")
     setTheme(isDark ? "dark" : "light")
 
-    // Observer to react to manual theme changes in SidebarRail
+    // Observer to react to manual theme changes elsewhere in the shell
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === "attributes" && mutation.attributeName === "class") {

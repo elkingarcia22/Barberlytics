@@ -146,5 +146,5 @@ const [mode, setMode] = React.useState<ShellMode>("${mode}");
       "No pongas más de dos niveles bajo un acordeón; el drill existe para el tercero.",
     ],
   },
-  related: ["admin-shell", "app-header", "sidebar-rail"],
+  related: ["admin-shell", "app-header", "app-shell"],
 });

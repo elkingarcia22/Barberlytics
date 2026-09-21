@@ -6,7 +6,7 @@ El sistema de diseño de Thema para esta plantilla se aleja de los estilos SaaS 
 ## Estrategia de Temas (Fase 5D)
 1. **Light Mode (Principal):** Es el modo oficial y prioritario de la plataforma. Toda la arquitectura está optimizada para máxima legibilidad en este modo.
 2. **Dark Mode (Soporte Técnico):** Se incluye como una capacidad técnica preparada. No es el foco visual principal, pero permite reducir la fatiga visual en entornos de baja luminosidad.
-3. **SidebarRail Invariante:** El color Navy Blue (`#0A0A60`) de la barra de navegación se mantiene constante en ambos modos para preservar la identidad de marca.
+3. **Navegación invariante:** El color Navy de la barra de navegación (`AppSidebar`) se mantiene constante en ambos modos para preservar la identidad de marca.
 4. **Consistencia B2B:** El modo oscuro debe evitar colores "neón" o excesivamente saturados. Se prefieren tonos oscuros neutros y grises profundos que mantengan la sobriedad enterprise.
 
 ## Atributos Clave

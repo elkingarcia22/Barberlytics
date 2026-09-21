@@ -132,5 +132,5 @@ export const themaMobileTabBarEntry = defineEntry({
     do: ["Entre tres y cinco destinos, siempre con etiqueta.", "Usa `badge.dot` para «hay novedades» y `badge.count` solo cuando el número importa.", "Ánclala al fondo de la pantalla con `fixed bottom-0` en la app real."],
     dont: ["No la muestres en escritorio: ahí la navegación es el rail lateral.", "No pongas acciones (crear, subir) como destinos; son navegación, no comandos."],
   },
-  related: ["playground-sidebar", "thema-sub-nav", "badge"],
+  related: ["thema-tabs", "tabs-nav", "badge"],
 });

@@ -26,7 +26,7 @@
 | **layout** | AppShell | Propio Thema | ✅ Aprobado | Layout principal de la aplicación. |
 | **layout** | Header | Propio Thema | ✅ Aprobado | Cabecera global. |
 | **layout** | PageShell | Propio Thema | ✅ Aprobado | Contenedor de página con ScrollArea. |
-| **layout** | SidebarRail | Propio Thema | ✅ Aprobado | Navegación lateral compacta Thema. |
+| **layout** | AppSidebar | Propio Thema | ✅ Aprobado | Navegación lateral del shell de administración. |
 | **navigation** | Breadcrumbs | Propio Thema | ✅ Aprobado | Navegación jerárquica. |
 | **navigation** | TabsNav | Propio Thema | ✅ Aprobado | Navegación por pestañas. |
 | **ai** | AIInsightCard | Propio Thema | ✅ Aprobado | Visualización de hallazgos IA. |

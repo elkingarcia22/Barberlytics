@@ -111,5 +111,5 @@ export const breadcrumbsEntry = defineEntry({
     do: ["Úsalo a partir de dos niveles de profundidad; con uno solo no aporta nada.", "Mantén las etiquetas cortas y en el mismo orden que la jerarquía real.", "Colócalo encima del título de la página, nunca dentro del contenido."],
     dont: ["No lo uses como sustituto de la sub-navegación: no cambia de sección, solo ubica.", "No superes cinco niveles; a partir de ahí colapsa los intermedios."],
   },
-  related: ["thema-sub-nav", "page-header", "breadcrumb"],
+  related: ["thema-product-header", "page-header", "header"],
 });

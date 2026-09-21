@@ -128,5 +128,5 @@ export const themaProductHeaderEntry = defineEntry({
     do: ["Una sola cabecera por producto, encima de la sub-navegación.", "Coloca el perfil siempre como último hijo, a la derecha del todo.", "Usa botones `ghost` de icono para búsqueda y notificaciones."],
     dont: ["No metas el título de la página aquí: este es el nombre del producto, no de la vista.", "No pases más de tres o cuatro acciones; el resto va a un menú."],
   },
-  related: ["thema-sub-nav", "page-header", "button", "badge"],
+  related: ["thema-tabs", "page-header", "button", "badge"],
 });

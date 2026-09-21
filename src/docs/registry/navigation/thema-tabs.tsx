@@ -132,5 +132,5 @@ export const themaTabsEntry = defineEntry({
     do: ["Una sola tira `page` por pantalla, arriba del todo.", "Usa `fitContent` con dos o tres pestañas; con cinco o seis deja que repartan el ancho.", "Da `badgeTone` a los contadores solo cuando la pestaña es un estado."],
     dont: ["No anides una tira `page` dentro de un panel `view`.", "No pongas un contador en cero: el componente lo oculta, pero mejor no lo mandes."],
   },
-  related: ["tabs", "tabs-nav", "thema-sub-nav", "badge"],
+  related: ["tabs", "tabs-nav", "badge"],
 });

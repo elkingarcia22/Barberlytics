@@ -180,7 +180,7 @@ ${contents}
   ],
   guidelines: {
     do: ["Una sola `page` por pantalla; dentro de cada sección usa `view`.", "Mantén las etiquetas cortas (1–2 palabras) y, si llevan icono, en todas.", "Renderiza un `TabsContent` por cada trigger, con el mismo `value`."],
-    dont: ["No uses Tabs para navegar entre rutas: para eso está ThemaTabs / ThemaSubNav.", "No anides dos niveles de Tabs con la misma variante.", "No pongas más de 5–6 pestañas; agrupa o usa Select."],
+    dont: ["No uses Tabs para navegar entre rutas: para eso está ThemaTabs / TabsNav.", "No anides dos niveles de Tabs con la misma variante.", "No pongas más de 5–6 pestañas; agrupa o usa Select."],
   },
-  related: ["thema-tabs", "thema-sub-nav", "segmented-control"],
+  related: ["thema-tabs", "tabs-nav", "segmented-control"],
 });

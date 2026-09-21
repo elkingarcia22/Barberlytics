@@ -90,7 +90,7 @@ export const headerEntry = defineEntry({
     {
       id: "from-config",
       title: "Alimentado por navigationConfig",
-      description: "La misma entrada que resalta el SidebarRail da al header su título, descripción y migas: una sola fuente para toda la cabecera.",
+      description: "La misma entrada que resalta la navegación da al header su título, descripción y migas: una sola fuente para toda la cabecera.",
       layout: "stretch",
       code: `const item = navigationConfig.find((entry) => entry.id === activeId)!;
 
@@ -115,5 +115,5 @@ export const headerEntry = defineEntry({
       "No combines Header con AppHeader: pertenecen a shells distintos.",
     ],
   },
-  related: ["app-shell", "sidebar-rail", "app-header", "breadcrumbs", "page-header"],
+  related: ["app-shell", "app-header", "breadcrumbs", "page-header"],
 });

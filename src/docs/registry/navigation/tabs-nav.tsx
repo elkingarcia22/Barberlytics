@@ -114,5 +114,5 @@ export const tabsNavEntry = defineEntry({
     do: ["Úsalo para filtros y periodos donde el cambio es inmediato y sin carga.", "Limita el grupo a cinco píldoras; más allá, pasa a `ThemaTabs` o a un select."],
     dont: ["No lo uses como navegación principal de página: para eso está `ThemaTabs` en variante `page`.", "No mezcles iconos: el componente solo pinta la etiqueta."],
   },
-  related: ["thema-tabs", "tabs", "thema-sub-nav"],
+  related: ["thema-tabs", "tabs", "segmented-control"],
 });

@@ -1,10 +1,55 @@
 import * as React from "react";
-import { AppShell, Header, PageShell, SidebarRail } from "@/components/layout";
+import { AppShell, Header, PageShell } from "@/components/layout";
 import { navigationConfig } from "@/config/navigation";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ThemaLogo } from "@/components/ui/ThemaLogo";
+import { cn } from "@/lib/utils";
 import { defineEntry, definePlayground } from "../types";
 import { DemoLongContent, DemoStats, ShellFrame } from "./layoutDemo";
 
 const NAV_IDS = navigationConfig.map((item) => item.id);
+
+/**
+ * El slot `sidebar` acepta cualquier nodo: este rail mínimo existe solo para
+ * la demostración. En una aplicación real ese hueco lo ocupa `AppSidebar`
+ * (la navegación completa del shell de administración) o la navegación
+ * propia del producto.
+ */
+function DemoRail({ activeId, onSelect }: { activeId: string; onSelect: (id: string) => void }) {
+  return (
+    <nav
+      aria-label="Secciones"
+      className="flex h-full w-16 shrink-0 flex-col items-center gap-2 border-r border-border bg-surface-nav py-4"
+    >
+      <span className="mb-4 flex size-9 items-center justify-center">
+        <ThemaLogo size={20} />
+      </span>
+      {navigationConfig.map((item) => {
+        const isActive = item.id === activeId;
+        return (
+          <Tooltip key={item.id} delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onSelect(item.id)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.label}
+                className={cn(
+                  "flex size-10 items-center justify-center rounded-xl transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                  isActive ? "bg-white text-surface-nav" : "text-white/60 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <item.icon className="size-[18px]" strokeWidth={2} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{item.label}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </nav>
+  );
+}
 
 /** Los tres componentes compuestos: el rail cambia la sección y el header la describe leyendo navigationConfig. */
 function ComposedShellDemo({
@@ -24,7 +69,7 @@ function ComposedShellDemo({
     <ShellFrame height={height}>
       <AppShell
         className="h-full"
-        sidebar={withSidebar ? <SidebarRail className="h-full" activeId={activeId} onItemSelect={setActiveId} /> : undefined}
+        sidebar={withSidebar ? <DemoRail activeId={activeId} onSelect={setActiveId} /> : undefined}
         header={withHeader ? <Header title={item.label} description={item.description} breadcrumbs={item.breadcrumbs} /> : undefined}
       >
         <PageShell>
@@ -41,8 +86,8 @@ export const appShellEntry = defineEntry({
   name: "AppShell",
   group: "layout",
   description:
-    "El esqueleto de pantalla completa: un rail de navegación a la izquierda, un header arriba y un viewport que hace scroll por su cuenta. Se compone con SidebarRail, Header y PageShell, todos alimentados por navigationConfig para que sección, título y migas cuenten la misma historia.",
-  importPath: 'import { AppShell, Header, PageShell, SidebarRail } from "@/components/layout"',
+    "El esqueleto de pantalla completa: dos slots, `sidebar` y `header`, alrededor de un viewport que hace scroll por su cuenta. No impone qué navegación va en el hueco lateral; en estos ejemplos se compone con Header y PageShell, alimentados por navigationConfig para que sección, título y migas cuenten la misma historia.",
+  importPath: 'import { AppShell, Header, PageShell } from "@/components/layout"',
   sourcePath: "src/components/layout/AppShell.tsx",
   status: "stable",
   tags: ["h-screen", "slots", "forwardRef"],
@@ -50,14 +95,14 @@ export const appShellEntry = defineEntry({
     layout: "stretch",
     controls: {
       activeId: { type: "select", label: "Sección activa", options: NAV_IDS, default: "overview" },
-      withSidebar: { type: "boolean", label: "Con SidebarRail", default: true },
+      withSidebar: { type: "boolean", label: "Con navegación", default: true },
       withHeader: { type: "boolean", label: "Con Header", default: true },
     },
     render: ({ activeId, withSidebar, withHeader }) => (
       <ComposedShellDemo key={activeId} initialActive={activeId} withSidebar={withSidebar} withHeader={withHeader} />
     ),
     code: ({ activeId, withSidebar, withHeader }) => {
-      const sidebar = withSidebar ? `\n  sidebar={<SidebarRail activeId={activeId} onItemSelect={setActiveId} />}` : "";
+      const sidebar = withSidebar ? `\n  sidebar={<AppSidebar activeId={activeId} onSelect={setActiveId} />}` : "";
       const header = withHeader ? `\n  header={<Header title={item.label} description={item.description} breadcrumbs={item.breadcrumbs} />}` : "";
       return `const [activeId, setActiveId] = React.useState("${activeId}");
 const item = navigationConfig.find((entry) => entry.id === activeId)!;
@@ -70,14 +115,15 @@ const item = navigationConfig.find((entry) => entry.id === activeId)!;
   examples: [
     {
       id: "composed",
-      title: "Rail, header y página compuestos",
-      description: "Pulsa un icono del rail: la sección activa cambia y el header toma título, descripción y migas de navigationConfig. El scroll vive dentro del viewport del shell.",
+      title: "Navegación, header y página compuestos",
+      description:
+        "Pulsa un icono del rail: la sección activa cambia y el header toma título, descripción y migas de navigationConfig. El scroll vive dentro del viewport del shell.",
       layout: "stretch",
       code: `const [activeId, setActiveId] = React.useState("overview");
 const item = navigationConfig.find((entry) => entry.id === activeId)!;
 
 <AppShell
-  sidebar={<SidebarRail activeId={activeId} onItemSelect={setActiveId} />}
+  sidebar={<AppSidebar activeId={activeId} onSelect={setActiveId} />}
   header={<Header title={item.label} description={item.description} breadcrumbs={item.breadcrumbs} />}
 >
   <PageShell>
@@ -99,11 +145,15 @@ const item = navigationConfig.find((entry) => entry.id === activeId)!;
     },
   ],
   props: [
-    { name: "sidebar", type: "React.ReactNode", description: "Slot de navegación; normalmente un SidebarRail." },
+    {
+      name: "sidebar",
+      type: "React.ReactNode",
+      description: "Slot de navegación; cualquier nodo sirve. Para el shell de administración, AppSidebar.",
+    },
     { name: "header", type: "React.ReactNode", description: "Slot superior del viewport; normalmente un Header." },
     { name: "children", type: "React.ReactNode", description: "El contenido; va dentro de un contenedor `flex-1 overflow-auto`." },
     { name: "className", type: "string", description: "Se mezcla con la raíz (`flex h-screen w-full overflow-hidden bg-background`); `h-full` la acota a un contenedor." },
-    { name: "...props", type: 'React.HTMLAttributes<HTMLDivElement>', description: "Atributos nativos de la raíz. Reenvía `ref`." },
+    { name: "...props", type: "React.HTMLAttributes<HTMLDivElement>", description: "Atributos nativos de la raíz. Reenvía `ref`." },
   ],
   guidelines: {
     do: [
@@ -116,5 +166,5 @@ const item = navigationConfig.find((entry) => entry.id === activeId)!;
       "No mezcles este shell con AdminShell en la misma vista; son dos cascarones distintos.",
     ],
   },
-  related: ["sidebar-rail", "header", "page-shell", "admin-shell"],
+  related: ["header", "page-shell", "admin-shell", "app-sidebar"],
 });

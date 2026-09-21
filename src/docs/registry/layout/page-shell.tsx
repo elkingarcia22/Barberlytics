@@ -68,7 +68,7 @@ export const pageShellEntry = defineEntry({
       title: "Dentro de AppShell",
       description: "Es el hijo natural del viewport del shell: `flex-1` toma el alto que sobra y el scroll queda dentro de la página.",
       layout: "stretch",
-      code: `<AppShell sidebar={<SidebarRail … />} header={<Header … />}>
+      code: `<AppShell sidebar={<AppSidebar … />} header={<Header … />}>
   <PageShell maxWidth="constrained">{children}</PageShell>
 </AppShell>`,
       render: () => (

@@ -1,6 +1,4 @@
 export * from "./navigationTypes";
-export * from "./PlaygroundSidebar";
-export * from "./ThemaSubNav";
 export * from "./ThemaMobileTabBar";
 export * from "./ThemaProductHeader";
 export * from "./TabsNav";

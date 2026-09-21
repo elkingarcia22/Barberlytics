@@ -64,3 +64,59 @@ test.describe("Menú lateral", () => {
     await expect(rail.getByLabel("Feedback")).toBeVisible();
   });
 });
+
+test.describe("Menú de empresa", () => {
+  test("toda la fila abre el menú y el consumo se ve como proporción", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.getByRole("button", { name: "Expandir menú" }).click();
+
+    await page.getByTestId("company-trigger").click();
+    // Licencias y créditos, cada uno con su anillo y su porcentaje.
+    await expect(page.getByText("Licencias")).toBeVisible();
+    await expect(page.getByText("940 de 1.000")).toBeVisible();
+    await expect(page.getByText("Créditos de IA")).toBeVisible();
+    await expect(page.getByText("94%")).toBeVisible();
+
+    // Cambiar de empresa abre su propia vista dentro del mismo menú.
+    await page.getByRole("button", { name: "Cambiar de empresa" }).click();
+    await expect(page.getByRole("button", { name: /Alpha/ })).toBeVisible();
+  });
+});
+
+test.describe("Navegación anidada", () => {
+  // El árbol con secciones anidadas vive en la demo del sistema de diseño;
+  // la navegación de la app es plana.
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.goto("/docs#/components/app-sidebar");
+    await page.waitForTimeout(1200);
+  });
+
+  test("cerrado, una sección despliega sus opciones y sus subniveles", async ({ page }) => {
+    const idx = await page.evaluate(() => {
+      const rails = [...document.querySelectorAll('[aria-label="Navegación compacta"]')];
+      return rails.findIndex((r) => getComputedStyle(r.parentElement!).pointerEvents !== "none");
+    });
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const rail = page.locator('[aria-label="Navegación compacta"]').nth(idx);
+    await rail.scrollIntoViewIfNeeded();
+    await rail.getByLabel("Aprendizaje").click();
+
+    await expect(page.getByRole("menuitem", { name: "LMS Creator" })).toBeVisible();
+    await page.getByRole("menuitem", { name: "LMS Creator" }).hover();
+    await expect(page.getByRole("menuitem", { name: "Universidad corporativa" })).toBeVisible();
+  });
+
+  test("dentro de una sección se salta de hermano sin volver atrás", async ({ page }) => {
+    const panel = page.locator("aside").filter({ hasText: "Aprendizaje" }).first();
+    await panel.getByRole("button", { name: "Aprendizaje" }).first().click();
+    await panel.getByRole("button", { name: "LMS Creator" }).first().click();
+
+    const switcher = page.getByTestId("drill-switcher").first();
+    await expect(switcher).toContainText("LMS Creator");
+    await switcher.click();
+    await page.getByRole("menuitem", { name: "Planes de Formación" }).click();
+    await expect(switcher).toContainText("Planes de Formación");
+  });
+});

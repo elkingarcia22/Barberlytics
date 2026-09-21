@@ -21,6 +21,8 @@ export interface NavLeaf {
 export interface NavChild {
   id: string;
   label: string;
+  /** Una línea de contexto; la muestra la tarjeta del nivel al entrar. */
+  description?: string;
   path?: string;
   children?: readonly NavLeaf[];
 }
@@ -69,6 +71,7 @@ export const NAV_TREE: readonly NavEntry[] = [
       {
         id: "lms",
         label: "LMS Creator",
+        description: "Crea y organiza tus cursos",
         children: [
           { id: "contenidos", label: "Contenidos" },
           { id: "categorias", label: "Categorías" },

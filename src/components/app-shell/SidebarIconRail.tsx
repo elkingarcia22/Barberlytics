@@ -2,6 +2,16 @@ import * as React from "react";
 import { LayoutGrid, MessageSquare, PanelLeftOpen, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AI_GRADIENT, type NavEntry, type NavRoot } from "./appShellData";
 import type { ShellMode } from "./shellTypes";
 
@@ -22,8 +32,10 @@ export interface SidebarIconRailProps {
   currentNodeId: string;
   /** El icono de una raíz se enciende también si el activo cuelga de ella. */
   holdsCurrent: (item: NavRoot, currentNodeId: string) => boolean;
-  /** Raíz sin hijos: navega. Con hijos: abre el panel en esa sección. */
+  /** Raíz sin hijos: navega directo. */
   onSelectRoot: (item: NavRoot) => void;
+  /** Cualquier nodo elegido desde el desplegable de una sección. */
+  onSelectNode: (id: string) => void;
   mode: ShellMode;
   onModeChange: (mode: ShellMode) => void;
   onExpand: () => void;
@@ -35,6 +47,13 @@ export interface SidebarIconRailProps {
 }
 
 /** Botón de icono del rail, con su etiqueta como tooltip a la derecha. */
+const railButtonClass = (active?: boolean) =>
+  cn(
+    "relative flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+    active ? "bg-surface-muted text-primary" : "text-text-muted hover:bg-background hover:text-text-primary"
+  );
+
 function RailButton({
   label,
   active,
@@ -51,25 +70,61 @@ function RailButton({
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label={label}
-          aria-current={active ? "page" : undefined}
-          className={cn(
-            "relative flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            active
-              ? "bg-surface-muted text-primary"
-              : "text-text-muted hover:bg-background hover:text-text-primary"
-          )}
-        >
+        <button type="button" onClick={onClick} aria-label={label} aria-current={active ? "page" : undefined} className={railButtonClass(active)}>
           {children}
           {badge && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" />}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>
     </Tooltip>
+  );
+}
+
+/**
+ * Una sección con hijos no cabe en 64px, así que su icono abre el árbol a la
+ * derecha: los hijos como ítems y los que a su vez tienen hijos como submenú.
+ * Sin esto, plegado, esas secciones eran un callejón sin salida.
+ */
+function RailSectionMenu({
+  item,
+  active,
+  onSelectNode,
+}: {
+  item: NavRoot;
+  active: boolean;
+  onSelectNode: (id: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label={item.label} aria-current={active ? "page" : undefined} className={railButtonClass(active)}>
+          <item.icon className="size-[18px]" strokeWidth={2} />
+          {item.badge && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" />}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="start" sideOffset={10} className="w-56">
+        <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
+        {(item.children ?? []).map((child) =>
+          child.children?.length ? (
+            <DropdownMenuSub key={child.id}>
+              <DropdownMenuSubTrigger>{child.label}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-52">
+                <DropdownMenuLabel>{child.label}</DropdownMenuLabel>
+                {child.children.map((leaf) => (
+                  <DropdownMenuItem key={leaf.id} onSelect={() => onSelectNode(leaf.id)}>
+                    {leaf.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ) : (
+            <DropdownMenuItem key={child.id} onSelect={() => onSelectNode(child.id)}>
+              {child.label}
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -83,6 +138,7 @@ export function SidebarIconRail({
   currentNodeId,
   holdsCurrent,
   onSelectRoot,
+  onSelectNode,
   mode,
   onModeChange,
   onExpand,
@@ -168,6 +224,13 @@ export function SidebarIconRail({
       {navigation.map((entry, index) =>
         entry.kind === "group" ? (
           <RailDivider key={`group-${index}`} />
+        ) : entry.children?.length ? (
+          <RailSectionMenu
+            key={entry.id}
+            item={entry}
+            active={holdsCurrent(entry, currentNodeId)}
+            onSelectNode={onSelectNode}
+          />
         ) : (
           <RailButton
             key={entry.id}

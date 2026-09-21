@@ -1,12 +1,12 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import {
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Check,
+  ChevronsUpDown,
   MessageSquare,
-  MoreHorizontal,
   PanelLeftClose,
   Plus,
   Sparkles,
@@ -14,44 +14,28 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AI_GRADIENT, type Company, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AI_GRADIENT, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
 import { useShellConfig } from "./shellConfig";
-import { SHELL_MENU_PANEL } from "./shellPanel";
 import { SidebarIconRail } from "./SidebarIconRail";
+import { CompanyMark, CompanyMenu } from "./CompanyMenu";
 import type { ShellMode } from "./shellTypes";
 
-const GoogleMark: React.FC<{ className?: string }> = ({ className }) => (
-  <svg viewBox="0 0 48 48" aria-hidden="true" className={className}>
-    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.223 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
-    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
-  </svg>
-);
-
-const CompanyMark: React.FC<{ company: Company; size?: "sm" | "md" }> = ({ company, size = "md" }) => (
-  <span
-    className={cn(
-      "flex shrink-0 items-center justify-center overflow-hidden rounded-lg text-[11px] font-extrabold text-white",
-      size === "md" ? "h-8 w-8" : "h-6 w-6",
-      company.isGoogle && "ring-1 ring-inset ring-border/50"
-    )}
-    style={{ background: company.bg }}
-  >
-    {company.isGoogle ? <GoogleMark className={size === "md" ? "h-5 w-5" : "h-4 w-4"} /> : company.initial}
-  </span>
-);
-
 interface DrillLevel {
-  title: string;
-  items: readonly { id: string; label: string }[];
+  /** La sección de la que se entró, p. ej. "Aprendizaje". */
+  parentLabel: string;
+  /** Su icono, para encabezar la tarjeta del nivel. */
+  parentIcon: NavRoot["icon"];
+  /** Hermanos del nivel: se salta entre ellos sin volver atrás. */
+  siblings: readonly NavChild[];
+  current: NavChild;
 }
 
 /**
@@ -81,8 +65,6 @@ interface AppSidebarProps {
   onToggleCollapse: () => void;
   onOpenFeedback: () => void;
 }
-
-const numberFormat = new Intl.NumberFormat("es-CO");
 
 /** Raíces que contienen (directa o indirectamente) el nodo `id`, para abrirlas. */
 function rootsHolding(navigation: readonly NavEntry[], id: string | undefined): string[] {
@@ -140,7 +122,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const [drillStack, setDrillStack] = React.useState<readonly DrillLevel[]>([]);
   const [drillDirection, setDrillDirection] = React.useState<"forward" | "back">("forward");
   const [activeCompanyId, setActiveCompanyId] = React.useState("google");
-  const [companyMenuOpen, setCompanyMenuOpen] = React.useState(false);
   const [adDismissed, setAdDismissed] = React.useState(false);
   const [activeChatIndex, setActiveChatIndex] = React.useState(0);
 
@@ -158,24 +139,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     if (id === "objetivos") onNavigateHome?.();
   };
 
-  /**
-   * Click en un icono del rail. Una raíz sin hijos navega y ya; una con hijos
-   * no puede mostrarlos en 64px, así que abre el panel con su acordeón
-   * desplegado. Antes ese icono no hacía nada y la sección quedaba sin salida.
-   */
-  const selectRootFromRail = (item: NavRoot) => {
-    if (item.children?.length) {
-      setOpenSections((sections) => ({ ...sections, [item.id]: true }));
-      onToggleCollapse();
-      return;
-    }
-    selectNode(item.id);
-  };
+  /** Click en un icono del rail sin hijos: navega y ya. Las secciones con
+   *  hijos las resuelve el propio rail con su desplegable. */
+  const selectRootFromRail = (item: NavRoot) => selectNode(item.id);
 
-  const pushDrill = (item: NavChild) => {
+  const pushDrill = (item: NavChild, parent: NavRoot) => {
     if (!item.children) return;
     setDrillDirection("forward");
-    setDrillStack((stack) => [...stack, { title: item.label, items: item.children! }]);
+    setDrillStack((stack) => [
+      ...stack,
+      { parentLabel: parent.label, parentIcon: parent.icon, siblings: parent.children ?? [], current: item },
+    ]);
+  };
+
+  /** Cambia de hermano sin salir del nivel (el selector de la tarjeta). */
+  const switchDrillSibling = (sibling: NavChild) => {
+    if (!sibling.children?.length) {
+      selectNode(sibling.id);
+      return;
+    }
+    setDrillStack((stack) => [...stack.slice(0, -1), { ...stack[stack.length - 1], current: sibling }]);
   };
 
   const popDrill = () => {
@@ -212,14 +195,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     return row;
   };
 
-  const renderChildRow = (child: NavChild) => {
+  const renderChildRow = (child: NavChild, parent: NavRoot) => {
     const hasChildren = !!child.children;
     const isCurrent = currentNodeId === child.id;
     return (
       <motion.button
         key={child.id}
         variants={cascadeItem}
-        onClick={() => (hasChildren ? pushDrill(child) : selectNode(child.id))}
+        onClick={() => (hasChildren ? pushDrill(child, parent) : selectNode(child.id))}
         className={cn(
           "relative flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
           isCurrent && "font-semibold text-primary hover:text-primary"
@@ -277,7 +260,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 variants={cascadeContainer}
                 className="ml-4 flex flex-col gap-1 border-l border-border/60 pl-2"
               >
-                {item.children!.map((child) => renderChildRow(child))}
+                {item.children!.map((child) => renderChildRow(child, item))}
               </motion.div>
             </div>
         </div>
@@ -324,6 +307,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           currentNodeId={currentNodeId}
           holdsCurrent={accordionHoldsCurrentNode}
           onSelectRoot={selectRootFromRail}
+          onSelectNode={selectNode}
           mode={mode}
           onModeChange={onModeChange}
           onExpand={onToggleCollapse}
@@ -337,8 +321,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         className={cn(
         "absolute inset-y-0 left-0 z-10 flex w-60 flex-col rounded-2xl border border-border/60 bg-surface p-3 pt-4 shadow-card",
         "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        // Se va hasta dejar asomando justo el ancho del rail.
-        collapsed && "-translate-x-[calc(100%-4rem)]",
+        /* Se va entero. Si solo se metía detrás del rail, su esquina cuadrada
+           asomaba por el redondeo de 16px del rail y se veía sucio. */
+        collapsed && "-translate-x-full",
         // Mobile: the sidebar floats as a drawer above the content.
         "max-lg:fixed max-lg:bottom-2 max-lg:left-2 max-lg:top-2 max-lg:z-50 max-lg:w-60 max-lg:shadow-drawer",
         mobileOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-[calc(100%+16px)]"
@@ -370,108 +355,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* ---------- Company identity ---------- */}
-      <Popover open={companyMenuOpen} onOpenChange={setCompanyMenuOpen}>
-        {/* The whole identity row is the anchor — not the trigger — so the menu
-            hangs from the sidebar's left edge in both states instead of
-            jumping to wherever the "..." button happens to sit. */}
-        <PopoverAnchor asChild>
-          <div className="mb-4 flex h-8 items-center gap-1">
-              <>
-                <div className="flex h-8 min-w-0 flex-1 items-center gap-2 px-1" title={activeCompany.name}>
-                  <CompanyMark company={activeCompany} />
-                  <span className="min-w-0 flex-1 truncate text-base font-bold tracking-tight text-text-primary">
-                    {activeCompany.name}
-                  </span>
-                </div>
-                {/* Trigger scoped to the "..." button, not the whole row, so
-                    the row itself stays a plain label rather than a control. */}
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Más opciones de la empresa"
-                    className={cn(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-background hover:text-text-primary",
-                      companyMenuOpen && "bg-background text-text-primary"
-                    )}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
-                </PopoverTrigger>
-              </>
-          </div>
-        </PopoverAnchor>
-        <PopoverContent
-          align="start"
-          sideOffset={8}
-          className={cn("w-[248px]", SHELL_MENU_PANEL)}
-        >
-          <div className="flex flex-col py-0.5">
-            <div className="flex min-h-6 items-center justify-between gap-3 rounded-lg px-2 text-xs hover:bg-background">
-              <span className="font-medium text-text-muted">Licencias:</span>
-              <span className="font-semibold tabular-nums text-text-primary">
-                {numberFormat.format(activeCompany.licenses[0])}/{numberFormat.format(activeCompany.licenses[1])}
-              </span>
-            </div>
-            <div className="flex min-h-6 items-center justify-between gap-3 rounded-lg px-2 text-xs hover:bg-background">
-              <span className="font-medium text-text-muted">Créditos:</span>
-              <span className="font-semibold tabular-nums text-text-primary">
-                {numberFormat.format(activeCompany.credits[0])}/{numberFormat.format(activeCompany.credits[1])}
-              </span>
-            </div>
-          </div>
-          <div className="-mx-2 my-2 h-px bg-border/60" />
-          <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-text-muted">Configuración</div>
-          {companyMenuLinks.map((label, index) => (
-            <button
-              key={label}
-              onClick={() => setCompanyMenuOpen(false)}
-              className={cn(
-                "flex w-full items-center rounded-lg px-2 py-2 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
-                "opacity-0 translate-y-1.5",
-                companyMenuOpen && "opacity-100 translate-y-0"
-              )}
-              style={{
-                transition: companyMenuOpen
-                  ? `opacity 260ms cubic-bezier(0.16,1,0.3,1) ${index * 40}ms, transform 260ms cubic-bezier(0.16,1,0.3,1) ${index * 40}ms`
-                  : "none",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-          <div className="-mx-2 my-2 h-px bg-border/60" />
-          <div className="px-2 pb-1.5 pt-1 text-xs font-medium text-text-muted">Empresas</div>
-          <div className="flex flex-col gap-0.5">
-            {companies.map((company, index) => {
-              const isActive = company.id === activeCompanyId;
-              return (
-                <button
-                  key={company.id}
-                  onClick={() => {
-                    setActiveCompanyId(company.id);
-                    setCompanyMenuOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-background",
-                    isActive && "font-semibold text-text-primary",
-                    "opacity-0 translate-y-1.5",
-                    companyMenuOpen && "opacity-100 translate-y-0"
-                  )}
-                  style={{
-                    transition: companyMenuOpen
-                      ? `opacity 260ms cubic-bezier(0.16,1,0.3,1) ${(companyMenuLinks.length * 40) + index * 40}ms, transform 260ms cubic-bezier(0.16,1,0.3,1) ${(companyMenuLinks.length * 40) + index * 40}ms`
-                      : "none",
-                  }}
-                >
-                  <CompanyMark company={company} size="sm" />
-                  <span className="min-w-0 flex-1 truncate">{company.name}</span>
-                  {isActive && <Check className="h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} />}
-                </button>
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <CompanyMenu
+        companies={companies}
+        activeCompany={activeCompany}
+        onSelectCompany={setActiveCompanyId}
+        links={companyMenuLinks}
+      />
 
       {/* ---------- Workspace / Agente IA segmented ---------- */}
       <div className="relative mb-4 flex shrink-0 rounded-md bg-background p-1">
@@ -508,7 +397,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* ---------- Nav viewport ---------- */}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-[132px] flex-1 overflow-hidden">
         {mode === "agent" ? (
           <nav className="flex h-full flex-col gap-1 overflow-y-auto pr-1 animate-in fade-in duration-200">
             <button
@@ -543,23 +432,54 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </nav>
         ) : drillLevel ? (
           <nav
-            key={`drill-${drillStack.length}-${drillLevel.title}`}
+            key={`drill-${drillStack.length}-${drillLevel.current.id}`}
             className={cn(
               "flex h-full flex-col gap-1 overflow-y-auto pr-1 duration-200 animate-in fade-in",
               drillDirection === "forward" ? "slide-in-from-right-2" : "slide-in-from-left-2"
             )}
           >
-            <div className="relative mb-1 flex shrink-0 items-center justify-center border-b border-border/60 px-8 pb-3 pt-1">
-              <button
-                onClick={popDrill}
-                className="absolute left-0 top-0.5 flex h-6 w-6 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-background hover:text-text-primary"
-                aria-label="Volver"
-              >
-                <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
-              </button>
-              <span className="truncate text-sm font-semibold text-text-primary">{drillLevel.title}</span>
-            </div>
-            {drillLevel.items.map((leaf) => (
+            {/* Volver a la sección de la que se entró. */}
+            <button
+              onClick={popDrill}
+              className="mb-1 flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-1 text-left text-[13px] font-medium text-text-muted transition-colors hover:bg-background hover:text-text-primary"
+            >
+              <ChevronLeft className="size-3.5 shrink-0" strokeWidth={2.5} />
+              <span className="truncate">{drillLevel.parentLabel}</span>
+            </button>
+
+            {/* Dónde estás, y el salto a un hermano sin volver atrás. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-testid="drill-switcher"
+                  aria-label={`Sección ${drillLevel.current.label}. Cambiar`}
+                  className="mb-2 flex w-full shrink-0 items-center gap-2.5 rounded-xl border border-border/60 bg-surface px-2.5 py-2 text-left transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <drillLevel.parentIcon className="size-[18px]" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-text-primary">{drillLevel.current.label}</span>
+                    {drillLevel.current.description && (
+                      <span className="block truncate text-[11px] text-text-muted">{drillLevel.current.description}</span>
+                    )}
+                  </span>
+                  <ChevronsUpDown className="size-3.5 shrink-0 text-text-muted" strokeWidth={2} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={6} className="w-[216px]">
+                <DropdownMenuLabel>{drillLevel.parentLabel}</DropdownMenuLabel>
+                {drillLevel.siblings.map((sibling) => (
+                  <DropdownMenuItem key={sibling.id} onSelect={() => switchDrillSibling(sibling)}>
+                    <span className="flex-1 truncate">{sibling.label}</span>
+                    {sibling.id === drillLevel.current.id && <Check className="size-4 shrink-0 text-primary" strokeWidth={2.5} />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {(drillLevel.current.children ?? []).map((leaf) => (
               <button
                 key={leaf.id}
                 onClick={() => selectNode(leaf.id)}
@@ -594,30 +514,45 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         )}
       </div>
 
-      {/* ---------- LMS promo card ---------- */}
+      {/* ---------- Tarjeta destacada ---------- */}
       {!adDismissed && promo && mode === "workspace" && (
-        <div className="relative mt-2 shrink-0 rounded-2xl bg-surface-muted p-4 text-center">
-          <button
-            onClick={() => setAdDismissed(true)}
-            className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-surface hover:text-text-secondary"
-            aria-label="Cerrar"
-          >
-            <X className="h-3 w-3" strokeWidth={2.5} />
-          </button>
-          <div
-            className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full"
-            style={{ background: AI_GRADIENT }}
-          >
-            <Sparkles className="h-4 w-4 text-white" strokeWidth={2} />
+        <div className="relative mt-2 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-surface">
+          {/* Cabecera ilustrada: el grupo de avatares cuenta de qué va la
+              invitación antes de leer una sola palabra. */}
+          <div className="relative flex h-20 items-center justify-center bg-primary/[0.06]">
+            <span aria-hidden className="absolute size-[72px] rounded-full border border-dashed border-primary/25" />
+            <span aria-hidden className="absolute size-[100px] rounded-full border border-dashed border-primary/15" />
+            <button
+              onClick={() => setAdDismissed(true)}
+              className="absolute right-2 top-2 z-10 flex size-6 items-center justify-center rounded-full bg-surface/90 text-text-muted shadow-card transition-colors hover:text-text-primary"
+              aria-label="Cerrar"
+            >
+              <X className="size-3" strokeWidth={2.5} />
+            </button>
+            <span className="absolute left-4 top-5 flex size-7 items-center justify-center rounded-full bg-surface text-[10px] font-bold text-primary shadow-card">
+              LM
+            </span>
+            <span className="absolute right-5 top-3 flex size-7 items-center justify-center rounded-full bg-status-positive/15 text-[10px] font-bold text-status-positive shadow-card">
+              JR
+            </span>
+            <span className="relative flex size-11 items-center justify-center rounded-full text-sm font-bold text-white shadow-card" style={{ background: AI_GRADIENT }}>
+              <Sparkles className="size-5" strokeWidth={2} />
+            </span>
+            <span className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-status-positive shadow-card">
+              <Check className="size-3" strokeWidth={3} />
+              Aprobado
+            </span>
           </div>
-          <h4 className="mb-1 text-[13px] font-bold leading-tight text-text-primary">{promo.title}</h4>
-          <p className="mb-3 text-xs font-medium leading-snug text-text-secondary">{promo.description}</p>
-          <button
-            onClick={promo.onClick}
-            className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--color-brand-hover)]"
-          >
-            {promo.cta}
-          </button>
+          <div className="p-3">
+            <h4 className="text-[13px] font-bold leading-tight text-text-primary">{promo.title}</h4>
+            <p className="mt-1 text-[11.5px] font-medium leading-snug text-text-secondary">{promo.description}</p>
+            <button
+              onClick={promo.onClick}
+              className="mt-3 w-full rounded-lg border border-border/60 bg-surface py-2 text-xs font-bold text-text-primary transition-colors hover:border-primary/40 hover:bg-background hover:text-primary"
+            >
+              {promo.cta}
+            </button>
+          </div>
         </div>
       )}
 
@@ -630,7 +565,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           )}
         >
           <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span>Feedback</span>
+          <span className="flex-1 text-left">Enviar feedback</span>
+          <ChevronRight className="size-3.5 shrink-0 text-text-muted" strokeWidth={2.5} />
         </button>
       </div>
       </aside>

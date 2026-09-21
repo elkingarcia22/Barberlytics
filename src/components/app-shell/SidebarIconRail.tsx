@@ -81,9 +81,46 @@ function RailButton({
 }
 
 /**
+ * Abre al pasar el puntero y cierra con un respiro.
+ *
+ * El retardo al salir no es un capricho: entre el icono y el panel hay un
+ * hueco de 10px, y sin esa ventana el menú se cerraría justo al cruzarlo.
+ * Sigue siendo un DropdownMenu, así que el clic y el teclado funcionan igual.
+ */
+function useHoverOpen(delayMs = 160) {
+  const [open, setOpen] = React.useState(false);
+  const timer = React.useRef<number | null>(null);
+
+  const cancel = React.useCallback(() => {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }, []);
+
+  React.useEffect(() => cancel, [cancel]);
+
+  return {
+    open,
+    setOpen,
+    hoverProps: {
+      onMouseEnter: () => {
+        cancel();
+        setOpen(true);
+      },
+      onMouseLeave: () => {
+        cancel();
+        timer.current = window.setTimeout(() => setOpen(false), delayMs);
+      },
+    },
+  };
+}
+
+/**
  * Una sección con hijos no cabe en 64px, así que su icono abre el árbol a la
- * derecha: los hijos como ítems y los que a su vez tienen hijos como submenú.
- * Sin esto, plegado, esas secciones eran un callejón sin salida.
+ * derecha al pasar el puntero: los hijos como ítems y los que a su vez tienen
+ * hijos como submenú. Sin esto, plegado, esas secciones eran un callejón sin
+ * salida.
  */
 function RailSectionMenu({
   item,
@@ -94,15 +131,28 @@ function RailSectionMenu({
   active: boolean;
   onSelectNode: (id: string) => void;
 }) {
+  const { open, setOpen, hoverProps } = useHoverOpen();
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <DropdownMenuTrigger asChild>
-        <button type="button" aria-label={item.label} aria-current={active ? "page" : undefined} className={railButtonClass(active)}>
+        <button
+          type="button"
+          aria-label={item.label}
+          aria-current={active ? "page" : undefined}
+          className={railButtonClass(active)}
+          {...hoverProps}
+        >
           <item.icon className="size-[18px]" strokeWidth={2} />
           {item.badge && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary" />}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="start" sideOffset={10} className="w-56">
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        sideOffset={10}
+        className="w-56"
+        {...hoverProps}
+      >
         <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
         {(item.children ?? []).map((child) =>
           child.children?.length ? (

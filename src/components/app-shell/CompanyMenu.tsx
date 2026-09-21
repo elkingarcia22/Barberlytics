@@ -1,8 +1,17 @@
 import * as React from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SHELL_MENU_PANEL } from "./shellPanel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Company } from "./appShellData";
 
 const numberFormat = new Intl.NumberFormat("es-CO");
@@ -85,22 +94,15 @@ export interface CompanyMenuProps {
 /**
  * La identidad de la empresa: toda la fila es el disparador del menú, no un
  * botón de tres puntos escondido al final. Dentro, el consumo de licencias y
- * créditos se ve como proporción y el cambio de empresa vive en su propia
- * vista para que el menú principal no crezca sin control.
+ * créditos se ve como proporción, y cambiar de empresa abre su propio menú al
+ * lado en vez de sustituir a este, que obligaba a volver para seguir.
  */
 export function CompanyMenu({ companies, activeCompany, onSelectCompany, links, linkIcons }: CompanyMenuProps) {
   const [open, setOpen] = React.useState(false);
-  const [view, setView] = React.useState<"main" | "companies">("main");
-
-  // Cada apertura empieza por la vista principal.
-  React.useEffect(() => {
-    if (!open) return;
-    setView("main");
-  }, [open]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label={`Empresa: ${activeCompany.name}. Abrir menú`}
@@ -120,89 +122,78 @@ export function CompanyMenu({ companies, activeCompany, onSelectCompany, links, 
             strokeWidth={2}
           />
         </button>
-      </PopoverTrigger>
+      </DropdownMenuTrigger>
 
-      <PopoverContent align="start" sideOffset={8} className={cn("w-[264px] p-2", SHELL_MENU_PANEL)}>
-        {view === "main" ? (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2.5 px-1.5 pb-3 pt-1">
-              <CompanyMark company={activeCompany} />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold text-text-primary">{activeCompany.name}</span>
-                <span className="block truncate text-[11px] tabular-nums text-text-muted">
-                  {numberFormat.format(activeCompany.licenses[0])} colaboradores
-                </span>
-              </span>
-            </div>
+      <DropdownMenuContent align="start" sideOffset={8} className="w-[264px]">
+        <div className="flex items-center gap-2.5 px-1.5 pb-2 pt-1">
+          <CompanyMark company={activeCompany} />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-bold text-text-primary">{activeCompany.name}</span>
+            <span className="block truncate text-[11px] tabular-nums text-text-muted">
+              {numberFormat.format(activeCompany.licenses[0])} personas
+            </span>
+          </span>
+        </div>
 
-            <div className="flex flex-col gap-1.5">
-              <UsageCard label="Licencias" value={activeCompany.licenses[0]} total={activeCompany.licenses[1]} tone="brand" />
-              <UsageCard label="Créditos de IA" value={activeCompany.credits[0]} total={activeCompany.credits[1]} tone="ai" />
-            </div>
+        <div className="flex flex-col gap-1.5 px-0.5 pb-1">
+          <UsageCard label="Licencias" value={activeCompany.licenses[0]} total={activeCompany.licenses[1]} tone="brand" />
+          <UsageCard label="Créditos de IA" value={activeCompany.credits[0]} total={activeCompany.credits[1]} tone="ai" />
+        </div>
 
-            <div className="-mx-2 my-2 h-px bg-border/60" />
+        <DropdownMenuSeparator />
 
-            {links.map((label, index) => {
-              const Icon = linkIcons?.[index];
+        {links.map((label, index) => {
+          const Icon = linkIcons?.[index];
+          return (
+            <DropdownMenuItem key={label} onSelect={() => setOpen(false)}>
+              {Icon && <Icon className="size-4 shrink-0 text-text-muted" />}
+              {label}
+            </DropdownMenuItem>
+          );
+        })}
+
+        <DropdownMenuSeparator />
+
+        {/* Cambiar de empresa es su propio menú, no una vista que sustituye
+            a esta: así no se pierde de vista dónde se estaba. */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger data-testid="company-switch">
+            <ArrowLeftRight className="size-4 shrink-0 text-text-muted" />
+            Cambiar de empresa
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-[272px]">
+            <DropdownMenuLabel className="flex items-center justify-between gap-2">
+              Tus empresas
+              <span className="text-[11px] font-semibold tabular-nums text-text-muted">{companies.length}</span>
+            </DropdownMenuLabel>
+            {companies.map((company) => {
+              const isActive = company.id === activeCompany.id;
               return (
-                <button
-                  key={label}
-                  onClick={() => setOpen(false)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary"
+                <DropdownMenuItem
+                  key={company.id}
+                  onSelect={() => {
+                    onSelectCompany(company.id);
+                    setOpen(false);
+                  }}
+                  className={cn("gap-2.5 py-2", isActive && "bg-primary/[0.07]")}
                 >
-                  {Icon && <Icon className="size-4 shrink-0 text-text-muted" />}
-                  {label}
-                </button>
+                  <CompanyMark company={company} />
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block truncate text-[13px]", isActive ? "font-semibold text-text-primary" : "font-medium")}>
+                      {company.name}
+                    </span>
+                    <span className="block truncate text-[11px] tabular-nums text-text-muted">
+                      {company.plan ? `${company.plan} · ` : ""}
+                      {numberFormat.format(company.licenses[0])} personas
+                    </span>
+                  </span>
+                  {isActive && <Check className="size-4 shrink-0 text-primary" strokeWidth={2.5} />}
+                </DropdownMenuItem>
               );
             })}
-
-            <div className="-mx-2 my-2 h-px bg-border/60" />
-
-            <button
-              onClick={() => setView("companies")}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary"
-            >
-              <span className="flex-1">Cambiar de empresa</span>
-              <ChevronRight className="size-4 shrink-0 text-text-muted" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            <div className="mb-1 flex items-center gap-1 px-1 pb-2 pt-1">
-              <button
-                onClick={() => setView("main")}
-                aria-label="Volver"
-                className="flex size-6 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-background hover:text-text-primary"
-              >
-                <ChevronLeft className="size-4" strokeWidth={2.5} />
-              </button>
-              <span className="text-[13px] font-semibold text-text-primary">Cambiar de empresa</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {companies.map((company) => {
-                const isActive = company.id === activeCompany.id;
-                return (
-                  <button
-                    key={company.id}
-                    onClick={() => {
-                      onSelectCompany(company.id);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-background",
-                      isActive && "font-semibold text-text-primary"
-                    )}
-                  >
-                    <CompanyMark company={company} size="sm" />
-                    <span className="min-w-0 flex-1 truncate">{company.name}</span>
-                    {isActive && <Check className="size-4 shrink-0 text-primary" strokeWidth={2.5} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

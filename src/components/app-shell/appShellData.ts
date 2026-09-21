@@ -126,15 +126,17 @@ export interface Company {
   bg: string;
   /** Whether the mark renders the Google logo instead of the initial. */
   isGoogle?: boolean;
+  /** Plan contratado; lo muestra el submenú de cambio de empresa. */
+  plan?: string;
   licenses: readonly [number, number];
   credits: readonly [number, number];
 }
 
 export const COMPANIES: readonly Company[] = [
-  { id: "google", name: "Google", initial: "G", bg: "#FFFFFF", isGoogle: true, licenses: [940, 1000], credits: [25000, 45000] },
-  { id: "alpha", name: "Alpha", initial: "A", bg: "#2E6BFF", licenses: [128, 150], credits: [4200, 10000] },
-  { id: "beta", name: "Beta", initial: "B", bg: "#7A5AF8", licenses: [312, 400], credits: [18500, 20000] },
-  { id: "omega", name: "Omega", initial: "O", bg: "#E0457B", licenses: [76, 100], credits: [1900, 5000] },
+  { id: "google", name: "Google", initial: "G", bg: "#FFFFFF", isGoogle: true, plan: "Empresa", licenses: [940, 1000], credits: [25000, 45000] },
+  { id: "alpha", name: "Alpha Logística", initial: "AL", bg: "#2E6BFF", plan: "Crecimiento", licenses: [128, 150], credits: [4200, 10000] },
+  { id: "beta", name: "Beta Retail", initial: "BR", bg: "#7A5AF8", plan: "Empresa", licenses: [312, 400], credits: [18500, 20000] },
+  { id: "omega", name: "Omega Salud", initial: "OS", bg: "#E0457B", plan: "Esencial", licenses: [76, 100], credits: [1900, 5000] },
 ];
 
 export const COMPANY_MENU_LINKS: readonly string[] = [

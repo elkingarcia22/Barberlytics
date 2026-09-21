@@ -78,9 +78,12 @@ test.describe("Menú de empresa", () => {
     await expect(page.getByText("Créditos de IA")).toBeVisible();
     await expect(page.getByText("94%")).toBeVisible();
 
-    // Cambiar de empresa abre su propia vista dentro del mismo menú.
-    await page.getByRole("button", { name: "Cambiar de empresa" }).click();
-    await expect(page.getByRole("button", { name: /Alpha/ })).toBeVisible();
+    // Cambiar de empresa abre su propio menú al lado, sin tapar al principal.
+    await page.getByTestId("company-switch").hover();
+    await expect(page.getByRole("menuitem", { name: /Alpha/ })).toBeVisible();
+    await expect(page.getByText("Tus empresas")).toBeVisible();
+    // El menú principal sigue en pantalla detrás del submenú.
+    await expect(page.getByRole("menuitem", { name: "Roles y permisos" })).toBeVisible();
   });
 });
 
@@ -93,7 +96,7 @@ test.describe("Navegación anidada", () => {
     await page.waitForTimeout(1200);
   });
 
-  test("cerrado, una sección despliega sus opciones y sus subniveles", async ({ page }) => {
+  test("cerrado, basta pasar el puntero para ver segundo y tercer nivel", async ({ page }) => {
     const idx = await page.evaluate(() => {
       const rails = [...document.querySelectorAll('[aria-label="Navegación compacta"]')];
       return rails.findIndex((r) => getComputedStyle(r.parentElement!).pointerEvents !== "none");
@@ -101,9 +104,11 @@ test.describe("Navegación anidada", () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     const rail = page.locator('[aria-label="Navegación compacta"]').nth(idx);
     await rail.scrollIntoViewIfNeeded();
-    await rail.getByLabel("Aprendizaje").click();
 
+    // Sin clic: solo el puntero encima abre el segundo nivel…
+    await rail.getByLabel("Aprendizaje").hover();
     await expect(page.getByRole("menuitem", { name: "LMS Creator" })).toBeVisible();
+    // …y desde ahí, el tercero.
     await page.getByRole("menuitem", { name: "LMS Creator" }).hover();
     await expect(page.getByRole("menuitem", { name: "Universidad corporativa" })).toBeVisible();
   });

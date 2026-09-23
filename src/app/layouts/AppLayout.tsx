@@ -6,6 +6,7 @@ import { useTheme } from "@/themes";
 import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
+import { useBrandingQuery } from "@/features/branding";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId } from "../navigation";
@@ -51,13 +52,26 @@ export function AppLayout() {
   // navegación. Todo lo que se ve debajo es de esta sucursal.
   const [branchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
   const settings = React.useMemo(() => buildSettingsGroups(t), [t]);
+  // La identidad que subió la barbería: su isologo, su nombre y debajo
+  // «Barbería». Mientras carga (o si falla) va la flecha de Barberlytics con
+  // el mismo formato, así el menú nunca cambia de forma.
+  const { data: branding } = useBrandingQuery();
+  const brand = React.useMemo(
+    () => ({
+      productName: branding?.name ?? "Barberlytics",
+      tagline: "Barbería",
+      logo: branding?.logo ? { src: branding.logo, darkSrc: branding.logoDark } : null,
+      display: "isologo" as const,
+    }),
+    [branding]
+  );
 
   const config = React.useMemo<ShellConfigOverrides>(
     () => ({
       user: user
         ? { id: user.id, name: user.name, email: user.email, role: roles.find((role) => role.id === user.role)?.label ?? user.role, avatarUrl: user.avatarUrl ?? null }
         : undefined,
-      brand: { productName: "Thema", tagline: "Barbería" },
+      brand,
       navigation: buildAppNavigation(t),
       roles,
       // Aquí se trabaja por sucursal, no por empresa: el conmutador de la
@@ -96,7 +110,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, roles, viewRoleId, branchId, settings, location.pathname, navigate, resolvedMode, setMode, logout, t]
+    [user, brand, roles, viewRoleId, branchId, settings, location.pathname, navigate, resolvedMode, setMode, logout, t]
   );
 
   return (

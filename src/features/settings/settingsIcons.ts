@@ -12,6 +12,7 @@ import {
   Plug,
   ReceiptText,
   Smartphone,
+  Stamp,
   Store,
   Tag,
   Trash2,
@@ -31,6 +32,7 @@ import type { IconTileProps } from "@/components/utility";
  */
 export const SETTINGS_ICONS: Record<string, LucideIcon> = {
   negocio: Store,
+  identidad: Stamp,
   facturacion: FileText,
   agendamiento: CalendarClock,
   cierres: CalendarOff,

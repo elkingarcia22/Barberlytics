@@ -27,6 +27,8 @@ export { WorkspaceUsage, companyMeta } from "./workspaceUsage";
 export { WorkspaceMenu, type WorkspaceMenuProps } from "./WorkspaceMenu";
 export { HeaderChip, type HeaderChipProps } from "./HeaderChip";
 export { BrandMark, type BrandMarkProps } from "./BrandMark";
+export { BrandSlot, type BrandSlotProps } from "./BrandSlot";
+export { logoShape, WIDE_LOGO_RATIO, type ShellBrandLogo, type LogoShape } from "./brandLogo";
 export type {
   NavEntry,
   NavRoot,

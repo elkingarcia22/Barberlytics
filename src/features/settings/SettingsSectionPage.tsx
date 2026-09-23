@@ -9,6 +9,12 @@ import { EmptyState } from "@/components/feedback";
 import { PageHeader } from "@/components/utility";
 import { buildSettingsGroups, findSettingsItem } from "./settingsCatalog";
 import { SETTINGS_ICONS } from "./settingsIcons";
+import { BrandIdentitySettings } from "@/features/branding";
+
+/** Los ajustes que ya tienen formulario; el resto sigue en «Próximamente». */
+const SETTINGS_BODIES: Record<string, React.ComponentType | undefined> = {
+  identidad: BrandIdentitySettings,
+};
 
 /**
  * Un ajuste concreto, todavía sin formulario.
@@ -39,6 +45,7 @@ export function SettingsSectionPage() {
 
   const { group, item } = found;
   const Icon = SETTINGS_ICONS[item.id] ?? Settings;
+  const Body = SETTINGS_BODIES[item.id];
 
   return (
     <>
@@ -57,15 +64,19 @@ export function SettingsSectionPage() {
 
       <PageHeader
         title={
-          <span className="flex items-center gap-2">
-            {item.label}
-            <Badge variant="neutral">{t("soon.badge")}</Badge>
-          </span>
+          Body ? (
+            item.label
+          ) : (
+            <span className="flex items-center gap-2">
+              {item.label}
+              <Badge variant="neutral">{t("soon.badge")}</Badge>
+            </span>
+          )
         }
         description={item.description}
       />
 
-      <EmptyState icon={Icon} title={t("soon.title")} description={t("soon.hint")} />
+      {Body ? <Body /> : <EmptyState icon={Icon} title={t("soon.title")} description={t("soon.hint")} />}
     </>
   );
 }

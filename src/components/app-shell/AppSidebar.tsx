@@ -26,7 +26,7 @@ import {
 import { AI_GRADIENT, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
 import { useShellConfig } from "./shellConfig";
 import { SidebarIconRail } from "./SidebarIconRail";
-import { BrandMark } from "./BrandMark";
+import { BrandSlot } from "./BrandSlot";
 import { WorkspaceMenu } from "./WorkspaceMenu";
 import { NewsMenu } from "./NewsMenu";
 import type { ShellMode } from "./shellTypes";
@@ -329,7 +329,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           onModeChange={onModeChange}
           onExpand={onToggleCollapse}
           onOpenFeedback={onOpenFeedback}
-          brandMark={<BrandMark name={brand.productName} />}
+          brandMark={<BrandSlot variant="icon" logo={brand.logo} name={brand.productName} />}
           brandLabel={brand.productName}
         />
       </div>
@@ -379,18 +379,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           identidad, sin abrir nada. */}
       {(() => {
         const brandRow = (
-          <span className="flex h-11 min-w-0 flex-1 items-center gap-2 px-1.5 text-left">
-            <BrandMark name={brand.productName} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-bold leading-tight tracking-tight text-text-primary">
-                {brand.productName}
-              </span>
-              {brand.tagline && <span className="block truncate text-[11px] text-text-muted">{brand.tagline}</span>}
-            </span>
-          </span>
+          <BrandSlot logo={brand.logo} name={brand.productName} tagline={brand.tagline} display={brand.display ?? "wordmark"} className="flex-1" />
         );
         if (!chrome.settings || settings.length === 0) {
-          return <div className="mb-4 shrink-0">{brandRow}</div>;
+          return <div className="mb-4 shrink-0 px-3 py-2">{brandRow}</div>;
         }
         return (
           <WorkspaceMenu
@@ -398,7 +390,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <button
                 type="button"
                 data-testid="workspace-menu-trigger"
-                className="mb-4 flex w-full items-center gap-1 rounded-xl border border-border/60 bg-surface pr-2 transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="mb-4 flex w-full items-center gap-2 rounded-xl border border-border/60 bg-surface px-3 py-2 transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {brandRow}
                 <ChevronsUpDown className="size-3.5 shrink-0 text-text-muted" strokeWidth={2} />

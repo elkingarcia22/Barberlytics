@@ -59,7 +59,7 @@ function RailDemo({
             onModeChange={setMode}
             onExpand={() => setLastEvent("onExpand()")}
             onOpenFeedback={() => setLastEvent("onOpenFeedback()")}
-            brandMark={<BrandMark name="Thema" />}
+            brandMark={<BrandMark />}
             brandLabel="Thema"
           />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -115,7 +115,7 @@ export const sidebarIconRailEntry = defineEntry({
   onModeChange={setMode}
   onExpand={expand}
   onOpenFeedback={openFeedback}
-  brandMark={<BrandMark name={brand.productName} />}
+  brandMark={<BrandMark />}
   brandLabel={brand.productName}
 />`;
     },
@@ -144,7 +144,7 @@ export const sidebarIconRailEntry = defineEntry({
   onModeChange={setMode}
   onExpand={expand}
   onOpenFeedback={openFeedback}
-  brandMark={<BrandMark name={brand.productName} />}
+  brandMark={<BrandMark />}
   brandLabel={brand.productName}
 />`,
       render: () => <RailDemo />,
@@ -178,7 +178,7 @@ export const sidebarIconRailEntry = defineEntry({
     { name: "onModeChange", type: "(mode: ShellMode) => void", description: "Al pulsar Workspace o Agente IA." },
     { name: "onExpand", type: "() => void", description: "Al pulsar «Expandir menú», el botón superior." },
     { name: "onOpenFeedback", type: "() => void", description: "Al pulsar «Feedback» en el pie." },
-    { name: "brandMark", type: "React.ReactNode", description: "La marca del producto; AppSidebar pasa `<BrandMark name={brand.productName} />`. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí." },
+    { name: "brandMark", type: "React.ReactNode", description: "La marca; AppSidebar pasa `<BrandSlot variant=\"icon\" />`: el isologo de la barbería o, sin él, la flecha de Barberlytics. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí." },
     { name: "brandLabel", type: "string", description: "Nombre del producto, para el tooltip y el `aria-label` de la marca." },
     { name: "className", type: "string", description: "Clases extra del `<nav>`." },
   ],

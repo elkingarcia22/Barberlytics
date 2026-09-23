@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { ACCOUNTS, db, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -31,6 +31,35 @@ function paginate<T>(items: T[], page: number, pageSize: number) {
   const safePage = Math.min(Math.max(1, page), totalPages);
   const start = (safePage - 1) * pageSize;
   return { items: items.slice(start, start + pageSize), meta: { page: safePage, pageSize, total, totalPages } };
+}
+
+/** 1 MB de imagen ≈ 1,4 M caracteres en base64. */
+const MAX_LOGO_CHARS = 1_400_000;
+const LOGO_PATTERN = /^data:image\/(png|svg\+xml|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const MAX_BRAND_NAME = 60;
+
+function validateBranding(body: DefaultBodyType) {
+  const input = (body ?? {}) as Record<string, unknown>;
+  const fields: Record<string, string[]> = {};
+  const values: Pick<MockBranding, "name" | "logo" | "logoDark"> = { name: null, logo: null, logoDark: null };
+  if (input.name !== null && input.name !== undefined) {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (name.length === 0 || name.length > MAX_BRAND_NAME) fields.name = [`Escribe un nombre de 1 a ${MAX_BRAND_NAME} caracteres.`];
+    else values.name = name;
+  }
+  for (const key of ["logo", "logoDark"] as const) {
+    const value = input[key];
+    if (value === null || value === undefined) continue;
+    if (typeof value !== "string" || !LOGO_PATTERN.test(value)) {
+      fields[key] = ["Sube un PNG, SVG, JPG o WebP."];
+    } else if (value.length > MAX_LOGO_CHARS) {
+      fields[key] = ["El logo pesa más de 1 MB."];
+    } else {
+      values[key] = value;
+    }
+  }
+  if (!values.logo && values.logoDark) fields.logo = ["Sube primero el logo para fondos claros."];
+  return { fields, values };
 }
 
 const USER_STATUSES: readonly MockUserStatus[] = ["active", "invited", "inactive"];
@@ -179,5 +208,23 @@ export const handlers = [
     db.users = db.users.filter((item) => item.id !== params.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${BASE}/company/branding`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    return HttpResponse.json(db.branding);
+  }),
+
+  http.put(`${BASE}/company/branding`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (account.user.role !== "admin") return error(403, "forbidden", "Solo un administrador puede cambiar la identidad de la empresa.");
+    const { fields, values } = validateBranding(await request.json().catch(() => ({})));
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    db.branding = { ...values, updatedAt: new Date().toISOString() };
+    db.persist();
+    return HttpResponse.json(db.branding);
   }),
 ];

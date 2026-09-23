@@ -233,6 +233,8 @@ export const appEn: AppMessageCatalog = {
   "settings.group.account": "Account",
   "settings.business": "Business profile",
   "settings.businessHint": "Business name, contact and time zone.",
+  "settings.identity": "Brand identity",
+  "settings.identityHint": "Your logo and name in the menu, for the whole company.",
   "settings.billing": "Plan and billing",
   "settings.billingHint": "Your plan, your invoices and your billing details.",
   "settings.booking": "Online booking",

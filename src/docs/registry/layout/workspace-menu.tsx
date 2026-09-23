@@ -12,7 +12,7 @@ function BrandTrigger({ productName = "Thema", tagline = "Barbería" }: { produc
       type="button"
       className="flex h-11 w-full items-center gap-2 rounded-xl px-1.5 text-left transition-colors hover:bg-background"
     >
-      <BrandMark name={productName} />
+      <BrandMark />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-bold leading-tight tracking-tight text-text-primary">{productName}</span>
         <span className="block truncate text-[11px] text-text-muted">{tagline}</span>

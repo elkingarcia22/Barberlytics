@@ -4,6 +4,7 @@ import { findEntry, findGroup } from "./registry";
 import { ComponentPage } from "./components/ComponentPage";
 import { HomePage } from "./pages/HomePage";
 import { GroupPage } from "./pages/GroupPage";
+import { BrandPage } from "./pages/BrandPage";
 import { ThemesPage } from "./pages/ThemesPage";
 import { ColorsPage } from "./pages/ColorsPage";
 import { TypographyPage } from "./pages/TypographyPage";
@@ -55,6 +56,8 @@ function RouteView() {
       }
     case "foundation":
       switch (route.id) {
+        case "brand":
+          return <BrandPage />;
         case "themes":
           return <ThemesPage />;
         case "colors":

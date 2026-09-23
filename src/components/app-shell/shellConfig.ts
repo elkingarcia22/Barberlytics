@@ -19,6 +19,7 @@ import {
   type SettingsGroup,
   type UserRoleOption,
 } from "./appShellData";
+import type { ShellBrandLogo } from "./brandLogo";
 
 /**
  * Todo lo que el shell muestra y que en una aplicación real viene del
@@ -36,8 +37,18 @@ export interface ShellUser {
 }
 
 export interface ShellBrand {
+  /** Nombre de la empresa o del producto: va al lado del isologo y es su texto alternativo. */
   productName: string;
+  /** Línea bajo el nombre («Barbería», «Sistema de diseño · v0.1»). */
   tagline?: string;
+  /** Isologo que subió la empresa. Sin él, la flecha de Barberlytics. Ver Fundamentos → Marca. */
+  logo?: ShellBrandLogo | null;
+  /**
+   * `isologo` (cuadro + nombre + línea) es el formato del producto;
+   * `wordmark` (logotipo Barberlytics grande + línea) el de la portada de la
+   * doc. Con un logo de empresa siempre es `isologo`. Por defecto `wordmark`.
+   */
+  display?: "isologo" | "wordmark";
 }
 
 /**

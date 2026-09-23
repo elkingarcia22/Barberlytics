@@ -71,6 +71,20 @@ Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSit
 | PATCH | `/users/:id` | Parcial. Correo único. |
 | DELETE | `/users/:id` | Solo admin. `204`. |
 
+## Identidad de la empresa (`/company/branding`)
+
+`branding`: `{ name: string | null, logo: string | null, logoDark: string | null, updatedAt: string | null }`
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/company/branding` | El logo que pinta el menú lateral. `logo: null` = se usa la marca Barberlytics. |
+| PUT | `/company/branding` | `{ name, logo, logoDark }`. Reemplaza el conjunto; `null` borra. Solo admin. |
+
+- `name` (1–60 caracteres) acompaña a los logos cuadrados y es su texto alternativo.
+
+- `logo` es la versión para fondos claros; `logoDark`, opcional, para fondos oscuros. Sin `logoDark`, el front pone `logo` sobre una placa clara en modo oscuro. No se acepta `logoDark` sin `logo`.
+- Hoy viajan como data URL (`data:image/png|svg+xml|jpeg|webp;base64,…`) de hasta 1 MB. Un backend real puede devolver una URL de su almacenamiento en su lugar; el front solo la usa como `src` de un `<img>`, que no ejecuta scripts de un SVG, pero el backend debe sanear los SVG igualmente.
+
 ## Pendientes de contrato
 
 Hoy el shell muestra notificaciones y novedades de demostración. Cuando existan `GET /notifications` y `GET /news`, se inyectan por `ShellConfig` en `src/app/layouts/AppLayout.tsx` sin tocar el shell.

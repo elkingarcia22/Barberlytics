@@ -256,6 +256,8 @@ export const appEs = {
   "settings.group.account": "Cuenta",
   "settings.business": "Perfil del negocio",
   "settings.businessHint": "Nombre del negocio, contacto y zona horaria.",
+  "settings.identity": "Identidad de marca",
+  "settings.identityHint": "Tu logo y tu nombre en el menú de toda la empresa.",
   "settings.billing": "Plan y facturación",
   "settings.billingHint": "Tu plan, tus facturas y los datos de cobro.",
   "settings.booking": "Reservas online",

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ThemaLogo } from "@/components/ui/ThemaLogo";
+import { BarberlyticsLogo } from "@/components/ui/BarberlyticsLogo";
 import { ThemeModeToggle, ThemeSelector } from "@/themes";
 import { describeError, env } from "@/lib/api";
 import { useAuth } from "./useAuth";
@@ -50,14 +50,8 @@ export function LoginPage() {
         <ThemeModeToggle />
       </div>
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-card">
-            <ThemaLogo size={20} color="hsl(var(--primary-foreground))" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-base font-bold tracking-tight text-text-primary">Thema</p>
-            <p className="text-xs text-text-muted">Plataforma</p>
-          </div>
+        <div className="mb-8">
+          <BarberlyticsLogo height={32} className="text-text-primary" />
         </div>
         <div className="rounded-3xl border border-border/60 bg-surface p-6 shadow-card sm:p-8">
           <h1 className="text-xl font-bold tracking-tight text-text-primary">Inicia sesión</h1>

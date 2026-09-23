@@ -46,6 +46,7 @@ const SETTINGS_TEMPLATE: readonly SettingsGroupTemplate[] = [
     icon: Store,
     items: [
       { id: "negocio", labelKey: "settings.business", hintKey: "settings.businessHint" },
+      { id: "identidad", labelKey: "settings.identity", hintKey: "settings.identityHint" },
       { id: "sucursales", labelKey: "settings.branches", hintKey: "settings.branchesHint" },
       { id: "cierres", labelKey: "settings.closures", hintKey: "settings.closuresHint" },
       { id: "agendamiento", labelKey: "settings.booking", hintKey: "settings.bookingHint" },

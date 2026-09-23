@@ -44,6 +44,8 @@ export * from "./components/ui/moving-border-beam";
 export * from "./components/ui/fluid-highlight";
 export * from "./components/ui/sonner";
 export * from "./components/ui/ThemaLogo";
+export * from "./components/ui/BarberlyticsLogo";
+export * from "./components/ui/barberlyticsFavicon";
 export { StatusBadge as AnimatedStatusBadge, type StatusBadgeProps as AnimatedStatusBadgeProps, type StatusState } from "./components/status-badge";
 export * from "./components/forms";
 export * from "./components/selection";

@@ -1,4 +1,4 @@
-import { Droplets, Languages, Palette, Ruler, Shapes, Sparkles, Square, Type, type LucideIcon } from "lucide-react";
+import { Droplets, Languages, Palette, Ruler, Shapes, Sparkles, Square, Stamp, Type, type LucideIcon } from "lucide-react";
 import type { Localized } from "@/i18n";
 
 export interface FoundationPage {
@@ -11,6 +11,12 @@ export interface FoundationPage {
 }
 
 export const FOUNDATION_PAGES: readonly FoundationPage[] = [
+  {
+    id: "brand",
+    label: { es: "Marca", en: "Brand" },
+    description: { es: "El logotipo: qué dice, cómo está construido y cómo sigue al tema.", en: "The logo: what it says, how it is built and how it follows the theme." },
+    icon: Stamp,
+  },
   {
     id: "themes",
     label: { es: "Temas", en: "Themes" },

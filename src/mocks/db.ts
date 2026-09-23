@@ -87,8 +87,19 @@ export const ACCOUNTS: readonly MockAccount[] = [
   },
 ];
 
+/** Identidad de la empresa: su logo para fondos claros y, opcional, para oscuros. */
+export interface MockBranding {
+  name: string | null;
+  logo: string | null;
+  logoDark: string | null;
+  updatedAt: string | null;
+}
+
+const EMPTY_BRANDING: MockBranding = { name: null, logo: null, logoDark: null, updatedAt: null };
+
 export interface MockDb {
   users: MockUser[];
+  branding: MockBranding;
   /** token → id de cuenta */
   sessions: Map<string, string>;
   /** Guarda el estado; se llama tras cada mutación para sobrevivir recargas. */
@@ -101,6 +112,7 @@ const STORAGE_KEY = "thema.mock.db";
 interface PersistedDb {
   users: MockUser[];
   sessions: [string, string][];
+  branding?: MockBranding;
 }
 
 function storage(): Storage | null {
@@ -129,16 +141,21 @@ export function createDb(): MockDb {
   const saved = load();
   const db: MockDb = {
     users: saved?.users ?? seedUsers(),
+    branding: saved?.branding ?? EMPTY_BRANDING,
     sessions: new Map(saved?.sessions ?? []),
     persist() {
       try {
-        storage()?.setItem(STORAGE_KEY, JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()] } satisfies PersistedDb));
+        storage()?.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], branding: db.branding } satisfies PersistedDb)
+        );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
       }
     },
     reset() {
       db.users = seedUsers();
+      db.branding = EMPTY_BRANDING;
       db.sessions.clear();
       try {
         storage()?.removeItem(STORAGE_KEY);

@@ -4,7 +4,7 @@ import { login } from "./helpers";
 test.describe("Personas", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto("/usuarios");
+    await page.goto("/usuarios/lista");
   });
 
   test("lista paginada con búsqueda sincronizada en la URL", async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe("Personas", () => {
   });
 
   test("crear una persona la muestra en la lista", async ({ page }) => {
-    await page.goto("/usuarios?sort=-createdAt");
+    await page.goto("/usuarios/lista?sort=-createdAt");
     await page.getByTestId("users-new").click();
     await page.getByTestId("user-form-name").fill("Prueba Automática");
     await page.getByTestId("user-form-email").fill("prueba.automatica@empresa.com");

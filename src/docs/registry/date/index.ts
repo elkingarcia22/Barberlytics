@@ -1,4 +1,5 @@
 import type { DocEntry } from "../types";
+import { eventCalendarEntry } from "./event-calendar";
 import { datePickerEntry } from "./date-picker";
 import { dateRangePickerEntry } from "./date-range-picker";
 import { dualDateRangePickerEntry } from "./dual-date-range-picker";
@@ -10,8 +11,7 @@ import { dateUtilsEntry } from "./date-utils";
 import { rangeSliderEntry } from "./range-slider";
 
 /** Entradas del grupo "date". Cada componente vive en su propio archivo de esta carpeta. */
-export const dateEntries: readonly DocEntry[] = [
-  datePickerEntry,
+export const dateEntries: readonly DocEntry[] = [datePickerEntry,
   dateRangePickerEntry,
   dualDateRangePickerEntry,
   monthPickerEntry,
@@ -20,4 +20,5 @@ export const dateEntries: readonly DocEntry[] = [
   dateFilterBarEntry,
   dateUtilsEntry,
   rangeSliderEntry,
+  eventCalendarEntry,
 ];

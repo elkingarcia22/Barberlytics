@@ -34,7 +34,7 @@ export const headerEntry = defineEntry({
   name: "Header",
   group: "layout",
   description:
-    "La franja superior de 80px del AppShell: migas, título y descripción a la izquierda; buscador y notificaciones a la derecha. Es el header de la app clásica; el AdminShell usa su propio AppHeader con un slot para la identidad de la pantalla.",
+    "La franja superior de 80px del shell: migas, título y descripción a la izquierda; buscador y notificaciones a la derecha. El AdminShell usa su propio AppHeader con un slot para la identidad de la pantalla.",
   importPath: 'import { Header } from "@/components/layout"',
   sourcePath: "src/components/layout/Header.tsx",
   status: "stable",
@@ -108,12 +108,12 @@ export const headerEntry = defineEntry({
   guidelines: {
     do: [
       "Deriva `title`, `description` y `breadcrumbs` de navigationConfig, no los escribas dos veces.",
-      "Ponlo en el slot `header` de AppShell; su `shrink-0` y el borde inferior están pensados para ahí.",
+      "Úsalo como cabecera de una app clásica con scroll interno en PageShell; su `shrink-0` y el borde inferior están pensados para ahí.",
     ],
     dont: [
       "No lo uses como cabecera de una tarjeta o sección: para eso están PageHeader y SectionHeader.",
       "No combines Header con AppHeader: pertenecen a shells distintos.",
     ],
   },
-  related: ["app-shell", "app-header", "breadcrumbs", "page-header"],
+  related: ["page-shell", "app-header", "breadcrumbs", "page-header"],
 });

@@ -133,7 +133,7 @@ export function ActionRailShell({
               "relative flex items-center justify-center rounded-3xl",
               isExpanded
                 ? cn(
-                    "border border-white/10 bg-surface-nav shadow-rail overflow-visible",
+                    "border border-primary/15 bg-surface-nav shadow-rail overflow-visible",
                     isVertical ? "w-14 max-h-[800px] py-3" : "h-14 max-w-[800px] px-3"
                   )
                 : // Collapsed: a full pill rather than a half-rounded hump, so
@@ -196,7 +196,7 @@ export function RailDivider() {
   const isVertical = useRailIsVertical();
   return (
     <div
-      className={cn("self-stretch bg-white/10", isVertical ? "mx-2 my-1 h-px" : "mx-1 my-2 w-px")}
+      className={cn("self-stretch bg-nav-foreground/10", isVertical ? "mx-2 my-1 h-px" : "mx-1 my-2 w-px")}
     />
   );
 }

@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/themes";
+import { LocaleProvider } from "@/i18n";
+import { APP_MESSAGES } from "@/app/i18n";
 import { createQueryClient } from "@/lib/query";
 import { AuthProvider, createMemoryTokenStorage, type TokenStorage } from "@/features/auth";
 
@@ -27,13 +29,18 @@ export function renderWithProviders(ui: React.ReactElement, { route = "/", token
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
+        {/* El mismo árbol que `AppProviders`: sin el idioma —y sin el
+            diccionario de la aplicación— una pantalla se pintaría con las
+            claves crudas y la prueba mediría algo que nadie ve. */}
+        <LocaleProvider defaultLocale="es" messages={APP_MESSAGES}>
+          <ThemeProvider>
           <TooltipProvider>
             <AuthProvider storage={tokenStorage}>
               <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
             </AuthProvider>
           </TooltipProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </LocaleProvider>
       </QueryClientProvider>
     );
   }

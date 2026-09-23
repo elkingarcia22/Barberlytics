@@ -85,7 +85,11 @@ export function SparklineChart({
     const trendOpacity = trend ? 0.15 : 0.05
 
     return {
-      xAxis: { type: "category", data: labels, show: false },
+      // `boundaryGap: false` es lo que hace que la línea llegue a los dos
+      // bordes: en un eje de categorías el valor por defecto reserva medio
+      // hueco a cada lado, y una sparkline a sangre bajo una tarjeta se ve
+      // entonces recogida, con un margen que no pinta nada.
+      xAxis: { type: "category", data: labels, show: false, boundaryGap: false },
       yAxis: { type: "value", show: false },
       grid: { left: 0, right: 0, top: 0, bottom: 0 },
       series: [

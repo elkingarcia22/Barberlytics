@@ -1,4 +1,4 @@
-import { AppShell, PageShell } from "@/components/layout";
+import { PageShell } from "@/components/layout";
 import { defineEntry, definePlayground } from "../types";
 import { DemoLongContent, DemoStats, ShellFrame } from "./layoutDemo";
 
@@ -65,20 +65,18 @@ export const pageShellEntry = defineEntry({
     },
     {
       id: "in-shell",
-      title: "Dentro de AppShell",
+      title: "Dentro del shell de administración",
       description: "Es el hijo natural del viewport del shell: `flex-1` toma el alto que sobra y el scroll queda dentro de la página.",
       layout: "stretch",
-      code: `<AppShell sidebar={<AppSidebar … />} header={<Header … />}>
+      code: `<AdminShell config={config}>
   <PageShell maxWidth="constrained">{children}</PageShell>
-</AppShell>`,
+</AdminShell>`,
       render: () => (
         <ShellFrame height={360}>
-          <AppShell className="h-full">
-            <PageShell maxWidth="constrained">
-              <DemoStats />
-              <DemoLongContent rows={3} />
-            </PageShell>
-          </AppShell>
+          <PageShell maxWidth="constrained" className="h-full">
+            <DemoStats />
+            <DemoLongContent rows={3} />
+          </PageShell>
         </ShellFrame>
       ),
     },
@@ -100,5 +98,5 @@ export const pageShellEntry = defineEntry({
       "No sobrescribas el padding por sección: es el ritmo de página compartido.",
     ],
   },
-  related: ["app-shell", "page-header", "section-header"],
+  related: ["admin-shell", "page-header", "section-header"],
 });

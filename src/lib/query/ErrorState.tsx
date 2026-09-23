@@ -28,8 +28,8 @@ export function ErrorState({ error, onRetry, className, compact = false }: Error
         <AlertTriangle className={compact ? "size-4" : "size-6"} />
       </span>
       <div>
-        <p className={cn("font-semibold text-text-primary", compact ? "text-[13px]" : "text-base")}>{title}</p>
-        <p className={cn("mt-1 text-text-secondary", compact ? "text-xs" : "text-[13px]")}>{description}</p>
+        <p className={cn("font-semibold text-text-primary", compact ? "text-sm" : "text-base")}>{title}</p>
+        <p className={cn("mt-1 text-text-secondary", compact ? "text-xs" : "text-sm")}>{description}</p>
       </div>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>

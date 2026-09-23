@@ -4,11 +4,17 @@ import { cn } from "@/lib/utils"
 
 export interface BreadcrumbItem {
   label: string
-  active?: boolean
+  /** A dónde lleva este tramo. Sin ella, el tramo es solo contexto —una
+   *  sección sin pantalla propia, como "Componentes" o "Fundamentos"— y se
+   *  queda como texto, igual que ya pasaba con todos los tramos. */
+  onClick?: () => void
 }
 
-interface BreadcrumbsProps extends React.HTMLAttributes<HTMLDivElement> {
-  items: string[]
+interface BreadcrumbsProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onClick"> {
+  /** De la raíz a la página actual. Un string es un tramo sin destino; para
+   *  que navegue, pasa `{ label, onClick }`. El último tramo nunca es
+   *  clicable —es la página en la que ya se está—, aunque traiga `onClick`. */
+  items: readonly (string | BreadcrumbItem)[]
 }
 
 const Breadcrumbs = React.forwardRef<HTMLDivElement, BreadcrumbsProps>(
@@ -20,19 +26,31 @@ const Breadcrumbs = React.forwardRef<HTMLDivElement, BreadcrumbsProps>(
         className={cn("flex items-center space-x-1 text-xs", className)}
         {...props}
       >
-        {items.map((item, index) => {
+        {items.map((raw, index) => {
+          const item = typeof raw === "string" ? { label: raw } : raw
           const isLast = index === items.length - 1
+          const isClickable = !isLast && !!item.onClick
 
           return (
             <React.Fragment key={index}>
-              <span
-                className={cn(
-                  "transition-colors",
-                  isLast ? "text-text-primary font-medium" : "text-text-muted hover:text-text-secondary cursor-default"
-                )}
-              >
-                {item}
-              </span>
+              {isClickable ? (
+                <button
+                  type="button"
+                  onClick={item.onClick}
+                  className="rounded-sm text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <span
+                  className={cn(
+                    "transition-colors",
+                    isLast ? "text-text-primary font-medium" : "text-text-muted cursor-default"
+                  )}
+                >
+                  {item.label}
+                </span>
+              )}
               {!isLast && (
                 <ChevronRight className="h-3 w-3 text-text-muted shrink-0" />
               )}

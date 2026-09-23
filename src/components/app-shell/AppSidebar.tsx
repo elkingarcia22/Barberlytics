@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -25,7 +26,9 @@ import {
 import { AI_GRADIENT, type NavChild, type NavEntry, type NavRoot } from "./appShellData";
 import { useShellConfig } from "./shellConfig";
 import { SidebarIconRail } from "./SidebarIconRail";
-import { CompanyMark, CompanyMenu } from "./CompanyMenu";
+import { BrandMark } from "./BrandMark";
+import { WorkspaceMenu } from "./WorkspaceMenu";
+import { NewsMenu } from "./NewsMenu";
 import type { ShellMode } from "./shellTypes";
 
 interface DrillLevel {
@@ -99,10 +102,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     navigation,
     activeNavId,
     onNavigate,
-    companies,
-    companyMenuLinks,
+    brand,
     chatHistory,
+    news,
     promo,
+    chrome,
+    settings,
+    settingsAll,
+    workspaceMenuExtra,
   } = useShellConfig();
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>(() => {
     const opened = rootsHolding(navigation, activeNavId);
@@ -121,11 +128,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   }, [activeNavId, navigation]);
   const [drillStack, setDrillStack] = React.useState<readonly DrillLevel[]>([]);
   const [drillDirection, setDrillDirection] = React.useState<"forward" | "back">("forward");
-  const [activeCompanyId, setActiveCompanyId] = React.useState("google");
+  const t = useT();
   const [adDismissed, setAdDismissed] = React.useState(false);
   const [activeChatIndex, setActiveChatIndex] = React.useState(0);
-
-  const activeCompany = companies.find((company) => company.id === activeCompanyId) ?? companies[0];
 
   // Collapsing wipes the drill: the collapsed rail always shows the root icons.
   React.useEffect(() => {
@@ -172,6 +177,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <button
         key={item.id}
         onClick={() => selectNode(item.id)}
+        aria-current={isCurrent ? "page" : undefined}
         className={cn(
           "relative flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
           item.id === "inicio" && "font-semibold",
@@ -204,7 +210,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         variants={cascadeItem}
         onClick={() => (hasChildren ? pushDrill(child, parent) : selectNode(child.id))}
         className={cn(
-          "relative flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
+          // Un escalón por debajo en tamaño, pero a plena legibilidad: son los
+          // destinos reales, y en gris de cuerpo competían con su propia
+          // categoría en vez de colgar de ella.
+          "relative flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium text-text-primary transition-colors hover:bg-background",
           isCurrent && "font-semibold text-primary hover:text-primary"
         )}
       >
@@ -224,10 +233,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         onClick={() => setOpenSections((sections) => ({ ...sections, [item.id]: !isOpen }))}
         aria-expanded={isOpen}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary"
+          // Abierta, la categoría es el rótulo del grupo que tiene debajo: pesa
+          // por peso tipográfico, no por color de marca (que es del ítem activo).
+          "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
+          isOpen && "font-semibold text-text-primary"
         )}
       >
-        <item.icon className="h-4 w-4 shrink-0 text-text-muted" strokeWidth={2} />
+        <item.icon
+          className={cn("h-4 w-4 shrink-0", isOpen ? "text-text-secondary" : "text-text-muted")}
+          strokeWidth={2}
+        />
         <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
         {item.badge && (
           <span className="flex h-4 shrink-0 items-center rounded-full bg-surface-muted px-2 text-[10px] font-extrabold tracking-wide text-primary">
@@ -246,8 +261,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         {head}
         <div
             className={cn(
-              "grid transition-[grid-template-rows,margin-top] duration-200 ease-out",
-              isOpen ? "mt-1 grid-rows-[1fr]" : "grid-rows-[0fr]"
+              "grid transition-[grid-template-rows,margin-top,margin-bottom] duration-200 ease-out",
+              // Abierto, el grupo se separa del siguiente ítem: el aire de
+              // abajo es lo que lo cierra como bloque.
+              isOpen ? "mb-2 mt-1 grid-rows-[1fr]" : "grid-rows-[0fr]"
             )}
           >
             <div className="min-h-0 overflow-hidden">
@@ -258,7 +275,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 initial="hidden"
                 animate={isOpen ? "show" : "hidden"}
                 variants={cascadeContainer}
-                className="ml-4 flex flex-col gap-1 border-l border-border/60 pl-2"
+                className="ml-4 flex flex-col gap-1 border-l border-border-strong/50 pl-2"
               >
                 {item.children!.map((child) => renderChildRow(child, item))}
               </motion.div>
@@ -312,8 +329,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           onModeChange={onModeChange}
           onExpand={onToggleCollapse}
           onOpenFeedback={onOpenFeedback}
-          brandMark={<CompanyMark company={activeCompany} />}
-          brandLabel={activeCompany.name}
+          brandMark={<BrandMark name={brand.productName} />}
+          brandLabel={brand.productName}
         />
       </div>
 
@@ -339,7 +356,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             <button
               type="button"
               onClick={onToggleCollapse}
-              aria-label="Contraer menú"
+              aria-label={t("shell.collapseMenu")}
               aria-expanded
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-lg text-text-muted transition-colors",
@@ -354,47 +371,84 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         </Tooltip>
       </div>
 
-      {/* ---------- Company identity ---------- */}
-      <CompanyMenu
-        companies={companies}
-        activeCompany={activeCompany}
-        onSelectCompany={setActiveCompanyId}
-        links={companyMenuLinks}
-      />
+      {/* ---------- Marca del producto ----------
+          En qué sucursal estás lo dice la cabecera; aquí cuelga lo que se
+          ajusta una vez —tema, idioma, cuenta, equipo, ventas— en vez de
+          repartirlo entre un engranaje aparte y un selector suelto. Sin
+          ajustes que ofrecer (la documentación), sigue siendo solo
+          identidad, sin abrir nada. */}
+      {(() => {
+        const brandRow = (
+          <span className="flex h-11 min-w-0 flex-1 items-center gap-2 px-1.5 text-left">
+            <BrandMark name={brand.productName} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[15px] font-bold leading-tight tracking-tight text-text-primary">
+                {brand.productName}
+              </span>
+              {brand.tagline && <span className="block truncate text-[11px] text-text-muted">{brand.tagline}</span>}
+            </span>
+          </span>
+        );
+        if (!chrome.settings || settings.length === 0) {
+          return <div className="mb-4 shrink-0">{brandRow}</div>;
+        }
+        return (
+          <WorkspaceMenu
+            trigger={
+              <button
+                type="button"
+                data-testid="workspace-menu-trigger"
+                className="mb-4 flex w-full items-center gap-1 rounded-xl border border-border/60 bg-surface pr-2 transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                {brandRow}
+                <ChevronsUpDown className="size-3.5 shrink-0 text-text-muted" strokeWidth={2} />
+              </button>
+            }
+            productName={brand.productName}
+            tagline={brand.tagline}
+            groups={settings}
+            all={settingsAll}
+            onNavigate={onNavigate}
+            extra={workspaceMenuExtra}
+          />
+        );
+      })()}
 
       {/* ---------- Workspace / Agente IA segmented ---------- */}
-      <div className="relative mb-4 flex shrink-0 rounded-md bg-background p-1">
-          <span
-            className="absolute bottom-1 left-1 top-1 z-0 w-[calc(50%-4px)] rounded-lg bg-surface shadow-card transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.5,1)]"
-            style={{ transform: mode === "agent" ? "translateX(100%)" : "translateX(0)" }}
-          />
-          <span
-            className="pointer-events-none absolute bottom-1 left-1 top-1 z-0 w-[calc(50%-4px)] rounded-lg transition-[transform,opacity] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)]"
-            style={{
-              background: AI_GRADIENT,
-              opacity: mode === "agent" ? 1 : 0,
-              transform: mode === "agent" ? "translateX(100%)" : "translateX(0)",
-            }}
-          />
-          <button
-            onClick={() => onModeChange("workspace")}
-            className={cn(
-              "relative z-10 flex-1 rounded-lg py-1.5 text-[13px] font-medium text-text-muted transition-colors active:scale-95",
-              mode === "workspace" && "font-semibold text-text-primary"
-            )}
-          >
-            Workspace
-          </button>
-          <button
-            onClick={() => onModeChange("agent")}
-            className={cn(
-              "relative z-10 flex-1 rounded-lg py-1.5 text-[13px] font-medium text-text-muted transition-colors active:scale-95",
-              mode === "agent" && "font-semibold text-white"
-            )}
-          >
-            Agente IA
-          </button>
-      </div>
+      {chrome.modeSwitch && (
+        <div className="relative mb-4 flex shrink-0 rounded-md bg-background p-1">
+            <span
+              className="absolute bottom-1 left-1 top-1 z-0 w-[calc(50%-4px)] rounded-lg bg-surface shadow-card transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.5,1)]"
+              style={{ transform: mode === "agent" ? "translateX(100%)" : "translateX(0)" }}
+            />
+            <span
+              className="pointer-events-none absolute bottom-1 left-1 top-1 z-0 w-[calc(50%-4px)] rounded-lg transition-[transform,opacity] duration-300 ease-[cubic-bezier(.34,1.4,.5,1)]"
+              style={{
+                background: AI_GRADIENT,
+                opacity: mode === "agent" ? 1 : 0,
+                transform: mode === "agent" ? "translateX(100%)" : "translateX(0)",
+              }}
+            />
+            <button
+              onClick={() => onModeChange("workspace")}
+              className={cn(
+                "relative z-10 flex-1 rounded-lg py-1.5 text-[13px] font-medium text-text-muted transition-colors active:scale-95",
+                mode === "workspace" && "font-semibold text-text-primary"
+              )}
+            >
+              Workspace
+            </button>
+            <button
+              onClick={() => onModeChange("agent")}
+              className={cn(
+                "relative z-10 flex-1 rounded-lg py-1.5 text-[13px] font-medium text-text-muted transition-colors active:scale-95",
+                mode === "agent" && "font-semibold text-white"
+              )}
+            >
+              Agente IA
+            </button>
+        </div>
+      )}
 
       {/* ---------- Nav viewport ---------- */}
       <div className="relative min-h-[132px] flex-1 overflow-hidden">
@@ -522,17 +576,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div className="relative flex h-20 items-center justify-center bg-primary/[0.06]">
             <span aria-hidden className="absolute size-[72px] rounded-full border border-dashed border-primary/25" />
             <span aria-hidden className="absolute size-[100px] rounded-full border border-dashed border-primary/15" />
+            {/* La esquina de cerrar es suya: el avatar que estaba debajo dejaba
+                la aspa sobre un fondo cambiante y no se leía. Aquí va sobre
+                superficie sólida, con filo propio y sin nada detrás. */}
             <button
               onClick={() => setAdDismissed(true)}
-              className="absolute right-2 top-2 z-10 flex size-6 items-center justify-center rounded-full bg-surface/90 text-text-muted shadow-card transition-colors hover:text-text-primary"
+              className={cn(
+                "absolute right-1.5 top-1.5 z-20 flex size-6 items-center justify-center rounded-full bg-surface text-text-secondary ring-1 ring-border/70 transition-colors",
+                "hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              )}
               aria-label="Cerrar"
             >
-              <X className="size-3" strokeWidth={2.5} />
+              <X className="size-3.5" strokeWidth={2.5} />
             </button>
-            <span className="absolute left-4 top-5 flex size-7 items-center justify-center rounded-full bg-surface text-[10px] font-bold text-primary shadow-card">
+            <span className="absolute left-3 top-4 flex size-7 items-center justify-center rounded-full bg-surface text-[10px] font-bold text-primary shadow-card">
               LM
             </span>
-            <span className="absolute right-5 top-3 flex size-7 items-center justify-center rounded-full bg-status-positive/15 text-[10px] font-bold text-status-positive shadow-card">
+            <span className="absolute right-3 top-8 flex size-7 items-center justify-center rounded-full bg-status-positive/15 text-[10px] font-bold text-status-positive shadow-card">
               JR
             </span>
             <span className="relative flex size-11 items-center justify-center rounded-full text-sm font-bold text-white shadow-card" style={{ background: AI_GRADIENT }}>
@@ -556,8 +616,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         </div>
       )}
 
-      {/* ---------- Footer: feedback ---------- */}
+      {/* ---------- Footer: novedades y feedback ----------
+          «Novedades» solo aparece aquí por debajo de `md`, que es donde la
+          cabecera la suelta para dejarle su ancho al chip de la cuenta. Por
+          encima sigue colgando de la cabecera y esta fila no existe. */}
       <div className="mt-2 shrink-0 border-t border-border/60 pt-2">
+        {chrome.news && <NewsMenu items={news} variant="row" side="top" align="start" className="md:hidden" />}
         <button
           onClick={onOpenFeedback}
           className={cn(
@@ -565,7 +629,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           )}
         >
           <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span className="flex-1 text-left">Enviar feedback</span>
+          <span className="flex-1 text-left">{t("shell.feedback")}</span>
           <ChevronRight className="size-3.5 shrink-0 text-text-muted" strokeWidth={2.5} />
         </button>
       </div>

@@ -88,8 +88,8 @@ export const ThemaTabs: React.FC<ThemaTabsProps> = ({
                 className={cn(
                   "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums",
                   variant === "page"
-                    ? "bg-white/25 text-primary-foreground"
-                    : !tab.badgeTone && "bg-primary text-white"
+                    ? "bg-primary-foreground/25 text-primary-foreground"
+                    : !tab.badgeTone && "bg-primary text-primary-foreground"
                 )}
               >
                 {tab.badge}

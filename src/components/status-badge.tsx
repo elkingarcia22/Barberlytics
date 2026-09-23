@@ -3,6 +3,13 @@ import { CheckCircle, Clock, Info, Loader, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+/**
+ * La variante animada del chip de estado: el icono entra y sale con un
+ * muelle cuando el estado cambia en vivo (una importación en curso, un envío
+ * que falla). Para un estado que solo se pinta una vez —una fila de tabla,
+ * una ficha— usa `StatusBadge` de `@/components/data-display`, que no monta
+ * framer-motion.
+ */
 export type StatusState = "pending" | "failed" | "success" | "neutral" | "info";
 
 export interface StatusBadgeProps {
@@ -12,38 +19,40 @@ export interface StatusBadgeProps {
 }
 
 const DEFAULT_LABELS: Record<StatusState, string> = {
-  pending: "Pending",
-  failed: "Failed",
-  success: "Success",
+  pending: "Pendiente",
+  failed: "Con error",
+  success: "Completado",
   neutral: "Por iniciar",
   info: "Información",
 };
 
+/** Los mismos tonos semánticos que usa el chip sin animación, para que un
+ *  «Completado» no sea de dos verdes distintos según dónde se pinte. */
 const STATE_CLASSES: Record<StatusState, { icon: string; bg: string; text: string }> = {
   pending: {
-    icon: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-100/50 dark:bg-amber-500/15 border-transparent",
-    text: "text-amber-800 dark:text-amber-300",
+    icon: "text-warning",
+    bg: "bg-warning/10 border-transparent",
+    text: "text-warning",
   },
   failed: {
-    icon: "text-red-600 dark:text-red-400",
-    bg: "bg-red-100/50 dark:bg-red-500/15 border-transparent",
-    text: "text-red-800 dark:text-red-300",
+    icon: "text-destructive",
+    bg: "bg-destructive/10 border-transparent",
+    text: "text-destructive",
   },
   success: {
-    icon: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-100/50 dark:bg-emerald-500/15 border-transparent",
-    text: "text-emerald-800 dark:text-emerald-300",
+    icon: "text-success",
+    bg: "bg-success/10 border-transparent",
+    text: "text-success",
   },
   neutral: {
-    icon: "text-slate-500 dark:text-slate-400",
-    bg: "bg-slate-100/80 dark:bg-slate-800/40 border-transparent",
-    text: "text-slate-700 dark:text-slate-300",
+    icon: "text-text-muted",
+    bg: "bg-muted border-transparent",
+    text: "text-text-secondary",
   },
   info: {
-    icon: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-100/50 dark:bg-blue-500/15 border-transparent",
-    text: "text-blue-800 dark:text-blue-300",
+    icon: "text-info",
+    bg: "bg-info/10 border-transparent",
+    text: "text-info",
   },
 };
 

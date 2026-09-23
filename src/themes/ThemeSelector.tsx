@@ -1,12 +1,14 @@
 import * as React from "react";
-import { Check, Moon, Monitor, Palette, Sun } from "lucide-react";
+import { Moon, Monitor, Palette, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SegmentedGroup } from "@/components/ui/segmented-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "./themeContext";
-import type { RadiusScale, ThemeMode } from "./buildTokens";
+import type { DensityScale, RadiusScale, ThemeMode } from "./buildTokens";
 import type { FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
@@ -23,6 +25,12 @@ const RADII: readonly { id: RadiusScale; label: string; px: number }[] = [
   { id: "lg", label: "Amplio", px: 14 },
 ];
 
+const DENSITIES: readonly { id: DensityScale; label: string; gap: number }[] = [
+  { id: "compact", label: "Compacta", gap: 1 },
+  { id: "normal", label: "Normal", gap: 2 },
+  { id: "comfortable", label: "Amplia", gap: 3 },
+];
+
 /** Muestra pequeña de un preset: el primario claro y el oscuro, en diagonal. */
 export function ThemeSwatch({ preset, className }: { preset: ThemePreset; className?: string }) {
   return (
@@ -33,46 +41,6 @@ export function ThemeSwatch({ preset, className }: { preset: ThemePreset; classN
         background: `linear-gradient(135deg, ${preset.primary.light} 50%, ${preset.primary.dark} 50%)`,
       }}
     />
-  );
-}
-
-function SegmentedGroup<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: readonly { id: T; label: string; render?: React.ReactNode }[];
-}) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">{label}</legend>
-      <div role="radiogroup" className="grid gap-1 rounded-lg bg-tab-track p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-        {options.map((option) => {
-          const active = option.id === value;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onChange(option.id)}
-              className={cn(
-                "flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium transition-all",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                active ? "bg-surface text-text-primary shadow-card" : "text-text-secondary hover:text-text-primary"
-              )}
-            >
-              {option.render}
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }
 
@@ -132,11 +100,156 @@ export interface ThemeSelectorProps {
 }
 
 /**
- * El selector de tema: paleta de presets, escala de radios y modo. Todo se
- * aplica al instante y queda guardado en localStorage a través del provider.
+ * El cuerpo del selector: paleta de presets y modo, siempre a la vista, y
+ * radio, densidad y tipografía detrás de un acordeón —se eligen una vez y no
+ * se vuelven a tocar, así que no necesitan sitio fijo cada vez que se abre
+ * el panel. Separado de `ThemeSelector` para poder empotrarlo en otro menú
+ * —el combinado «Personalización» del shell— sin arrastrar su propio
+ * disparador ni su propio Popover.
+ *
+ * Sin `<div>` propio a propósito: sus secciones (Color, Modo, el acordeón)
+ * salen como hermanas directas de quien lo monta, para que el `space-y-*`
+ * de ese contenedor las espacie a todas por igual. Envolverlas aquí en su
+ * propio `space-y` duplicaba el hueco alrededor de cualquier divisor que el
+ * contenedor metiera entre medio —el de «Personalización», antes de
+ * Idioma— y el ritmo dejaba de ser parejo.
+ */
+export function ThemeSelectorPanel({
+  /**
+   * Radio, densidad y tipografía: se eligen una vez al montar el negocio, no
+   * en el día a día. `Personalización`, que sí es de todos los días, las
+   * apaga; el selector completo (`ThemeSelector`) las deja encendidas.
+   */
+  advanced = true,
+}: {
+  advanced?: boolean;
+}) {
+  const { preset, presets, setPreset, mode, setMode, radius, setRadius, density, setDensity, font, setFont, headingFont, setHeadingFont, fonts } = useTheme();
+
+  return (
+    <>
+      <fieldset className="space-y-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Color</legend>
+          <span className="truncate text-[11px] font-medium text-text-secondary">{preset.name}</span>
+        </div>
+        {/* Solo la pastilla, sin el nombre de cada una: con 14 presets, la
+            versión con nombre ocupaba siete filas. El nombre se lee en el
+            tooltip y, del activo, en la etiqueta de arriba. */}
+        <div role="radiogroup" aria-label="Color" className="flex flex-wrap gap-2">
+          {presets.map((item) => {
+            const active = item.id === preset.id;
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    aria-label={item.name}
+                    onClick={() => setPreset(item.id)}
+                    className={cn(
+                      "relative flex size-7 shrink-0 items-center justify-center rounded-full p-0.5 ring-2 ring-transparent transition-all",
+                      "hover:scale-110 focus-visible:outline-none focus-visible:ring-primary/60",
+                      active ? "ring-primary" : "hover:ring-border-strong/60"
+                    )}
+                  >
+                    <ThemeSwatch preset={item} className="size-full" />
+                    {item.tier === "premium" && (
+                      <span
+                        aria-hidden
+                        className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-brand-gradient ring-2 ring-surface"
+                      />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{item.description}</TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <SegmentedGroup
+        label="Modo"
+        value={mode}
+        onChange={setMode}
+        options={MODES.map((item) => ({ id: item.id, label: item.label, render: <item.icon className="size-3.5" /> }))}
+      />
+
+      {advanced && (
+        <Accordion type="single" collapsible className="border-t border-border/60">
+          <AccordionItem value="advanced" className="border-none">
+            <AccordionTrigger className="rounded-none py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted hover:text-text-primary hover:no-underline focus-visible:border-transparent focus-visible:after:border-transparent">
+              Más ajustes
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pb-1 pt-1">
+              <SegmentedGroup
+                label="Radio"
+                value={radius}
+                onChange={setRadius}
+                options={RADII.map((item) => ({
+                  id: item.id,
+                  label: item.label,
+                  render: (
+                    <span
+                      aria-hidden
+                      className="block size-3.5 border-l-2 border-t-2 border-current"
+                      style={{ borderTopLeftRadius: item.px }}
+                    />
+                  ),
+                }))}
+              />
+
+              <SegmentedGroup
+                label="Densidad"
+                value={density}
+                onChange={setDensity}
+                options={DENSITIES.map((item) => ({
+                  id: item.id,
+                  label: item.label,
+                  render: (
+                    <span aria-hidden className="flex flex-col" style={{ gap: item.gap }}>
+                      <span className="block h-0.5 w-3.5 rounded-full bg-current" />
+                      <span className="block h-0.5 w-3.5 rounded-full bg-current" />
+                      <span className="block h-0.5 w-3.5 rounded-full bg-current" />
+                    </span>
+                  ),
+                }))}
+              />
+
+              <fieldset className="space-y-2">
+                <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tipografía</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <FontSelect id="theme-font-body" label="Cuerpo" value={font} onChange={(value) => setFont(value as FontOption["id"])} fonts={fonts} />
+                  <FontSelect
+                    id="theme-font-heading"
+                    label="Títulos"
+                    value={headingFont}
+                    onChange={(value) => setHeadingFont(value as HeadingFontId)}
+                    fonts={fonts}
+                    allowSame
+                  />
+                </div>
+                <p className="text-[11px] leading-snug text-text-muted" style={{ fontFamily: "var(--font-heading)" }}>
+                  Los títulos se ven así. <span style={{ fontFamily: "var(--font-body)" }}>Y el cuerpo, así.</span>
+                </p>
+              </fieldset>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
+    </>
+  );
+}
+
+/**
+ * El selector de tema: el disparador de siempre, con `ThemeSelectorPanel`
+ * dentro de su propio Popover. Todo se aplica al instante y queda guardado en
+ * localStorage a través del provider.
  */
 export function ThemeSelector({ compact = false, className }: ThemeSelectorProps) {
-  const { preset, presets, setPreset, mode, setMode, radius, setRadius, font, setFont, headingFont, setHeadingFont, fonts } = useTheme();
+  const { preset } = useTheme();
 
   return (
     <Popover>
@@ -156,81 +269,7 @@ export function ThemeSelector({ compact = false, className }: ThemeSelectorProps
           <p className="text-sm font-semibold text-text-primary">Personalizar tema</p>
           <p className="text-xs text-text-secondary">Los cambios se aplican a toda la interfaz y se recuerdan en este navegador.</p>
         </div>
-
-        <fieldset className="space-y-2">
-          <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Color</legend>
-          <div role="radiogroup" className="grid grid-cols-2 gap-1.5">
-            {presets.map((item) => {
-              const active = item.id === preset.id;
-              return (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setPreset(item.id)}
-                      className={cn(
-                        "flex h-9 items-center gap-2 rounded-lg border px-2.5 text-left text-xs font-medium transition-all",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                        active
-                          ? "border-primary/60 bg-primary/8 text-text-primary"
-                          : "border-border/60 bg-surface text-text-secondary hover:border-border-strong/60 hover:text-text-primary"
-                      )}
-                    >
-                      <ThemeSwatch preset={item} />
-                      <span className="flex-1 truncate">{item.name}</span>
-                      {active && <Check className="size-3.5 text-primary" strokeWidth={2.5} />}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">{item.description}</TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        <SegmentedGroup
-          label="Radio"
-          value={radius}
-          onChange={setRadius}
-          options={RADII.map((item) => ({
-            id: item.id,
-            label: item.label,
-            render: (
-              <span
-                aria-hidden
-                className="block size-3.5 border-l-2 border-t-2 border-current"
-                style={{ borderTopLeftRadius: item.px }}
-              />
-            ),
-          }))}
-        />
-
-        <fieldset className="space-y-2">
-          <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tipografía</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <FontSelect id="theme-font-body" label="Cuerpo" value={font} onChange={(value) => setFont(value as FontOption["id"])} fonts={fonts} />
-            <FontSelect
-              id="theme-font-heading"
-              label="Títulos"
-              value={headingFont}
-              onChange={(value) => setHeadingFont(value as HeadingFontId)}
-              fonts={fonts}
-              allowSame
-            />
-          </div>
-          <p className="text-[11px] leading-snug text-text-muted" style={{ fontFamily: "var(--font-heading)" }}>
-            Los títulos se ven así. <span style={{ fontFamily: "var(--font-body)" }}>Y el cuerpo, así.</span>
-          </p>
-        </fieldset>
-
-        <SegmentedGroup
-          label="Modo"
-          value={mode}
-          onChange={setMode}
-          options={MODES.map((item) => ({ id: item.id, label: item.label, render: <item.icon className="size-3.5" /> }))}
-        />
+        <ThemeSelectorPanel />
       </PopoverContent>
     </Popover>
   );

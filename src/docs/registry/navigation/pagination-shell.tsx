@@ -4,7 +4,7 @@ import { defineEntry, definePlayground } from "../types";
 
 const PAGE_SIZE = 10;
 const TOTAL = 137;
-const NAMES = ["Elena Martínez", "Carlos Ruiz", "Ana Torres", "Luis Gómez", "María Pérez", "Jorge Díaz", "Sofía Rojas", "Pablo Vega", "Laura Castro", "Diego Mora"];
+const NAMES = ["Elena Martínez", "Carlos Ruiz", "Ana Torres", "Luis Gómez", "María Pérez", "Jorge Díaz", "Antonia Rojas", "Pablo Vega", "Renata Castro", "Diego Mora"];
 
 function PlaygroundDemo({ pageCount, showSummary, withTotals }: { pageCount: number; showSummary: boolean; withTotals: boolean }) {
   const [page, setPage] = React.useState(1);

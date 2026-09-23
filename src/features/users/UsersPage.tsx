@@ -1,4 +1,7 @@
 import * as React from "react";
+import { useNavigate } from "react-router";
+import { useAppT } from "@/app/i18n";
+import { useLocale } from "@/i18n";
 import { ChevronLeft, ChevronRight, Loader2, MoreHorizontal, Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +20,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/feedback";
+import { ShellHeaderSlot } from "@/components/app-shell";
+import { Breadcrumbs } from "@/components/navigation";
 import { PageHeader } from "@/components/utility";
 import { QueryBoundary } from "@/lib/query";
 import { useCurrentUser } from "@/features/auth";
@@ -25,10 +30,12 @@ import { useDeleteUser, useUsersQuery } from "./queries";
 import { UserFormDrawer } from "./UserFormDrawer";
 import { UserStatusBadge } from "./UserStatusBadge";
 import { useUsersListState } from "./useUsersListState";
-import { USER_ROLE_LABELS, USER_STATUS_LABELS, userStatusSchema, type User } from "./types";
+import { USER_ROLE_KEYS, USER_STATUS_KEYS, areaKey, userStatusSchema, type User } from "./types";
 
-const dateFormat = new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric" });
-const formatDate = (iso: string | null) => (iso ? dateFormat.format(new Date(iso)) : "—");
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
+/** La fecha de la fila, con la convención del idioma activo. */
+const formatDate = (iso: string | null, intlLocale: string) =>
+  iso ? new Intl.DateTimeFormat(intlLocale, DATE_OPTIONS).format(new Date(iso)) : "—";
 
 function TableSkeleton() {
   return (
@@ -41,6 +48,9 @@ function TableSkeleton() {
 }
 
 export function UsersPage() {
+  const t = useAppT();
+  const navigate = useNavigate();
+  const { current } = useLocale();
   const me = useCurrentUser();
   const list = useUsersListState();
   const query = useUsersQuery(list.params);
@@ -60,14 +70,24 @@ export function UsersPage() {
   };
 
   return (
-    <div className="cascade-enter space-y-6">
+    <div className="cascade-enter space-y-section">
+      <ShellHeaderSlot>
+        <Breadcrumbs
+          items={[
+            { label: t("nav.home"), onClick: () => navigate("/dashboard") },
+            { label: t("team.title"), onClick: () => navigate("/usuarios") },
+            t("users.title"),
+          ]}
+        />
+      </ShellHeaderSlot>
+
       <PageHeader
-        title="Personas"
-        description="Quiénes forman parte de la organización, su área, rol y estado."
+        title={t("users.title")}
+        description={t("users.pageDescription")}
         actions={
           canManage ? (
             <Button onClick={openCreate} data-testid="users-new">
-              <Plus /> Nueva persona
+              <Plus /> {t("users.newPerson")}
             </Button>
           ) : null
         }
@@ -80,21 +100,21 @@ export function UsersPage() {
             type="search"
             value={list.search}
             onChange={(event) => list.setSearch(event.target.value)}
-            placeholder="Buscar por nombre, correo o área"
+            placeholder={t("users.searchPlaceholder")}
             className="pl-9"
             data-testid="users-search"
-            aria-label="Buscar personas"
+            aria-label={t("users.searchAria")}
           />
         </label>
         <Select value={list.status || "all"} onValueChange={list.setStatus}>
-          <SelectTrigger className="w-[160px]" aria-label="Filtrar por estado" data-testid="users-status">
+          <SelectTrigger className="w-[160px]" aria-label={t("users.colStatus")} data-testid="users-status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="all">{t("users.allStatuses")}</SelectItem>
             {userStatusSchema.options.map((status) => (
               <SelectItem key={status} value={status}>
-                {USER_STATUS_LABELS[status]}
+                {t(USER_STATUS_KEYS[status])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -104,10 +124,10 @@ export function UsersPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="name">Nombre A → Z</SelectItem>
-            <SelectItem value="-name">Nombre Z → A</SelectItem>
-            <SelectItem value="-createdAt">Más recientes</SelectItem>
-            <SelectItem value="createdAt">Más antiguas</SelectItem>
+            <SelectItem value="name">{t("users.sortNameAsc")}</SelectItem>
+            <SelectItem value="-name">{t("users.sortNameDesc")}</SelectItem>
+            <SelectItem value="-createdAt">{t("users.sortNewest")}</SelectItem>
+            <SelectItem value="createdAt">{t("users.sortOldest")}</SelectItem>
           </SelectContent>
         </Select>
         {query.isFetching && !query.isPending && <Loader2 className="size-4 animate-spin text-text-muted" aria-label="Actualizando" />}
@@ -120,8 +140,8 @@ export function UsersPage() {
           when: (data) => data.items.length === 0,
           render: (
             <EmptyState
-              title={list.search || list.status ? "Sin resultados" : "Todavía no hay personas"}
-              description={list.search || list.status ? "Prueba con otra búsqueda o quita los filtros." : "Crea la primera persona para empezar."}
+              title={list.search || list.status ? t("users.noResultsTitle") : t("users.emptyTitle")}
+              description={list.search || list.status ? t("users.noResultsHint") : t("users.emptyHint")}
             />
           ),
         }}
@@ -131,13 +151,13 @@ export function UsersPage() {
             <Table data-testid="users-table" className={cn(query.isFetching && "opacity-70 transition-opacity")}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Persona</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Última actividad</TableHead>
+                  <TableHead>{t("users.colPerson")}</TableHead>
+                  <TableHead>{t("users.colArea")}</TableHead>
+                  <TableHead>{t("users.colRole")}</TableHead>
+                  <TableHead>{t("users.colStatus")}</TableHead>
+                  <TableHead>{t("users.colLastActivity")}</TableHead>
                   <TableHead className="w-12 text-right">
-                    <span className="sr-only">Acciones</span>
+                    <span className="sr-only">{t("users.colActions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -146,7 +166,7 @@ export function UsersPage() {
                   <TableRow key={user.id} data-user-email={user.email}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                           {user.name
                             .split(" ")
                             .slice(0, 2)
@@ -159,12 +179,12 @@ export function UsersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-text-secondary">{user.area}</TableCell>
-                    <TableCell className="text-text-secondary">{USER_ROLE_LABELS[user.role]}</TableCell>
+                    <TableCell className="text-text-secondary">{areaKey(user.area) ? t(areaKey(user.area)!) : user.area}</TableCell>
+                    <TableCell className="text-text-secondary">{t(USER_ROLE_KEYS[user.role])}</TableCell>
                     <TableCell>
                       <UserStatusBadge status={user.status} />
                     </TableCell>
-                    <TableCell className="tabular-nums text-text-secondary">{formatDate(user.lastActiveAt)}</TableCell>
+                    <TableCell className="tabular-nums text-text-secondary">{formatDate(user.lastActiveAt, current.intl)}</TableCell>
                     <TableCell className="text-right">
                       {canManage && (
                         <DropdownMenu>
@@ -193,12 +213,12 @@ export function UsersPage() {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3 text-[13px] text-text-secondary">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3 text-sm text-text-secondary">
               <span data-testid="users-total">
                 {data.meta.total} personas · página {data.meta.page} de {data.meta.totalPages}
               </span>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" disabled={data.meta.page <= 1} onClick={() => list.setPage(data.meta.page - 1)} aria-label="Página anterior">
+                <Button variant="outline" size="sm" disabled={data.meta.page <= 1} onClick={() => list.setPage(data.meta.page - 1)} aria-label={t("users.prevPage")}>
                   <ChevronLeft /> Anterior
                 </Button>
                 <Button
@@ -206,7 +226,7 @@ export function UsersPage() {
                   size="sm"
                   disabled={data.meta.page >= data.meta.totalPages}
                   onClick={() => list.setPage(data.meta.page + 1)}
-                  aria-label="Página siguiente"
+                  aria-label={t("users.nextPage")}
                 >
                   Siguiente <ChevronRight />
                 </Button>
@@ -222,10 +242,10 @@ export function UsersPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar a {pendingDelete?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>Perderá el acceso de inmediato. Esta acción no se puede deshacer.</AlertDialogDescription>
+            <AlertDialogDescription>{t("users.deleteWarning")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {

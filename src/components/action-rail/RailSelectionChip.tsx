@@ -50,14 +50,14 @@ export function RailSelectionChip({
       {isVertical ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="flex h-8 min-w-8 items-center justify-center rounded-lg bg-white/10 px-1.5 text-[13px] font-bold tabular-nums text-white">
+            <span className="flex h-8 min-w-8 items-center justify-center rounded-lg bg-nav-foreground/10 px-1.5 text-[13px] font-bold tabular-nums text-nav-foreground">
               {count}
             </span>
           </TooltipTrigger>
           <TooltipContent side={side}>{readout}</TooltipContent>
         </Tooltip>
       ) : (
-        <span className="whitespace-nowrap text-[13px] font-semibold text-white">{readout}</span>
+        <span className="whitespace-nowrap text-[13px] font-semibold text-nav-foreground">{readout}</span>
       )}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -65,7 +65,7 @@ export function RailSelectionChip({
             type="button"
             onClick={onClear}
             aria-label="Limpiar selección"
-            className="dock-item relative flex h-8 w-8 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            className="dock-item relative flex h-8 w-8 items-center justify-center rounded-xl text-nav-foreground/60 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30"
           >
             <X className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>

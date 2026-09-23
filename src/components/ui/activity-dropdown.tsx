@@ -1,138 +1,210 @@
-"use client";
+import * as React from "react";
 
-import type React from "react";
-import { useState } from "react";
-import { Bell, MessageCircle, Award, Calendar, Tag, CheckSquare, ChevronUp } from "lucide-react";
+import { Heading, Text } from "@/components/typography";
+import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 
-interface Activity {
-  id: number;
-  icon: React.ReactNode;
-  iconBg: string;
+/** Tono del distintivo de cada fila: colorea el chip del icono, nada más. */
+export type ActivityTone = "default" | "primary" | "positive" | "warning" | "negative";
+
+export interface ActivityItem {
+  /** Clave estable de la fila. */
+  id: string;
+  /** Icono del chip. Sin él se usa el icono de campana del sistema. */
+  icon?: React.ReactNode;
+  tone?: ActivityTone;
   title: string;
-  description: string;
+  description?: string;
+  /** Momento ya formateado ("Justo ahora", "Hace 2 min", "Ayer"). */
   time: string;
+  /** Si viene, la fila se renderiza como botón y es navegable con el teclado. */
+  onClick?: () => void;
 }
 
-const activities: Activity[] = [
-  {
-    id: 1,
-    icon: <MessageCircle className="h-4 w-4" />,
-    iconBg: "bg-neutral-700 dark:bg-neutral-700 bg-neutral-200",
-    title: "New Message!",
-    description: "Sarah sent you a message.",
-    time: "Just Now",
-  },
-  {
-    id: 2,
-    icon: <Award className="h-4 w-4" />,
-    iconBg: "bg-neutral-700 dark:bg-neutral-700 bg-neutral-200",
-    title: "Level Up!",
-    description: "You've unlocked a new achievement.",
-    time: "2 min ago",
-  },
-  {
-    id: 3,
-    icon: <Calendar className="h-4 w-4" />,
-    iconBg: "bg-neutral-700 dark:bg-neutral-700 bg-neutral-200",
-    title: "Reminder: Meeting Today",
-    description: "Your team meeting starts in 30 minutes.",
-    time: "3 hour ago",
-  },
-  {
-    id: 4,
-    icon: <Tag className="h-4 w-4" />,
-    iconBg: "bg-neutral-700 dark:bg-neutral-700 bg-neutral-200",
-    title: "Special Offer!",
-    description: "Save 20% off on subscription upgrade.",
-    time: "12 hours ago",
-  },
-  {
-    id: 5,
-    icon: <CheckSquare className="h-4 w-4" />,
-    iconBg: "bg-neutral-700 dark:bg-neutral-700 bg-neutral-200",
-    title: "Task Assigned!",
-    description: "A new task is awaiting your action.",
-    time: "Yesterday",
-  },
-];
+export interface ActivityDropdownProps {
+  items: ActivityItem[];
+  /** Título de la cabecera. */
+  title?: string;
+  /** Frase de apoyo; solo se ve con la tarjeta cerrada. */
+  description?: string;
+  /** Estado inicial cuando el componente se gobierna solo. */
+  defaultOpen?: boolean;
+  /** Estado controlado desde fuera; con él manda quien lo pasa. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Texto cuando no hay actividad. */
+  emptyLabel?: string;
+  className?: string;
+}
 
-export function ActivityDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
+/** Retardo de la cascada: base de entrada + un paso por fila. */
+const STAGGER_BASE_MS = 100;
+const STAGGER_STEP_MS = 80;
+
+const TONE_CHIP: Record<ActivityTone, string> = {
+  default: "bg-muted text-text-secondary",
+  primary: "bg-primary/10 text-primary",
+  positive: "bg-success/10 text-success",
+  warning: "bg-warning/15 text-warning",
+  negative: "bg-destructive/10 text-destructive",
+};
+
+/** Clases compartidas por la fila, sea botón o no. */
+const ROW_BASE =
+  "flex w-full items-start gap-3 rounded-xl p-3 text-left transition-all duration-normal ease-standard motion-reduce:transition-none";
+
+function ActivityRow({ item, index, isOpen }: { item: ActivityItem; index: number; isOpen: boolean }) {
+  const tone = item.tone ?? "default";
+  const isButton = typeof item.onClick === "function";
+
+  const content = (
+    <>
+      <span
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-normal ease-standard motion-reduce:transition-none",
+          TONE_CHIP[tone]
+        )}
+      >
+        {item.icon ?? <ThemaIcon name="notification" size="sm" className="text-current" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <Text as="span" size="sm" weight="semibold" className="block">
+          {item.title}
+        </Text>
+        {item.description ? (
+          <Text as="span" size="sm" tone="secondary" truncate className="block">
+            {item.description}
+          </Text>
+        ) : null}
+      </span>
+      <Text as="span" size="xs" tone="muted" className="shrink-0 pt-0.5">
+        {item.time}
+      </Text>
+    </>
+  );
+
+  const className = cn(
+    ROW_BASE,
+    isButton &&
+      "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+    isOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+  );
+
+  /* El retardo solo existe al abrir: al cerrar, todas las filas se van a la vez. */
+  const style = { transitionDelay: isOpen ? `${index * STAGGER_STEP_MS + STAGGER_BASE_MS}ms` : "0ms" };
+
+  return (
+    <li>
+      {isButton ? (
+        <button type="button" onClick={item.onClick} className={className} style={style}>
+          {content}
+        </button>
+      ) : (
+        <div className={className} style={style}>
+          {content}
+        </div>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Tarjeta de actividad plegable: la cabecera resume y, al abrirla, las filas
+ * entran escalonadas. Pensada para un panel lateral o una columna de resumen,
+ * no para el menú de notificaciones de la cabecera.
+ */
+export function ActivityDropdown({
+  items,
+  title = "Actividad reciente",
+  description,
+  defaultOpen = false,
+  open,
+  onOpenChange,
+  emptyLabel = "No hay actividad por ahora.",
+  className,
+}: ActivityDropdownProps) {
+  const panelId = React.useId();
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : uncontrolledOpen;
+
+  const toggle = () => {
+    const next = !isOpen;
+    if (!isControlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <div
       className={cn(
-        "w-full max-w-md rounded-2xl shadow-2xl overflow-hidden cursor-pointer select-none",
-        "bg-white dark:bg-neutral-900",
-        "shadow-xl shadow-black/10 dark:shadow-black/50",
-        "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "w-full max-w-md overflow-hidden border border-border bg-card shadow-drawer",
+        "transition-all duration-normal ease-standard motion-reduce:transition-none",
         isOpen ? "rounded-3xl" : "rounded-2xl",
+        className
       )}
-      onClick={() => setIsOpen(!isOpen)}
     >
-      <div className="flex items-center gap-4 p-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800 transition-colors duration-300">
-          <Bell className="h-5 w-5 text-neutral-600 dark:text-neutral-300" />
-        </div>
-        <div className="flex-1 overflow-hidden">
-          <h3 className="text-base font-semibold text-neutral-900 dark:text-white">5 New Activities</h3>
-          <p
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        className="flex w-full items-center gap-4 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted text-text-secondary">
+          <ThemaIcon name="notification" size="md" className="text-current" />
+        </span>
+        <span className="min-w-0 flex-1 overflow-hidden">
+          <Heading level={6} as="h3">
+            {title}
+          </Heading>
+          {description ? (
+            <Text
+              as="span"
+              size="sm"
+              tone="secondary"
+              className={cn(
+                "block transition-all duration-normal ease-standard motion-reduce:transition-none",
+                isOpen ? "mt-0 max-h-0 opacity-0" : "mt-0.5 max-h-6 opacity-100"
+              )}
+            >
+              {description}
+            </Text>
+          ) : null}
+        </span>
+        <span className="flex size-8 shrink-0 items-center justify-center text-text-muted">
+          <ThemaIcon
+            name="chevronUp"
+            size="sm"
+            decorative
             className={cn(
-              "text-sm text-neutral-500 dark:text-neutral-400",
-              "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              isOpen ? "opacity-0 max-h-0 mt-0" : "opacity-100 max-h-6 mt-0.5",
-            )}
-          >
-            What's happening around you
-          </p>
-        </div>
-        <div className="flex h-8 w-8 items-center justify-center">
-          <ChevronUp
-            className={cn(
-              "h-5 w-5 text-neutral-400 transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              isOpen ? "rotate-0" : "rotate-180",
+              "transition-transform duration-normal ease-standard motion-reduce:transition-none",
+              isOpen ? "rotate-0" : "rotate-180"
             )}
           />
-        </div>
-      </div>
+        </span>
+      </button>
 
       <div
+        id={panelId}
+        inert={!isOpen}
         className={cn(
-          "grid",
-          "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          "grid transition-all duration-normal ease-standard motion-reduce:transition-none",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
         <div className="overflow-hidden">
           <div className="px-2 pb-4">
-            <div className="space-y-1">
-              {activities.map((activity, index) => (
-                <div
-                  key={activity.id}
-                  className={cn(
-                    "flex items-start gap-3 rounded-xl p-3",
-                    "transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                    "hover:bg-neutral-100 dark:hover:bg-neutral-800/50",
-                    isOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
-                  )}
-                  style={{
-                    transitionDelay: isOpen ? `${index * 80 + 100}ms` : "0ms",
-                  }}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-700 transition-colors duration-300">
-                    <span className="text-neutral-600 dark:text-neutral-300">{activity.icon}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">{activity.title}</h4>
-                    <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">{activity.description}</p>
-                  </div>
-                  <span className="shrink-0 pt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
-                    {activity.time}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {items.length === 0 ? (
+              <Text size="sm" tone="muted" className="px-3 py-2">
+                {emptyLabel}
+              </Text>
+            ) : (
+              <ul className="space-y-1">
+                {items.map((item, index) => (
+                  <ActivityRow key={item.id} item={item} index={index} isOpen={isOpen} />
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>

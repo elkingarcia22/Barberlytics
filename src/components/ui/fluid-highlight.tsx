@@ -69,10 +69,29 @@ type Placement = {
   radius: string
 }
 
-function measure(item: HTMLElement): Placement {
+/*
+ * Suma `offsetTop`/`offsetLeft` subiendo por `offsetParent` hasta `container`,
+ * en vez de leerlos una sola vez del ítem. Con un `DropdownMenuGroup` de por
+ * medio —que agrupa ajustes bajo un submenú, como en el menú de la marca—
+ * ese grupo también entra en la animación de entrada en cascada, y un
+ * `transform` persistente (`animation-fill-mode: both`) lo convierte en el
+ * `offsetParent` de sus propios ítems. Un solo `item.offsetTop` daría
+ * entonces la posición relativa al grupo, no al panel: la píldora aterrizaba
+ * sobre otra fila. Subiendo por la cadena, el resultado es el mismo haya o no
+ * grupos de por medio.
+ */
+function measure(item: HTMLElement, container: HTMLElement): Placement {
+  let top = 0
+  let left = 0
+  let node: HTMLElement | null = item
+  while (node && node !== container) {
+    top += node.offsetTop
+    left += node.offsetLeft
+    node = node.offsetParent as HTMLElement | null
+  }
   return {
-    top: item.offsetTop,
-    left: item.offsetLeft,
+    top,
+    left,
     width: item.offsetWidth,
     height: item.offsetHeight,
     radius: getComputedStyle(item).borderRadius,
@@ -135,7 +154,7 @@ export function FluidHighlight({ className }: { className?: string }) {
       if (active === lastActive) return
       lastActive = active
 
-      const next = active ? measure(active) : null
+      const next = active ? measure(active, container) : null
       const slide = previous !== null && next !== null
       previous = next
 

@@ -109,6 +109,42 @@ export default {
         premium: "var(--shadow-premium)",
         "ai-premium": "var(--shadow-ai-premium)",
       },
+      /* El espaciado semántico (`p-card`, `gap-inline`…), `bg-brand-gradient`
+         y `shadow-glow-brand` NO están aquí: viven en styles/globals.css
+         porque una clave nueva del tema no llega a un servidor ya arrancado.
+         Ver el comentario del bloque en esa hoja. */
+
+      /* Motion, capas y anchos: los tokens de tokens.css como utilidades
+         (`duration-fast`, `ease-out-expo`, `z-popover`, `max-w-normal`). */
+      transitionDuration: {
+        instant: "var(--duration-instant)",
+        fast: "var(--duration-fast)",
+        normal: "var(--duration-normal)",
+        slow: "var(--duration-slow)",
+      },
+      transitionTimingFunction: {
+        "out-expo": "var(--ease-out-expo)",
+        standard: "var(--ease-standard)",
+        "in-standard": "var(--ease-in)",
+      },
+      zIndex: {
+        base: "var(--z-base)",
+        raised: "var(--z-raised)",
+        sticky: "var(--z-sticky)",
+        rail: "var(--z-rail)",
+        sidebar: "var(--z-sidebar)",
+        header: "var(--z-header)",
+        drawer: "var(--z-drawer)",
+        overlay: "var(--z-overlay)",
+        dialog: "var(--z-dialog)",
+        popover: "var(--z-popover)",
+        toast: "var(--z-toast)",
+      },
+      maxWidth: {
+        narrow: "var(--container-narrow)",
+        normal: "var(--container-normal)",
+        wide: "var(--container-wide)",
+      },
       fontFamily: {
         sans: ["var(--font-body)"],
         body: ["var(--font-body)"],
@@ -216,6 +252,11 @@ export default {
             "offset-distance": "100%",
           },
         },
+        /* Accordion y Collapsible: altura real que Radix expone en una variable. */
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "collapsible-down": { from: { height: "0" }, to: { height: "var(--radix-collapsible-content-height)" } },
+        "collapsible-up": { from: { height: "var(--radix-collapsible-content-height)" }, to: { height: "0" } },
       },
       animation: {
         "highlight-row": "highlight-row 3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
@@ -235,6 +276,10 @@ export default {
         "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
         "shell-reveal-in": "shell-reveal-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both",
         "shell-reveal-out": "shell-reveal-out 200ms cubic-bezier(0.4, 0, 1, 1) both",
+        "accordion-down": "accordion-down 200ms var(--ease-out-expo)",
+        "accordion-up": "accordion-up 200ms var(--ease-standard)",
+        "collapsible-down": "collapsible-down 200ms var(--ease-out-expo)",
+        "collapsible-up": "collapsible-up 200ms var(--ease-standard)",
       }
     },
   },

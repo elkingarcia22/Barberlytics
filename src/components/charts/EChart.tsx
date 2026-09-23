@@ -4,7 +4,6 @@ import type { EChartsInstance, EChartProps } from "./types"
 import { getChartTheme } from "./theme"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState } from "@/components/feedback"
 
 /**
  * EChart
@@ -152,13 +151,19 @@ export function EChart({
         </div>
       )}
 
+      {/*
+        Vacío en línea, no el `EmptyState` de tarjeta: el gráfico ya vive
+        dentro de una card y anidar otra obliga a anular su padding (`p-0`),
+        con lo que el texto acaba pegado al borde en alturas pequeñas. Esta
+        versión tiene sus propias márgenes y comparte forma con el estado de
+        error de ChartShell.
+      */}
       {empty && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <EmptyState
-            title="Sin datos disponibles"
-            description="No hay información para mostrar en este gráfico actualmente."
-            className="p-0"
-          />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-card text-center">
+          <span className="text-sm font-semibold text-text-primary">Sin datos disponibles</span>
+          <span className="max-w-[38ch] text-xs text-text-secondary">
+            No hay información para mostrar en este gráfico actualmente.
+          </span>
         </div>
       )}
     </div>

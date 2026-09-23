@@ -5,3 +5,5 @@ export * from "./TabsNav";
 export * from "./Breadcrumbs";
 export * from "./PaginationShell";
 export * from "./ThemaTabs";
+export * from "./Stepper";
+export * from "./Scrollspy";

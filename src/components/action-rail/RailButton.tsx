@@ -40,7 +40,7 @@ export function RailButton({
             "dock-item hover-icon-pop relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
             tone === "danger"
               ? "text-status-negative hover:bg-status-negative/15 focus-visible:ring-status-negative/40 disabled:hover:text-status-negative"
-              : "text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-white/30 disabled:hover:text-white/60"
+              : "text-nav-foreground/60 hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:ring-nav-foreground/30 disabled:hover:text-nav-foreground/60"
           )}
         >
           {icon}
@@ -69,14 +69,14 @@ export function RailCreateOption({
     <button
       type="button"
       onClick={onClick}
-      className="hover-icon-pop group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-white/5"
+      className="hover-icon-pop group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-nav-foreground/5"
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-colors group-hover:bg-white/10 group-hover:text-white">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-nav-foreground/5 text-nav-foreground/60 transition-colors group-hover:bg-nav-foreground/10 group-hover:text-nav-foreground">
         {icon}
       </span>
       <span className="flex flex-col gap-0.5">
-        <span className="text-[14px] font-bold tracking-tight text-white">{title}</span>
-        <span className="text-[11px] font-medium text-white/45">{description}</span>
+        <span className="text-[14px] font-bold tracking-tight text-nav-foreground">{title}</span>
+        <span className="text-[11px] font-medium text-nav-foreground/45">{description}</span>
       </span>
     </button>
   );
@@ -137,7 +137,7 @@ export const RailPrimaryAction = React.forwardRef<
       type="button"
       aria-label={label}
       className={cn(
-        "hover-icon-pop relative flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-white transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-95",
+        "hover-icon-pop relative flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/30 active:scale-95",
         isVertical ? "w-10 px-0" : "px-4",
         className
       )}

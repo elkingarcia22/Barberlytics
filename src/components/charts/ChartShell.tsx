@@ -75,7 +75,7 @@ export function ChartShell({
       <div role="img" aria-label={ariaLabel} style={{ height }}>
         {error ? (
           <div
-            className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5"
+            className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-card text-center"
             style={{ height }}
           >
             <span className="text-sm font-medium text-destructive">Error al cargar el gráfico</span>

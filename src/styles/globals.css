@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./themes/premium.css";
 
 @tailwind base;
 @tailwind components;
@@ -32,6 +33,61 @@
 }
 .dark * {
   scrollbar-color: hsl(220 14% 30%) transparent;
+}
+
+/*
+ * ── Espaciado semántico y utilidades de marca ───────────────────────────
+ *
+ * Las cinco intenciones de la escala (ver `buildSpacingTokens` en
+ * src/themes/buildTokens.ts y la página Espaciado de la doc) como clases de
+ * CSS, no como claves del tema de Tailwind.
+ *
+ * Viven aquí y no en tailwind.config.js a propósito: Tailwind lee su
+ * configuración una sola vez al arrancar, así que una clave nueva del tema no
+ * existe en ningún servidor de desarrollo que ya esté en marcha y el padding
+ * se queda en cero hasta reiniciarlo. Una hoja de estilos, en cambio, recarga
+ * en caliente. Cada valor lleva su fallback para los contextos sin tokens.
+ *
+ * Van en la capa `components`, por debajo de las utilidades, así que un
+ * `p-0` o un `px-4` puntual sigue ganando. Añadir una variante es una línea.
+ */
+@layer components {
+  /* Entre elementos de una fila: icono y texto, chips, botones de una barra. */
+  .gap-inline { gap: var(--space-inline, 8px); }
+  .px-inline { padding-left: var(--space-inline, 8px); padding-right: var(--space-inline, 8px); }
+  .py-inline { padding-top: var(--space-inline, 8px); padding-bottom: var(--space-inline, 8px); }
+
+  /* Entre elementos apilados: campos de un formulario, filas de una lista. */
+  .gap-stack { gap: var(--space-stack, 12px); }
+  .mt-stack { margin-top: var(--space-stack, 12px); }
+  .mb-stack { margin-bottom: var(--space-stack, 12px); }
+  .space-y-stack > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-stack, 12px); }
+
+  /* Padding interior de una card. Es el que usa <Card>. */
+  .p-card { padding: var(--space-card, 24px); }
+  .px-card { padding-left: var(--space-card, 24px); padding-right: var(--space-card, 24px); }
+  .py-card { padding-top: var(--space-card, 24px); padding-bottom: var(--space-card, 24px); }
+  .pt-card { padding-top: var(--space-card, 24px); }
+  .pl-card { padding-left: var(--space-card, 24px); }
+  .pr-card { padding-right: var(--space-card, 24px); }
+  .pb-card { padding-bottom: var(--space-card, 24px); }
+  .gap-card { gap: var(--space-card, 24px); }
+
+  /* Margen lateral del contenido de página. Es el que usa el shell. */
+  .p-page { padding: var(--space-page, 24px); }
+  .px-page { padding-left: var(--space-page, 24px); padding-right: var(--space-page, 24px); }
+  .py-page { padding-top: var(--space-page, 24px); padding-bottom: var(--space-page, 24px); }
+
+  /* Aire entre secciones de una pantalla. */
+  .mt-section { margin-top: var(--space-section, 32px); }
+  .mb-section { margin-bottom: var(--space-section, 32px); }
+  .py-section { padding-top: var(--space-section, 32px); padding-bottom: var(--space-section, 32px); }
+  .space-y-section > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-section, 32px); }
+
+  /* Gradiente de marca del tema y su sombra coloreada, por el mismo motivo
+     que el espaciado: fuera de la configuración de Tailwind. */
+  .bg-brand-gradient { background-image: var(--color-brand-gradient); }
+  .shadow-glow-brand { box-shadow: var(--shadow-glow-brand); }
 }
 
 @layer base {
@@ -283,15 +339,37 @@
   }
 
   /* AI Premium Utilities */
+  /* El gradiente de IA recorre las cinco paradas del tema, no solo los dos
+     extremos: con dos colores el centro se lavaba y el resultado se leía
+     como un pastel; con las paradas intermedias saturadas el gradiente tiene
+     cuerpo en cualquier tema. */
   .bg-ai-gradient {
-    background: linear-gradient(135deg, hsl(var(--ai-gradient-start)) 0%, hsl(var(--ai-gradient-end)) 100%) !important;
+    background: linear-gradient(135deg, var(--color-ai-stop-1) 0%, var(--color-ai-stop-2) 38%, var(--color-ai-stop-3) 72%, var(--color-ai-stop-5) 100%) !important;
   }
 
   .text-ai-gradient {
-    background: linear-gradient(135deg, hsl(var(--ai-gradient-start)) 0%, hsl(var(--ai-gradient-end)) 100%);
+    background: linear-gradient(135deg, var(--color-ai-stop-1) 0%, var(--color-ai-stop-2) 38%, var(--color-ai-stop-3) 72%, var(--color-ai-stop-5) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Texto con el gradiente de marca del tema (`--color-brand-gradient`):
+     cifras destacadas, el total de una card hero. Cambia con el preset. */
+  .text-brand-gradient {
+    background: var(--color-brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* La atmósfera de cada tema: un halo del primario que cae desde arriba a la
+     izquierda y se funde en el fondo (`--page-atmosphere`, un token por tema y
+     modo). Va en el contenedor de página, una vez, nunca en las cards. Sin
+     `background-attachment: fixed` para no penalizar el scroll. */
+  .page-atmosphere {
+    background-image: var(--page-atmosphere);
+    background-repeat: no-repeat;
   }
   
   @keyframes border-beam {
@@ -381,13 +459,21 @@
     }
   }
 
-  /* Animated subtle mesh background for AI cards */
-  .bg-ai-mesh-card {
+  /*
+   * Las tres mallas de IA.
+   *
+   * Sin prefijo `bg-` a propósito: no son utilidades de color, son clases de
+   * componente que aportan la imagen (y, dos de ellas, su superficie). Con el
+   * prefijo, `cn("bg-surface bg-ai-mesh-agent")` perdía una de las dos —
+   * tailwind-merge las considera el mismo grupo— y el panel del Agente IA
+   * acabó transparente, sin gradación visible en oscuro.
+   */
+  .ai-mesh-card {
     background-color: var(--color-surface);
     background-image:
-      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.16), transparent 65%),
-      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.08), transparent 65%),
-      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 65%);
+      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.24), transparent 65%),
+      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.14), transparent 65%),
+      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.2), transparent 65%);
     background-size: 140% 140%;
     animation: mesh-drift 12s ease-in-out infinite alternate;
   }
@@ -398,28 +484,48 @@
    * Los blobs entran por los costados y no por arriba: la barra es ancha y
    * baja, y un degradado que cae desde el borde superior en 56 px de alto no
    * se lee como atmósfera, se lee como un borde mal pintado. Las alfas son
-   * más bajas que en `.bg-ai-mesh-card` porque sobre un fondo casi negro el
+   * más bajas que en `.ai-mesh-card` porque sobre un fondo casi negro el
    * mismo valor canta el doble: lo justo para decir "esta barra es de la
    * generación", no para volverla una barra de colores.
    */
-  .bg-ai-mesh-nav {
+  .ai-mesh-nav {
     background-color: var(--color-surface-nav);
     background-image:
-      radial-gradient(60% 140% at 8% 50%, rgba(var(--color-ai-stop-1-rgb), 0.13), transparent 70%),
-      radial-gradient(52% 140% at 50% 50%, rgba(var(--color-ai-stop-2-rgb), 0.16), transparent 70%),
-      radial-gradient(58% 140% at 94% 50%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 70%);
+      radial-gradient(60% 140% at 8% 50%, rgba(var(--color-ai-stop-1-rgb), 0.2), transparent 70%),
+      radial-gradient(52% 140% at 50% 50%, rgba(var(--color-ai-stop-2-rgb), 0.24), transparent 70%),
+      radial-gradient(58% 140% at 94% 50%, rgba(var(--color-ai-stop-3-rgb), 0.2), transparent 70%);
     background-size: 150% 150%;
     animation: mesh-drift 16s ease-in-out infinite alternate;
   }
 
-  /* Animated subtle mesh background for the agent page */
-  .bg-ai-mesh-agent {
+  /*
+   * La malla de la pantalla del agente. A diferencia de `-card` y `-nav`, no
+   * trae color de fondo a propósito: se pinta sobre el fondo de la página
+   * cuando el shell entra en modo agente. Un panel que la use como superficie
+   * (el cajón, un popover) tiene que poner el suyo —`bg-surface`—, o en
+   * oscuro los tintes caen sobre casi negro y no se ven.
+   */
+  .ai-mesh-agent {
     background-image:
-      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.16), transparent 65%),
-      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.08), transparent 65%),
-      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.12), transparent 65%);
+      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.24), transparent 65%),
+      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.14), transparent 65%),
+      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.2), transparent 65%);
     background-size: 140% 140%;
     animation: mesh-drift 14s ease-in-out infinite alternate;
+  }
+
+  /*
+   * En oscuro los mismos tintes sobre una superficie de carbón pierden casi
+   * todo el contraste, así que la malla se queda plana. Estas alfas son las
+   * claras multiplicadas por ~1,5: la atmósfera se lee igual de suave que en
+   * claro en vez de desaparecer.
+   */
+  .dark .ai-mesh-card,
+  .dark .ai-mesh-agent {
+    background-image:
+      radial-gradient(55% 34% at 18% 0%, rgba(var(--color-ai-stop-1-rgb), 0.34), transparent 65%),
+      radial-gradient(45% 30% at 55% 0%, rgba(var(--color-ai-stop-2-rgb), 0.22), transparent 65%),
+      radial-gradient(50% 34% at 88% 0%, rgba(var(--color-ai-stop-3-rgb), 0.3), transparent 65%);
   }
 
   /* Bounded drift — the blobs stay within the visible box at every point in
@@ -524,7 +630,7 @@
     color: var(--tone);
   }
 
-  /* AI variant — one soft blend of the same three hues as `.bg-ai-mesh-card`
+  /* AI variant — one soft blend of the same three hues as `.ai-mesh-card`
      instead of three stacked radials, so it reads as a gentle wash rather
      than a patchwork of coloured blotches. */
   .magic-card-sweep-ai::after {
@@ -619,23 +725,25 @@
     }
   }
 
+  /* El destello de la barra es el color de marca, no un azul fijo: en un tema
+     dorado un fogonazo azul delata que la animación vino de otro sistema. */
   @keyframes railGroupShimmer {
     0% {
-      box-shadow: inset 0 0 16px 0 rgba(59, 130, 246, 0.4);
+      box-shadow: inset 0 0 16px 0 hsl(var(--primary) / 0.4);
     }
     100% {
-      box-shadow: inset 0 0 16px 0 rgba(59, 130, 246, 0);
+      box-shadow: inset 0 0 16px 0 hsl(var(--primary) / 0);
     }
   }
 
   @keyframes railActionColorFlash {
     0% {
-      background: rgba(59, 130, 246, 0.4);
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+      background: hsl(var(--primary) / 0.4);
+      box-shadow: 0 0 15px hsl(var(--primary) / 0.6);
     }
     60% {
-      background: rgba(59, 130, 246, 0.15);
-      box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+      background: hsl(var(--primary) / 0.15);
+      box-shadow: 0 0 8px hsl(var(--primary) / 0.2);
     }
     100% {
       background: transparent;

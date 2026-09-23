@@ -69,8 +69,8 @@ export function RailOverflowMenu({
               type="button"
               aria-label={label}
               className={cn(
-                "dock-item relative flex h-10 w-10 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-                open && "bg-white/10 text-white"
+                "dock-item relative flex h-10 w-10 items-center justify-center rounded-xl text-nav-foreground/60 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30",
+                open && "bg-nav-foreground/10 text-nav-foreground"
               )}
             >
               {icon ?? <MoreHorizontal className="h-[20px] w-[20px]" strokeWidth={2} />}
@@ -85,7 +85,7 @@ export function RailOverflowMenu({
         side={side}
         sideOffset={16}
         collisionPadding={16}
-        className="w-[248px] rounded-2xl border-white/10 bg-surface-nav p-2 text-white/60 shadow-rail"
+        className="w-[248px] rounded-2xl border-primary/15 bg-surface-nav p-2 text-nav-foreground/60 shadow-rail"
       >
         {items.map((item, index) => {
           const disabled = item.blockedReason != null;
@@ -101,7 +101,7 @@ export function RailOverflowMenu({
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                   item.tone === "danger"
                     ? "bg-status-negative/10 text-status-negative"
-                    : "bg-white/5 text-white/60 group-hover:bg-white/10 group-hover:text-white group-disabled:group-hover:bg-white/5"
+                    : "bg-nav-foreground/5 text-nav-foreground/60 group-hover:bg-nav-foreground/10 group-hover:text-nav-foreground group-disabled:group-hover:bg-nav-foreground/5"
                 )}
               >
                 {item.icon}
@@ -111,13 +111,13 @@ export function RailOverflowMenu({
                   "text-[13px] font-semibold tracking-tight",
                   item.tone === "danger"
                     ? "text-status-negative"
-                    : "text-white"
+                    : "text-nav-foreground"
                 )}
               >
                 {item.label}
               </span>
               {item.subItems && (
-                <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-white/40" strokeWidth={2} />
+                <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-nav-foreground/40" strokeWidth={2} />
               )}
             </>
           );
@@ -125,7 +125,7 @@ export function RailOverflowMenu({
             "group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40",
             item.tone === "danger"
               ? "hover:bg-status-negative/15 disabled:hover:bg-transparent"
-              : "hover:bg-white/5 disabled:hover:bg-transparent",
+              : "hover:bg-nav-foreground/5 disabled:hover:bg-transparent",
             // Stagger: subtle fade and slide
             "opacity-0 translate-y-1",
             open && "opacity-100 translate-y-0"
@@ -151,7 +151,7 @@ export function RailOverflowMenu({
                   side={isVertical ? "left" : "right"}
                   sideOffset={8}
                   collisionPadding={16}
-                  className="w-[220px] rounded-2xl border-white/10 bg-surface-nav p-2 text-white/60 shadow-rail"
+                  className="w-[220px] rounded-2xl border-primary/15 bg-surface-nav p-2 text-nav-foreground/60 shadow-rail"
                 >
                   {item.subItems.map((subItem) => (
                     <button
@@ -162,12 +162,12 @@ export function RailOverflowMenu({
                         handleOpenChange(false);
                         subItem.onClick();
                       }}
-                      className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/5"
+                      className="group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-nav-foreground/5"
                     >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-white/60 transition-colors group-hover:bg-white/10 group-hover:text-white">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-nav-foreground/5 text-nav-foreground/60 transition-colors group-hover:bg-nav-foreground/10 group-hover:text-nav-foreground">
                         {subItem.icon}
                       </span>
-                      <span className="text-[13px] font-semibold tracking-tight text-white">
+                      <span className="text-[13px] font-semibold tracking-tight text-nav-foreground">
                         {subItem.label}
                       </span>
                     </button>

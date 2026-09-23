@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { FileSpreadsheet, Upload, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import type { 
   UploadFileItem, 
   UploadProgressStatus, 
@@ -63,6 +64,7 @@ export function ImportCsvPanel({
   actions,
   className,
 }: ImportCsvPanelProps) {
+  const t = useT()
   const hasFile = !!file
   const hasPreview = previewColumns && previewColumns.length > 0 && previewRows && previewRows.length > 0
 
@@ -161,7 +163,7 @@ export function ImportCsvPanel({
               </div>
             ) : (
               <EmptyState
-                title="Sin previsualización"
+                title={t("upload.noPreview")}
                 description="Selecciona un archivo válido para ver una muestra de los datos."
                 icon={Upload}
                 className="py-12 border-2"

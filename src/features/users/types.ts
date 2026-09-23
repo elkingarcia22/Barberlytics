@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AppMessageKey } from "@/app/i18n/types";
 import { paginatedSchema } from "@/lib/api/pagination";
 
 export const userStatusSchema = z.enum(["active", "invited", "inactive"]);
@@ -41,16 +42,39 @@ export interface UsersListParams {
   pageSize?: number;
 }
 
-export const USER_STATUS_LABELS: Record<UserStatus, string> = {
-  active: "Activa",
-  invited: "Invitada",
-  inactive: "Inactiva",
+/**
+ * Estados, roles y áreas son enumeraciones: el backend manda el código y la
+ * interfaz decide cómo se lee. Por eso aquí van **claves**, no texto: así la
+ * misma fila se lee "Activa" o "Active" según el idioma, sin que el backend
+ * tenga que saber nada de idiomas.
+ */
+export const USER_STATUS_KEYS: Record<UserStatus, AppMessageKey> = {
+  active: "userStatus.active",
+  invited: "userStatus.invited",
+  inactive: "userStatus.inactive",
 };
 
-export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  admin: "Administrador",
-  manager: "Líder",
-  member: "Colaborador",
+export const USER_ROLE_KEYS: Record<UserRole, AppMessageKey> = {
+  admin: "userRole.admin",
+  manager: "userRole.manager",
+  member: "userRole.member",
 };
 
-export const AREAS = ["Producto", "Ingeniería", "Ventas", "Personas", "Marketing", "Finanzas", "Operaciones", "Soporte"] as const;
+/** El código de cada área y la clave con la que se lee. */
+export const AREA_KEYS = {
+  Producto: "area.product",
+  Ingeniería: "area.engineering",
+  Ventas: "area.sales",
+  Personas: "area.people",
+  Marketing: "area.marketing",
+  Finanzas: "area.finance",
+  Operaciones: "area.operations",
+  Soporte: "area.support",
+} as const satisfies Record<string, AppMessageKey>;
+
+export const AREAS = Object.keys(AREA_KEYS) as readonly (keyof typeof AREA_KEYS)[];
+
+/** La clave de un área; si el backend manda una nueva, se lee tal cual. */
+export function areaKey(area: string): AppMessageKey | undefined {
+  return (AREA_KEYS as Record<string, AppMessageKey>)[area];
+}

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { LayoutGrid, MessageSquare, PanelLeftOpen, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -13,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AI_GRADIENT, type NavEntry, type NavRoot } from "./appShellData";
+import { useShellConfig } from "./shellConfig";
+import { WorkspaceMenu } from "./WorkspaceMenu";
 import type { ShellMode } from "./shellTypes";
 
 /**
@@ -122,13 +125,19 @@ function useHoverOpen(delayMs = 160) {
  * hijos como submenú. Sin esto, plegado, esas secciones eran un callejón sin
  * salida.
  */
+/** Clases del ítem del desplegable que corresponde a donde estás. */
+const menuItemCurrent = "bg-surface-muted font-semibold text-primary data-[highlighted]:text-primary";
+
 function RailSectionMenu({
   item,
   active,
+  currentNodeId,
   onSelectNode,
 }: {
   item: NavRoot;
   active: boolean;
+  /** Para marcar dentro del menú el nodo en el que estás, no solo su sección. */
+  currentNodeId: string;
   onSelectNode: (id: string) => void;
 }) {
   const { open, setOpen, hoverProps } = useHoverOpen();
@@ -154,21 +163,40 @@ function RailSectionMenu({
         {...hoverProps}
       >
         <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
+        {/*
+          El menú también dice dónde estás: plegado el sidebar, esta lista es
+          la única navegación que se ve, y sin marcar el ítem actual no había
+          forma de saber en qué página estabas dentro de la sección.
+        */}
         {(item.children ?? []).map((child) =>
           child.children?.length ? (
             <DropdownMenuSub key={child.id}>
-              <DropdownMenuSubTrigger>{child.label}</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger
+                className={cn(child.children.some((leaf) => leaf.id === currentNodeId) && menuItemCurrent)}
+              >
+                {child.label}
+              </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-52">
                 <DropdownMenuLabel>{child.label}</DropdownMenuLabel>
                 {child.children.map((leaf) => (
-                  <DropdownMenuItem key={leaf.id} onSelect={() => onSelectNode(leaf.id)}>
+                  <DropdownMenuItem
+                    key={leaf.id}
+                    aria-current={leaf.id === currentNodeId ? "page" : undefined}
+                    className={cn(leaf.id === currentNodeId && menuItemCurrent)}
+                    onSelect={() => onSelectNode(leaf.id)}
+                  >
                     {leaf.label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           ) : (
-            <DropdownMenuItem key={child.id} onSelect={() => onSelectNode(child.id)}>
+            <DropdownMenuItem
+              key={child.id}
+              aria-current={child.id === currentNodeId ? "page" : undefined}
+              className={cn(child.id === currentNodeId && menuItemCurrent)}
+              onSelect={() => onSelectNode(child.id)}
+            >
               {child.label}
             </DropdownMenuItem>
           )
@@ -197,6 +225,9 @@ export function SidebarIconRail({
   brandLabel,
   className,
 }: SidebarIconRailProps) {
+  const t = useT();
+  const { chrome, brand, settings, settingsAll, workspaceMenuExtra, onNavigate } = useShellConfig();
+  const hasWorkspaceMenu = chrome.settings && settings.length > 0;
   return (
     <nav
       aria-label="Navegación compacta"
@@ -210,7 +241,7 @@ export function SidebarIconRail({
           <button
             type="button"
             onClick={onExpand}
-            aria-label="Expandir menú"
+            aria-label={t("shell.expandMenu")}
             aria-expanded={false}
             className="mb-2 flex size-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-background hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
@@ -220,53 +251,81 @@ export function SidebarIconRail({
         <TooltipContent side="right">Expandir menú</TooltipContent>
       </Tooltip>
 
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger asChild>
-          <button type="button" aria-label={brandLabel} className="mb-2 flex size-8 shrink-0 items-center justify-center rounded-lg">
-            {brandMark}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="right">{brandLabel}</TooltipContent>
-      </Tooltip>
+      {/* La marca del producto: está siempre, también en la documentación.
+          Con ajustes que ofrecer, es el mismo disparador de WorkspaceMenu que
+          la fila expandida del panel; sin ellos, se queda en tooltip. */}
+      {hasWorkspaceMenu ? (
+        <WorkspaceMenu
+          side="right"
+          align="start"
+          trigger={
+            <button
+              type="button"
+              aria-label={brandLabel}
+              data-testid="workspace-menu-trigger-rail"
+              className="mb-2 flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              {brandMark}
+            </button>
+          }
+          productName={brand.productName}
+          tagline={brand.tagline}
+          groups={settings}
+          all={settingsAll}
+          onNavigate={onNavigate}
+          extra={workspaceMenuExtra}
+        />
+      ) : (
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <button type="button" aria-label={brandLabel} className="mb-2 flex size-8 shrink-0 items-center justify-center rounded-lg">
+              {brandMark}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{brandLabel}</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Workspace / Agente IA: el mismo conmutador del panel, apilado. */}
-      <div className="mb-1 flex shrink-0 flex-col gap-0.5 rounded-lg border border-border/60 bg-background p-1">
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => onModeChange("workspace")}
-              aria-label="Workspace"
-              aria-pressed={mode === "workspace"}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                mode === "workspace" ? "bg-surface text-text-primary shadow-card" : "text-text-muted hover:text-text-primary"
-              )}
-            >
-              <LayoutGrid className="size-3.5" strokeWidth={2} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Workspace</TooltipContent>
-        </Tooltip>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => onModeChange("agent")}
-              aria-label="Agente IA"
-              aria-pressed={mode === "agent"}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                mode === "agent" ? "text-white" : "text-text-muted hover:text-text-primary"
-              )}
-              style={mode === "agent" ? { background: AI_GRADIENT } : undefined}
-            >
-              <Sparkles className="size-3.5" strokeWidth={2} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Agente IA</TooltipContent>
-        </Tooltip>
-      </div>
+      {chrome.modeSwitch && (
+        <div className="mb-1 flex shrink-0 flex-col gap-0.5 rounded-lg border border-border/60 bg-background p-1">
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onModeChange("workspace")}
+                aria-label="Workspace"
+                aria-pressed={mode === "workspace"}
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  mode === "workspace" ? "bg-surface text-text-primary shadow-card" : "text-text-muted hover:text-text-primary"
+                )}
+              >
+                <LayoutGrid className="size-3.5" strokeWidth={2} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Workspace</TooltipContent>
+          </Tooltip>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onModeChange("agent")}
+                aria-label="Agente IA"
+                aria-pressed={mode === "agent"}
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  mode === "agent" ? "text-white" : "text-text-muted hover:text-text-primary"
+                )}
+                style={mode === "agent" ? { background: AI_GRADIENT } : undefined}
+              >
+                <Sparkles className="size-3.5" strokeWidth={2} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Agente IA</TooltipContent>
+          </Tooltip>
+        </div>
+      )}
 
       <RailDivider />
 
@@ -276,6 +335,7 @@ export function SidebarIconRail({
           <RailDivider key={`group-${index}`} />
         ) : entry.children?.length ? (
           <RailSectionMenu
+            currentNodeId={currentNodeId}
             key={entry.id}
             item={entry}
             active={holdsCurrent(entry, currentNodeId)}

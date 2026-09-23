@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { GlobalSearchProps } from "@/components/search";
 import {
   AGENT_SUGGESTIONS,
   CHAT_HISTORY,
@@ -8,11 +9,15 @@ import {
   NAV_TREE,
   NEWS_ITEMS,
   NOTIFICATIONS,
+  SETTINGS_GROUPS,
+  USER_ROLES,
   type ChatHistoryGroup,
   type Company,
   type NavEntry,
   type NewsItem,
   type NotificationItem,
+  type SettingsGroup,
+  type UserRoleOption,
 } from "./appShellData";
 
 /**
@@ -35,12 +40,73 @@ export interface ShellBrand {
   tagline?: string;
 }
 
+/**
+ * Los rótulos del espacio activo. `entity` encabeza el chip de la cabecera
+ * ("Sucursal"), `change` es la acción y `list` el título de la lista.
+ */
+export interface ShellWorkspaceLabels {
+  entity: string;
+  change: string;
+  list: string;
+}
+
+export const DEFAULT_WORKSPACE_LABELS: ShellWorkspaceLabels = {
+  entity: "Empresa",
+  change: "Cambiar de empresa",
+  list: "Tus empresas",
+};
+
+/**
+ * Piezas del shell que una vista puede apagar.
+ *
+ * No toda pantalla que usa este shell es la aplicación: la documentación, por
+ * ejemplo, monta el mismo sidebar y la misma cabecera pero no tiene empresas
+ * que cambiar, ni agente, ni novedades, ni sesión. En lugar de bifurcar el
+ * shell o tapar botones con CSS, cada consumidor declara qué cromo necesita.
+ * Todo viene encendido: apagar es la excepción.
+ */
+export interface ShellChrome {
+  /** Identidad del espacio activo en la cabecera (empresa, sucursal…). */
+  company: boolean;
+  /** Menú de configuración de la cabecera. */
+  settings: boolean;
+  /** Rol activo en la cabecera, con su cambio. */
+  role: boolean;
+  /** Conmutador Workspace / Agente IA. */
+  modeSwitch: boolean;
+  /** Botón y popover de "Novedades". */
+  news: boolean;
+  /** Botón de ayuda. */
+  help: boolean;
+  /** Campana de notificaciones. */
+  notifications: boolean;
+  /** Avatar con el menú de perfil (incluye el cambio de modo y cerrar sesión). */
+  profile: boolean;
+  /** Búsqueda general de la cabecera (⌘K). */
+  search: boolean;
+}
+
+export const DEFAULT_SHELL_CHROME: ShellChrome = {
+  company: true,
+  settings: true,
+  role: true,
+  modeSwitch: true,
+  news: true,
+  help: true,
+  notifications: true,
+  profile: true,
+  search: true,
+};
+
 export interface ShellPromo {
   title: string;
   description: string;
   cta: string;
   onClick?: () => void;
 }
+
+/** Los tres anchos del sistema, más el lienzo completo. */
+export type ShellContentWidth = "narrow" | "normal" | "wide" | "full";
 
 export interface ShellConfig {
   user: ShellUser;
@@ -52,28 +118,95 @@ export interface ShellConfig {
   onNavigate?: (id: string, path?: string) => void;
   notifications: readonly NotificationItem[];
   news: readonly NewsItem[];
+  /**
+   * Roles que la persona puede asumir desde el menú de perfil. Vacío, el menú
+   * no muestra el cambio de rol y la insignia se queda con `user.role`.
+   */
+  roles: readonly UserRoleOption[];
+  /** Rol activo. Sin él, el menú arranca en el primero y gestiona su estado. */
+  activeRoleId?: string;
+  /** Se llama con el id del rol elegido; la app decide qué recarga. */
+  onSelectRole?: (id: string) => void;
   companies: readonly Company[];
+  /** Espacio activo. Sin él, el shell arranca en el primero y lo gestiona. */
+  activeCompanyId?: string;
+  /** Se llama con el id del espacio elegido; la app decide qué recarga. */
+  onSelectCompany?: (id: string) => void;
   companyMenuLinks: readonly string[];
+  /**
+   * Cómo llama este producto al espacio activo. El shell pinta el mismo
+   * conmutador para una empresa, una sucursal o una sede; lo que cambia es
+   * cómo se lee.
+   */
+  workspaceLabels: ShellWorkspaceLabels;
+  /**
+   * Consumo (licencias y créditos) dentro del menú del espacio activo. Un
+   * producto que no vende licencias lo apaga y el menú se queda en identidad
+   * y cambio.
+   */
+  showWorkspaceUsage: boolean;
+  /**
+   * Los ajustes de la plataforma, agrupados. Salen del menú de la cabecera
+   * (no del árbol de navegación) y cada ítem navega por `onNavigate`.
+   */
+  settings: readonly SettingsGroup[];
+  /** El pie del menú de ajustes: la pantalla que los reúne todos. */
+  settingsAll?: { label: string; id: string; path?: string };
+  /**
+   * Controles que la app añade al menú de la marca —tema, idioma—, entre la
+   * identidad y los grupos de ajustes. El shell no conoce el sistema de temas
+   * ni de idiomas del producto; cada consumidor los inyecta aquí.
+   */
+  workspaceMenuExtra?: React.ReactNode;
   chatHistory: readonly ChatHistoryGroup[];
   agentSuggestions: readonly string[];
-  /** Tarjeta promocional del sidebar; `null` la oculta. */
+  /**
+   * Tarjeta promocional del sidebar (modo Workspace). Apagada por defecto:
+   * no sale sola, solo cuando una pantalla la pide a propósito pasando el
+   * objeto. `null` es el valor por defecto y también la forma explícita de
+   * apagarla.
+   */
   promo: ShellPromo | null;
   /** Ítem "Cerrar sesión" del menú de perfil; sin él, el ítem no se muestra. */
   onLogout?: () => void;
   /** Envío de un prompt en el panel del agente. */
   onAgentPrompt?: (prompt: string) => void;
   /**
-   * Modo oscuro controlado desde fuera (p. ej. el ThemeProvider). Si se
-   * pasa, el shell delega el cambio en vez de tocar la clase `dark` por su
-   * cuenta.
+   * Modo claro/oscuro de la aplicación. El shell ya no ofrece el conmutador
+   * —vive en «Personalización», junto al tema y el idioma, porque es de la
+   * plataforma y no de la cuenta—, así que estos dos solo existen para que
+   * una app que los pasaba siga compilando: quien manda sobre la clase
+   * `dark` es el ThemeProvider.
+   *
+   * @deprecated Usa el ThemeProvider (`useTheme().setMode`).
    */
   isDark?: boolean;
+  /** @deprecated Usa el ThemeProvider (`useTheme().setMode`). */
   onToggleDark?: (isDark: boolean) => void;
   /** Controles extra a la izquierda de las notificaciones (p. ej. el selector de tema). */
   headerActions?: React.ReactNode;
+  /** Qué piezas del shell se muestran; por defecto, todas. */
+  chrome: ShellChrome;
+  /**
+   * Ancho máximo de la columna de contenido, con los tres anchos del sistema
+   * (ver Fundamentos › Espaciado): `narrow` 720px para formularios y
+   * asistentes, `normal` 1140px para la mayoría de las pantallas y `wide`
+   * 1600px para tableros densos. `full` deja que el contenido ocupe todo el
+   * ancho disponible, para editores y lienzos.
+   *
+   * Lo pone el marco una sola vez: una pantalla no vuelve a fijar su ancho.
+   */
+  contentWidth: ShellContentWidth;
+  /**
+   * Índice de la búsqueda general. Lo que no se diga lo rellena el shell:
+   * los registros de demostración, los destinos derivados de `navigation` y
+   * una pregunta al agente que abre su panel.
+   */
+  search?: Partial<GlobalSearchProps>;
 }
 
-export type ShellConfigOverrides = Partial<ShellConfig>;
+/** `chrome` se puede sobreescribir a medias: lo que no se diga sigue encendido. */
+export type ShellConfigOverrides = Partial<Omit<ShellConfig, "chrome">> & { chrome?: Partial<ShellChrome> };
 
 export const DEFAULT_SHELL_CONFIG: ShellConfig = {
   user: CURRENT_USER,
@@ -81,15 +214,19 @@ export const DEFAULT_SHELL_CONFIG: ShellConfig = {
   navigation: NAV_TREE,
   notifications: NOTIFICATIONS,
   news: NEWS_ITEMS,
+  roles: USER_ROLES,
   companies: COMPANIES,
   companyMenuLinks: COMPANY_MENU_LINKS,
+  workspaceLabels: DEFAULT_WORKSPACE_LABELS,
+  showWorkspaceUsage: true,
+  settings: SETTINGS_GROUPS,
   chatHistory: CHAT_HISTORY,
   agentSuggestions: AGENT_SUGGESTIONS,
-  promo: {
-    title: "El LMS que trabaja por ti",
-    description: "Conoce nuestro nuevo sistema inteligente para crear contenido.",
-    cta: "Conocer más",
-  },
+  // Apagada por defecto: la tarjeta del sidebar es opt-in, no algo que
+  // aparece solo. Una pantalla la enciende pasando `config.promo`.
+  promo: null,
+  chrome: DEFAULT_SHELL_CHROME,
+  contentWidth: "normal",
 };
 
 export const ShellConfigContext = React.createContext<ShellConfig>(DEFAULT_SHELL_CONFIG);
@@ -99,7 +236,13 @@ export function useShellConfig(): ShellConfig {
 }
 
 export function resolveShellConfig(overrides?: ShellConfigOverrides): ShellConfig {
-  return overrides ? { ...DEFAULT_SHELL_CONFIG, ...overrides } : DEFAULT_SHELL_CONFIG;
+  if (!overrides) return DEFAULT_SHELL_CONFIG;
+  return {
+    ...DEFAULT_SHELL_CONFIG,
+    ...overrides,
+    // `chrome` se fusiona en profundidad: apagar una pieza no debe apagar el resto.
+    chrome: { ...DEFAULT_SHELL_CHROME, ...overrides.chrome },
+  };
 }
 
 /** Iniciales para el avatar cuando no hay imagen: "Carolina Vargas" → "CV". */

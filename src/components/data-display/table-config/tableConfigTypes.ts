@@ -12,11 +12,56 @@
 export type TableRowsMode = "lazy" | "paged";
 
 /**
+ * Cómo se leen los registros.
+ *
+ * `table` es la rejilla completa: muchas columnas comparables de un vistazo.
+ * `list` deja una fila por registro con lo que lo identifica y su estado —el
+ * nombre, el dato que importa y la acción—, que es como se lee bien en una
+ * pantalla estrecha o cuando las columnas sobran. Es la misma lista y la
+ * misma selección: solo cambia cómo se dibuja.
+ */
+export type TableView = "table" | "list";
+
+/**
  * "Lazy" por defecto en toda la aplicación: bajar es más barato que buscar en
  * qué página quedó lo que se estaba leyendo. La paginación sigue estando a un
  * clic para quien necesita saber "voy en la 3 de 12".
  */
 export const DEFAULT_ROWS_MODE: TableRowsMode = "lazy";
+
+export const DEFAULT_TABLE_VIEW: TableView = "table";
+
+/**
+ * Dónde vive lo que se puede hacer en la pantalla.
+ *
+ * `rail` lo concentra todo en la barra flotante: las acciones de la pantalla
+ * cuando no hay nada marcado, y las de los registros en cuanto se marca algo
+ * —sustituyéndolas, no sumándose—. La cabecera de la pantalla queda entonces
+ * sin botones, porque tenerlos en los dos sitios es tenerlos duplicados.
+ *
+ * `inline` los devuelve al layout: las de la pantalla a su cabecera y las de
+ * lo marcado a la de la lista, que se transforma mientras hay selección. Para
+ * pantallas sin barra flotante, o cuando la acción tiene que leerse pegada a
+ * lo que va a modificar.
+ */
+export type TableActionsPlacement = "rail" | "inline";
+
+/** El rail por defecto: es el sitio donde ya vive el resto de acciones. */
+export const DEFAULT_ACTIONS_PLACEMENT: TableActionsPlacement = "rail";
+
+/**
+ * Cómo se actúa sobre un registro.
+ *
+ * `checkbox` es el modelo de lote: se marcan filas —con su casilla o picando
+ * en la fila— y las acciones operan sobre lo marcado. `menu` quita las
+ * casillas y le da a cada fila su propio botón de acciones: se actúa sobre una
+ * sola, ahí mismo, sin pasar por seleccionar. Son dos modelos distintos, no dos
+ * adornos: con `menu` no hay selección ni acciones en lote.
+ */
+export type TableRowControl = "checkbox" | "menu";
+
+/** Las casillas por defecto: sin ellas no hay forma de actuar sobre varios. */
+export const DEFAULT_ROW_CONTROL: TableRowControl = "checkbox";
 
 export interface TableColumnSpec {
   /** Identificador estable: es lo que se guarda, así que no puede cambiar. */
@@ -50,6 +95,9 @@ export interface StoredTableConfig {
   /** Las que se quedan quietas a la izquierda al desplazar la tabla de lado. */
   pinned: string[];
   mode: TableRowsMode;
+  view: TableView;
+  actions: TableActionsPlacement;
+  rowControl: TableRowControl;
 }
 
 /**

@@ -6,6 +6,13 @@ export { MonthPicker, type MonthPickerProps } from './MonthPicker'
 export { QuarterSelector, type QuarterSelectorProps } from './QuarterSelector'
 export { PeriodSelector, type PeriodSelectorProps, type PeriodSelectorOption } from './PeriodSelector'
 export { DateFilterBar, type DateFilterBarProps, type DateFilterMode } from './DateFilterBar'
+export {
+  EventCalendar,
+  type EventCalendarProps,
+  type CalendarEvent,
+  type CalendarView,
+  type EventTone,
+} from './EventCalendar'
 
 // Date Utilities (native Date + Intl.DateTimeFormat)
 export {

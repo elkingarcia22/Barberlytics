@@ -1,9 +1,11 @@
 import * as React from "react";
 import { CalendarIcon, ArrowRight } from "lucide-react";
-import { es } from "date-fns/locale";
+
 import type { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/i18n";
+import { calendarLocale as resolveCalendarLocale } from "./calendarLocale";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -82,21 +84,25 @@ export const DualDateRangePicker = React.forwardRef<
   endDate,
   onChange,
   onApply,
-  startLabel = "Fecha de inicio",
-  endLabel = "Fecha de cierre",
-  startPlaceholder = "Selecciona fecha",
-  endPlaceholder = "Selecciona fecha",
+  startLabel,
+  endLabel,
+  startPlaceholder,
+  endPlaceholder,
   startError,
   endError,
   minDate,
   maxDate,
   disabled = false,
-  locale = "es",
+  locale,
   className,
   autoCloseOnStartSelect = false,
   open: openProp,
   onOpenChange,
 }, ref) => {
+  // Sin etiquetas propias manda el idioma de la aplicación; con ellas, gana
+  // quien lo monta, que suele saber mejor cómo se llama esa fecha ahí.
+  const { current, locale: activeLocale, t } = useLocale();
+  const intlLocale = locale ?? current.intl;
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpenControlled = openProp !== undefined;
   const open = isOpenControlled ? openProp : internalOpen;
@@ -142,7 +148,7 @@ export const DualDateRangePicker = React.forwardRef<
     }
   }, [endDate]);
 
-  const calendarLocale = locale.startsWith("es") ? es : undefined;
+  const calendarLocale = resolveCalendarLocale(activeLocale);
 
   const handleOpenStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -264,13 +270,13 @@ export const DualDateRangePicker = React.forwardRef<
             {/* Input Fecha de Inicio */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px] font-semibold text-text-primary">
-                {startLabel}
+                {startLabel ?? t("date.start")}
               </span>
               <button
                 type="button"
                 onClick={handleOpenStart}
                 disabled={disabled}
-                aria-label={startLabel}
+                aria-label={startLabel ?? t("date.start")}
                 className={cn(
                   "relative flex h-10 w-full items-center gap-2.5 rounded-lg border bg-surface px-3.5 text-left text-[13px] transition-all",
                   open && activeStep === "start"
@@ -293,7 +299,7 @@ export const DualDateRangePicker = React.forwardRef<
                     hasStart ? "text-text-primary" : "text-muted-foreground/70"
                   )}
                 >
-                  {hasStart ? formatFlightDate(tempFrom, locale) : startPlaceholder}
+                  {hasStart ? formatFlightDate(tempFrom, intlLocale) : (startPlaceholder ?? t("date.select"))}
                 </span>
 
                 {/* Subtle active indicator dot */}
@@ -309,13 +315,13 @@ export const DualDateRangePicker = React.forwardRef<
             {/* Input Fecha de Cierre */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px] font-semibold text-text-primary">
-                {endLabel}
+                {endLabel ?? t("date.end")}
               </span>
               <button
                 type="button"
                 onClick={handleOpenEnd}
                 disabled={disabled}
-                aria-label={endLabel}
+                aria-label={endLabel ?? t("date.end")}
                 className={cn(
                   "relative flex h-10 w-full items-center gap-2.5 rounded-lg border bg-surface px-3.5 text-left text-[13px] transition-all",
                   open && activeStep === "end"
@@ -338,7 +344,7 @@ export const DualDateRangePicker = React.forwardRef<
                     hasEnd ? "text-text-primary" : "text-muted-foreground/70"
                   )}
                 >
-                  {hasEnd ? formatFlightDate(tempTo, locale) : endPlaceholder}
+                  {hasEnd ? formatFlightDate(tempTo, intlLocale) : (endPlaceholder ?? t("date.select"))}
                 </span>
 
                 {/* Subtle active indicator dot */}
@@ -393,7 +399,7 @@ export const DualDateRangePicker = React.forwardRef<
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   <span>Inicio:</span>
                   <span className={cn(hasStart ? "text-text-primary" : "text-muted-foreground italic")}>
-                    {hasStart ? formatFlightDate(tempFrom, locale) : "Sin definir"}
+                    {hasStart ? formatFlightDate(tempFrom, intlLocale) : t("date.undefined")}
                   </span>
                 </button>
 
@@ -412,13 +418,13 @@ export const DualDateRangePicker = React.forwardRef<
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   <span>Cierre:</span>
                   <span className={cn(hasEnd ? "text-text-primary" : "text-muted-foreground italic")}>
-                    {hasEnd ? formatFlightDate(tempTo, locale) : "Sin definir"}
+                    {hasEnd ? formatFlightDate(tempTo, intlLocale) : t("date.undefined")}
                   </span>
                 </button>
               </div>
 
               <div className="ml-auto text-[11px] font-medium text-muted-foreground pl-6 pr-2">
-                {activeStep === "start" ? "Selecciona fecha de inicio" : (hasEnd ? "" : "Selecciona fecha de cierre")}
+                {activeStep === "start" ? t("date.selectStart") : (hasEnd ? "" : t("date.selectEnd"))}
               </div>
             </div>
 
@@ -473,7 +479,7 @@ export const DualDateRangePicker = React.forwardRef<
                 onClick={handleApply}
                 disabled={!canApply}
                 className={cn(
-                  "flex h-9 items-center justify-center rounded-full bg-primary px-5 text-[13px] font-bold text-white shadow-card transition-all",
+                  "flex h-9 items-center justify-center rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground shadow-card transition-all",
                   canApply
                     ? "hover:brightness-110 active:scale-95 cursor-pointer"
                     : "opacity-40 cursor-not-allowed"

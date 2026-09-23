@@ -1,13 +1,20 @@
 import type * as React from "react";
+import type { Localized } from "@/i18n";
 
 /**
  * Contrato del registro de documentación. Cada componente del sistema se
  * documenta con un `DocEntry`: qué es, cómo se importa, un playground con
  * controles para probar sus props, ejemplos con código y una tabla de props.
+ *
+ * Todo lo que es prosa —descripciones, títulos de ejemplo, guías— es
+ * `Localized`: acepta la cadena de siempre (español) o un objeto por idioma.
+ * Así una ficha se traduce cuando toca, sin migrar las 164 de golpe ni dejar
+ * huecos mientras tanto.
  */
 
 export type DocGroupId =
   | "ui"
+  | "typography"
   | "forms"
   | "selection"
   | "navigation"
@@ -22,31 +29,106 @@ export type DocGroupId =
   | "layout"
   | "media"
   | "utility"
-  | "icons";
+  | "icons"
+  | "blocks";
 
 export interface DocGroup {
   id: DocGroupId;
-  label: string;
-  description: string;
+  label: Localized;
+  description: Localized;
 }
 
 export const DOC_GROUPS: readonly DocGroup[] = [
-  { id: "ui", label: "Primitivos", description: "Base shadcn/Radix afinada con los tokens Thema." },
-  { id: "forms", label: "Formularios", description: "Campos, secciones y selects compuestos." },
-  { id: "selection", label: "Selección", description: "Tarjetas, tiles y controles segmentados para elegir." },
-  { id: "navigation", label: "Navegación", description: "Tabs, sub-navegación, breadcrumbs y paginación." },
-  { id: "overlays", label: "Overlays", description: "Drawers, modales y diálogos de confirmación." },
-  { id: "feedback", label: "Feedback", description: "Estados vacíos, avisos y toasts." },
-  { id: "data-display", label: "Datos", description: "Tablas configurables y badges de estado." },
-  { id: "date", label: "Fechas y rangos", description: "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango." },
-  { id: "upload", label: "Archivos", description: "Zonas de carga, previsualización y progreso." },
-  { id: "charts", label: "Gráficos", description: "ECharts con el tema Thema resuelto en tiempo real." },
-  { id: "ai", label: "IA", description: "Botones, loaders, badges y paneles con la identidad de IA." },
-  { id: "action-rail", label: "Action rail", description: "La barra de acciones flotante y sus piezas." },
-  { id: "layout", label: "Layout y shell", description: "Sidebar, header, shell de administración y páginas." },
-  { id: "media", label: "Media", description: "Carrusel, galerías y previsualizaciones." },
-  { id: "utility", label: "Utilidades", description: "Encabezados de página y sección, tags." },
-  { id: "icons", label: "Iconos", description: "El registro semántico de iconos y su wrapper." },
+  {
+    id: "ui",
+    label: { es: "Primitivos", en: "Primitives" },
+    description: { es: "Base shadcn/Radix afinada con los tokens Thema.", en: "shadcn/Radix base tuned with Thema tokens." },
+  },
+  {
+    id: "typography",
+    label: { es: "Tipografía", en: "Typography" },
+    description: { es: "Heading y Text: la escala tipográfica como componentes, sin tamaños a mano.", en: "Heading and Text: the type scale as components, with no hand-set sizes." },
+  },
+  {
+    id: "forms",
+    label: { es: "Formularios", en: "Forms" },
+    description: { es: "Campos, secciones y selects compuestos.", en: "Fields, sections and composed selects." },
+  },
+  {
+    id: "selection",
+    label: { es: "Selección", en: "Selection" },
+    description: { es: "Tarjetas, tiles y controles segmentados para elegir.", en: "Cards, tiles and segmented controls for choosing." },
+  },
+  {
+    id: "navigation",
+    label: { es: "Navegación", en: "Navigation" },
+    description: { es: "Tabs, sub-navegación, breadcrumbs y paginación.", en: "Tabs, sub-navigation, breadcrumbs and pagination." },
+  },
+  {
+    id: "overlays",
+    label: { es: "Overlays", en: "Overlays" },
+    description: { es: "Drawers, modales y diálogos de confirmación.", en: "Drawers, modals and confirmation dialogs." },
+  },
+  {
+    id: "feedback",
+    label: { es: "Feedback", en: "Feedback" },
+    description: { es: "Estados vacíos, avisos y toasts.", en: "Empty states, alerts and toasts." },
+  },
+  {
+    id: "data-display",
+    label: { es: "Datos", en: "Data" },
+    description: { es: "Tablas configurables y badges de estado.", en: "Configurable tables and status badges." },
+  },
+  {
+    id: "date",
+    label: { es: "Fechas y rangos", en: "Dates and ranges" },
+    description: { es: "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.", en: "Date, range, month, quarter and period pickers, plus a range slider." },
+  },
+  {
+    id: "upload",
+    label: { es: "Archivos", en: "Files" },
+    description: { es: "Zonas de carga, previsualización y progreso.", en: "Upload zones, previews and progress." },
+  },
+  {
+    id: "charts",
+    label: { es: "Gráficos", en: "Charts" },
+    description: { es: "ECharts con el tema Thema resuelto en tiempo real.", en: "ECharts with the Thema theme resolved in real time." },
+  },
+  {
+    id: "ai",
+    label: { es: "IA", en: "AI" },
+    description: { es: "Botones, loaders, badges y paneles con la identidad de IA.", en: "Buttons, loaders, badges and panels with the AI identity." },
+  },
+  {
+    id: "action-rail",
+    label: { es: "Action rail", en: "Action rail" },
+    description: { es: "La barra de acciones flotante y sus piezas.", en: "The floating action bar and its parts." },
+  },
+  {
+    id: "layout",
+    label: { es: "Layout y shell", en: "Layout and shell" },
+    description: { es: "Sidebar, header, shell de administración y páginas.", en: "Sidebar, header, admin shell and pages." },
+  },
+  {
+    id: "media",
+    label: { es: "Media", en: "Media" },
+    description: { es: "Carrusel, galerías y previsualizaciones.", en: "Carousel, galleries and previews." },
+  },
+  {
+    id: "utility",
+    label: { es: "Utilidades", en: "Utilities" },
+    description: { es: "Encabezados de página y sección, tags.", en: "Page and section headers, tags." },
+  },
+  {
+    id: "icons",
+    label: { es: "Iconos", en: "Icons" },
+    description: { es: "El registro semántico de iconos y su wrapper.", en: "The semantic icon registry and its wrapper." },
+  },
+  {
+    id: "blocks",
+    label: { es: "Bloques", en: "Blocks" },
+    description: { es: "Composiciones completas listas para una pantalla: piezas del sistema ya cableadas entre sí.", en: "Complete compositions ready for a screen: system pieces already wired together." },
+  },
 ];
 
 export type ControlValue = string | number | boolean;
@@ -97,7 +179,7 @@ export interface DocProp {
   name: string;
   type: string;
   default?: string;
-  description: string;
+  description: Localized;
 }
 
 export interface DocEntry {
@@ -105,7 +187,7 @@ export interface DocEntry {
   id: string;
   name: string;
   group: DocGroupId;
-  description: string;
+  description: Localized;
   /** Sentencia de import completa, p. ej. `import { Button } from "@/components/ui/button"`. */
   importPath: string;
   /** Ruta del archivo fuente relativa al proyecto. */

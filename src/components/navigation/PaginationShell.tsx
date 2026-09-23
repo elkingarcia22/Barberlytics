@@ -9,6 +9,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
+import { useT } from "@/i18n"
 
 interface PaginationShellProps {
   page: number
@@ -35,7 +36,8 @@ export function PaginationShell({
   showSummary = true,
   className,
 }: PaginationShellProps) {
-  
+  const t = useT()
+
   const handlePageChange = (e: React.MouseEvent, targetPage: number) => {
     e.preventDefault()
     if (targetPage >= 1 && targetPage <= pageCount) {
@@ -66,10 +68,14 @@ export function PaginationShell({
         <div className="text-sm text-muted-foreground order-2 sm:order-1">
           {totalItems ? (
             <span>
-              Mostrando {Math.min(totalItems, (page - 1) * (pageSize || 1) + 1)} - {Math.min(totalItems, page * (pageSize || 1))} de {totalItems} resultados
+              {t("pagination.showing", {
+                from: Math.min(totalItems, (page - 1) * (pageSize || 1) + 1),
+                to: Math.min(totalItems, page * (pageSize || 1)),
+                total: totalItems,
+              })}
             </span>
           ) : (
-            <span>Página {page} de {pageCount}</span>
+            <span>{t("pagination.page", { page, total: pageCount })}</span>
           )}
         </div>
       )}
@@ -83,7 +89,7 @@ export function PaginationShell({
               onClick={(e) => handlePageChange(e, page - 1)}
               aria-disabled={page <= 1}
               className={cn(page <= 1 && "pointer-events-none opacity-50")}
-              text="Anterior"
+              text={t("pagination.previous")}
             />
           </PaginationItem>
 
@@ -127,7 +133,7 @@ export function PaginationShell({
               onClick={(e) => handlePageChange(e, page + 1)}
               aria-disabled={page >= pageCount}
               className={cn(page >= pageCount && "pointer-events-none opacity-50")}
-              text="Siguiente"
+              text={t("pagination.next")}
             />
           </PaginationItem>
         </PaginationContent>

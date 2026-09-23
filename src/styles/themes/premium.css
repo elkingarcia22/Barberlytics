@@ -1,0 +1,87 @@
+/*
+ * Nivel Premium · flourishes.
+ *
+ * Todo lo que es color vive en tokens y lo deriva `buildThemeTokens`; este
+ * archivo solo guarda lo que un token de color no puede expresar: sombras con
+ * filo de luz, el barniz sobre las cards en oscuro, el brillo de los botones
+ * primarios y el halo del ítem activo. Se activa por el `data-tier="premium"`
+ * que `ThemeProvider` escribe en <html> para cualquier preset con
+ * `tier: "premium"` (Premium, Premium Jade, Premium Platino…), así que ningún
+ * componente sabe que existe y un Premium nuevo lo hereda gratis.
+ *
+ * Los tintes salen de tokens del tema (`--shadow-tint-rgb`, `--primary`,
+ * `--color-border-hsl`), nunca de un matiz fijo: la sombra es sepia en el
+ * dorado, verde-negra en Jade y azulada en Platino.
+ */
+
+/* ── Sombras teñidas (claro) ─────────────────────────────────────────── */
+html[data-tier="premium"] {
+  --shadow-card: 0 1px 2px rgba(var(--shadow-tint-rgb), 0.04), 0 6px 18px -8px rgba(var(--shadow-tint-rgb), 0.1);
+  --shadow-drawer: 0 14px 36px -14px rgba(var(--shadow-tint-rgb), 0.2), 0 2px 6px rgba(var(--shadow-tint-rgb), 0.06);
+  --shadow-premium: 0 28px 64px -28px rgba(var(--shadow-tint-rgb), 0.16), 0 8px 20px -12px rgba(var(--shadow-tint-rgb), 0.06);
+  --shadow-rail: 0 12px 36px -10px rgba(var(--shadow-tint-rgb), 0.28), 0 2px 8px rgba(var(--shadow-tint-rgb), 0.1);
+}
+
+/* ── Carbón con filo de luz (oscuro) ─────────────────────────────────── */
+html[data-tier="premium"].dark {
+  /* El barniz de las cards va en la propia sombra (una luz interior que cae
+     desde el borde superior) y no en `background-image`: como clase suelta
+     pisaba el fondo de cualquier componente que traiga el suyo, y así se
+     comió la malla del cajón del Agente IA. */
+  --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.045), inset 0 26px 30px -30px hsl(0 0% 100% / 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.5), 0 14px 36px -20px rgba(0, 0, 0, 0.75);
+  --shadow-drawer: inset 0 1px 0 0 hsl(0 0% 100% / 0.06), 0 28px 64px -22px rgba(0, 0, 0, 0.85);
+  --shadow-premium: inset 0 1px 0 0 hsl(0 0% 100% / 0.05), 0 36px 90px -32px rgba(0, 0, 0, 0.9);
+  --shadow-rail: inset 0 1px 0 0 hsl(0 0% 100% / 0.06), 0 18px 44px -12px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Botón primario: brillo y glow ───────────────────────────────────── */
+/* Un sheen de arriba abajo y un filo de luz interior; en hover, el glow del
+   tema. Solo la variante sólida: outline y ghost siguen siendo silenciosas. */
+html[data-tier="premium"] [data-slot="button"][data-variant="default"] {
+  background-image: linear-gradient(180deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0) 58%);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.24), 0 1px 2px hsl(var(--primary) / 0.3);
+  transition-property: box-shadow, transform, background-color, color;
+}
+html[data-tier="premium"] [data-slot="button"][data-variant="default"]:hover:not(:disabled) {
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.24), var(--shadow-glow-brand);
+}
+html[data-tier="premium"] [data-slot="button"][data-variant="default"]:active:not(:disabled) {
+  box-shadow: inset 0 1px 2px hsl(0 0% 0% / 0.25);
+}
+
+/* ── Navegación: el ítem activo lleva un halo del primario, no un bloque ──
+   Solo en navegaciones de fila o de rail, donde el ítem es una pastilla con
+   sus propias márgenes. Una barra de pestañas inferior o una paginación
+   marcan `data-nav-plain`: ahí el ítem ocupa todo el alto de la barra y un
+   relleno lo convertiría en un bloque pegado a los bordes, que es justo lo
+   contrario de lo que busca el acabado. */
+html[data-tier="premium"] nav:not([data-nav-plain]) [aria-current="page"] {
+  background-color: hsl(var(--primary) / 0.1);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.22);
+}
+
+/* ── Detalles ────────────────────────────────────────────────────────── */
+html[data-tier="premium"] ::selection {
+  background: hsl(var(--primary) / 0.28);
+}
+
+html[data-tier="premium"].dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-border-strong-hsl));
+}
+html[data-tier="premium"].dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-text-secondary-hsl) / 0.7);
+}
+html[data-tier="premium"].dark * {
+  scrollbar-color: hsl(var(--color-border-strong-hsl)) transparent;
+}
+
+/* Títulos con peso editorial: 600 en vez de 700, que en una serif de
+   exposición pesa demasiado. El eje SOFT solo existe en Fraunces; con otra
+   fuente de títulos se ignora sin más. */
+html[data-tier="premium"] h1,
+html[data-tier="premium"] h2 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 40;
+}

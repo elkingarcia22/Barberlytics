@@ -34,6 +34,42 @@ export function buildRadiusTokens(scale: RadiusScale): ThemeTokens {
   );
 }
 
+/**
+ * Densidad del espaciado. Escala la unidad base de 4px (compacta 3.5px,
+ * normal 4px, amplia 4.5px): la misma pantalla cabe en un portátil o respira
+ * en un monitor sin tocar ningún componente. Solo mueve los tokens `--space-*`
+ * y sus alias semánticos; los utilitarios numéricos de Tailwind (`p-4`) no
+ * cambian, así que un layout que necesite un valor fijo lo sigue teniendo.
+ */
+export type DensityScale = "compact" | "normal" | "comfortable";
+
+export const DENSITY_FACTORS: Readonly<Record<DensityScale, number>> = {
+  compact: 0.875,
+  normal: 1,
+  comfortable: 1.125,
+};
+
+/** Pasos de la escala en unidades de 4px; los alias semánticos apuntan a ellos. */
+const SPACE_STEPS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16] as const;
+
+const SPACE_ALIASES: Readonly<Record<string, number>> = {
+  "--space-inline": 2, // separación entre elementos en una fila (8px)
+  "--space-stack": 3, // separación vertical entre elementos (12px)
+  "--space-card": 6, // padding interior de una card (24px)
+  "--space-page": 6, // margen lateral del contenido (24px)
+  "--space-section": 8, // aire entre secciones (32px)
+};
+
+export function buildSpacingTokens(density: DensityScale): ThemeTokens {
+  const unit = 4 * DENSITY_FACTORS[density];
+  const px = (steps: number) => `${Math.round(steps * unit * 2) / 2}px`;
+  return {
+    "--space-unit": `${unit}px`,
+    ...Object.fromEntries(SPACE_STEPS.map((step) => [`--space-${step}`, px(step)])),
+    ...Object.fromEntries(Object.entries(SPACE_ALIASES).map(([name, step]) => [name, px(step)])),
+  };
+}
+
 export interface ThemeFonts {
   body: FontId;
   heading: HeadingFontId;
@@ -56,13 +92,17 @@ function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
   const lift = mode === "dark" ? 8 : 0;
   const start = preset.ai
     ? shiftLightness(preset.ai.start, lift)
-    : hslToHex({ h: primary.h, s: Math.max(primary.s, 70), l: Math.min(Math.max(primary.l, 45), 62) + lift });
+    : hslToHex({ h: primary.h, s: Math.max(primary.s, 84), l: Math.min(Math.max(primary.l, 46), 58) + lift });
   const end = preset.ai
     ? shiftLightness(preset.ai.end, lift)
-    : hslToHex({ h: primary.h + 120, s: Math.max(primary.s, 72), l: 52 + lift });
+    : hslToHex({ h: primary.h + 120, s: Math.max(primary.s, 86), l: 50 + lift });
   const hue = hexToHsl(start).h;
+  // Paradas intermedias saturadas al máximo: un gradiente de IA que se vea
+  // "suave" deja de leerse como IA y pasa a leerse como un pastel.
   const stop = (offset: number, s: number, l: number) => hslToHex({ h: hue + offset, s, l: l + lift });
-  const stops = [start, stop(50, 82, 53), stop(115, 95, 47), stop(115, 95, 47), stop(155, 100, 54)];
+  const stops = preset.ai?.stops
+    ? preset.ai.stops.map((hex) => shiftLightness(hex, lift))
+    : [start, stop(50, 92, 52), stop(115, 98, 48), stop(115, 98, 48), stop(155, 100, 52)];
   const rgb = (hex: string) => hexToRgb(hex).join(", ");
   const pastel = (hex: string) => hslChannels({ ...hexToHsl(hex), l: Math.min(hexToHsl(hex).l + 10, 78) });
   const tokens: Record<string, string> = {
@@ -77,9 +117,11 @@ function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
     "--ai-gradient-start-pastel": pastel(start),
     "--ai-gradient-end-pastel": pastel(end),
     "--color-ai-bg":
-      mode === "light" ? hslToHex({ h: hue + 20, s: 100, l: 97 }) : hslToHex({ h: hue + 20, s: 33, l: 15 }),
+      preset.ai?.bg?.[mode] ??
+      (mode === "light" ? hslToHex({ h: hue + 20, s: 100, l: 97 }) : hslToHex({ h: hue + 20, s: 33, l: 15 })),
     "--color-ai-border":
-      mode === "light" ? hslToHex({ h: hue + 12, s: 96, l: 79 }) : hslToHex({ h: hue + 14, s: 38, l: 48 }),
+      preset.ai?.border?.[mode] ??
+      (mode === "light" ? hslToHex({ h: hue + 12, s: 96, l: 79 }) : hslToHex({ h: hue + 14, s: 38, l: 48 })),
     "--shadow-ai-premium": `0 4px 15px rgba(${rgb(start)}, 0.3), 0 2px 5px rgba(${rgb(end)}, 0.2)`,
   };
   stops.forEach((hex, index) => {
@@ -87,6 +129,39 @@ function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
     tokens[`--color-ai-stop-${index + 1}-rgb`] = rgb(hex);
   });
   return tokens;
+}
+
+/**
+ * El gradiente de marca es la versión "con luz" del primario: un paso más
+ * claro, el primario y un paso más oscuro, en diagonal. Un preset puede fijar
+ * sus tres paradas (el oro del tema Premium no se deriva bien: aclarado se
+ * vuelve amarillo). El glow es la sombra coloreada que acompaña a un botón
+ * primario en hover o a una card destacada.
+ */
+function buildBrandGradientTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
+  const primary = preset.primary[mode];
+  const [from, via, to] = preset.brandGradient?.[mode] ?? [
+    shiftLightness(primary, 12),
+    primary,
+    shiftLightness(primary, -10),
+  ];
+  const rgb = hexToRgb(primary).join(", ");
+  // La gradación de página: un halo del primario arriba a la izquierda,
+  // donde vive la marca, que se funde en el fondo antes de la mitad de la
+  // pantalla. Es la "atmósfera" de cada tema; `.page-atmosphere` la pinta.
+  // En oscuro pide casi el doble de alfa: sobre un fondo casi negro —el de
+  // los presets `deep` baja al 5% de luz— un tinte al 9% no llega a leerse.
+  const glow = mode === "light" ? 0.1 : 0.18;
+  const atmosphere = `radial-gradient(1400px 1000px at 12% -12%, rgba(${rgb}, ${glow}), transparent 70%)`;
+  return {
+    "--color-brand-rgb": rgb,
+    "--page-atmosphere": atmosphere,
+    "--color-brand-gradient-from": from,
+    "--color-brand-gradient-via": via,
+    "--color-brand-gradient-to": to,
+    "--color-brand-gradient": `linear-gradient(135deg, ${from} 0%, ${via} 52%, ${to} 100%)`,
+    "--shadow-glow-brand": `0 0 0 1px rgba(${rgb}, 0.18), 0 10px 32px -10px rgba(${rgb}, 0.45)`,
+  };
 }
 
 /**
@@ -98,7 +173,11 @@ function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
 function neutralScale(preset: ThemePreset, mode: ResolvedMode) {
   const hue = preset.neutralHue ?? hexToHsl(preset.primary.light).h;
   const tinted = preset.neutral === "tinted";
-  const sat = (tintedValue: number, grayValue: number) => (tinted ? tintedValue : grayValue);
+  // En claro la saturación teñida se escala respecto a 100 (el blanco azulado
+  // original), así un preset puede pedir un marfil bajando un solo número.
+  const lightScale = tinted ? (preset.lightNeutralSaturation ?? 100) / 100 : 1;
+  const sat = (tintedValue: number, grayValue: number) =>
+    tinted ? Math.round(tintedValue * lightScale) : grayValue;
   const at = (s: number, l: number) => ({ h: hue, s, l });
 
   if (mode === "light") {
@@ -121,19 +200,48 @@ function neutralScale(preset: ThemePreset, mode: ResolvedMode) {
   // relación entre fondo, card y borde es la misma en todos los temas.
   const base = tinted ? (preset.darkNeutralSaturation ?? 24) : 10;
   const scaled = (ratio: number) => Math.round(base * ratio);
+  // `deep` hunde toda la escala: el fondo baja al carbón (5%), las cards se
+  // separan por luz propia y no por borde, y el borde queda como hairline.
+  const deep = preset.depth === "deep";
+  const l = (standard: number, deepValue: number) => (deep ? deepValue : standard);
   return {
-    bgApp: at(scaled(1), 9),
-    surface: at(scaled(0.8), 14),
-    popover: at(scaled(0.82), 17),
-    surfaceMuted: at(scaled(0.69), 19),
-    surfaceSubtle: at(scaled(1.04), 11),
-    tabTrack: at(scaled(0.64), 16),
-    accent: at(scaled(1.04), 20),
-    border: at(scaled(0.36), 29),
-    borderStrong: at(scaled(0.22), 35),
-    textPrimary: at(sat(6, 3), 93),
+    bgApp: at(scaled(1), l(9, 5)),
+    surface: at(scaled(0.8), l(14, 9.5)),
+    popover: at(scaled(0.82), l(17, 12)),
+    surfaceMuted: at(scaled(0.69), l(19, 14)),
+    surfaceSubtle: at(scaled(1.04), l(11, 7)),
+    // La pista va POR DEBAJO de `surface`, los mismos 5 puntos de luz que en
+    // claro (95 bajo el 100 de la card): la pastilla activa de un segmentado
+    // se apoya en `surface`, así que una pista más clara la hundía en vez de
+    // levantarla y el estado activo no se distinguía en oscuro.
+    tabTrack: at(scaled(0.64), l(9, 4.5)),
+    accent: at(scaled(1.04), l(20, 15)),
+    border: at(scaled(0.36), l(29, 18)),
+    borderStrong: at(scaled(0.22), l(35, 26)),
+    textPrimary: at(sat(6, 3), l(93, 92)),
     textSecondary: at(sat(6, 3), 64),
     textMuted: at(sat(6, 3), 46),
+  };
+}
+
+/**
+ * El rail y la nav son "cromo": una pieza oscura que flota sobre el contenido
+ * en los dos modos, no una superficie más. Del tema solo toman el matiz y la
+ * temperatura; la luz la fija esta escala, para que el dock siga leyéndose
+ * como pieza aparte cuando el resto de la interfaz está en claro.
+ */
+function navScale(preset: ThemePreset) {
+  const hue = preset.neutralHue ?? hexToHsl(preset.primary.light).h;
+  const tinted = preset.neutral === "tinted";
+  return {
+    surface: {
+      h: hue,
+      // Un punto por encima de la saturación de los neutros oscuros: el cromo
+      // admite más tinte que una card porque nunca lleva texto largo encima.
+      s: tinted ? Math.round((preset.darkNeutralSaturation ?? 24) * 1.05) : 10,
+      l: preset.depth === "deep" ? 7 : 11,
+    },
+    foreground: { h: hue, s: tinted ? 12 : 0, l: 98 },
   };
 }
 
@@ -149,8 +257,15 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
   const brandPressed = shiftLightness(primary, hoverDelta * 2);
   const primaryForeground = readableForeground(primary);
   const n = neutralScale(preset, mode);
+  const nav = navScale(preset);
+
+  // Tinte de las sombras: el matiz de los neutros, oscuro y poco saturado,
+  // para que una sombra sea navy en el tema Azul y sepia en Premium, nunca
+  // negro puro sobre un fondo teñido.
+  const shadowTint = hexToRgb(hslToHex({ ...n.textPrimary, s: Math.max(n.textPrimary.s, 25), l: 18 })).join(", ");
 
   const common: Record<string, string> = {
+    "--shadow-tint-rgb": shadowTint,
     "--color-brand": primary,
     "--color-brand-hover": brandHover,
     "--color-brand-pressed": brandPressed,
@@ -173,6 +288,11 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
     "--color-tab-track": hslToHex(n.tabTrack),
     "--accent": hslChannels(n.accent),
 
+    "--color-surface-nav": hslToHex(nav.surface),
+    "--color-surface-nav-hsl": hslChannels(nav.surface),
+    "--nav": hslChannels(nav.surface),
+    "--nav-foreground": hslChannels(nav.foreground),
+
     "--color-border": hslToHex(n.border),
     "--color-border-hsl": hslChannels(n.border),
     "--border": hslChannels(n.border),
@@ -194,9 +314,11 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
   };
 
   const ai = buildAiTokens(preset, mode);
+  const gradient = buildBrandGradientTokens(preset, mode);
   if (mode === "light") {
     return {
       ...common,
+      ...gradient,
       ...ai,
       "--popover": hslChannels(n.surface),
       "--muted": hslChannels(n.surfaceMuted),
@@ -204,6 +326,7 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
   }
   return {
     ...common,
+    ...gradient,
     ...ai,
     "--popover": hslChannels(n.popover ?? n.surface),
     "--muted": hslChannels(n.surfaceSubtle),
@@ -215,7 +338,12 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
  * página de temas: `:root` con el modo claro y `.dark` con el oscuro. Sirve
  * para llevarse un tema a otro proyecto sin cargar el provider.
  */
-export function themeToCss(preset: ThemePreset, radius: RadiusScale = "md", fonts?: ThemeFonts): string {
+export function themeToCss(
+  preset: ThemePreset,
+  radius: RadiusScale = "md",
+  fonts?: ThemeFonts,
+  density: DensityScale = "normal"
+): string {
   const block = (selector: string, tokens: ThemeTokens) =>
     `${selector} {\n${Object.entries(tokens)
       .map(([name, value]) => `  ${name}: ${value};`)
@@ -223,6 +351,7 @@ export function themeToCss(preset: ThemePreset, radius: RadiusScale = "md", font
   const light = {
     ...buildThemeTokens(preset, "light"),
     ...buildRadiusTokens(radius),
+    ...buildSpacingTokens(density),
     ...(fonts ? buildFontTokens(fonts) : {}),
   };
   const dark = buildThemeTokens(preset, "dark");

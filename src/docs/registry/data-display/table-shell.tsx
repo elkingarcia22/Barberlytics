@@ -16,7 +16,7 @@ interface Person {
 }
 
 const PEOPLE: Person[] = [
-  { name: "Laura Méndez", area: "Producto", progress: 82, status: "active" },
+  { name: "Renata Méndez", area: "Producto", progress: 82, status: "active" },
   { name: "Carlos Rojas", area: "Ventas", progress: 100, status: "completed" },
   { name: "Ana Torres", area: "Tecnología", progress: 45, status: "pending" },
   { name: "Diego Salazar", area: "Finanzas", progress: 67, status: "active" },
@@ -191,18 +191,28 @@ export const tableShellEntry = defineEntry({
     },
   ],
   props: [
-    { name: "title", type: "string", description: "Título de la cabecera de la tarjeta." },
+    { name: "title", type: "React.ReactNode", description: "Título de la cabecera. Acepta un nodo para lo que va pegado al nombre: el total en un `Badge`, una insignia de estado." },
     { name: "description", type: "string", description: "Línea secundaria bajo el título." },
     { name: "actions", type: "React.ReactNode", description: "Botones o controles alineados a la derecha de la cabecera." },
     { name: "children", type: "React.ReactNode", description: "La tabla; se envuelve en una caja con scroll horizontal." },
     { name: "empty", type: "boolean", default: "false", description: "Si es cierto, se pinta el estado vacío en lugar de la tabla." },
     { name: "emptyState", type: "React.ReactNode", description: "Estado vacío propio; por defecto un `EmptyState` genérico." },
     { name: "stickyHeader", type: "boolean", default: "false", description: "Fija el `<thead>` arriba mientras la caja interior hace scroll." },
+    { name: "surface", type: '"card" | "header"', default: '"card"', description: "Dónde pinta superficie el marco. `header` la deja solo en la barra de título y descarga el cuerpo, para cuando las filas ya se sostienen solas —una lista a sangre— y una segunda superficie sería una caja dentro de otra." },
+    { name: "footer", type: "React.ReactNode", description: "El pie del marco, separado por su línea: la paginación, el resumen de «x de y». Dentro de la tarjeta, no flotando debajo." },
     { name: "className", type: "string", description: "Clases extra sobre la `Card`." },
   ],
   guidelines: {
-    do: ["Calcula `empty` desde los datos ya filtrados, no desde la carga inicial.", "Pon en `actions` solo lo que actúa sobre toda la tabla: exportar, crear, buscar."],
-    dont: ["No anides otra `Card` dentro: el shell ya es la tarjeta.", "No uses `stickyHeader` sin acotar la altura de la caja interior; sin scroll no hay nada que pegar."],
+    do: [
+      "Calcula `empty` desde los datos ya filtrados, no desde la carga inicial.",
+      "Pon en `actions` solo lo que actúa sobre toda la tabla: exportar, crear, buscar.",
+      "Manda la paginación a `footer`: pertenece a la lista, así que va dentro de su marco.",
+      "Deja que la tabla vaya a sangre: el marco ya pone el borde y el texto de la primera columna se alinea solo con el título.",
+    ],
+    dont: [
+      "No anides otra `Card` ni una caja con borde dentro: el shell ya es la tarjeta.",
+      "No uses `stickyHeader` sin acotar la altura de la caja interior; sin scroll no hay nada que pegar.",
+    ],
   },
   related: ["table", "empty-state", "table-config", "table-header-controls", "card"],
 });

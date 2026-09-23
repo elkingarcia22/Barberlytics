@@ -45,17 +45,26 @@ test.describe("Menú lateral", () => {
     expect(caja?.x).toBe(0);
   });
 
-  test("una sección con hijos se abre desde el rail", async ({ page }) => {
-    // "Personas" es una hoja: navega directo.
-    await page.locator(RAIL).getByLabel("Personas").click();
-    await expect(page).toHaveURL(/\/usuarios/);
+  test("una sección sin hijos navega desde el rail", async ({ page }) => {
+    // "Clientes" es una hoja: navega directo.
+    await page.locator(RAIL).getByLabel("Clientes").click();
+    await expect(page).toHaveURL(/\/clientes/);
     // El rail sigue ahí y marca la sección activa.
-    await expect(page.locator(RAIL).getByLabel("Personas")).toHaveAttribute("aria-current", "page");
+    await expect(page.locator(RAIL).getByLabel("Clientes")).toHaveAttribute("aria-current", "page");
+  });
+
+  test("cada sección del rail navega directo, sin desplegables intermedios", async ({ page }) => {
+    const rail = page.locator(RAIL);
+    await rail.getByLabel("Servicios").click();
+    await expect(page).toHaveURL(/\/servicios/);
+
+    await rail.getByLabel("Productos").click();
+    await expect(page).toHaveURL(/\/productos/);
   });
 
   test("el rail ofrece cada sección con su etiqueta accesible", async ({ page }) => {
     const rail = page.locator(RAIL);
-    for (const etiqueta of ["Inicio", "Personas", "Sistema de diseño"]) {
+    for (const etiqueta of ["Métricas", "Calendario", "Clientes", "Sistema de diseño"]) {
       await expect(rail.getByLabel(etiqueta)).toBeVisible();
     }
     // Y el conmutador de modo y el feedback siguen alcanzables.
@@ -65,25 +74,56 @@ test.describe("Menú lateral", () => {
   });
 });
 
-test.describe("Menú de empresa", () => {
-  test("toda la fila abre el menú y el consumo se ve como proporción", async ({ page }) => {
+test.describe("La cuenta y su contexto en la cabecera", () => {
+  test("el chip dice en qué sucursal estás y deja cambiarla", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+
+    // Está en la cabecera: no hace falta desplegar el menú para verlo. El
+    // chip lleva la foto, el nombre y, debajo, «sucursal · rol»; el tipo
+    // ("Sucursal") se lee en el `aria-label` y dentro, al abrir.
+    const chip = page.getByTestId("shell-avatar");
+    await expect(chip).toHaveAttribute("aria-label", /Sucursal: Massachusetts/);
+    await expect(chip).toContainText("Massachusetts");
+
+    await chip.click();
+    await expect(page.getByText("Sucursal", { exact: true })).toBeVisible();
+    // Un negocio con locales no vende licencias: el menú es identidad y cambio.
+    await expect(page.getByText("Licencias")).toHaveCount(0);
+
+    await page.getByTestId("company-switch").hover();
+    await expect(page.getByText("Tus sucursales")).toBeVisible();
+    await page.getByRole("menuitem", { name: /North Carolina/ }).click();
+    await expect(page.getByTestId("shell-avatar")).toContainText("North Carolina");
+  });
+
+  test("el mismo menú cambia el rol y enseña el correo", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+
+    const chip = page.getByTestId("shell-avatar");
+    await expect(chip).toHaveAttribute("aria-label", /Rol: Administrador/);
+    await expect(chip).toContainText("Administrador");
+
+    await chip.click();
+    await expect(page.getByText("admin@thema.dev")).toBeVisible();
+    await page.getByRole("menuitemradio", { name: /Recepcionista/ }).click();
+    await expect(page.getByTestId("shell-avatar")).toContainText("Recepcionista");
+  });
+
+  test("la configuración cuelga de la marca del sidebar, no del menú de navegación", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await login(page);
     await page.getByRole("button", { name: "Expandir menú" }).click();
 
-    await page.getByTestId("company-trigger").click();
-    // Licencias y créditos, cada uno con su anillo y su porcentaje.
-    await expect(page.getByText("Licencias")).toBeVisible();
-    await expect(page.getByText("940 de 1.000")).toBeVisible();
-    await expect(page.getByText("Créditos de IA")).toBeVisible();
-    await expect(page.getByText("94%")).toBeVisible();
-
-    // Cambiar de empresa abre su propio menú al lado, sin tapar al principal.
-    await page.getByTestId("company-switch").hover();
-    await expect(page.getByRole("menuitem", { name: /Alpha/ })).toBeVisible();
-    await expect(page.getByText("Tus empresas")).toBeVisible();
-    // El menú principal sigue en pantalla detrás del submenú.
-    await expect(page.getByRole("menuitem", { name: "Roles y permisos" })).toBeVisible();
+    await expect(page.locator(RAIL).getByLabel("Configuración")).toHaveCount(0);
+    await page.getByTestId("workspace-menu-trigger").click();
+    // Tema e idioma cuelgan del mismo menú, bajo «Personalización», junto a los ajustes.
+    await expect(page.getByTestId("personalization-switch")).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Propinas" })).toBeVisible();
+    await page.getByTestId("settings-all").click();
+    await expect(page).toHaveURL(/\/configuracion/);
+    await expect(page.getByRole("heading", { name: "Configuración", level: 1 })).toBeVisible();
   });
 });
 
@@ -93,7 +133,10 @@ test.describe("Navegación anidada", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1500, height: 1000 });
     await page.goto("/docs#/components/app-sidebar");
-    await page.waitForTimeout(1200);
+    // La doc se compila a demanda en desarrollo: esperar a que su cabecera
+    // exista es más fiable que un tiempo fijo.
+    await expect(page.getByRole("button", { name: /Buscar en el sistema/i })).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(600);
   });
 
   test("cerrado, basta pasar el puntero para ver segundo y tercer nivel", async ({ page }) => {
@@ -143,13 +186,12 @@ test.describe("Submenús", () => {
    * un portal y floating-ui lo colocaba contra su padre, no contra la
    * ventana.
    */
-  test("el submenú de empresas abre al lado, sin tapar al padre", async ({ page }) => {
+  test("el submenú de sucursales abre al lado, sin tapar al padre", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await login(page);
-    await page.getByRole("button", { name: "Expandir menú" }).click();
-    await page.getByTestId("company-trigger").click();
+    await page.getByTestId("shell-avatar").click();
     await page.getByTestId("company-switch").hover();
-    await expect(page.getByText("Tus empresas")).toBeVisible();
+    await expect(page.getByText("Tus sucursales")).toBeVisible();
     // El panel entra con un zoom del 95%: medir a media animación da una
     // caja más pequeña y desplazada.
     await page.waitForTimeout(400);
@@ -158,7 +200,10 @@ test.describe("Submenús", () => {
     const sub = await page.locator('[data-slot="dropdown-menu-sub-content"]').first().boundingBox();
     expect(padre).not.toBeNull();
     expect(sub).not.toBeNull();
-    // El submenú empieza donde acaba el padre: ni lo pisa ni se le monta.
-    expect(sub!.x).toBeGreaterThanOrEqual(padre!.x + padre!.width);
+    // El submenú empieza donde acaba el padre: ni lo pisa ni se le monta. El
+    // menú de la cuenta vive en la esquina derecha, así que el submenú abre a
+    // su izquierda; lo que importa es que las dos cajas no se solapen.
+    const alLado = sub!.x >= padre!.x + padre!.width || sub!.x + sub!.width <= padre!.x;
+    expect(alLado).toBe(true);
   });
 });

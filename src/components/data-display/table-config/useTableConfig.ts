@@ -1,9 +1,15 @@
 import * as React from "react";
 import {
+  DEFAULT_ACTIONS_PLACEMENT,
+  DEFAULT_ROW_CONTROL,
   DEFAULT_ROWS_MODE,
+  DEFAULT_TABLE_VIEW,
   type StoredTableConfig,
+  type TableActionsPlacement,
   type TableColumnSpec,
+  type TableRowControl,
   type TableRowsMode,
+  type TableView,
 } from "./tableConfigTypes";
 
 /**
@@ -38,6 +44,15 @@ const readStored = (tableId: string): StoredTableConfig | null => {
         ? parsed.pinned.filter((id): id is string => typeof id === "string")
         : [],
       mode: parsed.mode === "paged" ? "paged" : "lazy",
+      // `view` llegó después: lo guardado antes se lee como rejilla en vez de
+      // descartarse entero, igual que se hizo con `pinned`.
+      view: parsed.view === "list" ? "list" : DEFAULT_TABLE_VIEW,
+      // `actions` llegó después: lo guardado antes se lee con las acciones en
+      // el rail, que es donde estaban hasta ahora.
+      actions: parsed.actions === "inline" ? "inline" : DEFAULT_ACTIONS_PLACEMENT,
+      // `rowControl` llegó después: lo guardado antes se lee con casillas, que
+      // es como se operaban las filas hasta ahora.
+      rowControl: parsed.rowControl === "menu" ? "menu" : DEFAULT_ROW_CONTROL,
     };
   } catch {
     // Una pestaña de incógnito o un almacenamiento bloqueado no son un error
@@ -109,9 +124,18 @@ export interface TableConfig {
   reportWidths: (widths: Record<string, number>) => void;
   mode: TableRowsMode;
   isLazy: boolean;
+  /** Rejilla o lista. Lo elige quien lee, desde el panel de configuración. */
+  view: TableView;
+  /** Si las acciones sobre lo marcado van al rail flotante o al propio marco. */
+  actions: TableActionsPlacement;
+  /** Casillas y lote, o un menú de acciones por fila. */
+  rowControl: TableRowControl;
   /** Cierto cuando algo se salió de fábrica: enciende el punto del botón. */
   isDirty: boolean;
   setMode: (mode: TableRowsMode) => void;
+  setView: (view: TableView) => void;
+  setActions: (actions: TableActionsPlacement) => void;
+  setRowControl: (rowControl: TableRowControl) => void;
   toggleVisibility: (id: string) => void;
   togglePin: (id: string) => void;
   showAllColumns: () => void;
@@ -156,6 +180,9 @@ export function useTableConfig(
       hidden: stored?.hidden ?? defaultHidden,
       pinned: stored?.pinned ?? [],
       mode: stored?.mode ?? defaultMode,
+      view: stored?.view ?? DEFAULT_TABLE_VIEW,
+      actions: stored?.actions ?? DEFAULT_ACTIONS_PLACEMENT,
+      rowControl: stored?.rowControl ?? DEFAULT_ROW_CONTROL,
     };
   });
 
@@ -232,7 +259,10 @@ export function useTableConfig(
     state.hidden.length !== defaultHidden.length ||
     !state.hidden.every((id) => defaultHidden.includes(id)) ||
     state.pinned.length > 0 ||
-    !knownOrder.every((id, index) => id === defaultOrder[index]);
+    !knownOrder.every((id, index) => id === defaultOrder[index]) ||
+    state.view !== DEFAULT_TABLE_VIEW ||
+    state.actions !== DEFAULT_ACTIONS_PLACEMENT ||
+    state.rowControl !== DEFAULT_ROW_CONTROL;
 
   return {
     columns: visibleColumns,
@@ -254,8 +284,14 @@ export function useTableConfig(
     reportWidths,
     mode: state.mode,
     isLazy: state.mode === "lazy",
+    view: state.view,
+    actions: state.actions,
+    rowControl: state.rowControl,
     isDirty,
     setMode: (mode) => update({ ...state, mode }),
+    setView: (view) => update({ ...state, view }),
+    setActions: (actions) => update({ ...state, actions }),
+    setRowControl: (rowControl) => update({ ...state, rowControl }),
     toggleVisibility: (id) =>
       update({
         ...state,
@@ -291,6 +327,9 @@ export function useTableConfig(
         hidden: defaultHidden,
         pinned: [],
         mode: defaultMode,
+        view: DEFAULT_TABLE_VIEW,
+        actions: DEFAULT_ACTIONS_PLACEMENT,
+        rowControl: DEFAULT_ROW_CONTROL,
       });
     },
   };

@@ -5,6 +5,7 @@ import { selectableCardEntry } from "./selectable-card";
 import { optionTileEntry } from "./option-tile";
 import { checkboxCardGroupEntry } from "./checkbox-card-group";
 import { segmentedControlEntry } from "./segmented-control";
+import { templateTileEntry } from "./template-tile";
 
 /** Entradas del grupo "selection". Cada componente vive en su propio archivo de esta carpeta. */
 export const selectionEntries: readonly DocEntry[] = [
@@ -14,4 +15,5 @@ export const selectionEntries: readonly DocEntry[] = [
   optionTileEntry,
   checkboxCardGroupEntry,
   segmentedControlEntry,
+  templateTileEntry,
 ];

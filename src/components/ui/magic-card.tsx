@@ -55,7 +55,7 @@ export function MagicCard({
         "magic-card-sweep magic-card-lift",
         isAI && "magic-card-sweep-ai",
         // Backgrounds
-        isAI ? "bg-ai-mesh-card" : "bg-surface",
+        isAI ? "ai-mesh-card" : "bg-surface",
         // Borders & Active State — a constant 1.5px border (transparent when
         // unselected) keeps the selected ring from nudging the content when
         // it toggles on. A toned card gets that same 1.5px, but its color,

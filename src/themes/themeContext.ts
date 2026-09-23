@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } from "./buildTokens";
+import type { DensityScale, RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } from "./buildTokens";
 import type { FontId, FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
@@ -15,6 +15,9 @@ export interface ThemeContextValue {
   resolvedMode: ResolvedMode;
   radius: RadiusScale;
   setRadius: (radius: RadiusScale) => void;
+  /** Densidad del espaciado (`--space-*`). */
+  density: DensityScale;
+  setDensity: (density: DensityScale) => void;
   /** Fuente del cuerpo y de los títulos ("same" = la misma del cuerpo). */
   font: FontId;
   setFont: (font: FontId) => void;

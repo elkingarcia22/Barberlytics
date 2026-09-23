@@ -158,6 +158,7 @@ export const adminShellEntry = defineEntry({
   ],
   props: [
     { name: "children", type: "React.ReactNode", description: "La pantalla. Con `scrollContent` va dentro de un scroller; sin él, en una caja `overflow-hidden` que debe llenar con `h-full`." },
+    { name: "config.contentWidth", type: '"narrow" | "normal" | "wide" | "full"', default: '"normal"', description: "Ancho máximo de la columna de contenido, con los tres anchos del sistema: 720px para formularios, 1140px por defecto y 1600px para tableros densos. `full` deja el lienzo entero. Lo pone el marco una vez; ninguna pantalla vuelve a fijar su ancho." },
     { name: "scrollContent", type: "boolean", default: "true", description: "El shell hace scroll del contenido y muestra el pie. Las pantallas tipo app pasan `false` y gestionan su scroll." },
     { name: "showFooter", type: "boolean", default: "scrollContent || modo agente", description: "Fuerza el pie legal aunque `scrollContent` sea false." },
     { name: "onNavigateHome", type: "() => void", description: "Se dispara al pulsar «Objetivos» en el sidebar: la vuelta a la lista." },
@@ -170,12 +171,13 @@ export const adminShellEntry = defineEntry({
       "Una pantalla con tabla y barra flotante pasa `scrollContent={false}` y monta su barra en ShellRailSlot.",
       "Pon en ShellHeaderSlot solo identidad que la pantalla ya posee; el shell no debe conocerla.",
       "Deja que el shell escriba la clase `dark` en `<html>`; no lo hagas también desde la pantalla.",
+      "Si la pantalla necesita más aire, cambia `contentWidth` en el marco; no le pongas un `max-w-` propio.",
     ],
     dont: [
       "No rendericen los slots fuera de AdminShell: sin proveedor devuelven null en silencio.",
       "No pongas un panel lateral como overlay sobre la columna; usa ShellAgentPanelSlot para que la columna ceda ancho.",
-      "No anides AdminShell dentro de AppShell; son cascarones alternativos.",
+      "No anides AdminShell dentro de otro cascarón de pantalla completa.",
     ],
   },
-  related: ["app-sidebar", "app-header", "action-rail-shell", "ai-agent-drawer", "app-shell"],
+  related: ["app-sidebar", "app-header", "action-rail-shell", "ai-agent-drawer"],
 });

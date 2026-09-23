@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useAppT } from "@/app/i18n";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -10,7 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { describeError, isApiError } from "@/lib/api";
 import { useCreateUser, useUpdateUser } from "./queries";
-import { AREAS, USER_ROLE_LABELS, USER_STATUS_LABELS, userInputSchema, userRoleSchema, userStatusSchema, type User, type UserInput } from "./types";
+import { AREAS, AREA_KEYS, USER_ROLE_KEYS, USER_STATUS_KEYS, userInputSchema, userRoleSchema, userStatusSchema, type User, type UserInput } from "./types";
 
 export interface UserFormDrawerProps {
   open: boolean;
@@ -47,6 +48,7 @@ export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps
 }
 
 function UserFormBody({ user, onClose }: { user: User | null; onClose: () => void }) {
+  const t = useAppT();
   const isEdit = Boolean(user);
   const create = useCreateUser();
   const update = useUpdateUser();
@@ -79,8 +81,8 @@ function UserFormBody({ user, onClose }: { user: User | null; onClose: () => voi
   return (
     <>
         <SheetHeader className="border-b border-border/60 px-6 py-5">
-          <SheetTitle>{isEdit ? "Editar persona" : "Nueva persona"}</SheetTitle>
-          <SheetDescription>{isEdit ? "Los cambios se aplican al guardar." : "Recibirá una invitación al correo indicado."}</SheetDescription>
+          <SheetTitle>{isEdit ? t("users.edit") : t("users.newPerson")}</SheetTitle>
+          <SheetDescription>{isEdit ? t("users.editHint") : t("users.newHint")}</SheetDescription>
         </SheetHeader>
 
         <form id="user-form" onSubmit={onSubmit} noValidate className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -107,12 +109,12 @@ function UserFormBody({ user, onClose }: { user: User | null; onClose: () => voi
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="user-area" data-testid="user-form-area" aria-invalid={!!errors.area}>
-                    <SelectValue placeholder="Elige un área" />
+                    <SelectValue placeholder={t("users.pickArea")} />
                   </SelectTrigger>
                   <SelectContent>
                     {AREAS.map((area) => (
                       <SelectItem key={area} value={area}>
-                        {area}
+                        {t(AREA_KEYS[area])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -135,7 +137,7 @@ function UserFormBody({ user, onClose }: { user: User | null; onClose: () => voi
                     <SelectContent>
                       {userRoleSchema.options.map((role) => (
                         <SelectItem key={role} value={role}>
-                          {USER_ROLE_LABELS[role]}
+                          {t(USER_ROLE_KEYS[role])}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -156,7 +158,7 @@ function UserFormBody({ user, onClose }: { user: User | null; onClose: () => voi
                     <SelectContent>
                       {userStatusSchema.options.map((status) => (
                         <SelectItem key={status} value={status}>
-                          {USER_STATUS_LABELS[status]}
+                          {t(USER_STATUS_KEYS[status])}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -173,7 +175,7 @@ function UserFormBody({ user, onClose }: { user: User | null; onClose: () => voi
           </Button>
           <Button type="submit" form="user-form" disabled={isSubmitting} data-testid="user-form-submit">
             {isSubmitting && <Loader2 className="animate-spin" />}
-            {isEdit ? "Guardar cambios" : "Crear persona"}
+            {isEdit ? t("users.saveChanges") : t("users.create")}
           </Button>
         </SheetFooter>
     </>

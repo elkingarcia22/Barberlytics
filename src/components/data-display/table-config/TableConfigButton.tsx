@@ -1,4 +1,4 @@
-import { Eye, EyeOff, GripVertical, ListEnd, Lock, Pin, PinOff, Rows3, Settings2 } from "lucide-react";
+import { CheckSquare, Ellipsis, Eye, EyeOff, GripVertical, ListEnd, Lock, PanelBottom, Pin, PinOff, Rows3, Settings2, SquareMenu, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/popover";
 import type { TableConfig } from "./useTableConfig";
 import { useColumnDrag } from "./useColumnDrag";
-import type { TableRowsMode } from "./tableConfigTypes";
+import type { TableActionsPlacement, TableRowControl, TableRowsMode, TableView } from "./tableConfigTypes";
 
 /**
  * "Configurar", el botón que se sienta junto a "Filtros".
@@ -31,6 +31,11 @@ import type { TableRowsMode } from "./tableConfigTypes";
  * colaboradores"— porque el género lo pone cada tabla: "las encuestas" y "los
  * colaboradores" no comparten plantilla.
  */
+const VIEWS: { id: TableView; label: string; hint: string; icon: typeof Rows3 }[] = [
+  { id: "table", label: "Rejilla", hint: "Todas las columnas, para comparar de un vistazo.", icon: Table2 },
+  { id: "list", label: "Lista", hint: "Una fila por registro con lo que lo identifica.", icon: Rows3 },
+];
+
 const MODES: {
   id: TableRowsMode;
   label: string;
@@ -51,17 +56,63 @@ const MODES: {
   },
 ];
 
+const ACTIONS: {
+  id: TableActionsPlacement;
+  label: string;
+  hint: (noun: string) => string;
+  icon: typeof Rows3;
+}[] = [
+  {
+    id: "rail",
+    label: "En la barra flotante",
+    hint: () => "Todas ahí: las de la pantalla y las de lo que marques.",
+    icon: PanelBottom,
+  },
+  {
+    id: "inline",
+    label: "En el layout",
+    hint: () => "Arriba las de la pantalla; en la cabecera de la lista, las de lo marcado.",
+    icon: SquareMenu,
+  },
+];
+
+const ROW_CONTROLS: {
+  id: TableRowControl;
+  label: string;
+  hint: (noun: string) => string;
+  icon: typeof Rows3;
+}[] = [
+  {
+    id: "checkbox",
+    label: "Marcando filas",
+    hint: (noun) => `Casillas para marcar varios ${noun} y actuar sobre todos.`,
+    icon: CheckSquare,
+  },
+  {
+    id: "menu",
+    label: "Menú en cada fila",
+    hint: () => "Sin casillas: cada fila lleva su botón de acciones.",
+    icon: Ellipsis,
+  },
+];
+
 export function TableConfigButton({
   config,
   /** "colaboradores", "ciclos"… para nombrar lo que se está listando. */
   noun = "filas",
   /** Falso donde la tabla no ofrece paginación —una lista corta dentro de un panel. */
   showRowsMode = true,
+  /** Falso donde no se marcan filas: sin selección no hay acciones que colocar. */
+  showActionsPlacement = true,
+  /** Falso donde las filas no se operan una a una ni en lote. */
+  showRowControl = true,
   className,
 }: {
   config: TableConfig;
   noun?: string;
   showRowsMode?: boolean;
+  showActionsPlacement?: boolean;
+  showRowControl?: boolean;
   className?: string;
 }) {
   const drag = useColumnDrag({ axis: "y", onReorder: config.moveColumn });
@@ -233,6 +284,34 @@ export function TableConfigButton({
           </ul>
         </section>
 
+        <section className="flex flex-col gap-1.5 border-b border-border/60 px-3.5 py-3">
+          <h4 className="text-[12px] font-bold text-text-primary">Cómo se ven</h4>
+          <div className="mt-0.5 grid grid-cols-2 gap-1.5">
+            {VIEWS.map((view) => {
+              const active = config.view === view.id;
+              const Icon = view.icon;
+              return (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => config.setView(view.id)}
+                  aria-pressed={active}
+                  title={view.hint}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                    active ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/30 hover:bg-muted/40"
+                  )}
+                >
+                  <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} strokeWidth={2} />
+                  <span className={cn("text-[12.5px] font-semibold", active ? "text-primary" : "text-text-primary")}>
+                    {view.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         {showRowsMode && (
           <section className="flex flex-col gap-1.5 px-3.5 py-3">
             <h4 className="text-[12px] font-bold text-text-primary">Cómo llegan las filas</h4>
@@ -271,6 +350,89 @@ export function TableConfigButton({
                       </span>
                       <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
                         {mode.hint(noun)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {showRowControl && (
+          <section className="flex flex-col gap-1.5 border-t border-border/60 px-3.5 py-3">
+            <h4 className="text-[12px] font-bold text-text-primary">Cómo se actúa sobre una fila</h4>
+            <div className="mt-0.5 flex flex-col gap-1.5">
+              {ROW_CONTROLS.map((control) => {
+                const active = config.rowControl === control.id;
+                const Icon = control.icon;
+                return (
+                  <button
+                    key={control.id}
+                    type="button"
+                    onClick={() => config.setRowControl(control.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                      active
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border hover:border-primary/30 hover:bg-muted/40"
+                    )}
+                  >
+                    <Icon
+                      className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")}
+                      strokeWidth={2}
+                    />
+                    <span className="min-w-0">
+                      <span className={cn("block text-[12.5px] font-semibold", active ? "text-primary" : "text-text-primary")}>
+                        {control.label}
+                      </span>
+                      <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
+                        {control.hint(noun)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {showActionsPlacement && (
+          <section className="flex flex-col gap-1.5 border-t border-border/60 px-3.5 py-3">
+            <h4 className="text-[12px] font-bold text-text-primary">Dónde van las acciones</h4>
+            <div className="mt-0.5 flex flex-col gap-1.5">
+              {ACTIONS.map((placement) => {
+                const active = config.actions === placement.id;
+                const Icon = placement.icon;
+                return (
+                  <button
+                    key={placement.id}
+                    type="button"
+                    onClick={() => config.setActions(placement.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                      active
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border hover:border-primary/30 hover:bg-muted/40"
+                    )}
+                  >
+                    <Icon
+                      className={cn("mt-0.5 h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")}
+                      strokeWidth={2}
+                    />
+                    <span className="min-w-0">
+                      <span
+                        className={cn(
+                          "block text-[12.5px] font-semibold",
+                          active ? "text-primary" : "text-text-primary"
+                        )}
+                      >
+                        {placement.label}
+                      </span>
+                      <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
+                        {placement.hint(noun)}
                       </span>
                     </span>
                   </button>

@@ -15,7 +15,7 @@ const COUNTRIES: SearchableSelectOption[] = [
 const MANAGERS: SearchableSelectOption[] = [
   { value: "ana", label: "Ana Rodríguez", description: "Gerente comercial · Bogotá" },
   { value: "luis", label: "Luis Herrera", description: "Director de operaciones · CDMX" },
-  { value: "sofia", label: "Sofía Méndez", description: "Head of People · Lima" },
+  { value: "antonia", label: "Antonia Méndez", description: "Head of People · Lima" },
   { value: "carlos", label: "Carlos Peña", description: "Fuera de la organización", disabled: true },
 ];
 

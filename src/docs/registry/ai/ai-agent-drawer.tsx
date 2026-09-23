@@ -151,7 +151,7 @@ style={{ width: open ? AGENT_PANEL_WIDTH : 0, transition: agentPanelTransition("
   ],
   guidelines: {
     do: ["Renderízalo dentro de AdminShell (o provee el ancla como en el ejemplo) para que estreche la columna en vez de taparla.", "Usa `agentPanelShift` en los Sheets que convivan con el panel abierto.", "Elige el `context` de la pantalla para que las sugerencias tengan sentido."],
-    dont: ["No lo montes como overlay fijo: perdería el gesto de «hacer sitio» que comparte con el cajón.", "No reutilices el degradado ni el fondo `bg-ai-mesh-agent` en paneles que no son de IA.", "No animes con clases `duration-*`: las transiciones van en línea para que ganen a las del Sheet."],
+    dont: ["No lo montes como overlay fijo: perdería el gesto de «hacer sitio» que comparte con el cajón.", "No reutilices el degradado ni el fondo `ai-mesh-agent` en paneles que no son de IA.", "No animes con clases `duration-*`: las transiciones van en línea para que ganen a las del Sheet."],
   },
   related: ["sheet", "ai-panel", "admin-shell"],
 });

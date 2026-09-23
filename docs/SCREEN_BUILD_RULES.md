@@ -14,6 +14,33 @@ Screen build rules establish the mandatory constraints, intake process, and QA c
 
 ---
 
+## Cómo abre una pantalla (obligatorio)
+
+Toda pantalla abre igual, y **el header del shell no lleva el nombre de la sección**: esa franja es
+para lo transversal (búsqueda, tema, sesión) y para lo que la pantalla porta en vivo por
+`ShellHeaderSlot` —un nombre que se está escribiendo, un estado de guardado—, nunca para repetir
+dónde estás.
+
+El rastro va arriba, en el header, y el título en la pantalla. Igual que en la documentación:
+
+```tsx
+<ShellHeaderSlot>
+  <Breadcrumbs items={["Inicio", "Personas"]} />
+</ShellHeaderSlot>
+
+<PageHeader
+  title="Personas"
+  description="Quiénes forman parte de la organización, su área, rol y estado."
+  actions={<Button><Plus /> Nueva persona</Button>}
+/>
+```
+
+- Las **migas** se portan al header con `ShellHeaderSlot`: ubican, y ubicar es transversal.
+- `title`: el h1 de la pantalla. Uno por vista. El header no lo repite.
+- `description`: una línea de contexto, no un párrafo.
+- `actions`: la acción primaria y, como mucho, dos de apoyo. Si son más, van en un menú.
+- `PageHeader` conserva su prop `breadcrumbs` para pantallas que viven fuera del shell.
+
 ## Screen Definition
 
 A **Screen** is:

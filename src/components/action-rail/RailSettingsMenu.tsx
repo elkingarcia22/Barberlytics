@@ -31,8 +31,8 @@ export function RailSettingsMenu() {
               type="button"
               aria-label="Ajustes de la barra"
               className={cn(
-                "dock-item relative flex h-10 w-10 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-                open && "bg-white/10 text-white"
+                "dock-item relative flex h-10 w-10 items-center justify-center rounded-xl text-nav-foreground/60 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30",
+                open && "bg-nav-foreground/10 text-nav-foreground"
               )}
             >
               <Settings className="h-[20px] w-[20px]" strokeWidth={2} />
@@ -47,7 +47,7 @@ export function RailSettingsMenu() {
         side={side}
         sideOffset={16}
         collisionPadding={16}
-        className="w-[240px] rounded-2xl border-white/10 bg-surface-nav p-2 text-white/60 shadow-rail"
+        className="w-[240px] rounded-2xl border-primary/15 bg-surface-nav p-2 text-nav-foreground/60 shadow-rail"
       >
         <SettingGroup label="Orientación">
           <ChoiceRow
@@ -94,7 +94,7 @@ function SettingGroup({
 }) {
   return (
     <div className={className}>
-      <p className="px-2.5 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-white/35">
+      <p className="px-2.5 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-nav-foreground/35">
         {label}
       </p>
       <div className="flex flex-col">{children}</div>
@@ -129,16 +129,16 @@ function ChoiceRow({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-        active ? "bg-white/5" : "hover:bg-white/5"
+        "group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30",
+        active ? "bg-nav-foreground/5" : "hover:bg-nav-foreground/5"
       )}
     >
       <span
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
           active
-            ? "bg-primary/25 text-white"
-            : "bg-white/5 text-white/60 group-hover:bg-white/10 group-hover:text-white"
+            ? "bg-primary/25 text-nav-foreground"
+            : "bg-nav-foreground/5 text-nav-foreground/60 group-hover:bg-nav-foreground/10 group-hover:text-nav-foreground"
         )}
       >
         {icon}
@@ -146,12 +146,12 @@ function ChoiceRow({
       <span
         className={cn(
           "text-[13px] font-semibold tracking-tight",
-          active ? "text-white" : "text-white/70"
+          active ? "text-nav-foreground" : "text-nav-foreground/70"
         )}
       >
         {label}
       </span>
-      {active && <Check className="ml-auto h-4 w-4 shrink-0 text-white" strokeWidth={2.5} />}
+      {active && <Check className="ml-auto h-4 w-4 shrink-0 text-nav-foreground" strokeWidth={2.5} />}
     </button>
   );
 }

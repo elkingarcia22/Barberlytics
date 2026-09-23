@@ -41,7 +41,7 @@ function SendFlowDemo() {
   };
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <span className="text-sm text-text-secondary">Evaluación de Laura Méndez</span>
+      <span className="text-sm text-text-secondary">Evaluación de Renata Méndez</span>
       <StatusBadge state={state} labels={SEND_LABELS} />
       <Button size="sm" onClick={() => send(false)} disabled={state === "pending"}>
         Enviar

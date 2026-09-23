@@ -14,7 +14,7 @@ Ana Rojas,ana.rojas@empresa.com,Talento,Analista
 Luis Pérez,luis.perez@empresa.com,Ventas,Ejecutivo
 Marta Díaz,marta.diaz@empresa.com,Tecnología,Líder técnico
 Jorge Ruiz,jorge.ruiz@empresa.com,Finanzas,Contador
-Sofía Mora,sofia.mora@empresa.com,Operaciones,Coordinadora
+Antonia Mora,antonia.mora@empresa.com,Operaciones,Coordinadora
 Diego León,diego.leon@empresa.com,Ventas,Ejecutivo`;
 
 /** Parser mínimo para la demo: sin comillas ni comas escapadas. */

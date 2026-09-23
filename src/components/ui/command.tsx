@@ -60,7 +60,14 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        {/*
+          El `Command` va aquí y no lo pone quien usa el diálogo: `CommandInput`
+          y `CommandList` leen el store de cmdk por contexto, así que sin esta
+          raíz el diálogo lanzaba "Cannot read properties of undefined
+          (reading 'subscribe')" y no se abría nunca —ni en la paleta de la
+          aplicación ni en la propia demo de la documentación—.
+        */}
+        <Command className="rounded-none! bg-transparent p-0">{children}</Command>
       </DialogContent>
     </Dialog>
   )

@@ -17,7 +17,11 @@ interface StatusBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: string
 }
 
-const statusMap: Record<StatusType, { variant: any; defaultLabel: string }> = {
+type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>["variant"]>;
+
+/** Tipado a las variantes reales de `Badge`: el `any` de antes dejó pasar
+ *  cuatro variantes que no existían y los chips salían sin color. */
+const statusMap: Record<StatusType, { variant: BadgeVariant; defaultLabel: string }> = {
   active: { variant: "positive", defaultLabel: "Activo" },
   inactive: { variant: "neutral", defaultLabel: "Inactivo" },
   pending: { variant: "warning", defaultLabel: "Pendiente" },

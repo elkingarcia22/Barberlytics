@@ -3,6 +3,7 @@ import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { buildRadiusTokens, buildThemeTokens, themeToCss, THEME_PRESETS, ThemeSwatch, useTheme, type ThemePreset, type ThemeTokens } from "@/themes";
@@ -25,60 +26,59 @@ function ThemeCard({ preset }: { preset: ThemePreset }) {
   );
 
   return (
-    <article
-      className={cn(
-        "overflow-hidden rounded-2xl border bg-surface shadow-card transition-colors",
-        isActive ? "border-primary/60 ring-2 ring-primary/20" : "border-border/60"
-      )}
-    >
-      {/* Preview aislado: los componentes leen los tokens del wrapper, no del documento. */}
-      <div className="docs-preview border-b border-border/60 p-4" style={{ ...tokensToStyle(previewTokens), background: "var(--color-bg-app)" }}>
-        <div className="rounded-xl border p-3 shadow-card" style={{ background: "var(--color-surface)", borderColor: "hsl(var(--border) / 0.6)" }}>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              Objetivos Q3
-            </span>
-            <Badge>{preset.name}</Badge>
-          </div>
-          <p className="mt-1 text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
-            Avance del ciclo y acciones.
-          </p>
-          <Progress value={64} className="mt-3" />
-          <div className="mt-3 h-2 rounded-full bg-ai-gradient" title="Gradiente de IA del tema" />
-          <div className="mt-3 flex items-center gap-2">
-            <Button size="sm">Guardar</Button>
-            <Button size="sm" variant="outline">
-              Cancelar
-            </Button>
-            <Switch className="ml-auto" defaultChecked aria-label="Ejemplo" />
+    <article>
+      <Card className={cn("overflow-hidden transition-colors", isActive && "border-primary/60 ring-2 ring-primary/20")}>
+        {/* Preview aislado: los componentes leen los tokens del wrapper, no del documento. */}
+        <div className="docs-preview border-b border-border/60 p-card" style={{ ...tokensToStyle(previewTokens), background: "var(--color-bg-app)" }}>
+          {/* La card del preview sí es una <Card>, pero su fondo y su borde
+              siguen llegando por `style`: son los tokens del tema aislado. */}
+          <Card className="rounded-xl p-3" style={{ background: "var(--color-surface)", borderColor: "hsl(var(--border) / 0.6)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                Objetivos Q3
+              </span>
+              <Badge>{preset.name}</Badge>
+            </div>
+            <p className="mt-1 text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+              Avance del ciclo y acciones.
+            </p>
+            <Progress value={64} className="mt-3" />
+            <div className="mt-3 h-2 rounded-full bg-ai-gradient" title="Gradiente de IA del tema" />
+            <div className="mt-3 flex items-center gap-inline">
+              <Button size="sm">Guardar</Button>
+              <Button size="sm" variant="outline">
+                Cancelar
+              </Button>
+              <Switch className="ml-auto" defaultChecked aria-label="Ejemplo" />
+            </div>
+          </Card>
+        </div>
+        <div className="flex items-start gap-3 p-card">
+          <ThemeSwatch preset={preset} className="mt-0.5 size-5" />
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[14px] font-semibold text-text-primary">{preset.name}</h3>
+            <p className="text-[12px] leading-relaxed text-text-secondary">{preset.description}</p>
+            <p className="mt-1.5 font-mono text-[11px] text-text-muted">
+              {preset.primary.light} · {preset.primary.dark} · neutros {preset.neutral === "tinted" ? "teñidos" : "grises"}
+            </p>
           </div>
         </div>
-      </div>
-      <div className="flex items-start gap-3 p-4">
-        <ThemeSwatch preset={preset} className="mt-0.5 size-5" />
-        <div className="min-w-0 flex-1">
-          <h3 className="text-[14px] font-semibold text-text-primary">{preset.name}</h3>
-          <p className="text-[12px] leading-relaxed text-text-secondary">{preset.description}</p>
-          <p className="mt-1.5 font-mono text-[11px] text-text-muted">
-            {preset.primary.light} · {preset.primary.dark} · neutros {preset.neutral === "tinted" ? "teñidos" : "grises"}
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2 border-t border-border/50 px-4 py-3">
-        <Button size="sm" variant={isActive ? "secondary" : "default"} onClick={() => setPreset(preset.id)} disabled={isActive}>
-          {isActive ? (
-            <>
-              <Check /> Activo
-            </>
-          ) : (
-            "Aplicar"
-          )}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => copy(themeToCss(preset, radius))}>
-          {copied ? <Check className="text-status-positive" /> : <Copy />}
-          {copied ? "Copiado" : "Copiar CSS"}
-        </Button>
-      </div>
+        <CardFooter className="mt-0 gap-inline border-border/50 py-3">
+          <Button size="sm" variant={isActive ? "secondary" : "default"} onClick={() => setPreset(preset.id)} disabled={isActive}>
+            {isActive ? (
+              <>
+                <Check /> Activo
+              </>
+            ) : (
+              "Aplicar"
+            )}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => copy(themeToCss(preset, radius))}>
+            {copied ? <Check className="text-status-positive" /> : <Copy />}
+            {copied ? "Copiado" : "Copiar CSS"}
+          </Button>
+        </CardFooter>
+      </Card>
     </article>
   );
 }
@@ -110,17 +110,19 @@ const PRESET_CODE = `// src/themes/presets.ts
   neutral: "gray",       // "tinted" tiñe los neutros con el matiz del primario
   fonts: { body: "satoshi", heading: "fraunces" },   // opcional
   ai: { start: "#F43F5E", end: "#F59E0B" },           // opcional
+  tier: "premium",       // opcional: activa los acabados de themes/premium.css
+  depth: "deep",         // opcional: modo oscuro al carbón, bordes hairline
 }`;
 
 export function ThemesPage() {
-  const { preset, radius, tokens, resolvedMode, font, headingFont } = useTheme();
+  const { preset, radius, density, tokens, resolvedMode, font, headingFont } = useTheme();
   const css = React.useMemo(
-    () => themeToCss(preset, radius, { body: font, heading: headingFont }),
-    [preset, radius, font, headingFont]
+    () => themeToCss(preset, radius, { body: font, heading: headingFont }, density),
+    [preset, radius, density, font, headingFont]
   );
 
   return (
-    <div className="cascade-enter space-y-12">
+    <div className="cascade-enter space-y-section">
       <PageIntro
         eyebrow="Fundamentos"
         title="Temas"
@@ -138,7 +140,7 @@ export function ThemesPage() {
       <DocSection id="how" title="Cómo funciona" description="El provider calcula los tokens del tema y los escribe como variables inline en <html>; al ganar en especificidad a tokens.css y globals.css, todo componente que use las variables lo sigue sin cambios.">
         <div className="grid gap-4 lg:grid-cols-2">
           <CodeBlock code={USAGE_CODE} />
-          <div className="space-y-3">
+          <div className="space-y-stack">
             <CodeBlock code={PRESET_CODE} />
             <ul className="space-y-1.5 text-[13px] text-text-secondary">
               <li>• La preferencia se guarda en <code className="rounded bg-muted px-1 font-mono text-[12px]">localStorage["thema-theme"]</code>.</li>
@@ -161,6 +163,8 @@ export function ThemesPage() {
             const isColorish = value.startsWith("#") || /^\d+ \d/.test(value);
             const swatch = value.startsWith("#") ? value : /^\d+ [\d.]+% [\d.]+%$/.test(value) ? `hsl(${value})` : undefined;
             return (
+              // Fila densa de token, no una card: sin elevación y con un radio
+              // pequeño para que la lista se lea como una tabla.
               <div key={name} className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-surface px-2.5 py-2">
                 {isColorish && swatch ? (
                   <span className="size-6 shrink-0 rounded-md border border-black/10 dark:border-white/10" style={{ background: swatch }} />

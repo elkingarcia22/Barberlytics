@@ -45,7 +45,7 @@ export const breadcrumbsEntry = defineEntry({
   name: "Breadcrumbs",
   group: "navigation",
   description:
-    "El rastro de dónde está la persona dentro de una jerarquía, con el último tramo resaltado como página actual. Recibe una lista de etiquetas y se encarga del separador y del contraste entre niveles.",
+    "El rastro de dónde está la persona dentro de una jerarquía, con el último tramo resaltado como página actual. Cada tramo es un texto o un { label, onClick } cuando lleva a algún sitio; el componente se encarga del separador y del contraste entre niveles.",
   importPath: 'import { Breadcrumbs } from "@/components/navigation"',
   sourcePath: "src/components/navigation/Breadcrumbs.tsx",
   status: "stable",
@@ -72,6 +72,27 @@ export const breadcrumbsEntry = defineEntry({
       description: "Tres niveles: el último se pinta como texto primario y sin separador.",
       code: `<Breadcrumbs items={["Empresa", "Usuarios", "Elena Martínez"]} />`,
       render: () => <Breadcrumbs items={["Empresa", "Usuarios", "Elena Martínez"]} />,
+    },
+    {
+      id: "navigable",
+      title: "Con navegación",
+      description: "Un tramo con `onClick` se vuelve clicable; sin él, se queda como contexto sin destino propio.",
+      code: `<Breadcrumbs
+  items={[
+    { label: "Empresa", onClick: () => navigate("/empresa") },
+    { label: "Usuarios", onClick: () => navigate("/empresa/usuarios") },
+    "Elena Martínez",
+  ]}
+/>`,
+      render: () => (
+        <Breadcrumbs
+          items={[
+            { label: "Empresa", onClick: () => {} },
+            { label: "Usuarios", onClick: () => {} },
+            "Elena Martínez",
+          ]}
+        />
+      ),
     },
     {
       id: "drill-down",
@@ -103,12 +124,16 @@ export const breadcrumbsEntry = defineEntry({
     },
   ],
   props: [
-    { name: "items", type: "string[]", description: "Etiquetas de cada nivel, de la raíz a la página actual. El último elemento se resalta." },
+    {
+      name: "items",
+      type: "(string | { label: string; onClick?: () => void })[]",
+      description: "Cada nivel, de la raíz a la página actual. Un string es solo contexto; con `onClick` el tramo navega. El último elemento nunca es clicable, aunque traiga `onClick`.",
+    },
     { name: "className", type: "string", description: "Clases extra para el <nav>." },
     { name: "...props", type: 'React.HTMLAttributes<HTMLDivElement>', description: "Cualquier atributo nativo; el `aria-label` ya viene puesto." },
   ],
   guidelines: {
-    do: ["Úsalo a partir de dos niveles de profundidad; con uno solo no aporta nada.", "Mantén las etiquetas cortas y en el mismo orden que la jerarquía real.", "Colócalo encima del título de la página, nunca dentro del contenido."],
+    do: ["Úsalo a partir de dos niveles de profundidad; con uno solo no aporta nada.", "Mantén las etiquetas cortas y en el mismo orden que la jerarquía real.", "Colócalo encima del título de la página, nunca dentro del contenido.", "Pon `onClick` en todo tramo que tenga página propia; déjalo como texto solo cuando de verdad no la tiene (una categoría, un grupo sin pantalla)."],
     dont: ["No lo uses como sustituto de la sub-navegación: no cambia de sección, solo ubica.", "No superes cinco niveles; a partir de ahí colapsa los intermedios."],
   },
   related: ["thema-product-header", "page-header", "header"],

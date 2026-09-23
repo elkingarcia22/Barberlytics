@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useAppT } from "@/app/i18n";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Navigate, useLocation, useNavigate } from "react-router";
@@ -18,6 +19,7 @@ interface LocationState {
 }
 
 export function LoginPage() {
+  const t = useAppT();
   const { status, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,27 +52,27 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-card">
-            <ThemaLogo size={20} />
+            <ThemaLogo size={20} color="hsl(var(--primary-foreground))" />
           </span>
           <div className="leading-tight">
-            <p className="text-[15px] font-bold tracking-tight text-text-primary">Thema</p>
-            <p className="text-[12px] text-text-muted">Plataforma</p>
+            <p className="text-base font-bold tracking-tight text-text-primary">Thema</p>
+            <p className="text-xs text-text-muted">Plataforma</p>
           </div>
         </div>
         <div className="rounded-3xl border border-border/60 bg-surface p-6 shadow-card sm:p-8">
           <h1 className="text-xl font-bold tracking-tight text-text-primary">Inicia sesión</h1>
-          <p className="mt-1 text-[13px] text-text-secondary">Usa el correo con el que te registraron.</p>
+          <p className="mt-1 text-sm text-text-secondary">Usa el correo con el que te registraron.</p>
 
           <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4">
             {serverError && (
               <Alert variant="destructive">
                 <AlertCircle />
-                <AlertTitle>No pudimos iniciar sesión</AlertTitle>
+                <AlertTitle>{t("auth.errorTitle")}</AlertTitle>
                 <AlertDescription>{serverError}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="login-email">Correo</Label>
+              <Label htmlFor="login-email">{t("auth.email")}</Label>
               <Input
                 id="login-email"
                 type="email"
@@ -82,7 +84,7 @@ export function LoginPage() {
               {form.formState.errors.email && <p className="text-xs text-status-negative">{form.formState.errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="login-password">Contraseña</Label>
+              <Label htmlFor="login-password">{t("auth.password")}</Label>
               <Input
                 id="login-password"
                 type="password"
@@ -100,7 +102,7 @@ export function LoginPage() {
           </form>
 
           {env.useMocks && (
-            <p className="mt-5 rounded-lg bg-surface-subtle p-3 text-[12px] leading-relaxed text-text-secondary">
+            <p className="mt-5 rounded-lg bg-surface-subtle p-3 text-xs leading-relaxed text-text-secondary">
               Backend simulado activo. Prueba con <code className="font-mono text-text-primary">admin@thema.dev</code> /{" "}
               <code className="font-mono text-text-primary">thema123</code>.
             </p>

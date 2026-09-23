@@ -8,7 +8,9 @@ import { areaChartEntry } from "./area-chart";
 import { donutChartEntry } from "./donut-chart";
 import { sparklineChartEntry } from "./sparkline-chart";
 import { kpiCardEntry } from "./kpi-card";
+import { metricCardEntry } from "./metric-card";
 import { heatmapChartEntry } from "./heatmap-chart";
+import { heatmapMatrixEntry } from "./heatmap-matrix";
 
 /** Entradas del grupo "charts". Cada componente vive en su propio archivo de esta carpeta. */
 export const chartsEntries: readonly DocEntry[] = [
@@ -21,5 +23,7 @@ export const chartsEntries: readonly DocEntry[] = [
   donutChartEntry,
   sparklineChartEntry,
   kpiCardEntry,
+  metricCardEntry,
   heatmapChartEntry,
+  heatmapMatrixEntry,
 ];

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import type { UploadFileItem } from './uploadTypes'
 import { FilePreview } from './FilePreview'
 import type { FilePreviewVariant } from './FilePreview'
@@ -35,13 +36,15 @@ export function AttachmentList({
   disabled = false,
   className,
 }: AttachmentListProps) {
+  const t = useT()
+
   if (files.length === 0) {
     return (
       <div className={cn('py-8', className)}>
         {emptyState || (
           <EmptyState
-            title="Sin archivos seleccionados"
-            description="Los archivos que selecciones aparecerán aquí."
+            title={t("upload.noFiles")}
+            description={t("upload.noFilesHint")}
             icon={Inbox}
           />
         )}

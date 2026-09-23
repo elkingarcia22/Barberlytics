@@ -74,15 +74,15 @@ export function ConfirmActionPopover({
         align="center"
         sideOffset={10}
         collisionPadding={16}
-        className="w-72 flex-col gap-0 rounded-2xl border border-white/10 bg-surface-nav p-3.5 text-white shadow-rail"
+        className="w-72 flex-col gap-0 rounded-2xl border border-primary/15 bg-surface-nav p-3.5 text-nav-foreground shadow-rail"
       >
         <p className="text-[13px] font-semibold">{title}</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-white/60">{description}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-nav-foreground/60">{description}</p>
         <div className="mt-3 flex justify-end gap-2">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-lg px-3 py-1.5 text-[12px] font-semibold text-nav-foreground/70 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground"
           >
             Cancelar
           </button>
@@ -95,7 +95,7 @@ export function ConfirmActionPopover({
                 "bg-status-negative/15 text-status-negative hover:bg-status-negative/25",
               tone === "warning" &&
                 "bg-status-warning/15 text-status-warning hover:bg-status-warning/25",
-              tone === "primary" && "bg-primary text-white hover:bg-primary/90"
+              tone === "primary" && "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
             {confirmLabel}
@@ -117,12 +117,12 @@ export function railButtonClass(
   iconOnly: boolean
 ): string {
   return cn(
-    "flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl text-[12.5px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+    "flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl text-[12.5px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
     iconOnly ? "w-9 justify-center" : "px-3",
     variant === "primary" && "bg-primary text-primary-foreground hover:bg-primary/90",
     variant === "warning" && "bg-status-warning/15 text-status-warning hover:bg-status-warning/25",
     variant === "danger" && "bg-status-negative/15 text-status-negative hover:bg-status-negative/25",
-    variant === "ghost" && "text-white/85 hover:bg-white/10 hover:text-white"
+    variant === "ghost" && "text-nav-foreground/85 hover:bg-nav-foreground/10 hover:text-nav-foreground"
   );
 }
 
@@ -181,10 +181,10 @@ export function RailConfirmButton({
             "dock-item hover-icon-pop relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
             tone === "danger"
               ? "text-status-negative hover:bg-status-negative/15 focus-visible:ring-status-negative/40 disabled:hover:text-status-negative"
-              : "text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-white/30",
+              : "text-nav-foreground/60 hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:ring-nav-foreground/30",
             open &&
               !disabled &&
-              (tone === "danger" ? "bg-status-negative/15" : "bg-white/10 text-white")
+              (tone === "danger" ? "bg-status-negative/15" : "bg-nav-foreground/10 text-nav-foreground")
           )}
         >
           {icon}

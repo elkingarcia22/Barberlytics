@@ -13,7 +13,7 @@ interface Person {
 }
 
 const AREAS = ["Producto", "Ventas", "Tecnología", "Finanzas"] as const;
-const NAMES = ["Laura Méndez", "Carlos Rojas", "Ana Torres", "Diego Salazar", "Valentina Ruiz", "Mateo Herrera", "Sofía Castro", "Julián Peña"];
+const NAMES = ["Renata Méndez", "Carlos Rojas", "Ana Torres", "Diego Salazar", "Valentina Ruiz", "Mateo Herrera", "Antonia Castro", "Julián Peña"];
 const PEOPLE: Person[] = NAMES.map((name, index) => ({ id: index + 1, name, area: AREAS[index % AREAS.length], score: 55 + ((index * 17) % 45) }));
 const PAGE_SIZE = 4;
 const formatCount = (value: number) => value.toLocaleString("es-CO");

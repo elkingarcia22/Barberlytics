@@ -3,6 +3,7 @@ import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -61,7 +62,7 @@ export const DateRangePicker = React.forwardRef<
 >(({
   value,
   onChange,
-  placeholder = 'Select a date range',
+  placeholder,
   disabled = false,
   label,
   description,
@@ -69,9 +70,12 @@ export const DateRangePicker = React.forwardRef<
   minDate,
   maxDate,
   className,
-  locale = 'en-US',
+  locale,
 }, ref) => {
   const [open, setOpen] = React.useState(false)
+  // Sin `locale` propio manda el idioma de la aplicación.
+  const { current, t } = useLocale()
+  const intlLocale = locale ?? current.intl
 
   // Validate range values
   const isValidFrom = value?.from ? isValidDate(value.from) : false
@@ -88,8 +92,8 @@ export const DateRangePicker = React.forwardRef<
 
   // Format display text
   const displayText = hasRange && isFromSelectable && isToSelectable
-    ? formatDateRange(value?.from, value?.to, locale)
-    : placeholder
+    ? formatDateRange(value?.from, value?.to, intlLocale)
+    : (placeholder ?? t('date.selectRange'))
 
   // Generate unique ID for accessibility
   const pickerId = React.useId()

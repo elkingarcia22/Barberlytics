@@ -12,11 +12,11 @@ export const themaIconEntry = defineEntry({
   name: "ThemaIcon",
   group: "icons",
   description:
-    "El wrapper único de iconos del sistema: se pide por nombre semántico del registro, no por proveedor, con tallas de camiseta y tonos semánticos. Así cambiar de Lucide a otro set solo toca `iconRegistry.ts`.",
+    "El wrapper único de iconos del sistema: se pide por nombre semántico del registro, no por proveedor, con tallas de camiseta y tonos semánticos. Hoy resuelve a Hugeicons (stroke rounded, 1.5); cambiar de set solo toca `iconRegistry.ts`.",
   importPath: 'import { ThemaIcon } from "@/icons"',
   sourcePath: "src/icons/ThemaIcon.tsx",
   status: "stable",
-  tags: ["registro", "lucide", "a11y"],
+  tags: ["registro", "hugeicons", "a11y"],
   playground: definePlayground({
     controls: {
       name: { type: "select", label: "Nombre", options: ICON_NAMES, default: "sparkles" },
@@ -154,7 +154,7 @@ names.map((name) => <ThemaIcon key={name} name={name} />)`,
     { name: "className", type: "string", description: "Clases extra; útil para el degradado de IA (`text-ai-gradient`) o animaciones." },
   ],
   guidelines: {
-    do: ["Pide siempre el icono por su nombre semántico; nunca importes Lucide directamente en un componente.", "Deja `decorative` en `true` cuando hay texto al lado que ya lo describe.", "Añade nombres nuevos al registro y al tipo `IconName` en vez de usar `className` para disfrazar otro icono."],
+    do: ["Pide siempre el icono por su nombre semántico; nunca importes el proveedor (Hugeicons o Lucide) directamente en un componente.", "Deja `decorative` en `true` cuando hay texto al lado que ya lo describe.", "Añade nombres nuevos al registro y al tipo `IconName` en vez de usar `className` para disfrazar otro icono."],
     dont: ["No uses tamaños arbitrarios con `className`; las cinco tallas son el sistema.", "No uses `tone=\"inverse\"` sobre fondos claros.", "No pongas `label` sin `decorative={false}`: no tendrá efecto."],
   },
   related: ["button", "ai-spark-glyph", "chip"],

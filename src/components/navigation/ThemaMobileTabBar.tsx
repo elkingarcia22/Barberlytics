@@ -19,6 +19,9 @@ export const ThemaMobileTabBar: React.FC<NavigationComponentProps<NavigationItem
         className
       )}
       aria-label="Mobile navigation"
+      /* El activo se marca con color de icono y etiqueta, no con un relleno:
+         cada botón ocupa todo el alto de la barra. Ver themes/premium.css. */
+      data-nav-plain
     >
       {visibleItems.map((item) => {
         const isActive = activeItemId === item.id;

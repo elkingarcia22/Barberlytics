@@ -1,5 +1,6 @@
 import { DOC_GROUPS, type DocEntry, type DocGroupId } from "./types";
 import { uiEntries } from "./ui";
+import { typographyEntries } from "./typography";
 import { formsEntries } from "./forms";
 import { selectionEntries } from "./selection";
 import { navigationEntries } from "./navigation";
@@ -15,11 +16,13 @@ import { layoutEntries } from "./layout";
 import { mediaEntries } from "./media";
 import { utilityEntries } from "./utility";
 import { iconsEntries } from "./icons";
+import { blocksEntries } from "./blocks";
 
 export * from "./types";
 
 export const ALL_ENTRIES: readonly DocEntry[] = [
   ...uiEntries,
+  ...typographyEntries,
   ...formsEntries,
   ...selectionEntries,
   ...navigationEntries,
@@ -35,6 +38,7 @@ export const ALL_ENTRIES: readonly DocEntry[] = [
   ...mediaEntries,
   ...utilityEntries,
   ...iconsEntries,
+  ...blocksEntries,
 ];
 
 export function findEntry(id: string): DocEntry | undefined {

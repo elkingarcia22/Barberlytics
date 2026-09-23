@@ -1,3 +1,4 @@
+import { Card } from "@/components/ui/card";
 import { useCssVars } from "../hooks/useCssVar";
 import { DocSection, PageIntro } from "../components/PageIntro";
 import { CodeBlock } from "../components/CodeBlock";
@@ -32,7 +33,7 @@ export function RadiusPage() {
   const values = useCssVars(RADII.map((item) => item.token));
 
   return (
-    <div className="cascade-enter space-y-12">
+    <div className="cascade-enter space-y-section">
       <PageIntro
         eyebrow="Fundamentos"
         title="Radios y sombras"
@@ -42,7 +43,7 @@ export function RadiusPage() {
       <DocSection id="radius" title="Escala de radios" description="Los valores se leen en vivo; cambia el radio en el selector de tema y verás cómo escala toda la serie.">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {RADII.map((item) => (
-            <div key={item.token} className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
+            <Card key={item.token} className="p-4">
               <div className="flex h-24 items-center justify-center rounded-xl bg-surface-subtle">
                 <div className="size-16 border-2 border-primary bg-primary/10" style={{ borderRadius: `var(${item.token})` }} />
               </div>
@@ -51,7 +52,7 @@ export function RadiusPage() {
                 {item.token} · {values[item.token] || "—"}
               </p>
               <p className="mt-1 text-[12px] leading-snug text-text-secondary">{item.use}</p>
-            </div>
+            </Card>
           ))}
         </div>
         <CodeBlock code={SCALE_CODE} language="css" />
@@ -60,6 +61,11 @@ export function RadiusPage() {
       <DocSection id="shadows" title="Elevaciones" description="Cinco sombras con nombre. tailwind-merge las conoce (ver lib/utils.ts), así que shadow-card sobrescribe correctamente a shadow-md.">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SHADOWS.map((item) => (
+            // Estas dos capas no pasan a <Card> a propósito: la de fuera es el
+            // lienzo (bg-background, sin borde) y la de dentro tiene que llevar
+            // la sombra de la fila. `shadow-rail` no está registrada en
+            // tailwind-merge (ver lib/utils.ts), así que no ganaría a la
+            // `shadow-card` que Card trae de serie.
             <div key={item.cls} className="rounded-2xl bg-background p-6">
               <div className={`flex h-24 items-center justify-center rounded-2xl border border-border/40 bg-surface ${item.cls}`}>
                 <span className="font-mono text-[12px] font-semibold text-text-primary">{item.cls}</span>
@@ -72,19 +78,21 @@ export function RadiusPage() {
       </DocSection>
 
       <DocSection id="borders" title="Bordes y separación" description="La regla del sistema: delimitar con bordes sutiles antes que con sombras.">
+        {/* Tres <Card> sin elevación: la sección demuestra que el borde basta,
+            así que `shadow-none` desactiva la sombra que Card trae de serie. */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border/60 bg-surface p-5">
+          <Card className="p-card shadow-none">
             <p className="text-[13px] font-semibold text-text-primary">border-border/60</p>
             <p className="mt-1 text-[12px] text-text-secondary">Cards y paneles en reposo. Al 60% para no pesar.</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-surface p-5">
+          </Card>
+          <Card className="border-border p-card shadow-none">
             <p className="text-[13px] font-semibold text-text-primary">border-border</p>
             <p className="mt-1 text-[12px] text-text-secondary">Inputs y controles: el borde completo.</p>
-          </div>
-          <div className="rounded-2xl border border-border-strong/60 bg-surface p-5">
+          </Card>
+          <Card className="border-border-strong/60 p-card shadow-none">
             <p className="text-[13px] font-semibold text-text-primary">border-border-strong/60</p>
             <p className="mt-1 text-[12px] text-text-secondary">Hover sobre superficies interactivas neutras.</p>
-          </div>
+          </Card>
         </div>
       </DocSection>
     </div>

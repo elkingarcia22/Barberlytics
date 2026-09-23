@@ -1,5 +1,6 @@
 import { StatusBadge } from "@/components/data-display";
-import { USER_STATUS_LABELS, type UserStatus } from "./types";
+import { useAppT } from "@/app/i18n";
+import { USER_STATUS_KEYS, type UserStatus } from "./types";
 
 const STATUS_MAP: Record<UserStatus, "active" | "pending" | "inactive"> = {
   active: "active",
@@ -8,5 +9,6 @@ const STATUS_MAP: Record<UserStatus, "active" | "pending" | "inactive"> = {
 };
 
 export function UserStatusBadge({ status }: { status: UserStatus }) {
-  return <StatusBadge status={STATUS_MAP[status]} label={USER_STATUS_LABELS[status]} />;
+  const t = useAppT();
+  return <StatusBadge status={STATUS_MAP[status]} label={t(USER_STATUS_KEYS[status])} />;
 }

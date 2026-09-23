@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ThemaLogo } from "@/components/ui/ThemaLogo";
 import { AppSidebar } from "./AppSidebar";
@@ -9,7 +10,21 @@ import { ShellHeaderSlotProvider } from "./shellHeaderSlot";
 import { ShellRailSlotProvider } from "./shellRailSlot";
 import { ShellAgentPanelSlotProvider } from "./shellAgentPanelSlot";
 import type { ShellMode } from "./shellTypes";
-import { ShellConfigContext, resolveShellConfig, type ShellConfigOverrides } from "./shellConfig";
+import { ShellConfigContext, resolveShellConfig, type ShellConfig, type ShellConfigOverrides, type ShellContentWidth } from "./shellConfig";
+import { SEARCH_RECORDS, navigationPaths } from "./appShellData";
+
+/**
+ * Los tres anchos del sistema (Fundamentos › Espaciado) más el lienzo
+ * completo. El marco los aplica una sola vez: ninguna pantalla vuelve a
+ * fijar su ancho máximo.
+ */
+const CONTENT_WIDTH_CLASSES: Record<ShellContentWidth, string> = {
+  narrow: "max-w-narrow",
+  normal: "max-w-normal",
+  wide: "max-w-wide",
+  full: "max-w-full",
+};
+import type { GlobalSearchProps } from "@/components/search";
 
 interface AdminShellProps {
   /**
@@ -34,20 +49,10 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   config: overrides,
   children,
 }) => {
-  const config = React.useMemo(() => resolveShellConfig(overrides), [overrides]);
+  const resolved = React.useMemo(() => resolveShellConfig(overrides), [overrides]);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [mode, setMode] = React.useState<ShellMode>("workspace");
-  const [localDark, setLocalDark] = React.useState(() =>
-    typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false
-  );
-  // Controlado desde fuera (ThemeProvider) o gestionado aquí mismo.
-  const isDarkControlled = config.onToggleDark !== undefined;
-  const isDark = isDarkControlled ? Boolean(config.isDark) : localDark;
-  const toggleDark = () => {
-    if (isDarkControlled) config.onToggleDark?.(!isDark);
-    else setLocalDark((value) => !value);
-  };
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackSent, setFeedbackSent] = React.useState(false);
   const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
@@ -57,11 +62,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   // shows its labels first and then tucks itself away. Any manual toggle
   // before it fires cancels it — the user has already made the call.
   const autoCollapseTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    if (isDarkControlled) return;
-    document.documentElement.classList.toggle("dark", localDark);
-  }, [localDark, isDarkControlled]);
 
   React.useEffect(() => {
     const AUTO_COLLAPSE_DELAY_MS = 2200;
@@ -88,13 +88,98 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   };
 
   const isAgent = mode === "agent";
+  const t = useT();
+
+  /*
+   * El índice efectivo de la búsqueda general. Se arma aquí, y no en la
+   * cabecera, porque preguntar al agente cambia el modo del shell y eso es
+   * estado de este componente. Lo que venga en `config.search` gana: una app
+   * real pasa sus propios registros y su propio alcance.
+   */
+  const search = React.useMemo<Partial<GlobalSearchProps>>(
+    () => ({
+      objects: SEARCH_RECORDS.map((record) => ({
+        id: record.id,
+        title: record.title,
+        meta: record.meta,
+        onSelect: () => resolved.onNavigate?.(record.id, record.path),
+      })),
+      navigate: [
+        ...navigationPaths(resolved.navigation).map((destination) => ({
+          id: destination.id,
+          path: destination.path,
+          onSelect: () => resolved.onNavigate?.(destination.id, destination.route),
+        })),
+        /*
+         * Los ajustes también son destinos. Al salir del árbol de navegación
+         * dejaron de aparecer aquí, y la búsqueda es justo por donde se llega
+         * a algo que se toca una vez al año y de lo que no se recuerda el
+         * grupo: "propinas" tiene que encontrarlo.
+         */
+        ...(resolved.chrome.settings
+          ? resolved.settings.flatMap((group) =>
+              group.items.map((item) => ({
+                id: `settings-${item.id}`,
+                path: [t("shell.settings"), group.label, item.label],
+                onSelect: () => resolved.onNavigate?.(item.id, item.path),
+              }))
+            )
+          : []),
+      ],
+      // Solo se ofrece preguntar si el agente es alcanzable: sin su
+      // conmutador no hay panel al que llevar la pregunta, y la documentación
+      // es justo ese caso.
+      onAsk: resolved.chrome.modeSwitch
+        ? (question) => {
+            setMode("agent");
+            resolved.onAgentPrompt?.(question);
+          }
+        : undefined,
+      askHint: resolved.chrome.modeSwitch ? "Se responde en el panel del Agente IA" : undefined,
+      scope: resolved.brand.productName,
+      ...resolved.search,
+    }),
+    [resolved, t]
+  );
+
+  const config = React.useMemo<ShellConfig>(() => ({ ...resolved, search }), [resolved, search]);
+
+  const footerVisible = showFooter ?? (scrollContent || isAgent);
+  /*
+   * El pie legal, extraído para poder montarlo en dos sitios distintos según
+   * el caso: dentro del scroller (para que quede al final de la página, no
+   * pegado a la ventana) o fuera de él (agente y pantallas tipo app, que no
+   * tienen ese scroller que ofrecerle).
+   */
+  const legalFooter = (
+    /*
+     * `role="contentinfo"` explícito: dentro del scroller el pie queda anidado
+     * en `<main>`, y ahí un `<footer>` pierde su rol implícito de landmark.
+     * Sin él, un lector de pantalla no tiene cómo saltar al pie.
+     */
+    <footer
+      role="contentinfo"
+      className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-border/60 px-4 py-2.5 text-xs text-text-muted"
+    >
+      <ThemaLogo size={16} color="var(--color-text-muted)" className="hover:scale-100" />
+      <span className="font-bold tracking-tight">{resolved.brand.productName}</span>
+      <span className="opacity-50">|</span>
+      <button className="transition-colors hover:text-text-secondary hover:underline">
+        {t("shell.terms")}
+      </button>
+      <span className="opacity-50">|</span>
+      <button className="transition-colors hover:text-text-secondary hover:underline">
+        {t("shell.privacy")}
+      </button>
+    </footer>
+  );
 
   return (
     <ShellConfigContext.Provider value={config}>
     <div
       className={cn(
-        "flex h-dvh w-full gap-2 overflow-hidden bg-background p-2 font-sans",
-        isAgent && "bg-ai-mesh-agent"
+        "flex h-dvh w-full overflow-hidden bg-background font-sans",
+        isAgent && "ai-mesh-agent"
       )}
     >
       <AppSidebar
@@ -120,11 +205,12 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* The atmosphere sits on the whole column, header included, so the
+          theme's halo runs from the top of the screen down into the page
+          without a tonal step where the header ends. */}
+      <div className="page-atmosphere flex min-w-0 flex-1 flex-col">
         <AppHeader
           onToggleSidebar={toggleSidebar}
-          isDark={isDark}
-          onToggleDark={toggleDark}
           onOpenNews={() => {/* handled inside AppHeader */}}
           onSlotRef={setHeaderSlot}
         />
@@ -136,13 +222,30 @@ export const AdminShell: React.FC<AdminShellProps> = ({
               {isAgent ? (
                 <AgentView />
               ) : scrollContent ? (
+                // `flex flex-col`: with short content, the padded wrapper's
+                // own `flex-1` stretches to fill this scroller and pushes the
+                // footer to the bottom of the viewport — the same place it
+                // sits today. With content taller than the viewport, this div
+                // is what scrolls, so the footer rides along at the true end
+                // of the page instead of staying pinned while everything
+                // above it scrolls underneath.
                 <div className="min-h-0 flex-1 overflow-y-auto flex flex-col">
-                  {/* Full available width, on the same gutters the app-like
-                      screens use — the sidebar already narrows the column, so a
-                      max-width on top of it reads as an extra pair of margins.
-                      Padding matches the header's own px-1 so the content
-                      column lines up with the sidebar toggle above it. */}
-                  <div className="w-full flex-1 flex flex-col px-1 pb-6 pt-1">{children}</div>
+                  {/* The content column, on the same gutter + centered-cap
+                      rhythm the docs shell uses: it never sits flush against
+                      the header, the sidebar or the window, and past its
+                      configured cap it centers instead of stretching across an
+                      ultra-wide monitor. No frame of its own — it shares the page
+                      background, and the header's `border-b` is the only line
+                      that divides them. Plain utilities on purpose: the
+                      semantic `p-page` scale only resolves once Tailwind
+                      reloads the config, so a running dev server would
+                      silently render it with no padding. */}
+                  <div className="flex flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                    <div className={cn("mx-auto w-full flex-1 flex flex-col", CONTENT_WIDTH_CLASSES[config.contentWidth])}>
+                      {children}
+                    </div>
+                  </div>
+                  {footerVisible && legalFooter}
                 </div>
               ) : (
                 <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
@@ -159,20 +262,11 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           />
         </main>
 
-        {(showFooter ?? (scrollContent || isAgent)) && (
-          <footer className="flex shrink-0 flex-wrap items-center justify-center gap-2 px-4 py-2.5 text-xs text-text-muted">
-            <ThemaLogo size={16} color="var(--color-text-muted)" className="hover:scale-100" />
-            <span className="font-bold tracking-tight">{config.brand.productName}</span>
-            <span className="opacity-50">|</span>
-            <button className="transition-colors hover:text-text-secondary hover:underline">
-              Términos y condiciones de uso de la plataforma
-            </button>
-            <span className="opacity-50">|</span>
-            <button className="transition-colors hover:text-text-secondary hover:underline">
-              Política de privacidad
-            </button>
-          </footer>
-        )}
+        {/* Solo aquí, fuera del scroller: el modo agente y las pantallas tipo
+            app (`scrollContent={false}`) no tienen un scroller propio al que
+            unir el pie, así que sigue pegado a la ventana como antes. Con
+            `scrollContent`, el pie ya viaja dentro del scroller de arriba. */}
+        {footerVisible && !(scrollContent && !isAgent) && legalFooter}
       </div>
 
       {/* Agente IA anchor: a flex sibling of the content column, not an
@@ -180,7 +274,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           `shellAgentPanelSlot`) carries its own width, so mounting it takes
           space from this row and narrows the column next to it instead of
           floating over the page. */}
-      <div ref={setAgentPanelSlot} className="relative z-[51] flex h-full shrink-0" />
+      <div ref={setAgentPanelSlot} className="relative z-[51] flex h-full shrink-0 empty:hidden" />
 
       {/* ---------- Feedback ---------- */}
       <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
@@ -206,7 +300,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
               <button
                 onClick={() => setFeedbackSent(true)}
                 className={cn(
-                  "w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-white transition-colors hover:bg-[var(--color-brand-hover)]"
+                  "w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-brand-hover"
                 )}
               >
                 Enviar

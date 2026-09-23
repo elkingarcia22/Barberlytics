@@ -1,220 +1,172 @@
 import * as React from "react";
-import { Home, Menu, Search, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ThemaLogo } from "@/components/ui/ThemaLogo";
+import { Link } from "react-router";
+import { AppWindow } from "lucide-react";
+import { AdminShell, ShellHeaderSlot, type ShellConfigOverrides } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { ThemeModeToggle, ThemeSelector } from "@/themes";
-import { ALL_ENTRIES, DOC_GROUPS, entriesByGroup } from "./registry";
-import { routeToHash, useHashRoute, type DocsRoute } from "./router";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/navigation";
+import { ThemeModeToggle, ThemeSelector, useTheme } from "@/themes";
+import { LanguageSelector, resolveLocalized, useLocale, type LocaleId } from "@/i18n";
+import { ALL_ENTRIES, DOC_GROUPS } from "./registry";
 import { FOUNDATION_PAGES } from "./foundationPages";
+import { GUIDE_SECTIONS, findGuide } from "./guidePages";
+import { buildDocsNavigation, hashFromNavId, navIdFromRoute } from "./docsNavigation";
+import { routeToHash, useHashRoute, type DocsRoute } from "./router";
+import { docsSearchDestinations, docsSearchObjects } from "./docsSearchIndex";
 
-
-
-function isActive(route: DocsRoute, target: DocsRoute): boolean {
-  if (route.kind !== target.kind) return false;
-  if (route.kind === "home") return true;
-  return "id" in route && "id" in target && route.id === target.id;
-}
-
-function NavLink({
-  route,
-  target,
-  children,
-  onNavigate,
-  className,
-}: {
-  route: DocsRoute;
-  target: DocsRoute;
-  children: React.ReactNode;
-  onNavigate?: () => void;
-  className?: string;
-}) {
-  const active = isActive(route, target);
-  return (
-    <a
-      href={routeToHash(target)}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        active
-          ? "bg-primary/10 font-semibold text-primary"
-          : "text-text-secondary hover:bg-accent/60 hover:text-text-primary",
-        className
-      )}
-    >
-      {children}
-    </a>
-  );
-}
-
-function SidebarNav({ route, onNavigate }: { route: DocsRoute; onNavigate?: () => void }) {
-  const [query, setQuery] = React.useState("");
-  const normalized = query.trim().toLowerCase();
-  const results = normalized
-    ? ALL_ENTRIES.filter(
-        (entry) =>
-          entry.name.toLowerCase().includes(normalized) ||
-          entry.description.toLowerCase().includes(normalized) ||
-          entry.tags?.some((tag) => tag.toLowerCase().includes(normalized))
-      )
-    : null;
-
-  return (
-    <div className="flex h-full flex-col">
-      <a href="#/" onClick={onNavigate} className="flex items-center gap-3 px-3 pb-5 pt-1">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-card">
-          <ThemaLogo size={18} />
-        </span>
-        <span className="leading-tight">
-          <span className="block text-[15px] font-bold tracking-tight text-text-primary">Thema</span>
-          <span className="block text-[11px] text-text-muted">Sistema de diseño · v0.1</span>
-        </span>
-      </a>
-
-      <label className="relative mb-4 block px-1">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-text-muted" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar componente…"
-          className="h-9 w-full rounded-lg border border-border/60 bg-surface pl-9 pr-8 text-[13px] text-text-primary placeholder:text-text-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
-      </label>
-
-      <nav aria-label="Documentación" className="flex-1 space-y-6 overflow-y-auto px-1 pb-8">
-        {results ? (
-          <div className="space-y-1">
-            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              {results.length} resultado{results.length === 1 ? "" : "s"}
-            </p>
-            {results.map((entry) => (
-              <NavLink key={entry.id} route={route} target={{ kind: "component", id: entry.id }} onNavigate={onNavigate}>
-                <span className="truncate">{entry.name}</span>
-                <span className="ml-auto text-[10px] uppercase tracking-wide text-text-muted">{entry.group}</span>
-              </NavLink>
-            ))}
-            {results.length === 0 && <p className="px-2.5 text-[13px] text-text-muted">Nada por aquí.</p>}
-          </div>
-        ) : (
-          <>
-            <div className="space-y-0.5">
-              <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Fundamentos</p>
-              <NavLink route={route} target={{ kind: "home" }} onNavigate={onNavigate}>
-                <Home className="size-4" />
-                Inicio
-              </NavLink>
-              {FOUNDATION_PAGES.map((page) => (
-                <NavLink key={page.id} route={route} target={{ kind: "foundation", id: page.id }} onNavigate={onNavigate}>
-                  <page.icon className="size-4" />
-                  {page.label}
-                </NavLink>
-              ))}
-            </div>
-            {DOC_GROUPS.map((group) => {
-              const entries = entriesByGroup(group.id);
-              if (entries.length === 0) return null;
-              return (
-                <div key={group.id} className="space-y-0.5">
-                  <a
-                    href={routeToHash({ kind: "group", id: group.id })}
-                    onClick={onNavigate}
-                    className="flex items-center justify-between px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted hover:text-text-primary"
-                  >
-                    {group.label}
-                    <span className="rounded-full bg-muted px-1.5 text-[10px] font-medium normal-case tracking-normal text-text-muted">
-                      {entries.length}
-                    </span>
-                  </a>
-                  {entries.map((entry) => (
-                    <NavLink key={entry.id} route={route} target={{ kind: "component", id: entry.id }} onNavigate={onNavigate}>
-                      <span className="truncate">{entry.name}</span>
-                    </NavLink>
-                  ))}
-                </div>
-              );
-            })}
-          </>
-        )}
-      </nav>
-    </div>
-  );
-}
-
-function breadcrumb(route: DocsRoute): string[] {
+function breadcrumb(route: DocsRoute, locale: LocaleId, navigate: (route: DocsRoute) => void): BreadcrumbItem[] {
+  const tr = <T,>(value: Parameters<typeof resolveLocalized<T>>[0]) => resolveLocalized(value, locale);
+  const root = {
+    home: tr({ es: "Inicio", en: "Home" }),
+    foundations: tr({ es: "Fundamentos", en: "Foundations" }),
+    guides: tr({ es: "Guías", en: "Guides" }),
+    components: tr({ es: "Componentes", en: "Components" }),
+  };
   switch (route.kind) {
     case "home":
-      return ["Inicio"];
+      return [{ label: root.home }];
     case "foundation":
-      return ["Fundamentos", FOUNDATION_PAGES.find((page) => page.id === route.id)?.label ?? route.id];
+      return [{ label: root.foundations }, { label: tr(FOUNDATION_PAGES.find((page) => page.id === route.id)?.label ?? route.id) }];
+    case "guide": {
+      const guide = findGuide(route.id);
+      const section = GUIDE_SECTIONS.find((item) => item.id === guide?.section);
+      return [{ label: tr(section?.label ?? root.guides) }, { label: tr(guide?.label ?? route.id) }];
+    }
     case "group":
-      return ["Componentes", DOC_GROUPS.find((group) => group.id === route.id)?.label ?? route.id];
+      return [{ label: root.components }, { label: tr(DOC_GROUPS.find((group) => group.id === route.id)?.label ?? route.id) }];
     case "component": {
       const entry = ALL_ENTRIES.find((item) => item.id === route.id);
       const group = DOC_GROUPS.find((item) => item.id === entry?.group);
-      return ["Componentes", group?.label ?? "", entry?.name ?? route.id].filter(Boolean);
+      return [
+        { label: root.components },
+        group ? { label: tr(group.label), onClick: () => navigate({ kind: "group", id: group.id }) } : undefined,
+        { label: entry?.name ?? route.id },
+      ].filter((item): item is BreadcrumbItem => Boolean(item));
     }
   }
 }
 
-export function DocsShell({ children }: { children: React.ReactNode }) {
-  const { route } = useHashRoute();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const crumbs = breadcrumb(route);
+/**
+ * `true` por debajo de `sm`. Una sola pregunta al navegador en vez de montar
+ * dos rastros de migas y esconder uno con CSS: dos `nav` con la misma
+ * etiqueta son dos navegaciones para un lector de pantalla.
+ */
+function useIsCompact(): boolean {
+  const query = "(max-width: 639px)";
+  const subscribe = React.useCallback((onChange: () => void) => {
+    const media = window.matchMedia(query);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+  return React.useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false
+  );
+}
 
+/**
+ * Al cambiar de página hay que volver arriba, y el shell no scrollea la
+ * ventana sino un contenedor propio: esta marca invisible busca su scroller
+ * más cercano y lo devuelve al principio. Vive aquí, en el consumidor, para
+ * no añadirle al shell una API que solo necesita la doc.
+ */
+function ScrollToTop({ signal }: { signal: string }) {
+  const marker = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
+    marker.current?.closest<HTMLElement>(".overflow-y-auto")?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
-  }, [route]);
+  }, [signal]);
+  return <div ref={marker} aria-hidden className="sr-only" />;
+}
+
+/**
+ * El shell de la documentación es el shell del producto.
+ *
+ * No hay menú ni cabecera propios: se monta `AdminShell` con el árbol de la
+ * doc (`docsNavigation.ts`), la búsqueda y los controles de tema en las
+ * acciones del header, y las migas en el hueco que el shell reserva a la
+ * pantalla montada. Todo lo que se ve alrededor del contenido —rail plegable,
+ * menú de empresa, novedades, notificaciones, perfil, atmósfera del tema,
+ * pie— es el mismo código que usa la aplicación, así que la doc es la primera
+ * consumidora del sistema que documenta.
+ */
+export function DocsShell({ children }: { children: React.ReactNode }) {
+  const { route, navigate: navigateRoute } = useHashRoute();
+  const { resolvedMode, setMode } = useTheme();
+  const { t, locale } = useLocale();
+  const isCompact = useIsCompact();
+  // En 390px las tres migas de un componente se metían por debajo de las
+  // acciones del header, así que ahí solo se muestra el último tramo.
+  const allCrumbs = breadcrumb(route, locale, navigateRoute);
+  const crumbs = isCompact ? allCrumbs.slice(-1) : allCrumbs;
+
+  const config = React.useMemo<ShellConfigOverrides>(
+    () => ({
+      brand: { productName: "Thema", tagline: "Sistema de diseño · v0.1" },
+      navigation: buildDocsNavigation(locale),
+      activeNavId: navIdFromRoute(route),
+      onNavigate: (id, path) => {
+        window.location.hash = path ?? hashFromNavId(id);
+      },
+      // La búsqueda ya la monta la cabecera del shell; aquí solo se le pasa
+      // el índice de la doc.
+      search: {
+        objects: docsSearchObjects(locale),
+        navigate: docsSearchDestinations(locale),
+        placeholder: t("docs.searchPlaceholder"),
+        triggerLabel: t("docs.searchTrigger"),
+        scope: "Sistema de diseño · v0.1",
+      },
+      headerActions: (
+        <>
+          <ThemeSelector />
+          <LanguageSelector />
+          <ThemeModeToggle />
+          {/*
+            La salida a la aplicación de ejemplo, al final de la fila: es la
+            única acción que no configura la doc sino que se va de ella. Es un
+            enlace de verdad (no un `onClick`) para que se pueda abrir en otra
+            pestaña, y la ruta está tras la guarda de sesión, así que sin
+            sesión pasa antes por el login y vuelve aquí al entrar.
+          */}
+          <Button asChild className="gap-inline">
+            <Link to="/dashboard" title={t("docs.openAppTitle")}>
+              <AppWindow className="size-3.5" />
+              {t("docs.openApp")}
+            </Link>
+          </Button>
+        </>
+      ),
+      // La vista del sistema de diseño no tiene empresas que cambiar, ni
+      // agente, ni novedades, ni sesión, ni ajustes, ni roles que asumir: ese
+      // cromo del producto solo añadiría botones que no llevan a ninguna parte.
+      chrome: {
+        company: false,
+        modeSwitch: false,
+        news: false,
+        help: false,
+        notifications: false,
+        profile: false,
+        role: false,
+        settings: false,
+      },
+      // Sin `promo`: la tarjeta del sidebar es opt-in (ver ShellConfig.promo) y
+      // esta doc no tiene nada propio que anunciar cada vez que alguien la abre.
+      // El modo lo manda el tema, no el shell: aquí el conmutador del header
+      // y el del selector de tema tienen que mover la misma palanca.
+      isDark: resolvedMode === "dark",
+      onToggleDark: (isDark) => setMode(isDark ? "dark" : "light"),
+    }),
+    [route, resolvedMode, setMode, t, locale]
+  );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[272px] border-r border-border/60 bg-background px-3 py-4 lg:block">
-        <SidebarNav route={route} />
-      </aside>
-
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[300px] px-3 py-4 sm:max-w-[300px]">
-          <SheetTitle className="sr-only">Navegación</SheetTitle>
-          <SidebarNav route={route} onNavigate={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
-
-      <div className="lg:pl-[272px]">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border/60 bg-background/85 px-4 backdrop-blur-md lg:px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación">
-            <Menu />
-          </Button>
-          <ol className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden text-[13px] text-text-muted">
-            {crumbs.map((crumb, index) => {
-              const isLast = index === crumbs.length - 1;
-              return (
-                <li key={`${crumb}-${index}`} className={cn("flex min-w-0 items-center gap-1.5", !isLast && "hidden sm:flex")}>
-                  {index > 0 && <span aria-hidden className="hidden sm:inline">/</span>}
-                  <span className={cn("truncate", isLast && "font-medium text-text-primary")}>{crumb}</span>
-                </li>
-              );
-            })}
-          </ol>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            <ThemeSelector />
-            <ThemeModeToggle />
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">{children}</main>
-      </div>
-    </div>
+    <AdminShell config={config}>
+      <ShellHeaderSlot>
+        <Breadcrumbs items={crumbs} className="min-w-0 max-w-[45vw] overflow-hidden whitespace-nowrap sm:max-w-none" />
+      </ShellHeaderSlot>
+      <ScrollToTop signal={routeToHash(route)} />
+      {children}
+    </AdminShell>
   );
 }

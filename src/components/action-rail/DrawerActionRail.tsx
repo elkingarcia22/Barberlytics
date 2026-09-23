@@ -123,7 +123,7 @@ export function DrawerActionRail({
           className={cn(
             "relative flex items-center justify-center overflow-hidden rounded-3xl transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
             isExpanded
-              ? "h-14 max-w-[1140px] border border-white/10 bg-surface-nav px-3 shadow-rail"
+              ? "h-14 max-w-[1140px] border border-primary/15 bg-surface-nav px-3 shadow-rail"
               : "h-1.5 w-[64px] max-w-[64px] rounded-full border-transparent bg-border-strong shadow-card"
           )}
         >
@@ -137,25 +137,25 @@ export function DrawerActionRail({
               <>
                 <RailDragHandle isDragging={isDragging} {...gripHandlers} />
                 <RailSettingsMenu />
-                <div className="mx-1 my-2 w-px self-stretch bg-white/10" />
+                <div className="mx-1 my-2 w-px self-stretch bg-nav-foreground/10" />
               </>
             )}
 
             {!minimal && hint && (
-              <span className="max-w-[34ch] truncate px-1 text-[12px] font-medium text-white/70">
+              <span className="max-w-[34ch] truncate px-1 text-[12px] font-medium text-nav-foreground/70">
                 {hint}
               </span>
             )}
 
             {!minimal && tools && (
               <>
-                <div className="mx-1 my-2 w-px self-stretch bg-white/10" />
+                <div className="mx-1 my-2 w-px self-stretch bg-nav-foreground/10" />
                 <div className="flex items-center gap-1.5">{tools}</div>
               </>
             )}
 
             {!minimal && actions != null && (
-              <div className="mx-1 my-2 w-px self-stretch bg-white/10" />
+              <div className="mx-1 my-2 w-px self-stretch bg-nav-foreground/10" />
             )}
             {actions != null && <div className="flex items-center gap-2">{actions}</div>}
           </div>
@@ -194,14 +194,14 @@ export function DrawerRailButton({
       disabled={disabled}
       aria-label={label}
       className={cn(
-        "flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl text-[12.5px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+        "flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl text-[12.5px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
         iconOnly ? "w-9 justify-center" : "px-3",
         variant === "primary" && "bg-primary text-primary-foreground hover:bg-primary/90",
         variant === "warning" &&
           "bg-status-warning/15 text-status-warning hover:bg-status-warning/25",
         variant === "danger" &&
           "bg-status-negative/15 text-status-negative hover:bg-status-negative/25",
-        variant === "ghost" && "text-white/85 hover:bg-white/10 hover:text-white"
+        variant === "ghost" && "text-nav-foreground/85 hover:bg-nav-foreground/10 hover:text-nav-foreground"
       )}
     >
       {Icon && <Icon className="size-4" strokeWidth={2.2} />}

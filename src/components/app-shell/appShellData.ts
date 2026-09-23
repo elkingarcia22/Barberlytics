@@ -1,3 +1,4 @@
+import type * as React from "react";
 import {
   Home,
   UserSearch,
@@ -117,19 +118,90 @@ export const NAV_TREE: readonly NavEntry[] = [
   { kind: "item", id: "avisos", label: "Avisos", icon: Megaphone },
 ];
 
+/** Un registro del producto tal y como lo lista la búsqueda general. */
+export interface SearchRecord {
+  id: string;
+  title: string;
+  /** Contexto que se lee tras el título: tipo, estado, cifras. */
+  meta: readonly string[];
+  /** Ruta a la que lleva; el shell la entrega en `onNavigate`. */
+  path?: string;
+}
+
+/**
+ * Registros de demostración para la búsqueda general del shell. Una app real
+ * los sustituye por los suyos con `config.search`, igual que hace con las
+ * notificaciones (ver docs/API_CONTRACT.md).
+ */
+export const SEARCH_RECORDS: readonly SearchRecord[] = [
+  { id: "vac-analista", title: "Analista de datos", meta: ["vacante", "Entrevistas", "12 candidatos"] },
+  { id: "cand-andres", title: "Andrés Malo", meta: ["candidato", "Analista de datos"] },
+  { id: "vac-disenador", title: "Diseñador de producto", meta: ["vacante", "Publicada", "34 candidatos"] },
+  { id: "curso-onboarding", title: "Onboarding comercial", meta: ["ruta", "4 semanas", "48 inscritos"] },
+  { id: "enc-clima", title: "Encuesta de clima 2026", meta: ["encuesta", "En curso", "87 % de participación"] },
+  { id: "ciclo-q3", title: "Objetivos Q3", meta: ["ciclo", "142 colaboradores"] },
+];
+
+/** Un destino de la navegación, con su ruta legible y su ruta de app. */
+export interface NavigationPath {
+  id: string;
+  /** `["Selección", "Vacantes"]` se lee «Selección › Vacantes». */
+  path: readonly string[];
+  route?: string;
+}
+
+/**
+ * Aplana el árbol de navegación en destinos para la búsqueda general.
+ *
+ * Solo entra lo que de verdad lleva a algún sitio: una raíz con hijos
+ * despliega en vez de navegar, así que aporta sus hijos pero no a sí misma.
+ */
+export function navigationPaths(tree: readonly NavEntry[]): readonly NavigationPath[] {
+  const destinations: NavigationPath[] = [];
+  for (const entry of tree) {
+    if (entry.kind !== "item") continue;
+    if (!entry.children?.length) {
+      destinations.push({ id: entry.id, path: [entry.label], route: entry.path });
+      continue;
+    }
+    for (const child of entry.children) {
+      if (!child.children?.length) {
+        destinations.push({ id: child.id, path: [entry.label, child.label], route: child.path });
+        continue;
+      }
+      for (const leaf of child.children) {
+        destinations.push({ id: leaf.id, path: [entry.label, child.label, leaf.label], route: leaf.path });
+      }
+    }
+  }
+  return destinations;
+}
+
+/**
+ * El espacio de trabajo activo: una empresa, una sucursal, una sede… El shell
+ * no decide cuál de esas cosas es —lo dice `ShellConfig.workspaceLabels`—, solo
+ * sabe pintarlo y cambiarlo.
+ */
 export interface Company {
   id: string;
   name: string;
   /** Single-letter mark when there is no logo. */
   initial: string;
-  /** Mark background color. */
-  bg: string;
+  /** Color de la marca. Sin él, la marca usa el color del tema. */
+  bg?: string;
   /** Whether the mark renders the Google logo instead of the initial. */
   isGoogle?: boolean;
   /** Plan contratado; lo muestra el submenú de cambio de empresa. */
   plan?: string;
-  licenses: readonly [number, number];
-  credits: readonly [number, number];
+  /**
+   * La línea que se lee bajo el nombre. Sin ella se cae al número de
+   * personas de `licenses`, que no toda instalación tiene: una sucursal se
+   * describe por su dirección, no por su plan.
+   */
+  meta?: string;
+  /** Consumo contratado; solo lo pintan los productos que venden licencias. */
+  licenses?: readonly [number, number];
+  credits?: readonly [number, number];
 }
 
 export const COMPANIES: readonly Company[] = [
@@ -145,6 +217,56 @@ export const COMPANY_MENU_LINKS: readonly string[] = [
   "Organigrama",
   "Datos de empresa",
   "Roles y permisos",
+];
+
+/**
+ * Un ajuste de la plataforma. No es navegación de producto: es lo que se
+ * configura una vez y no se visita a diario, así que vive en su propio menú
+ * de la cabecera y no en el árbol del sidebar.
+ */
+export interface SettingsItem {
+  id: string;
+  label: string;
+  /** Una línea de qué se ajusta ahí; la muestra la página de configuración. */
+  description?: string;
+  /** Ruta de la app; el shell la entrega en `onNavigate`. */
+  path?: string;
+  /** `danger` para lo irreversible (eliminar la cuenta). */
+  tone?: "default" | "danger";
+}
+
+export interface SettingsGroup {
+  id: string;
+  label: string;
+  /** El glifo de la fila que abre el grupo en el menú de la marca. */
+  icon?: LucideIcon;
+  items: readonly SettingsItem[];
+}
+
+/** Ajustes de demostración; la app real inyecta los suyos vía `ShellConfig.settings`. */
+export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
+  {
+    id: "cuenta",
+    label: "Configuración de la cuenta",
+    items: [
+      { id: "datos-empresa", label: "Datos de empresa", description: "Nombre, identificación y zona horaria." },
+      { id: "facturacion", label: "Facturación", description: "Tu plan, tus facturas y los datos de cobro." },
+      { id: "personalizacion", label: "Personalización", description: "Marca, colores y correos del producto." },
+    ],
+  },
+  {
+    id: "equipo",
+    label: "Equipo",
+    items: [
+      { id: "permisos", label: "Permisos", description: "Qué puede hacer cada rol dentro de la plataforma." },
+      { id: "organigrama", label: "Organigrama", description: "Cómo se ordenan las áreas y quién reporta a quién." },
+    ],
+  },
+  {
+    id: "notificaciones",
+    label: "Notificaciones",
+    items: [{ id: "centro-notificaciones", label: "Centro de notificaciones", description: "Qué avisos se envían y a quién." }],
+  },
 ];
 
 export interface NotificationItem {
@@ -174,7 +296,7 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
   { title: "Nuevo Home operativo", description: "Tu Home ahora es un centro de mando: métricas clave, quick actions y lo que necesita tu atención, todo en un solo lugar.", isNew: true },
   { title: "Agente IA de Thema", description: "Pregúntale al agente sobre pendientes, participación o evaluaciones sin salir del Home. Actívalo desde el tab \"Agente IA\" en el sidebar.", isNew: true },
   { title: "Alertas de vencimiento", description: "Recibe avisos automáticos cuando una evaluación, encuesta o assessment esté por vencer, antes de que se convierta en un pendiente oculto." },
-  { title: "Modo oscuro", description: "Actívalo desde tu perfil, en la esquina superior derecha. Tu preferencia se mantiene en toda la plataforma." },
+  { title: "Modo oscuro", description: "Actívalo en Personalización, dentro del menú de la marca. Tu preferencia se mantiene en toda la plataforma." },
   { title: "Exportar reportes a Excel", description: "Los paneles de participación y evaluaciones ahora se pueden exportar directamente en formato .xlsx para compartir con liderazgo." },
 ];
 
@@ -196,11 +318,36 @@ export const AGENT_SUGGESTIONS: readonly string[] = [
   "Detecta señales de riesgo de rotación en mi empresa.",
 ];
 
+/**
+ * Un rol que la persona puede asumir. No es un permiso: es la vista de la
+ * plataforma que se está mirando. Quien administra necesita ver lo que ve un
+ * líder o un colaborador sin cerrar sesión ni pedir una cuenta de prueba.
+ */
+export interface UserRoleOption {
+  id: string;
+  label: string;
+  /** Una línea de qué cambia al asumirlo. */
+  description: string;
+  /**
+   * Icono opcional del rol, para reconocerlo sin leer. El shell no sabe qué
+   * roles existen en cada producto, así que lo trae la app con los suyos.
+   */
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+/** Roles de demostración; la app real inyecta los suyos vía `ShellConfig.roles`. */
+export const USER_ROLES: readonly UserRoleOption[] = [
+  { id: "admin", label: "Administrador", description: "Toda la empresa: productos, personas y facturación." },
+  { id: "reclutador", label: "Reclutador", description: "Vacantes, candidatos y plantillas de Selección." },
+  { id: "lider", label: "Líder de equipo", description: "El avance y los pendientes de su equipo." },
+  { id: "colaborador", label: "Colaborador", description: "La vista de aprendizaje de cualquier persona." },
+];
+
 /** Persona de demostración; la app real inyecta la suya vía `ShellConfig.user`. */
 export const CURRENT_USER = {
   name: "Carolina Vargas",
   email: "carolina.vargas@ejemplo.com",
-  role: "Admin",
+  role: "Administrador",
   avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150",
 };
 

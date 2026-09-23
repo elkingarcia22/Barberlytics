@@ -106,7 +106,10 @@ export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", custo
             <div
               className={cn(
                 // Same rounded-card treatment as the sidebar it sits beside
-                "flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-ai-mesh-agent shadow-card",
+                // `bg-surface` bajo la malla: `ai-mesh-agent` solo aporta los
+                // tintes, así que sin superficie propia el panel quedaba
+                // transparente y en oscuro la gradación no se veía.
+                "flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-surface ai-mesh-agent shadow-card",
                 !open && "invisible"
               )}
               style={{ width: PANEL_WIDTH }}

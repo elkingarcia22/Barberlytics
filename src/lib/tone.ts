@@ -91,6 +91,52 @@ export const toneSolid = (tone: Tone): React.CSSProperties => ({
  */
 export const toneWash = (tone: Tone, alpha = 6): React.CSSProperties => fill(tone, alpha);
 
+/** El fondo de la app bajo un tinte: lo que la luz del degradado empuja. */
+const SURFACE = "var(--color-surface)";
+
+/**
+ * La luz que mantiene un tinte como un baño y no como un bloque de color.
+ *
+ * Son dos porque el alcance manda: una luz de esquina llega a todos los bordes
+ * de una pieza pequeña o cuadrada (una ficha, una portada), pero estirada a lo
+ * ancho de una fila se apaga al tercio del camino y deja el resto plano. Para
+ * eso está `sweep`, que sigue empujando de izquierda a derecha.
+ */
+const TONE_LIGHT: Readonly<Record<"corner" | "sweep", string>> = {
+  corner: `radial-gradient(120% 100% at 8% 0%, ${mix(SURFACE, 58)}, transparent 62%)`,
+  sweep: `linear-gradient(to right, ${mix(SURFACE, 14)} 0%, ${mix(SURFACE, 92)} 46%)`,
+};
+
+export interface ToneGradientOptions {
+  /** Intensidad del acento donde el degradado arranca. 0–100. */
+  alpha?: number;
+  /** Por dónde entra la luz; `none` deja el degradado del tono a solas. */
+  light?: "corner" | "sweep" | "none";
+}
+
+/**
+ * El fondo **degradado** de una superficie por tono: el acento cayendo en
+ * diagonal de fuerte a casi nada, con una luz encima que lo deja en baño.
+ *
+ * Es el escalón que faltaba entre `toneWash` —un tinte plano, para agrupar— y
+ * `toneSolid` —el color entero—: una portada o una ficha de plantilla necesita
+ * que el color tenga dirección y profundidad, no que sea un rectángulo de un
+ * solo valor. Se apoya siempre sobre `--color-surface`, así que el mismo
+ * degradado vale en claro y en oscuro sin tocar nada: el tinte se mezcla con
+ * transparente y la luz empuja hacia el fondo que tenga el tema.
+ *
+ * `ai` sale con sus dos paradas, como en el resto del módulo; los demás tonos
+ * degradan su propio matiz contra sí mismo.
+ */
+export function toneGradient(tone: Tone, options: ToneGradientOptions = {}): React.CSSProperties {
+  const { alpha = 14, light = "corner" } = options;
+  const { accent, accentEnd } = TONES[tone];
+  const tail = Math.max(Math.round(alpha / 5), 2);
+  const tint = `linear-gradient(135deg, ${mix(accent, alpha)}, ${mix(accentEnd ?? accent, tail)})`;
+  const layers = light === "none" ? [tint] : [TONE_LIGHT[light], tint];
+  return { backgroundColor: SURFACE, backgroundImage: layers.join(", ") };
+}
+
 /** A hairline rule or a 3px side accent. */
 export const toneBar = (tone: Tone, alpha = 100): React.CSSProperties => fill(tone, alpha);
 

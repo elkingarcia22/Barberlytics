@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { CalendarIcon } from 'lucide-react'
-import { es } from 'date-fns/locale'
+
 
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n'
+import { calendarLocale } from './calendarLocale'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -61,7 +63,7 @@ export const DatePicker = React.forwardRef<
 >(({
   value,
   onChange,
-  placeholder = 'Select a date',
+  placeholder,
   disabled = false,
   label,
   description,
@@ -69,14 +71,15 @@ export const DatePicker = React.forwardRef<
   minDate,
   maxDate,
   className,
-  locale = 'en-US',
+  locale,
 }, ref) => {
   const [open, setOpen] = React.useState(false)
-
-  // `locale` is an Intl code for the trigger text; the calendar grid needs a
-  // date-fns Locale object. Anything not Spanish falls back to the library
-  // default, which is English.
-  const calendarLocale = locale.startsWith('es') ? es : undefined
+  // Sin `locale` propio manda el idioma de la aplicación: un date picker que
+  // se quedaba en inglés dentro de una interfaz en español era el síntoma más
+  // visible de no tener un idioma único.
+  const { current, locale: activeLocale, t } = useLocale()
+  const intlLocale = locale ?? current.intl
+  const dayPickerLocale = calendarLocale(activeLocale)
 
   // Determine if value is valid and selectable
   const isValidValue = value && isValidDate(value)
@@ -86,8 +89,8 @@ export const DatePicker = React.forwardRef<
 
   // Format display text
   const displayText = isValidValue && isValueSelectable
-    ? formatDate(value, locale)
-    : placeholder
+    ? formatDate(value, intlLocale)
+    : (placeholder ?? t('date.select'))
 
   // Generate unique ID for accessibility
   const pickerId = React.useId()
@@ -148,7 +151,7 @@ export const DatePicker = React.forwardRef<
             // Without this the grid keeps react-day-picker's English month and
             // weekday names, so `locale` only reached the trigger text and the
             // popover contradicted it.
-            locale={calendarLocale}
+            locale={dayPickerLocale}
             selected={isValidValue ? value : undefined}
             onSelect={handleDateSelect}
             disabled={(date: any) => {

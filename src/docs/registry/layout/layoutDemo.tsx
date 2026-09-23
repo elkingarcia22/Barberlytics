@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { ShellConfigContext, resolveShellConfig, type ShellConfigOverrides } from "@/components/app-shell";
 
 /**
  * Marco acotado para los shells de pantalla completa. Fija la altura y fuerza
@@ -8,23 +9,36 @@ import { cn } from "@/lib/utils";
  * bloque contenedor de cualquier `position: fixed` interno —el drawer móvil
  * del sidebar, el velo, una barra vertical— para que no se escape al
  * viewport de la documentación.
+ *
+ * Y, sobre todo, **aísla la configuración**: desde que la documentación monta
+ * el shell del producto, un `AppSidebar` o un `AppHeader` de demostración
+ * heredaban por contexto la configuración de la doc y mostraban su navegación
+ * —Fundamentos, Primitivos…— en vez de los datos de ejemplo que vienen a
+ * demostrar. Cada marco provee la suya, así que la demo no depende de quién
+ * la hospede.
  */
 export function ShellFrame({
   children,
   className,
   height = 520,
+  config,
 }: {
   children: React.ReactNode;
   className?: string;
   height?: number;
+  /** Lo que la demo quiera cambiar; el resto son los datos de ejemplo. */
+  config?: ShellConfigOverrides;
 }) {
+  const value = React.useMemo(() => resolveShellConfig(config), [config]);
   return (
-    <div
-      className={cn("relative w-full overflow-hidden rounded-xl border border-border/60 bg-background [&>*]:!h-full", className)}
-      style={{ height, transform: "translateZ(0)" }}
-    >
-      {children}
-    </div>
+    <ShellConfigContext.Provider value={value}>
+      <div
+        className={cn("relative w-full overflow-hidden rounded-xl border border-border/60 bg-background [&>*]:!h-full", className)}
+        style={{ height, transform: "translateZ(0)" }}
+      >
+        {children}
+      </div>
+    </ShellConfigContext.Provider>
   );
 }
 
@@ -41,7 +55,11 @@ export function DemoStats({ className }: { className?: string }) {
     <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)}>
       {STATS.map((stat) => (
         <div key={stat.label} className="rounded-2xl border border-border/60 bg-surface p-4 shadow-card">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">{stat.label}</p>
+          {/* `truncate` + title: una etiqueta larga en una columna estrecha se
+              salía de la card en vez de recortarse. */}
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted" title={stat.label}>
+            {stat.label}
+          </p>
           <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-text-primary">{stat.value}</p>
           <p className="mt-1 text-xs font-medium text-status-positive">{stat.delta}</p>
         </div>

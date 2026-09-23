@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
+import { Button } from "@/components/ui/button";
 import { useCopy } from "../hooks/useCopy";
 
 /** Resalta de forma ligera JSX/TS: cadenas, etiquetas, palabras clave y comentarios. */
@@ -36,19 +38,19 @@ function highlight(code: string): React.ReactNode[] {
 
 export function CopyButton({ text, className }: { text: string; className?: string }) {
   const { copied, copy } = useCopy();
+  const t = useT();
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={() => copy(text)}
-      aria-label={copied ? "Copiado" : "Copiar código"}
-      className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-surface px-2 text-[11px] font-medium text-text-secondary transition-colors hover:border-border-strong/60 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        className
-      )}
+      aria-label={copied ? t("docs.copied") : t("docs.copy")}
+      className={className}
     >
-      {copied ? <Check className="size-3.5 text-status-positive" /> : <Copy className="size-3.5" />}
-      {copied ? "Copiado" : "Copiar"}
-    </button>
+      {copied ? <Check className="text-status-positive" /> : <Copy />}
+      {copied ? t("docs.copied") : t("docs.copy")}
+    </Button>
   );
 }
 
@@ -60,6 +62,13 @@ export interface CodeBlockProps {
   bare?: boolean;
 }
 
+/**
+ * El marco del bloque de código es un `div` y no una `<Card>` a propósito, por
+ * el mismo motivo que los estados de `ChartShell`: casi siempre se renderiza
+ * *dentro* de una card —al pie del playground— y una Card anidada duplicaría
+ * borde, radio y sombra. Aquí hace falta lo contrario: una superficie apagada
+ * (`bg-surface-subtle`) que se distinga de la card que la contiene.
+ */
 export function CodeBlock({ code, language = "tsx", className, bare = false }: CodeBlockProps) {
   const trimmed = code.trim();
   return (

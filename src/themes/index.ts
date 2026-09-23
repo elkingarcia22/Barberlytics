@@ -1,7 +1,7 @@
 export { ThemeProvider } from "./ThemeProvider";
 export { useTheme, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
-export { ThemeSelector, ThemeModeToggle, ThemeSwatch, type ThemeSelectorProps } from "./ThemeSelector";
-export { THEME_PRESETS, DEFAULT_THEME_ID, findPreset, type ThemePreset, type NeutralTint } from "./presets";
+export { ThemeSelector, ThemeSelectorPanel, ThemeModeToggle, ThemeSwatch, type ThemeSelectorProps } from "./ThemeSelector";
+export { THEME_PRESETS, DEFAULT_THEME_ID, findPreset, type ThemePreset, type NeutralTint, type ThemeTier, type DarkDepth } from "./presets";
 export {
   FONT_OPTIONS,
   DEFAULT_BODY_FONT,
@@ -18,9 +18,12 @@ export {
   buildThemeTokens,
   buildRadiusTokens,
   buildFontTokens,
+  buildSpacingTokens,
   themeToCss,
   type ThemeFonts,
+  type DensityScale,
   RADIUS_FACTORS,
+  DENSITY_FACTORS,
   type ThemeMode,
   type ResolvedMode,
   type RadiusScale,

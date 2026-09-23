@@ -45,8 +45,8 @@ export function RailDragHandle({
           onDoubleClick={onDoubleClick}
           style={{ touchAction: "none" }}
           className={cn(
-            "dock-item flex h-10 w-10 shrink-0 cursor-grab select-none items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/10 hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:cursor-grabbing",
-            isDragging && "cursor-grabbing bg-white/10 text-white/70"
+            "dock-item flex h-10 w-10 shrink-0 cursor-grab select-none items-center justify-center rounded-xl text-nav-foreground/40 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30 active:cursor-grabbing",
+            isDragging && "cursor-grabbing bg-nav-foreground/10 text-nav-foreground/70"
           )}
         >
           <GripIcon className="h-[18px] w-[18px]" strokeWidth={2} />

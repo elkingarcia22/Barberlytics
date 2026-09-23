@@ -1,17 +1,65 @@
-import type * as React from "react";
-import { Droplets, Palette, Shapes, Sparkles, Square, Type } from "lucide-react";
+import { Droplets, Languages, Palette, Ruler, Shapes, Sparkles, Square, Type, type LucideIcon } from "lucide-react";
+import type { Localized } from "@/i18n";
 
 export interface FoundationPage {
   id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  label: Localized;
+  /** Una línea de qué decide ese fundamento; la usa la portada. */
+  description: Localized;
+  /** `LucideIcon` y no un componente genérico: el árbol del shell lo exige. */
+  icon: LucideIcon;
 }
 
 export const FOUNDATION_PAGES: readonly FoundationPage[] = [
-  { id: "themes", label: "Temas", icon: Palette },
-  { id: "colors", label: "Colores y tokens", icon: Droplets },
-  { id: "typography", label: "Tipografía", icon: Type },
-  { id: "radius", label: "Radios y sombras", icon: Square },
-  { id: "icons", label: "Iconos", icon: Shapes },
-  { id: "motion", label: "Motion", icon: Sparkles },
+  {
+    id: "themes",
+    label: { es: "Temas", en: "Themes" },
+    description: { es: "Catorce presets y cómo se arma uno nuevo.", en: "Fourteen presets and how to build a new one." },
+    icon: Palette,
+  },
+  {
+    id: "colors",
+    label: { es: "Colores y tokens", en: "Colors and tokens" },
+    description: { es: "La escala semántica y de dónde sale cada color.", en: "The semantic scale and where each color comes from." },
+    icon: Droplets,
+  },
+  {
+    id: "typography",
+    label: { es: "Tipografía", en: "Typography" },
+    description: { es: "La escala como componentes, sin tamaños a mano.", en: "The scale as components, with no hand-set sizes." },
+    icon: Type,
+  },
+  {
+    id: "radius",
+    label: { es: "Radios y sombras", en: "Radii and shadows" },
+    description: { es: "Las cuatro curvas y los tres niveles de elevación.", en: "The four curves and the three elevation levels." },
+    icon: Square,
+  },
+  {
+    id: "spacing",
+    label: { es: "Espaciado", en: "Spacing" },
+    description: { es: "El ritmo de la página y las tres densidades.", en: "The rhythm of the page and the three densities." },
+    icon: Ruler,
+  },
+  {
+    id: "icons",
+    label: { es: "Iconos", en: "Icons" },
+    description: { es: "El registro semántico: pides un concepto, no un archivo.", en: "The semantic registry: you ask for a concept, not a file." },
+    icon: Shapes,
+  },
+  {
+    id: "language",
+    label: { es: "Idioma", en: "Language" },
+    description: {
+      es: "Un interruptor para toda la interfaz, y dónde acaba el sistema y empieza tu app.",
+      en: "One switch for the whole interface, and where the system ends and your app begins.",
+    },
+    icon: Languages,
+  },
+  {
+    id: "motion",
+    label: { es: "Motion", en: "Motion" },
+    description: { es: "Duraciones, curvas y cómo se respeta reducir movimiento.", en: "Durations, easings and how reduced motion is honored." },
+    icon: Sparkles,
+  },
 ];

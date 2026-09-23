@@ -1,10 +1,12 @@
 import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 import { useCssVars } from "../hooks/useCssVar";
 import { useCopy } from "../hooks/useCopy";
 import { DocSection, PageIntro } from "../components/PageIntro";
 import { CodeBlock } from "../components/CodeBlock";
+import { DoDont } from "./guides/GuideBits";
 
 interface TokenSpec {
   name: string;
@@ -28,7 +30,7 @@ const SURFACES: TokenSpec[] = [
   { name: "--color-surface-muted", label: "Superficie muted", cls: "bg-surface-muted / bg-secondary" },
   { name: "--color-surface-subtle", label: "Superficie subtle", cls: "bg-surface-subtle", note: "Zonas hundidas, código." },
   { name: "--color-tab-track", label: "Pista de tabs", cls: "bg-tab-track" },
-  { name: "--color-surface-nav", label: "Navegación", cls: "bg-surface-nav / bg-nav", note: "Invariante: navy en ambos modos." },
+  { name: "--color-surface-nav", label: "Navegación", cls: "bg-surface-nav / bg-nav", note: "Cromo: oscuro en ambos modos, con el matiz del tema." },
 ];
 
 const TEXT: TokenSpec[] = [
@@ -36,6 +38,7 @@ const TEXT: TokenSpec[] = [
   { name: "--color-text-secondary", label: "Texto secundario", cls: "text-text-secondary / text-muted-foreground", note: "Cuerpo y subtítulos." },
   { name: "--color-text-muted", label: "Texto muted", cls: "text-text-muted", note: "Hints y placeholders." },
   { name: "--color-text-inverse", label: "Texto inverso", cls: "text-text-inverse" },
+  { name: "--nav-foreground", label: "Texto sobre cromo", cls: "text-nav-foreground", note: "El del rail y la nav, sobre --color-surface-nav." },
 ];
 
 const BORDERS: TokenSpec[] = [
@@ -91,25 +94,29 @@ function Swatch({ spec, value }: { spec: TokenSpec; value: string }) {
       type="button"
       onClick={() => copy(`var(${spec.name})`)}
       title={`Copiar var(${spec.name})`}
-      className="group flex items-start gap-3 rounded-xl border border-border/60 bg-surface p-3 text-left shadow-card transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="group block w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
-      <span
-        className="relative size-12 shrink-0 rounded-lg border border-black/10 dark:border-white/10"
-        style={{ background: color }}
-      >
-        {copied && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-white">
-            <Check className="size-4" />
-          </span>
-        )}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[13px] font-semibold text-text-primary">{spec.label}</span>
-        <span className="block truncate font-mono text-[11px] text-text-secondary">{spec.name}</span>
-        <span className="block truncate font-mono text-[11px] text-text-muted">{value || "—"}</span>
-        {spec.cls && <span className="mt-1 block truncate font-mono text-[10.5px] text-primary">{spec.cls}</span>}
-        {spec.note && <span className="mt-0.5 block text-[11px] text-text-muted">{spec.note}</span>}
-      </span>
+      {/* La superficie es una <Card>; el botón la envuelve porque Card siempre
+          renderiza un div y la muestra se copia al pulsarla. */}
+      <Card className="flex items-start gap-3 rounded-xl p-3 transition-colors group-hover:border-primary/40">
+        <span
+          className="relative size-12 shrink-0 rounded-lg border border-black/10 dark:border-white/10"
+          style={{ background: color }}
+        >
+          {copied && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-white">
+              <Check className="size-4" />
+            </span>
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[13px] font-semibold text-text-primary">{spec.label}</span>
+          <span className="block truncate font-mono text-[11px] text-text-secondary">{spec.name}</span>
+          <span className="block truncate font-mono text-[11px] text-text-muted">{value || "—"}</span>
+          {spec.cls && <span className="mt-1 block truncate font-mono text-[10.5px] text-primary">{spec.cls}</span>}
+          {spec.note && <span className="mt-0.5 block text-[11px] text-text-muted">{spec.note}</span>}
+        </span>
+      </Card>
     </button>
   );
 }
@@ -138,7 +145,7 @@ const OPACITY_CODE = `/* tokens.css: cada color vive dos veces */
 
 export function ColorsPage() {
   return (
-    <div className="cascade-enter space-y-12">
+    <div className="cascade-enter space-y-section">
       <PageIntro
         eyebrow="Fundamentos"
         title="Colores y tokens"
@@ -160,12 +167,32 @@ export function ColorsPage() {
         <SwatchGrid specs={STATES} />
       </DocSection>
       <DocSection id="ai" title="IA" description="La familia de IA es siempre un gradiente, nunca un azul más: así no compite con la marca.">
-        <div className="space-y-3">
+        <div className="space-y-stack">
           <div className="h-14 rounded-xl bg-ai-gradient shadow-ai-premium" />
+          {/* Las cinco paradas en plano (90°, incluida la cuarta): es el
+              espécimen de los tokens, no la utilidad `bg-ai-gradient` de arriba. */}
           <div className="h-8 rounded-lg" style={{ background: "linear-gradient(90deg, var(--color-ai-stop-1), var(--color-ai-stop-2), var(--color-ai-stop-3), var(--color-ai-stop-4), var(--color-ai-stop-5))" }} />
           <SwatchGrid specs={AI} cols={4} />
         </div>
       </DocSection>
+      <DocSection id="rules" title="Reglas" description="El tema hace el trabajo si se le deja: con solo clases del tema, el modo oscuro y un cambio de marca salen solos.">
+        <DoDont
+          dos={[
+            "Solo clases del tema: bg-primary, text-text-secondary, border-border, bg-surface-subtle.",
+            "Grises neutros para la interfaz; el primario se reserva para la acción principal y lo seleccionado.",
+            "Verde, naranja y rojo solo dicen cómo está algo (text-success, text-warning, text-destructive).",
+            "Lo activo al 10 %: bg-primary/10 con text-primary, como en la barra lateral.",
+            "Probar en claro y oscuro antes de entregar.",
+          ]}
+          donts={[
+            "Nunca un hex ni un rgb() en una pantalla: npm run check lo marca.",
+            "Nunca la paleta cruda de Tailwind (bg-blue-500, text-gray-600, bg-neutral-100).",
+            "Un botón no es verde porque sí: el estado no decora.",
+            "El gradiente de IA no se usa en nada que no haga la IA.",
+          ]}
+        />
+      </DocSection>
+
       <DocSection id="shadcn" title="Mapa semántico shadcn" description="Lo que consumen los primitivos. Son canales HSL para que las clases admitan opacidad (bg-primary/10).">
         <SwatchGrid specs={SHADCN} />
       </DocSection>

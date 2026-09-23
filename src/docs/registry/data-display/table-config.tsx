@@ -28,7 +28,7 @@ interface Person {
   status: "active" | "pending" | "completed";
 }
 
-const FIRST = ["Laura", "Carlos", "Ana", "Diego", "Valentina", "Mateo", "Sofía", "Julián", "Camila", "Andrés", "Isabela", "Santiago"];
+const FIRST = ["Renata", "Carlos", "Ana", "Diego", "Valentina", "Mateo", "Antonia", "Julián", "Camila", "Andrés", "Isabela", "Santiago"];
 const LAST = ["Méndez", "Rojas", "Torres", "Salazar", "Ruiz", "Herrera", "Castro", "Peña"];
 const AREAS = ["Producto", "Ventas", "Tecnología", "Finanzas", "Marketing", "Personas"];
 const OBJECTIVES = ["Lanzar onboarding v2", "Cerrar Q3 con +12%", "Migrar el data warehouse", "Reducir churn al 4%", "Certificar 40 líderes", "Automatizar la nómina"];
@@ -236,6 +236,8 @@ const lazy = useLazyRows({ total: rows.length, enabled: config.isLazy, step: 25,
     },
   ],
   props: [
+    { name: "config.view", type: '"table" | "list"', default: '"table"', description: "Rejilla o lista. Lo elige quien lee desde el panel («Cómo se ven») y se recuerda con el resto de la configuración; la pantalla decide cómo dibuja cada una." },
+    { name: "config.setView", type: "(view) => void", description: "Cambia la vista. El panel ya lo llama; está aquí para un atajo propio de la pantalla." },
     { name: "TableColumnSpec", type: "{ id; label; fixed?; hiddenByDefault?; available? }", description: "Una columna declarada una vez. `fixed` la hace inamovible (solo la de selección); `available: false` la saca de la tabla y del panel sin olvidar su sitio." },
     { name: "useTableConfig(tableId, columns, options?)", type: "TableConfig", description: "El estado de la tabla, leído de `localStorage` en el primer render. `options.defaultMode` cambia el modo de fábrica (`\"lazy\"`)." },
     { name: "TableConfig.columns / fixedColumns / movableColumns", type: "readonly TableColumnSpec[]", description: "Las visibles en orden, las que nunca se mueven y todas las movibles (para el panel)." },
@@ -243,7 +245,11 @@ const lazy = useLazyRows({ total: rows.length, enabled: config.isLazy, step: 25,
     { name: "TableConfig.toggleVisibility / togglePin / moveColumn / reset", type: "(…) => void", description: "Las acciones del panel. Ocultar una fijada la suelta; fijar una oculta la muestra." },
     { name: "TableColumnCells<T>", type: "Record<string, { head; cell(row); headClassName?; cellClassName? }>", description: "Encabezado y celda de cada columna, juntos, para que el orden se aplique una vez sobre el par." },
     { name: "ConfigurableHeaderCells / ConfigurableRowCells", type: "component", description: "Recorren `config.columns` y sacan su mitad de `cells`. También miden los anchos para apilar las columnas fijadas." },
-    { name: "TableConfigButton", type: "{ config; noun?; showRowsMode?; className? }", description: "El botón «Configurar» con el popover. `noun` nombra lo listado («colaboradores»); `showRowsMode={false}` esconde el selector de modo." },
+    { name: "config.actions", type: '"rail" | "inline"', default: '"rail"', description: "Dónde vive lo que se puede hacer. `rail` lo concentra todo en la barra flotante —las de la pantalla sin selección, las de los registros en cuanto se marca algo, sustituyéndolas— y deja la cabecera de la pantalla sin botones. `inline` las devuelve al layout: arriba las de la pantalla, y en la cabecera de la lista las de lo marcado." },
+    { name: "config.setActions", type: "(placement) => void", description: "Cambia dónde van las acciones. Lo llama el panel («Dónde van las acciones»)." },
+    { name: "config.rowControl", type: '"checkbox" | "menu"', default: '"checkbox"', description: "Cómo se actúa sobre un registro. `checkbox` es el modelo de lote: se marcan filas —con su casilla o picando en la fila— y las acciones operan sobre lo marcado. `menu` quita las casillas y le da a cada fila su botón de acciones: se actúa sobre una sola, sin pasar por seleccionar, y no hay acciones en lote." },
+    { name: "config.setRowControl", type: "(control) => void", description: "Cambia el modelo de fila. Lo llama el panel («Cómo se actúa sobre una fila»)." },
+    { name: "TableConfigButton", type: "{ config; noun?; showRowsMode?; showActionsPlacement?; showRowControl?; className? }", description: "El botón «Configurar» con el popover. `noun` nombra lo listado («colaboradores»); `showRowsMode={false}` esconde el selector de modo, `showActionsPlacement={false}` el de dónde van las acciones y `showRowControl={false}` el del modelo de fila (los dos últimos sobran donde no se opera sobre registros)." },
     { name: "DraggableHeaderCell", type: "{ column; drag; pinned?; …th }", description: "Un `TableHead` con tirador de arrastre y guía de destino. Lo usa `ConfigurableHeaderCells`; úsalo directo solo en encabezados a mano." },
     { name: "useColumnDrag({ axis, onReorder })", type: "ColumnDrag", description: "Arrastre nativo, sin librería. `axis: \"x\"` en el encabezado, `\"y\"` en la lista del panel. Devuelve `dragHandleProps`, `dropTargetProps` y `dropSideFor`." },
     { name: "useLazyRows({ total, enabled, step?, resetKey? })", type: "LazyRows", description: "Cuántas filas mostrar (`count`), si faltan (`hasMore`) y el `attachSentinel`. Con `enabled: false` devuelve el total. `resetKey` reinicia al cambiar filtros." },
@@ -253,6 +259,8 @@ const lazy = useLazyRows({ total: rows.length, enabled: config.isLazy, step: 25,
   ],
   guidelines: {
     do: [
+      "Ofrece la vista de lista cuando las columnas sobran para decidir: en la lista se queda lo que identifica el registro y su estado.",
+      "Comparte la selección entre las dos vistas: es la misma lista, solo cambia el dibujo.",
       "Usa un `tableId` estable y único por tabla: es la llave con la que se recuerda la preferencia.",
       "Pinta la columna fija (selección) a mano antes de `ConfigurableHeaderCells`; no pasa por el diccionario.",
       "Acota la altura de la caja con scroll cuando uses `useLazyRows`: el centinela necesita un contenedor que recorte de verdad.",

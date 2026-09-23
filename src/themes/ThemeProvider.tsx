@@ -1,5 +1,5 @@
 import * as React from "react";
-import { buildFontTokens, buildRadiusTokens, buildThemeTokens, type RadiusScale, type ResolvedMode, type ThemeMode, type ThemeTokens } from "./buildTokens";
+import { buildFontTokens, buildRadiusTokens, buildSpacingTokens, buildThemeTokens, type DensityScale, type RadiusScale, type ResolvedMode, type ThemeMode, type ThemeTokens } from "./buildTokens";
 import { DEFAULT_THEME_ID, findPreset, THEME_PRESETS } from "./presets";
 import { DEFAULT_BODY_FONT, DEFAULT_HEADING_FONT, ensureFontLoaded, findFont, FONT_OPTIONS, isFontId, resolveHeadingFont, type FontId, type HeadingFontId } from "./fonts";
 import { ThemeContext, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
@@ -8,12 +8,13 @@ interface StoredTheme {
   preset: string;
   mode: ThemeMode;
   radius: RadiusScale;
+  density: DensityScale;
   /** Ausente = usar la sugerencia del preset (o Inter). */
   font?: FontId;
   headingFont?: HeadingFontId;
 }
 
-const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "light", radius: "md" };
+const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "light", radius: "md", density: "normal" };
 
 function readStored(): StoredTheme {
   if (typeof window === "undefined") return DEFAULT_STORED;
@@ -25,6 +26,7 @@ function readStored(): StoredTheme {
       preset: findPreset(parsed.preset).id,
       mode: parsed.mode === "dark" || parsed.mode === "system" ? parsed.mode : "light",
       radius: parsed.radius === "none" || parsed.radius === "sm" || parsed.radius === "lg" ? parsed.radius : "md",
+      density: parsed.density === "compact" || parsed.density === "comfortable" ? parsed.density : "normal",
       font: isFontId(parsed.font) ? parsed.font : undefined,
       headingFont: parsed.headingFont === "same" || isFontId(parsed.headingFont) ? parsed.headingFont : undefined,
     };
@@ -60,10 +62,12 @@ function useSystemPrefersDark(): boolean {
  * preset y todas las variables derivadas como estilos inline, que ganan a
  * cualquier regla de tokens.css / globals.css.
  */
-function applyToDocument(tokens: ThemeTokens, resolvedMode: ResolvedMode, presetId: string, previous: string[]) {
+function applyToDocument(tokens: ThemeTokens, resolvedMode: ResolvedMode, presetId: string, tier: string, previous: string[]) {
   const root = document.documentElement;
   root.classList.toggle("dark", resolvedMode === "dark");
   root.dataset.theme = presetId;
+  // `data-tier` enciende las hojas de acabado por nivel (themes/premium.css).
+  root.dataset.tier = tier;
   root.style.colorScheme = resolvedMode;
   for (const name of previous) {
     if (!(name in tokens)) root.style.removeProperty(name);
@@ -89,9 +93,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...buildThemeTokens(preset, resolvedMode),
       ...buildRadiusTokens(stored.radius),
+      ...buildSpacingTokens(stored.density),
       ...buildFontTokens({ body: font, heading: headingFont }),
     }),
-    [preset, resolvedMode, stored.radius, font, headingFont]
+    [preset, resolvedMode, stored.radius, stored.density, font, headingFont]
   );
 
   React.useEffect(() => {
@@ -101,9 +106,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const appliedRef = React.useRef<string[]>([]);
   React.useLayoutEffect(() => {
-    applyToDocument(tokens, resolvedMode, preset.id, appliedRef.current);
+    applyToDocument(tokens, resolvedMode, preset.id, preset.tier ?? "standard", appliedRef.current);
     appliedRef.current = Object.keys(tokens);
-  }, [tokens, resolvedMode, preset.id]);
+  }, [tokens, resolvedMode, preset.id, preset.tier]);
 
   React.useEffect(() => {
     writeStored(stored);
@@ -119,6 +124,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       resolvedMode,
       radius: stored.radius,
       setRadius: (radius) => setStored((prev) => ({ ...prev, radius })),
+      density: stored.density,
+      setDensity: (density) => setStored((prev) => ({ ...prev, density })),
       font,
       setFont: (next) => setStored((prev) => ({ ...prev, font: next })),
       headingFont,
@@ -126,7 +133,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       fonts: FONT_OPTIONS,
       tokens,
     }),
-    [preset, stored.mode, stored.radius, resolvedMode, tokens, font, headingFont]
+    [preset, stored.mode, stored.radius, stored.density, resolvedMode, tokens, font, headingFont]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

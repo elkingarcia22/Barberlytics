@@ -9,8 +9,10 @@ export const buttonEntry = defineEntry({
   id: "button",
   name: "Button",
   group: "ui",
-  description:
-    "La acción del sistema. Seis variantes por intención (primaria, contorno, secundaria, fantasma, destructiva y enlace) y una escala de tamaños compacta pensada para interfaces densas.",
+  description: {
+    es: "La acción del sistema. Seis variantes por intención (primaria, contorno, secundaria, fantasma, destructiva y enlace) y una escala de tamaños compacta pensada para interfaces densas.",
+    en: "The system's action. Six variants by intent (primary, outline, secondary, ghost, destructive and link) and a compact size scale meant for dense interfaces.",
+  },
   importPath: 'import { Button } from "@/components/ui/button"',
   sourcePath: "src/components/ui/button.tsx",
   status: "stable",

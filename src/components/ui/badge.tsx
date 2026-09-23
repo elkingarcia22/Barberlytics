@@ -20,6 +20,16 @@ const badgeVariants = cva(
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
         neutral: "bg-muted/50 text-muted-foreground border-border/50 [a]:hover:bg-muted",
+        /*
+         * Variantes semánticas, con el mismo tinte al 10-15 % que usa el resto
+         * del sistema para un estado (ver AttentionStrip y lib/tone). Existen
+         * porque `StatusBadge` las pedía desde el principio: al no estar, sus
+         * chips salían sin fondo ni color y un `any` en su mapa lo tapaba.
+         */
+        positive: "bg-status-positive/10 text-status-positive border-status-positive/20 [a]:hover:bg-status-positive/15",
+        warning: "bg-status-warning/15 text-status-warning border-status-warning/25 [a]:hover:bg-status-warning/20",
+        negative: "bg-status-negative/10 text-status-negative border-status-negative/20 [a]:hover:bg-status-negative/15",
+        info: "bg-status-info/10 text-status-info border-status-info/20 [a]:hover:bg-status-info/15",
       },
     },
     defaultVariants: {

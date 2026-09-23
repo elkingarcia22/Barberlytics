@@ -10,6 +10,9 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
       role="navigation"
       aria-label="pagination"
       data-slot="pagination"
+      /* La página activa ya se distingue por su variante outline; sin esto, el
+         acabado premium le añadiría encima un segundo relleno. */
+      data-nav-plain
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
     />

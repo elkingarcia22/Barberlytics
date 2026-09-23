@@ -12,9 +12,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HeaderChip } from "./HeaderChip";
+import { DEFAULT_WORKSPACE_LABELS, type ShellWorkspaceLabels } from "./shellConfig";
+import { companyMeta, WorkspaceUsage } from "./workspaceUsage";
 import type { Company } from "./appShellData";
-
-const numberFormat = new Intl.NumberFormat("es-CO");
 
 const GoogleMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 48 48" aria-hidden="true" className={className}>
@@ -30,57 +31,16 @@ export const CompanyMark: React.FC<{ company: Company; size?: "sm" | "md" }> = (
     className={cn(
       "flex shrink-0 items-center justify-center overflow-hidden rounded-lg text-[11px] font-extrabold text-white",
       size === "md" ? "h-8 w-8" : "h-6 w-6",
+      // Sin color propio, la marca es la del tema: una sucursal no trae su
+      // propia identidad de color, una empresa sí.
+      !company.bg && "bg-primary text-primary-foreground",
       company.isGoogle && "ring-1 ring-inset ring-border/50"
     )}
-    style={{ background: company.bg }}
+    style={company.bg ? { background: company.bg } : undefined}
   >
     {company.isGoogle ? <GoogleMark className={size === "md" ? "h-5 w-5" : "h-4 w-4"} /> : company.initial}
   </span>
 );
-
-/**
- * Anillo de consumo: un dato de "cuánto llevas de lo que tienes" se lee de un
- * vistazo como proporción, no como dos números separados por una barra. El
- * arco se dibuja con `stroke-dasharray` sobre una circunferencia normalizada,
- * así el porcentaje no depende del radio.
- */
-function UsageRing({ value, total, tone }: { value: number; total: number; tone: "brand" | "ai" }) {
-  const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
-  const r = 15;
-  const c = 2 * Math.PI * r;
-  return (
-    <span className="relative flex size-9 shrink-0 items-center justify-center">
-      <svg viewBox="0 0 36 36" className="size-9 -rotate-90" aria-hidden>
-        <circle cx="18" cy="18" r={r} fill="none" strokeWidth="3" className="stroke-border/60" />
-        <circle
-          cx="18"
-          cy="18"
-          r={r}
-          fill="none"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * c} ${c}`}
-          className={tone === "brand" ? "stroke-primary" : "stroke-[hsl(var(--ai-gradient-end))]"}
-        />
-      </svg>
-      <span className="absolute text-[9px] font-bold tabular-nums text-text-primary">{pct}%</span>
-    </span>
-  );
-}
-
-function UsageCard({ label, value, total, tone }: { label: string; value: number; total: number; tone: "brand" | "ai" }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-surface px-2.5 py-2">
-      <UsageRing value={value} total={total} tone={tone} />
-      <span className="min-w-0">
-        <span className="block truncate text-[12px] font-semibold text-text-primary">{label}</span>
-        <span className="block truncate text-[11px] tabular-nums text-text-muted">
-          {numberFormat.format(value)} de {numberFormat.format(total)}
-        </span>
-      </span>
-    </div>
-  );
-}
 
 export interface CompanyMenuProps {
   companies: readonly Company[];
@@ -89,6 +49,16 @@ export interface CompanyMenuProps {
   links: readonly string[];
   /** Iconos opcionales por enlace, en el mismo orden. */
   linkIcons?: readonly React.ComponentType<{ className?: string }>[];
+  /**
+   * Dónde vive el menú. En el sidebar el disparador es la fila ancha de la
+   * cabecera del panel; en la cabecera de la aplicación es un chip compacto
+   * que dice, además del nombre, de qué es ese nombre.
+   */
+  placement?: "sidebar" | "header";
+  /** Cómo se lee el espacio activo en este producto. */
+  labels?: ShellWorkspaceLabels;
+  /** Consumo de licencias y créditos. Apagado, el menú es identidad y cambio. */
+  showUsage?: boolean;
 }
 
 /**
@@ -97,73 +67,94 @@ export interface CompanyMenuProps {
  * créditos se ve como proporción, y cambiar de empresa abre su propio menú al
  * lado en vez de sustituir a este, que obligaba a volver para seguir.
  */
-export function CompanyMenu({ companies, activeCompany, onSelectCompany, links, linkIcons }: CompanyMenuProps) {
+export function CompanyMenu({
+  companies,
+  activeCompany,
+  onSelectCompany,
+  links,
+  linkIcons,
+  placement = "sidebar",
+  labels = DEFAULT_WORKSPACE_LABELS,
+  showUsage = true,
+}: CompanyMenuProps) {
   const [open, setOpen] = React.useState(false);
+  const activeMeta = companyMeta(activeCompany);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Empresa: ${activeCompany.name}. Abrir menú`}
-          data-testid="company-trigger"
-          className={cn(
-            "mb-4 flex h-11 w-full items-center gap-2 rounded-xl px-1.5 text-left transition-colors",
-            "hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-            open && "bg-background"
-          )}
-        >
-          <CompanyMark company={activeCompany} />
-          <span className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-text-primary">
-            {activeCompany.name}
-          </span>
-          <ChevronDown
-            className={cn("size-4 shrink-0 text-text-muted transition-transform duration-200", open && "rotate-180")}
-            strokeWidth={2}
+        {placement === "header" ? (
+          <HeaderChip
+            data-testid="company-trigger"
+            leading={<CompanyMark company={activeCompany} size="sm" />}
+            value={activeCompany.name}
+            srLabel={`${labels.entity}: ${activeCompany.name}`}
+            open={open}
           />
-        </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={`${labels.entity}: ${activeCompany.name}. Abrir menú`}
+            data-testid="company-trigger"
+            className={cn(
+              "mb-4 flex h-11 w-full items-center gap-2 rounded-xl px-1.5 text-left transition-colors",
+              "hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              open && "bg-background"
+            )}
+          >
+            <CompanyMark company={activeCompany} />
+            <span className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-text-primary">
+              {activeCompany.name}
+            </span>
+            <ChevronDown
+              className={cn("size-4 shrink-0 text-text-muted transition-transform duration-200", open && "rotate-180")}
+              strokeWidth={2}
+            />
+          </button>
+        )}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" sideOffset={8} className="w-[264px]">
+      <DropdownMenuContent align={placement === "header" ? "start" : "start"} sideOffset={8} className="w-[264px]">
         <div className="flex items-center gap-2.5 px-1.5 pb-2 pt-1">
           <CompanyMark company={activeCompany} />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-bold text-text-primary">{activeCompany.name}</span>
-            <span className="block truncate text-[11px] tabular-nums text-text-muted">
-              {numberFormat.format(activeCompany.licenses[0])} personas
+            <span className="block truncate text-[11px] font-bold uppercase tracking-wide text-text-muted">
+              {labels.entity}
             </span>
+            <span className="block truncate text-sm font-bold text-text-primary">{activeCompany.name}</span>
+            {activeMeta && <span className="block truncate text-[11px] tabular-nums text-text-muted">{activeMeta}</span>}
           </span>
         </div>
 
-        <div className="flex flex-col gap-1.5 px-0.5 pb-1">
-          <UsageCard label="Licencias" value={activeCompany.licenses[0]} total={activeCompany.licenses[1]} tone="brand" />
-          <UsageCard label="Créditos de IA" value={activeCompany.credits[0]} total={activeCompany.credits[1]} tone="ai" />
-        </div>
+        <WorkspaceUsage company={activeCompany} enabled={showUsage} />
+
+        {links.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {links.map((label, index) => {
+              const Icon = linkIcons?.[index];
+              return (
+                <DropdownMenuItem key={label} onSelect={() => setOpen(false)}>
+                  {Icon && <Icon className="size-4 shrink-0 text-text-muted" />}
+                  {label}
+                </DropdownMenuItem>
+              );
+            })}
+          </>
+        )}
 
         <DropdownMenuSeparator />
 
-        {links.map((label, index) => {
-          const Icon = linkIcons?.[index];
-          return (
-            <DropdownMenuItem key={label} onSelect={() => setOpen(false)}>
-              {Icon && <Icon className="size-4 shrink-0 text-text-muted" />}
-              {label}
-            </DropdownMenuItem>
-          );
-        })}
-
-        <DropdownMenuSeparator />
-
-        {/* Cambiar de empresa es su propio menú, no una vista que sustituye
+        {/* Cambiar de espacio es su propio menú, no una vista que sustituye
             a esta: así no se pierde de vista dónde se estaba. */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger data-testid="company-switch">
             <ArrowLeftRight className="size-4 shrink-0 text-text-muted" />
-            Cambiar de empresa
+            {labels.change}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-[272px]">
             <DropdownMenuLabel className="flex items-center justify-between gap-2">
-              Tus empresas
+              {labels.list}
               <span className="text-[11px] font-semibold tabular-nums text-text-muted">{companies.length}</span>
             </DropdownMenuLabel>
             {companies.map((company) => {
@@ -184,7 +175,7 @@ export function CompanyMenu({ companies, activeCompany, onSelectCompany, links, 
                     </span>
                     <span className="block truncate text-[11px] tabular-nums text-text-muted">
                       {company.plan ? `${company.plan} · ` : ""}
-                      {numberFormat.format(company.licenses[0])} personas
+                      {companyMeta(company)}
                     </span>
                   </span>
                   {isActive && <Check className="size-4 shrink-0 text-primary" strokeWidth={2.5} />}

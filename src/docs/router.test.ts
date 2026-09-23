@@ -10,6 +10,7 @@ describe("parseHash", () => {
 
   test("reads foundation, component and group routes", () => {
     expect(parseHash("#/foundations/colors")).toEqual({ kind: "foundation", id: "colors" });
+    expect(parseHash("#/guides/botones")).toEqual({ kind: "guide", id: "botones" });
     expect(parseHash("#/components/button")).toEqual({ kind: "component", id: "button" });
     expect(parseHash("#/group/ui")).toEqual({ kind: "group", id: "ui" });
   });
@@ -22,7 +23,7 @@ describe("parseHash", () => {
 
 describe("routeToHash", () => {
   test("round-trips every route kind", () => {
-    for (const hash of ["#/", "#/foundations/motion", "#/components/badge", "#/group/forms"]) {
+    for (const hash of ["#/", "#/foundations/motion", "#/guides/como-usar", "#/components/badge", "#/group/forms"]) {
       expect(routeToHash(parseHash(hash))).toBe(hash);
     }
   });

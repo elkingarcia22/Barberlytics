@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AppSidebar } from "@/components/app-shell/AppSidebar";
-import type { ShellMode } from "@/components/app-shell";
+import type { ShellConfigOverrides, ShellMode } from "@/components/app-shell";
 import { defineEntry, definePlayground } from "../types";
 import { DemoButton, DemoCanvas, ShellFrame } from "./layoutDemo";
 
@@ -11,10 +11,13 @@ function SidebarDemo({
   initialCollapsed = false,
   initialMode = "workspace",
   height = 520,
+  config,
 }: {
   initialCollapsed?: boolean;
   initialMode?: ShellMode;
   height?: number;
+  /** Lo que esta demo quiera encender a propósito, como la tarjeta promocional. */
+  config?: ShellConfigOverrides;
 }) {
   const [collapsed, setCollapsed] = React.useState(initialCollapsed);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -31,7 +34,7 @@ function SidebarDemo({
   };
 
   return (
-    <ShellFrame height={height}>
+    <ShellFrame height={height} config={config}>
       <div className="flex h-full gap-2 bg-background p-2">
         <AppSidebar
           collapsed={collapsed}
@@ -65,7 +68,7 @@ export const appSidebarEntry = defineEntry({
   name: "AppSidebar",
   group: "layout",
   description:
-    "El sidebar del AdminShell, en dos capas: un rail de iconos de 64px que está siempre y no se mueve, y un panel de 240px que se desliza por encima con la identidad de la empresa, el segmentado Workspace / Agente IA, el árbol con acordeones y drill, la tarjeta destacada y el feedback. Plegar no encoge el panel: lo aparta y descubre el rail, así los iconos se quedan quietos y las etiquetas nunca se estrujan. Ninguna sección queda sin salida con el panel plegado: el icono de una sección con hijos despliega su árbol a la derecha, con submenú para los que tienen nietos. Dentro de una sección, una tarjeta dice dónde estás y deja saltar a un hermano sin volver atrás. Es un componente controlado: AdminShell le dice si está plegado, si el cajón móvil está abierto y en qué modo está.",
+    "El sidebar del AdminShell, en dos capas: un rail de iconos de 64px que está siempre y no se mueve, y un panel de 240px que se desliza por encima con la marca del producto, el segmentado Workspace / Agente IA, el árbol con acordeones y drill, una tarjeta promocional opt-in y un pie con «Novedades» —solo por debajo de `md`, donde la cabecera la suelta para dejarle su ancho al chip de la cuenta— y el feedback. Con `config.settings`, la marca es el disparador de `WorkspaceMenu` (personalización y ajustes agrupados); sin ajustes que ofrecer, es solo identidad. Plegar no encoge el panel: lo aparta y descubre el rail, así los iconos se quedan quietos y las etiquetas nunca se estrujan. Ninguna sección queda sin salida con el panel plegado: el icono de una sección con hijos despliega su árbol a la derecha, con submenú para los que tienen nietos. Dentro de una sección, una tarjeta dice dónde estás y deja saltar a un hermano sin volver atrás. Es un componente controlado: AdminShell le dice si está plegado, si el cajón móvil está abierto y en qué modo está.",
   importPath: 'import { AppSidebar } from "@/components/app-shell/AppSidebar"',
   sourcePath: "src/components/app-shell/AppSidebar.tsx",
   status: "stable",
@@ -124,6 +127,36 @@ const [mode, setMode] = React.useState<ShellMode>("${mode}");
       code: `<AppSidebar collapsed onToggleCollapse={toggle} … />`,
       render: () => <SidebarDemo initialCollapsed height={480} />,
     },
+    {
+      id: "promo",
+      title: "Tarjeta destacada",
+      description:
+        "Apagada por defecto: no sale sola. La enciende una pantalla a propósito pasando `config.promo`, y solo se ve en modo Workspace con el panel desplegado.",
+      layout: "stretch",
+      code: `<ShellConfigContext.Provider
+  value={resolveShellConfig({
+    promo: {
+      title: "El LMS que trabaja por ti",
+      description: "Conoce nuestro nuevo sistema inteligente para crear contenido.",
+      cta: "Conocer más",
+    },
+  })}
+>
+  <AppSidebar collapsed={false} mobileOpen={false} mode="workspace" onModeChange={setMode} onToggleCollapse={toggle} onOpenFeedback={openFeedback} />
+</ShellConfigContext.Provider>`,
+      render: () => (
+        <SidebarDemo
+          height={480}
+          config={{
+            promo: {
+              title: "El LMS que trabaja por ti",
+              description: "Conoce nuestro nuevo sistema inteligente para crear contenido.",
+              cta: "Conocer más",
+            },
+          }}
+        />
+      ),
+    },
   ],
   props: [
     { name: "collapsed", type: "boolean", description: "Aparta el panel de 240px y deja a la vista el rail de 64px con tooltips." },
@@ -134,17 +167,19 @@ const [mode, setMode] = React.useState<ShellMode>("${mode}");
     { name: "onOpenFeedback", type: "() => void", description: "Al pulsar «Feedback» en el pie." },
     { name: "onCloseMobile", type: "() => void", description: "Tras cualquier selección, para cerrar el cajón móvil." },
     { name: "onNavigateHome", type: "() => void", description: "Al aterrizar en «Objetivos», el nodo que significa «volver a la lista»." },
+    { name: "config.promo", type: "ShellPromo | null", default: "null", description: "Tarjeta promocional del sidebar en modo Workspace. Apagada por defecto: no sale sola, se enciende a propósito pasando el objeto." },
   ],
   guidelines: {
     do: [
       "Deja que AdminShell lo controle; monta el sidebar suelto solo para probarlo.",
       "Añade secciones en NAV_TREE (appShellData.ts): con `children` es acordeón, con nietos abre un drill.",
       "Cierra el cajón móvil en `onCloseMobile` después de navegar.",
+      "Enciende `config.promo` solo cuando la pantalla tenga algo real que anunciar; apagada es el estado por defecto.",
     ],
     dont: [
       "No guardes `collapsed` dentro del sidebar: el header móvil también lo alterna.",
       "No pongas más de dos niveles bajo un acordeón; el drill existe para el tercero.",
     ],
   },
-  related: ["admin-shell", "app-header", "app-shell"],
+  related: ["admin-shell", "app-header"],
 });

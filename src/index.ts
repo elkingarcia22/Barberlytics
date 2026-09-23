@@ -48,6 +48,7 @@ export { StatusBadge as AnimatedStatusBadge, type StatusBadgeProps as AnimatedSt
 export * from "./components/forms";
 export * from "./components/selection";
 export * from "./components/navigation";
+export * from "./components/search";
 export * from "./components/overlays";
 export * from "./components/feedback";
 export * from "./components/data-display";

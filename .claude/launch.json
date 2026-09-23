@@ -4,8 +4,27 @@
     {
       "name": "thema-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5195", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5195",
+        "--strictPort"
+      ],
       "port": 5195
+    },
+    {
+      "name": "logo-propuestas",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "design/logo",
+        "--port",
+        "5199",
+        "--strictPort"
+      ],
+      "port": 5199
     }
   ]
 }

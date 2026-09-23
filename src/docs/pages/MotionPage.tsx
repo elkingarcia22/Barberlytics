@@ -2,16 +2,20 @@ import * as React from "react";
 import { RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
+import { cn } from "@/lib/utils";
 import { CodeBlock } from "../components/CodeBlock";
 import { DocSection, PageIntro } from "../components/PageIntro";
 
 function Replayable({ children, label = "Repetir" }: { children: (key: number) => React.ReactNode; label?: string }) {
   const [key, setKey] = React.useState(0);
   return (
-    <div className="space-y-3">
-      <div className="rounded-2xl border border-border/60 bg-background p-5">{children(key)}</div>
+    <div className="space-y-stack">
+      {/* El lienzo de la demo, no una card: va en el color del fondo de app
+          para que las superficies que entran se lean por encima de él. */}
+      <div className="rounded-2xl border border-border/60 bg-background p-card">{children(key)}</div>
       <Button size="sm" variant="outline" onClick={() => setKey((value) => value + 1)}>
         <RotateCcw /> {label}
       </Button>
@@ -24,7 +28,7 @@ const ROWS = [
   ["Luis Gómez", "Ventas", "Finalizado"],
   ["María Ruiz", "Personas", "Por iniciar"],
   ["Carlos Díaz", "Ingeniería", "En curso"],
-  ["Sofía Torres", "Marketing", "En curso"],
+  ["Antonia Torres", "Marketing", "En curso"],
 ] as const;
 
 const TAILWIND_ANIMS = [
@@ -58,21 +62,57 @@ import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
 
 export function MotionPage() {
   return (
-    <div className="cascade-enter space-y-12">
+    <div className="cascade-enter space-y-section">
       <PageIntro
         eyebrow="Fundamentos"
         title="Motion"
         description="Una sola curva para casi todo, cubic-bezier(0.16, 1, 0.3, 1): llega rápido y frena al final. Las entradas se escalonan para leerse como una cascada, no como un parpadeo, y todo respeta prefers-reduced-motion."
       />
 
+      <DocSection id="tokens" title="Tokens" description="Duraciones, curvas y capas con nombre. Un componente nuevo elige una; nunca escribe 300ms, una cubic-bezier ni un z-index a mano.">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card className="p-card">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Duración y curva</p>
+            <ul className="space-y-1.5 font-mono text-[12px] text-text-secondary">
+              <li><span className="text-primary">--duration-instant</span> 100ms · hover y foco</li>
+              <li><span className="text-primary">--duration-fast</span> 150ms · toggles, chips, tooltips</li>
+              <li><span className="text-primary">--duration-normal</span> 300ms · diálogos, velos, cascadas</li>
+              <li><span className="text-primary">--duration-slow</span> 500ms · drawers que recorren la pantalla</li>
+              <li className="pt-1"><span className="text-primary">--ease-out-expo</span> entrar · <span className="text-primary">--ease-standard</span> salir · <span className="text-primary">--ease-in</span> desaparecer</li>
+            </ul>
+            <p className="mt-3 text-[12px] text-text-secondary">Clases: <code>duration-fast</code>, <code>ease-out-expo</code>, <code>transition-all duration-normal ease-standard</code>.</p>
+          </Card>
+          <Card className="p-card">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Capas (z-index)</p>
+            <ul className="space-y-1.5 font-mono text-[12px] text-text-secondary">
+              {[
+                ["--z-raised", "10", "cabeceras pegajosas dentro de una tarjeta o tabla"],
+                ["--z-sticky", "20", "barras pegajosas de página"],
+                ["--z-rail", "30", "barra de acciones flotante"],
+                ["--z-sidebar", "40", "barra lateral"],
+                ["--z-header", "50", "cabecera"],
+                ["--z-drawer", "60", "drawers"],
+                ["--z-overlay", "70", "el velo de drawers y diálogos"],
+                ["--z-dialog", "80", "diálogos"],
+                ["--z-popover", "90", "menús, tooltips, comandos"],
+                ["--z-toast", "100", "avisos"],
+              ].map(([token, value, use]) => (
+                <li key={token}><span className="text-primary">{token}</span> {value} · {use}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[12px] text-text-secondary">Clases: <code>z-popover</code>, <code>z-dialog</code>… <code>npm run check</code> marca cualquier <code>z-[…]</code> en producto.</p>
+          </Card>
+        </div>
+      </DocSection>
+
       <DocSection id="cascade" title="Cascada de entrada" description="La utilidad .cascade-enter escalona los hijos directos del contenedor. Cada pantalla, pestaña o paso nuevo la usa.">
         <Replayable>
           {(key) => (
             <div key={key} className="cascade-enter grid gap-2 sm:grid-cols-3">
               {["Resumen", "Grupos", "Ranking", "Alineación", "Colaboradores", "Análisis IA"].map((label) => (
-                <div key={label} className="rounded-xl border border-border/60 bg-surface px-4 py-3 text-[13px] font-medium text-text-primary shadow-card">
+                <Card key={label} className="rounded-xl px-4 py-3 text-[13px] font-medium text-text-primary">
                   {label}
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -83,7 +123,7 @@ export function MotionPage() {
       <DocSection id="table" title="Filas de tabla" description="Sin escala: una fila ocupa todo el ancho y un scale() se lee como un salto horizontal. Solo opacidad y 10px de ascenso.">
         <Replayable>
           {(key) => (
-            <div key={key} className="overflow-hidden rounded-xl border border-border/60 bg-surface">
+            <Card key={key} className="overflow-hidden rounded-xl shadow-none">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -102,7 +142,7 @@ export function MotionPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </Card>
           )}
         </Replayable>
       </DocSection>
@@ -126,40 +166,40 @@ export function MotionPage() {
       <DocSection id="hover" title="Hover de card" description="Dos capas que entran juntas: un lavado radial en el primario y 1px de elevación con sombra teñida.">
         <div className="grid gap-3 sm:grid-cols-3">
           {["Card con sweep + lift", "Solo sweep", "Solo lift"].map((label, index) => (
-            <div
+            <Card
               key={label}
-              className={[
-                "relative overflow-hidden rounded-2xl border border-border/60 bg-surface p-5 text-[13px] font-medium text-text-primary shadow-card",
-                index !== 2 ? "magic-card-sweep" : "",
-                index !== 1 ? "magic-card-lift" : "",
-              ].join(" ")}
+              className={cn(
+                "relative overflow-hidden p-card text-[13px] font-medium text-text-primary",
+                index !== 2 && "magic-card-sweep",
+                index !== 1 && "magic-card-lift"
+              )}
             >
               <span className="relative z-10">{label}</span>
-            </div>
+            </Card>
           ))}
         </div>
       </DocSection>
 
       <DocSection id="catalog" title="Catálogo de animaciones" description="Lo que tailwind.config.js y globals.css ponen a disposición de cualquier componente.">
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="divide-y divide-border/50 rounded-2xl border border-border/60 bg-surface shadow-card">
-            <p className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tailwind · animate-*</p>
+          <Card className="divide-y divide-border/50">
+            <p className="px-card py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tailwind · animate-*</p>
             {TAILWIND_ANIMS.map((item) => (
-              <div key={item.name} className="px-4 py-3">
+              <div key={item.name} className="px-card py-3">
                 <p className="font-mono text-[12px] font-semibold text-primary">{item.name}</p>
                 <p className="text-[12px] text-text-secondary">{item.use}</p>
               </div>
             ))}
-          </div>
-          <div className="divide-y divide-border/50 rounded-2xl border border-border/60 bg-surface shadow-card">
-            <p className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">CSS · globals.css</p>
+          </Card>
+          <Card className="divide-y divide-border/50">
+            <p className="px-card py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">CSS · globals.css</p>
             {CSS_UTILS.map((item) => (
-              <div key={item.name} className="px-4 py-3">
+              <div key={item.name} className="px-card py-3">
                 <p className="font-mono text-[12px] font-semibold text-primary">{item.name}</p>
                 <p className="text-[12px] text-text-secondary">{item.use}</p>
               </div>
             ))}
-          </div>
+          </Card>
         </div>
       </DocSection>
 

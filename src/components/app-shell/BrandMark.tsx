@@ -8,6 +8,7 @@ import {
   BARBERLYTICS_ICON_TILE,
 } from "@/components/ui/barberlyticsBrandColors";
 import { useTheme, type ResolvedMode } from "@/themes";
+import { WORDMARK_HEIGHTS } from "./brandLogo";
 
 export interface BrandMarkProps {
   /** `mark` es el isotipo solo (rail, botón del menú plegado); `wordmark` es el logotipo completo (fila del panel expandido). */
@@ -40,7 +41,7 @@ export function BrandMark({ variant = "mark", size = "md", mode, className }: Br
   if (variant === "wordmark") {
     return (
       <span aria-hidden style={brandVars} className={cn("flex shrink-0 items-center text-text-primary", className)}>
-        <BarberlyticsLogo height={size === "md" ? 44 : 26} />
+        <BarberlyticsLogo height={WORDMARK_HEIGHTS[size]} />
       </span>
     );
   }

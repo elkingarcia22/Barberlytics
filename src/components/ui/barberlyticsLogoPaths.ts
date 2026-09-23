@@ -24,6 +24,8 @@ export const LOGO_METRICS = {
   xHeight: 152.2,
   /** Línea base (pie de la «B»). */
   baseline: 188.27,
+  /** Fondo del descendente de la «y»: lo más bajo de las letras. */
+  descender: 201.83,
   /** La punta de la flecha llega exactamente a la altura de las minúsculas. */
   arrowTop: 152.11,
   /** El fondo del pulso. */

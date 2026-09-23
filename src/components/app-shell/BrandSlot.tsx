@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useTheme, type ResolvedMode } from "@/themes";
 import { BrandMark } from "./BrandMark";
-import { logoShape, type LogoShape, type ShellBrandLogo } from "./brandLogo";
+import { logoShape, WORDMARK_HEIGHTS, wordmarkTaglinePlacement, type LogoShape, type ShellBrandLogo } from "./brandLogo";
 
 export interface BrandSlotProps {
   /** Isologo de la empresa. Sin él (o si no carga) se usa la flecha de Barberlytics. */
@@ -91,10 +91,15 @@ export function BrandSlot({ logo, name, tagline, display = "isologo", wordmarkSi
   if (variant === "icon") return <BrandIcon logo={logo} name={name} mode={mode} className={className} />;
 
   if (display === "wordmark" && !logo) {
+    const placement = wordmarkTaglinePlacement(WORDMARK_HEIGHTS[wordmarkSize]);
     return (
-      <span className={cn("flex min-w-0 flex-col justify-center gap-0.5", className)}>
+      <span className={cn("flex min-w-0 flex-col justify-center", className)}>
         <BrandMark variant="wordmark" size={wordmarkSize} mode={mode} />
-        {tagline && <span className="block truncate text-[11px] text-text-muted">{tagline}</span>}
+        {tagline && (
+          <span className="block truncate text-[11px] leading-tight text-text-muted" style={placement}>
+            {tagline}
+          </span>
+        )}
       </span>
     );
   }

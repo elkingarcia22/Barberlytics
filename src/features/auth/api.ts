@@ -1,27 +1,27 @@
 import { api } from "@/lib/api";
 import {
   authUserSchema,
-  resetTicketSchema,
   sessionSchema,
   type AuthProvider,
   type AuthUser,
-  type Credentials,
+  type OtpRequest,
+  type OtpVerify,
   type RecoveryRequest,
-  type RecoveryVerify,
-  type ResetTicket,
   type Session,
 } from "./types";
 
 export const authApi = {
-  login: (credentials: Credentials) => api.post<Session>("/auth/login", credentials, { schema: sessionSchema }),
+  /** Envía el código por SMS; no abre sesión. */
+  requestCode: (body: OtpRequest) => api.post<void>("/auth/otp/request", body),
+  /** El código correcto abre la sesión. */
+  verifyCode: (body: OtpVerify) => api.post<Session>("/auth/otp/verify", body, { schema: sessionSchema }),
   /** `credential` es lo que entregó el SDK del proveedor en el navegador (ver `providers.ts`). */
   loginWithProvider: (provider: AuthProvider, credential: string) =>
     api.post<Session>("/auth/oauth", { provider, credential }, { schema: sessionSchema }),
   me: (signal?: AbortSignal) => api.get<AuthUser>("/auth/me", { schema: authUserSchema, signal }),
   logout: () => api.post<void>("/auth/logout"),
   recovery: {
+    /** Manda el celular registrado al correo. */
     request: (body: RecoveryRequest) => api.post<void>("/auth/recovery/request", body),
-    verify: (body: RecoveryVerify) => api.post<ResetTicket>("/auth/recovery/verify", body, { schema: resetTicketSchema }),
-    reset: (body: ResetTicket & { password: string }) => api.post<void>("/auth/recovery/reset", body),
   },
 };

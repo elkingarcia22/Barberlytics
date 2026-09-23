@@ -2,22 +2,29 @@ import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation, useNavigate } from "react-router";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useAppT } from "@/app/i18n";
-import { PhoneInput } from "@/components/forms";
+import { InputOtp, PhoneInput } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ThemaIcon } from "@/icons";
-import { describeError, env } from "@/lib/api";
+import { describeError } from "@/lib/api";
 import { useAuth } from "./useAuth";
-import { PasswordField } from "./PasswordField";
-import { credentialsSchema, type AuthProvider, type Credentials } from "./types";
+import { describePhone } from "./phoneLabel";
+import { OTP_LENGTH, otpRequestSchema, type AuthProvider, type OtpRequest } from "./types";
 
 interface LocationState {
   from?: string;
+}
+
+type Step = "phone" | "code";
+
+interface ServerError {
+  title: string;
+  description: string;
 }
 
 const PROVIDERS: readonly { id: AuthProvider; label: "auth.google" | "auth.microsoft"; icon: "google" | "microsoft" }[] = [
@@ -26,50 +33,157 @@ const PROVIDERS: readonly { id: AuthProvider; label: "auth.google" | "auth.micro
 ];
 
 export interface LoginFormProps {
-  /** Aviso de éxito (p. ej. la contraseña recién cambiada). */
-  notice?: string | null;
-  onForgotPassword: () => void;
+  onForgotNumber: () => void;
 }
 
-export function LoginForm({ notice, onForgotPassword }: LoginFormProps) {
+/**
+ * Entrar en dos pasos: el celular pide el código por SMS y el código abre
+ * la sesión. Google y Outlook entran directo. Sin contraseña.
+ */
+export function LoginForm({ onForgotNumber }: LoginFormProps) {
   const t = useAppT();
-  const { login, loginWithProvider } = useAuth();
+  const { requestCode, verifyCode, loginWithProvider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as LocationState | null)?.from ?? "/dashboard";
-  const [serverError, setServerError] = React.useState<{ title: string; description: string } | null>(null);
+
+  const [step, setStep] = React.useState<Step>("phone");
+  const [phone, setPhone] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [wasResent, setWasResent] = React.useState(false);
+  const [serverError, setServerError] = React.useState<ServerError | null>(null);
   const [pendingProvider, setPendingProvider] = React.useState<AuthProvider | null>(null);
 
-  const form = useForm<Credentials>({
-    resolver: zodResolver(credentialsSchema),
-    defaultValues: { phone: "", password: "" },
-  });
+  const form = useForm<OtpRequest>({ resolver: zodResolver(otpRequestSchema), defaultValues: { phone: "" } });
   const { errors, isSubmitting } = form.formState;
-  const isBusy = isSubmitting || pendingProvider !== null;
+  const isBusy = isSubmitting || isVerifying || pendingProvider !== null;
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const enter = () => navigate(from, { replace: true });
+
+  const sendCode = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      await login(values);
-      navigate(from, { replace: true });
+      await requestCode(values);
+      setPhone(values.phone);
+      setCode("");
+      setWasResent(false);
+      setStep("code");
     } catch (error) {
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
     }
   });
+
+  const resendCode = async () => {
+    setServerError(null);
+    setIsVerifying(true);
+    try {
+      await requestCode({ phone });
+      setCode("");
+      setWasResent(true);
+    } catch (error) {
+      setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const submitCode = async (value: string) => {
+    if (value.length !== OTP_LENGTH) return;
+    setServerError(null);
+    setIsVerifying(true);
+    try {
+      await verifyCode({ phone, code: value });
+      enter();
+    } catch (error) {
+      setServerError({ title: t("auth.code.errorTitle"), description: describeError(error).description });
+      setCode("");
+      setIsVerifying(false);
+    }
+  };
 
   const handleProvider = async (provider: AuthProvider) => {
     setServerError(null);
     setPendingProvider(provider);
     try {
       await loginWithProvider(provider);
-      navigate(from, { replace: true });
+      enter();
     } catch (error) {
       const providerName = t(provider === "google" ? "auth.google" : "auth.microsoft");
       setServerError({ title: t("auth.providerErrorTitle", { provider: providerName }), description: describeError(error).description });
-    } finally {
       setPendingProvider(null);
     }
   };
+
+  const changePhone = () => {
+    setServerError(null);
+    setStep("phone");
+  };
+
+  const errorAlert = serverError && (
+    <Alert variant="destructive">
+      <AlertCircle />
+      <AlertTitle>{serverError.title}</AlertTitle>
+      <AlertDescription>{serverError.description}</AlertDescription>
+    </Alert>
+  );
+
+  if (step === "code") {
+    return (
+      <>
+        <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-4" disabled={isBusy} onClick={changePhone}>
+          <ThemaIcon name="arrowLeft" size="sm" />
+          {t("auth.code.changePhone")}
+        </Button>
+        <Heading level={3} id="login-heading">
+          {t("auth.code.title")}
+        </Heading>
+        <Text tone="secondary" className="mt-1.5">
+          {t("auth.code.description", { phone: describePhone(phone) })}
+        </Text>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitCode(code);
+          }}
+          noValidate
+          className="mt-7 space-y-5"
+        >
+          {errorAlert}
+          <div className="space-y-2">
+            <Label htmlFor="login-code">{t("auth.code.label")}</Label>
+            <InputOtp
+              id="login-code"
+              length={OTP_LENGTH}
+              groups={[3, 3]}
+              value={code}
+              onChange={setCode}
+              onComplete={(value) => void submitCode(value)}
+              disabled={isBusy}
+              autoFocus
+              aria-label={t("auth.code.label")}
+            />
+          </div>
+          <Button type="submit" size="lg" className="btn-sweep w-full" disabled={isBusy || code.length !== OTP_LENGTH} data-testid="login-verify">
+            {isVerifying ? <Loader2 className="animate-spin" /> : <ThemaIcon name="arrowRight" size="sm" tone="inverse" />}
+            {t("auth.code.submit")}
+          </Button>
+          <div className="flex items-center justify-between gap-4">
+            <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={() => void resendCode()} data-testid="login-resend">
+              <ThemaIcon name="refresh" size="xs" />
+              {t("auth.code.resend")}
+            </Button>
+            {wasResent && (
+              <Text variant="caption" role="status">
+                {t("auth.code.resent", { phone: describePhone(phone) })}
+              </Text>
+            )}
+          </div>
+        </form>
+      </>
+    );
+  }
 
   return (
     <>
@@ -80,23 +194,15 @@ export function LoginForm({ notice, onForgotPassword }: LoginFormProps) {
         {t("auth.description")}
       </Text>
 
-      <form onSubmit={onSubmit} noValidate className="mt-7 space-y-5">
-        {notice && !serverError && (
-          <Alert variant="success">
-            <CheckCircle2 />
-            <AlertDescription>{notice}</AlertDescription>
-          </Alert>
-        )}
-        {serverError && (
-          <Alert variant="destructive">
-            <AlertCircle />
-            <AlertTitle>{serverError.title}</AlertTitle>
-            <AlertDescription>{serverError.description}</AlertDescription>
-          </Alert>
-        )}
-
+      <form onSubmit={sendCode} noValidate className="mt-7 space-y-5">
+        {errorAlert}
         <div className="space-y-1.5">
-          <Label htmlFor="login-phone">{t("auth.phone")}</Label>
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="login-phone">{t("auth.phone")}</Label>
+            <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={onForgotNumber}>
+              {t("auth.forgotNumber")}
+            </Button>
+          </div>
           <Controller
             control={form.control}
             name="phone"
@@ -111,40 +217,19 @@ export function LoginForm({ notice, onForgotPassword }: LoginFormProps) {
                 autoFocus
                 data-testid="login-phone"
                 aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "login-phone-error" : undefined}
               />
             )}
           />
           {errors.phone && (
-            <Text size="xs" tone="negative">
+            <Text size="xs" tone="negative" id="login-phone-error">
               {errors.phone.message}
             </Text>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="login-password">{t("auth.password")}</Label>
-            <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={onForgotPassword}>
-              {t("auth.forgot")}
-            </Button>
-          </div>
-          <PasswordField
-            id="login-password"
-            autoComplete="current-password"
-            disabled={isBusy}
-            data-testid="login-password"
-            aria-invalid={!!errors.password}
-            {...form.register("password")}
-          />
-          {errors.password && (
-            <Text size="xs" tone="negative">
-              {errors.password.message}
-            </Text>
-          )}
-        </div>
-
         <Button type="submit" size="lg" className="btn-sweep w-full" disabled={isBusy} data-testid="login-submit">
-          {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="arrowRight" size="sm" tone="inverse" />}
+          {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="smsCode" size="sm" tone="inverse" />}
           {t("auth.submit")}
         </Button>
       </form>
@@ -171,12 +256,6 @@ export function LoginForm({ notice, onForgotPassword }: LoginFormProps) {
           </Button>
         ))}
       </div>
-
-      {env.useMocks && (
-        <Text variant="caption" className="mt-6 rounded-lg bg-surface-subtle p-3 leading-relaxed">
-          {t("auth.mockHint")} <Text variant="code" className="whitespace-nowrap">300 123 4567</Text> / <Text variant="code">thema123</Text>, {t("auth.mockHintOr")}
-        </Text>
-      )}
     </>
   );
 }

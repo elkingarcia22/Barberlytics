@@ -22,10 +22,9 @@ export type MockAuthProvider = "google" | "microsoft";
 
 export interface MockAccount {
   id: string;
-  /** Celular en E.164; es la llave de entrada. */
+  /** Celular en E.164; es la llave de entrada (se verifica con un código por SMS). */
   phone: string;
   email: string;
-  password: string;
   /** Cuentas externas vinculadas: entrar con Google o con Outlook cae aquí. */
   providers: readonly MockAuthProvider[];
   user: { id: string; name: string; phone: string; email: string; role: MockUserRole; avatarUrl: string | null };
@@ -83,7 +82,6 @@ export const ACCOUNTS: readonly MockAccount[] = [
     id: "acc_admin",
     phone: "+573001234567",
     email: "admin@thema.dev",
-    password: "thema123",
     providers: ["google"],
     user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: null },
   },
@@ -91,7 +89,6 @@ export const ACCOUNTS: readonly MockAccount[] = [
     id: "acc_manager",
     phone: "+573007654321",
     email: "lider@thema.dev",
-    password: "thema123",
     providers: ["microsoft"],
     user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: null },
   },
@@ -112,8 +109,6 @@ export interface MockDb {
   branding: MockBranding;
   /** token → id de cuenta */
   sessions: Map<string, string>;
-  /** id de cuenta → contraseña cambiada desde «recuperar acceso» */
-  passwords: Map<string, string>;
   /** Guarda el estado; se llama tras cada mutación para sobrevivir recargas. */
   persist(): void;
   reset(): void;
@@ -124,7 +119,6 @@ const STORAGE_KEY = "thema.mock.db";
 interface PersistedDb {
   users: MockUser[];
   sessions: [string, string][];
-  passwords?: [string, string][];
   branding?: MockBranding;
 }
 
@@ -156,12 +150,11 @@ export function createDb(): MockDb {
     users: saved?.users ?? seedUsers(),
     branding: saved?.branding ?? EMPTY_BRANDING,
     sessions: new Map(saved?.sessions ?? []),
-    passwords: new Map(saved?.passwords ?? []),
     persist() {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], passwords: [...db.passwords.entries()], branding: db.branding } satisfies PersistedDb)
+          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], branding: db.branding } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -171,7 +164,6 @@ export function createDb(): MockDb {
       db.users = seedUsers();
       db.branding = EMPTY_BRANDING;
       db.sessions.clear();
-      db.passwords.clear();
       try {
         storage()?.removeItem(STORAGE_KEY);
       } catch {

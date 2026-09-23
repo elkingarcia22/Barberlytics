@@ -4,7 +4,7 @@ import { apiAuth, isApiError } from "@/lib/api";
 import { authApi } from "./api";
 import { requestProviderCredential } from "./providers";
 import { sessionTokenStorage, type TokenStorage } from "./tokenStorage";
-import type { AuthProvider as AuthProviderName, AuthStatus, AuthUser, Credentials } from "./types";
+import type { AuthProvider as AuthProviderName, AuthStatus, AuthUser, OtpRequest, OtpVerify } from "./types";
 import { AuthContext, type AuthContextValue } from "./authContext";
 
 export interface AuthProviderProps {
@@ -89,7 +89,9 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
     [storage]
   );
 
-  const login = React.useCallback(async (credentials: Credentials) => openSession(await authApi.login(credentials)), [openSession]);
+  const requestCode = React.useCallback((body: OtpRequest) => authApi.requestCode(body), []);
+
+  const verifyCode = React.useCallback(async (body: OtpVerify) => openSession(await authApi.verifyCode(body)), [openSession]);
 
   const loginWithProvider = React.useCallback(
     async (provider: AuthProviderName) => {
@@ -114,8 +116,8 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
     setUser(profile);
   }, []);
 
-  const value = React.useMemo<AuthContextValue>(() => ({ status, user, login, loginWithProvider, logout, refresh }),
-    [status, user, login, loginWithProvider, logout, refresh]
+  const value = React.useMemo<AuthContextValue>(() => ({ status, user, requestCode, verifyCode, loginWithProvider, logout, refresh }),
+    [status, user, requestCode, verifyCode, loginWithProvider, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

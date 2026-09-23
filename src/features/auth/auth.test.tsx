@@ -2,13 +2,13 @@ import { describe, expect, test } from "vitest";
 import { Route, Routes } from "react-router";
 import { renderWithProviders, screen, waitFor, userEvent, within } from "@/test/render";
 import { db } from "@/mocks/db";
-import { RECOVERY_CODE } from "@/mocks/handlers";
+import { OTP_CODE } from "@/mocks/handlers";
 import { LoginPage } from "./LoginPage";
 import { RequireAuth } from "./RequireAuth";
 import { useAuth } from "./useAuth";
 
 const ADMIN_PHONE = "3001234567";
-const ADMIN_PASSWORD = "thema123";
+type User = ReturnType<typeof userEvent.setup>;
 
 function Private() {
   const { user, logout } = useAuth();
@@ -31,63 +31,92 @@ function App() {
   );
 }
 
-async function fillCredentials(user: ReturnType<typeof userEvent.setup>, phone: string, password: string) {
+async function requestCode(user: User, phone = ADMIN_PHONE) {
   await user.type(await screen.findByTestId("login-phone"), phone);
-  await user.type(screen.getByTestId("login-password"), password);
+  await user.click(screen.getByTestId("login-submit"));
+  expect(await screen.findByRole("heading", { name: /escribe el código/i })).toBeInTheDocument();
 }
 
-describe("sesión", () => {
+async function typeCode(user: User, code: string) {
+  const group = screen.getByRole("group", { name: /código de verificación/i });
+  await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
+  await user.paste(code);
+}
+
+describe("entrar con celular y código", () => {
   test("sin token una ruta protegida redirige a /login", async () => {
     renderWithProviders(<App />, { route: "/privado" });
     expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
   });
 
-  test("el celular se escribe por partes y se valida antes de pedir nada", async () => {
+  test("un celular con menos dígitos de los de su país no pide el código y dice cuántos faltan", async () => {
     // Arrange
     renderWithProviders(<App />, { route: "/login" });
     const user = userEvent.setup();
 
     // Act
-    await user.type(await screen.findByTestId("login-phone"), "300");
-    await user.type(screen.getByTestId("login-password"), ADMIN_PASSWORD);
+    await user.type(await screen.findByTestId("login-phone"), "30012");
     await user.click(screen.getByTestId("login-submit"));
 
     // Assert
-    expect(screen.getByTestId("login-phone")).toHaveValue("300");
-    expect(await screen.findByText(/no parece completo/i)).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(await screen.findByText(/colombia tiene 10 dígitos; faltan 5/i)).toBeInTheDocument();
+    expect(screen.getByTestId("login-phone")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByRole("heading", { name: /escribe el código/i })).not.toBeInTheDocument();
   });
 
-  test("credenciales inválidas muestran un error y no guardan token", async () => {
+  test("sin celular avisa que hay que escribirlo", async () => {
+    renderWithProviders(<App />, { route: "/login" });
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId("login-submit"));
+    expect(await screen.findByText("Escribe tu celular")).toBeInTheDocument();
+  });
+
+  test("el código llega al número escrito y se muestra con su prefijo", async () => {
+    renderWithProviders(<App />, { route: "/login" });
+    const user = userEvent.setup();
+    await requestCode(user);
+    expect(screen.getByText(/\+57 300 123 4567/)).toBeInTheDocument();
+  });
+
+  test("un código incorrecto avisa, no guarda token y deja reintentar", async () => {
     const { tokenStorage } = renderWithProviders(<App />, { route: "/login" });
     const user = userEvent.setup();
-    await fillCredentials(user, ADMIN_PHONE, "incorrecta");
-    await user.click(screen.getByTestId("login-submit"));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/incorrectos/i);
+    await requestCode(user);
+    await typeCode(user, "000000");
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no es correcto/i);
+    expect(tokenStorage.get()).toBeNull();
+    expect(screen.getByRole("heading", { name: /escribe el código/i })).toBeInTheDocument();
+  });
+
+  test("un número que no es de ninguna barbería no entra aunque el código sea el bueno", async () => {
+    const { tokenStorage } = renderWithProviders(<App />, { route: "/login" });
+    const user = userEvent.setup();
+    await requestCode(user, "3009999999");
+    await typeCode(user, OTP_CODE);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no está registrado/i);
     expect(tokenStorage.get()).toBeNull();
   });
 
-  test("login correcto guarda el token, entra a la ruta pedida y logout la cierra", async () => {
+  test("el código correcto guarda el token, entra a la ruta pedida y logout la cierra", async () => {
     const { tokenStorage } = renderWithProviders(<App />, { route: "/privado" });
     const user = userEvent.setup();
-    await fillCredentials(user, ADMIN_PHONE, ADMIN_PASSWORD);
-    await user.click(screen.getByTestId("login-submit"));
+    await requestCode(user);
+    await typeCode(user, OTP_CODE);
     expect(await screen.findByText(/hola carolina vargas/i)).toBeInTheDocument();
-    expect(tokenStorage.get()).toMatch(/^mock-/);
+    expect(tokenStorage.get()).toMatch(/^mock-acc_admin/);
     await user.click(screen.getByRole("button", { name: "salir" }));
     expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
     expect(tokenStorage.get()).toBeNull();
   });
 
-  test("la contraseña se puede mostrar y volver a ocultar", async () => {
+  test("se puede reenviar el código y cambiar el número", async () => {
     renderWithProviders(<App />, { route: "/login" });
     const user = userEvent.setup();
-    const password = await screen.findByTestId("login-password");
-    expect(password).toHaveAttribute("type", "password");
-    await user.click(screen.getByRole("button", { name: /mostrar contraseña/i }));
-    expect(password).toHaveAttribute("type", "text");
-    await user.click(screen.getByRole("button", { name: /ocultar contraseña/i }));
-    expect(password).toHaveAttribute("type", "password");
+    await requestCode(user);
+    await user.click(screen.getByTestId("login-resend"));
+    expect(await screen.findByRole("status")).toHaveTextContent(/código nuevo/i);
+    await user.click(screen.getByRole("button", { name: /cambiar número/i }));
+    expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
   });
 
   test("entrar con Google abre la sesión de la cuenta vinculada", async () => {
@@ -117,57 +146,26 @@ describe("sesión", () => {
   });
 });
 
-describe("recuperar acceso", () => {
-  async function requestCode(user: ReturnType<typeof userEvent.setup>, phone = ADMIN_PHONE) {
-    await user.click(await screen.findByRole("button", { name: /olvidaste tu contraseña/i }));
-    expect(await screen.findByRole("heading", { name: /recupera tu acceso/i })).toBeInTheDocument();
-    await user.type(screen.getByTestId("recovery-phone"), phone);
-    await user.click(screen.getByTestId("recovery-send"));
-    expect(await screen.findByRole("heading", { name: /escribe el código/i })).toBeInTheDocument();
-  }
-
-  async function typeCode(user: ReturnType<typeof userEvent.setup>, code: string) {
-    const group = screen.getByRole("group", { name: /código de verificación/i });
-    await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
-    await user.paste(code);
-    await user.click(screen.getByTestId("recovery-verify"));
-  }
-
-  test("un código incorrecto avisa y no avanza", async () => {
+describe("olvidé mi número", () => {
+  test("un correo mal escrito se frena en el formulario", async () => {
     renderWithProviders(<App />, { route: "/login" });
     const user = userEvent.setup();
-    await requestCode(user);
-    await typeCode(user, "000000");
-    expect(await screen.findByRole("alert")).toHaveTextContent(/no es correcto/i);
-    expect(screen.getByRole("heading", { name: /escribe el código/i })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /olvidaste tu número/i }));
+    expect(await screen.findByRole("heading", { name: /recupera tu número/i })).toBeInTheDocument();
+    await user.type(screen.getByTestId("recovery-email"), "carolina");
+    await user.click(screen.getByTestId("recovery-send"));
+    expect(await screen.findByText(/no parece válido/i)).toBeInTheDocument();
   });
 
-  test("con el código bueno se cambia la contraseña y sirve para entrar", async () => {
-    const { tokenStorage } = renderWithProviders(<App />, { route: "/login" });
+  test("con un correo válido confirma el envío y vuelve al login", async () => {
+    renderWithProviders(<App />, { route: "/login" });
     const user = userEvent.setup();
-    await requestCode(user);
-    await typeCode(user, RECOVERY_CODE);
-    expect(await screen.findByRole("heading", { name: /nueva contraseña/i })).toBeInTheDocument();
-    await user.type(screen.getByTestId("recovery-password"), "nueva-clave");
-    await user.type(screen.getByTestId("recovery-confirm"), "nueva-clave");
-    await user.click(screen.getByTestId("recovery-save"));
-    expect(await screen.findByRole("heading", { name: /contraseña cambiada/i })).toBeInTheDocument();
-
+    await user.click(await screen.findByRole("button", { name: /olvidaste tu número/i }));
+    await user.type(await screen.findByTestId("recovery-email"), "admin@thema.dev");
+    await user.click(screen.getByTestId("recovery-send"));
+    expect(await screen.findByRole("heading", { name: /revisa tu correo/i })).toBeInTheDocument();
+    expect(screen.getByText(/admin@thema\.dev/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /volver a iniciar sesión/i }));
     expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
-    await fillCredentials(user, ADMIN_PHONE, "nueva-clave");
-    await user.click(screen.getByTestId("login-submit"));
-    await waitFor(() => expect(tokenStorage.get()).toMatch(/^mock-acc_admin/));
-  });
-
-  test("las contraseñas que no coinciden se frenan en el formulario", async () => {
-    renderWithProviders(<App />, { route: "/login" });
-    const user = userEvent.setup();
-    await requestCode(user);
-    await typeCode(user, RECOVERY_CODE);
-    await user.type(await screen.findByTestId("recovery-password"), "nueva-clave");
-    await user.type(screen.getByTestId("recovery-confirm"), "otra-clave");
-    await user.click(screen.getByTestId("recovery-save"));
-    expect(await screen.findByText(/no coinciden/i)).toBeInTheDocument();
   });
 });

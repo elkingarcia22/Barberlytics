@@ -62,11 +62,11 @@ function validateBranding(body: DefaultBodyType) {
   return { fields, values };
 }
 
-/** Código de recuperación del backend simulado; en producción llega por SMS. */
-export const RECOVERY_CODE = "246810";
-const RESET_TOKEN_PREFIX = "mock-reset-";
+/** Código por SMS del backend simulado; en producción cada envío genera uno distinto. */
+export const OTP_CODE = "246810";
 const AUTH_PROVIDERS: readonly MockAuthProvider[] = ["google", "microsoft"];
-const MIN_PASSWORD = 6;
+const PHONE_E164 = /^\+\d{8,15}$/;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function normalizePhone(value: unknown): string {
   return typeof value === "string" ? value.replace(/[^\d+]/g, "") : "";
@@ -101,12 +101,22 @@ function validateUserInput(body: DefaultBodyType, existing?: MockUser) {
 
 export const handlers = [
   // ---------- Auth ----------
-  http.post(`${BASE}/auth/login`, async ({ request }) => {
+  // Entrar es en dos pasos: el celular pide un código por SMS y el código abre
+  // la sesión. Pedirlo responde 204 exista o no el número, para no revelar quién
+  // está registrado; verificarlo sí dice si el número no es de ninguna barbería.
+  http.post(`${BASE}/auth/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { phone?: string; password?: string };
-    const phone = normalizePhone(body.phone);
-    const account = ACCOUNTS.find((item) => item.phone === phone && (db.passwords.get(item.id) ?? item.password) === body.password);
-    if (!account) return error(401, "unauthorized", "Celular o contraseña incorrectos.");
+    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    if (!PHONE_E164.test(normalizePhone(body.phone))) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/auth/otp/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
+    const account = ACCOUNTS.find((item) => item.phone === normalizePhone(body.phone));
+    if (!account) return error(401, "unauthorized", "Ese número no está registrado en ninguna barbería.");
+    if (body.code !== OTP_CODE) return error(401, "unauthorized", "El código no es correcto o ya venció. Pide uno nuevo.");
     return openSession(account);
   }),
 
@@ -123,34 +133,12 @@ export const handlers = [
     return openSession(account);
   }),
 
-  // Recuperar acceso por SMS: pedir código → verificarlo → nueva contraseña.
-  // Pedirlo responde 204 exista o no el número, para no revelar quién está registrado.
+  // Olvidé mi número: se manda al correo registrado. 204 exista o no el correo.
   http.post(`${BASE}/auth/recovery/request`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { phone?: string };
-    if (!/^\+\d{8,15}$/.test(normalizePhone(body.phone))) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  http.post(`${BASE}/auth/recovery/verify`, async ({ request }) => {
-    await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
-    const account = ACCOUNTS.find((item) => item.phone === normalizePhone(body.phone));
-    if (!account || body.code !== RECOVERY_CODE) return error(401, "unauthorized", "El código no es correcto o ya venció.");
-    return HttpResponse.json({ resetToken: `${RESET_TOKEN_PREFIX}${account.id}` });
-  }),
-
-  http.post(`${BASE}/auth/recovery/reset`, async ({ request }) => {
-    await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { resetToken?: string; password?: string };
-    const accountId = body.resetToken?.startsWith(RESET_TOKEN_PREFIX) ? body.resetToken.slice(RESET_TOKEN_PREFIX.length) : undefined;
-    const account = ACCOUNTS.find((item) => item.id === accountId);
-    if (!account) return error(401, "unauthorized", "El enlace de recuperación ya no es válido. Pide otro código.");
-    if (typeof body.password !== "string" || body.password.length < MIN_PASSWORD) {
-      return error(422, "validation_error", "La contraseña es muy corta.", { fields: { password: [`Mínimo ${MIN_PASSWORD} caracteres.`] } });
-    }
-    db.passwords.set(account.id, body.password);
-    db.persist();
+    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!EMAIL.test(email)) return error(422, "validation_error", "Escribe un correo válido.", { fields: { email: ["Escribe un correo válido."] } });
     return new HttpResponse(null, { status: 204 });
   }),
 

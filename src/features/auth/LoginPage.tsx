@@ -30,14 +30,8 @@ export function LoginPage() {
   const location = useLocation();
   const from = (location.state as LocationState | null)?.from ?? "/dashboard";
   const [view, setView] = React.useState<View>("login");
-  const [notice, setNotice] = React.useState<string | null>(null);
 
   if (status === "authenticated") return <Navigate to={from} replace />;
-
-  const backToLogin = (message?: string) => {
-    setNotice(message ?? null);
-    setView("login");
-  };
 
   return (
     <main className="flex min-h-dvh flex-col bg-background lg:flex-row">
@@ -96,15 +90,9 @@ export function LoginPage() {
           <Enter delay={120} className="w-full max-w-sm">
             <section aria-labelledby="login-heading" className="brand-ring panel-sheen rounded-3xl bg-card/85 p-6 backdrop-blur-xl sm:p-8">
               {view === "login" ? (
-                <LoginForm
-                  notice={notice}
-                  onForgotPassword={() => {
-                    setNotice(null);
-                    setView("recovery");
-                  }}
-                />
+                <LoginForm onForgotNumber={() => setView("recovery")} />
               ) : (
-                <RecoveryPanel onBack={backToLogin} />
+                <RecoveryPanel onBack={() => setView("login")} />
               )}
             </section>
           </Enter>

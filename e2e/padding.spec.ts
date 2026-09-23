@@ -166,7 +166,7 @@ test("ningún contenido queda pegado al borde de su contenedor", async ({ page }
      * fallara, y la auditoría dejaba de mirar cinco sextos de la
      * documentación.
      */
-    await expect(page.getByRole("heading", { level: 1, name: group.label })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: group.label.es })).toBeVisible();
     componentRoutes.push(
       ...(await page.evaluate(() =>
         [...document.querySelectorAll('a[href^="#/components/"]')].map((a) => a.getAttribute("href")!)

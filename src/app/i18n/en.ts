@@ -178,7 +178,7 @@ export const appEn: AppMessageCatalog = {
   "auth.errorTitle": "We couldn't sign you in",
   "auth.providerErrorTitle": "We couldn't sign you in with {provider}",
   "auth.providerUnavailable": "Signing in with {provider} isn't configured in this environment yet.",
-  "auth.themeTools": "Language and appearance",
+  "auth.themeTools": "Language and mode",
   "auth.stage.kicker": "Welcome back",
   "auth.stage.title": "Multiply the success",
   "auth.stage.titleAccent": "of your barbershop.",

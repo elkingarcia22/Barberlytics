@@ -201,7 +201,7 @@ export const appEs = {
   "auth.errorTitle": "No pudimos iniciar sesión",
   "auth.providerErrorTitle": "No pudimos entrar con {provider}",
   "auth.providerUnavailable": "Entrar con {provider} todavía no está configurado en este entorno.",
-  "auth.themeTools": "Idioma y apariencia",
+  "auth.themeTools": "Idioma y modo",
   "auth.stage.kicker": "Bienvenido de vuelta",
   "auth.stage.title": "Multiplica el éxito",
   "auth.stage.titleAccent": "de tu barbería.",

@@ -5,7 +5,7 @@ import { Enter, Foil, Grain, HairCanvas, Halo, Vignette } from "@/components/atm
 import { Heading, Text } from "@/components/typography";
 import { BarberlyticsLogo } from "@/components/ui/BarberlyticsLogo";
 import { LanguageSelector } from "@/i18n";
-import { ThemeModeToggle, ThemeSelector } from "@/themes";
+import { ThemeModeToggle, useForcedPreset } from "@/themes";
 import { useAuth } from "./useAuth";
 import { LoginForm } from "./LoginForm";
 import { RecoveryPanel } from "./RecoveryPanel";
@@ -17,15 +17,19 @@ interface LocationState {
 
 type View = "login" | "recovery";
 
+/** El login siempre se presenta con el tema premium, elija lo que elija la persona en la app. */
+const LOGIN_PRESET = "premium";
+
 /**
  * Entrada a la aplicación en dos mitades. A la izquierda, el panel de
- * portada sobre el cromo oscuro del tema: la foto de barbería en duotono,
+ * portada sobre el cromo oscuro del tema premium: la foto de barbería en duotono,
  * halo, grano y el titular abajo. A la derecha, el formulario sobre el fondo
  * de la app con el cabello cayendo detrás, que alterna entre entrar y
  * recuperar el acceso. Idioma y tema, arriba.
  */
 export function LoginPage() {
   const t = useAppT();
+  useForcedPreset(LOGIN_PRESET);
   const { status } = useAuth();
   const location = useLocation();
   const from = (location.state as LocationState | null)?.from ?? "/dashboard";
@@ -82,7 +86,6 @@ export function LoginPage() {
         </div>
         <header className="flex items-center justify-end gap-1.5 px-6 py-4 sm:px-10" role="group" aria-label={t("auth.themeTools")}>
           <LanguageSelector compact />
-          <ThemeSelector compact />
           <ThemeModeToggle />
         </header>
 

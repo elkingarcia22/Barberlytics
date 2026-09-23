@@ -79,7 +79,10 @@
   .px-page { padding-left: var(--space-page, 24px); padding-right: var(--space-page, 24px); }
   .py-page { padding-top: var(--space-page, 24px); padding-bottom: var(--space-page, 24px); }
 
-  /* Aire entre secciones de una pantalla. */
+  /* Aire entre secciones de una pantalla. `p-section` es el margen interior
+     de un escenario grande (las demos de atmósfera). */
+  .p-section { padding: var(--space-section, 32px); }
+  .px-section { padding-left: var(--space-section, 32px); padding-right: var(--space-section, 32px); }
   .mt-section { margin-top: var(--space-section, 32px); }
   .mb-section { margin-bottom: var(--space-section, 32px); }
   .py-section { padding-top: var(--space-section, 32px); padding-bottom: var(--space-section, 32px); }

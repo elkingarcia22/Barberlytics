@@ -204,7 +204,7 @@ export const appEs = {
   "auth.themeTools": "Idioma y apariencia",
   "auth.stage.kicker": "Bienvenido de vuelta",
   "auth.stage.title": "Tu barbería,",
-  "auth.stage.titleAccent": "al día.",
+  "auth.stage.titleAccent": "bajo control.",
   "auth.stage.lead": "Citas, caja, barberos y clientes en un solo lugar. Mide cómo va tu barbería y hazla crecer, con la IA como apoyo.",
   "auth.code.title": "Escribe el código",
   "auth.code.description": "Lo enviamos por SMS al {phone}. Vence en 10 minutos.",

@@ -181,7 +181,7 @@ export const appEn: AppMessageCatalog = {
   "auth.themeTools": "Language and appearance",
   "auth.stage.kicker": "Welcome back",
   "auth.stage.title": "Your barbershop,",
-  "auth.stage.titleAccent": "up to date.",
+  "auth.stage.titleAccent": "under control.",
   "auth.stage.lead": "Appointments, cash, barbers and clients in one place. See how your barbershop is doing and grow it, with AI on your side.",
   "auth.code.title": "Enter the code",
   "auth.code.description": "We texted it to {phone}. It expires in 10 minutes.",

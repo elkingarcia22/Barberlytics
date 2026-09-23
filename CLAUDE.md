@@ -21,6 +21,8 @@ En la app de escritorio el dev server se levanta con `.claude/launch.json` (`the
 
 - `src/styles/tokens.css` — tokens: color, radio, espaciado, sombras, **motion, capas (z), anchos**.
 - `src/styles/globals.css` — mapa semántico shadcn (`--primary`, `--muted`…), `.dark`, utilidades de motion.
+- `src/styles/atmosphere.css` — la capa de marca (cabello, poste, tijeras, grano, halo, reveal); sus
+  componentes viven en `src/components/atmosphere/` y su doc en `/docs#/group/atmosphere`.
 - `src/themes/` — 14 presets, `buildTokens.ts`, `ThemeProvider`, `ThemeSelector`.
 - `src/components/ui/` — primitivos shadcn/Radix; `src/components/<familia>/` — piezas del producto
   (forms, selection, navigation, overlays, feedback, data-display, date, upload, charts, ai,

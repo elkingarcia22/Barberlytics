@@ -58,6 +58,7 @@ export * from "./components/date";
 export * from "./components/range";
 export * from "./components/upload";
 export * from "./components/media";
+export * from "./components/atmosphere";
 export * from "./components/charts";
 export * from "./components/ai";
 export * from "./components/ai-interaction";

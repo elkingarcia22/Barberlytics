@@ -22,6 +22,7 @@ import {
   MousePointerClick,
   PanelBottom,
   PanelsTopLeft,
+  Scissors,
   Shapes,
   Sparkles,
   Table2,
@@ -60,6 +61,7 @@ export const GROUP_ICONS: Readonly<Record<string, LucideIcon>> = {
   media: Image,
   utility: Wrench,
   icons: Shapes,
+  atmosphere: Scissors,
   blocks: Blocks,
 };
 

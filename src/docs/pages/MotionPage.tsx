@@ -51,6 +51,18 @@ const CSS_UTILS = [
   { name: ".shimmer-mirror", use: "Reflejo que cruza una superficie, para estados de IA pensando." },
 ] as const;
 
+/** La capa de atmósfera (src/styles/atmosphere.css): clases que acompañan a los componentes del grupo. */
+const ATMOSPHERE_UTILS = [
+  { name: ".reveal / .enter", use: "Aparición al entrar en pantalla y entrada de portada: 14px de ascenso y opacidad. Los ponen Reveal y Enter." },
+  { name: ".foil", use: "Lámina dorada sobre una palabra: barrido de luz cada 7s en --color-brand. Lo pone Foil." },
+  { name: ".pole / .pole-ring", use: "El poste girando (translateY en bucle) y la rueda vista desde arriba (una vuelta cada 80s)." },
+  { name: ".cut", use: "El corte de tijera: clip-path sobre la línea continua y transform hasta --cut-w. Lo pone CutLine." },
+  { name: ".marquee", use: "Ticker en bucle con los extremos fundidos; se pausa en hover y envuelve con reduced-motion." },
+  { name: ".tilt", use: "Perspectiva hacia el puntero; useTilt escribe el transform y .tilt-reset lo devuelve." },
+  { name: ".grain / .vignette / .halo", use: "Fondos con material: ruido, bordes hundidos y resplandor del primario. Sin coste de scroll." },
+  { name: ".brand-ring / .panel-sheen / .barber-stripes / .btn-sweep", use: "Acabados de panel: borde con gradiente de marca, filo de luz, la diagonal del poste y el barrido de luz de un botón." },
+] as const;
+
 const FRAMER_CODE = `import { motion } from "framer-motion";
 import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
 
@@ -201,6 +213,27 @@ export function MotionPage() {
             ))}
           </Card>
         </div>
+      </DocSection>
+
+      <DocSection
+        id="atmosphere"
+        title="Atmósfera y marca"
+        description="La capa que una página de marca necesita y el producto no trae: cabello que cae, poste, corte de tijera, sello, ticker, grano y halo. Vive en src/styles/atmosphere.css y cada pieza tiene su componente en la familia Atmósfera. Todo se mueve con transform, opacity o clip-path, y prefers-reduced-motion deja cada pieza en su estado final."
+      >
+        <Card className="divide-y divide-border/50">
+          <p className="px-card py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">CSS · atmosphere.css</p>
+          {ATMOSPHERE_UTILS.map((item) => (
+            <div key={item.name} className="px-card py-3">
+              <p className="font-mono text-[12px] font-semibold text-primary">{item.name}</p>
+              <p className="text-[12px] text-text-secondary">{item.use}</p>
+            </div>
+          ))}
+          <div className="px-card py-3">
+            <a href="#/group/atmosphere" className="text-[12px] font-medium text-primary underline-offset-4 hover:underline">
+              Ver la familia Atmósfera y marca
+            </a>
+          </div>
+        </Card>
       </DocSection>
 
       <DocSection id="reduced" title="Movimiento reducido" description="Con prefers-reduced-motion los overlays siguen apareciendo (Radix espera a que termine la animación para desmontar) pero en 1ms; las cascadas y los hover se anulan del todo.">

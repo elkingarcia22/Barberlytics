@@ -69,7 +69,8 @@ export type IconName =
   | 'moon'
   | 'vacancies'
   | 'templates'
-  | 'logout';
+  | 'logout'
+  | 'scissors';
 
 export interface ThemaIconProps {
   /** Nombre semántico del icono en el registro */

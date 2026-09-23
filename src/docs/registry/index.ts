@@ -16,6 +16,7 @@ import { layoutEntries } from "./layout";
 import { mediaEntries } from "./media";
 import { utilityEntries } from "./utility";
 import { iconsEntries } from "./icons";
+import { atmosphereEntries } from "./atmosphere";
 import { blocksEntries } from "./blocks";
 
 export * from "./types";
@@ -38,6 +39,7 @@ export const ALL_ENTRIES: readonly DocEntry[] = [
   ...mediaEntries,
   ...utilityEntries,
   ...iconsEntries,
+  ...atmosphereEntries,
   ...blocksEntries,
 ];
 

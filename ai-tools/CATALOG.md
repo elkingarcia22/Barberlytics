@@ -2,7 +2,7 @@
 
 Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**166 componentes** en 18 familias · 43 iconos en el registro · 113 tokens.
+**181 componentes** en 19 familias · 44 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -16,6 +16,7 @@ Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se ed
 
 ## Fundamentos
 
+- [object Object] → `/docs#/foundations/brand`
 - [object Object] → `/docs#/foundations/themes`
 - [object Object] → `/docs#/foundations/colors`
 - [object Object] → `/docs#/foundations/typography`
@@ -25,7 +26,7 @@ Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se ed
 - [object Object] → `/docs#/foundations/language`
 - [object Object] → `/docs#/foundations/motion`
 
-## [object Object] · 45
+## [object Object] · 46
 
 [object Object]
 
@@ -245,6 +246,34 @@ Ejemplo · Variantes:
 Sí: Usa una o dos palabras; el badge no envuelve texto. · Mantén un significado fijo por color en toda la aplicación. · Acompaña los estados con icono para no depender solo del color.
 No: No uses badges como botones sin `asChild` y un control real. · No pongas más de tres badges seguidos en la misma fila. · No lo uses para contadores grandes; a partir de 99 muestra «99+».
 Relacionados: button, alert, avatar
+
+### BarberlyticsLogo
+
+El logotipo de Barberlytics como SVG inline que sigue al tema: «Barber» en `currentColor`, «lytics» y la flecha en el gradiente de marca del tema activo. Sin props de color; el modo claro u oscuro lo resuelve el contenedor. `variant="mark"` deja la flecha sola como isotipo.
+
+```ts
+import { BarberlyticsLogo } from "@/components/ui/BarberlyticsLogo"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `variant` | `"wordmark" \| "mark"` | `"wordmark"` | Logotipo completo o la flecha sola (isotipo). |
+| `gradient` | `"brand" \| "ai" \| "mono"` | `"brand"` | Color de «lytics» y la flecha: gradiente de marca del tema, gradación de IA del tema o una tinta (`currentColor`). |
+| `height` | `number` | `32` | Alto en px de la tinta. El ancho es `height × 4,44` (wordmark) o `height × 1,5` (mark). |
+| `title` | `string` | `"Barberlytics"` | Nombre accesible del `role="img"`. |
+| `...props` | `React.SVGAttributes<SVGSVGElement>` |  | Atributos del `<svg>`, incluido `className` para el layout de afuera. |
+
+Ejemplo · Los tres colores:
+
+```tsx
+<BarberlyticsLogo />
+<BarberlyticsLogo gradient="ai" />
+<BarberlyticsLogo gradient="mono" />
+```
+
+Sí: Colócalo en un contenedor con `text-text-primary`; sobre el cromo oscuro, `text-nav-foreground`. · Deja alrededor al menos el alto de la «B» (0,5 × `height`) libre de otros elementos. · Usa `variant="mark"` a partir de 16px y el logotipo completo a partir de 20px de alto.
+No: No lo estires ni le pases `width`: cambia solo `height`. · No le pongas colores a mano ni lo saques del tema; `gradient="ai"` es solo para superficies de IA. · No uses «lytics» con la flecha sin «Barber», ni la flecha girada o en espejo.
+Relacionados: thema-logo, thema-product-header
 
 ### BorderBeam
 
@@ -5921,7 +5950,7 @@ import { SidebarIconRail } from "@/components/app-shell/SidebarIconRail"
 | `onModeChange` | `(mode: ShellMode) => void` |  | Al pulsar Workspace o Agente IA. |
 | `onExpand` | `() => void` |  | Al pulsar «Expandir menú», el botón superior. |
 | `onOpenFeedback` | `() => void` |  | Al pulsar «Feedback» en el pie. |
-| `brandMark` | `React.ReactNode` |  | La marca del producto; AppSidebar pasa `<BrandMark name={brand.productName} />`. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí. |
+| `brandMark` | `React.ReactNode` |  | La marca; AppSidebar pasa `<BrandSlot variant="icon" />`: el isologo de la barbería o, sin él, la flecha de Barberlytics. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí. |
 | `brandLabel` | `string` |  | Nombre del producto, para el tooltip y el `aria-label` de la marca. |
 | `className` | `string` |  | Clases extra del `<nav>`. |
 
@@ -5945,7 +5974,7 @@ function holdsCurrent(item: NavRoot, currentNodeId: string) {
   onModeChange={setMode}
   onExpand={expand}
   onOpenFeedback={openFeedback}
-  brandMark={<BrandMark name={brand.productName} />}
+  brandMark={<BrandMark />}
   brandLabel={brand.productName}
 />
 ```
@@ -6417,6 +6446,370 @@ No: No uses tamaños arbitrarios con `className`; las cinco tallas son el sistem
 Relacionados: button, ai-spark-glyph, chip
 
 
+## [object Object] · 14
+
+[object Object]
+
+### BarberGlyph
+
+Grafismos de fondo en línea, un peine y una navaja abierta, dibujados con currentColor a muy baja opacidad detrás de una sección. Son textura, no contenido: siempre aria-hidden, sin puntero, y con `floating` se mecen despacio (14 s) sobre la inclinación que se les dé.
+
+```ts
+import { BarberGlyph } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `kind` | `"comb" \| "razor"` |  | El glifo: peine o navaja abierta. |
+| `floating` | `boolean` | `false` | Flotación lenta de 14 s sobre la inclinación de `rotate`. |
+| `rotate` | `number` | `0` | Grados de inclinación en reposo. |
+| `className` | `string` |  | Posición absoluta, ancho, color (`text-text-primary`) y opacidad (`opacity-[0.05]`). |
+
+Ejemplo · La navaja en la esquina de una sección:
+
+```tsx
+<Section className="relative overflow-hidden">
+  <BarberGlyph kind="razor" floating rotate={-8} className="absolute -bottom-10 -left-24 hidden w-[40rem] text-text-primary opacity-[0.05] lg:block" />
+  …
+</Section>
+```
+
+Sí: Opacidad entre 4 % y 10 %: si se lee como dibujo, sobra. · Uno por sección y solo en pantallas anchas (`hidden lg:block`).
+No: No los uses como iconos ni como ilustración de un estado vacío. · No los animes con otra cosa que `floating`: un glifo que se mueve mucho deja de ser fondo.
+Relacionados: hair-canvas, pole-ring
+
+### BarberPole
+
+El poste de barbería girando: dos remates dorados y un cilindro con las franjas diagonales desplazándose en vertical, el giro clásico hecho con un solo translateY en bucle. La franja de marca es el primario del tema; el marfil y la tinta son materiales fijos.
+
+```ts
+import { BarberPole } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `className` | `string` |  | Alto y posición. El ancho es fijo (24px); el alto lo pone el contenedor. |
+
+Ejemplo · De pie junto al titular:
+
+```tsx
+<div className="flex items-stretch gap-10">
+  <BarberPole className="hidden self-stretch xl:flex" />
+  <div>
+    <Heading level={2}>Beta privada · Solo por invitación</Heading>
+    <Text variant="lead">…</Text>
+  </div>
+</div>
+```
+
+Sí: Uno por pantalla, de pie junto a un titular o a un panel. · Escóndelo en pantallas angostas (`hidden xl:flex`): ahí no hay margen para él.
+No: No lo uses como icono ni como indicador de carga. · No cambies el marfil ni la tinta: son los materiales del objeto, no colores de interfaz.
+Relacionados: pole-ring, rotating-seal
+
+### CutLine
+
+Separador entre secciones: unas tijeras cruzan la página y dejan la línea continua convertida en línea de puntos. La continua se recorta con clip-path y las tijeras viajan con transform hasta el ancho que mide el propio componente. Arranca la primera vez que entra en pantalla; con prefers-reduced-motion queda en su estado final, ya cortada.
+
+```ts
+import { CutLine } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `className` | `string` |  | Márgenes verticales o ancho; el alto es fijo (2.5rem) para que la línea no salte. |
+
+Ejemplo · Entre dos secciones:
+
+```tsx
+<Section id="programa">…</Section>
+<CutLine />
+<Section id="camino">…</Section>
+```
+
+Sí: Úsalo como regla entre secciones grandes, una vez entre cada par. · Déjale aire: el corte se lee cuando hay espacio arriba y abajo.
+No: No lo uses dentro de cards ni de listas: para eso está Separator. · No lo pongas encima del pliegue: espera al scroll y ahí nadie lo ve moverse.
+Relacionados: separator, reveal, marquee
+
+### Enter
+
+Entrada de los bloques de portada. A diferencia de Reveal, no espera a un IntersectionObserver: la animación es de CSS, arranca sola y termina en su estado visible, así que el contenido sobre el pliegue se pinta aunque el JavaScript llegue tarde o no llegue.
+
+```ts
+import { Enter } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `delay` | `number` | `0` | Retardo de la animación en ms; la portada escalona de 60 a 80 ms por bloque. |
+| `...props` | `React.ComponentProps<"div">` |  | Atributos del div. |
+
+Sí: Úsalo solo en lo que se ve al cargar: eyebrow, titular, párrafo, botones y el sello. · Escalona en pasos cortos; la portada entera debe estar en su sitio antes de 600 ms.
+No: No lo uses bajo el pliegue: ahí la animación ya habría terminado cuando el usuario llega (usa Reveal). · No lo combines con Reveal en el mismo bloque.
+Relacionados: reveal, rotating-seal
+
+### Foil
+
+Lámina dorada: la palabra de marca de un titular con un barrido de luz cada siete segundos. El oro es --color-brand, así que en un tema azul la lámina es azul. Es el único sitio de la capa donde se anima background-position: una palabra, no una frase.
+
+```ts
+import { Foil } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `as` | `"span" \| "em" \| "strong"` | `"span"` | Etiqueta en línea; `em` para la palabra enfática de un titular. |
+| `...props` | `React.HTMLAttributes<HTMLElement>` |  | Atributos del elemento. |
+
+Ejemplo · En el cierre:
+
+```tsx
+<Heading level={2}>
+  La IA que va a mover tu barbería se entrena en <Foil>este grupo</Foil>.
+</Heading>
+```
+
+Sí: Una palabra o dos por pantalla, en el titular de portada y en el de cierre. · Úsalo sobre un Heading grande: a 14px la lámina no se ve.
+No: No lo apliques a un párrafo ni a un botón. · No lo combines con `text-brand-gradient` en el mismo titular: uno de los dos sobra.
+Relacionados: heading, rotating-seal
+
+### Grain
+
+Grano: una textura de ruido (un SVG en línea, sin coste de red) fundida sobre el fondo con soft-light y sin interceptar el puntero. Es lo que separa un fondo plano de una superficie con material. Con scope="page" se fija al viewport una sola vez; con "container", al padre relative.
+
+```ts
+import { Grain } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `scope` | `"page" \| "container"` | `"container"` | `page` lo fija al viewport (una vez por página); `container`, al padre relative. |
+| `className` | `string` |  | Opacidad o mezcla distintas (`opacity-30`). |
+
+Ejemplo · En la página entera:
+
+```tsx
+<div className="page-atmosphere">
+  <Grain scope="page" />
+  <Vignette scope="page" />
+  <main className="relative">…</main>
+</div>
+```
+
+Sí: Uno por página, junto a la atmósfera del tema (`.page-atmosphere`) y la viñeta. · Deja el 40 % de opacidad: es un material, no un efecto.
+No: No lo pongas en cards ni en drawers: el grano es del fondo. · No lo uses en pantallas de producto densas (tablas, formularios); es para páginas de marca.
+Relacionados: vignette, halo, hair-canvas
+
+### HairCanvas
+
+Cabello cayendo sobre una portada: hebras finas y curvas que bajan, se mecen y giran, la mitad en el color de marca y la otra mitad en el del texto. Es un canvas 2D que se detiene fuera de pantalla y con la pestaña oculta, relee la paleta al cambiar el tema y con prefers-reduced-motion no se monta.
+
+```ts
+import { HairCanvas } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `density` | `number` | `1` | Multiplicador de hebras: 1 es una hebra por cada 22 000 px², con tope en 70. |
+| `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
+
+Ejemplo · Portada:
+
+```tsx
+<section className="relative overflow-hidden">
+  <HairCanvas />
+  <div className="relative mx-auto max-w-4xl text-center">…</div>
+</section>
+```
+
+Sí: Úsalo en la portada y, con menos densidad, en el cierre: dos veces por página como mucho. · El contenedor tiene que ser `relative` y con `overflow-hidden`; el canvas mide al padre. · Confía en que se apaga solo fuera de pantalla: no lo desmontes a mano al hacer scroll.
+No: No lo pongas detrás de texto largo ni de un formulario: es textura para titulares. · No lo dupliques dentro de cards; una card no tiene atmósfera propia. · No le des colores: los toma del tema (`--primary` y `--foreground`).
+Relacionados: pole-ring, halo, grain
+
+### Halo
+
+Halo: un resplandor del primario en un punto del contenedor relative, que se funde en el fondo. Dos halos (uno arriba a la izquierda, otro al fondo) son la atmósfera de una landing; uno detrás de un titular es su luz. Solo pinta un gradiente: no cuesta scroll.
+
+```ts
+import { Halo } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `x` | `string` | `"50%"` | Centro horizontal del resplandor. |
+| `y` | `string` | `"22%"` | Centro vertical del resplandor. |
+| `size` | `string` | `"52rem 28rem"` | Tamaño de la elipse, «ancho alto». |
+| `strength` | `number` | `0.18` | Opacidad del primario en el centro. |
+| `className` | `string` |  | Alto o recorte distintos (`h-[44rem]`, `inset-x-0 top-0`). |
+
+Ejemplo · La atmósfera de una landing:
+
+```tsx
+<div className="relative">
+  <Halo x="12%" y="-10%" size="60rem 40rem" strength={0.16} />
+  <Halo x="95%" y="8%" size="45rem 30rem" strength={0.08} />
+  <main className="relative">…</main>
+</div>
+```
+
+Sí: Uno detrás de cada titular grande; dos como atmósfera de página. · Mantén la fuerza por debajo de 0.25: el halo se nota por contraste, no por color.
+No: No lo uses dentro de cards: la atmósfera del tema ya cae sobre la página. · No lo animes; la luz quieta es lo que hace que el cabello y la rueda se lean como movimiento.
+Relacionados: pole-ring, grain, vignette, hair-canvas
+
+### Marquee
+
+Ticker de vocabulario en bucle: los extremos se funden con el fondo, cada palabra lleva su rombo del primario y se pausa al pasar el puntero. Es decorativo (aria-hidden): lo que diga tiene que estar también en el contenido. Con prefers-reduced-motion se vuelve una lista fija que envuelve.
+
+```ts
+import { Marquee } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `items` | `readonly string[]` |  | Las palabras. Se duplican por dentro para que el bucle no tenga costura. |
+| `duration` | `number` | `48` | Segundos que tarda una vuelta completa. |
+| `...props` | `React.ComponentProps<"div">` |  | Atributos del contenedor; `className` para márgenes. |
+
+Ejemplo · Bajo la portada:
+
+```tsx
+<Marquee items={["Fade", "Taper", "Navaja", "Agenda", "Comisiones", "IA que aprende"]} />
+```
+
+Sí: Ocho a quince palabras cortas; el ticker se lee de reojo. · Ponlo a todo el ancho, entre dos bloques, con sus bordes superior e inferior.
+No: No metas enlaces ni botones: es aria-hidden y no recibe foco. · No lo uses para avisos o noticias; un ticker con contenido real es un carrusel sin controles.
+Relacionados: cut-line, foil
+
+### PoleRing
+
+La rueda: el poste visto desde arriba, un anillo de ticks radiales del primario girando muy despacio (una vuelta cada 80 s) detrás de un titular o un panel. Va centrado en su padre `relative`; el giro pisa cualquier otro transform, así que el centrado vive en el contenedor del componente.
+
+```ts
+import { PoleRing } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `size` | `number \| string` | `"56rem"` | Diámetro del anillo; px si es número, o cualquier longitud CSS. |
+| `opacity` | `number` | `0.6` | Opacidad del conjunto. El anillo ya es tenue (primario al 28%). |
+| `className` | `string` |  | Posición del contenedor centrado (`top-[34%]`, `left-[70%]`…). |
+
+Ejemplo · Detrás del titular de portada:
+
+```tsx
+<PoleRing size="64rem" opacity={0.3} className="top-[34%]" />
+```
+
+Sí: Ponlo en un padre `relative overflow-hidden`: casi siempre es más grande que la sección. · Combínalo con un Halo: el anillo dibuja, el halo ilumina.
+No: No lo uses a tamaño pequeño como spinner ni como avatar. · No apliques `transform` al contenedor por `className`: el giro lo pisaría.
+Relacionados: barber-pole, halo, hair-canvas
+
+### Reveal
+
+Envoltorio que aparece al entrar en pantalla: 14px de ascenso y opacidad, una sola vez, con un IntersectionObserver por elemento y ningún manejador de scroll. Para lo que está bajo el pliegue; lo que está sobre él usa Enter, que no espera a nadie. Con prefers-reduced-motion se muestra sin transición.
+
+```ts
+import { Reveal } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `delay` | `number` | `0` | Retardo de la transición en ms, para escalonar listas y rejillas (60–120 ms entre ítems). |
+| `as` | `"div" \| "li" \| "article" \| "section"` | `"div"` | Etiqueta a renderizar; `li` dentro de una lista para no romper el marcado. |
+| `...props` | `React.HTMLAttributes<HTMLElement>` |  | Atributos del elemento. |
+
+Ejemplo · Un bloque entero:
+
+```tsx
+<Reveal className="mx-auto max-w-3xl text-center">
+  <Heading level={2}>La construimos juntos.</Heading>
+  <Text variant="lead">Entra al canal y preséntate con el nombre de tu barbería.</Text>
+</Reveal>
+```
+
+Sí: Envuelve bloques, no palabras: una sección, una card, una fila. · Escalona con `delay` solo dentro de una misma rejilla; entre secciones el scroll ya escalona.
+No: No lo uses sobre el pliegue: el titular de portada es el LCP y no puede esperar a un observador (usa Enter). · No lo anides: un Reveal dentro de otro se revela dos veces.
+Relacionados: enter, cut-line, tilt
+
+### RotatingSeal
+
+El sello de membresía: un anillo de texto girando muy despacio (36 s por vuelta) alrededor de una pieza central, por defecto la flecha del logo. Es el detalle que abre una portada o marca una invitación. Decorativo: el texto tiene que estar también como contenido real.
+
+```ts
+import { RotatingSeal } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `text` | `string` | `"Beta privada · Solo por invitación · Cohorte 01 ·"` | El texto del anillo. Termina en «·» para que la vuelta no tenga costura; unos 45 caracteres llenan el carril. |
+| `children` | `React.ReactNode` |  | La pieza central. Por defecto, la flecha del logo Barberlytics. |
+| `size` | `number` | `128` | Lado del sello en px; el texto y el centro escalan con él. |
+| `className` | `string` |  | Márgenes y posición. |
+
+Ejemplo · Abriendo la portada:
+
+```tsx
+<Enter>
+  <RotatingSeal />
+</Enter>
+<p>Beta privada · Solo por invitación</p>
+```
+
+Sí: Uno por página, en la portada o en la invitación. · Escribe el mismo mensaje como texto real justo debajo.
+No: No lo uses como avatar ni como botón. · No cambies la velocidad: 36 s es lo que hace que se note sin distraer.
+Relacionados: barberlytics-logo, enter, barber-pole
+
+### Tilt
+
+Perspectiva hacia el puntero: el panel se inclina siguiendo al ratón (rotateX/rotateY con perspectiva) y vuelve a su sitio al salir. Solo con puntero fino y sin prefers-reduced-motion; en táctil es un div normal. Escribe el transform directamente en el nodo, fuera del ciclo de React.
+
+```ts
+import { Tilt } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `maxDegrees` | `number` | `6` | Grados máximos de inclinación en cada eje. |
+| `...props` | `React.ComponentProps<"div">` |  | Atributos del div envoltorio. |
+
+Ejemplo · Un panel grande, poca inclinación:
+
+```tsx
+<Tilt maxDegrees={2.5}>
+  <Card className="brand-ring panel-sheen grid gap-8 rounded-3xl p-8 lg:grid-cols-12">…</Card>
+</Tilt>
+```
+
+Sí: Envuelve la card o el panel completo; el hijo no debe tener `transform` propio. · Reserva la inclinación fuerte para cards pequeñas en rejilla.
+No: No lo uses en controles (botones, campos): el foco y el clic se vuelven imprecisos. · No lo pongas en listas largas: un tilt por fila es ruido.
+Relacionados: magic-card, reveal
+
+### Vignette
+
+Viñeta: los bordes se hunden y el centro respira. En oscuro es sombra; en claro, un velo del primario del tema. Va una vez, sobre el fondo de la página o de una portada, y nunca sobre una card.
+
+```ts
+import { Vignette } from "@/components/atmosphere"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `scope` | `"page" \| "container"` | `"container"` | `page` lo fija al viewport; `container`, al padre relative. |
+| `className` | `string` |  | Clases extra. |
+
+Ejemplo · Sobre una portada:
+
+```tsx
+<section className="relative overflow-hidden">
+  <Vignette />
+  <div className="relative">…</div>
+</section>
+```
+
+Sí: Combínala con Grain y con la atmósfera del tema: las tres juntas son el fondo de una landing. · Ponla antes del contenido en el árbol y deja el contenido `relative`.
+No: No la uses en el shell de producto: el sidebar y las tablas no quieren bordes hundidos. · No apiles dos viñetas (página y sección).
+Relacionados: grain, halo
+
+
 ## [object Object] · 1
 
 [object Object]
@@ -6476,4 +6869,4 @@ Relacionados: table-shell, list-item, status-badge, heatmap-matrix
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, file, filter, graduation, help, home, info, layers, logout, moon, neutral, notification, palette, search, settings, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, file, filter, graduation, help, home, info, layers, logout, moon, neutral, notification, palette, scissors, search, settings, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning

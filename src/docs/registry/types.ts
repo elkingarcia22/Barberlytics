@@ -30,6 +30,7 @@ export type DocGroupId =
   | "media"
   | "utility"
   | "icons"
+  | "atmosphere"
   | "blocks";
 
 export interface DocGroup {
@@ -123,6 +124,14 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     id: "icons",
     label: { es: "Iconos", en: "Icons" },
     description: { es: "El registro semántico de iconos y su wrapper.", en: "The semantic icon registry and its wrapper." },
+  },
+  {
+    id: "atmosphere",
+    label: { es: "Atmósfera y marca", en: "Atmosphere and brand" },
+    description: {
+      es: "Fondos con material, la personalidad del oficio y la aparición al hacer scroll: cabello, poste, tijeras, grano, halo.",
+      en: "Backdrops with material, the trade's personality and scroll reveals: hair, pole, scissors, grain, halo.",
+    },
   },
   {
     id: "blocks",

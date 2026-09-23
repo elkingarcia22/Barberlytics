@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T00:58:58.504Z",
+  "generatedAt": "2026-09-23T14:40:54.274Z",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -188,6 +188,17 @@
       "description": {
         "es": "El registro semántico de iconos y su wrapper.",
         "en": "The semantic icon registry and its wrapper."
+      }
+    },
+    {
+      "id": "atmosphere",
+      "label": {
+        "es": "Atmósfera y marca",
+        "en": "Atmosphere and brand"
+      },
+      "description": {
+        "es": "Fondos con material, la personalidad del oficio y la aparición al hacer scroll: cabello, poste, tijeras, grano, halo.",
+        "en": "Backdrops with material, the trade's personality and scroll reveals: hair, pole, scissors, grain, halo."
       }
     },
     {
@@ -2129,6 +2140,797 @@
         }
       ],
       "docs": "/docs#/components/save-indicator"
+    },
+    {
+      "id": "barber-glyph",
+      "name": "BarberGlyph",
+      "group": "atmosphere",
+      "description": "Grafismos de fondo en línea, un peine y una navaja abierta, dibujados con currentColor a muy baja opacidad detrás de una sección. Son textura, no contenido: siempre aria-hidden, sin puntero, y con `floating` se mecen despacio (14 s) sobre la inclinación que se les dé.",
+      "import": "import { BarberGlyph } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/BarberGlyph.tsx",
+      "status": "stable",
+      "tags": [
+        "svg",
+        "barbería",
+        "fondo"
+      ],
+      "props": [
+        {
+          "name": "kind",
+          "type": "\"comb\" | \"razor\"",
+          "default": null,
+          "description": "El glifo: peine o navaja abierta."
+        },
+        {
+          "name": "floating",
+          "type": "boolean",
+          "default": "false",
+          "description": "Flotación lenta de 14 s sobre la inclinación de `rotate`."
+        },
+        {
+          "name": "rotate",
+          "type": "number",
+          "default": "0",
+          "description": "Grados de inclinación en reposo."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Posición absoluta, ancho, color (`text-text-primary`) y opacidad (`opacity-[0.05]`)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Opacidad entre 4 % y 10 %: si se lee como dibujo, sobra.",
+          "Uno por sección y solo en pantallas anchas (`hidden lg:block`)."
+        ],
+        "dont": [
+          "No los uses como iconos ni como ilustración de un estado vacío.",
+          "No los animes con otra cosa que `floating`: un glifo que se mueve mucho deja de ser fondo."
+        ]
+      },
+      "related": [
+        "hair-canvas",
+        "pole-ring"
+      ],
+      "examples": [
+        {
+          "id": "razor-corner",
+          "title": "La navaja en la esquina de una sección",
+          "description": "Como en la sección del acuerdo: abajo a la izquierda, a 5 % de opacidad, solo desde `lg`.",
+          "code": "<Section className=\"relative overflow-hidden\">\n  <BarberGlyph kind=\"razor\" floating rotate={-8} className=\"absolute -bottom-10 -left-24 hidden w-[40rem] text-text-primary opacity-[0.05] lg:block\" />\n  …\n</Section>"
+        },
+        {
+          "id": "comb",
+          "title": "El peine",
+          "description": "El peine es horizontal y funciona mejor cruzando el borde superior o inferior de la sección.",
+          "code": "<BarberGlyph kind=\"comb\" floating rotate={4} className=\"absolute -right-20 -top-8 w-[30rem] text-primary opacity-[0.08]\" />"
+        }
+      ],
+      "docs": "/docs#/components/barber-glyph"
+    },
+    {
+      "id": "barber-pole",
+      "name": "BarberPole",
+      "group": "atmosphere",
+      "description": "El poste de barbería girando: dos remates dorados y un cilindro con las franjas diagonales desplazándose en vertical, el giro clásico hecho con un solo translateY en bucle. La franja de marca es el primario del tema; el marfil y la tinta son materiales fijos.",
+      "import": "import { BarberPole } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/BarberPole.tsx",
+      "status": "stable",
+      "tags": [
+        "barbería",
+        "bucle",
+        "decorativo"
+      ],
+      "props": [
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Alto y posición. El ancho es fijo (24px); el alto lo pone el contenedor."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Uno por pantalla, de pie junto a un titular o a un panel.",
+          "Escóndelo en pantallas angostas (`hidden xl:flex`): ahí no hay margen para él."
+        ],
+        "dont": [
+          "No lo uses como icono ni como indicador de carga.",
+          "No cambies el marfil ni la tinta: son los materiales del objeto, no colores de interfaz."
+        ]
+      },
+      "related": [
+        "pole-ring",
+        "rotating-seal"
+      ],
+      "examples": [
+        {
+          "id": "beside-title",
+          "title": "De pie junto al titular",
+          "description": "En la landing acompaña al titular en pantallas `xl`; el poste estira al alto del bloque con `self-stretch`.",
+          "code": "<div className=\"flex items-stretch gap-10\">\n  <BarberPole className=\"hidden self-stretch xl:flex\" />\n  <div>\n    <Heading level={2}>Beta privada · Solo por invitación</Heading>\n    <Text variant=\"lead\">…</Text>\n  </div>\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/barber-pole"
+    },
+    {
+      "id": "cut-line",
+      "name": "CutLine",
+      "group": "atmosphere",
+      "description": "Separador entre secciones: unas tijeras cruzan la página y dejan la línea continua convertida en línea de puntos. La continua se recorta con clip-path y las tijeras viajan con transform hasta el ancho que mide el propio componente. Arranca la primera vez que entra en pantalla; con prefers-reduced-motion queda en su estado final, ya cortada.",
+      "import": "import { CutLine } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/CutLine.tsx",
+      "status": "stable",
+      "tags": [
+        "barbería",
+        "separador",
+        "clip-path",
+        "reveal"
+      ],
+      "props": [
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Márgenes verticales o ancho; el alto es fijo (2.5rem) para que la línea no salte."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo como regla entre secciones grandes, una vez entre cada par.",
+          "Déjale aire: el corte se lee cuando hay espacio arriba y abajo."
+        ],
+        "dont": [
+          "No lo uses dentro de cards ni de listas: para eso está Separator.",
+          "No lo pongas encima del pliegue: espera al scroll y ahí nadie lo ve moverse."
+        ]
+      },
+      "related": [
+        "separator",
+        "reveal",
+        "marquee"
+      ],
+      "examples": [
+        {
+          "id": "between-sections",
+          "title": "Entre dos secciones",
+          "description": "Ocupa el ancho de su contenedor; el padding lateral lo pone la página, como con cualquier separador.",
+          "code": "<Section id=\"programa\">…</Section>\n<CutLine />\n<Section id=\"camino\">…</Section>"
+        }
+      ],
+      "docs": "/docs#/components/cut-line"
+    },
+    {
+      "id": "enter",
+      "name": "Enter",
+      "group": "atmosphere",
+      "description": "Entrada de los bloques de portada. A diferencia de Reveal, no espera a un IntersectionObserver: la animación es de CSS, arranca sola y termina en su estado visible, así que el contenido sobre el pliegue se pinta aunque el JavaScript llegue tarde o no llegue.",
+      "import": "import { Enter } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Enter.tsx",
+      "status": "stable",
+      "tags": [
+        "portada",
+        "css",
+        "lcp"
+      ],
+      "props": [
+        {
+          "name": "delay",
+          "type": "number",
+          "default": "0",
+          "description": "Retardo de la animación en ms; la portada escalona de 60 a 80 ms por bloque."
+        },
+        {
+          "name": "...props",
+          "type": "React.ComponentProps<\"div\">",
+          "default": null,
+          "description": "Atributos del div."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo solo en lo que se ve al cargar: eyebrow, titular, párrafo, botones y el sello.",
+          "Escalona en pasos cortos; la portada entera debe estar en su sitio antes de 600 ms."
+        ],
+        "dont": [
+          "No lo uses bajo el pliegue: ahí la animación ya habría terminado cuando el usuario llega (usa Reveal).",
+          "No lo combines con Reveal en el mismo bloque."
+        ]
+      },
+      "related": [
+        "reveal",
+        "rotating-seal"
+      ],
+      "examples": [],
+      "docs": "/docs#/components/enter"
+    },
+    {
+      "id": "foil",
+      "name": "Foil",
+      "group": "atmosphere",
+      "description": "Lámina dorada: la palabra de marca de un titular con un barrido de luz cada siete segundos. El oro es --color-brand, así que en un tema azul la lámina es azul. Es el único sitio de la capa donde se anima background-position: una palabra, no una frase.",
+      "import": "import { Foil } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Foil.tsx",
+      "status": "stable",
+      "tags": [
+        "texto",
+        "marca",
+        "gradiente"
+      ],
+      "props": [
+        {
+          "name": "as",
+          "type": "\"span\" | \"em\" | \"strong\"",
+          "default": "\"span\"",
+          "description": "Etiqueta en línea; `em` para la palabra enfática de un titular."
+        },
+        {
+          "name": "...props",
+          "type": "React.HTMLAttributes<HTMLElement>",
+          "default": null,
+          "description": "Atributos del elemento."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Una palabra o dos por pantalla, en el titular de portada y en el de cierre.",
+          "Úsalo sobre un Heading grande: a 14px la lámina no se ve."
+        ],
+        "dont": [
+          "No lo apliques a un párrafo ni a un botón.",
+          "No lo combines con `text-brand-gradient` en el mismo titular: uno de los dos sobra."
+        ]
+      },
+      "related": [
+        "heading",
+        "rotating-seal"
+      ],
+      "examples": [
+        {
+          "id": "closing",
+          "title": "En el cierre",
+          "description": "La misma lámina cierra la página en el último titular; en medio, ninguna.",
+          "code": "<Heading level={2}>\n  La IA que va a mover tu barbería se entrena en <Foil>este grupo</Foil>.\n</Heading>"
+        }
+      ],
+      "docs": "/docs#/components/foil"
+    },
+    {
+      "id": "grain",
+      "name": "Grain",
+      "group": "atmosphere",
+      "description": "Grano: una textura de ruido (un SVG en línea, sin coste de red) fundida sobre el fondo con soft-light y sin interceptar el puntero. Es lo que separa un fondo plano de una superficie con material. Con scope=\"page\" se fija al viewport una sola vez; con \"container\", al padre relative.",
+      "import": "import { Grain } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Grain.tsx",
+      "status": "stable",
+      "tags": [
+        "fondo",
+        "textura",
+        "svg"
+      ],
+      "props": [
+        {
+          "name": "scope",
+          "type": "\"page\" | \"container\"",
+          "default": "\"container\"",
+          "description": "`page` lo fija al viewport (una vez por página); `container`, al padre relative."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Opacidad o mezcla distintas (`opacity-30`)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Uno por página, junto a la atmósfera del tema (`.page-atmosphere`) y la viñeta.",
+          "Deja el 40 % de opacidad: es un material, no un efecto."
+        ],
+        "dont": [
+          "No lo pongas en cards ni en drawers: el grano es del fondo.",
+          "No lo uses en pantallas de producto densas (tablas, formularios); es para páginas de marca."
+        ]
+      },
+      "related": [
+        "vignette",
+        "halo",
+        "hair-canvas"
+      ],
+      "examples": [
+        {
+          "id": "page",
+          "title": "En la página entera",
+          "description": "Una vez, en el contenedor de página, fijo al viewport. El contenido va `relative` para quedar por delante.",
+          "code": "<div className=\"page-atmosphere\">\n  <Grain scope=\"page\" />\n  <Vignette scope=\"page\" />\n  <main className=\"relative\">…</main>\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/grain"
+    },
+    {
+      "id": "hair-canvas",
+      "name": "HairCanvas",
+      "group": "atmosphere",
+      "description": "Cabello cayendo sobre una portada: hebras finas y curvas que bajan, se mecen y giran, la mitad en el color de marca y la otra mitad en el del texto. Es un canvas 2D que se detiene fuera de pantalla y con la pestaña oculta, relee la paleta al cambiar el tema y con prefers-reduced-motion no se monta.",
+      "import": "import { HairCanvas } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/HairCanvas.tsx",
+      "status": "stable",
+      "tags": [
+        "canvas",
+        "fondo",
+        "barbería",
+        "reduced-motion"
+      ],
+      "props": [
+        {
+          "name": "density",
+          "type": "number",
+          "default": "1",
+          "description": "Multiplicador de hebras: 1 es una hebra por cada 22 000 px², con tope en 70."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo en la portada y, con menos densidad, en el cierre: dos veces por página como mucho.",
+          "El contenedor tiene que ser `relative` y con `overflow-hidden`; el canvas mide al padre.",
+          "Confía en que se apaga solo fuera de pantalla: no lo desmontes a mano al hacer scroll."
+        ],
+        "dont": [
+          "No lo pongas detrás de texto largo ni de un formulario: es textura para titulares.",
+          "No lo dupliques dentro de cards; una card no tiene atmósfera propia.",
+          "No le des colores: los toma del tema (`--primary` y `--foreground`)."
+        ]
+      },
+      "related": [
+        "pole-ring",
+        "halo",
+        "grain"
+      ],
+      "examples": [
+        {
+          "id": "cover",
+          "title": "Portada",
+          "description": "Va como primer hijo de una sección `relative overflow-hidden`; el contenido después, también `relative`, para quedar por delante.",
+          "code": "<section className=\"relative overflow-hidden\">\n  <HairCanvas />\n  <div className=\"relative mx-auto max-w-4xl text-center\">…</div>\n</section>"
+        },
+        {
+          "id": "closing",
+          "title": "Cierre con menos densidad",
+          "description": "En el cierre de la página baja a 0.7 para no repetir la portada con la misma fuerza.",
+          "code": "<HairCanvas density={0.7} />"
+        }
+      ],
+      "docs": "/docs#/components/hair-canvas"
+    },
+    {
+      "id": "halo",
+      "name": "Halo",
+      "group": "atmosphere",
+      "description": "Halo: un resplandor del primario en un punto del contenedor relative, que se funde en el fondo. Dos halos (uno arriba a la izquierda, otro al fondo) son la atmósfera de una landing; uno detrás de un titular es su luz. Solo pinta un gradiente: no cuesta scroll.",
+      "import": "import { Halo } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Halo.tsx",
+      "status": "stable",
+      "tags": [
+        "fondo",
+        "gradiente",
+        "luz"
+      ],
+      "props": [
+        {
+          "name": "x",
+          "type": "string",
+          "default": "\"50%\"",
+          "description": "Centro horizontal del resplandor."
+        },
+        {
+          "name": "y",
+          "type": "string",
+          "default": "\"22%\"",
+          "description": "Centro vertical del resplandor."
+        },
+        {
+          "name": "size",
+          "type": "string",
+          "default": "\"52rem 28rem\"",
+          "description": "Tamaño de la elipse, «ancho alto»."
+        },
+        {
+          "name": "strength",
+          "type": "number",
+          "default": "0.18",
+          "description": "Opacidad del primario en el centro."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Alto o recorte distintos (`h-[44rem]`, `inset-x-0 top-0`)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Uno detrás de cada titular grande; dos como atmósfera de página.",
+          "Mantén la fuerza por debajo de 0.25: el halo se nota por contraste, no por color."
+        ],
+        "dont": [
+          "No lo uses dentro de cards: la atmósfera del tema ya cae sobre la página.",
+          "No lo animes; la luz quieta es lo que hace que el cabello y la rueda se lean como movimiento."
+        ]
+      },
+      "related": [
+        "pole-ring",
+        "grain",
+        "vignette",
+        "hair-canvas"
+      ],
+      "examples": [
+        {
+          "id": "landing",
+          "title": "La atmósfera de una landing",
+          "description": "Dos halos sobre el fondo de página: uno grande arriba a la izquierda y otro más suave arriba a la derecha.",
+          "code": "<div className=\"relative\">\n  <Halo x=\"12%\" y=\"-10%\" size=\"60rem 40rem\" strength={0.16} />\n  <Halo x=\"95%\" y=\"8%\" size=\"45rem 30rem\" strength={0.08} />\n  <main className=\"relative\">…</main>\n</div>"
+        },
+        {
+          "id": "with-ring",
+          "title": "Con la rueda detrás del cierre",
+          "description": "En el cierre de la landing el halo sube desde abajo y la rueda gira en el centro.",
+          "code": "<section className=\"relative overflow-hidden\">\n  <Halo x=\"50%\" y=\"100%\" size=\"40rem 20rem\" strength={0.22} />\n  <PoleRing size=\"56rem\" opacity={0.6} />\n  <div className=\"relative\">…</div>\n</section>"
+        }
+      ],
+      "docs": "/docs#/components/halo"
+    },
+    {
+      "id": "marquee",
+      "name": "Marquee",
+      "group": "atmosphere",
+      "description": "Ticker de vocabulario en bucle: los extremos se funden con el fondo, cada palabra lleva su rombo del primario y se pausa al pasar el puntero. Es decorativo (aria-hidden): lo que diga tiene que estar también en el contenido. Con prefers-reduced-motion se vuelve una lista fija que envuelve.",
+      "import": "import { Marquee } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Marquee.tsx",
+      "status": "stable",
+      "tags": [
+        "ticker",
+        "bucle",
+        "decorativo"
+      ],
+      "props": [
+        {
+          "name": "items",
+          "type": "readonly string[]",
+          "default": null,
+          "description": "Las palabras. Se duplican por dentro para que el bucle no tenga costura."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "default": "48",
+          "description": "Segundos que tarda una vuelta completa."
+        },
+        {
+          "name": "...props",
+          "type": "React.ComponentProps<\"div\">",
+          "default": null,
+          "description": "Atributos del contenedor; `className` para márgenes."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Ocho a quince palabras cortas; el ticker se lee de reojo.",
+          "Ponlo a todo el ancho, entre dos bloques, con sus bordes superior e inferior."
+        ],
+        "dont": [
+          "No metas enlaces ni botones: es aria-hidden y no recibe foco.",
+          "No lo uses para avisos o noticias; un ticker con contenido real es un carrusel sin controles."
+        ]
+      },
+      "related": [
+        "cut-line",
+        "foil"
+      ],
+      "examples": [
+        {
+          "id": "under-hero",
+          "title": "Bajo la portada",
+          "description": "En la landing va justo después del hero, con el vocabulario del oficio y del negocio mezclados.",
+          "code": "<Marquee items={[\"Fade\", \"Taper\", \"Navaja\", \"Agenda\", \"Comisiones\", \"IA que aprende\"]} />"
+        }
+      ],
+      "docs": "/docs#/components/marquee"
+    },
+    {
+      "id": "pole-ring",
+      "name": "PoleRing",
+      "group": "atmosphere",
+      "description": "La rueda: el poste visto desde arriba, un anillo de ticks radiales del primario girando muy despacio (una vuelta cada 80 s) detrás de un titular o un panel. Va centrado en su padre `relative`; el giro pisa cualquier otro transform, así que el centrado vive en el contenedor del componente.",
+      "import": "import { PoleRing } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/PoleRing.tsx",
+      "status": "stable",
+      "tags": [
+        "barbería",
+        "fondo",
+        "bucle"
+      ],
+      "props": [
+        {
+          "name": "size",
+          "type": "number | string",
+          "default": "\"56rem\"",
+          "description": "Diámetro del anillo; px si es número, o cualquier longitud CSS."
+        },
+        {
+          "name": "opacity",
+          "type": "number",
+          "default": "0.6",
+          "description": "Opacidad del conjunto. El anillo ya es tenue (primario al 28%)."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Posición del contenedor centrado (`top-[34%]`, `left-[70%]`…)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Ponlo en un padre `relative overflow-hidden`: casi siempre es más grande que la sección.",
+          "Combínalo con un Halo: el anillo dibuja, el halo ilumina."
+        ],
+        "dont": [
+          "No lo uses a tamaño pequeño como spinner ni como avatar.",
+          "No apliques `transform` al contenedor por `className`: el giro lo pisaría."
+        ]
+      },
+      "related": [
+        "barber-pole",
+        "halo",
+        "hair-canvas"
+      ],
+      "examples": [
+        {
+          "id": "behind-title",
+          "title": "Detrás del titular de portada",
+          "description": "En la portada va grande (64rem) y muy tenue, desplazado hacia arriba con `top-[34%]` para que el titular caiga sobre el borde del anillo.",
+          "code": "<PoleRing size=\"64rem\" opacity={0.3} className=\"top-[34%]\" />"
+        }
+      ],
+      "docs": "/docs#/components/pole-ring"
+    },
+    {
+      "id": "reveal",
+      "name": "Reveal",
+      "group": "atmosphere",
+      "description": "Envoltorio que aparece al entrar en pantalla: 14px de ascenso y opacidad, una sola vez, con un IntersectionObserver por elemento y ningún manejador de scroll. Para lo que está bajo el pliegue; lo que está sobre él usa Enter, que no espera a nadie. Con prefers-reduced-motion se muestra sin transición.",
+      "import": "import { Reveal } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Reveal.tsx",
+      "status": "stable",
+      "tags": [
+        "scroll",
+        "intersection-observer",
+        "reduced-motion"
+      ],
+      "props": [
+        {
+          "name": "delay",
+          "type": "number",
+          "default": "0",
+          "description": "Retardo de la transición en ms, para escalonar listas y rejillas (60–120 ms entre ítems)."
+        },
+        {
+          "name": "as",
+          "type": "\"div\" | \"li\" | \"article\" | \"section\"",
+          "default": "\"div\"",
+          "description": "Etiqueta a renderizar; `li` dentro de una lista para no romper el marcado."
+        },
+        {
+          "name": "...props",
+          "type": "React.HTMLAttributes<HTMLElement>",
+          "default": null,
+          "description": "Atributos del elemento."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Envuelve bloques, no palabras: una sección, una card, una fila.",
+          "Escalona con `delay` solo dentro de una misma rejilla; entre secciones el scroll ya escalona."
+        ],
+        "dont": [
+          "No lo uses sobre el pliegue: el titular de portada es el LCP y no puede esperar a un observador (usa Enter).",
+          "No lo anides: un Reveal dentro de otro se revela dos veces."
+        ]
+      },
+      "related": [
+        "enter",
+        "cut-line",
+        "tilt"
+      ],
+      "examples": [
+        {
+          "id": "section",
+          "title": "Un bloque entero",
+          "description": "Lo habitual: el contenido de una sección envuelto una vez. La cabecera de sección y su cuerpo entran juntos.",
+          "code": "<Reveal className=\"mx-auto max-w-3xl text-center\">\n  <Heading level={2}>La construimos juntos.</Heading>\n  <Text variant=\"lead\">Entra al canal y preséntate con el nombre de tu barbería.</Text>\n</Reveal>"
+        }
+      ],
+      "docs": "/docs#/components/reveal"
+    },
+    {
+      "id": "rotating-seal",
+      "name": "RotatingSeal",
+      "group": "atmosphere",
+      "description": "El sello de membresía: un anillo de texto girando muy despacio (36 s por vuelta) alrededor de una pieza central, por defecto la flecha del logo. Es el detalle que abre una portada o marca una invitación. Decorativo: el texto tiene que estar también como contenido real.",
+      "import": "import { RotatingSeal } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/RotatingSeal.tsx",
+      "status": "stable",
+      "tags": [
+        "svg",
+        "textPath",
+        "bucle",
+        "marca"
+      ],
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "default": "\"Beta privada · Solo por invitación · Cohorte 01 ·\"",
+          "description": "El texto del anillo. Termina en «·» para que la vuelta no tenga costura; unos 45 caracteres llenan el carril."
+        },
+        {
+          "name": "children",
+          "type": "React.ReactNode",
+          "default": null,
+          "description": "La pieza central. Por defecto, la flecha del logo Barberlytics."
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "default": "128",
+          "description": "Lado del sello en px; el texto y el centro escalan con él."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Márgenes y posición."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Uno por página, en la portada o en la invitación.",
+          "Escribe el mismo mensaje como texto real justo debajo."
+        ],
+        "dont": [
+          "No lo uses como avatar ni como botón.",
+          "No cambies la velocidad: 36 s es lo que hace que se note sin distraer."
+        ]
+      },
+      "related": [
+        "barberlytics-logo",
+        "enter",
+        "barber-pole"
+      ],
+      "examples": [
+        {
+          "id": "hero",
+          "title": "Abriendo la portada",
+          "description": "Centrado sobre el titular, dentro de un `Enter` para que entre con el resto del bloque.",
+          "code": "<Enter>\n  <RotatingSeal />\n</Enter>\n<p>Beta privada · Solo por invitación</p>"
+        },
+        {
+          "id": "custom-center",
+          "title": "Con otra pieza en el centro",
+          "description": "El número de la cohorte, una inicial o un icono del registro.",
+          "code": "<RotatingSeal text=\"Cohorte 02 · Cupos abiertos ·\" size={112}>\n  <span className=\"font-heading text-xl font-semibold text-text-primary\">02</span>\n</RotatingSeal>"
+        }
+      ],
+      "docs": "/docs#/components/rotating-seal"
+    },
+    {
+      "id": "tilt",
+      "name": "Tilt",
+      "group": "atmosphere",
+      "description": "Perspectiva hacia el puntero: el panel se inclina siguiendo al ratón (rotateX/rotateY con perspectiva) y vuelve a su sitio al salir. Solo con puntero fino y sin prefers-reduced-motion; en táctil es un div normal. Escribe el transform directamente en el nodo, fuera del ciclo de React.",
+      "import": "import { Tilt } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Tilt.tsx",
+      "status": "stable",
+      "tags": [
+        "hover",
+        "3d",
+        "puntero"
+      ],
+      "props": [
+        {
+          "name": "maxDegrees",
+          "type": "number",
+          "default": "6",
+          "description": "Grados máximos de inclinación en cada eje."
+        },
+        {
+          "name": "...props",
+          "type": "React.ComponentProps<\"div\">",
+          "default": null,
+          "description": "Atributos del div envoltorio."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Envuelve la card o el panel completo; el hijo no debe tener `transform` propio.",
+          "Reserva la inclinación fuerte para cards pequeñas en rejilla."
+        ],
+        "dont": [
+          "No lo uses en controles (botones, campos): el foco y el clic se vuelven imprecisos.",
+          "No lo pongas en listas largas: un tilt por fila es ruido."
+        ]
+      },
+      "related": [
+        "magic-card",
+        "reveal"
+      ],
+      "examples": [
+        {
+          "id": "panel",
+          "title": "Un panel grande, poca inclinación",
+          "description": "A más superficie, menos grados: 2–3 para un panel de sección, 6–7 para una card de rejilla.",
+          "code": "<Tilt maxDegrees={2.5}>\n  <Card className=\"brand-ring panel-sheen grid gap-8 rounded-3xl p-8 lg:grid-cols-12\">…</Card>\n</Tilt>"
+        }
+      ],
+      "docs": "/docs#/components/tilt"
+    },
+    {
+      "id": "vignette",
+      "name": "Vignette",
+      "group": "atmosphere",
+      "description": "Viñeta: los bordes se hunden y el centro respira. En oscuro es sombra; en claro, un velo del primario del tema. Va una vez, sobre el fondo de la página o de una portada, y nunca sobre una card.",
+      "import": "import { Vignette } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/Vignette.tsx",
+      "status": "stable",
+      "tags": [
+        "fondo",
+        "gradiente"
+      ],
+      "props": [
+        {
+          "name": "scope",
+          "type": "\"page\" | \"container\"",
+          "default": "\"container\"",
+          "description": "`page` lo fija al viewport; `container`, al padre relative."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases extra."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Combínala con Grain y con la atmósfera del tema: las tres juntas son el fondo de una landing.",
+          "Ponla antes del contenido en el árbol y deja el contenido `relative`."
+        ],
+        "dont": [
+          "No la uses en el shell de producto: el sidebar y las tablas no quieren bordes hundidos.",
+          "No apiles dos viñetas (página y sección)."
+        ]
+      },
+      "related": [
+        "grain",
+        "halo"
+      ],
+      "examples": [
+        {
+          "id": "cover",
+          "title": "Sobre una portada",
+          "description": "Cambia el modo con el conmutador de la doc: en claro el hundimiento toma el matiz del primario.",
+          "code": "<section className=\"relative overflow-hidden\">\n  <Vignette />\n  <div className=\"relative\">…</div>\n</section>"
+        }
+      ],
+      "docs": "/docs#/components/vignette"
     },
     {
       "id": "data-list-block",
@@ -9239,7 +10041,7 @@
           "name": "brandMark",
           "type": "React.ReactNode",
           "default": null,
-          "description": "La marca del producto; AppSidebar pasa `<BrandMark name={brand.productName} />`. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí."
+          "description": "La marca; AppSidebar pasa `<BrandSlot variant=\"icon\" />`: el isologo de la barbería o, sin él, la flecha de Barberlytics. El espacio activo (empresa, sucursal) se cambia desde la cabecera, no desde aquí."
         },
         {
           "name": "brandLabel",
@@ -9278,7 +10080,7 @@
           "id": "navigation",
           "title": "Raíces, secciones y grupos",
           "description": "«Inicio», «Diagnóstico», «Tareas» y «Avisos» navegan al pulsar. «Selección», «Aprendizaje» y «Desempeño» tienen hijos: su icono abre el árbol al pasar el puntero (también con clic y teclado) y «Aprendizaje» muestra submenús para LMS Creator, Planes y Certificados. Los dos grupos de NAV_TREE son los separadores.",
-          "code": "function holdsCurrent(item: NavRoot, currentNodeId: string) {\n  if (item.id === currentNodeId) return true;\n  return (item.children ?? []).some(\n    (child) => child.id === currentNodeId || (child.children ?? []).some((leaf) => leaf.id === currentNodeId)\n  );\n}\n\n<SidebarIconRail\n  navigation={NAV_TREE}\n  currentNodeId={currentNodeId}\n  holdsCurrent={holdsCurrent}\n  onSelectRoot={(item) => setCurrentNodeId(item.id)}\n  onSelectNode={setCurrentNodeId}\n  mode={mode}\n  onModeChange={setMode}\n  onExpand={expand}\n  onOpenFeedback={openFeedback}\n  brandMark={<BrandMark name={brand.productName} />}\n  brandLabel={brand.productName}\n/>"
+          "code": "function holdsCurrent(item: NavRoot, currentNodeId: string) {\n  if (item.id === currentNodeId) return true;\n  return (item.children ?? []).some(\n    (child) => child.id === currentNodeId || (child.children ?? []).some((leaf) => leaf.id === currentNodeId)\n  );\n}\n\n<SidebarIconRail\n  navigation={NAV_TREE}\n  currentNodeId={currentNodeId}\n  holdsCurrent={holdsCurrent}\n  onSelectRoot={(item) => setCurrentNodeId(item.id)}\n  onSelectNode={setCurrentNodeId}\n  mode={mode}\n  onModeChange={setMode}\n  onExpand={expand}\n  onOpenFeedback={openFeedback}\n  brandMark={<BrandMark />}\n  brandLabel={brand.productName}\n/>"
         },
         {
           "id": "active-inside",
@@ -12827,6 +13629,90 @@
         }
       ],
       "docs": "/docs#/components/badge"
+    },
+    {
+      "id": "barberlytics-logo",
+      "name": "BarberlyticsLogo",
+      "group": "ui",
+      "description": "El logotipo de Barberlytics como SVG inline que sigue al tema: «Barber» en `currentColor`, «lytics» y la flecha en el gradiente de marca del tema activo. Sin props de color; el modo claro u oscuro lo resuelve el contenedor. `variant=\"mark\"` deja la flecha sola como isotipo.",
+      "import": "import { BarberlyticsLogo } from \"@/components/ui/BarberlyticsLogo\"",
+      "source": "src/components/ui/BarberlyticsLogo.tsx",
+      "status": "stable",
+      "tags": [
+        "marca",
+        "logo",
+        "svg",
+        "tema"
+      ],
+      "props": [
+        {
+          "name": "variant",
+          "type": "\"wordmark\" | \"mark\"",
+          "default": "\"wordmark\"",
+          "description": "Logotipo completo o la flecha sola (isotipo)."
+        },
+        {
+          "name": "gradient",
+          "type": "\"brand\" | \"ai\" | \"mono\"",
+          "default": "\"brand\"",
+          "description": "Color de «lytics» y la flecha: gradiente de marca del tema, gradación de IA del tema o una tinta (`currentColor`)."
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "default": "32",
+          "description": "Alto en px de la tinta. El ancho es `height × 4,44` (wordmark) o `height × 1,5` (mark)."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "default": "\"Barberlytics\"",
+          "description": "Nombre accesible del `role=\"img\"`."
+        },
+        {
+          "name": "...props",
+          "type": "React.SVGAttributes<SVGSVGElement>",
+          "default": null,
+          "description": "Atributos del `<svg>`, incluido `className` para el layout de afuera."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Colócalo en un contenedor con `text-text-primary`; sobre el cromo oscuro, `text-nav-foreground`.",
+          "Deja alrededor al menos el alto de la «B» (0,5 × `height`) libre de otros elementos.",
+          "Usa `variant=\"mark\"` a partir de 16px y el logotipo completo a partir de 20px de alto."
+        ],
+        "dont": [
+          "No lo estires ni le pases `width`: cambia solo `height`.",
+          "No le pongas colores a mano ni lo saques del tema; `gradient=\"ai\"` es solo para superficies de IA.",
+          "No uses «lytics» con la flecha sin «Barber», ni la flecha girada o en espejo."
+        ]
+      },
+      "related": [
+        "thema-logo",
+        "thema-product-header"
+      ],
+      "examples": [
+        {
+          "id": "gradients",
+          "title": "Los tres colores",
+          "description": "`brand` es el uso normal; `ai` solo en superficies de IA; `mono` cuando no hay gradiente posible (una tinta, grabado, cromo oscuro).",
+          "code": "<BarberlyticsLogo />\n<BarberlyticsLogo gradient=\"ai\" />\n<BarberlyticsLogo gradient=\"mono\" />"
+        },
+        {
+          "id": "mark",
+          "title": "Isotipo: la flecha sola",
+          "description": "Para favicon, avatar e icono de app. Cambia solo `height`; el ancho sale de la proporción.",
+          "code": "<BarberlyticsLogo variant=\"mark\" height={16} />\n<BarberlyticsLogo variant=\"mark\" height={24} />\n<BarberlyticsLogo variant=\"mark\" height={32} />\n<BarberlyticsLogo variant=\"mark\" height={48} />"
+        },
+        {
+          "id": "chrome",
+          "title": "Sobre el cromo oscuro",
+          "description": "El rail y la cabecera son oscuros en los dos modos: el contenedor pone `text-nav-foreground` y «Barber» pasa a blanco solo.",
+          "code": "<div className=\"bg-surface-nav text-nav-foreground p-6\">\n  <BarberlyticsLogo height={24} />\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/barberlytics-logo"
     },
     {
       "id": "border-beam",
@@ -17517,6 +18403,14 @@
   ],
   "foundations": [
     {
+      "id": "brand",
+      "label": {
+        "es": "Marca",
+        "en": "Brand"
+      },
+      "docs": "/docs#/foundations/brand"
+    },
+    {
       "id": "themes",
       "label": {
         "es": "Temas",
@@ -17612,6 +18506,7 @@
     "neutral",
     "notification",
     "palette",
+    "scissors",
     "search",
     "settings",
     "sparkles",

@@ -1,0 +1,439 @@
+/*
+ * Atmósfera y marca.
+ *
+ * La capa que una página de marca necesita y el producto no trae: fondos con
+ * material (grano, viñeta, halo), la personalidad del oficio (cabello que
+ * cae, poste, corte de tijera, sello, ticker, lámina dorada) y la aparición
+ * al hacer scroll. Nació en la landing de early adopters de Barberlytics y se
+ * trajo al sistema sobre los tokens del tema: cambiar de preset cambia también
+ * esta capa.
+ *
+ * Reglas:
+ *  - Todo se mueve con transform, opacity o clip-path. La lámina dorada es la
+ *    única excepción (background-position sobre una palabra, cada 7 s).
+ *  - `prefers-reduced-motion` lo apaga entero y deja cada pieza en su estado
+ *    final: el corte ya hecho, el ticker como lista fija, el sello quieto.
+ *  - Sin `@layer` a propósito: este archivo se importa antes de las directivas
+ *    de Tailwind, así que una utilidad puntual sigue ganando a igual
+ *    especificidad.
+ *
+ * Componentes: src/components/atmosphere/ · Doc: /docs#/group/atmosphere.
+ */
+
+:root {
+  /* Materiales del poste y de la lámina. No son colores de interfaz —un poste
+     de barbería es marfil y tinta en cualquier tema— y por eso viven aquí y no
+     en el derivador de tokens. El rojo/azul clásico lo pone `--color-brand`. */
+  --pole-ivory: #efe6d6;
+  --pole-ivory-soft: #f4ecdd;
+  --pole-ink: #1b1712;
+  --foil-highlight: #fff3d6;
+  --foil-shade: #3a2a10;
+}
+
+/* ── Fondos con material ──────────────────────────────────────────────── */
+
+/* Grano: una textura de ruido sobre el fondo, sin coste de red y sin
+   interceptar el puntero. Es lo que separa un fondo plano de una superficie.
+   `data-scope="page"` lo fija al viewport; sin él, al contenedor `relative`. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+.grain[data-scope="page"] {
+  position: fixed;
+}
+
+/* Viñeta: los bordes se hunden y el centro respira. En claro el hundimiento es
+   un velo del primario, no negro. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 95% at 50% 38%, transparent 52%, rgba(0, 0, 0, 0.5) 100%);
+}
+:root:not(.dark) .vignette {
+  background: radial-gradient(120% 95% at 50% 38%, transparent 60%, hsl(var(--primary) / 0.12) 100%);
+}
+.vignette[data-scope="page"] {
+  position: fixed;
+}
+
+/* Halo: un resplandor del primario en un punto del contenedor. La posición,
+   el tamaño y la fuerza llegan por variables desde el componente. */
+.halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    var(--halo-size, 52rem 28rem) at var(--halo-x, 50%) var(--halo-y, 22%),
+    hsl(var(--primary) / var(--halo-alpha, 0.18)),
+    transparent 70%
+  );
+  background-repeat: no-repeat;
+}
+
+/* ── Acabados de panel ────────────────────────────────────────────────── */
+
+/* Borde con gradiente de marca sin tocar el fondo del panel. */
+.brand-ring {
+  position: relative;
+}
+.brand-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.05) 45%, hsl(var(--primary) / 0.35));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Filo de luz superior: el mismo recurso del acabado premium, para paneles
+   grandes que cargan la atmósfera. */
+.panel-sheen {
+  box-shadow:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+    var(--shadow-premium);
+}
+
+/* La diagonal del poste, apenas insinuada, como textura de un panel. */
+.barber-stripes {
+  background-image: repeating-linear-gradient(135deg, hsl(var(--primary) / 0.14) 0 6px, transparent 6px 18px);
+}
+
+/* La regla que ordena una sección: del primario al borde y a nada. */
+.section-rule {
+  background-image: linear-gradient(90deg, hsl(var(--primary) / 0.5), hsl(var(--border) / 0.5) 35%, transparent);
+}
+
+/* Barrido de luz sobre un botón sólido al pasar el puntero. */
+.btn-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.btn-sweep::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  left: -30%;
+  width: 36%;
+  background: linear-gradient(100deg, transparent, hsl(0 0% 100% / 0.55), transparent);
+  transform: translateX(-160%) skewX(-16deg);
+  transition: transform 0.9s var(--ease-out-expo);
+  pointer-events: none;
+}
+.btn-sweep:hover::after {
+  transform: translateX(460%) skewX(-16deg);
+}
+
+/* ── Aparición ────────────────────────────────────────────────────────── */
+
+/* Al entrar en pantalla: solo transform y opacidad; `useReveal` añade
+   `data-revealed` una sola vez. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity var(--duration-slow) var(--ease-out-expo),
+    transform var(--duration-slow) var(--ease-out-expo);
+}
+.reveal[data-revealed="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Sobre el pliegue no se espera a ningún observador: una animación de CSS que
+   arranca sola y termina visible, así el titular (el LCP) se pinta aunque el
+   JavaScript llegue tarde. */
+.enter {
+  animation: enter-up var(--duration-slow) var(--ease-out-expo) both;
+}
+
+/* Un tramo de línea de tiempo que se dibuja cuando su etapa aparece. */
+.timeline-seg {
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 900ms var(--ease-out-expo) 120ms;
+}
+[data-revealed="true"] .timeline-seg {
+  transform: scaleY(1);
+}
+
+/* Perspectiva hacia el puntero (`useTilt` escribe el transform). */
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform 160ms var(--ease-standard);
+  will-change: transform;
+}
+.tilt-reset {
+  transition: transform var(--duration-slow) var(--ease-out-expo);
+}
+
+/* ── Personalidad del oficio ──────────────────────────────────────────── */
+
+/* Lámina dorada: un barrido de luz sobre la palabra de marca. */
+.foil {
+  color: transparent;
+  background-image: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--color-brand) 72%, var(--foil-shade)) 0%,
+    var(--color-brand) 32%,
+    var(--foil-highlight) 50%,
+    var(--color-brand) 68%,
+    color-mix(in srgb, var(--color-brand) 72%, var(--foil-shade)) 100%
+  );
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: foil-sweep 7s var(--ease-standard) infinite;
+}
+
+/* Poste de barbería: un cilindro con las franjas diagonales desplazándose en
+   vertical, el giro clásico hecho con un solo translateY en bucle. */
+.pole {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--pole-ivory);
+  box-shadow:
+    inset -7px 0 12px rgba(0, 0, 0, 0.42),
+    inset 5px 0 10px rgba(255, 255, 255, 0.4),
+    0 18px 40px -16px rgba(0, 0, 0, 0.7);
+}
+.pole::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -160px;
+  bottom: -160px;
+  background: repeating-linear-gradient(
+    -35deg,
+    var(--color-brand) 0 14px,
+    var(--pole-ivory-soft) 14px 28px,
+    var(--pole-ink) 28px 42px,
+    var(--pole-ivory-soft) 42px 56px
+  );
+  animation: pole-spin 2.6s linear infinite;
+  will-change: transform;
+}
+.pole::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.38), transparent 38%, transparent 62%, rgba(0, 0, 0, 0.42));
+}
+.pole-cap {
+  height: 1.6rem;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, var(--foil-highlight) 0%, var(--color-brand) 48%, var(--foil-shade) 100%);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.6);
+}
+
+/* La rueda: el poste visto desde arriba, ticks radiales girando muy despacio
+   detrás de un panel. El giro pisa cualquier otro transform, así que el
+   centrado va en el contenedor del componente, no aquí. */
+.pole-ring {
+  border-radius: 9999px;
+  background: repeating-conic-gradient(from 0deg, hsl(var(--primary) / 0.28) 0deg 1.6deg, transparent 1.6deg 12deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 78%, #000 80%, #000 92%, transparent 94%);
+  mask: radial-gradient(circle closest-side, transparent 78%, #000 80%, #000 92%, transparent 94%);
+  animation: ring-spin 80s linear infinite;
+  will-change: transform;
+}
+
+/* Corte de tijera: una línea continua que las tijeras convierten en línea de
+   puntos al pasar. La continua se recorta con clip-path y las tijeras viajan
+   con transform hasta `--cut-w`, el ancho que mide el componente. */
+.cut {
+  position: relative;
+  height: 2.5rem;
+}
+.cut-dashed,
+.cut-solid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+}
+.cut-dashed {
+  background-image: linear-gradient(90deg, hsl(var(--primary) / 0.45) 0 5px, transparent 5px 11px);
+  background-size: 11px 1px;
+}
+.cut-solid {
+  background: hsl(var(--border) / 0.9);
+  clip-path: inset(0 0 0 0);
+}
+.cut-scissors {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  color: hsl(var(--primary));
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 10px hsl(var(--primary) / 0.35));
+}
+.cut-blades {
+  display: block;
+  transform: rotate(-90deg);
+  transform-origin: 30% 70%;
+}
+[data-revealed="true"] .cut-solid {
+  animation: cut-solid 1.7s var(--ease-standard) forwards;
+}
+[data-revealed="true"] .cut-scissors {
+  animation: cut-move 1.7s var(--ease-standard) forwards;
+}
+[data-revealed="true"] .cut-blades {
+  animation: cut-snip 0.28s ease-in-out 6 alternate;
+}
+
+/* Ticker: vocabulario en bucle, con los extremos fundidos. Se pausa al pasar
+   el puntero. La duración llega por `--marquee-duration`. */
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 48s) linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* El sello gira despacio sobre su centro. */
+.seal-spin {
+  animation: ring-spin 36s linear infinite;
+  transform-origin: center;
+}
+
+/* Flotación lenta para los glifos de fondo; `--float-rot` fija la inclinación. */
+.float-slow {
+  animation: float-slow 14s ease-in-out infinite;
+}
+
+/* ── Keyframes ────────────────────────────────────────────────────────── */
+
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes foil-sweep {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+/* 68.4px es el periodo vertical de las franjas: 56px de patrón / cos(35°). */
+@keyframes pole-spin {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -68.4px, 0);
+  }
+}
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cut-solid {
+  to {
+    clip-path: inset(0 0 0 100%);
+  }
+}
+@keyframes cut-move {
+  to {
+    transform: translate(calc(var(--cut-w, 100vw) - 50%), -50%);
+  }
+}
+@keyframes cut-snip {
+  from {
+    transform: rotate(-100deg);
+  }
+  to {
+    transform: rotate(-80deg);
+  }
+}
+@keyframes marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--float-rot, 0deg));
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) rotate(calc(var(--float-rot, 0deg) + 1.5deg));
+  }
+}
+
+/* ── Movimiento reducido: todo quieto, en su estado final ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .enter,
+  .foil,
+  .pole::before,
+  .pole-ring,
+  .seal-spin,
+  .marquee-track,
+  .float-slow,
+  [data-revealed="true"] .cut-solid,
+  [data-revealed="true"] .cut-scissors,
+  [data-revealed="true"] .cut-blades {
+    animation: none;
+  }
+  .cut-solid {
+    clip-path: inset(0 0 0 100%);
+  }
+  .cut-scissors {
+    transform: translate(calc(var(--cut-w, 100vw) - 50%), -50%);
+  }
+  .marquee-track {
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .timeline-seg {
+    transform: scaleY(1);
+    transition: none;
+  }
+  .tilt,
+  .btn-sweep::after {
+    transition: none;
+  }
+}

@@ -70,7 +70,15 @@ export type IconName =
   | 'vacancies'
   | 'templates'
   | 'logout'
-  | 'scissors';
+  | 'scissors'
+  | 'phone'
+  | 'lock'
+  | 'eyeOn'
+  | 'eyeOff'
+  | 'smsCode'
+  | 'refresh'
+  | 'google'
+  | 'microsoft';
 
 export interface ThemaIconProps {
   /** Nombre semántico del icono en el registro */

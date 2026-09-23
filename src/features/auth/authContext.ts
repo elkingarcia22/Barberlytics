@@ -1,10 +1,12 @@
 import * as React from "react";
-import type { AuthStatus, AuthUser, Credentials } from "./types";
+import type { AuthProvider, AuthStatus, AuthUser, Credentials } from "./types";
 
 export interface AuthContextValue {
   status: AuthStatus;
   user: AuthUser | null;
   login: (credentials: Credentials) => Promise<AuthUser>;
+  /** Entra con una cuenta de Google u Outlook vinculada. */
+  loginWithProvider: (provider: AuthProvider) => Promise<AuthUser>;
   logout: () => Promise<void>;
   /** Vuelve a pedir el perfil (p. ej. tras editarlo). */
   refresh: () => Promise<void>;

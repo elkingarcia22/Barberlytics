@@ -43,6 +43,14 @@ import {
   TradeUpIcon,
   Upload01Icon,
   UserMultipleIcon,
+  SmartPhone01Icon,
+  LockPasswordIcon,
+  ViewIcon,
+  ViewOffIcon,
+  SmsCodeIcon,
+  ArrowReloadHorizontalIcon,
+  GoogleIcon,
+  MicrosoftIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconName, IconData } from "./iconTypes";
 
@@ -100,6 +108,14 @@ export const iconRegistry: Record<IconName, IconData> = {
   vacancies: ComputerIcon,
   templates: Structure01Icon,
   logout: Logout01Icon,
+  phone: SmartPhone01Icon,
+  lock: LockPasswordIcon,
+  eyeOn: ViewIcon,
+  eyeOff: ViewOffIcon,
+  smsCode: SmsCodeIcon,
+  refresh: ArrowReloadHorizontalIcon,
+  google: GoogleIcon,
+  microsoft: MicrosoftIcon,
 };
 
 /**

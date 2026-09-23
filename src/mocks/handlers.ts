@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -62,6 +62,23 @@ function validateBranding(body: DefaultBodyType) {
   return { fields, values };
 }
 
+/** Código de recuperación del backend simulado; en producción llega por SMS. */
+export const RECOVERY_CODE = "246810";
+const RESET_TOKEN_PREFIX = "mock-reset-";
+const AUTH_PROVIDERS: readonly MockAuthProvider[] = ["google", "microsoft"];
+const MIN_PASSWORD = 6;
+
+function normalizePhone(value: unknown): string {
+  return typeof value === "string" ? value.replace(/[^\d+]/g, "") : "";
+}
+
+function openSession(account: MockAccount) {
+  const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
+  db.sessions.set(token, account.id);
+  db.persist();
+  return HttpResponse.json({ accessToken: token, user: account.user });
+}
+
 const USER_STATUSES: readonly MockUserStatus[] = ["active", "invited", "inactive"];
 const USER_ROLES: readonly MockUserRole[] = ["admin", "manager", "member"];
 
@@ -86,13 +103,55 @@ export const handlers = [
   // ---------- Auth ----------
   http.post(`${BASE}/auth/login`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { email?: string; password?: string };
-    const account = ACCOUNTS.find((item) => item.email === body.email?.toLowerCase().trim() && item.password === body.password);
-    if (!account) return error(401, "unauthorized", "Correo o contraseña incorrectos.");
-    const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
-    db.sessions.set(token, account.id);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; password?: string };
+    const phone = normalizePhone(body.phone);
+    const account = ACCOUNTS.find((item) => item.phone === phone && (db.passwords.get(item.id) ?? item.password) === body.password);
+    if (!account) return error(401, "unauthorized", "Celular o contraseña incorrectos.");
+    return openSession(account);
+  }),
+
+  // Entrar con Google u Outlook: el frontend manda la credencial que le dio el
+  // proveedor y el backend la valida y busca la cuenta vinculada. Aquí solo se
+  // comprueba que el proveedor exista y se entra con la cuenta que lo tiene.
+  http.post(`${BASE}/auth/oauth`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { provider?: string; credential?: string };
+    const provider = AUTH_PROVIDERS.find((item) => item === body.provider);
+    if (!provider || !body.credential) return error(422, "validation_error", "Proveedor o credencial inválidos.");
+    const account = ACCOUNTS.find((item) => item.providers.includes(provider));
+    if (!account) return error(401, "unauthorized", "Esa cuenta no está vinculada a ninguna barbería.");
+    return openSession(account);
+  }),
+
+  // Recuperar acceso por SMS: pedir código → verificarlo → nueva contraseña.
+  // Pedirlo responde 204 exista o no el número, para no revelar quién está registrado.
+  http.post(`${BASE}/auth/recovery/request`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    if (!/^\+\d{8,15}$/.test(normalizePhone(body.phone))) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/auth/recovery/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
+    const account = ACCOUNTS.find((item) => item.phone === normalizePhone(body.phone));
+    if (!account || body.code !== RECOVERY_CODE) return error(401, "unauthorized", "El código no es correcto o ya venció.");
+    return HttpResponse.json({ resetToken: `${RESET_TOKEN_PREFIX}${account.id}` });
+  }),
+
+  http.post(`${BASE}/auth/recovery/reset`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { resetToken?: string; password?: string };
+    const accountId = body.resetToken?.startsWith(RESET_TOKEN_PREFIX) ? body.resetToken.slice(RESET_TOKEN_PREFIX.length) : undefined;
+    const account = ACCOUNTS.find((item) => item.id === accountId);
+    if (!account) return error(401, "unauthorized", "El enlace de recuperación ya no es válido. Pide otro código.");
+    if (typeof body.password !== "string" || body.password.length < MIN_PASSWORD) {
+      return error(422, "validation_error", "La contraseña es muy corta.", { fields: { password: [`Mínimo ${MIN_PASSWORD} caracteres.`] } });
+    }
+    db.passwords.set(account.id, body.password);
     db.persist();
-    return HttpResponse.json({ accessToken: token, user: account.user });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get(`${BASE}/auth/me`, async ({ request }) => {

@@ -39,11 +39,21 @@ Cualquier estado ≥ 400 devuelve:
 
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| POST | `/auth/login` | `{ email, password }` | `200 { accessToken, user }` · `401` |
+| POST | `/auth/login` | `{ phone, password }` | `200 { accessToken, user }` · `401` |
+| POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
+| POST | `/auth/recovery/request` | `{ phone }` | `204` siempre (no revela si el número existe) · `422` |
+| POST | `/auth/recovery/verify` | `{ phone, code }` | `200 { resetToken }` · `401` código incorrecto o vencido |
+| POST | `/auth/recovery/reset` | `{ resetToken, password }` | `204` · `401` token vencido · `422` |
 | GET | `/auth/me` | — | `200 user` |
 | POST | `/auth/logout` | — | `204` |
 
-`user`: `{ id, name, email, role: "admin" | "manager" | "member", avatarUrl?: string | null }`.
+`user`: `{ id, name, phone, email, role: "admin" | "manager" | "member", avatarUrl?: string | null }`.
+
+La llave de entrada es el **celular** en E.164 (`+573001234567`); el correo se guarda pero no sirve para entrar.
+`credential` en `/auth/oauth` es el ID token que entrega el SDK del proveedor en el navegador (Google Identity
+Services, MSAL para Outlook/Microsoft); el backend lo valida contra el proveedor y busca la cuenta vinculada. El
+mock ignora la credencial y entra con la primera cuenta que tenga ese proveedor (`admin` → Google, `lider` → Outlook).
+El código de recuperación llega por SMS y vence a los 10 minutos; en el mock es siempre `246810`.
 
 Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSite=Lax` y dejar `sessionTokenStorage` sin uso (ver `src/features/auth/tokenStorage.ts`).
 

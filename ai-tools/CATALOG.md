@@ -2,7 +2,7 @@
 
 Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**181 componentes** en 19 familias · 44 iconos en el registro · 113 tokens.
+**181 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -6610,6 +6610,7 @@ import { HairCanvas } from "@/components/atmosphere"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `density` | `number` | `1` | Multiplicador de hebras: 1 es una hebra por cada 22 000 px², con tope en 70. |
+| `onChrome` | `boolean` | `false` | Sobre el cromo oscuro (bg-surface-nav) las hebras de texto toman --nav-foreground en vez de --foreground, para verse también en modo claro. |
 | `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
 
 Ejemplo · Portada:
@@ -6869,4 +6870,4 @@ Relacionados: table-shell, list-item, status-badge, heatmap-matrix
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, file, filter, graduation, help, home, info, layers, logout, moon, neutral, notification, palette, scissors, search, settings, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, eyeOff, eyeOn, file, filter, google, graduation, help, home, info, layers, lock, logout, microsoft, moon, neutral, notification, palette, phone, refresh, scissors, search, settings, smsCode, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning

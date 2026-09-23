@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -62,6 +62,23 @@ function validateBranding(body: DefaultBodyType) {
   return { fields, values };
 }
 
+/** Código por SMS del backend simulado; en producción cada envío genera uno distinto. */
+export const OTP_CODE = "246810";
+const AUTH_PROVIDERS: readonly MockAuthProvider[] = ["google", "microsoft"];
+const PHONE_E164 = /^\+\d{8,15}$/;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function normalizePhone(value: unknown): string {
+  return typeof value === "string" ? value.replace(/[^\d+]/g, "") : "";
+}
+
+function openSession(account: MockAccount) {
+  const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
+  db.sessions.set(token, account.id);
+  db.persist();
+  return HttpResponse.json({ accessToken: token, user: account.user });
+}
+
 const USER_STATUSES: readonly MockUserStatus[] = ["active", "invited", "inactive"];
 const USER_ROLES: readonly MockUserRole[] = ["admin", "manager", "member"];
 
@@ -84,15 +101,45 @@ function validateUserInput(body: DefaultBodyType, existing?: MockUser) {
 
 export const handlers = [
   // ---------- Auth ----------
-  http.post(`${BASE}/auth/login`, async ({ request }) => {
+  // Entrar es en dos pasos: el celular pide un código por SMS y el código abre
+  // la sesión. Pedirlo responde 204 exista o no el número, para no revelar quién
+  // está registrado; verificarlo sí dice si el número no es de ninguna barbería.
+  http.post(`${BASE}/auth/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { email?: string; password?: string };
-    const account = ACCOUNTS.find((item) => item.email === body.email?.toLowerCase().trim() && item.password === body.password);
-    if (!account) return error(401, "unauthorized", "Correo o contraseña incorrectos.");
-    const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
-    db.sessions.set(token, account.id);
-    db.persist();
-    return HttpResponse.json({ accessToken: token, user: account.user });
+    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    if (!PHONE_E164.test(normalizePhone(body.phone))) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/auth/otp/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
+    const account = ACCOUNTS.find((item) => item.phone === normalizePhone(body.phone));
+    if (!account) return error(401, "unauthorized", "Ese número no está registrado en ninguna barbería.");
+    if (body.code !== OTP_CODE) return error(401, "unauthorized", "El código no es correcto o ya venció. Pide uno nuevo.");
+    return openSession(account);
+  }),
+
+  // Entrar con Google u Outlook: el frontend manda la credencial que le dio el
+  // proveedor y el backend la valida y busca la cuenta vinculada. Aquí solo se
+  // comprueba que el proveedor exista y se entra con la cuenta que lo tiene.
+  http.post(`${BASE}/auth/oauth`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { provider?: string; credential?: string };
+    const provider = AUTH_PROVIDERS.find((item) => item === body.provider);
+    if (!provider || !body.credential) return error(422, "validation_error", "Proveedor o credencial inválidos.");
+    const account = ACCOUNTS.find((item) => item.providers.includes(provider));
+    if (!account) return error(401, "unauthorized", "Esa cuenta no está vinculada a ninguna barbería.");
+    return openSession(account);
+  }),
+
+  // Olvidé mi número: se manda al correo registrado. 204 exista o no el correo.
+  http.post(`${BASE}/auth/recovery/request`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!EMAIL.test(email)) return error(422, "validation_error", "Escribe un correo válido.", { fields: { email: ["Escribe un correo válido."] } });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get(`${BASE}/auth/me`, async ({ request }) => {

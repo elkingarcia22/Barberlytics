@@ -69,6 +69,7 @@ export const hairCanvasEntry = defineEntry({
   ],
   props: [
     { name: "density", type: "number", default: "1", description: "Multiplicador de hebras: 1 es una hebra por cada 22 000 px², con tope en 70." },
+    { name: "onChrome", type: "boolean", default: "false", description: "Sobre el cromo oscuro (bg-surface-nav) las hebras de texto toman --nav-foreground en vez de --foreground, para verse también en modo claro." },
     { name: "className", type: "string", description: "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero." },
   ],
   guidelines: {

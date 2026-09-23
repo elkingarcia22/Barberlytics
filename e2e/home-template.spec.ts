@@ -117,9 +117,10 @@ test.describe("home plantilla", () => {
     await expect(page.getByLabel("Breadcrumb")).toContainText("Métricas");
     await expect(page.getByRole("button", { name: "Exportar" })).toBeVisible();
 
-    // Y la barra de acciones del shell, con la misma acción primaria: por eso
-    // "Crear proceso" aparece dos veces, en la cabecera y en la barra.
-    await expect(page.getByRole("button", { name: "Crear proceso" })).toHaveCount(2);
+    // Y la barra de acciones del shell con la acción primaria. Cuando la barra
+    // es dueña de las acciones la cabecera no las repite: "Crear proceso"
+    // aparece una sola vez, en la barra.
+    await expect(page.getByRole("button", { name: "Crear proceso" })).toHaveCount(1);
   });
 
   test("una alerta filtra la lista y se puede soltar", async ({ page }) => {
@@ -133,7 +134,7 @@ test.describe("home plantilla", () => {
   });
 
   test("la búsqueda de la lista filtra por nombre", async ({ page }) => {
-    await page.getByRole("button", { name: "Buscar en la lista" }).click();
+    await page.getByRole("button", { name: "Buscar en procesos" }).click();
     await page.getByPlaceholder("Buscar por nombre").fill("semestral");
     await expect(page.getByRole("cell", { name: /Revisión semestral/ }).first()).toBeVisible();
     await expect(page.getByRole("cell", { name: /Plan trimestral/ })).toHaveCount(0);

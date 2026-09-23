@@ -2,8 +2,9 @@ import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiAuth, isApiError } from "@/lib/api";
 import { authApi } from "./api";
+import { requestProviderCredential } from "./providers";
 import { sessionTokenStorage, type TokenStorage } from "./tokenStorage";
-import type { AuthStatus, AuthUser, Credentials } from "./types";
+import type { AuthProvider as AuthProviderName, AuthStatus, AuthUser, OtpRequest, OtpVerify } from "./types";
 import { AuthContext, type AuthContextValue } from "./authContext";
 
 export interface AuthProviderProps {
@@ -78,15 +79,26 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
     return () => controller.abort();
   }, [storage, clearSession]);
 
-  const login = React.useCallback(
-    async (credentials: Credentials) => {
-      const session = await authApi.login(credentials);
+  const openSession = React.useCallback(
+    (session: { accessToken: string; user: AuthUser }) => {
       storage.set(session.accessToken);
       setUser(session.user);
       setStatus("authenticated");
       return session.user;
     },
     [storage]
+  );
+
+  const requestCode = React.useCallback((body: OtpRequest) => authApi.requestCode(body), []);
+
+  const verifyCode = React.useCallback(async (body: OtpVerify) => openSession(await authApi.verifyCode(body)), [openSession]);
+
+  const loginWithProvider = React.useCallback(
+    async (provider: AuthProviderName) => {
+      const credential = await requestProviderCredential(provider);
+      return openSession(await authApi.loginWithProvider(provider, credential));
+    },
+    [openSession]
   );
 
   const logout = React.useCallback(async () => {
@@ -104,7 +116,9 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
     setUser(profile);
   }, []);
 
-  const value = React.useMemo<AuthContextValue>(() => ({ status, user, login, logout, refresh }), [status, user, login, logout, refresh]);
+  const value = React.useMemo<AuthContextValue>(() => ({ status, user, requestCode, verifyCode, loginWithProvider, logout, refresh }),
+    [status, user, requestCode, verifyCode, loginWithProvider, logout, refresh]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -31,12 +31,15 @@ interface Palette {
   text: string;
 }
 
-/** Los dos colores salen del tema en vivo: `--primary` y `--foreground` (tripletas HSL). */
-function readPalette(): Palette {
+/**
+ * Los dos colores salen del tema en vivo (tripletas HSL): `--primary` y
+ * `--foreground`; sobre el cromo oscuro de navegación, `--nav-foreground`.
+ */
+function readPalette(onChrome: boolean): Palette {
   const styles = getComputedStyle(document.documentElement);
   return {
     brand: styles.getPropertyValue("--primary").trim(),
-    text: styles.getPropertyValue("--foreground").trim(),
+    text: styles.getPropertyValue(onChrome ? "--nav-foreground" : "--foreground").trim(),
   };
 }
 
@@ -62,6 +65,8 @@ export interface HairCanvasProps {
   className?: string;
   /** Multiplicador de densidad; 1 es la portada, 0.7 un cierre. */
   density?: number;
+  /** Sobre el cromo oscuro (`bg-surface-nav`): las hebras de texto usan `--nav-foreground`. */
+  onChrome?: boolean;
 }
 
 /**
@@ -71,7 +76,7 @@ export interface HairCanvasProps {
  * se oculta, relee la paleta cuando cambia el tema y con
  * `prefers-reduced-motion` no se monta.
  */
-export function HairCanvas({ className, density = 1 }: HairCanvasProps) {
+export function HairCanvas({ className, density = 1, onChrome = false }: HairCanvasProps) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
 
@@ -85,7 +90,7 @@ export function HairCanvas({ className, density = 1 }: HairCanvasProps) {
     let width = 0;
     let height = 0;
     let strands: Strand[] = [];
-    let palette = readPalette();
+    let palette = readPalette(onChrome);
     let frame = 0;
     let isVisible = true;
     let isRunning = false;
@@ -157,7 +162,7 @@ export function HairCanvas({ className, density = 1 }: HairCanvasProps) {
 
     // El tema puede cambiar de claro a oscuro o de preset: se relee la paleta.
     const themeObserver = new MutationObserver(() => {
-      palette = readPalette();
+      palette = readPalette(onChrome);
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
 
@@ -172,7 +177,7 @@ export function HairCanvas({ className, density = 1 }: HairCanvasProps) {
       themeObserver.disconnect();
       document.removeEventListener("visibilitychange", sync);
     };
-  }, [density, reducedMotion]);
+  }, [density, onChrome, reducedMotion]);
 
   if (reducedMotion) return null;
 

@@ -6,9 +6,12 @@ import type { ThemePreset } from "./presets";
 export const THEME_STORAGE_KEY = "thema-theme";
 
 export interface ThemeContextValue {
+  /** El preset en uso: el forzado por la pantalla, si lo hay; si no, el elegido. */
   preset: ThemePreset;
   presets: readonly ThemePreset[];
   setPreset: (id: string) => void;
+  /** Fuerza un preset sin guardarlo (el login usa `premium`); `null` lo suelta. Ver `useForcedPreset`. */
+  setPresetOverride: (id: string | null) => void;
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
   /** El modo realmente aplicado, con `system` ya resuelto. */

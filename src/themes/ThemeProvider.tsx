@@ -79,9 +79,10 @@ function applyToDocument(tokens: ThemeTokens, resolvedMode: ResolvedMode, preset
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [stored, setStored] = React.useState<StoredTheme>(readStored);
+  const [presetOverride, setPresetOverride] = React.useState<string | null>(null);
   const prefersDark = useSystemPrefersDark();
 
-  const preset = findPreset(stored.preset);
+  const preset = findPreset(presetOverride ?? stored.preset);
   const resolvedMode: ResolvedMode =
     stored.mode === "system" ? (prefersDark ? "dark" : "light") : stored.mode;
 
@@ -119,6 +120,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       preset,
       presets: THEME_PRESETS,
       setPreset: (id) => setStored((prev) => ({ ...prev, preset: findPreset(id).id })),
+      setPresetOverride,
       mode: stored.mode,
       setMode: (mode) => setStored((prev) => ({ ...prev, mode })),
       resolvedMode,

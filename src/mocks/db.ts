@@ -18,11 +18,16 @@ export interface MockUser {
   avatarUrl: string | null;
 }
 
+export type MockAuthProvider = "google" | "microsoft";
+
 export interface MockAccount {
   id: string;
+  /** Celular en E.164; es la llave de entrada (se verifica con un código por SMS). */
+  phone: string;
   email: string;
-  password: string;
-  user: { id: string; name: string; email: string; role: MockUserRole; avatarUrl: string | null };
+  /** Cuentas externas vinculadas: entrar con Google o con Outlook cae aquí. */
+  providers: readonly MockAuthProvider[];
+  user: { id: string; name: string; phone: string; email: string; role: MockUserRole; avatarUrl: string | null };
 }
 
 const FIRST = ["Ana", "Luis", "María", "Carlos", "Antonia", "Andrés", "Valentina", "Diego", "Renata", "Mateo", "Camila", "Juan", "Daniela", "Santiago", "Paula", "Nicolás", "Isabella", "Sebastián", "Gabriela", "Tomás"];
@@ -75,15 +80,17 @@ export function seedUsers(count = 57, seed = 7): MockUser[] {
 export const ACCOUNTS: readonly MockAccount[] = [
   {
     id: "acc_admin",
+    phone: "+573001234567",
     email: "admin@thema.dev",
-    password: "thema123",
-    user: { id: "usr_0001", name: "Carolina Vargas", email: "admin@thema.dev", role: "admin", avatarUrl: null },
+    providers: ["google"],
+    user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: null },
   },
   {
     id: "acc_manager",
+    phone: "+573007654321",
     email: "lider@thema.dev",
-    password: "thema123",
-    user: { id: "usr_0002", name: "Julián Ospina", email: "lider@thema.dev", role: "manager", avatarUrl: null },
+    providers: ["microsoft"],
+    user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: null },
   },
 ];
 

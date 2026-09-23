@@ -120,6 +120,8 @@ test.describe("La cuenta y su contexto en la cabecera", () => {
     await page.getByTestId("workspace-menu-trigger").click();
     // Tema e idioma cuelgan del mismo menú, bajo «Personalización», junto a los ajustes.
     await expect(page.getByTestId("personalization-switch")).toBeVisible();
+    // Los ajustes van agrupados en submenús; «Propinas» cuelga de «Cobros».
+    await page.getByRole("menuitem", { name: "Cobros" }).hover();
     await expect(page.getByRole("menuitem", { name: "Propinas" })).toBeVisible();
     await page.getByTestId("settings-all").click();
     await expect(page).toHaveURL(/\/configuracion/);

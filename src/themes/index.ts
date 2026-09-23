@@ -1,5 +1,6 @@
 export { ThemeProvider } from "./ThemeProvider";
 export { useTheme, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
+export { useForcedPreset } from "./useForcedPreset";
 export { ThemeSelector, ThemeSelectorPanel, ThemeModeToggle, ThemeSwatch, type ThemeSelectorProps } from "./ThemeSelector";
 export { THEME_PRESETS, DEFAULT_THEME_ID, findPreset, type ThemePreset, type NeutralTint, type ThemeTier, type DarkDepth } from "./presets";
 export {

@@ -1,106 +1,104 @@
 import * as React from "react";
+import { Navigate, useLocation } from "react-router";
 import { useAppT } from "@/app/i18n";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Navigate, useLocation, useNavigate } from "react-router";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Enter, Foil, Grain, HairCanvas, Halo, Vignette } from "@/components/atmosphere";
+import { Heading, Text } from "@/components/typography";
 import { BarberlyticsLogo } from "@/components/ui/BarberlyticsLogo";
-import { ThemeModeToggle, ThemeSelector } from "@/themes";
-import { describeError, env } from "@/lib/api";
+import { LanguageSelector } from "@/i18n";
+import { ThemeModeToggle, useForcedPreset } from "@/themes";
 import { useAuth } from "./useAuth";
-import { credentialsSchema, type Credentials } from "./types";
+import { LoginForm } from "./LoginForm";
+import { RecoveryPanel } from "./RecoveryPanel";
+import { LoginHeroImage } from "./LoginHeroImage";
 
 interface LocationState {
   from?: string;
 }
 
+type View = "login" | "recovery";
+
+/** El login siempre se presenta con el tema premium, elija lo que elija la persona en la app. */
+const LOGIN_PRESET = "premium";
+
+/**
+ * Entrada a la aplicación en dos mitades. A la izquierda, el panel de
+ * portada sobre el cromo oscuro del tema premium: la foto de barbería en duotono,
+ * halo, grano y el titular abajo. A la derecha, el formulario sobre el fondo
+ * de la app con el cabello cayendo detrás, que alterna entre entrar y
+ * recuperar el acceso. Idioma y tema, arriba.
+ */
 export function LoginPage() {
   const t = useAppT();
-  const { status, login } = useAuth();
-  const navigate = useNavigate();
+  useForcedPreset(LOGIN_PRESET);
+  const { status } = useAuth();
   const location = useLocation();
   const from = (location.state as LocationState | null)?.from ?? "/dashboard";
-  const [serverError, setServerError] = React.useState<string | null>(null);
-
-  const form = useForm<Credentials>({
-    resolver: zodResolver(credentialsSchema),
-    defaultValues: { email: "", password: "" },
-  });
+  const [view, setView] = React.useState<View>("login");
 
   if (status === "authenticated") return <Navigate to={from} replace />;
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    setServerError(null);
-    try {
-      await login(values);
-      navigate(from, { replace: true });
-    } catch (error) {
-      setServerError(describeError(error).description);
-    }
-  });
-
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-4">
-      <div className="absolute right-4 top-4 flex items-center gap-1.5">
-        <ThemeSelector compact />
-        <ThemeModeToggle />
-      </div>
-      <div className="w-full max-w-sm">
-        <div className="mb-8">
-          <BarberlyticsLogo height={32} className="text-text-primary" />
+    <main className="flex min-h-dvh flex-col bg-background lg:flex-row">
+      <section
+        aria-label={t("auth.stage.kicker")}
+        className="relative isolate flex flex-col justify-between overflow-clip bg-surface-nav px-6 py-6 text-nav-foreground sm:px-10 lg:min-h-dvh lg:w-[52%] lg:p-14"
+      >
+        <div aria-hidden className="absolute inset-0 -z-10">
+          <LoginHeroImage />
+          <Halo x="28%" y="24%" size="60rem 40rem" strength={0.42} />
+          <Halo x="90%" y="96%" size="40rem 24rem" strength={0.2} />
+          <Grain />
+          <Vignette />
         </div>
-        <div className="rounded-3xl border border-border/60 bg-surface p-6 shadow-card sm:p-8">
-          <h1 className="text-xl font-bold tracking-tight text-text-primary">Inicia sesión</h1>
-          <p className="mt-1 text-sm text-text-secondary">Usa el correo con el que te registraron.</p>
 
-          <form onSubmit={onSubmit} noValidate className="mt-6 space-y-4">
-            {serverError && (
-              <Alert variant="destructive">
-                <AlertCircle />
-                <AlertTitle>{t("auth.errorTitle")}</AlertTitle>
-                <AlertDescription>{serverError}</AlertDescription>
-              </Alert>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="login-email">{t("auth.email")}</Label>
-              <Input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                data-testid="login-email"
-                aria-invalid={!!form.formState.errors.email}
-                {...form.register("email")}
-              />
-              {form.formState.errors.email && <p className="text-xs text-status-negative">{form.formState.errors.email.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="login-password">{t("auth.password")}</Label>
-              <Input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                data-testid="login-password"
-                aria-invalid={!!form.formState.errors.password}
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && <p className="text-xs text-status-negative">{form.formState.errors.password.message}</p>}
-            </div>
-            <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting} data-testid="login-submit">
-              {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-              Entrar
-            </Button>
-          </form>
+        <Enter>
+          <BarberlyticsLogo height={44} className="text-nav-foreground" />
+        </Enter>
 
-          {env.useMocks && (
-            <p className="mt-5 rounded-lg bg-surface-subtle p-3 text-xs leading-relaxed text-text-secondary">
-              Backend simulado activo. Prueba con <code className="font-mono text-text-primary">admin@thema.dev</code> /{" "}
-              <code className="font-mono text-text-primary">thema123</code>.
-            </p>
-          )}
+        <div className="mt-10 flex max-w-xl flex-col gap-4 lg:mt-0 lg:gap-6">
+          <Enter delay={80}>
+            <Text size="sm" weight="semibold" tone="primary">
+              {t("auth.stage.kicker")}
+            </Text>
+          </Enter>
+          <Enter delay={140}>
+            <Heading level={1} weight="bold" tone="inverse">
+              {t("auth.stage.title")}
+              <br />
+              <Foil as="em" className="not-italic">
+                {t("auth.stage.titleAccent")}
+              </Foil>
+            </Heading>
+          </Enter>
+          <Enter delay={200} className="hidden lg:block">
+            <Text variant="lead" tone="inverse" className="max-w-md">
+              {t("auth.stage.lead")}
+            </Text>
+          </Enter>
+        </div>
+      </section>
+
+      <div className="relative isolate flex flex-1 flex-col overflow-clip">
+        <div aria-hidden className="absolute inset-0 -z-10">
+          <Halo x="50%" y="42%" size="48rem 36rem" strength={0.14} />
+          <HairCanvas density={1.15} />
+          <Grain />
+        </div>
+        <header className="flex items-center justify-end gap-1.5 px-6 py-4 sm:px-10" role="group" aria-label={t("auth.themeTools")}>
+          <LanguageSelector compact />
+          <ThemeModeToggle />
+        </header>
+
+        <div className="flex flex-1 items-center justify-center px-6 pb-16 pt-4 sm:px-10">
+          <Enter delay={120} className="w-full max-w-sm">
+            <section aria-labelledby="login-heading" className="brand-ring panel-sheen rounded-3xl bg-card/85 p-6 backdrop-blur-xl sm:p-8">
+              {view === "login" ? (
+                <LoginForm onForgotNumber={() => setView("recovery")} />
+              ) : (
+                <RecoveryPanel onBack={() => setView("login")} />
+              )}
+            </section>
+          </Enter>
         </div>
       </div>
     </main>

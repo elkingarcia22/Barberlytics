@@ -51,6 +51,24 @@ describe("HairCanvas", () => {
     unmount();
   });
 
+  test("sobre el cromo lee --nav-foreground para las hebras de texto", () => {
+    // Arrange
+    stubMatchMedia(false);
+    const getProperty = vi.fn((name: string) => (name === "--nav-foreground" ? "0 0% 100%" : "0 0% 0%"));
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({ getPropertyValue: getProperty } as unknown as CSSStyleDeclaration);
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+
+    // Act
+    render(
+      <div className="relative">
+        <HairCanvas onChrome />
+      </div>
+    );
+
+    // Assert: sin contexto 2D no dibuja, pero la paleta se lee al montar
+    expect(getProperty).not.toHaveBeenCalledWith("--foreground");
+  });
+
   test("no se monta con prefers-reduced-motion", () => {
     // Arrange
     stubMatchMedia(true);

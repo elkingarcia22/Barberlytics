@@ -48,7 +48,7 @@ export function LoginPage() {
         </div>
 
         <Enter>
-          <BarberlyticsLogo height={30} className="text-nav-foreground" />
+          <BarberlyticsLogo height={44} className="text-nav-foreground" />
         </Enter>
 
         <div className="mt-10 flex max-w-xl flex-col gap-4 lg:mt-0 lg:gap-6">

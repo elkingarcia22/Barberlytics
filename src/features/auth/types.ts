@@ -66,4 +66,40 @@ export const recoveryRequestSchema = z.object({
 });
 export type RecoveryRequest = z.infer<typeof recoveryRequestSchema>;
 
-export type AuthStatus = "loading" | "authenticated" | "anonymous";
+const emailSchema = z.string().trim().min(1, "Escribe tu correo").email("Ese correo no parece válido");
+const required = (message: string) => z.string().trim().min(1, message);
+
+/** Crear cuenta: la barbería queda pendiente de activar. */
+export const signupRequestSchema = z.object({
+  firstName: required("Escribe tu nombre"),
+  lastName: required("Escribe tus apellidos"),
+  company: required("Escribe el nombre de tu barbería"),
+  email: emailSchema,
+  phone: phoneSchema,
+  barbers: z
+    .number({ error: "Escribe cuántos barberos tiene tu equipo" })
+    .int("Escribe un número entero")
+    .min(1, "Al menos 1 barbero"),
+  country: required("Elige tu país"),
+  timezone: required("Elige tu zona horaria"),
+});
+export type SignupRequest = z.infer<typeof signupRequestSchema>;
+
+/** Por qué se abre un ticket desde el login; soporte lo usa para priorizar. */
+export const ticketReasonSchema = z.enum(["recovery", "lockout", "other"]);
+export type TicketReason = z.infer<typeof ticketReasonSchema>;
+
+export const supportTicketSchema = z.object({
+  name: required("Escribe tu nombre completo"),
+  company: required("Escribe el nombre de tu barbería"),
+  email: emailSchema,
+  phone: phoneSchema,
+  message: required("Cuéntanos qué pasó").max(1000, "Máximo 1000 caracteres"),
+  reason: ticketReasonSchema,
+});
+export type SupportTicketRequest = z.infer<typeof supportTicketSchema>;
+
+export const supportTicketResponseSchema = z.object({ id: z.string() });
+export type SupportTicketResponse = z.infer<typeof supportTicketResponseSchema>;
+
+export type AuthStatus ="loading" | "authenticated" | "anonymous";

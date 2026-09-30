@@ -6,8 +6,11 @@ import { useCompactViewport } from "@/components/action-rail/useCompactViewport"
 import { ThemeSelectorPanel, ThemeSwatch, useTheme } from "@/themes";
 import { LanguagePickerPanel, useT } from "@/i18n";
 import { SHELL_MENU_PANEL } from "./shellPanel";
+import { useCloseWorkspaceMenu } from "./workspaceMenuContext";
 
 export interface PersonalizationMenuProps {
+  /** Sección propia del producto arriba del color (p. ej. el logo). Recibe cómo cerrar el panel y el menú de la marca. */
+  leading?: (close: () => void) => React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -21,11 +24,16 @@ export interface PersonalizationMenuProps {
  * menú de perfil— para no tapar el menú que la contiene; en pantalla
  * estrecha, donde no cabe al lado, cuelga del propio ítem.
  */
-export function PersonalizationMenu({ className, style }: PersonalizationMenuProps) {
+export function PersonalizationMenu({ leading, className, style }: PersonalizationMenuProps) {
   const t = useT();
   const { preset } = useTheme();
   const [open, setOpen] = React.useState(false);
   const isCompact = useCompactViewport();
+  const closeWorkspaceMenu = useCloseWorkspaceMenu();
+  const closeAll = React.useCallback(() => {
+    setOpen(false);
+    closeWorkspaceMenu();
+  }, [closeWorkspaceMenu]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,6 +70,7 @@ export function PersonalizationMenu({ className, style }: PersonalizationMenuPro
         {/* Sin «Más ajustes»: radio, densidad y tipografía se eligen una vez
             al montar el negocio, no aquí. Quien las necesite las encuentra en
             el selector completo de Fundamentos › Temas. */}
+        {leading?.(closeAll)}
         <ThemeSelectorPanel advanced={false} />
         <LanguagePickerPanel />
       </PopoverContent>

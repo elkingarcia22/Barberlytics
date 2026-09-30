@@ -104,6 +104,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     onNavigate,
     brand,
     chatHistory,
+    activeChatId,
+    onSelectChat,
+    onNewChat,
+    onRemoveChat,
+    agentSidebar = "history",
     news,
     promo,
     chrome,
@@ -130,7 +135,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const [drillDirection, setDrillDirection] = React.useState<"forward" | "back">("forward");
   const t = useT();
   const [adDismissed, setAdDismissed] = React.useState(false);
-  const [activeChatIndex, setActiveChatIndex] = React.useState(0);
+  // Sin `activeChatId` el sidebar recuerda por sí mismo qué chat se abrió.
+  const [localChatId, setLocalChatId] = React.useState<string | null>(null);
+  const currentChatId = activeChatId === undefined ? localChatId : activeChatId;
 
   // Collapsing wipes the drill: the collapsed rail always shows the root icons.
   React.useEffect(() => {
@@ -444,33 +451,65 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* ---------- Nav viewport ---------- */}
       <div className="relative min-h-[132px] flex-1 overflow-hidden">
-        {mode === "agent" ? (
+        {mode === "agent" && agentSidebar === "history" ? (
           <nav className="flex h-full flex-col gap-1 overflow-y-auto pr-1 animate-in fade-in duration-200">
             <button
-              onClick={() => setActiveChatIndex(-1)}
-              className="mb-2 flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-bold text-text-primary transition-colors hover:border-primary hover:bg-surface-muted hover:text-primary"
+              onClick={() => {
+                setLocalChatId(null);
+                onNewChat?.();
+              }}
+              className={cn(
+                "mb-2 flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-bold text-text-primary transition-colors hover:border-primary hover:bg-surface-muted hover:text-primary",
+                currentChatId === null && "border-primary/50 text-primary"
+              )}
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Nuevo chat
+              {t("chat.newConversation")}
             </button>
-            {chatHistory.map((group, groupIndex) => (
+            {chatHistory.length === 0 && <p className="px-2 py-3 text-xs text-text-muted">{t("chat.history.empty")}</p>}
+            {chatHistory.map((group) => (
               <React.Fragment key={group.label}>
                 <div className="shrink-0 px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   {group.label}
                 </div>
-                {group.items.map((chat, itemIndex) => {
-                  const flatIndex = groupIndex * 100 + itemIndex;
+                {group.items.map((chat) => {
+                  const active = currentChatId === chat.id;
                   return (
-                    <button
-                      key={chat}
-                      onClick={() => setActiveChatIndex(flatIndex)}
-                      className={cn(
-                        "shrink-0 truncate rounded-lg px-2 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
-                        activeChatIndex === flatIndex && "bg-surface-muted font-semibold text-primary hover:bg-surface-muted hover:text-primary"
+                    <div key={chat.id} className="group/chat relative flex shrink-0 items-center">
+                      <button
+                        onClick={() => {
+                          setLocalChatId(chat.id);
+                          onSelectChat?.(chat.id);
+                        }}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-background hover:text-text-primary",
+                          active && "bg-surface-muted font-semibold text-primary hover:bg-surface-muted hover:text-primary",
+                          chat.status === "unread" && !active && "text-text-primary"
+                        )}
+                      >
+                        {/* El punto: sin leer (relleno con halo), pensando (gradiente que respira) o nada. */}
+                        {chat.status === "thinking" ? (
+                          <span role="img" aria-label={t("chat.status.thinking")} className="size-2.5 shrink-0 rounded-full bg-ai-gradient animate-pulse motion-reduce:animate-none" />
+                        ) : chat.status === "unread" ? (
+                          <span role="img" aria-label={t("chat.status.unread")} className="size-2 shrink-0 rounded-full bg-primary ring-4 ring-primary/20" />
+                        ) : (
+                          <span aria-hidden className="size-2 shrink-0 rounded-full border border-border" />
+                        )}
+                        <span className="truncate">{chat.title}</span>
+                      </button>
+                      {onRemoveChat && (
+                        <button
+                          type="button"
+                          aria-label={t("chat.deleteConversation")}
+                          title={t("chat.deleteConversation")}
+                          onClick={() => onRemoveChat(chat.id)}
+                          className="absolute right-1 flex size-6 items-center justify-center rounded-md text-text-muted opacity-0 transition-opacity hover:bg-surface-muted hover:text-destructive focus-visible:opacity-100 group-hover/chat:opacity-100"
+                        >
+                          <X className="size-3" strokeWidth={2.5} />
+                        </button>
                       )}
-                    >
-                      {chat}
-                    </button>
+                    </div>
                   );
                 })}
               </React.Fragment>

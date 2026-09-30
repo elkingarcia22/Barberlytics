@@ -81,7 +81,7 @@ const sideSizeClasses = {
     "5xl": "sm:max-w-5xl", // 1024px
     "6xl": "sm:max-w-6xl", // 1152px
     "7xl": "sm:max-w-7xl", // 1280px
-    "full": "sm:max-w-full",
+    "full": "sm:max-w-[calc(100%-1.5rem)]",
   },
   left: {
     sm: "sm:max-w-sm",
@@ -94,7 +94,7 @@ const sideSizeClasses = {
     "5xl": "sm:max-w-5xl",
     "6xl": "sm:max-w-6xl",
     "7xl": "sm:max-w-7xl",
-    "full": "sm:max-w-full",
+    "full": "sm:max-w-[calc(100%-1.5rem)]",
   },
   top: {
     sm: "", md: "", lg: "", xl: "", "2xl": "", "3xl": "", "4xl": "", "5xl": "", "6xl": "", "7xl": "", full: "",

@@ -52,7 +52,17 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const resolved = React.useMemo(() => resolveShellConfig(overrides), [overrides]);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [mode, setMode] = React.useState<ShellMode>("workspace");
+  // El modo lo puede llevar la app (para abrir el chat en pantalla completa
+  // desde fuera del shell); si no, lo guarda el shell.
+  const [innerMode, setInnerMode] = React.useState<ShellMode>("workspace");
+  const mode = resolved.mode ?? innerMode;
+  const setMode = React.useCallback(
+    (next: ShellMode) => {
+      setInnerMode(next);
+      resolved.onModeChange?.(next);
+    },
+    [resolved]
+  );
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackSent, setFeedbackSent] = React.useState(false);
   const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
@@ -220,7 +230,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             <ShellRailSlotProvider value={railSlot}>
               <ShellAgentPanelSlotProvider value={agentPanelSlot}>
               {isAgent ? (
-                <AgentView />
+                (resolved.agentView ?? <AgentView />)
               ) : scrollContent ? (
                 // `flex flex-col`: with short content, the padded wrapper's
                 // own `flex-1` stretches to fill this scroller and pushes the

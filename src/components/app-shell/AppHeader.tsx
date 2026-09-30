@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { SHELL_MENU_PANEL } from "./shellPanel";
 import { AccountMenu } from "./AccountMenu";
 import { NewsMenu } from "./NewsMenu";
+import { HelpMenu } from "./HelpMenu";
 import { useLiquidOrigin } from "./useLiquidOrigin";
 import { GlobalSearch } from "@/components/search";
 import { useT } from "@/i18n";
@@ -29,6 +30,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
     news,
     notifications,
     onLogout,
+    onOpenHelp,
+    helpActions,
     headerActions,
     chrome,
     search,
@@ -73,8 +76,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
   // Both stops are `card` (the surface colour in HSL channels, so it accepts
   // an alpha modifier) — fading from `transparent` instead would drift through
   // grey on its way to white. `border-b` is all that divides it from the page.
+  // With the Agente IA or help panel open the header ends against the panel,
+  // not the window edge, and the solid `card` stop read as a vertical divider
+  // there — so the strip goes flat while a panel (`data-agent-panel-open`) is open.
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border/60 bg-gradient-to-r from-card/0 via-card/0 via-45% to-card px-4 sm:gap-3 sm:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border/60 bg-gradient-to-r from-card/0 via-card/0 via-45% to-card px-4 sm:gap-3 sm:px-6 [:has([data-agent-panel-open])_&]:bg-none">
       {/* ---------- Sidebar toggle ----------
           Only below lg: there the sidebar is an off-canvas drawer, so its own
           edge handle is out of reach. On desktop that handle takes over. */}
@@ -112,11 +118,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
         {chrome.news && <NewsMenu items={news} className="max-md:hidden" />}
 
         {/* ---------- Ayuda ---------- */}
-        {chrome.help && (
+        {chrome.help && helpActions?.length ? (
+          <HelpMenu actions={helpActions} label={t("shell.help")} className="max-sm:hidden" />
+        ) : chrome.help && (
           <button
+            type="button"
+            onClick={onOpenHelp}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-surface text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary max-sm:hidden"
-            title="Ayuda"
+            title={t("shell.help")}
             aria-label={t("shell.help")}
+            data-testid="shell-help"
           >
             <HelpCircle className="h-4 w-4" strokeWidth={2} />
           </button>

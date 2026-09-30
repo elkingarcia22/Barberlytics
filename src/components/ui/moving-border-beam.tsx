@@ -116,9 +116,13 @@ const GlowBeam = ({
   const transform = useMotionTemplate`translateX(${x}px) translateY(${y}px) translateX(-50%) translateY(-50%)`;
 
   return (
+    // `overflow-hidden`: la máscara esconde el círculo fuera del borde, pero no
+    // lo saca del cálculo de tamaño. Sin recortarlo, al pasar por un lado el
+    // círculo de `beamSize` px ensanchaba el contenedor con scroll de al lado y
+    // aparecía y desaparecía una barra horizontal.
     <div
       className={cn(
-        "pointer-events-none absolute inset-0 rounded-[inherit]",
+        "pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]",
         className
       )}
       style={{

@@ -56,10 +56,16 @@ function fold(value: string): string {
     .toLowerCase();
 }
 
+/**
+ * Palabra a palabra, no la frase entera: «no me llega codigo» encuentra
+ * «No me llega el código por SMS» aunque la frase no aparezca tal cual.
+ * Cada palabra tiene que estar en algún campo; el orden no importa.
+ */
 function matches(haystack: readonly string[], needle: string): boolean {
-  if (!needle) return true;
-  const folded = fold(needle);
-  return fold(haystack.join(" ")).includes(folded);
+  const words = fold(needle).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const text = fold(haystack.join(" "));
+  return words.every((word) => text.includes(word));
 }
 
 const SCOPE_LABELS: Readonly<Record<SearchScope, string>> = {

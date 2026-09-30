@@ -45,12 +45,17 @@ function SheetOverlay({
   )
 }
 
-/** Dónde se ancla el panel según el lado del que sale. */
+/**
+ * Dónde se ancla el panel según el lado del que sale. No va pegado a la
+ * ventana: flota a `3` (12 px, `OVERLAY_INSET` del panel de IA) de los tres
+ * bordes que toca, con las cuatro esquinas redondeadas y borde completo. Es un
+ * margen exterior: el relleno de dentro no cambia.
+ */
 const sidePositionClasses = {
-  right: "inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm rounded-l-2xl",
-  left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm rounded-r-2xl",
-  top: "inset-x-0 top-0 h-auto border-b rounded-b-2xl",
-  bottom: "inset-x-0 bottom-0 h-auto border-t rounded-t-2xl",
+  right: "inset-y-3 right-3 w-[calc(75%-0.75rem)] border sm:max-w-sm rounded-2xl",
+  left: "inset-y-3 left-3 w-[calc(75%-0.75rem)] border sm:max-w-sm rounded-2xl",
+  top: "inset-x-3 top-3 h-auto max-h-[calc(100dvh-1.5rem)] border rounded-2xl",
+  bottom: "inset-x-3 bottom-3 h-auto max-h-[calc(100dvh-1.5rem)] border rounded-2xl",
 } as const
 
 /**

@@ -32,7 +32,7 @@ export function LoginPage() {
   useForcedPreset(LOGIN_PRESET);
   const { status } = useAuth();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/dashboard";
+  const from = (location.state as LocationState | null)?.from ?? "/metricas";
   const [view, setView] = React.useState<View>("login");
 
   if (status === "authenticated") return <Navigate to={from} replace />;

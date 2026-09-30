@@ -15,5 +15,5 @@ export async function login(page: Page, credentials = ADMIN) {
   await page.getByTestId("login-phone").fill(credentials.phone);
   await page.getByTestId("login-submit").click();
   await typeOtp(page);
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/metricas/);
 }

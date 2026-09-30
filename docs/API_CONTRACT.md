@@ -69,6 +69,60 @@ Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSit
 }
 ```
 
+## Métricas (`/metrics`)
+
+`GET /metrics/business?granularity=day|week|month&date=YYYY-MM-DD&barberId=all|<id>` → cómo le fue a la
+sucursal activa en el periodo que contiene `date`. `day` es ese día, `week` su semana de lunes a domingo y
+`month` su mes natural. `previous` es el periodo justo anterior, con el que se calculan las variaciones. La
+sucursal la fija la sesión (cabecera), no la consulta. `barbers` es la lista completa para el filtro y no
+cambia con `barberId`.
+
+```json
+{
+  "period": { "granularity": "month", "from": "2026-09-01", "to": "2026-09-30" },
+  "previous": { "from": "2026-08-01", "to": "2026-08-31" },
+  "barbers": [{ "id": "b4", "name": "Andrés Beltrán" }],
+  "kpis": {
+    "sales": { "value": 15642, "previous": 17130 },
+    "averageTicket": { "value": 56.26, "previous": 58.85 },
+    "transactions": { "value": 278, "previous": 291 },
+    "tipsRate": { "value": 19.8, "previous": 19.1 },
+    "tipsAmount": 2422,
+    "cancellationRate": { "value": 26.8, "previous": 26.5 },
+    "refunds": { "amount": 90, "rate": 0.6 },
+    "discounts": { "amount": 120, "rate": 0.8 }
+  },
+  "trend": [{ "label": "1", "sales": 520, "appointments": 11 }],
+  "income": [{ "id": "services", "amount": 12219 }],
+  "appointments": {
+    "total": 369, "clients": 303,
+    "byStatus": [{ "id": "completed", "count": 247 }],
+    "byMethod": [{ "id": "internal", "count": 322 }],
+    "byDaypart": [{ "id": "morning", "count": 105 }],
+    "byHour": [{ "hour": 9, "count": 22 }]
+  },
+  "payments": [{ "id": "card", "amount": 10975 }],
+  "services": [{ "id": "maintenance", "name": "Corte de mantenimiento", "count": 148, "amount": 6660 }],
+  "products": [{ "id": "pomade", "name": "Pomada mate", "count": 13, "amount": 286 }]
+}
+```
+
+Enumeraciones: `income.id` ∈ `services | products | taxes | tips | fees | noShow`; `byStatus.id` ∈
+`completed | pendingCollection | cancelled | noShow`; `byMethod.id` ∈ `internal | online | walkIn`;
+`byDaypart.id` ∈ `morning | afternoon | evening`; `payments.id` ∈ `card | cash | transfer | giftCard`.
+`trend` trae un punto por día del periodo (por hora, de 8 a 20, cuando el periodo es un día). Las tasas van
+en porcentaje (0–100) y los importes en la moneda de la sucursal.
+
+Las otras pestañas comparten los mismos parámetros (`granularity`, `date`, `barberId`) y devuelven `period` y
+`previous` con la misma forma:
+
+| Ruta | Devuelve |
+|---|---|
+| `GET /metrics/customers` | `clients`, `kpis: { retentionRate, avgIncomePerClient, onlineBookings, walkInRate }` (cada uno `{ value, previous }`), `byClientType: [{ id: new \| retainedNew \| repeat \| recovered, count }]`, `newVsReturning: { new, returning }`, `barberPreference: { withPreference, noPreference }`, `visitFrequency: [{ id: weekly \| biweekly \| monthly \| occasional, count }]`. |
+| `GET /metrics/barbers` | `kpis: { totalNet, loyalty, avgOccupancy, avgTicket }`, `barbers: [{ id, name, net, services, occupancy, cancellationRate, tipsRate }]`. Con `barberId` la lista trae solo a esa persona. |
+| `GET /metrics/marketing` | `kpis: { onlineBookings, bestChannel: string \| null, campaignBookings }`, `channels: [{ id, name, bookings, visits }]`, `campaigns: [{ id, name, bookings, revenue }]`. Sin datos, listas vacías (nunca ceros inventados). |
+| `GET /metrics/insights` | Sin parámetros: diagnostica los últimos tres meses de la sucursal. `window: { from, to }`, `health: { score (0–100), completionRate, retentionRate, noShowRate, avgTicket }`, `risks: { churned, atRisk, overdue }`, `capacity: { hours: number[], rows: [{ day: 0–6 (lunes = 0), values: number[] (ocupación 0–100 por hora) }] }`, `suggestions: [{ id, group: clients \| growth \| operations, type: risk \| recommendation \| opportunity \| insight, tag, title, description, action, evidence? }]`. |
+
 ## Personas (`/users`)
 
 `user`: `{ id, name, email, area, role, status: "active" | "invited" | "inactive", createdAt, lastActiveAt: string | null, avatarUrl: string | null }`

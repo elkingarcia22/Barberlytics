@@ -9,6 +9,7 @@ import { periodSelectorEntry } from "./period-selector";
 import { dateFilterBarEntry } from "./date-filter-bar";
 import { dateUtilsEntry } from "./date-utils";
 import { rangeSliderEntry } from "./range-slider";
+import { periodNavigatorEntry } from "./period-navigator";
 
 /** Entradas del grupo "date". Cada componente vive en su propio archivo de esta carpeta. */
 export const dateEntries: readonly DocEntry[] = [datePickerEntry,
@@ -18,6 +19,7 @@ export const dateEntries: readonly DocEntry[] = [datePickerEntry,
   quarterSelectorEntry,
   periodSelectorEntry,
   dateFilterBarEntry,
+  periodNavigatorEntry,
   dateUtilsEntry,
   rangeSliderEntry,
   eventCalendarEntry,

@@ -37,7 +37,7 @@ type NavTemplate =
   | { kind: "group"; labelKey: AppMessageKey };
 
 const NAV_TEMPLATE: readonly NavTemplate[] = [
-  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/dashboard" },
+  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/metricas" },
   { kind: "item", id: "calendario", labelKey: "nav.calendar", icon: CalendarDays, path: "/calendario" },
   { kind: "item", id: "clientes", labelKey: "nav.clients", icon: Users, path: "/clientes" },
   // Quién trabaja aquí y con qué rol entra. Estaba como «Permisos» dentro de

@@ -1,5 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { buildBusinessMetrics } from "./metrics";
+import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -179,6 +181,35 @@ export const handlers = [
       byArea,
       signups,
     });
+  }),
+
+  // ---------- Métricas ----------
+  ...(
+    [
+      ["business", buildBusinessMetrics],
+      ["customers", buildCustomersMetrics],
+      ["barbers", buildBarbersMetrics],
+      ["marketing", buildMarketingMetrics],
+    ] as const
+  ).map(([tab, build]) =>
+    http.get(`${BASE}/metrics/${tab}`, async ({ request }) => {
+      await delay(LATENCY_MS);
+      if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+      const url = new URL(request.url);
+      return HttpResponse.json(
+        build({
+          granularity: url.searchParams.get("granularity"),
+          date: url.searchParams.get("date"),
+          barberId: url.searchParams.get("barberId"),
+        })
+      );
+    })
+  ),
+
+  http.get(`${BASE}/metrics/insights`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    return HttpResponse.json(buildInsightsMetrics());
   }),
 
   // ---------- Users ----------

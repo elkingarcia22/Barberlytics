@@ -1,8 +1,8 @@
 # Catálogo de componentes Thema
 
-Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
+Generado el 2026-09-30 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**181 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
+**185 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -3585,7 +3585,7 @@ No: No actives `selectable="multiple"` sin mostrar en algún lugar cuántos elem
 Relacionados: list-item, checkbox, badge
 
 
-## [object Object] · 10
+## [object Object] · 11
 
 [object Object]
 
@@ -3836,6 +3836,38 @@ const [value, setValue] = React.useState<{ year: number; month: number }>()
 Sí: Úsalo para periodos mensuales: nóminas, cierres contables, informes. · Acota los años al rango con datos reales para evitar navegación inútil.
 No: No lo uses si el usuario necesita un día concreto: usa DatePicker. · No olvides que `month` es base cero al construir un `Date`.
 Relacionados: quarter-selector, date-picker, period-selector, popover
+
+### PeriodNavigator
+
+La barra de tiempo de un tablero: el grano (día, semana, mes), el periodo que se está mirando y las flechas para moverlo. Cambiar de grano conserva la fecha ancla, el rótulo sale de Intl con el idioma que se le pase y el salto adelante se frena en hoy. Trae en periodRange las utilidades que calculan el rango y el periodo anterior, para que la consulta y la barra digan lo mismo.
+
+```ts
+import { PeriodNavigator, periodRange, previousPeriodRange } from "@/components/date"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `granularity` | `"day" \| "week" \| "month"` |  | El grano del periodo. Es controlado. |
+| `onGranularityChange` | `(granularity) => void` |  | Al cambiar de grano. La fecha ancla se conserva. |
+| `date` | `Date` |  | La fecha ancla: cualquier día dentro del periodo que se mira. |
+| `onDateChange` | `(date: Date) => void` |  | Al pulsar una flecha o «ir a hoy». Devuelve un nuevo `Date`, nunca muta el que recibió. |
+| `labels` | `PeriodNavigatorLabels` |  | Los rótulos traducidos: los tres granos, «ir a hoy», anterior, siguiente y el aria del grupo. |
+| `locale` | `string` | `"es-CO"` | Con qué idioma escribe el periodo. |
+| `clampToToday` | `boolean` | `true` | Desactiva la flecha de avance cuando el periodo ya incluye hoy. |
+
+Ejemplo · De la barra a la consulta:
+
+```tsx
+const { from, to } = periodRange(date, granularity);
+const previous = previousPeriodRange(date, granularity);
+// GET /metrics/business?granularity=week&date=2026-09-28
+
+<PeriodNavigator granularity={granularity} onGranularityChange={setGranularity} date={date} onDateChange={setDate} labels={labels} />
+```
+
+Sí: Guarda el grano y la fecha ancla en la URL (`?period=week&date=2026-09-28`) y deriva el rango con `periodRange`. · Pasa el idioma activo (`useLocale().current.intl`), no uno escrito a mano. · Mantén la consulta y la comparación sobre `periodRange` y `previousPeriodRange`: si divergen, la píldora de variación miente.
+No: No lo uses para elegir un rango libre; para eso está `DateRangePicker`. · No dejes avanzar al futuro en un tablero de lo que ya pasó: enseñaría un periodo vacío como si fuera un dato.
+Relacionados: date-filter-bar, period-selector, date-range-picker, segmented-control
 
 ### PeriodSelector
 
@@ -4250,7 +4282,7 @@ No: No la pongas dentro de una fila de formulario estrecha; ahí va FileUpload. 
 Relacionados: file-upload, attachment-list, import-csv-panel, ai-button
 
 
-## [object Object] · 12
+## [object Object] · 15
 
 [object Object]
 
@@ -4365,6 +4397,43 @@ Sí: Usa barras para comparar categorías discretas; para evolución en el tiemp
 No: No mezcles unidades distintas en una misma serie; el eje de valores es único. · No dependas del color para distinguir categorías: la etiqueta del eje es el identificador.
 Relacionados: line-chart, donut-chart, chart-card, echart, card
 
+### BarList
+
+Un ranking: qué se vendió más, de dónde salió el ingreso, qué servicio se pidió. Cada fila lleva su nombre, una barra proporcional al máximo y su valor escrito; la barra compara y el número informa. Con título trae su propia Card; sin él es solo la lista, para meterla dentro de otro panel sin caja dentro de caja.
+
+```ts
+import { BarList } from "@/components/charts"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `title` | `string` |  | Con título el componente se envuelve en su Card con `PanelHeading`; sin él es solo la lista. |
+| `description` | `string` |  | Una línea apagada bajo el título. |
+| `count` | `ReactNode` |  | Una cifra junto al título: cuántos elementos suman las filas, cuánto es el total. |
+| `items` | `BarListItem[]` |  | Las filas: `{ id, label, value, tone?, meta? }`. `meta` es un segundo dato apagado junto al valor. |
+| `formatValue` | `(value: number) => string` |  | Cómo se escribe el valor de cada fila; por defecto en es-ES. |
+| `tone` | `"brand" \| "positive" \| "warning" \| "negative" \| "neutral"` | `"brand"` | El tono de las barras. Una fila puede traer el suyo. |
+| `sorted` | `boolean` | `true` | Ordena de mayor a menor antes de pintar. |
+| `limit` | `number` |  | Deja fuera las filas a partir de esta posición. |
+| `actions` | `ReactNode` |  | Controles a la derecha del título. |
+| `emptyLabel` | `string` |  | Qué decir cuando no hay filas. |
+
+Ejemplo · Ranking con importe al lado:
+
+```tsx
+const servicios = [
+  { id: "maintenance", label: "Corte de mantenimiento", value: 148, meta: "US$ 6.660" },
+  { id: "cut-beard", label: "Corte + barba", value: 68, meta: "US$ 4.420" },
+  { id: "kids", label: "Corte infantil", value: 17, meta: "US$ 544" },
+];
+
+<BarList title="Servicios más vendidos" count={247} items={servicios} tone="positive" />
+```
+
+Sí: Deja que la barra compare y el número informe: el valor va siempre escrito. · Apaga `sorted` cuando el orden significa algo (un desglose contable, los pasos de un embudo). · Usa `meta` para el importe cuando la barra mide unidades, o al revés; nunca dos barras para el mismo concepto.
+No: No pases más de diez filas sin `limit`: a partir de ahí es una tabla, no un ranking. · No mezcles tonos por fila sin motivo; el color por fila es para señalar una (la que está en riesgo), no para decorar.
+Relacionados: bar-chart, composition-donut, distribution-bar, table-shell
+
 ### ChartCard
 
 La Card pensada para alojar un gráfico: encabezado con eyebrow, título, descripción, acciones y un slot de filtros, y debajo un ChartShell que hereda todos los estados. Es la base de los presets BarChart, LineChart, AreaChart, DonutChart y HeatmapChart; los ejemplos se remontan al cambiar de tema en esta docs.
@@ -4467,6 +4536,82 @@ Ejemplo · Con resumen accesible:
 Sí: Pasa siempre un ariaLabel descriptivo: es lo único que lee un lector de pantalla del canvas. · Aporta summary cuando los valores importan para tomar una decisión. · Usa el footer para la fuente y la fecha de corte de los datos.
 No: No lo uses suelto en una pantalla: envuélvelo con ChartCard o una Card para darle título visible. · No dupliques el estado de error con un toast; el shell ya lo muestra en contexto.
 Relacionados: echart, chart-card, card
+
+### CompositionDonut
+
+El reparto de un total en pocas partes como panel de tablero: un anillo mudo con el total escrito en el centro y una leyenda al lado con cada parte, su valor y su porcentaje. A diferencia de DonutChart, el dato es la leyenda y el anillo es contexto; el texto lo pone el DOM, así que sigue al tema y a la densidad sin pasar por el canvas.
+
+```ts
+import { CompositionDonut } from "@/components/charts"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `title` | `string` |  | Qué reparte el panel. Va en la cabecera compartida de los paneles (`PanelHeading`). |
+| `description` | `string` |  | Una línea apagada bajo el título. |
+| `slices` | `CompositionSlice[]` |  | Las partes: `{ id, label, value, tone? }`. El tono es uno de los del sistema; sin él, el color sale por posición del ciclo del tema. |
+| `center` | `{ value: ReactNode; label?: string }` |  | Lo que va escrito en el centro. Por defecto, la suma de las porciones formateada. Una cifra larga baja de tamaño sola. |
+| `formatValue` | `(value: number) => string` |  | Cómo se escribe cada valor de la leyenda; por defecto en es-ES. |
+| `showShare` | `boolean` | `false` | Añade el porcentaje sobre el total a cada fila. |
+| `size` | `number` | `136` | Diámetro del anillo en píxeles. |
+| `actions` | `ReactNode` |  | Controles a la derecha del título. |
+| `emptyLabel` | `string` |  | Qué decir cuando no hay porciones o todas valen cero. |
+| `ariaLabel` | `string` |  | Cómo se anuncia el anillo; por defecto, el título con cada parte y su valor. |
+
+Ejemplo · Tres repartos en una fila:
+
+```tsx
+const citas = [
+  { id: "completed", label: "Completadas", value: 247, tone: "positive" },
+  { id: "pending", label: "Por cobrar", value: 23, tone: "warning" },
+  { id: "cancelled", label: "Canceladas", value: 86, tone: "negative" },
+  { id: "noShow", label: "No-show", value: 13, tone: "neutral" },
+];
+
+<div className="grid gap-3 lg:grid-cols-2">
+  <CompositionDonut title="En qué acabaron las citas" center={{ value: 303, label: "clientes" }} slices={citas} showShare />
+  <CompositionDonut title="Cómo se pagó" center={{ value: money(14641), label: "cobrado" }} slices={pagos} formatValue={money} showShare />
+</div>
+```
+
+Sí: Úsalo para un reparto de dos a cinco partes; a partir de seis, la leyenda deja de caber al lado y el anillo deja de leerse. · Da tono a las porciones que son estados (positivo, aviso, negativo) y déjalo vacío cuando solo son «otra parte». · Pasa `center` cuando el total tiene otra unidad o nombre que la suma: 303 clientes sobre 369 citas. · Formatea el valor con la misma función que el resto del tablero, para que «US$ 14.641» se escriba igual en la tarjeta y en la leyenda.
+No: No lo uses para analizar una distribución con etiquetas sobre las porciones: para eso está `DonutChart`. · No pintes un 0 como un anillo lleno de gris con una leyenda de ceros; deja que muestre su vacío. · No lo metas dentro de otra `Card`: ya trae la suya.
+Relacionados: donut-chart, distribution-bar, bar-list, metric-card
+
+### DistributionBar
+
+Un total repartido en pocos tramos contiguos —mañana, tarde y noche; con cita, sin cita— como una sola barra donde cada tramo ocupa lo que le toca, y debajo la leyenda con cada parte, su valor y su porcentaje. Es el hermano lineal de CompositionDonut: la misma pregunta cuando las partes tienen un orden natural que en un anillo se pierde.
+
+```ts
+import { DistributionBar } from "@/components/charts"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `title` | `string` |  | Con título se envuelve en su Card con `PanelHeading`; sin él es solo la barra con su leyenda. |
+| `description` | `string` |  | Una línea apagada bajo el título. |
+| `segments` | `DistributionSegment[]` |  | Los tramos, en el orden en que se pintan: `{ id, label, value, tone?, hint? }`. |
+| `formatValue` | `(value: number) => string` |  | Cómo se escribe cada valor; por defecto en es-ES. |
+| `unit` | `string` |  | La unidad que acompaña al valor en la leyenda: «citas», «ventas». |
+| `actions` | `ReactNode` |  | Controles a la derecha del título. |
+| `emptyLabel` | `string` |  | Qué decir cuando todos los tramos valen cero. |
+| `ariaLabel` | `string` |  | Cómo se anuncia la barra; por defecto, el título con cada tramo y su valor. |
+
+Ejemplo · Franjas del día:
+
+```tsx
+const franjas = [
+  { id: "morning", label: "Mañana", hint: "hasta las 12", value: 105, tone: "warning" },
+  { id: "afternoon", label: "Tarde", hint: "12 a 17", value: 138, tone: "brand" },
+  { id: "evening", label: "Noche", hint: "desde las 17", value: 126, tone: "neutral" },
+];
+
+<DistributionBar title="Cuándo se reservan" unit="citas" segments={franjas} />
+```
+
+Sí: Úsalo cuando los tramos tienen un orden natural (horas del día, pasos de un embudo, tallas). · Mantén los tramos entre dos y cinco: más allá la barra se llena de rayas que no se distinguen. · Da el mismo tono a la misma franja en todo el producto: la mañana es siempre ámbar, la tarde siempre marca.
+No: No lo uses para comparar magnitudes independientes; eso es un `BarList`. · No lo pintes con todos los tramos en el mismo tono: sin contraste no hay reparto.
+Relacionados: composition-donut, bar-list, progress
 
 ### DonutChart
 

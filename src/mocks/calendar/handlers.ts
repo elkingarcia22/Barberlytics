@@ -1,0 +1,463 @@
+import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { ACCOUNTS, db } from "../db";
+import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
+import {
+  PRODUCTS,
+  SERVICES,
+  WALK_IN_CLIENT,
+  blockAppliesOn,
+  clockOf,
+  dateKey,
+  localIso,
+  parseClock,
+  seedDay,
+  type MockAppointment,
+  type MockAppointmentStatus,
+  type MockBarber,
+  type MockBlockCategory,
+  type MockBlockRepeat,
+  type MockClientNote,
+  type MockHistoryEntry,
+  type MockPaymentMethod,
+  type MockRepeatRule,
+  type MockTimeBlock,
+  type MockWaitlistEntry,
+} from "./seed";
+
+/**
+ * Los endpoints del calendario del backend simulado. Reproducen
+ * docs/API_CONTRACT.md (sección «Calendario»): el día de una sucursal, la
+ * ocupación del mes, el catálogo, y las mutaciones de una cita desde que se
+ * agenda hasta que se cobra.
+ */
+
+const BASE = "*/api";
+const LATENCY_MS = 200;
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_KEY = /^\d{4}-\d{2}$/;
+const CLOCK = /^\d{2}:\d{2}$/;
+const STATUSES: readonly MockAppointmentStatus[] = ["scheduled", "arrived", "seated", "paid", "no_show", "cancelled"];
+const REPEATS: readonly MockRepeatRule[] = ["none", "weekly", "biweekly", "triweekly", "monthly", "bimonthly", "quarterly"];
+const BLOCK_CATEGORIES: readonly MockBlockCategory[] = ["sick", "vacation", "holiday", "lunch", "meeting", "business", "personal"];
+const BLOCK_REPEATS: readonly MockBlockRepeat[] = ["none", "daily", "weekly", "monthly"];
+const METHODS: readonly MockPaymentMethod[] = ["cash", "card", "link", "mixed"];
+/** Cuántas citas crea una serie repetida. */
+const SERIES_LENGTH = 12;
+const REPEAT_DAYS: Record<Exclude<MockRepeatRule, "none">, { days?: number; months?: number }> = {
+  weekly: { days: 7 },
+  biweekly: { days: 14 },
+  triweekly: { days: 21 },
+  monthly: { months: 1 },
+  bimonthly: { months: 2 },
+  quarterly: { months: 3 },
+};
+
+function error(status: number, code: string, message: string, extra?: Record<string, unknown>) {
+  return HttpResponse.json({ code, message, ...extra }, { status });
+}
+
+function requireAuth(request: Request) {
+  const header = request.headers.get("authorization");
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+  const accountId = token ? db.sessions.get(token) : undefined;
+  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+}
+
+const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
+const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+/** El horario fijo de una persona, como franjas por día de la semana. */
+function fixedHours(member: MockTeamMember): MockBarber["workingHours"] {
+  return Object.fromEntries(
+    Object.entries(member.schedule)
+      .filter(([, range]) => range !== null)
+      .map(([day, range]) => [Number(day), [range as { start: string; end: string }]])
+  );
+}
+
+/** Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. */
+function hoursOn(member: MockTeamMember, day: string): { start: string; end: string }[] {
+  const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === day);
+  if (override) return override.range ? [override.range] : [];
+  const range = member.schedule[String(new Date(`${day}T00:00:00`).getDay())];
+  return range ? [range] : [];
+}
+
+/** Los barberos activos de la sucursal, en su orden de calendario, como los ve la agenda. */
+function barbersIn(branchId: string): MockBarber[] {
+  const order = db.team.orders.find((item) => item.branchId === branchId);
+  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => ({
+    id: member.id,
+    branchId,
+    name: memberName(member),
+    avatarUrl: member.avatarUrl,
+    level: db.team.levels.find((level) => level.id === member.levelId)?.name ?? null,
+    workingHours: fixedHours(member),
+    acceptsWalkIns: order?.walkIn.find((entry) => entry.memberId === member.id)?.enabled ?? isBarberRole(member.role),
+    bookingVisible: member.bookingVisible,
+  }));
+}
+
+const findBarber = (id: string) => db.team.members.find((member) => member.id === id && (isBarberRole(member.role) || member.isAlsoBarber));
+
+/** Las citas de un día de una sucursal, generándolas la primera vez que se piden. */
+function appointmentsOn(branchId: string, day: string): MockAppointment[] {
+  const key = `${branchId}:${day}`;
+  if (!db.calendar.seededDays.includes(key)) {
+    const weekday = new Date(`${day}T00:00:00`).getDay();
+    const barbers = barbersIn(branchId).map((barber) => {
+      const member = db.team.members.find((item) => item.id === barber.id);
+      return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day) : [] } };
+    });
+    db.calendar.appointments.push(...seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date() }));
+    db.calendar.seededDays.push(key);
+    db.persist();
+  }
+  return db.calendar.appointments.filter((item) => item.branchId === branchId && item.start.startsWith(day));
+}
+
+const blocksOn = (branchId: string, day: string): MockTimeBlock[] =>
+  db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day));
+
+const findAppointment = (id: string | readonly string[] | undefined) => db.calendar.appointments.find((item) => item.id === id);
+
+function entry(actor: string, event: string): MockHistoryEntry {
+  return { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor, event };
+}
+
+function replaceAppointment(updated: MockAppointment) {
+  db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
+  db.persist();
+  return HttpResponse.json(updated);
+}
+
+function addDaysIso(day: string, spec: { days?: number; months?: number }, times: number): string {
+  const date = new Date(`${day}T00:00:00`);
+  if (spec.days) date.setDate(date.getDate() + spec.days * times);
+  if (spec.months) date.setMonth(date.getMonth() + spec.months * times);
+  return dateKey(date);
+}
+
+/** Minutos de jornada de un barbero un día, y minutos reservados ese día. */
+function occupancyFor(barberIds: readonly string[], branchId: string, day: string) {
+  const capacity = barberIds.reduce((sum, id) => {
+    const member = db.team.members.find((item) => item.id === id);
+    return sum + (member ? hoursOn(member, day) : []).reduce((total, range) => total + parseClock(range.end) - parseClock(range.start), 0);
+  }, 0);
+  const appointments = appointmentsOn(branchId, day).filter((item) => barberIds.includes(item.barberId) && item.status !== "cancelled" && item.status !== "no_show");
+  const booked = appointments.reduce((sum, item) => sum + item.durationMin, 0);
+  return { occupancy: capacity === 0 ? null : Math.min(1, booked / capacity), count: appointments.length };
+}
+
+function validateAppointmentInput(body: DefaultBodyType) {
+  const input = asRecord(body);
+  const fields: Record<string, string[]> = {};
+  const clientId = text(input.clientId);
+  const barberId = text(input.barberId);
+  const start = text(input.start);
+  const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string") : [];
+  const repeat = (text(input.repeat) || "none") as MockRepeatRule;
+  if (!db.calendar.clients.some((client) => client.id === clientId)) fields.clientId = ["Elige un cliente."];
+  if (!findBarber(barberId)) fields.barberId = ["Elige un barbero."];
+  if (serviceIds.length === 0 || !serviceIds.every((id) => SERVICES.some((service) => service.id === id))) fields.serviceIds = ["Elige al menos un servicio."];
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(start)) fields.start = ["Elige fecha y hora."];
+  if (!REPEATS.includes(repeat)) fields.repeat = ["Repetición inválida."];
+  return { fields, values: { clientId, barberId, start: start.slice(0, 16) + ":00", serviceIds, repeat, walkIn: input.walkIn === true, requestedBarberId: input.requestedBarberId === null ? null : text(input.requestedBarberId) || barberId, notes: text(input.notes) || null } };
+}
+
+export const calendarHandlers = [
+  http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    return HttpResponse.json({
+      barbers: barbersIn(branchId),
+      clients: db.calendar.clients,
+      services: SERVICES,
+      products: PRODUCTS,
+    });
+  }),
+
+  http.get(`${BASE}/calendar/day`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const url = new URL(request.url);
+    const day = url.searchParams.get("date") ?? "";
+    const branchId = url.searchParams.get("branchId") ?? "ma";
+    if (!DAY_KEY.test(day)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.", { fields: { date: ["Fecha inválida."] } });
+    const hours = Object.fromEntries(barbersIn(branchId).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day)]));
+    return HttpResponse.json({ date: day, appointments: appointmentsOn(branchId, day), blocks: blocksOn(branchId, day), hours });
+  }),
+
+  http.get(`${BASE}/calendar/month`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const url = new URL(request.url);
+    const month = url.searchParams.get("month") ?? "";
+    const branchId = url.searchParams.get("branchId") ?? "ma";
+    const barberId = url.searchParams.get("barberId");
+    if (!MONTH_KEY.test(month)) return error(422, "validation", "El mes debe ser AAAA-MM.", { fields: { month: ["Mes inválido."] } });
+    const barberIds = barberId ? [barberId] : barbersIn(branchId).map((barber) => barber.id);
+    const [year, monthIndex] = month.split("-").map(Number);
+    const daysInMonth = new Date(year, monthIndex, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, index) => {
+      const day = `${month}-${String(index + 1).padStart(2, "0")}`;
+      return { date: day, ...occupancyFor(barberIds, branchId, day) };
+    });
+    return HttpResponse.json({ month, days });
+  }),
+
+  http.post(`${BASE}/appointments`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const { fields, values } = validateAppointmentInput(await request.json().catch(() => ({})));
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const barberMember = findBarber(values.barberId)!;
+    const barber = { id: barberMember.id, branchId: barberMember.branchIds[0] ?? "ma", name: memberName(barberMember) };
+    const durationMin = values.serviceIds.reduce((sum, id) => sum + (SERVICES.find((service) => service.id === id)?.durationMin ?? 0), 0);
+    const day = values.start.slice(0, 10);
+    const time = values.start.slice(11, 16);
+    appointmentsOn(barber.branchId, day);
+    const seriesId = values.repeat === "none" ? null : `ser_${Date.now().toString(36)}`;
+    const occurrences = values.repeat === "none" ? 1 : SERIES_LENGTH;
+    const created: MockAppointment[] = [];
+    for (let index = 0; index < occurrences; index += 1) {
+      const occurrenceDay = index === 0 ? day : addDaysIso(day, REPEAT_DAYS[values.repeat as Exclude<MockRepeatRule, "none">], index);
+      appointmentsOn(barber.branchId, occurrenceDay);
+      const id = `apt_${Date.now().toString(36)}_${index}`;
+      created.push({
+        id,
+        branchId: barber.branchId,
+        clientId: values.clientId,
+        barberId: values.barberId,
+        requestedBarberId: values.requestedBarberId,
+        serviceIds: values.serviceIds,
+        products: [],
+        start: localIso(occurrenceDay, time),
+        durationMin,
+        status: "scheduled",
+        barberReady: false,
+        walkIn: values.walkIn,
+        source: values.walkIn ? "walkin" : "internal",
+        repeat: values.repeat,
+        seriesId,
+        notes: values.notes,
+        createdAt: new Date().toISOString(),
+        createdBy: account.user.name,
+        history: [entry(account.user.name, values.walkIn ? "walkin" : "created")],
+        payment: null,
+      });
+    }
+    db.calendar.appointments = [...created, ...db.calendar.appointments];
+    db.persist();
+    return HttpResponse.json(created[0], { status: 201 });
+  }),
+
+  http.patch(`${BASE}/appointments/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const existing = findAppointment(params.id);
+    if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const fields: Record<string, string[]> = {};
+    const history = [...existing.history];
+    let next: MockAppointment = { ...existing };
+
+    if (typeof input.status === "string") {
+      if (!STATUSES.includes(input.status as MockAppointmentStatus)) fields.status = ["Estado inválido."];
+      else if (existing.status === "paid" && input.status !== "paid") fields.status = ["Una cita cobrada no cambia de estado."];
+      else {
+        next = { ...next, status: input.status as MockAppointmentStatus };
+        history.push(entry(account.user.name, `status:${input.status}`));
+      }
+    }
+    if (typeof input.barberReady === "boolean") {
+      next = { ...next, barberReady: input.barberReady };
+      if (input.barberReady) history.push(entry(account.user.name, "barber_ready"));
+    }
+    if (typeof input.start === "string") {
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(input.start)) fields.start = ["Fecha inválida."];
+      else {
+        next = { ...next, start: input.start.slice(0, 16) + ":00" };
+        history.push(entry(account.user.name, `moved:${input.start.slice(0, 16)}`));
+      }
+    }
+    if (typeof input.barberId === "string" && input.barberId !== existing.barberId) {
+      const barber = findBarber(input.barberId);
+      if (!barber) fields.barberId = ["Ese barbero no existe."];
+      else {
+        next = { ...next, barberId: barber.id };
+        history.push(entry(account.user.name, `barber:${memberName(barber)}`));
+      }
+    }
+    if (typeof input.durationMin === "number") {
+      if (input.durationMin < 15 || input.durationMin > 480) fields.durationMin = ["La duración va de 15 minutos a 8 horas."];
+      else {
+        next = { ...next, durationMin: input.durationMin };
+        history.push(entry(account.user.name, `duration:${input.durationMin}`));
+      }
+    }
+    if (Array.isArray(input.serviceIds)) {
+      const serviceIds = input.serviceIds.filter((id): id is string => typeof id === "string" && SERVICES.some((service) => service.id === id));
+      if (serviceIds.length === 0) fields.serviceIds = ["Elige al menos un servicio."];
+      else next = { ...next, serviceIds, durationMin: serviceIds.reduce((sum, id) => sum + (SERVICES.find((service) => service.id === id)?.durationMin ?? 0), 0) };
+    }
+    if (input.notes !== undefined) next = { ...next, notes: text(input.notes) || null };
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    return replaceAppointment({ ...next, history });
+  }),
+
+  http.post(`${BASE}/appointments/:id/checkout`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const existing = findAppointment(params.id);
+    if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    if (existing.status === "paid") return error(409, "conflict", "Esta cita ya está cobrada.");
+    if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o con plantón no se cobra.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const method = text(input.method) as MockPaymentMethod;
+    if (!METHODS.includes(method)) return error(422, "validation", "Elige cómo paga el cliente.", { fields: { method: ["Elige un método de pago."] } });
+    const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string" && SERVICES.some((service) => service.id === id)) : existing.serviceIds;
+    if (serviceIds.length === 0) return error(422, "validation", "Una cuenta necesita al menos un servicio.", { fields: { serviceIds: ["Añade un servicio."] } });
+    const products = Array.isArray(input.products)
+      ? input.products
+          .map((item) => asRecord(item as DefaultBodyType))
+          .filter((item) => typeof item.productId === "string" && PRODUCTS.some((product) => product.id === item.productId))
+          .map((item) => ({ productId: item.productId as string, qty: Math.max(1, Number(item.qty) || 1) }))
+      : existing.products;
+    const tip = Math.max(0, Number(input.tip) || 0);
+    const subtotal =
+      serviceIds.reduce((sum, id) => sum + (SERVICES.find((service) => service.id === id)?.price ?? 0), 0) +
+      products.reduce((sum, item) => sum + (PRODUCTS.find((product) => product.id === item.productId)?.price ?? 0) * item.qty, 0);
+    const paidAt = new Date().toISOString();
+    return replaceAppointment({
+      ...existing,
+      serviceIds,
+      products,
+      status: "paid",
+      payment: { method, tip, tax: 0, total: subtotal + tip, paidAt },
+      history: [...existing.history, entry(account.user.name, `paid:${method}`)],
+    });
+  }),
+
+  http.post(`${BASE}/clients/:id/notes`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = db.calendar.clients.find((item) => item.id === params.id);
+    if (!client || client.id === WALK_IN_CLIENT.id) return error(404, "not_found", "Ese cliente no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const kind = text(input.kind) as MockClientNote["kind"];
+    const body = text(input.text);
+    const fields: Record<string, string[]> = {};
+    if (!["note", "medication", "allergy"].includes(kind)) fields.kind = ["Elige el tipo de nota."];
+    if (body.length < 3) fields.text = ["Escribe la nota."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const note: MockClientNote = { id: `note_${Date.now().toString(36)}`, kind, text: body, createdAt: new Date().toISOString() };
+    const updated = { ...client, notes: [note, ...client.notes] };
+    db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
+    db.persist();
+    return HttpResponse.json(updated, { status: 201 });
+  }),
+
+  http.post(`${BASE}/blocks`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const fields: Record<string, string[]> = {};
+    const barber = findBarber(text(input.barberId));
+    const category = text(input.category) as MockBlockCategory;
+    const repeat = (text(input.repeat) || "none") as MockBlockRepeat;
+    const startDate = text(input.startDate);
+    const endDate = text(input.endDate) || startDate;
+    const startTime = text(input.startTime);
+    const endTime = text(input.endTime);
+    if (!barber) fields.barberId = ["Elige un barbero."];
+    if (!BLOCK_CATEGORIES.includes(category)) fields.category = ["Elige una categoría."];
+    if (!BLOCK_REPEATS.includes(repeat)) fields.repeat = ["Repetición inválida."];
+    if (!DAY_KEY.test(startDate)) fields.startDate = ["Elige la fecha de inicio."];
+    if (!DAY_KEY.test(endDate) || endDate < startDate) fields.endDate = ["La fecha fin no puede ser anterior al inicio."];
+    if (!CLOCK.test(startTime)) fields.startTime = ["Elige la hora de inicio."];
+    if (!CLOCK.test(endTime) || parseClock(endTime) <= parseClock(startTime)) fields.endTime = ["La hora de cierre debe ser posterior a la de inicio."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const block: MockTimeBlock = { id: `blk_${Date.now().toString(36)}`, branchId: barber!.branchIds[0] ?? "ma", barberId: barber!.id, category, repeat, startDate, endDate, startTime, endTime, description: text(input.description) || null };
+    db.calendar.blocks = [...db.calendar.blocks, block];
+    db.persist();
+    return HttpResponse.json(block, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/blocks/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!db.calendar.blocks.some((block) => block.id === params.id)) return error(404, "not_found", "Ese bloqueo no existe.");
+    db.calendar.blocks = db.calendar.blocks.filter((block) => block.id !== params.id);
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${BASE}/waitlist`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const url = new URL(request.url);
+    const branchId = url.searchParams.get("branchId") ?? "ma";
+    const day = url.searchParams.get("date");
+    const items = db.calendar.waitlist.filter((item) => item.branchId === branchId && (!day || item.slots.some((slot) => slot.date === day)));
+    return HttpResponse.json({ items });
+  }),
+
+  http.post(`${BASE}/waitlist`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const fields: Record<string, string[]> = {};
+    const clientId = text(input.clientId);
+    const serviceId = text(input.serviceId);
+    const barberId = text(input.barberId) || null;
+    const branchId = text(input.branchId) || "ma";
+    const slots = Array.isArray(input.slots)
+      ? input.slots.map((slot) => asRecord(slot as DefaultBodyType)).filter((slot) => DAY_KEY.test(text(slot.date)) && CLOCK.test(text(slot.time))).map((slot) => ({ date: text(slot.date), time: text(slot.time) }))
+      : [];
+    if (!db.calendar.clients.some((client) => client.id === clientId)) fields.clientId = ["Elige un cliente."];
+    if (!SERVICES.some((service) => service.id === serviceId)) fields.serviceId = ["Elige un servicio."];
+    if (barberId && !findBarber(barberId)) fields.barberId = ["Ese barbero no existe."];
+    if (slots.length === 0) fields.slots = ["Añade al menos una fecha y hora."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const item: MockWaitlistEntry = { id: `wl_${Date.now().toString(36)}`, branchId, clientId, serviceId, barberId, slots, createdAt: new Date().toISOString() };
+    db.calendar.waitlist = [...db.calendar.waitlist, item];
+    db.persist();
+    return HttpResponse.json(item, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/waitlist/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!db.calendar.waitlist.some((item) => item.id === params.id)) return error(404, "not_found", "Esa entrada no existe.");
+    db.calendar.waitlist = db.calendar.waitlist.filter((item) => item.id !== params.id);
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/sales`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const method = text(input.method) as MockPaymentMethod;
+    const items = Array.isArray(input.items)
+      ? input.items.map((item) => asRecord(item as DefaultBodyType)).filter((item) => PRODUCTS.some((product) => product.id === item.productId)).map((item) => ({ productId: item.productId as string, qty: Math.max(1, Number(item.qty) || 1) }))
+      : [];
+    const fields: Record<string, string[]> = {};
+    if (items.length === 0) fields.items = ["Elige al menos un producto."];
+    if (!METHODS.includes(method)) fields.method = ["Elige un método de pago."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const total = items.reduce((sum, item) => sum + (PRODUCTS.find((product) => product.id === item.productId)?.price ?? 0) * item.qty, 0);
+    const sale = { id: `sale_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", items, method, total, paidAt: new Date().toISOString() };
+    db.calendar.sales = [...db.calendar.sales, sale];
+    db.persist();
+    return HttpResponse.json(sale, { status: 201 });
+  }),
+];
+
+/** Expuesto para las pruebas: cuántos minutos dura la jornada de alguien un día. */
+export const workingClock = clockOf;

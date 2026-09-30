@@ -22,6 +22,7 @@ export type DocGroupId =
   | "feedback"
   | "data-display"
   | "date"
+  | "scheduling"
   | "upload"
   | "charts"
   | "ai"
@@ -84,6 +85,11 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     id: "date",
     label: { es: "Fechas y rangos", en: "Dates and ranges" },
     description: { es: "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.", en: "Date, range, month, quarter and period pickers, plus a range slider." },
+  },
+  {
+    id: "scheduling",
+    label: { es: "Agenda", en: "Scheduling" },
+    description: { es: "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.", en: "The day grid by barber, month occupancy and the date-and-time picker." },
   },
   {
     id: "upload",

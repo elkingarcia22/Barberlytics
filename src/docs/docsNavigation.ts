@@ -29,8 +29,7 @@ import {
   TextCursorInput,
   Type,
   Wrench,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, CalendarClock } from "lucide-react";
 import type { NavChild, NavEntry } from "@/components/app-shell";
 import { SOURCE_LOCALE, resolveLocalized, type LocaleId, type Localized } from "@/i18n";
 import { DOC_GROUPS, entriesByGroup } from "./registry";
@@ -53,6 +52,7 @@ export const GROUP_ICONS: Readonly<Record<string, LucideIcon>> = {
   feedback: MessageSquareWarning,
   "data-display": Table2,
   date: CalendarRange,
+  scheduling: CalendarClock,
   upload: CloudUpload,
   charts: ChartColumn,
   ai: Sparkles,

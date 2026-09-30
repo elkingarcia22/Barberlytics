@@ -53,6 +53,8 @@ const NAV_TEMPLATE: readonly NavTemplate[] = [
   { kind: "item", id: "nomina", labelKey: "nav.payroll", icon: HandCoins, path: "/nomina" },
   { kind: "item", id: "transacciones", labelKey: "nav.transactions", icon: ArrowLeftRight, path: "/transacciones" },
   { kind: "group", labelKey: "nav.resources" },
+  // El centro de ayuda no va aquí: se llega desde el menú «Ayuda» de la
+  // cabecera (preguntar, ir al centro de ayuda, que te guíen).
   { kind: "item", id: "docs", labelKey: "nav.designSystem", icon: BookOpen, path: "/docs" },
 ];
 

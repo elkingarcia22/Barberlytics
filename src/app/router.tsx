@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import { ArrowLeftRight, CalendarDays, HandCoins, Package, Receipt, Scissors, Users } from "lucide-react";
+import { ArrowLeftRight, HandCoins, Package, Receipt, Scissors, Users } from "lucide-react";
 import { RequireAuth } from "@/features/auth";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { AppLayout } from "./layouts/AppLayout";
@@ -12,8 +12,16 @@ import type { SectionPlaceholderPageProps } from "@/features/sections";
 import type { AppMessageKey } from "./i18n";
 
 import {
+  BarberOrderPage,
+  CalendarPage,
   DashboardPage,
   DocsApp,
+  LevelsPage,
+  LineupPage,
+  MemberProfilePage,
+  MemberWizardPage,
+  WorkHoursPage,
+  HelpApp,
   SectionPlaceholderPage,
   SettingsPage,
   SettingsSectionPage,
@@ -32,7 +40,6 @@ const PLACEHOLDER_SECTIONS: readonly (Omit<SectionPlaceholderPageProps, "trail">
   path: string;
   trail?: readonly AppMessageKey[];
 })[] = [
-  { path: "calendario", titleKey: "nav.calendar", descriptionKey: "section.calendarHint", icon: CalendarDays },
   { path: "clientes", titleKey: "nav.clients", descriptionKey: "section.clientsHint", icon: Users },
   { path: "servicios", titleKey: "nav.services", descriptionKey: "section.servicesHint", icon: Scissors },
   { path: "productos", titleKey: "nav.products", descriptionKey: "section.productsHint", icon: Package },
@@ -52,6 +59,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: "dashboard", element: lazy(<DashboardPage />) },
+          { path: "calendario", element: lazy(<CalendarPage />) },
           ...PLACEHOLDER_SECTIONS.map((section) => ({
             path: section.path,
             element: lazy(
@@ -67,6 +75,14 @@ export const router = createBrowserRouter([
           // lista— y la administración de personas cuelga de él.
           { path: "usuarios", element: lazy(<TeamHomePage />) },
           { path: "usuarios/lista", element: lazy(<UsersPage />) },
+          // Lo que cuelga de Equipo: la ficha de cada persona, el alta paso a
+          // paso, las horas de la semana, los niveles y los dos órdenes.
+          { path: "usuarios/miembros/:id", element: lazy(<MemberProfilePage />) },
+          { path: "usuarios/nuevo", element: lazy(<MemberWizardPage />) },
+          { path: "usuarios/horarios", element: lazy(<WorkHoursPage />) },
+          { path: "usuarios/niveles", element: lazy(<LevelsPage />) },
+          { path: "usuarios/orden", element: lazy(<BarberOrderPage />) },
+          { path: "usuarios/fila", element: lazy(<LineupPage />) },
           { path: "configuracion", element: lazy(<SettingsPage />) },
           { path: "configuracion/:seccion", element: lazy(<SettingsSectionPage />) },
           { path: "403", element: <ForbiddenPage /> },
@@ -74,6 +90,9 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  // El centro de ayuda es público: hace falta antes de entrar (el login tiene
+  // sus propios artículos) y trae su propio shell, como la doc.
+  { path: "/ayuda/*", element: lazy(<HelpApp />), errorElement: <RouteError /> },
   // La documentación del sistema de diseño es pública y trae su propio shell.
   { path: "/docs/*", element: lazy(<DocsApp />), errorElement: <RouteError /> },
   { path: "*", element: <NotFoundPage /> },

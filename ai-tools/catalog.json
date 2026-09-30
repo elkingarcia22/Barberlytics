@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T15:46:38.772Z",
+  "generatedAt": "2026-09-26T00:06:15.704Z",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -100,6 +100,17 @@
       "description": {
         "es": "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.",
         "en": "Date, range, month, quarter and period pickers, plus a range slider."
+      }
+    },
+    {
+      "id": "scheduling",
+      "label": {
+        "es": "Agenda",
+        "en": "Scheduling"
+      },
+      "description": {
+        "es": "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.",
+        "en": "The day grid by barber, month occupancy and the date-and-time picker."
       }
     },
     {
@@ -1926,6 +1937,320 @@
         }
       ],
       "docs": "/docs#/components/ai-spark-glyph"
+    },
+    {
+      "id": "chat-composer",
+      "name": "ChatComposer",
+      "group": "ai",
+      "description": {
+        "es": "La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y archivos (⌘U), Voz y el botón de enviar con halo. Encima, chips para arrancar; dentro, el aviso de novedad y la pastilla de contexto.",
+        "en": "The chat input: moving border and mesh on focus, Enter sends and Shift+Enter breaks the line, the “+” menu with connectors and files (⌘U), Voice and the send button with its halo. Starter chips above; the news banner and context chip inside."
+      },
+      "import": "import { ChatComposer } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatComposer.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "formulario"
+      ],
+      "props": [
+        {
+          "name": "value / onChange",
+          "type": "string / (value) => void",
+          "default": null,
+          "description": "El texto, controlado."
+        },
+        {
+          "name": "onSend",
+          "type": "(text, files) => void",
+          "default": null,
+          "description": "Con el texto recortado y los archivos; la caja se vacía sola."
+        },
+        {
+          "name": "news",
+          "type": "ChatNews",
+          "default": null,
+          "description": "El aviso «Nuevo» encima del texto, con «Ver qué cambió» y cerrar."
+        },
+        {
+          "name": "contextChip",
+          "type": "string",
+          "default": null,
+          "description": "El objeto sobre el que responde el agente."
+        },
+        {
+          "name": "connectors / onToggleConnector / onAddConnectors",
+          "type": "ChatConnector[] / …",
+          "default": null,
+          "description": "El submenú Conectores del «+», con interruptores."
+        },
+        {
+          "name": "onVoice",
+          "type": "() => void",
+          "default": null,
+          "description": "Sin esto no hay botón Voz."
+        },
+        {
+          "name": "chips / onChip",
+          "type": "string[] / (text) => void",
+          "default": null,
+          "description": "Preguntas para arrancar, encima de la caja."
+        },
+        {
+          "name": "compact",
+          "type": "boolean",
+          "default": "false",
+          "description": "Una fila, para el pie de un hilo."
+        },
+        {
+          "name": "maxFiles / maxSizeMb",
+          "type": "number",
+          "default": "10 / 25",
+          "description": "Los límites del adjunto; se muestran en el menú."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Una sola caja por pantalla: es la misma en el panel, en pantalla completa y al volver de la voz.",
+          "Deja el aviso «puede cometer errores» salvo en un pie muy apretado."
+        ],
+        "dont": [
+          "No metas el aviso de novedad en el panel: ahí no cabe; va en la pantalla completa.",
+          "No la uses como buscador: para buscar está GlobalSearch."
+        ]
+      },
+      "related": [
+        "chat-thread",
+        "chat-panel",
+        "chat-screen",
+        "chat-voice-mode"
+      ],
+      "examples": [],
+      "docs": "/docs#/components/chat-composer"
+    },
+    {
+      "id": "chat-panel",
+      "name": "ChatPanel",
+      "group": "ai",
+      "description": {
+        "es": "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
+        "en": "The chat as a side panel: it portals into the AdminShell anchor (the screen narrows instead of being covered) and floats OVERLAY_INSET from the edge. Starts with the greeting, the box and a few questions; with a conversation, the thread on top and the box below. From the header: a new conversation or open it full screen."
+      },
+      "import": "import { ChatPanel, ChatProvider } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatPanel.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "portal",
+        "shell"
+      ],
+      "props": [
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Abierto o cerrado; Escape cierra."
+        },
+        {
+          "name": "title / subtitle",
+          "type": "string",
+          "default": "«Agente IA» / «Asistente de la plataforma»",
+          "description": "La cabecera; el chat de ayuda pone «Ayuda»."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Monta un solo ChatProvider en la app: el panel y la pantalla completa comparten conversaciones e historial."
+        ],
+        "dont": [
+          "No abras el panel y el modo agente a la vez: es el mismo chat en dos sitios."
+        ]
+      },
+      "related": [
+        "chat-screen",
+        "chat-composer",
+        "chat-thread",
+        "ai-agent-drawer"
+      ],
+      "examples": [
+        {
+          "id": "panel",
+          "title": "Dentro del shell",
+          "description": "Sustituye a AiAgentDrawer: mismo ancla, mismo movimiento, pero con conversación de verdad. «Pregúntame» del menú Ayuda abre este panel con el centro de ayuda como fuente.",
+          "code": "const [open, setOpen] = React.useState(false);\n\n<ChatProvider value={{ store, backend, user, lang: \"es-CO\", onOpenFull: openAgentMode, onOpenVoice }}>\n  <AdminShell config={config}>\n    …\n    <ChatPanel open={open} onOpenChange={setOpen} title=\"Ayuda\" />\n  </AdminShell>\n</ChatProvider>"
+        }
+      ],
+      "docs": "/docs#/components/chat-panel"
+    },
+    {
+      "id": "chat-screen",
+      "name": "ChatScreen",
+      "group": "ai",
+      "description": {
+        "es": "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
+        "en": "The full-screen chat: what AdminShell shows in “AI Agent” mode when the app passes it in `config.agentView`. A new conversation starts centered with the greeting, the box and the starter questions; with a thread, the messages fill the screen and the box stays at the bottom. History lives in the sidebar (ChatHistoryList)."
+      },
+      "import": "import { ChatScreen, ChatHistoryList } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatScreen.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "pantalla",
+        "historial"
+      ],
+      "props": [
+        {
+          "name": "history",
+          "type": "boolean",
+          "default": "true",
+          "description": "El historial a la izquierda, con «Nuevo chat»; se pliega y recuerda cómo lo dejaste."
+        },
+        {
+          "name": "onMore",
+          "type": "(messageId, action) => void",
+          "default": null,
+          "description": "El menú «Más» de cada respuesta."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Con `agentSidebar: \"navigation\"` la barra lateral sigue llevando a las pantallas y el historial vive junto al chat; tocar una pantalla sale del modo agente."
+        ],
+        "dont": [
+          "No hagas una página con ruta para el chat: es un modo del shell, y la URL se queda donde estaba."
+        ]
+      },
+      "related": [
+        "chat-panel",
+        "chat-thread",
+        "chat-composer",
+        "admin-shell"
+      ],
+      "examples": [
+        {
+          "id": "history",
+          "title": "El historial",
+          "description": "Hoy, Ayer, Últimos 7 días y Anteriores; el punto dice si hay respuesta sin leer o si el agente sigue escribiendo. Es lo que el sidebar enseña en modo agente.",
+          "code": "<ChatHistoryList activeId={activeId} onSelect={setActive} onNew={newConversation} onRemove={remove} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-screen"
+    },
+    {
+      "id": "chat-thread",
+      "name": "ChatThread",
+      "group": "ai",
+      "description": {
+        "es": "El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben solas y se pueden detener. Una respuesta trae fuentes, una tarjeta con datos, una pregunta con opciones numeradas, un enlace y las acciones: copiar, útil o no, regenerar, leer en voz alta.",
+        "en": "The thread: questions on the right (copy, edit and resend from there) and answers with the orb, which type themselves and can be stopped. An answer carries sources, a data card, a numbered-option question, a link and the actions: copy, useful or not, regenerate, read aloud."
+      },
+      "import": "import { ChatThread, ChatProvider } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatThread.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "mensajes"
+      ],
+      "props": [
+        {
+          "name": "conversation",
+          "type": "Conversation",
+          "default": null,
+          "description": "La conversación a mostrar (del almacén del ChatProvider)."
+        },
+        {
+          "name": "onMore",
+          "type": "(messageId, action) => void",
+          "default": null,
+          "description": "El menú «Más» de cada respuesta: compartir, crear tarea, reportar."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Deja que el hilo siga el final solo mientras la persona lo mira; si subió a releer, no la muevas.",
+          "Solo la última respuesta enseña sugerencias y deja contestar su pregunta."
+        ],
+        "dont": [
+          "No pongas títulos ni tablas en una respuesta: es un mensaje, no un documento."
+        ]
+      },
+      "related": [
+        "chat-composer",
+        "chat-panel",
+        "chat-screen"
+      ],
+      "examples": [
+        {
+          "id": "seeded",
+          "title": "Una conversación con todo",
+          "description": "Fuentes con su detalle al pasar, una tarjeta de barras, las sugerencias para seguir y la fila de acciones. Toca una sugerencia: se envía y responde de ejemplo.",
+          "code": "<ChatProvider value={{ store, backend, user, lang: \"es-CO\" }}>\n  <ChatThread conversation={conversation} />\n</ChatProvider>"
+        }
+      ],
+      "docs": "/docs#/components/chat-thread"
+    },
+    {
+      "id": "chat-voice-mode",
+      "name": "ChatVoiceMode",
+      "group": "ai",
+      "description": {
+        "es": "El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
+        "en": "Voice mode, full screen and always dark: the orb listens through the browser's speech recognition, what you said reads large, and after a pause the answer arrives with its two buttons (the detail and the first follow-up). The pill below pauses, goes back to typing or sends. Without a microphone it says so and lets you type."
+      },
+      "import": "import { ChatVoiceMode } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatVoiceMode.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "voz",
+        "diálogo"
+      ],
+      "props": [
+        {
+          "name": "open / onClose",
+          "type": "boolean / () => void",
+          "default": null,
+          "description": "Abierto o cerrado; Escape cierra."
+        },
+        {
+          "name": "onWrite",
+          "type": "(text) => void",
+          "default": null,
+          "description": "«Escribir»: volver al chat con lo dicho."
+        },
+        {
+          "name": "onSend",
+          "type": "(text) => void",
+          "default": null,
+          "description": "Terminar: lo dicho (o la sugerencia elegida) va al chat."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Usa `lang` del ChatProvider (`es-CO`, `en-US`): es el idioma en que escucha y en que lee en voz alta."
+        ],
+        "dont": [
+          "No lo abras desde el panel en un contenedor angosto sin sitio: es a pantalla completa."
+        ]
+      },
+      "related": [
+        "chat-composer",
+        "chat-panel"
+      ],
+      "examples": [
+        {
+          "id": "voice",
+          "title": "Abrir el modo voz",
+          "description": "Pide permiso de micrófono la primera vez. En un navegador sin Web Speech enseña el aviso y el botón Escribir.",
+          "code": "<ChatVoiceMode open={open} onClose={close} onWrite={(text) => setDraft(text)} onSend={(text) => send(text)} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-voice-mode"
     },
     {
       "id": "chip",
@@ -12193,6 +12518,310 @@
       "docs": "/docs#/components/template-catalog-drawer"
     },
     {
+      "id": "month-occupancy-grid",
+      "name": "MonthOccupancyGrid",
+      "group": "scheduling",
+      "description": "El mes de un barbero (o del equipo) día por día: cuánta de la jornada está reservada, en porcentaje y en barra, y cuántas citas hay. Un día sin jornada se atenúa y lo dice; a partir del 80 % el porcentaje avisa en naranja. Cada día es un botón para abrir esa fecha en la rejilla.",
+      "import": "import { MonthOccupancyGrid } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/MonthOccupancyGrid.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "ocupación",
+        "mes"
+      ],
+      "props": [
+        {
+          "name": "month",
+          "type": "Date",
+          "default": null,
+          "description": "Cualquier día del mes a mostrar."
+        },
+        {
+          "name": "days",
+          "type": "{ date: Date; occupancy: number | null; count: number }[]",
+          "default": null,
+          "description": "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas."
+        },
+        {
+          "name": "selected",
+          "type": "Date | null",
+          "default": null,
+          "description": "El día marcado."
+        },
+        {
+          "name": "onSelectDay",
+          "type": "(date: Date) => void",
+          "default": null,
+          "description": "Se llama al tocar un día del mes."
+        },
+        {
+          "name": "today",
+          "type": "Date",
+          "default": null,
+          "description": "Qué día lleva el círculo de «hoy». Inyectable para la doc y las pruebas."
+        },
+        {
+          "name": "locale",
+          "type": "Locale",
+          "default": null,
+          "description": "Locale de date-fns; sin él, el idioma de la aplicación."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Calcula la ocupación como minutos reservados sobre minutos de jornada, no sobre 24 horas.",
+          "Al tocar un día, cambia a la vista Día en esa fecha: es lo que quien mira espera.",
+          "Manda `occupancy: null` para los días sin jornada; un 0 % se lee como «libre», no como «no trabaja»."
+        ],
+        "dont": [
+          "No lo uses como selector de fecha: para eso están `DatePicker` y `Calendar`.",
+          "No pintes aquí las citas una a una; para eso está la vista de mes de `EventCalendar`."
+        ]
+      },
+      "related": [
+        "resource-day-grid",
+        "event-calendar",
+        "progress",
+        "kpi-card"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Septiembre de un barbero",
+          "description": "Descansa los domingos y estuvo de vacaciones del 7 al 11: esos días no tienen jornada. Los sábados van más llenos y el porcentaje lo avisa.",
+          "code": "const [selected, setSelected] = React.useState<Date | null>(hoy);\n\n<MonthOccupancyGrid month={hoy} days={dias} selected={selected} onSelectDay={setSelected} />"
+        }
+      ],
+      "docs": "/docs#/components/month-occupancy-grid"
+    },
+    {
+      "id": "resource-day-grid",
+      "name": "ResourceDayGrid",
+      "group": "scheduling",
+      "description": "El día de una barbería: una columna por barbero, las horas hacia abajo y cada cita como tarjeta en la columna de quien la atiende. Sombrea las horas en que alguien no trabaja, dibuja la línea de «ahora», ofrece cada hueco libre como botón para agendar y deja mover y estirar las tarjetas arrastrándolas. Es su propia región de scroll, así la fila de barberos y la columna de horas se quedan fijas.",
+      "import": "import { ResourceDayGrid } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/ResourceDayGrid.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "arrastrar",
+        "teclado",
+        "barbería"
+      ],
+      "props": [
+        {
+          "name": "date",
+          "type": "Date",
+          "default": null,
+          "description": "El día que se muestra."
+        },
+        {
+          "name": "resources",
+          "type": "ScheduleResource[]",
+          "default": null,
+          "description": "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»)."
+        },
+        {
+          "name": "events",
+          "type": "ScheduleEvent[]",
+          "default": null,
+          "description": "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `kind: \"block\"` tacha la franja; `locked` impide arrastrar."
+        },
+        {
+          "name": "startHour / endHour",
+          "type": "number",
+          "default": "6 / 24",
+          "description": "Primera y última hora visibles (la última exclusiva)."
+        },
+        {
+          "name": "slotMinutes",
+          "type": "number",
+          "default": "30",
+          "description": "Minutos por franja; también el paso al arrastrar."
+        },
+        {
+          "name": "now",
+          "type": "Date",
+          "default": null,
+          "description": "El «ahora» de la línea roja. Sin él, el reloj real."
+        },
+        {
+          "name": "onSlotClick",
+          "type": "(slot: { resourceId; start; isWorking }) => void",
+          "default": null,
+          "description": "Clic en un hueco libre: dónde y a qué hora, y si el recurso trabaja ahí."
+        },
+        {
+          "name": "onEventClick",
+          "type": "(event: ScheduleEvent) => void",
+          "default": null,
+          "description": "Abrir una tarjeta. Sin él las tarjetas no son botones."
+        },
+        {
+          "name": "onEventMove",
+          "type": "(event, drop: { resourceId; start; end }) => void",
+          "default": null,
+          "description": "Se soltó la tarjeta en otra hora o columna. Sin él no se arrastra."
+        },
+        {
+          "name": "onEventResize",
+          "type": "(event, drop) => void",
+          "default": null,
+          "description": "Se estiró la tarjeta desde abajo. Sin él no hay tirador."
+        },
+        {
+          "name": "resourceActions",
+          "type": "(resource) => ScheduleResourceAction[]",
+          "default": null,
+          "description": "El menú al tocar el nombre de un recurso (ver perfil, bloquear…)."
+        },
+        {
+          "name": "height",
+          "type": "string",
+          "default": "\"max(28rem, calc(100dvh - 17rem))\"",
+          "description": "Alto de la región con scroll."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pasa `now` fijo en pruebas y en la doc; en producto déjalo vacío para que la línea siga al reloj.",
+          "Traduce tus citas a `ScheduleEvent` en un módulo aparte: la rejilla no sabe de clientes ni de precios.",
+          "Con `onSlotClick` abre el formulario con el barbero y la hora ya puestos: es la forma más rápida de agendar.",
+          "Acepta el `drop` de `onEventMove` en el servidor y revierte si dice que no; la rejilla solo avisa."
+        ],
+        "dont": [
+          "No pintes la agenda de varios días aquí: es la rejilla de un día. Para la semana está `EventCalendar`.",
+          "No metas más de una acción en cada tarjeta; el siguiente paso es uno.",
+          "No ocultes recursos sin horario en silencio: enséñalos sombreados o explica por qué no están."
+        ]
+      },
+      "related": [
+        "month-occupancy-grid",
+        "time-slot-picker",
+        "event-calendar",
+        "drawer-shell"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "El día por barbero",
+          "description": "Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se sombrea. Tomás no tiene horario y su columna lo dice. Las citas cuentan el cliente, el servicio y el siguiente paso; el bloqueo del almuerzo va tachado y no se toca.",
+          "code": "<ResourceDayGrid\n  date={hoy}\n  resources={[\n    { id: \"andres\", name: \"Andrés Beltrán\", workingHours: [{ start: \"09:00\", end: \"19:00\" }] },\n    { id: \"tomas\", name: \"Tomás Peña\", workingHours: [] },\n  ]}\n  events={[\n    { id: \"e1\", resourceId: \"andres\", start, end, title: \"Laura Gómez\", subtitle: \"Corte clásico · US$ 35\", badge: { label: \"VIP\", tone: \"warning\" }, action: { label: \"Ingresar\", onClick } },\n    { id: \"b1\", resourceId: \"andres\", start, end, title: \"Almuerzo\", kind: \"block\", locked: true },\n  ]}\n  startHour={8}\n  endHour={20}\n/>"
+        },
+        {
+          "id": "drag",
+          "title": "Mover y estirar",
+          "description": "Con `onEventMove` la tarjeta se arrastra a otra hora o a otra columna (la sombra punteada enseña dónde caerá) y con `onEventResize` se estira desde el tirador de abajo. La rejilla no guarda nada: avisa y quien la monta decide. Solo con ratón o lápiz; con el dedo la agenda se desplaza.",
+          "code": "<ResourceDayGrid\n  date={hoy}\n  resources={barberos}\n  events={citas}\n  onEventMove={(cita, { resourceId, start, end }) => moverCita(cita.id, resourceId, start)}\n  onEventResize={(cita, { end }) => cambiarDuracion(cita.id, end)}\n/>"
+        },
+        {
+          "id": "nobody",
+          "title": "Sin horario",
+          "description": "Un recurso sin franjas ese día se pinta entero sombreado con el aviso. La pantalla decide si en vez de la rejilla muestra «Nadie trabaja este día».",
+          "code": "<ResourceDayGrid date={hoy} resources={[{ id: \"tomas\", name: \"Tomás Peña\", workingHours: [] }]} events={[]} />"
+        }
+      ],
+      "docs": "/docs#/components/resource-day-grid"
+    },
+    {
+      "id": "time-slot-picker",
+      "name": "TimeSlotPicker",
+      "group": "scheduling",
+      "description": "Elegir cuándo: una tira de días para la fecha y, debajo, las horas repartidas en mañana, tarde y noche como chips. Es el «Fecha & Hora» de crear una cita: se ven el día y la hora de una vez, sin abrir un calendario y luego un reloj. Las horas que no sirven se apagan con `isSlotDisabled`.",
+      "import": "import { TimeSlotPicker } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/TimeSlotPicker.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "fecha",
+        "hora",
+        "formulario"
+      ],
+      "props": [
+        {
+          "name": "value",
+          "type": "Date | null",
+          "default": null,
+          "description": "La fecha y hora elegidas."
+        },
+        {
+          "name": "onChange",
+          "type": "(date: Date) => void",
+          "default": null,
+          "description": "Se llama al tocar una hora; el día es el marcado en la tira."
+        },
+        {
+          "name": "startDate",
+          "type": "Date",
+          "default": "hoy",
+          "description": "Primer día de la tira."
+        },
+        {
+          "name": "daysCount",
+          "type": "number",
+          "default": "28",
+          "description": "Cuántos días se pueden recorrer hacia delante."
+        },
+        {
+          "name": "startHour / endHour",
+          "type": "number",
+          "default": "8 / 24",
+          "description": "Primera y última hora ofrecidas (la última exclusiva)."
+        },
+        {
+          "name": "slotMinutes",
+          "type": "number",
+          "default": "30",
+          "description": "Minutos entre una hora y la siguiente."
+        },
+        {
+          "name": "isSlotDisabled",
+          "type": "(date: Date) => boolean",
+          "default": null,
+          "description": "Qué horas se apagan (fuera de horario, ocupadas, pasadas)."
+        },
+        {
+          "name": "locale",
+          "type": "Locale",
+          "default": null,
+          "description": "Locale de date-fns; sin él, el idioma de la aplicación."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Apaga las horas pasadas de hoy y las que caen fuera del horario de quien atiende.",
+          "Envuélvelo en un `Field` con `error` cuando el formulario exija la fecha.",
+          "Deja que el paso siga al catálogo: si los servicios se agendan cada 15 minutos, `slotMinutes={15}`."
+        ],
+        "dont": [
+          "No lo uses para rangos ni para fechas sin hora: para eso están `DateRangePicker` y `DatePicker`.",
+          "No ofrezcas 24 horas si la barbería abre 12: la tira de chips se hace larga sin motivo."
+        ]
+      },
+      "related": [
+        "resource-day-grid",
+        "date-picker",
+        "segmented-control",
+        "field"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Día y hora de una vez",
+          "description": "La tira arranca en `startDate` y avanza por semanas. Las horas van de media en media hora y se agrupan en mañana, tarde y noche.",
+          "code": "const [value, setValue] = React.useState<Date | null>(null);\n\n<TimeSlotPicker value={value} onChange={setValue} startHour={8} endHour={22} />"
+        },
+        {
+          "id": "availability",
+          "title": "Solo lo disponible",
+          "description": "`isSlotDisabled` apaga lo que no sirve: fuera del horario del barbero y las horas ya ocupadas. El selector no sabe por qué, solo lo pinta tachado.",
+          "code": "<TimeSlotPicker\n  value={value}\n  onChange={setValue}\n  isSlotDisabled={(fecha) => !isWorkingAt(horario, minutesOfDay(fecha)) || ocupadas.includes(fecha.getTime())}\n/>"
+        }
+      ],
+      "docs": "/docs#/components/time-slot-picker"
+    },
+    {
       "id": "card-selection",
       "name": "CardSelection",
       "group": "selection",
@@ -17613,6 +18242,122 @@
       "docs": "/docs#/components/file-upload"
     },
     {
+      "id": "image-cropper",
+      "name": "ImageCropper",
+      "group": "upload",
+      "description": "Recorte de imagen sobre `react-easy-crop`: mover con arrastre o flechas, acercar con rueda, pellizco, teclas + y − o la barra, girar en pasos de 90° o fino, y «Encajar entera» para meter una imagen ancha en un hueco cuadrado con el sobrante transparente. `ImageCropDialog` lo pone en una ventana con vista previa en los tamaños reales y exporta con `cropImage` a PNG (conserva la transparencia) dentro de un tope de bytes.",
+      "import": "import { ImageCropper, ImageCropDialog, cropImage } from \"@/components/upload\"",
+      "source": "src/components/upload/ImageCropper.tsx",
+      "status": "beta",
+      "tags": [
+        "recorte",
+        "imagen",
+        "logo",
+        "avatar",
+        "zoom",
+        "giro"
+      ],
+      "props": [
+        {
+          "name": "image",
+          "type": "string",
+          "default": null,
+          "description": "URL o data URL de la imagen."
+        },
+        {
+          "name": "aspect",
+          "type": "number",
+          "default": "1",
+          "description": "Proporción del recorte (`1` cuadrado, `16 / 9`…)."
+        },
+        {
+          "name": "cropShape",
+          "type": "\"rect\" | \"round\"",
+          "default": "\"rect\"",
+          "description": "Guía circular para avatares; el resultado sigue siendo rectangular."
+        },
+        {
+          "name": "minZoom / maxZoom",
+          "type": "number",
+          "default": "1 / 4",
+          "description": "Límites del zoom. Con `allowFit` se puede bajar de `minZoom` hasta encajar la imagen entera."
+        },
+        {
+          "name": "allowFit",
+          "type": "boolean",
+          "default": "true",
+          "description": "Botón «Encajar entera» y zoom por debajo de 1; lo que sobra sale transparente."
+        },
+        {
+          "name": "fineRotation",
+          "type": "boolean",
+          "default": "true",
+          "description": "Barra de giro fino de −45° a 45°, además de los giros de 90°."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: { area: PixelArea; rotation: number }) => void",
+          "default": null,
+          "description": "Recorte en píxeles de la imagen original y giro, al terminar cada gesto."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<ImageCropperLabels>",
+          "default": null,
+          "description": "Textos de los controles; vienen en español."
+        },
+        {
+          "name": "ImageCropDialog · onApply",
+          "type": "(result: CroppedImage) => void",
+          "default": null,
+          "description": "`{ blob, dataUrl, width, height }` ya exportado."
+        },
+        {
+          "name": "ImageCropDialog · output",
+          "type": "CropImageOptions",
+          "default": null,
+          "description": "`maxSize` (lado mayor), `maxBytes` (reduce hasta cumplirlo), `type` (`image/png` por defecto) y `quality`."
+        },
+        {
+          "name": "ImageCropDialog · renderPreview",
+          "type": "(src: string | null) => ReactNode",
+          "default": null,
+          "description": "Vista previa propia; por defecto, la imagen a 96, 48 y 32 px."
+        },
+        {
+          "name": "ImageCropDialog · onSkip",
+          "type": "() => void",
+          "default": null,
+          "description": "Ofrece usar el archivo sin recortar (p. ej. un SVG, que se rasterizaría)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pasa siempre por el recortador cuando la imagen va a un hueco de forma fija (logo, avatar, portada).",
+          "Muestra con `renderPreview` el sitio real donde se verá, no solo la imagen suelta.",
+          "Exporta en PNG si la imagen puede tener transparencia; WebP solo para fotos."
+        ],
+        "dont": [
+          "No lo uses para documentos o adjuntos: ahí va `UploadZone` o `FileUpload`.",
+          "No rasterices un SVG sin ofrecer `onSkip`: se pierde la nitidez del vector."
+        ]
+      },
+      "related": [
+        "upload-zone",
+        "file-upload",
+        "file-preview"
+      ],
+      "examples": [
+        {
+          "id": "dialog",
+          "title": "En una ventana, con vista previa y exportación",
+          "description": "`ImageCropDialog` es la forma habitual: elige el archivo, ábrela y recibe en `onApply` el PNG ya recortado, girado y dentro de `maxBytes`. Con `renderPreview` muestras los huecos reales donde irá la imagen (el menú, el avatar…).",
+          "code": "const [open, setOpen] = React.useState(false);\n\n<ImageCropDialog\n  open={open}\n  onOpenChange={setOpen}\n  image={src}\n  aspect={1}\n  cropShape=\"round\"\n  title=\"Foto de perfil\"\n  output={{ maxSize: 512, maxBytes: 1024 * 1024 }}\n  onApply={(result) => save(result.blob)}\n/>"
+        }
+      ],
+      "docs": "/docs#/components/image-cropper"
+    },
+    {
       "id": "import-csv-panel",
       "name": "ImportCsvPanel",
       "group": "upload",
@@ -18485,55 +19230,87 @@
     "analytics",
     "arrowLeft",
     "arrowRight",
+    "attach",
+    "audioWave",
     "award",
     "bolt",
     "building",
     "calendar",
     "chart",
+    "chat",
     "check",
     "chevronDown",
     "chevronLeft",
     "chevronRight",
     "chevronUp",
+    "clock",
     "close",
     "code",
+    "copy",
+    "crop",
     "dashboard",
     "download",
+    "edit",
     "error",
+    "expand",
     "eyeOff",
     "eyeOn",
     "file",
     "filter",
+    "flag",
+    "folderAdd",
     "google",
     "graduation",
     "help",
     "home",
+    "image",
     "info",
     "layers",
+    "link",
     "lock",
     "logout",
+    "magicWand",
+    "mic",
+    "micOff",
     "microsoft",
     "moon",
+    "more",
     "neutral",
     "notification",
     "palette",
+    "pause",
     "phone",
+    "plus",
     "refresh",
+    "rotateLeft",
+    "rotateRight",
     "scissors",
     "search",
+    "securityLock",
+    "send",
     "settings",
+    "share",
     "smsCode",
     "sparkles",
+    "stop",
     "success",
     "sun",
     "survey",
+    "task",
     "templates",
+    "thumbsDown",
+    "thumbsUp",
+    "ticket",
     "trendDown",
     "trendUp",
     "upload",
+    "userAdd",
     "users",
     "vacancies",
-    "warning"
+    "volume",
+    "warning",
+    "zoomIn",
+    "zoomOut"
   ],
   "tokens": [
     {

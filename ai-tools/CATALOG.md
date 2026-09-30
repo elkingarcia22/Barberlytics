@@ -1,8 +1,8 @@
 # Catálogo de componentes Thema
 
-Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
+Generado el 2026-09-26 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**181 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
+**190 componentes** en 20 familias · 84 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -3981,7 +3981,117 @@ No: No compares fechas con `===`; usa `compareDates`. · No reimplementes el for
 Relacionados: date-picker, date-range-picker, month-picker, quarter-selector
 
 
-## [object Object] · 6
+## [object Object] · 3
+
+[object Object]
+
+### MonthOccupancyGrid (beta)
+
+El mes de un barbero (o del equipo) día por día: cuánta de la jornada está reservada, en porcentaje y en barra, y cuántas citas hay. Un día sin jornada se atenúa y lo dice; a partir del 80 % el porcentaje avisa en naranja. Cada día es un botón para abrir esa fecha en la rejilla.
+
+```ts
+import { MonthOccupancyGrid } from "@/components/scheduling"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `month` | `Date` |  | Cualquier día del mes a mostrar. |
+| `days` | `{ date: Date; occupancy: number \| null; count: number }[]` |  | Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas. |
+| `selected` | `Date \| null` |  | El día marcado. |
+| `onSelectDay` | `(date: Date) => void` |  | Se llama al tocar un día del mes. |
+| `today` | `Date` |  | Qué día lleva el círculo de «hoy». Inyectable para la doc y las pruebas. |
+| `locale` | `Locale` |  | Locale de date-fns; sin él, el idioma de la aplicación. |
+
+Ejemplo · Septiembre de un barbero:
+
+```tsx
+const [selected, setSelected] = React.useState<Date | null>(hoy);
+
+<MonthOccupancyGrid month={hoy} days={dias} selected={selected} onSelectDay={setSelected} />
+```
+
+Sí: Calcula la ocupación como minutos reservados sobre minutos de jornada, no sobre 24 horas. · Al tocar un día, cambia a la vista Día en esa fecha: es lo que quien mira espera. · Manda `occupancy: null` para los días sin jornada; un 0 % se lee como «libre», no como «no trabaja».
+No: No lo uses como selector de fecha: para eso están `DatePicker` y `Calendar`. · No pintes aquí las citas una a una; para eso está la vista de mes de `EventCalendar`.
+Relacionados: resource-day-grid, event-calendar, progress, kpi-card
+
+### ResourceDayGrid (beta)
+
+El día de una barbería: una columna por barbero, las horas hacia abajo y cada cita como tarjeta en la columna de quien la atiende. Sombrea las horas en que alguien no trabaja, dibuja la línea de «ahora», ofrece cada hueco libre como botón para agendar y deja mover y estirar las tarjetas arrastrándolas. Es su propia región de scroll, así la fila de barberos y la columna de horas se quedan fijas.
+
+```ts
+import { ResourceDayGrid } from "@/components/scheduling"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `date` | `Date` |  | El día que se muestra. |
+| `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). |
+| `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `kind: "block"` tacha la franja; `locked` impide arrastrar. |
+| `startHour / endHour` | `number` | `6 / 24` | Primera y última hora visibles (la última exclusiva). |
+| `slotMinutes` | `number` | `30` | Minutos por franja; también el paso al arrastrar. |
+| `now` | `Date` |  | El «ahora» de la línea roja. Sin él, el reloj real. |
+| `onSlotClick` | `(slot: { resourceId; start; isWorking }) => void` |  | Clic en un hueco libre: dónde y a qué hora, y si el recurso trabaja ahí. |
+| `onEventClick` | `(event: ScheduleEvent) => void` |  | Abrir una tarjeta. Sin él las tarjetas no son botones. |
+| `onEventMove` | `(event, drop: { resourceId; start; end }) => void` |  | Se soltó la tarjeta en otra hora o columna. Sin él no se arrastra. |
+| `onEventResize` | `(event, drop) => void` |  | Se estiró la tarjeta desde abajo. Sin él no hay tirador. |
+| `resourceActions` | `(resource) => ScheduleResourceAction[]` |  | El menú al tocar el nombre de un recurso (ver perfil, bloquear…). |
+| `height` | `string` | `"max(28rem, calc(100dvh - 17rem))"` | Alto de la región con scroll. |
+
+Ejemplo · El día por barbero:
+
+```tsx
+<ResourceDayGrid
+  date={hoy}
+  resources={[
+    { id: "andres", name: "Andrés Beltrán", workingHours: [{ start: "09:00", end: "19:00" }] },
+    { id: "tomas", name: "Tomás Peña", workingHours: [] },
+  ]}
+  events={[
+    { id: "e1", resourceId: "andres", start, end, title: "Laura Gómez", subtitle: "Corte clásico · US$ 35", badge: { label: "VIP", tone: "warning" }, action: { label: "Ingresar", onClick } },
+    { id: "b1", resourceId: "andres", start, end, title: "Almuerzo", kind: "block", locked: true },
+  ]}
+  startHour={8}
+  endHour={20}
+/>
+```
+
+Sí: Pasa `now` fijo en pruebas y en la doc; en producto déjalo vacío para que la línea siga al reloj. · Traduce tus citas a `ScheduleEvent` en un módulo aparte: la rejilla no sabe de clientes ni de precios. · Con `onSlotClick` abre el formulario con el barbero y la hora ya puestos: es la forma más rápida de agendar. · Acepta el `drop` de `onEventMove` en el servidor y revierte si dice que no; la rejilla solo avisa.
+No: No pintes la agenda de varios días aquí: es la rejilla de un día. Para la semana está `EventCalendar`. · No metas más de una acción en cada tarjeta; el siguiente paso es uno. · No ocultes recursos sin horario en silencio: enséñalos sombreados o explica por qué no están.
+Relacionados: month-occupancy-grid, time-slot-picker, event-calendar, drawer-shell
+
+### TimeSlotPicker (beta)
+
+Elegir cuándo: una tira de días para la fecha y, debajo, las horas repartidas en mañana, tarde y noche como chips. Es el «Fecha & Hora» de crear una cita: se ven el día y la hora de una vez, sin abrir un calendario y luego un reloj. Las horas que no sirven se apagan con `isSlotDisabled`.
+
+```ts
+import { TimeSlotPicker } from "@/components/scheduling"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `value` | `Date \| null` |  | La fecha y hora elegidas. |
+| `onChange` | `(date: Date) => void` |  | Se llama al tocar una hora; el día es el marcado en la tira. |
+| `startDate` | `Date` | `hoy` | Primer día de la tira. |
+| `daysCount` | `number` | `28` | Cuántos días se pueden recorrer hacia delante. |
+| `startHour / endHour` | `number` | `8 / 24` | Primera y última hora ofrecidas (la última exclusiva). |
+| `slotMinutes` | `number` | `30` | Minutos entre una hora y la siguiente. |
+| `isSlotDisabled` | `(date: Date) => boolean` |  | Qué horas se apagan (fuera de horario, ocupadas, pasadas). |
+| `locale` | `Locale` |  | Locale de date-fns; sin él, el idioma de la aplicación. |
+
+Ejemplo · Día y hora de una vez:
+
+```tsx
+const [value, setValue] = React.useState<Date | null>(null);
+
+<TimeSlotPicker value={value} onChange={setValue} startHour={8} endHour={22} />
+```
+
+Sí: Apaga las horas pasadas de hoy y las que caen fuera del horario de quien atiende. · Envuélvelo en un `Field` con `error` cuando el formulario exija la fecha. · Deja que el paso siga al catálogo: si los servicios se agendan cada 15 minutos, `slotMinutes={15}`.
+No: No lo uses para rangos ni para fechas sin hora: para eso están `DateRangePicker` y `DatePicker`. · No ofrezcas 24 horas si la barbería abre 12: la tira de chips se hace larga sin motivo.
+Relacionados: resource-day-grid, date-picker, segmented-control, field
+
+
+## [object Object] · 7
 
 [object Object]
 
@@ -4098,6 +4208,50 @@ const [files, setFiles] = React.useState<File[]>([]);
 Sí: Úsalo en formularios densos donde una zona de arrastre ocuparía demasiado. · Define `accept` y `maxSizeMB` siempre: el mensaje de error se deriva de ellos. · Pasa `buttonLabel` en español; el valor por defecto está en inglés.
 No: No lo uses para cargas masivas: ahí conviene UploadZone o ImportCsvPanel. · No dupliques la lista de archivos fuera del componente; ya la muestra.
 Relacionados: upload-zone, attachment-list, button
+
+### ImageCropper (beta)
+
+Recorte de imagen sobre `react-easy-crop`: mover con arrastre o flechas, acercar con rueda, pellizco, teclas + y − o la barra, girar en pasos de 90° o fino, y «Encajar entera» para meter una imagen ancha en un hueco cuadrado con el sobrante transparente. `ImageCropDialog` lo pone en una ventana con vista previa en los tamaños reales y exporta con `cropImage` a PNG (conserva la transparencia) dentro de un tope de bytes.
+
+```ts
+import { ImageCropper, ImageCropDialog, cropImage } from "@/components/upload"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `image` | `string` |  | URL o data URL de la imagen. |
+| `aspect` | `number` | `1` | Proporción del recorte (`1` cuadrado, `16 / 9`…). |
+| `cropShape` | `"rect" \| "round"` | `"rect"` | Guía circular para avatares; el resultado sigue siendo rectangular. |
+| `minZoom / maxZoom` | `number` | `1 / 4` | Límites del zoom. Con `allowFit` se puede bajar de `minZoom` hasta encajar la imagen entera. |
+| `allowFit` | `boolean` | `true` | Botón «Encajar entera» y zoom por debajo de 1; lo que sobra sale transparente. |
+| `fineRotation` | `boolean` | `true` | Barra de giro fino de −45° a 45°, además de los giros de 90°. |
+| `onChange` | `(value: { area: PixelArea; rotation: number }) => void` |  | Recorte en píxeles de la imagen original y giro, al terminar cada gesto. |
+| `labels` | `Partial<ImageCropperLabels>` |  | Textos de los controles; vienen en español. |
+| `ImageCropDialog · onApply` | `(result: CroppedImage) => void` |  | `{ blob, dataUrl, width, height }` ya exportado. |
+| `ImageCropDialog · output` | `CropImageOptions` |  | `maxSize` (lado mayor), `maxBytes` (reduce hasta cumplirlo), `type` (`image/png` por defecto) y `quality`. |
+| `ImageCropDialog · renderPreview` | `(src: string \| null) => ReactNode` |  | Vista previa propia; por defecto, la imagen a 96, 48 y 32 px. |
+| `ImageCropDialog · onSkip` | `() => void` |  | Ofrece usar el archivo sin recortar (p. ej. un SVG, que se rasterizaría). |
+
+Ejemplo · En una ventana, con vista previa y exportación:
+
+```tsx
+const [open, setOpen] = React.useState(false);
+
+<ImageCropDialog
+  open={open}
+  onOpenChange={setOpen}
+  image={src}
+  aspect={1}
+  cropShape="round"
+  title="Foto de perfil"
+  output={{ maxSize: 512, maxBytes: 1024 * 1024 }}
+  onApply={(result) => save(result.blob)}
+/>
+```
+
+Sí: Pasa siempre por el recortador cuando la imagen va a un hueco de forma fija (logo, avatar, portada). · Muestra con `renderPreview` el sitio real donde se verá, no solo la imagen suelta. · Exporta en PNG si la imagen puede tener transparencia; WebP solo para fotos.
+No: No lo uses para documentos o adjuntos: ahí va `UploadZone` o `FileUpload`. · No rasterices un SVG sin ofrecer `onSkip`: se pierde la nitidez del vector.
+Relacionados: upload-zone, file-upload, file-preview
 
 ### ImportCsvPanel
 
@@ -4873,7 +5027,7 @@ No: No pongas `empty` a 24 px de alto: el EmptyState no cabe. Oculta el componen
 Relacionados: kpi-card, line-chart, area-chart, echart
 
 
-## [object Object] · 10
+## [object Object] · 15
 
 [object Object]
 
@@ -5140,6 +5294,132 @@ Ejemplo · Tamaños:
 Sí: Úsala como marca de «la IA está trabajando» junto a un texto que lo diga. · Prefiere AiAnalyzingState o AiGeneratedBadge; usa el glifo suelto solo para composiciones nuevas de IA.
 No: No la uses como icono decorativo en superficies que no son de IA: el degradado está reservado. · No dupliques el SVG en otro componente; importa este para que el dibujo no se separe.
 Relacionados: ai-analyzing-state, ai-generated-badge, thema-icon
+
+### ChatComposer (beta)
+
+[object Object]
+
+```ts
+import { ChatComposer } from "@/components/chat"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `value / onChange` | `string / (value) => void` |  | El texto, controlado. |
+| `onSend` | `(text, files) => void` |  | Con el texto recortado y los archivos; la caja se vacía sola. |
+| `news` | `ChatNews` |  | El aviso «Nuevo» encima del texto, con «Ver qué cambió» y cerrar. |
+| `contextChip` | `string` |  | El objeto sobre el que responde el agente. |
+| `connectors / onToggleConnector / onAddConnectors` | `ChatConnector[] / …` |  | El submenú Conectores del «+», con interruptores. |
+| `onVoice` | `() => void` |  | Sin esto no hay botón Voz. |
+| `chips / onChip` | `string[] / (text) => void` |  | Preguntas para arrancar, encima de la caja. |
+| `compact` | `boolean` | `false` | Una fila, para el pie de un hilo. |
+| `maxFiles / maxSizeMb` | `number` | `10 / 25` | Los límites del adjunto; se muestran en el menú. |
+
+Sí: Una sola caja por pantalla: es la misma en el panel, en pantalla completa y al volver de la voz. · Deja el aviso «puede cometer errores» salvo en un pie muy apretado.
+No: No metas el aviso de novedad en el panel: ahí no cabe; va en la pantalla completa. · No la uses como buscador: para buscar está GlobalSearch.
+Relacionados: chat-thread, chat-panel, chat-screen, chat-voice-mode
+
+### ChatPanel (beta)
+
+[object Object]
+
+```ts
+import { ChatPanel, ChatProvider } from "@/components/chat"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `open / onOpenChange` | `boolean / (open) => void` |  | Abierto o cerrado; Escape cierra. |
+| `title / subtitle` | `string` | `«Agente IA» / «Asistente de la plataforma»` | La cabecera; el chat de ayuda pone «Ayuda». |
+
+Ejemplo · Dentro del shell:
+
+```tsx
+const [open, setOpen] = React.useState(false);
+
+<ChatProvider value={{ store, backend, user, lang: "es-CO", onOpenFull: openAgentMode, onOpenVoice }}>
+  <AdminShell config={config}>
+    …
+    <ChatPanel open={open} onOpenChange={setOpen} title="Ayuda" />
+  </AdminShell>
+</ChatProvider>
+```
+
+Sí: Monta un solo ChatProvider en la app: el panel y la pantalla completa comparten conversaciones e historial.
+No: No abras el panel y el modo agente a la vez: es el mismo chat en dos sitios.
+Relacionados: chat-screen, chat-composer, chat-thread, ai-agent-drawer
+
+### ChatScreen (beta)
+
+[object Object]
+
+```ts
+import { ChatScreen, ChatHistoryList } from "@/components/chat"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `history` | `boolean` | `true` | El historial a la izquierda, con «Nuevo chat»; se pliega y recuerda cómo lo dejaste. |
+| `onMore` | `(messageId, action) => void` |  | El menú «Más» de cada respuesta. |
+
+Ejemplo · El historial:
+
+```tsx
+<ChatHistoryList activeId={activeId} onSelect={setActive} onNew={newConversation} onRemove={remove} />
+```
+
+Sí: Con `agentSidebar: "navigation"` la barra lateral sigue llevando a las pantallas y el historial vive junto al chat; tocar una pantalla sale del modo agente.
+No: No hagas una página con ruta para el chat: es un modo del shell, y la URL se queda donde estaba.
+Relacionados: chat-panel, chat-thread, chat-composer, admin-shell
+
+### ChatThread (beta)
+
+[object Object]
+
+```ts
+import { ChatThread, ChatProvider } from "@/components/chat"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `conversation` | `Conversation` |  | La conversación a mostrar (del almacén del ChatProvider). |
+| `onMore` | `(messageId, action) => void` |  | El menú «Más» de cada respuesta: compartir, crear tarea, reportar. |
+
+Ejemplo · Una conversación con todo:
+
+```tsx
+<ChatProvider value={{ store, backend, user, lang: "es-CO" }}>
+  <ChatThread conversation={conversation} />
+</ChatProvider>
+```
+
+Sí: Deja que el hilo siga el final solo mientras la persona lo mira; si subió a releer, no la muevas. · Solo la última respuesta enseña sugerencias y deja contestar su pregunta.
+No: No pongas títulos ni tablas en una respuesta: es un mensaje, no un documento.
+Relacionados: chat-composer, chat-panel, chat-screen
+
+### ChatVoiceMode (beta)
+
+[object Object]
+
+```ts
+import { ChatVoiceMode } from "@/components/chat"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `open / onClose` | `boolean / () => void` |  | Abierto o cerrado; Escape cierra. |
+| `onWrite` | `(text) => void` |  | «Escribir»: volver al chat con lo dicho. |
+| `onSend` | `(text) => void` |  | Terminar: lo dicho (o la sugerencia elegida) va al chat. |
+
+Ejemplo · Abrir el modo voz:
+
+```tsx
+<ChatVoiceMode open={open} onClose={close} onWrite={(text) => setDraft(text)} onSend={(text) => send(text)} />
+```
+
+Sí: Usa `lang` del ChatProvider (`es-CO`, `en-US`): es el idioma en que escucha y en que lee en voz alta.
+No: No lo abras desde el panel en un contenedor angosto sin sitio: es a pantalla completa.
+Relacionados: chat-composer, chat-panel
 
 ### Chip
 
@@ -6870,4 +7150,4 @@ Relacionados: table-shell, list-item, status-badge, heatmap-matrix
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, eyeOff, eyeOn, file, filter, google, graduation, help, home, info, layers, lock, logout, microsoft, moon, neutral, notification, palette, phone, refresh, scissors, search, settings, smsCode, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, building, calendar, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, file, filter, flag, folderAdd, google, graduation, help, home, image, info, layers, link, lock, logout, magicWand, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, refresh, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, volume, warning, zoomIn, zoomOut

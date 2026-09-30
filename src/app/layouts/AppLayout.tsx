@@ -7,6 +7,7 @@ import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
 import { useBrandingQuery } from "@/features/branding";
+import { FeedbackHost, findNavLabel } from "@/features/feedback";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId } from "../navigation";
@@ -66,13 +67,16 @@ export function AppLayout() {
     [branding]
   );
 
+  const navigation = React.useMemo(() => buildAppNavigation(t), [t]);
+  const activeNavId = findActiveNavId(location.pathname);
+
   const config = React.useMemo<ShellConfigOverrides>(
     () => ({
       user: user
         ? { id: user.id, name: user.name, email: user.email, role: roles.find((role) => role.id === user.role)?.label ?? user.role, avatarUrl: user.avatarUrl ?? null }
         : undefined,
       brand,
-      navigation: buildAppNavigation(t),
+      navigation,
       roles,
       // Aquí se trabaja por sucursal, no por empresa: el conmutador de la
       // cabecera dice en cuál estás y no vende licencias que enseñar.
@@ -86,7 +90,7 @@ export function AppLayout() {
       settingsAll: { ...SETTINGS_ALL, label: t("settings.all") },
       activeRoleId: viewRoleId ?? user?.role,
       onSelectRole: setViewRoleId,
-      activeNavId: findActiveNavId(location.pathname),
+      activeNavId,
       onNavigate: (_id, path) => {
         if (path) navigate(path);
       },
@@ -110,7 +114,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, viewRoleId, branchId, settings, location.pathname, navigate, resolvedMode, setMode, logout, t]
+    [user, brand, roles, viewRoleId, branchId, settings, navigation, activeNavId, navigate, resolvedMode, setMode, logout, t]
   );
 
   return (
@@ -118,6 +122,12 @@ export function AppLayout() {
       <React.Suspense fallback={<PageLoader />}>
         <Outlet />
       </React.Suspense>
+      {/* La campaña de feedback activa: recorrido la primera vez y botón en todas las páginas. */}
+      <FeedbackHost
+        page={location.pathname}
+        pageLabel={findNavLabel(navigation, activeNavId)}
+        roleLabel={roles.find((role) => role.id === user?.role)?.label}
+      />
     </AdminShell>
   );
 }

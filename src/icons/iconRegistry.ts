@@ -51,6 +51,11 @@ import {
   ArrowReloadHorizontalIcon,
   GoogleIcon,
   MicrosoftIcon,
+  BubbleChatIcon,
+  SentIcon,
+  Cursor01Icon,
+  Compass01Icon,
+  Rocket01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconName, IconData } from "./iconTypes";
 
@@ -116,6 +121,11 @@ export const iconRegistry: Record<IconName, IconData> = {
   refresh: ArrowReloadHorizontalIcon,
   google: GoogleIcon,
   microsoft: MicrosoftIcon,
+  feedback: BubbleChatIcon,
+  send: SentIcon,
+  pointer: Cursor01Icon,
+  compass: Compass01Icon,
+  rocket: Rocket01Icon,
 };
 
 /**

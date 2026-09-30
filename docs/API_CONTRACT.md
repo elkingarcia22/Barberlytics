@@ -95,6 +95,40 @@ Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSit
 - `logo` es la versión para fondos claros; `logoDark`, opcional, para fondos oscuros. Sin `logoDark`, el front pone `logo` sobre una placa clara en modo oscuro. No se acepta `logoDark` sin `logo`.
 - Hoy viajan como data URL (`data:image/png|svg+xml|jpeg|webp;base64,…`) de hasta 1 MB. Un backend real puede devolver una URL de su almacenamiento en su lugar; el front solo la usa como `src` de un `<img>`, que no ejecuta scripts de un SVG, pero el backend debe sanear los SVG igualmente.
 
+## Feedback de campañas (`/feedback`)
+
+`POST /feedback` → `200 { "ok": true }`. Guarda el comentario en la hoja de la campaña activa.
+
+```json
+{
+  "campaignId": "rediseno-barberlytics-2026-09",
+  "campaign": "Rediseño de Barberlytics",
+  "page": "/dashboard",
+  "pageLabel": "Métricas",
+  "section": "Calendario y agenda",
+  "comment": "Falta la vista semanal",
+  "user": "Ana Ruiz",
+  "email": "ana@barberia.co",
+  "role": "Administrador",
+  "timestamp": "2026-09-29T15:00:00.000Z"
+}
+```
+
+| Código | Cuándo |
+|---|---|
+| `422 validation_error` | El comentario no tiene entre 5 y 1000 caracteres, o el cuerpo no cuadra con el esquema. |
+| `404 not_found` | `campaignId` no es el de la campaña activa (o no hay ninguna). |
+| `403 forbidden` | Petición desde otro origen. |
+| `503 server` | El servidor no tiene configurada la cuenta de Google. |
+| `502 server` | No se pudo escribir en la hoja. |
+
+- En producción lo atiende la función de Vercel `api/feedback` (ver `docs/FEEDBACK_LOOP.md`); en
+  desarrollo, el mock.
+- Endpoints de administración, con `Authorization: Bearer <FEEDBACK_ADMIN_KEY>`:
+  `POST /feedback/activate` crea y comparte la hoja de la campaña activa; `POST|GET /feedback/analyze`
+  resume con Claude los comentarios nuevos (el cron de Vercel lo llama cada viernes).
+- `user`, `email` y `role` los manda el cliente; no son una identidad verificada.
+
 ## Pendientes de contrato
 
 Hoy el shell muestra notificaciones y novedades de demostración. Cuando existan `GET /notifications` y `GET /news`, se inyectan por `ShellConfig` en `src/app/layouts/AppLayout.tsx` sin tocar el shell.

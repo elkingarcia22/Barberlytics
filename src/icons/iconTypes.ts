@@ -78,7 +78,12 @@ export type IconName =
   | 'smsCode'
   | 'refresh'
   | 'google'
-  | 'microsoft';
+  | 'microsoft'
+  | 'feedback'
+  | 'send'
+  | 'pointer'
+  | 'compass'
+  | 'rocket';
 
 export interface ThemaIconProps {
   /** Nombre semántico del icono en el registro */

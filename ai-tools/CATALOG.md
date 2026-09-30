@@ -1,8 +1,8 @@
 # Catálogo de componentes Thema
 
-Generado el 2026-09-23 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
+Generado el 2026-09-30 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**181 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
+**185 componentes** en 20 familias · 57 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -3120,6 +3120,136 @@ toast.error("No se pudo enviar la evaluación");
 Sí: Monta `<ThemaToaster />` una sola vez, en el root de la app. · Usa `toast.success` para confirmar lo que acaba de pasar y `toast.error` para lo que falló. · Añade `action` cuando el usuario pueda deshacer o ir al resultado.
 No: No montes un segundo Toaster en una pantalla: cada toast se pintaría dos veces. · No uses toasts para validaciones de formulario; el error va junto al campo. · No uses `richColors`: el sistema mantiene el fondo sobrio y colorea solo icono y borde.
 Relacionados: alert, button, alert-dialog
+
+
+## [object Object] · 4
+
+[object Object]
+
+### FeedbackCampaign (beta)
+
+El circuito completo para pedir feedback masivo sobre algo recién lanzado: recorrido guiado la primera vez, botón flotante en todas las páginas y panel de comentarios. Recuerda por campaña —en el navegador— si ya se vio el recorrido y si ya se abrió el panel; una campaña con otro `id` empieza de cero. En la app lo monta `FeedbackHost` (src/features/feedback), que añade página, campaña y persona y lo envía a `POST /feedback`, donde una función de Vercel lo guarda en la hoja de Google de la campaña y un cron semanal lo resume con Claude (docs/FEEDBACK_LOOP.md).
+
+```ts
+import { FeedbackCampaign, type FeedbackCampaignConfig } from "@/components/feedback-loop"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `campaign` | `FeedbackCampaignConfig` |  | `{ id, name, sections, tour? }`. El `id` separa respuestas y memoria. |
+| `context` | `string` |  | La página actual; se enseña en el panel. |
+| `onSubmit` | `(values) => Promise<void> \| void` |  | Recibe sección y comentario; quien monta añade lo demás. |
+| `autoStartTour` | `boolean` | `true` | Lanza el recorrido la primera vez. |
+| `tourDelayMs` | `number` | `700` | Espera antes del recorrido, para que la pantalla termine de pintarse. |
+| `startTourRef` | `Ref<(() => void) \| null>` |  | Recibe una función para relanzar el recorrido desde otro sitio. |
+
+Ejemplo · Campaña montada:
+
+```tsx
+const campana: FeedbackCampaignConfig = {
+  id: "rediseno-2026-09",
+  name: "Rediseño",
+  sections: [{ value: "general", label: "Impresión general" }],
+  tour: [
+    { id: "hola", icon: "rocket", title: "Lanzamos algo nuevo", description: "…" },
+    { id: "boton", icon: "feedback", target: FEEDBACK_LAUNCHER_TARGET, title: "Tu opinión, aquí", description: "…" },
+  ],
+}
+
+<FeedbackCampaign campaign={campana} context="Métricas" onSubmit={enviar} />
+```
+
+Sí: Cambia el `id` al lanzar otra cosa: así todos ven el nuevo recorrido. · Apunta el último paso al botón con `FEEDBACK_LAUNCHER_TARGET`.
+No: No montes dos campañas a la vez: habría dos botones en la misma esquina.
+Relacionados: guided-tour, feedback-launcher, feedback-panel
+
+### FeedbackLauncher (beta)
+
+El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). Empieza como pastilla con texto y, una vez usado, se contrae a un círculo; `highlight` añade un pulso para una campaña que aún no tiene tu opinión. En móvil sube para no pisar el `ActionFab`.
+
+```ts
+import { FeedbackLauncher } from "@/components/feedback-loop"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `collapsed` | `boolean` | `false` | Solo el icono, con `aria-label` y `title`. |
+| `highlight` | `boolean` | `false` | Pulso suave alrededor; se apaga con `prefers-reduced-motion`. |
+| `expanded` | `boolean` |  | El panel que abre está abierto (`aria-expanded`). |
+| `label` | `string` | `"Feedback"` | Texto visible y nombre accesible. |
+| `...props` | `React.ComponentProps<"button">` |  | Atributos del botón: `onClick`, `data-tour` para que el recorrido lo señale. |
+
+Ejemplo · Primera vez y ya usado:
+
+```tsx
+<FeedbackLauncher highlight onClick={abrir} />
+<FeedbackLauncher collapsed onClick={abrir} />
+```
+
+Sí: Móntalo una sola vez, en el layout, para que acompañe a todas las páginas. · Pásale `data-tour` si el recorrido debe señalarlo.
+No: No lo pongas dentro del contenido de una pantalla: es un elemento del marco. · No cambies su color: es la llamada a la acción de la campaña.
+Relacionados: feedback-panel, feedback-campaign, action-fab
+
+### FeedbackPanel (beta)
+
+El panel flotante donde se deja el feedback: sección a evaluar y comentario, con la página en la que estás a la vista. No es modal —la pantalla sigue visible para señalar lo que se comenta—, conserva el texto si el envío falla y, al acertar, agradece y deja escribir otro.
+
+```ts
+import { FeedbackPanel } from "@/components/feedback-loop"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `open / onOpenChange` | `boolean / (open) => void` |  | Controlado. Escape, ✕ y «Cancelar» piden cerrar. |
+| `sections` | `{ value; label }[]` |  | Partes evaluables. Con una sola, el selector no se enseña. |
+| `defaultSection` | `string` |  | La preseleccionada; por defecto, la primera. |
+| `context` | `string` |  | Dónde está la persona («Métricas»). |
+| `onSubmit` | `(values: { section; comment }) => Promise<void> \| void` |  | Envía. El comentario llega recortado. Si la promesa falla, su `message` se enseña. |
+| `minLength / maxLength` | `number` | `5 / 1000` | Límites del comentario, con contador. |
+| `labels` | `Partial<FeedbackPanelLabels>` |  | Todos los textos, para traducir o ajustar el tono. |
+
+Ejemplo · Si el envío falla:
+
+```tsx
+const enviar = async (values) => {
+  await api.post("/feedback", values) // si lanza, el panel enseña error.message
+}
+```
+
+Sí: Traduce los errores a lenguaje de persona antes de lanzarlos desde `onSubmit`. · Ofrece pocas secciones (5–7) y una para «algo que falta».
+No: No pidas la página en un campo: `context` ya la dice y viaja sola. · No lo metas en un Dialog: debe dejar ver la pantalla.
+Relacionados: feedback-launcher, feedback-campaign, textarea, select
+
+### GuidedTour (beta)
+
+Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por un anillo. El recorte también deja pasar los clics, así que un paso puede avanzar cuando se pulsa lo resaltado. La tarjeta se coloca debajo, encima o acoplada abajo según el sitio, y vuelve a medirse con scroll y cambios de tamaño.
+
+```ts
+import { GuidedTour, type TourStep } from "@/components/feedback-loop"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `steps` | `TourStep[]` |  | `{ id, title, description, icon?, target?, advanceOnTargetClick? }`. `target` es un selector CSS; admite una lista y gana el primero visible. |
+| `open / onOpenChange` | `boolean / (open) => void` |  | Controlado. Cada apertura empieza en el primer paso. |
+| `onComplete` | `() => void` |  | Solo al pulsar «Finalizar»; ✕, Escape o el velo cierran sin completar. |
+| `labels` | `Partial<GuidedTourLabels>` |  | Textos de los botones y el formato de «Paso N de M». |
+
+Ejemplo · Recorrido con objetivos:
+
+```tsx
+const pasos: TourStep[] = [
+  { id: "hola", icon: "rocket", title: "Bienvenido", description: "…" },
+  { id: "filtros", target: '[data-tour="filtros"]', title: "Filtra lo que ves", description: "…" },
+  { id: "crear", target: '[data-tour="crear"]', advanceOnTargetClick: true, title: "Pruébalo tú", description: "…" },
+]
+
+<GuidedTour steps={pasos} open={open} onOpenChange={setOpen} onComplete={marcarVisto} />
+```
+
+Sí: Marca los objetivos con `data-tour` en vez de depender de clases de estilo. · Cuatro o cinco pasos como mucho; el último, hacia la acción que quieres (el botón de feedback). · Da objetivos alternativos (`nav, aside`) cuando el elemento cambia entre escritorio y móvil.
+No: No lo relances en cada visita: recuerda que se vio (ver FeedbackCampaign). · No escondas información imprescindible solo en el recorrido.
+Relacionados: feedback-campaign, feedback-launcher, popover
 
 
 ## [object Object] · 11
@@ -6870,4 +7000,4 @@ Relacionados: table-shell, list-item, status-badge, heatmap-matrix
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, eyeOff, eyeOn, file, filter, google, graduation, help, home, info, layers, lock, logout, microsoft, moon, neutral, notification, palette, phone, refresh, scissors, search, settings, smsCode, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, compass, dashboard, download, error, eyeOff, eyeOn, feedback, file, filter, google, graduation, help, home, info, layers, lock, logout, microsoft, moon, neutral, notification, palette, phone, pointer, refresh, rocket, scissors, search, send, settings, smsCode, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning

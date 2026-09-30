@@ -20,6 +20,11 @@ export default defineConfig([
     },
   },
   {
+    // Funciones de servidor (Vercel) y su lógica: corren en Node, no en el navegador.
+    files: ['api/**/*.ts', 'server/**/*.ts'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     // Deuda heredada del proyecto de origen: los componentes copiados usan
     // patrones que las reglas nuevas de react-hooks marcan (setState en
     // efectos, refs durante el render, `any` puntual). Se dejan como

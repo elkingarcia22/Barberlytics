@@ -20,6 +20,7 @@ export type DocGroupId =
   | "navigation"
   | "overlays"
   | "feedback"
+  | "feedback-loop"
   | "data-display"
   | "date"
   | "upload"
@@ -74,6 +75,14 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     id: "feedback",
     label: { es: "Feedback", en: "Feedback" },
     description: { es: "Estados vacíos, avisos y toasts.", en: "Empty states, alerts and toasts." },
+  },
+  {
+    id: "feedback-loop",
+    label: { es: "Feedback de usuarios", en: "User feedback" },
+    description: {
+      es: "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.",
+      en: "Collect feedback at scale on something just launched: guided tour, floating button and comment panel.",
+    },
   },
   {
     id: "data-display",

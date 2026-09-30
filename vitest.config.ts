@@ -6,7 +6,7 @@ export default defineConfig({
     alias: { "@": path.resolve(import.meta.dirname, "./src") },
   },
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "server/**/*.test.ts", "api/**/*.test.ts"],
     exclude: ["e2e/**", "node_modules/**"],
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],

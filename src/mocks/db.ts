@@ -105,6 +105,8 @@ export interface MockBranding {
 const EMPTY_BRANDING: MockBranding = { name: null, logo: null, logoDark: null, updatedAt: null };
 
 export interface MockDb {
+  /** Feedback de campañas recibido; en memoria, se pierde al recargar. */
+  feedback: Record<string, unknown>[];
   users: MockUser[];
   branding: MockBranding;
   /** token → id de cuenta */
@@ -150,6 +152,7 @@ export function createDb(): MockDb {
     users: saved?.users ?? seedUsers(),
     branding: saved?.branding ?? EMPTY_BRANDING,
     sessions: new Map(saved?.sessions ?? []),
+    feedback: [],
     persist() {
       try {
         storage()?.setItem(
@@ -164,6 +167,7 @@ export function createDb(): MockDb {
       db.users = seedUsers();
       db.branding = EMPTY_BRANDING;
       db.sessions.clear();
+      db.feedback = [];
       try {
         storage()?.removeItem(STORAGE_KEY);
       } catch {

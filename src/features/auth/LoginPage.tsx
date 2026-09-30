@@ -43,7 +43,7 @@ export function LoginPage() {
   useForcedPreset(LOGIN_PRESET);
   const { status } = useAuth();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/dashboard";
+  const from = (location.state as LocationState | null)?.from ?? "/metricas";
   const [view, setView] = React.useState<View>({ name: "login" });
   const toLogin = () => setView({ name: "login" });
 

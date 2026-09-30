@@ -22,6 +22,7 @@ import {
   MemberWizardPage,
   WorkHoursPage,
   HelpApp,
+  MetricsPage,
   SectionPlaceholderPage,
   SettingsPage,
   SettingsSectionPage,
@@ -57,7 +58,11 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { index: true, element: <Navigate to="/metricas" replace /> },
+          // Lo primero que se abre: cómo le fue a la barbería en el periodo.
+          { path: "metricas", element: lazy(<MetricsPage />) },
+          // La plantilla de una pantalla de gestión completa; la referencia
+          // la doc (Flujo de trabajo) y la fijan los e2e, así que sigue enrutada.
           { path: "dashboard", element: lazy(<DashboardPage />) },
           { path: "calendario", element: lazy(<CalendarPage />) },
           ...PLACEHOLDER_SECTIONS.map((section) => ({

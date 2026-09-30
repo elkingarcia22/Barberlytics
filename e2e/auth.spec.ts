@@ -31,7 +31,7 @@ test.describe("Autenticación", () => {
   test("entrar con Google abre la sesión de la cuenta vinculada", async ({ page }) => {
     await page.goto("/login");
     await page.getByTestId("login-google").click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/metricas/);
   });
 
   test("olvidé mi número pide el correo y confirma el envío", async ({ page }) => {

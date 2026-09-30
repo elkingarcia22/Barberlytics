@@ -9,6 +9,7 @@ export const WorkHoursPage = React.lazy(() => import("@/features/team/WorkHoursP
 export const LevelsPage = React.lazy(() => import("@/features/team/LevelsPage").then((m) => ({ default: m.LevelsPage })));
 export const BarberOrderPage = React.lazy(() => import("@/features/team/BarberOrderPage").then((m) => ({ default: m.BarberOrderPage })));
 export const LineupPage = React.lazy(() => import("@/features/team/LineupPage").then((m) => ({ default: m.LineupPage })));
+export const MetricsPage = React.lazy(() => import("@/features/metrics/MetricsPage").then((m) => ({ default: m.MetricsPage })));
 export const TeamHomePage = React.lazy(() => import("@/features/team/TeamHomePage").then((m) => ({ default: m.TeamHomePage })));
 export const UsersPage = React.lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 export const DocsApp = React.lazy(() => import("@/docs/DocsApp").then((m) => ({ default: m.DocsApp })));

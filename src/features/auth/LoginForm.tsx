@@ -49,7 +49,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
   const { requestCode, verifyCode, loginWithProvider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/dashboard";
+  const from = (location.state as LocationState | null)?.from ?? "/metricas";
 
   const [step, setStep] = React.useState<Step>("phone");
   const [phone, setPhone] = React.useState("");

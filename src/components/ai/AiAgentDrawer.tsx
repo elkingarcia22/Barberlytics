@@ -5,7 +5,7 @@ import { MovingBorderBeam } from "@/components/ui/moving-border-beam";
 import { ArrowUp, Plus, Sparkles, X } from "lucide-react";
 import { AI_GRADIENT } from "@/components/app-shell/appShellData";
 import { useShellConfig } from "@/components/app-shell/shellConfig";
-import { AGENT_PANEL_WIDTH, agentPanelTransition } from "./agentPanelMotion";
+import { AGENT_PANEL_OUTER_WIDTH, AGENT_PANEL_WIDTH, OVERLAY_INSET, agentPanelTransition } from "./agentPanelMotion";
 
 /** Width of the open panel — the content column narrows by exactly this much. */
 const PANEL_WIDTH = AGENT_PANEL_WIDTH;
@@ -83,11 +83,14 @@ export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", custo
           inside it as this shrinks to 0, instead of reflowing its contents. */}
       <div
         className="h-full shrink-0 overflow-hidden"
+        data-agent-panel-open={open || undefined}
         style={{
-          width: open ? PANEL_WIDTH : 0,
+          width: open ? AGENT_PANEL_OUTER_WIDTH : 0,
           transition: agentPanelTransition("width"),
         }}
       >
+        {/* El panel flota: margen arriba, abajo y a la derecha, no pegado a la ventana. */}
+        <div className="h-full" style={{ width: AGENT_PANEL_OUTER_WIDTH, padding: `${OVERLAY_INSET}px ${OVERLAY_INSET}px ${OVERLAY_INSET}px 0` }}>
           {isCustom && customPanel ? (
             <div
               className={cn("h-full", !open && "invisible")}
@@ -207,6 +210,7 @@ export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", custo
               </div>
             </div>
           )}
+        </div>
       </div>
     </ShellAgentPanelSlot>
   );

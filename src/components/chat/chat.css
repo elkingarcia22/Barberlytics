@@ -1,0 +1,221 @@
+/*
+ * El chat de IA: la marca del agente, la caja al enfocar, el texto que se escribe solo,
+ * las ondas de la voz. Todo con los tokens de IA del tema
+ * (`--color-ai-stop-*`); nada lleva un color propio. Cada animación se apaga
+ * con `prefers-reduced-motion`.
+ */
+
+/* ── La marca del agente: el destello ── */
+.chat-mark--breathing {
+  animation: chat-mark-breathe 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.chat-mark--thinking {
+  animation: chat-mark-think 1.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes chat-mark-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(8deg);
+  }
+}
+
+@keyframes chat-mark-think {
+  0% {
+    transform: scale(0.94) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.06) rotate(45deg);
+  }
+  100% {
+    transform: scale(0.94) rotate(90deg);
+  }
+}
+
+/* El resplandor detrás de las ondas del modo voz. */
+.chat-waves-glow {
+  background: radial-gradient(closest-side, rgba(var(--color-ai-stop-2-rgb), 0.35), rgba(var(--color-ai-stop-1-rgb), 0.15) 55%, transparent);
+  filter: blur(24px);
+}
+
+/* ── La caja al enfocar: la malla se enciende y el borde recorre ── */
+.chat-composer-wash {
+  opacity: 0;
+  transition: opacity var(--duration-slow, 400ms) var(--ease-out-expo, ease-out);
+  background-image:
+    radial-gradient(60% 80% at 8% 20%, rgba(var(--color-ai-stop-1-rgb), 0.16), transparent 70%),
+    radial-gradient(50% 70% at 92% 30%, rgba(var(--color-ai-stop-3-rgb), 0.14), transparent 70%),
+    radial-gradient(45% 60% at 60% 100%, rgba(var(--color-ai-stop-5-rgb), 0.1), transparent 70%);
+}
+
+.chat-composer:focus-within .chat-composer-wash {
+  opacity: 1;
+}
+
+.dark .chat-composer-wash {
+  background-image:
+    radial-gradient(60% 80% at 8% 20%, rgba(var(--color-ai-stop-1-rgb), 0.26), transparent 70%),
+    radial-gradient(50% 70% at 92% 30%, rgba(var(--color-ai-stop-3-rgb), 0.22), transparent 70%),
+    radial-gradient(45% 60% at 60% 100%, rgba(var(--color-ai-stop-5-rgb), 0.16), transparent 70%);
+}
+
+/* El halo del botón de enviar: gira despacio y se enciende cuando hay texto. */
+.chat-send-halo {
+  position: absolute;
+  inset: -0.35rem;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, var(--color-ai-stop-1), var(--color-ai-stop-2), var(--color-ai-stop-3), var(--color-ai-stop-5), var(--color-ai-stop-1));
+  filter: blur(8px);
+  opacity: 0;
+  transition: opacity var(--duration-normal, 300ms) ease;
+  animation: chat-spin 9s linear infinite;
+}
+
+.chat-send-halo--on {
+  opacity: 0.6;
+}
+
+@keyframes chat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── El texto que se escribe solo ── */
+.chat-caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: currentColor;
+  animation: chat-blink 0.9s steps(2, start) infinite;
+}
+
+@keyframes chat-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* «Razonando…» con un brillo que recorre el texto. */
+.chat-shimmer {
+  background: linear-gradient(90deg, var(--color-text-muted) 0%, var(--color-text-primary) 50%, var(--color-text-muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: chat-shimmer 1.6s linear infinite;
+}
+
+@keyframes chat-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Las ondas del modo voz ── */
+.chat-wave {
+  display: inline-block;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  transform-origin: center;
+  animation: chat-wave 1.1s ease-in-out infinite;
+}
+
+.chat-wave--idle {
+  animation: none;
+  transform: scaleY(0.3);
+}
+
+@keyframes chat-wave {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ── Lo que entra en el hilo sube un poco ── */
+.chat-rise {
+  animation: chat-rise var(--duration-normal, 300ms) var(--ease-out-expo, ease-out) both;
+}
+
+@keyframes chat-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── El texto de una respuesta ── */
+.chat-prose > * + * {
+  margin-top: 0.6em;
+}
+
+.chat-prose strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.chat-prose a {
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.chat-prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.chat-prose ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+
+.chat-prose li + li {
+  margin-top: 0.25em;
+}
+
+.chat-prose code {
+  border-radius: var(--radius-xs, 4px);
+  background: var(--color-surface-muted);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-mark--breathing,
+  .chat-mark--thinking,
+  .chat-send-halo,
+  .chat-caret::after,
+  .chat-shimmer,
+  .chat-wave,
+  .chat-rise {
+    animation: none;
+  }
+  .chat-shimmer {
+    -webkit-text-fill-color: var(--color-text-secondary);
+  }
+}

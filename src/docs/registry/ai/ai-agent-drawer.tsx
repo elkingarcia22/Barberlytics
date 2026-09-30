@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AiAgentDrawer, type AiAgentContext } from "@/components/ai/AiAgentDrawer";
-import { AGENT_PANEL_DURATION_MS, AGENT_PANEL_EASING, AGENT_PANEL_GUTTER, AGENT_PANEL_SHELL_FRAME, AGENT_PANEL_WIDTH } from "@/components/ai/agentPanelMotion";
+import { AGENT_PANEL_DURATION_MS, AGENT_PANEL_EASING, AGENT_PANEL_GUTTER, AGENT_PANEL_SHELL_FRAME, AGENT_PANEL_WIDTH, OVERLAY_INSET } from "@/components/ai/agentPanelMotion";
 import { ShellAgentPanelSlotProvider } from "@/components/app-shell/shellAgentPanelSlot";
 import { Button } from "@/components/ui/button";
 import { defineEntry, definePlayground } from "../types";
@@ -56,7 +56,8 @@ const MOTION_TOKENS = [
   { name: "AGENT_PANEL_DURATION_MS", value: `${AGENT_PANEL_DURATION_MS}`, note: "Duración compartida por panel, cajón y velo." },
   { name: "AGENT_PANEL_EASING", value: AGENT_PANEL_EASING, note: "Curva de salida expo." },
   { name: "AGENT_PANEL_GUTTER", value: `${AGENT_PANEL_GUTTER}px`, note: "Aire a la izquierda de un Sheet corrido." },
-  { name: "AGENT_PANEL_SHELL_FRAME", value: `${AGENT_PANEL_SHELL_FRAME}px`, note: "Padding + gap de la concha que un Sheet fijo debe descontar." },
+  { name: "OVERLAY_INSET", value: `${OVERLAY_INSET}px`, note: "Margen exterior del panel, los Sheet y el tope de alto de los diálogos: nada flota pegado a la ventana." },
+  { name: "AGENT_PANEL_SHELL_FRAME", value: `${AGENT_PANEL_SHELL_FRAME}px`, note: "Margen derecho del panel + el mismo margen entre panel y Sheet, que un Sheet corrido debe descontar." },
 ];
 
 export const aiAgentDrawerEntry = defineEntry({

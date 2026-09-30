@@ -223,6 +223,19 @@ export const handlers = [
   }),
 
   // ---------- Dashboard ----------
+  // Feedback de campañas: en producción lo atiende la función de Vercel
+  // `api/feedback`, que lo guarda en la hoja de Google de la campaña. Aquí se
+  // guarda en memoria para poder inspeccionarlo.
+  http.post(`${BASE}/feedback`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    const comment = typeof body?.comment === "string" ? body.comment.trim() : "";
+    if (!body || typeof body.campaignId !== "string" || comment.length < 5) {
+      return error(422, "validation_error", "El comentario necesita al menos 5 caracteres.");
+    }
+    db.feedback.push({ ...body, receivedAt: new Date().toISOString() });
+    return HttpResponse.json({ ok: true });
+  }),
   http.get(`${BASE}/dashboard/summary`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

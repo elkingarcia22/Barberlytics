@@ -133,6 +133,8 @@ const emptyTeam = (): MockTeamState => {
 };
 
 export interface MockDb {
+  /** Feedback de campañas recibido; en memoria, se pierde al recargar. */
+  feedback: Record<string, unknown>[];
   users: MockUser[];
   branding: MockBranding;
   calendar: MockCalendarState;
@@ -187,6 +189,7 @@ export function createDb(): MockDb {
     team: saved?.team ?? emptyTeam(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
+    feedback: [],
     persist() {
       try {
         storage()?.setItem(
@@ -204,6 +207,7 @@ export function createDb(): MockDb {
       db.team = emptyTeam();
       db.sessions.clear();
       db.loginFailures.clear();
+      db.feedback = [];
       try {
         storage()?.removeItem(STORAGE_KEY);
       } catch {

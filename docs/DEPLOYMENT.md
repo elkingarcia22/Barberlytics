@@ -30,6 +30,13 @@ depender de terceros, autoaloja los `woff2` y sustituye la URL de `stylesheet` e
 
 Se leen en tiempo de build: cambiarlas requiere reconstruir.
 
+### Funciones de servidor (`api/`)
+
+El feedback masivo usa funciones de Vercel (`api/feedback/*`) y un cron semanal (`vercel.json`).
+Sus variables son **del servidor** —sin prefijo `VITE_`—: `GOOGLE_SERVICE_ACCOUNT_JSON`,
+`ANTHROPIC_API_KEY`, `FEEDBACK_SHARE_WITH`, `FEEDBACK_ADMIN_KEY` y `CRON_SECRET`. Qué es cada una y
+cómo prepararlas: `docs/FEEDBACK_LOOP.md`. `vercel.json` no reescribe `/api/*` a `index.html`.
+
 ## Service worker de mocks
 
 `public/mockServiceWorker.js` se copia a `dist/` pero solo se registra cuando `VITE_USE_MOCKS=true`. Si prefieres no desplegarlo, elimínalo del build en el pipeline.
@@ -40,3 +47,4 @@ Se leen en tiempo de build: cambiarlas requiere reconstruir.
 - [ ] `VITE_API_URL` apunta al entorno correcto.
 - [ ] CSP con el `connect-src` real.
 - [ ] Token en cookie `httpOnly` si el backend lo soporta (ver `docs/API_CONTRACT.md`).
+- [ ] Si hay campaña de feedback activa: variables del servidor definidas y hoja creada (`docs/FEEDBACK_LOOP.md`).

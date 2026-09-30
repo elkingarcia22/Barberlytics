@@ -82,6 +82,9 @@ import {
   Flag01Icon,
   Task01Icon,
   BubbleChatIcon,
+  Cursor01Icon,
+  Compass01Icon,
+  Rocket01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconName, IconData } from "./iconTypes";
 
@@ -180,6 +183,10 @@ export const iconRegistry: Record<IconName, IconData> = {
   flag: Flag01Icon,
   task: Task01Icon,
   chat: BubbleChatIcon,
+  feedback: BubbleChatIcon,
+  pointer: Cursor01Icon,
+  compass: Compass01Icon,
+  rocket: Rocket01Icon,
 };
 
 /**

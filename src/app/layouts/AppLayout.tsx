@@ -10,6 +10,7 @@ import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
+import { FeedbackHost, findNavLabel } from "@/features/feedback";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId } from "../navigation";
@@ -155,13 +156,16 @@ export function AppLayout() {
     [brand, navigate]
   );
 
+  const navigation = React.useMemo(() => buildAppNavigation(t), [t]);
+  const activeNavId = findActiveNavId(location.pathname);
+
   const config = React.useMemo<ShellConfigOverrides>(
     () => ({
       user: user
         ? { id: user.id, name: user.name, email: user.email, role: roles.find((role) => role.id === user.role)?.label ?? user.role, avatarUrl: user.avatarUrl ?? null }
         : undefined,
       brand,
-      navigation: buildAppNavigation(t),
+      navigation,
       roles,
       // Aquí se trabaja por sucursal, no por empresa: el conmutador de la
       // cabecera dice en cuál estás y no vende licencias que enseñar.
@@ -175,7 +179,7 @@ export function AppLayout() {
       settingsAll: { ...SETTINGS_ALL, label: t("settings.all") },
       activeRoleId: viewRoleId ?? user?.role,
       onSelectRole: setViewRoleId,
-      activeNavId: findActiveNavId(location.pathname),
+      activeNavId,
       onNavigate: (_id, path) => {
         // Desde el chat a pantalla completa, ir a una pantalla es salir del modo agente.
         setShellMode("workspace");
@@ -223,7 +227,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, viewRoleId, branchId, settings, helpObjects, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
+    [user, brand, roles, viewRoleId, branchId, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
   return (
@@ -234,6 +238,12 @@ export function AppLayout() {
         </React.Suspense>
         <ChatPanel open={isHelpOpen && shellMode !== "agent"} onOpenChange={setIsHelpOpen} title={t("help.drawerTitle")} subtitle={t("help.title")} />
         <HelpGuidesDrawer open={isGuidesOpen} onOpenChange={setIsGuidesOpen} />
+        {/* La campaña de feedback activa: recorrido la primera vez y botón en todas las páginas. */}
+        <FeedbackHost
+          page={location.pathname}
+          pageLabel={findNavLabel(navigation, activeNavId)}
+          roleLabel={roles.find((role) => role.id === user?.role)?.label}
+        />
       </AdminShell>
       <ChatVoiceMode
         open={isVoiceOpen}

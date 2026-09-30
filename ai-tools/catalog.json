@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T13:08:26.965Z",
+  "generatedAt": "2026-09-30T13:09:23.311Z",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -78,6 +78,17 @@
       "description": {
         "es": "Estados vacíos, avisos y toasts.",
         "en": "Empty states, alerts and toasts."
+      }
+    },
+    {
+      "id": "feedback-loop",
+      "label": {
+        "es": "Feedback de usuarios",
+        "en": "User feedback"
+      },
+      "description": {
+        "es": "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.",
+        "en": "Collect feedback at scale on something just launched: guided tour, floating button and comment panel."
       }
     },
     {
@@ -8491,6 +8502,301 @@
         }
       ],
       "docs": "/docs#/components/thema-toaster"
+    },
+    {
+      "id": "feedback-campaign",
+      "name": "FeedbackCampaign",
+      "group": "feedback-loop",
+      "description": "El circuito completo para pedir feedback masivo sobre algo recién lanzado: recorrido guiado la primera vez, botón flotante en todas las páginas y panel de comentarios. Recuerda por campaña —en el navegador— si ya se vio el recorrido y si ya se abrió el panel; una campaña con otro `id` empieza de cero. En la app lo monta `FeedbackHost` (src/features/feedback), que añade página, campaña y persona y lo envía a `POST /feedback`, donde una función de Vercel lo guarda en la hoja de Google de la campaña y un cron semanal lo resume con Claude (docs/FEEDBACK_LOOP.md).",
+      "import": "import { FeedbackCampaign, type FeedbackCampaignConfig } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackCampaign.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "campaña",
+        "onboarding",
+        "composición"
+      ],
+      "props": [
+        {
+          "name": "campaign",
+          "type": "FeedbackCampaignConfig",
+          "default": null,
+          "description": "`{ id, name, sections, tour? }`. El `id` separa respuestas y memoria."
+        },
+        {
+          "name": "context",
+          "type": "string",
+          "default": null,
+          "description": "La página actual; se enseña en el panel."
+        },
+        {
+          "name": "onSubmit",
+          "type": "(values) => Promise<void> | void",
+          "default": null,
+          "description": "Recibe sección y comentario; quien monta añade lo demás."
+        },
+        {
+          "name": "autoStartTour",
+          "type": "boolean",
+          "default": "true",
+          "description": "Lanza el recorrido la primera vez."
+        },
+        {
+          "name": "tourDelayMs",
+          "type": "number",
+          "default": "700",
+          "description": "Espera antes del recorrido, para que la pantalla termine de pintarse."
+        },
+        {
+          "name": "startTourRef",
+          "type": "Ref<(() => void) | null>",
+          "default": null,
+          "description": "Recibe una función para relanzar el recorrido desde otro sitio."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Cambia el `id` al lanzar otra cosa: así todos ven el nuevo recorrido.",
+          "Apunta el último paso al botón con `FEEDBACK_LAUNCHER_TARGET`."
+        ],
+        "dont": [
+          "No montes dos campañas a la vez: habría dos botones en la misma esquina."
+        ]
+      },
+      "related": [
+        "guided-tour",
+        "feedback-launcher",
+        "feedback-panel"
+      ],
+      "examples": [
+        {
+          "id": "live",
+          "title": "Campaña montada",
+          "description": "Al montarla sale el recorrido y el botón aparece en la esquina de la ventana (es fijo, no vive en este marco).",
+          "code": "const campana: FeedbackCampaignConfig = {\n  id: \"rediseno-2026-09\",\n  name: \"Rediseño\",\n  sections: [{ value: \"general\", label: \"Impresión general\" }],\n  tour: [\n    { id: \"hola\", icon: \"rocket\", title: \"Lanzamos algo nuevo\", description: \"…\" },\n    { id: \"boton\", icon: \"feedback\", target: FEEDBACK_LAUNCHER_TARGET, title: \"Tu opinión, aquí\", description: \"…\" },\n  ],\n}\n\n<FeedbackCampaign campaign={campana} context=\"Métricas\" onSubmit={enviar} />"
+        }
+      ],
+      "docs": "/docs#/components/feedback-campaign"
+    },
+    {
+      "id": "feedback-launcher",
+      "name": "FeedbackLauncher",
+      "group": "feedback-loop",
+      "description": "El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). Empieza como pastilla con texto y, una vez usado, se contrae a un círculo; `highlight` añade un pulso para una campaña que aún no tiene tu opinión. En móvil sube para no pisar el `ActionFab`.",
+      "import": "import { FeedbackLauncher } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackLauncher.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "fab",
+        "campaña"
+      ],
+      "props": [
+        {
+          "name": "collapsed",
+          "type": "boolean",
+          "default": "false",
+          "description": "Solo el icono, con `aria-label` y `title`."
+        },
+        {
+          "name": "highlight",
+          "type": "boolean",
+          "default": "false",
+          "description": "Pulso suave alrededor; se apaga con `prefers-reduced-motion`."
+        },
+        {
+          "name": "expanded",
+          "type": "boolean",
+          "default": null,
+          "description": "El panel que abre está abierto (`aria-expanded`)."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "\"Feedback\"",
+          "description": "Texto visible y nombre accesible."
+        },
+        {
+          "name": "...props",
+          "type": "React.ComponentProps<\"button\">",
+          "default": null,
+          "description": "Atributos del botón: `onClick`, `data-tour` para que el recorrido lo señale."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Móntalo una sola vez, en el layout, para que acompañe a todas las páginas.",
+          "Pásale `data-tour` si el recorrido debe señalarlo."
+        ],
+        "dont": [
+          "No lo pongas dentro del contenido de una pantalla: es un elemento del marco.",
+          "No cambies su color: es la llamada a la acción de la campaña."
+        ]
+      },
+      "related": [
+        "feedback-panel",
+        "feedback-campaign",
+        "action-fab"
+      ],
+      "examples": [
+        {
+          "id": "states",
+          "title": "Primera vez y ya usado",
+          "description": "Con texto mientras nadie lo ha abierto; contraído a icono después. El nombre accesible es el mismo en los dos.",
+          "code": "<FeedbackLauncher highlight onClick={abrir} />\n<FeedbackLauncher collapsed onClick={abrir} />"
+        }
+      ],
+      "docs": "/docs#/components/feedback-launcher"
+    },
+    {
+      "id": "feedback-panel",
+      "name": "FeedbackPanel",
+      "group": "feedback-loop",
+      "description": "El panel flotante donde se deja el feedback: sección a evaluar y comentario, con la página en la que estás a la vista. No es modal —la pantalla sigue visible para señalar lo que se comenta—, conserva el texto si el envío falla y, al acertar, agradece y deja escribir otro.",
+      "import": "import { FeedbackPanel } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackPanel.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "form",
+        "campaña"
+      ],
+      "props": [
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Controlado. Escape, ✕ y «Cancelar» piden cerrar."
+        },
+        {
+          "name": "sections",
+          "type": "{ value; label }[]",
+          "default": null,
+          "description": "Partes evaluables. Con una sola, el selector no se enseña."
+        },
+        {
+          "name": "defaultSection",
+          "type": "string",
+          "default": null,
+          "description": "La preseleccionada; por defecto, la primera."
+        },
+        {
+          "name": "context",
+          "type": "string",
+          "default": null,
+          "description": "Dónde está la persona («Métricas»)."
+        },
+        {
+          "name": "onSubmit",
+          "type": "(values: { section; comment }) => Promise<void> | void",
+          "default": null,
+          "description": "Envía. El comentario llega recortado. Si la promesa falla, su `message` se enseña."
+        },
+        {
+          "name": "minLength / maxLength",
+          "type": "number",
+          "default": "5 / 1000",
+          "description": "Límites del comentario, con contador."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<FeedbackPanelLabels>",
+          "default": null,
+          "description": "Todos los textos, para traducir o ajustar el tono."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Traduce los errores a lenguaje de persona antes de lanzarlos desde `onSubmit`.",
+          "Ofrece pocas secciones (5–7) y una para «algo que falta»."
+        ],
+        "dont": [
+          "No pidas la página en un campo: `context` ya la dice y viaja sola.",
+          "No lo metas en un Dialog: debe dejar ver la pantalla."
+        ]
+      },
+      "related": [
+        "feedback-launcher",
+        "feedback-campaign",
+        "textarea",
+        "select"
+      ],
+      "examples": [
+        {
+          "id": "error",
+          "title": "Si el envío falla",
+          "description": "Escribe un comentario con la palabra «error» y envíalo: el texto se queda y el mensaje de `onSubmit` sale debajo.",
+          "code": "const enviar = async (values) => {\n  await api.post(\"/feedback\", values) // si lanza, el panel enseña error.message\n}"
+        }
+      ],
+      "docs": "/docs#/components/feedback-panel"
+    },
+    {
+      "id": "guided-tour",
+      "name": "GuidedTour",
+      "group": "feedback-loop",
+      "description": "Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por un anillo. El recorte también deja pasar los clics, así que un paso puede avanzar cuando se pulsa lo resaltado. La tarjeta se coloca debajo, encima o acoplada abajo según el sitio, y vuelve a medirse con scroll y cambios de tamaño.",
+      "import": "import { GuidedTour, type TourStep } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/GuidedTour.tsx",
+      "status": "beta",
+      "tags": [
+        "onboarding",
+        "coachmarks",
+        "tour",
+        "a11y"
+      ],
+      "props": [
+        {
+          "name": "steps",
+          "type": "TourStep[]",
+          "default": null,
+          "description": "`{ id, title, description, icon?, target?, advanceOnTargetClick? }`. `target` es un selector CSS; admite una lista y gana el primero visible."
+        },
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Controlado. Cada apertura empieza en el primer paso."
+        },
+        {
+          "name": "onComplete",
+          "type": "() => void",
+          "default": null,
+          "description": "Solo al pulsar «Finalizar»; ✕, Escape o el velo cierran sin completar."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<GuidedTourLabels>",
+          "default": null,
+          "description": "Textos de los botones y el formato de «Paso N de M»."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Marca los objetivos con `data-tour` en vez de depender de clases de estilo.",
+          "Cuatro o cinco pasos como mucho; el último, hacia la acción que quieres (el botón de feedback).",
+          "Da objetivos alternativos (`nav, aside`) cuando el elemento cambia entre escritorio y móvil."
+        ],
+        "dont": [
+          "No lo relances en cada visita: recuerda que se vio (ver FeedbackCampaign).",
+          "No escondas información imprescindible solo en el recorrido."
+        ]
+      },
+      "related": [
+        "feedback-campaign",
+        "feedback-launcher",
+        "popover"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Recorrido con objetivos",
+          "description": "El segundo paso señala «Filtros»; el tercero espera a que pulses «Crear cita».",
+          "code": "const pasos: TourStep[] = [\n  { id: \"hola\", icon: \"rocket\", title: \"Bienvenido\", description: \"…\" },\n  { id: \"filtros\", target: '[data-tour=\"filtros\"]', title: \"Filtra lo que ves\", description: \"…\" },\n  { id: \"crear\", target: '[data-tour=\"crear\"]', advanceOnTargetClick: true, title: \"Pruébalo tú\", description: \"…\" },\n]\n\n<GuidedTour steps={pasos} open={open} onOpenChange={setOpen} onComplete={marcarVisto} />"
+        }
+      ],
+      "docs": "/docs#/components/guided-tour"
     },
     {
       "id": "field",
@@ -19659,6 +19965,7 @@
     "clock",
     "close",
     "code",
+    "compass",
     "copy",
     "crop",
     "dashboard",
@@ -19668,6 +19975,7 @@
     "expand",
     "eyeOff",
     "eyeOn",
+    "feedback",
     "file",
     "filter",
     "flag",
@@ -19694,7 +20002,9 @@
     "pause",
     "phone",
     "plus",
+    "pointer",
     "refresh",
+    "rocket",
     "rotateLeft",
     "rotateRight",
     "scissors",

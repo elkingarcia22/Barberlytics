@@ -111,7 +111,11 @@ export type IconName =
   | 'share'
   | 'flag'
   | 'task'
-  | 'chat';
+  | 'chat'
+  | 'feedback'
+  | 'pointer'
+  | 'compass'
+  | 'rocket';
 
 export interface ThemaIconProps {
   /** Nombre semántico del icono en el registro */

@@ -1,5 +1,6 @@
 import { Armchair, CalendarClock, CalendarX2, ConciergeBell, Crown, HandCoins, MailQuestion, Scissors, ShieldCheck, TrendingDown, UsersRound, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Link } from "react-router";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
 import type { TableColumnCells, TableColumnSpec } from "@/components/data-display/table-config";
@@ -237,7 +238,9 @@ export function teamCells(t: Translate, { intlLocale, formatCount, formatMoney }
       head: t("team.column.person"),
       cell: (row) => (
         <span className="flex flex-col">
-          <span className="font-semibold text-text-primary">{row.name}</span>
+          <Link to={`/usuarios/miembros/${row.id}`} className="font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            {row.name}
+          </Link>
           <span className="text-xs text-text-muted">{row.email}</span>
         </span>
       ),

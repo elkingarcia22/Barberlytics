@@ -22,7 +22,7 @@ const ASK_CODE = `# Pídelo en español y por lo que se ve, no por el nombre de 
 «Un drawer para ver la ficha de un candidato y pasar al siguiente»
 «El formulario de alta de vacante en cuatro pasos»
 
-# La IA lee ai-tools/catalog.json y elige TableShell + FilterBar + ActionRail, DrawerShell, Stepper + Field…`;
+# La IA lee el índice ai-tools/CATALOG.md, abre las fichas que necesita y elige TableShell + FilterBar + ActionRail, DrawerShell, Stepper + Field…`;
 
 /**
  * Qué sabe la IA de este proyecto y de dónde lo saca. Todo está dentro del
@@ -61,7 +61,7 @@ export function TrabajarConIaPage() {
       <DocSection id="fuentes" title="De dónde saca la información" description="Tres fuentes, todas dentro del repo.">
         <div className="grid gap-3 sm:grid-cols-3">
           <RuleCard icon={FolderTree} title="El catálogo de componentes">
-            <code>ai-tools/catalog.json</code> y <code>ai-tools/CATALOG.md</code>: cada componente con su import, para qué sirve, sus props y sus guías. Se genera del registro con <code>npm run catalog</code>, así nunca se desactualiza a mano.
+            <code>ai-tools/CATALOG.md</code> es el índice: una línea por componente, con para qué sirve y de dónde se importa. La IA lo lee entero y solo abre la ficha (<code>ai-tools/components/&lt;id&gt;.md</code>) de las piezas que va a usar, con sus props, guías y ejemplos. Se genera del registro con <code>npm run catalog</code> y <code>npm run check</code> falla si queda viejo.
           </RuleCard>
           <RuleCard icon={FileCheck} title="El contrato con el backend">
             <code>docs/API_CONTRACT.md</code> dice qué espera el frontend; <code>src/mocks/</code> lo implementa. Por eso una tabla dice lo mismo que la API y no algo inventado.
@@ -89,7 +89,7 @@ export function TrabajarConIaPage() {
               {[
                 ["AGENTS.md", "Las reglas: qué librería, qué iconos, qué colores, qué no se toca y cómo se entrega. Las leen Cursor, Codex, Gemini y Claude."],
                 ["CLAUDE.md", "Además, para Claude: el mapa del repo, dónde está cada cosa, las trampas conocidas y cómo cerrar un trabajo."],
-                ["ai-tools/", "El catálogo generado (catalog.json, CATALOG.md)."],
+                ["ai-tools/", "El catálogo generado: CATALOG.md (índice), components/ (una ficha por componente) y catalog.json (para scripts)."],
                 [".claude/skills/", "Los procedimientos: elegir componentes, nueva pantalla, revisar, documentar."],
                 [".claude/settings.json", "Los hooks: bloquear escrituras fuera de las reglas y repasar al terminar."],
                 ["scripts/check-design-system.mjs", "La validación (npm run check)."],

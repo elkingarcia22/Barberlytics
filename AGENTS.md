@@ -7,7 +7,7 @@ nueva se arma con lo que ya existe. Estas reglas valen para cualquier IA y para 
 ## Las cinco reglas
 
 1. **Todo sale del sistema.** Botones, tablas, formularios, avisos, drawers: todo viene de
-   `@/components/<familia>`. Consulta `ai-tools/CATALOG.md` (o `catalog.json`) antes de escribir.
+   `@/components/<familia>`. Consulta el índice `ai-tools/CATALOG.md` y la ficha de cada pieza (`ai-tools/components/<id>.md`) antes de escribir.
    Si no existe la pieza, pregunta; si hay que crearla, es un componente documentado en
    `src/components/<familia>/` + entrada en `src/docs/registry/<grupo>/`, nunca un `div` en la
    pantalla. Ninguna otra librería de interfaz (MUI, Chakra, Ant, Mantine, Headless UI suelto…).

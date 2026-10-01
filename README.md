@@ -50,7 +50,7 @@ Las reglas viven en el repo, no en la cabeza de nadie:
 
 - `AGENTS.md` — las cinco reglas, dónde se trabaja, la receta de una pantalla y cómo se entrega. Las leen Claude, Cursor, Codex y Gemini.
 - `CLAUDE.md` — el mapa del repo, las trampas conocidas y cómo cerrar un trabajo.
-- `ai-tools/CATALOG.md` y `catalog.json` — el catálogo de componentes generado del registro (`npm run catalog`): import, props, ejemplos, guías, tokens e iconos.
+- `ai-tools/` — el catálogo generado del registro (`npm run catalog`): `CATALOG.md` es el índice (una línea por componente), `components/<id>.md` la ficha de cada uno (props, guías, ejemplos) y `catalog.json` todo junto para scripts. `npm run check` falla si queda viejo.
 - `.claude/skills/` — procedimientos que se activan solos: elegir componentes, nueva pantalla, revisar contra el sistema, documentar un componente.
 - `.claude/settings.json` — hooks: bloquea una escritura con librerías ajenas, colores o letra a mano, y repasa los cambios al terminar.
 - `scripts/check-design-system.mjs` — `npm run check`: estricto en `src/features`, `src/app` y `src/lib`; aviso en el sistema.

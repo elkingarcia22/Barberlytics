@@ -34,7 +34,8 @@ En la app de escritorio el dev server se levanta con `.claude/launch.json` (`the
 - `src/app/` — router, providers, layout, páginas de error. `src/features/` — auth, users, dashboard.
 - `src/lib/api/` (cliente, `ApiError`), `src/lib/query/` (`QueryBoundary`, `queryClient`).
 - `src/mocks/` — MSW; implementa `docs/API_CONTRACT.md`.
-- `ai-tools/` — catálogo generado. `.claude/skills/` — procedimientos. `scripts/` — check y catálogo.
+- `ai-tools/` — catálogo generado: `CATALOG.md` (índice, lo único que se lee entero),
+  `components/<id>.md` (ficha por componente) y `catalog.json` (para scripts). `.claude/skills/` — procedimientos. `scripts/` — check y catálogo.
 - `docs/` — ARCHITECTURE, API_CONTRACT, THEMING, DEPLOYMENT, DESIGN y las decisiones de cada fase.
 
 ## Documentar un componente
@@ -60,6 +61,9 @@ Las páginas de guía viven en `docs/guidePages.ts` + `pages/guides/`.
   helper de login está en `e2e/helpers.ts`.
 - **Cobertura**: Vitest solo cuenta `src/lib`, `src/features`, `src/themes`, `src/app`. Los
   componentes se prueban con Testing Library junto al archivo y con e2e.
+- **El catálogo caduca**: `npm run check` compara la huella del registro, los iconos y los tokens
+  con la de `ai-tools/catalog.json` y falla con `catalogo-viejo` si no coinciden. Se arregla con
+  `npm run catalog`, nunca editando `ai-tools/` a mano.
 - **`npm run check` compara contra `main`** para detectar archivos protegidos tocados; sin `main`
   local solo mira el árbol de trabajo. Es estricto (error) en `src/features`, `src/app`, `src/lib`
   y `src/mocks`, y avisa (deuda heredada) en el resto de `src/`; `--strict` sube todo a error.

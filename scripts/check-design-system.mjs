@@ -11,7 +11,8 @@
  *   6. una pantalla fija su propio ancho máximo en vez de dejárselo al marco;
  *   6b. se pide un icono con un nombre que no está en el registro (hoy caería al fallback
  *       en silencio) o una pantalla de `src/features` no está enrutada;
- *   7. se tocaron archivos protegidos (tokens, temas, shell, configuración) respecto a `main`.
+ *   7. se tocaron archivos protegidos (tokens, temas, shell, configuración) respecto a `main`;
+ *   8. el catálogo de `ai-tools/` no corresponde al registro actual (falta `npm run catalog`).
  *
  * Reporta todos los hallazgos de cada archivo, no solo el primero. Salida 1 si hay errores.
  *
@@ -23,6 +24,7 @@
 import { execSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { catalogSourceHash } from "./catalog-source.mjs";
 
 const ROOT = process.cwd();
 const args = new Set(process.argv.slice(2));
@@ -217,6 +219,20 @@ if (!CHANGED_ONLY) {
 
 for (const file of changed.files) {
   if (PROTECTED.some((re) => re.test(file))) add(file, 0, "archivo-protegido", `Archivo protegido cambiado${changed.base ? ` respecto a ${changed.base}` : ""}. Lo aprueba ingeniería.`, "warn");
+}
+
+/* --- Catálogo viejo: el registro cambió y `ai-tools/` no se regeneró. --- */
+// No pasa por `add`: no es deuda heredada, así que es error también fuera de producto.
+const CATALOG_FILE = "ai-tools/catalog.json";
+const staleCatalog = (message) =>
+  findings.push({ file: CATALOG_FILE, line: 0, rule: "catalogo-viejo", message, level: WARN_ONLY ? "warn" : "error" });
+try {
+  const { sourceHash } = JSON.parse(readFileSync(join(ROOT, CATALOG_FILE), "utf8"));
+  if (sourceHash !== catalogSourceHash(ROOT)) {
+    staleCatalog("El registro, los iconos o los tokens cambiaron y el catálogo no. Corre `npm run catalog`.");
+  }
+} catch (error) {
+  staleCatalog(`No se pudo leer el catálogo (${error.message}). Corre \`npm run catalog\`.`);
 }
 
 const errors = findings.filter((f) => f.level === "error");

@@ -5,8 +5,9 @@ description: Antes de maquetar cualquier pantalla o pieza de interfaz en este re
 
 # Elegir componentes
 
-1. Lee `ai-tools/CATALOG.md` (o `ai-tools/catalog.json` si necesitas props). Si no existe o está
-   viejo, `npm run catalog`.
+1. Lee `ai-tools/CATALOG.md`: es el índice, una línea por componente con su `[id]` y su import.
+   No leas `ai-tools/catalog.json` entero (es el mismo contenido para scripts). Si `npm run check`
+   dice que el catálogo está viejo, `npm run catalog`.
 2. Para cada cosa que se ve en el pedido, anota la pieza y su import. Guía rápida:
    - Página: `PageShell` (+ `maxWidth`) y `PageHeader`. Título/texto: `Heading`, `Text`.
    - Lista de registros con filtros, orden, selección, acciones: `TableShell` + `TableHeaderControls`
@@ -21,6 +22,6 @@ description: Antes de maquetar cualquier pantalla o pieza de interfaz en este re
    - Gráficas: `charts/*` (ECharts con tema). Historial: `Timeline`. Fila con avatar y acciones: `ListItem`.
    - IA: `AIButton`, `AiGeneratedBadge`, `AILoader`, `AiAnalyzingState`, `AIInsightCard`, `AiAgentDrawer`.
    - Iconos: `<ThemaIcon name="…" />` con los nombres de `src/icons/iconRegistry.ts`.
-3. Abre el archivo de la entrada en `src/docs/registry/<grupo>/<id>.tsx` para ver props y ejemplos
-   reales antes de escribir. Copia la composición del ejemplo más parecido.
+3. Abre la ficha de cada pieza que vayas a usar, `ai-tools/components/<id>.md`: props, guías y
+   ejemplos reales. Solo esas, no las demás. Copia la composición del ejemplo más parecido.
 4. Si nada encaja, dilo antes de inventar: propón crear el componente (ver `documentar-componente`).

@@ -50,6 +50,17 @@ al `index.ts` del grupo. Un grupo nuevo se declara en `registry/types.ts` (`DocG
 `DOC_GROUPS`), en `registry/index.ts` y en `docsNavigation.ts` (`GROUP_ICONS`). Luego `npm run catalog`.
 Las páginas de guía viven en `docs/guidePages.ts` + `pages/guides/`.
 
+## Orientarse en el código
+
+Tres niveles, del más barato al más caro; sube solo si el anterior no basta:
+
+1. `ai-tools/CODEMAP.md` — dónde vive algo (rutas, endpoints, qué exporta cada archivo). Va en el repo.
+2. **CodeGraph** (`codegraph_explore`, opcional: cada quien corre `codegraph install -t claude -l global -y`
+   una vez y `codegraph init` en su checkout; el índice `.codegraph/` es local y está en `.gitignore`).
+   Úsalo antes de editar un símbolo: devuelve su código, quién lo llama y el radio de impacto.
+   Sin `.codegraph/`, sáltatelo y usa grep.
+3. Leer o buscar archivos a mano, solo para lo que los dos anteriores no cubren.
+
 ## Trampas conocidas
 
 - **Tailwind es v3** aunque muchos componentes usan sintaxis v4 (`data-open:`, `in-data-[…]`). Las

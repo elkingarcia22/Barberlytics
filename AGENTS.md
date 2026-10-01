@@ -7,7 +7,7 @@ nueva se arma con lo que ya existe. Estas reglas valen para cualquier IA y para 
 ## Las cinco reglas
 
 1. **Todo sale del sistema.** Botones, tablas, formularios, avisos, drawers: todo viene de
-   `@/components/<familia>`. Consulta `ai-tools/CATALOG.md` (o `catalog.json`) antes de escribir.
+   `@/components/<familia>`. Consulta el índice `ai-tools/CATALOG.md` y la ficha de cada pieza (`ai-tools/components/<id>.md`) antes de escribir.
    Si no existe la pieza, pregunta; si hay que crearla, es un componente documentado en
    `src/components/<familia>/` + entrada en `src/docs/registry/<grupo>/`, nunca un `div` en la
    pantalla. Ninguna otra librería de interfaz (MUI, Chakra, Ant, Mantine, Headless UI suelto…).
@@ -64,3 +64,4 @@ cambia el doc, el mock y el esquema Zod a la vez. Cliente en `src/lib/api/`, err
 - Rama por cambio y PR con resumen y plan de pruebas. La CI corre lint, tipos, pruebas, build y e2e.
 - Probar en claro, oscuro (`ThemeModeToggle`) y en pantalla angosta (375px).
 - Si creaste o cambiaste un componente: entrada en el registry al día y `npm run catalog`.
+- Si añadiste o cambiaste una pantalla, una ruta, un export o un endpoint: `npm run codemap`.

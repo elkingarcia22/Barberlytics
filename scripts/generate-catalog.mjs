@@ -4,19 +4,66 @@
  *
  * Carga el registro de la documentación (`src/docs/registry`) con el servidor
  * de Vite en modo SSR, así se ejecuta el mismo TypeScript que ve la doc y no
- * hay una segunda fuente que mantener. Escribe:
- *   ai-tools/catalog.json — cada componente con id, nombre, grupo, descripción,
- *                           import, ruta, estado, tags, props, guías, relacionados
- *                           y el código de sus ejemplos;
- *   ai-tools/CATALOG.md   — lo mismo, legible, agrupado por familia.
- * También lista los tokens (tokens.css), los iconos del registro y las guías.
+ * hay una segunda fuente que mantener. Escribe tres niveles, del más barato
+ * de leer al más caro:
+ *   ai-tools/CATALOG.md           — el índice: una línea por componente (qué es
+ *                                   y de dónde se importa), guías, fundamentos e
+ *                                   iconos. Es lo único que se lee entero.
+ *   ai-tools/components/<id>.md   — la ficha de un componente: props, guías,
+ *                                   relacionados y todos sus ejemplos. Se abre
+ *                                   solo la de la pieza que se va a usar.
+ *   ai-tools/catalog.json         — todo junto, para consultarlo con un script;
+ *                                   no para leerlo de corrido.
+ * La salida no lleva fecha: depende solo de las fuentes, y `sourceHash` deja
+ * que `npm run check` avise cuando el catálogo quedó viejo.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createServer } from "vite";
+import { catalogSourceHash } from "./catalog-source.mjs";
 
 const ROOT = process.cwd();
 const OUT = join(ROOT, "ai-tools");
+const FICHAS = join(OUT, "components");
+const SUMMARY_MAX = 140;
+
+/** El catálogo se escribe en español, el idioma fuente de la doc. */
+const text = (value) => (value && typeof value === "object" ? (value.es ?? value.en ?? "") : (value ?? ""));
+const cell = (value) => value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+
+/** La primera frase de la descripción, recortada: lo justo para elegir la pieza. */
+function summary(description) {
+  const first = description.split(/(?<=\.)\s/)[0].trim();
+  return first.length > SUMMARY_MAX ? `${first.slice(0, SUMMARY_MAX - 1).trimEnd()}…` : first;
+}
+
+/** `import { A, B } from "@/x"` → `@/x`: el nombre ya está en la línea del índice. */
+const importSource = (statement) => statement.match(/from\s+["']([^"']+)["']/)?.[1] ?? statement;
+
+function ficha(c, groupLabel) {
+  const md = [`# ${c.name}${c.status !== "stable" ? ` (${c.status})` : ""}`, "", c.description, ""];
+  md.push(`Familia: ${groupLabel} · Doc: \`${c.docs}\`${c.source ? ` · Fuente: \`${c.source}\`` : ""}`, "");
+  md.push("```ts", c.import, "```", "");
+  if (c.props.length) {
+    md.push("## Props", "", "| Prop | Tipo | Default | Qué hace |", "|---|---|---|---|");
+    for (const p of c.props) md.push(`| \`${p.name}\` | \`${cell(p.type)}\` | ${p.default ? `\`${cell(p.default)}\`` : ""} | ${cell(p.description)} |`);
+    md.push("");
+  }
+  if (c.guidelines.do?.length || c.guidelines.dont?.length) {
+    md.push("## Guías", "");
+    for (const rule of c.guidelines.do ?? []) md.push(`- Sí: ${rule}`);
+    for (const rule of c.guidelines.dont ?? []) md.push(`- No: ${rule}`);
+    md.push("");
+  }
+  if (c.related.length) md.push(`Relacionados: ${c.related.join(", ")}`, "");
+  if (c.examples.length) md.push("## Ejemplos", "");
+  for (const ex of c.examples) {
+    md.push(`### ${ex.title}`, "");
+    if (ex.description) md.push(ex.description, "");
+    md.push("```tsx", ex.code, "```", "");
+  }
+  return md.join("\n");
+}
 
 const server = await createServer({
   root: ROOT,
@@ -32,23 +79,24 @@ try {
   const foundations = await server.ssrLoadModule("/src/docs/foundationPages.ts");
   const icons = await server.ssrLoadModule("/src/icons/iconRegistry.ts");
 
-  const groups = registry.DOC_GROUPS.map((g) => ({ id: g.id, label: g.label, description: g.description }));
+  const groups = registry.DOC_GROUPS.map((g) => ({ id: g.id, label: text(g.label), description: text(g.description) }));
   const components = [...registry.ALL_ENTRIES]
     .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
     .map((e) => ({
       id: e.id,
       name: e.name,
       group: e.group,
-      description: e.description,
+      description: text(e.description),
       import: e.importPath,
       source: e.sourcePath ?? null,
       status: e.status ?? "stable",
       tags: e.tags ?? [],
-      props: (e.props ?? []).map((p) => ({ name: p.name, type: p.type, default: p.default ?? null, description: p.description })),
-      guidelines: e.guidelines ?? {},
+      props: (e.props ?? []).map((p) => ({ name: p.name, type: p.type, default: p.default ?? null, description: text(p.description) })),
+      guidelines: { do: (e.guidelines?.do ?? []).map(text), dont: (e.guidelines?.dont ?? []).map(text) },
       related: e.related ?? [],
-      examples: e.examples.map((x) => ({ id: x.id, title: x.title, description: x.description ?? null, code: x.code })),
+      examples: e.examples.map((x) => ({ id: x.id, title: text(x.title), description: x.description ? text(x.description) : null, code: x.code })),
       docs: `/docs#/components/${e.id}`,
+      ficha: `ai-tools/components/${e.id}.md`,
     }));
 
   const tokensCss = readFileSync(join(ROOT, "src/styles/tokens.css"), "utf8");
@@ -56,13 +104,13 @@ try {
   const iconNames = Object.keys(icons.iconRegistry ?? icons.ICON_REGISTRY ?? {}).sort();
 
   const catalog = {
-    generatedAt: new Date().toISOString(),
+    sourceHash: catalogSourceHash(ROOT),
     source: "src/docs/registry (npm run catalog)",
     rules: "AGENTS.md",
     groups,
     components,
-    guides: guides.GUIDE_PAGES.map((g) => ({ id: g.id, section: g.section, label: g.label, description: g.description, docs: `/docs#/guides/${g.id}` })),
-    foundations: foundations.FOUNDATION_PAGES.map((f) => ({ id: f.id, label: f.label, docs: `/docs#/foundations/${f.id}` })),
+    guides: guides.GUIDE_PAGES.map((g) => ({ id: g.id, section: g.section, label: text(g.label), description: text(g.description), docs: `/docs#/guides/${g.id}` })),
+    foundations: foundations.FOUNDATION_PAGES.map((f) => ({ id: f.id, label: text(f.label), docs: `/docs#/foundations/${f.id}` })),
     icons: iconNames,
     tokens,
   };
@@ -70,9 +118,16 @@ try {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, "catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
 
+  // Las fichas se regeneran desde cero: un componente borrado no deja la suya huérfana.
+  rmSync(FICHAS, { recursive: true, force: true });
+  mkdirSync(FICHAS, { recursive: true });
+  const groupLabel = new Map(groups.map((g) => [g.id, g.label]));
+  for (const c of components) writeFileSync(join(FICHAS, `${c.id}.md`), ficha(c, groupLabel.get(c.group) ?? c.group));
+
   const md = [];
-  md.push("# Catálogo de componentes Thema", "", `Generado el ${catalog.generatedAt.slice(0, 10)} con \`npm run catalog\` desde \`src/docs/registry\`. No se edita a mano. Las reglas están en \`AGENTS.md\`; cada ficha completa en \`/docs#/components/<id>\`.`, "");
+  md.push("# Catálogo de componentes Thema", "", "Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.", "");
   md.push(`**${components.length} componentes** en ${groups.length} familias · ${iconNames.length} iconos en el registro · ${tokens.length} tokens.`, "");
+  md.push("Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.", "");
   md.push("## Guías", "");
   for (const g of catalog.guides) md.push(`- **${g.label}** (${g.section}) — ${g.description} → \`${g.docs}\``);
   md.push("", "## Fundamentos", "");
@@ -81,24 +136,9 @@ try {
     const list = components.filter((c) => c.group === group.id);
     if (!list.length) continue;
     md.push("", `## ${group.label} · ${list.length}`, "", group.description, "");
-    for (const c of list) {
-      md.push(`### ${c.name}${c.status !== "stable" ? ` (${c.status})` : ""}`, "");
-      md.push(c.description, "");
-      md.push("```ts", c.import, "```", "");
-      if (c.props.length) {
-        md.push("| Prop | Tipo | Default | Qué hace |", "|---|---|---|---|");
-        for (const p of c.props) md.push(`| \`${p.name}\` | \`${p.type.replace(/\|/g, "\\|")}\` | ${p.default ? `\`${p.default.replace(/\|/g, "\\|")}\`` : ""} | ${p.description.replace(/\|/g, "\\|")} |`);
-        md.push("");
-      }
-      const ex = c.examples[0];
-      if (ex) md.push(`Ejemplo · ${ex.title}:`, "", "```tsx", ex.code, "```", "");
-      if (c.guidelines.do?.length) md.push(`Sí: ${c.guidelines.do.join(" · ")}`);
-      if (c.guidelines.dont?.length) md.push(`No: ${c.guidelines.dont.join(" · ")}`);
-      if (c.related.length) md.push(`Relacionados: ${c.related.join(", ")}`);
-      md.push("");
-    }
+    for (const c of list) md.push(`- **${c.name}** [${c.id}]${c.status !== "stable" ? ` (${c.status})` : ""} — ${summary(c.description)} \`${importSource(c.import)}\``);
   }
-  md.push("## Iconos del registro", "", "`<ThemaIcon name=\"…\" />` · " + iconNames.join(", "), "");
+  md.push("", "## Iconos del registro", "", "`<ThemaIcon name=\"…\" />` · " + iconNames.join(", "), "");
   writeFileSync(join(OUT, "CATALOG.md"), md.join("\n"));
   console.log(`catalog: ${components.length} componentes, ${groups.length} familias, ${iconNames.length} iconos, ${tokens.length} tokens → ai-tools/`);
 } finally {

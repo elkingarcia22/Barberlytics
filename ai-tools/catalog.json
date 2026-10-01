@@ -1,238 +1,112 @@
 {
-  "generatedAt": "2026-09-30T13:09:23.311Z",
+  "sourceHash": "3eab86aeac40c50e",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
     {
       "id": "ui",
-      "label": {
-        "es": "Primitivos",
-        "en": "Primitives"
-      },
-      "description": {
-        "es": "Base shadcn/Radix afinada con los tokens Thema.",
-        "en": "shadcn/Radix base tuned with Thema tokens."
-      }
+      "label": "Primitivos",
+      "description": "Base shadcn/Radix afinada con los tokens Thema."
     },
     {
       "id": "typography",
-      "label": {
-        "es": "Tipografía",
-        "en": "Typography"
-      },
-      "description": {
-        "es": "Heading y Text: la escala tipográfica como componentes, sin tamaños a mano.",
-        "en": "Heading and Text: the type scale as components, with no hand-set sizes."
-      }
+      "label": "Tipografía",
+      "description": "Heading y Text: la escala tipográfica como componentes, sin tamaños a mano."
     },
     {
       "id": "forms",
-      "label": {
-        "es": "Formularios",
-        "en": "Forms"
-      },
-      "description": {
-        "es": "Campos, secciones y selects compuestos.",
-        "en": "Fields, sections and composed selects."
-      }
+      "label": "Formularios",
+      "description": "Campos, secciones y selects compuestos."
     },
     {
       "id": "selection",
-      "label": {
-        "es": "Selección",
-        "en": "Selection"
-      },
-      "description": {
-        "es": "Tarjetas, tiles y controles segmentados para elegir.",
-        "en": "Cards, tiles and segmented controls for choosing."
-      }
+      "label": "Selección",
+      "description": "Tarjetas, tiles y controles segmentados para elegir."
     },
     {
       "id": "navigation",
-      "label": {
-        "es": "Navegación",
-        "en": "Navigation"
-      },
-      "description": {
-        "es": "Tabs, sub-navegación, breadcrumbs y paginación.",
-        "en": "Tabs, sub-navigation, breadcrumbs and pagination."
-      }
+      "label": "Navegación",
+      "description": "Tabs, sub-navegación, breadcrumbs y paginación."
     },
     {
       "id": "overlays",
-      "label": {
-        "es": "Overlays",
-        "en": "Overlays"
-      },
-      "description": {
-        "es": "Drawers, modales y diálogos de confirmación.",
-        "en": "Drawers, modals and confirmation dialogs."
-      }
+      "label": "Overlays",
+      "description": "Drawers, modales y diálogos de confirmación."
     },
     {
       "id": "feedback",
-      "label": {
-        "es": "Feedback",
-        "en": "Feedback"
-      },
-      "description": {
-        "es": "Estados vacíos, avisos y toasts.",
-        "en": "Empty states, alerts and toasts."
-      }
+      "label": "Feedback",
+      "description": "Estados vacíos, avisos y toasts."
     },
     {
       "id": "feedback-loop",
-      "label": {
-        "es": "Feedback de usuarios",
-        "en": "User feedback"
-      },
-      "description": {
-        "es": "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.",
-        "en": "Collect feedback at scale on something just launched: guided tour, floating button and comment panel."
-      }
+      "label": "Feedback de usuarios",
+      "description": "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios."
     },
     {
       "id": "data-display",
-      "label": {
-        "es": "Datos",
-        "en": "Data"
-      },
-      "description": {
-        "es": "Tablas configurables y badges de estado.",
-        "en": "Configurable tables and status badges."
-      }
+      "label": "Datos",
+      "description": "Tablas configurables y badges de estado."
     },
     {
       "id": "date",
-      "label": {
-        "es": "Fechas y rangos",
-        "en": "Dates and ranges"
-      },
-      "description": {
-        "es": "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.",
-        "en": "Date, range, month, quarter and period pickers, plus a range slider."
-      }
+      "label": "Fechas y rangos",
+      "description": "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango."
     },
     {
       "id": "scheduling",
-      "label": {
-        "es": "Agenda",
-        "en": "Scheduling"
-      },
-      "description": {
-        "es": "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.",
-        "en": "The day grid by barber, month occupancy and the date-and-time picker."
-      }
+      "label": "Agenda",
+      "description": "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora."
     },
     {
       "id": "upload",
-      "label": {
-        "es": "Archivos",
-        "en": "Files"
-      },
-      "description": {
-        "es": "Zonas de carga, previsualización y progreso.",
-        "en": "Upload zones, previews and progress."
-      }
+      "label": "Archivos",
+      "description": "Zonas de carga, previsualización y progreso."
     },
     {
       "id": "charts",
-      "label": {
-        "es": "Gráficos",
-        "en": "Charts"
-      },
-      "description": {
-        "es": "ECharts con el tema Thema resuelto en tiempo real.",
-        "en": "ECharts with the Thema theme resolved in real time."
-      }
+      "label": "Gráficos",
+      "description": "ECharts con el tema Thema resuelto en tiempo real."
     },
     {
       "id": "ai",
-      "label": {
-        "es": "IA",
-        "en": "AI"
-      },
-      "description": {
-        "es": "Botones, loaders, badges y paneles con la identidad de IA.",
-        "en": "Buttons, loaders, badges and panels with the AI identity."
-      }
+      "label": "IA",
+      "description": "Botones, loaders, badges y paneles con la identidad de IA."
     },
     {
       "id": "action-rail",
-      "label": {
-        "es": "Action rail",
-        "en": "Action rail"
-      },
-      "description": {
-        "es": "La barra de acciones flotante y sus piezas.",
-        "en": "The floating action bar and its parts."
-      }
+      "label": "Action rail",
+      "description": "La barra de acciones flotante y sus piezas."
     },
     {
       "id": "layout",
-      "label": {
-        "es": "Layout y shell",
-        "en": "Layout and shell"
-      },
-      "description": {
-        "es": "Sidebar, header, shell de administración y páginas.",
-        "en": "Sidebar, header, admin shell and pages."
-      }
+      "label": "Layout y shell",
+      "description": "Sidebar, header, shell de administración y páginas."
     },
     {
       "id": "media",
-      "label": {
-        "es": "Media",
-        "en": "Media"
-      },
-      "description": {
-        "es": "Carrusel, galerías y previsualizaciones.",
-        "en": "Carousel, galleries and previews."
-      }
+      "label": "Media",
+      "description": "Carrusel, galerías y previsualizaciones."
     },
     {
       "id": "utility",
-      "label": {
-        "es": "Utilidades",
-        "en": "Utilities"
-      },
-      "description": {
-        "es": "Encabezados de página y sección, tags.",
-        "en": "Page and section headers, tags."
-      }
+      "label": "Utilidades",
+      "description": "Encabezados de página y sección, tags."
     },
     {
       "id": "icons",
-      "label": {
-        "es": "Iconos",
-        "en": "Icons"
-      },
-      "description": {
-        "es": "El registro semántico de iconos y su wrapper.",
-        "en": "The semantic icon registry and its wrapper."
-      }
+      "label": "Iconos",
+      "description": "El registro semántico de iconos y su wrapper."
     },
     {
       "id": "atmosphere",
-      "label": {
-        "es": "Atmósfera y marca",
-        "en": "Atmosphere and brand"
-      },
-      "description": {
-        "es": "Fondos con material, la personalidad del oficio y la aparición al hacer scroll: cabello, poste, tijeras, grano, halo.",
-        "en": "Backdrops with material, the trade's personality and scroll reveals: hair, pole, scissors, grain, halo."
-      }
+      "label": "Atmósfera y marca",
+      "description": "Fondos con material, la personalidad del oficio y la aparición al hacer scroll: cabello, poste, tijeras, grano, halo."
     },
     {
       "id": "blocks",
-      "label": {
-        "es": "Bloques",
-        "en": "Blocks"
-      },
-      "description": {
-        "es": "Composiciones completas listas para una pantalla: piezas del sistema ya cableadas entre sí.",
-        "en": "Complete compositions ready for a screen: system pieces already wired together."
-      }
+      "label": "Bloques",
+      "description": "Composiciones completas listas para una pantalla: piezas del sistema ya cableadas entre sí."
     }
   ],
   "components": [
@@ -305,7 +179,8 @@
           "code": "<ActionFab actions={acciones} selectedCount={selected.size} onClearSelection={clear} />"
         }
       ],
-      "docs": "/docs#/components/action-fab"
+      "docs": "/docs#/components/action-fab",
+      "ficha": "ai-tools/components/action-fab.md"
     },
     {
       "id": "action-rail-shell",
@@ -409,7 +284,8 @@
           "code": "<RailButton icon={<Download />} label=\"Exportar\" onClick={exportAll} />\n<RailDivider />\n<RailButton icon={<Trash2 />} label=\"Eliminar\" tone=\"danger\" onClick={remove} />\n<RailDivider />\n<RailPrimaryAction icon={<Plus />} label=\"Crear\" />"
         }
       ],
-      "docs": "/docs#/components/action-rail-shell"
+      "docs": "/docs#/components/action-rail-shell",
+      "ficha": "ai-tools/components/action-rail-shell.md"
     },
     {
       "id": "confirm-action-popover",
@@ -524,7 +400,8 @@
           "code": "// Dentro de una barra vertical no hace falta pasar side:\n<RailConfirmButton icon={<Trash2 />} label=\"Eliminar\" tone=\"danger\" confirmTone=\"destructive\" … />"
         }
       ],
-      "docs": "/docs#/components/confirm-action-popover"
+      "docs": "/docs#/components/confirm-action-popover",
+      "ficha": "ai-tools/components/confirm-action-popover.md"
     },
     {
       "id": "data-list-action-rail",
@@ -668,7 +545,8 @@
           "code": "<DataListActionRail actions={ACCIONES} inlineLimit={2} … />"
         }
       ],
-      "docs": "/docs#/components/data-list-action-rail"
+      "docs": "/docs#/components/data-list-action-rail",
+      "ficha": "ai-tools/components/data-list-action-rail.md"
     },
     {
       "id": "drawer-action-rail",
@@ -789,7 +667,8 @@
           "code": "<DrawerRailButton icon={ArrowLeft} label=\"Atrás\" onClick={back} />\n<DrawerRailButton icon={ArrowRight} label=\"Continuar\" variant=\"primary\" onClick={next} />\n<DrawerRailButton icon={Scale} label=\"Revisar pesos\" variant=\"warning\" onClick={review} />\n<DrawerRailButton icon={Trash2} label=\"Eliminar\" variant=\"danger\" onClick={remove} />\n<DrawerRailButton icon={Wand2} label=\"Sugerir con IA\" iconOnly onClick={suggest} />\n<DrawerRailButton icon={Check} label=\"Guardar\" variant=\"primary\" disabled onClick={save} />"
         }
       ],
-      "docs": "/docs#/components/drawer-action-rail"
+      "docs": "/docs#/components/drawer-action-rail",
+      "ficha": "ai-tools/components/drawer-action-rail.md"
     },
     {
       "id": "rail-button",
@@ -897,7 +776,8 @@
           "code": "{actions.map((action, index) => (\n  <AnimatedActionItem key={action.id} animKey={animKey} staggerIndex={index}>\n    <RailButton icon={action.icon} label={action.label} onClick={action.run} />\n  </AnimatedActionItem>\n))}"
         }
       ],
-      "docs": "/docs#/components/rail-button"
+      "docs": "/docs#/components/rail-button",
+      "ficha": "ai-tools/components/rail-button.md"
     },
     {
       "id": "rail-drag-handle",
@@ -975,7 +855,8 @@
           "code": "const [position, setPosition] = useRailPosition();\n// position: { x, y } | null — x es el centro horizontal de la barra\nsetPosition(null); // de vuelta al dock"
         }
       ],
-      "docs": "/docs#/components/rail-drag-handle"
+      "docs": "/docs#/components/rail-drag-handle",
+      "ficha": "ai-tools/components/rail-drag-handle.md"
     },
     {
       "id": "rail-overflow-menu",
@@ -1083,7 +964,8 @@
           "code": "// Dentro de una barra vertical no cambia nada en el uso:\n<RailOverflowMenu items={items} />"
         }
       ],
-      "docs": "/docs#/components/rail-overflow-menu"
+      "docs": "/docs#/components/rail-overflow-menu",
+      "ficha": "ai-tools/components/rail-overflow-menu.md"
     },
     {
       "id": "rail-selection-chip",
@@ -1159,7 +1041,8 @@
           "code": "// Dentro de una barra vertical:\n<RailSelectionChip count={12} gender=\"m\" onClear={clear} />"
         }
       ],
-      "docs": "/docs#/components/rail-selection-chip"
+      "docs": "/docs#/components/rail-selection-chip",
+      "ficha": "ai-tools/components/rail-selection-chip.md"
     },
     {
       "id": "rail-settings-menu",
@@ -1250,7 +1133,8 @@
           "code": "const [orientation, setOrientation] = useRailOrientation(); // localStorage\nconst [autoHide, setAutoHide] = useRailAutoHide();            // localStorage\nconst [position, setPosition] = useRailPosition();            // solo en memoria\n\n// Para las piezas dentro de una barra:\nconst axis = useRailAxis();          // la del shell o, sin shell, la preferencia\nconst side = useRailPopoutSide();    // \"top\" tumbada · \"left\" de pie"
         }
       ],
-      "docs": "/docs#/components/rail-settings-menu"
+      "docs": "/docs#/components/rail-settings-menu",
+      "ficha": "ai-tools/components/rail-settings-menu.md"
     },
     {
       "id": "ai-agent-drawer",
@@ -1329,7 +1213,8 @@
           "code": "import { agentPanelShift, agentPanelTransition } from \"@/components/ai/agentPanelMotion\";\n\nconst shift = agentPanelShift(agentOpen);\n<SheetContent style={shift.content} overlayStyle={shift.overlay} />\n\n// o para una propiedad suelta:\nstyle={{ width: open ? AGENT_PANEL_WIDTH : 0, transition: agentPanelTransition(\"width\") }}"
         }
       ],
-      "docs": "/docs#/components/ai-agent-drawer"
+      "docs": "/docs#/components/ai-agent-drawer",
+      "ficha": "ai-tools/components/ai-agent-drawer.md"
     },
     {
       "id": "ai-analyzing-state",
@@ -1419,7 +1304,8 @@
           "code": "<AiAnalyzingState variant=\"inline\" title=\"Reescribiendo la pregunta\" />"
         }
       ],
-      "docs": "/docs#/components/ai-analyzing-state"
+      "docs": "/docs#/components/ai-analyzing-state",
+      "ficha": "ai-tools/components/ai-analyzing-state.md"
     },
     {
       "id": "ai-button",
@@ -1544,7 +1430,8 @@
           "code": "<AIButton label=\"Analizar resultados\" leftIcon=\"analytics\" />\n<AIButton label=\"Continuar\" variant=\"outline\" rightIcon=\"arrowRight\" />"
         }
       ],
-      "docs": "/docs#/components/ai-button"
+      "docs": "/docs#/components/ai-button",
+      "ficha": "ai-tools/components/ai-button.md"
     },
     {
       "id": "ai-generated-badge",
@@ -1598,7 +1485,8 @@
           "code": "<AiGeneratedBadge />\n<AiGeneratedBadge className=\"opacity-60\" />\n<AiGeneratedBadge className=\"[&_svg]:size-5\" />"
         }
       ],
-      "docs": "/docs#/components/ai-generated-badge"
+      "docs": "/docs#/components/ai-generated-badge",
+      "ficha": "ai-tools/components/ai-generated-badge.md"
     },
     {
       "id": "ai-insight-card",
@@ -1699,7 +1587,8 @@
           "code": "<AIInsightCard\n  type=\"risk\"\n  confidence=\"high\"\n  title=\"Tres gerencias sin plan de sucesión\"\n  description=\"Ninguna de las gerencias regionales tiene un sucesor identificado.\"\n  evidence=\"0 de 3 con sucesor\"\n  impact=\"Continuidad operativa\"\n  actionLabel=\"Crear plan de sucesión\"\n  onAction={() => {}}\n/>"
         }
       ],
-      "docs": "/docs#/components/ai-insight-card"
+      "docs": "/docs#/components/ai-insight-card",
+      "ficha": "ai-tools/components/ai-insight-card.md"
     },
     {
       "id": "ai-loader",
@@ -1788,7 +1677,8 @@
           "code": "<AILoader variant=\"inline\" status=\"thinking\" />\n<AILoader variant=\"inline\" status=\"generating\" />\n<AILoader variant=\"inline\" status=\"analyzing\" />\n<AILoader variant=\"inline\" status=\"complete\" />\n<AILoader variant=\"inline\" status=\"error\" />\n<AILoader variant=\"inline\" label=\"Buscando duplicados…\" />"
         }
       ],
-      "docs": "/docs#/components/ai-loader"
+      "docs": "/docs#/components/ai-loader",
+      "ficha": "ai-tools/components/ai-loader.md"
     },
     {
       "id": "ai-panel",
@@ -1889,7 +1779,8 @@
           "code": "<AIPanel empty>\n  {/* los hijos no se renderizan */}\n</AIPanel>"
         }
       ],
-      "docs": "/docs#/components/ai-panel"
+      "docs": "/docs#/components/ai-panel",
+      "ficha": "ai-tools/components/ai-panel.md"
     },
     {
       "id": "ai-spark-glyph",
@@ -1947,16 +1838,14 @@
           "code": "<div className=\"relative flex h-16 w-16 items-center justify-center\">\n  <div className=\"absolute h-11 w-11 animate-pulse rounded-full bg-ai-gradient opacity-20 blur-xl\" />\n  <AiSparkGlyph size={42} />\n</div>"
         }
       ],
-      "docs": "/docs#/components/ai-spark-glyph"
+      "docs": "/docs#/components/ai-spark-glyph",
+      "ficha": "ai-tools/components/ai-spark-glyph.md"
     },
     {
       "id": "chat-composer",
       "name": "ChatComposer",
       "group": "ai",
-      "description": {
-        "es": "La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y archivos (⌘U), Voz y el botón de enviar con halo. Encima, chips para arrancar; dentro, el aviso de novedad y la pastilla de contexto.",
-        "en": "The chat input: moving border and mesh on focus, Enter sends and Shift+Enter breaks the line, the “+” menu with connectors and files (⌘U), Voice and the send button with its halo. Starter chips above; the news banner and context chip inside."
-      },
+      "description": "La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y archivos (⌘U), Voz y el botón de enviar con halo. Encima, chips para arrancar; dentro, el aviso de novedad y la pastilla de contexto.",
       "import": "import { ChatComposer } from \"@/components/chat\"",
       "source": "src/components/chat/ChatComposer.tsx",
       "status": "beta",
@@ -2038,16 +1927,14 @@
         "chat-voice-mode"
       ],
       "examples": [],
-      "docs": "/docs#/components/chat-composer"
+      "docs": "/docs#/components/chat-composer",
+      "ficha": "ai-tools/components/chat-composer.md"
     },
     {
       "id": "chat-panel",
       "name": "ChatPanel",
       "group": "ai",
-      "description": {
-        "es": "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
-        "en": "The chat as a side panel: it portals into the AdminShell anchor (the screen narrows instead of being covered) and floats OVERLAY_INSET from the edge. Starts with the greeting, the box and a few questions; with a conversation, the thread on top and the box below. From the header: a new conversation or open it full screen."
-      },
+      "description": "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
       "import": "import { ChatPanel, ChatProvider } from \"@/components/chat\"",
       "source": "src/components/chat/ChatPanel.tsx",
       "status": "beta",
@@ -2093,16 +1980,14 @@
           "code": "const [open, setOpen] = React.useState(false);\n\n<ChatProvider value={{ store, backend, user, lang: \"es-CO\", onOpenFull: openAgentMode, onOpenVoice }}>\n  <AdminShell config={config}>\n    …\n    <ChatPanel open={open} onOpenChange={setOpen} title=\"Ayuda\" />\n  </AdminShell>\n</ChatProvider>"
         }
       ],
-      "docs": "/docs#/components/chat-panel"
+      "docs": "/docs#/components/chat-panel",
+      "ficha": "ai-tools/components/chat-panel.md"
     },
     {
       "id": "chat-screen",
       "name": "ChatScreen",
       "group": "ai",
-      "description": {
-        "es": "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
-        "en": "The full-screen chat: what AdminShell shows in “AI Agent” mode when the app passes it in `config.agentView`. A new conversation starts centered with the greeting, the box and the starter questions; with a thread, the messages fill the screen and the box stays at the bottom. History lives in the sidebar (ChatHistoryList)."
-      },
+      "description": "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
       "import": "import { ChatScreen, ChatHistoryList } from \"@/components/chat\"",
       "source": "src/components/chat/ChatScreen.tsx",
       "status": "beta",
@@ -2148,16 +2033,14 @@
           "code": "<ChatHistoryList activeId={activeId} onSelect={setActive} onNew={newConversation} onRemove={remove} />"
         }
       ],
-      "docs": "/docs#/components/chat-screen"
+      "docs": "/docs#/components/chat-screen",
+      "ficha": "ai-tools/components/chat-screen.md"
     },
     {
       "id": "chat-thread",
       "name": "ChatThread",
       "group": "ai",
-      "description": {
-        "es": "El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben solas y se pueden detener. Una respuesta trae fuentes, una tarjeta con datos, una pregunta con opciones numeradas, un enlace y las acciones: copiar, útil o no, regenerar, leer en voz alta.",
-        "en": "The thread: questions on the right (copy, edit and resend from there) and answers with the orb, which type themselves and can be stopped. An answer carries sources, a data card, a numbered-option question, a link and the actions: copy, useful or not, regenerate, read aloud."
-      },
+      "description": "El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben solas y se pueden detener. Una respuesta trae fuentes, una tarjeta con datos, una pregunta con opciones numeradas, un enlace y las acciones: copiar, útil o no, regenerar, leer en voz alta.",
       "import": "import { ChatThread, ChatProvider } from \"@/components/chat\"",
       "source": "src/components/chat/ChatThread.tsx",
       "status": "beta",
@@ -2202,16 +2085,14 @@
           "code": "<ChatProvider value={{ store, backend, user, lang: \"es-CO\" }}>\n  <ChatThread conversation={conversation} />\n</ChatProvider>"
         }
       ],
-      "docs": "/docs#/components/chat-thread"
+      "docs": "/docs#/components/chat-thread",
+      "ficha": "ai-tools/components/chat-thread.md"
     },
     {
       "id": "chat-voice-mode",
       "name": "ChatVoiceMode",
       "group": "ai",
-      "description": {
-        "es": "El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
-        "en": "Voice mode, full screen and always dark: the orb listens through the browser's speech recognition, what you said reads large, and after a pause the answer arrives with its two buttons (the detail and the first follow-up). The pill below pauses, goes back to typing or sends. Without a microphone it says so and lets you type."
-      },
+      "description": "El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
       "import": "import { ChatVoiceMode } from \"@/components/chat\"",
       "source": "src/components/chat/ChatVoiceMode.tsx",
       "status": "beta",
@@ -2261,7 +2142,8 @@
           "code": "<ChatVoiceMode open={open} onClose={close} onWrite={(text) => setDraft(text)} onSend={(text) => send(text)} />"
         }
       ],
-      "docs": "/docs#/components/chat-voice-mode"
+      "docs": "/docs#/components/chat-voice-mode",
+      "ficha": "ai-tools/components/chat-voice-mode.md"
     },
     {
       "id": "chip",
@@ -2393,7 +2275,8 @@
           "code": "<Chip label=\"Pendientes\" count={8} size=\"sm\" />\n<Chip label=\"Pendientes\" count={8} />\n<Chip label=\"Sugerencias\" tone=\"ai\" icon=\"sparkles\" count={3} />"
         }
       ],
-      "docs": "/docs#/components/chip"
+      "docs": "/docs#/components/chip",
+      "ficha": "ai-tools/components/chip.md"
     },
     {
       "id": "save-indicator",
@@ -2475,7 +2358,8 @@
           "code": "<SaveIndicator status=\"saving\" compact />\n<SaveIndicator status=\"saved\" compact />\n<SaveIndicator status=\"error\" compact />"
         }
       ],
-      "docs": "/docs#/components/save-indicator"
+      "docs": "/docs#/components/save-indicator",
+      "ficha": "ai-tools/components/save-indicator.md"
     },
     {
       "id": "barber-glyph",
@@ -2544,7 +2428,8 @@
           "code": "<BarberGlyph kind=\"comb\" floating rotate={4} className=\"absolute -right-20 -top-8 w-[30rem] text-primary opacity-[0.08]\" />"
         }
       ],
-      "docs": "/docs#/components/barber-glyph"
+      "docs": "/docs#/components/barber-glyph",
+      "ficha": "ai-tools/components/barber-glyph.md"
     },
     {
       "id": "barber-pole",
@@ -2589,7 +2474,8 @@
           "code": "<div className=\"flex items-stretch gap-10\">\n  <BarberPole className=\"hidden self-stretch xl:flex\" />\n  <div>\n    <Heading level={2}>Beta privada · Solo por invitación</Heading>\n    <Text variant=\"lead\">…</Text>\n  </div>\n</div>"
         }
       ],
-      "docs": "/docs#/components/barber-pole"
+      "docs": "/docs#/components/barber-pole",
+      "ficha": "ai-tools/components/barber-pole.md"
     },
     {
       "id": "cut-line",
@@ -2636,7 +2522,8 @@
           "code": "<Section id=\"programa\">…</Section>\n<CutLine />\n<Section id=\"camino\">…</Section>"
         }
       ],
-      "docs": "/docs#/components/cut-line"
+      "docs": "/docs#/components/cut-line",
+      "ficha": "ai-tools/components/cut-line.md"
     },
     {
       "id": "enter",
@@ -2680,7 +2567,8 @@
         "rotating-seal"
       ],
       "examples": [],
-      "docs": "/docs#/components/enter"
+      "docs": "/docs#/components/enter",
+      "ficha": "ai-tools/components/enter.md"
     },
     {
       "id": "foil",
@@ -2731,7 +2619,8 @@
           "code": "<Heading level={2}>\n  La IA que va a mover tu barbería se entrena en <Foil>este grupo</Foil>.\n</Heading>"
         }
       ],
-      "docs": "/docs#/components/foil"
+      "docs": "/docs#/components/foil",
+      "ficha": "ai-tools/components/foil.md"
     },
     {
       "id": "grain",
@@ -2783,7 +2672,8 @@
           "code": "<div className=\"page-atmosphere\">\n  <Grain scope=\"page\" />\n  <Vignette scope=\"page\" />\n  <main className=\"relative\">…</main>\n</div>"
         }
       ],
-      "docs": "/docs#/components/grain"
+      "docs": "/docs#/components/grain",
+      "ficha": "ai-tools/components/grain.md"
     },
     {
       "id": "hair-canvas",
@@ -2850,7 +2740,8 @@
           "code": "<HairCanvas density={0.7} />"
         }
       ],
-      "docs": "/docs#/components/hair-canvas"
+      "docs": "/docs#/components/hair-canvas",
+      "ficha": "ai-tools/components/hair-canvas.md"
     },
     {
       "id": "halo",
@@ -2927,7 +2818,8 @@
           "code": "<section className=\"relative overflow-hidden\">\n  <Halo x=\"50%\" y=\"100%\" size=\"40rem 20rem\" strength={0.22} />\n  <PoleRing size=\"56rem\" opacity={0.6} />\n  <div className=\"relative\">…</div>\n</section>"
         }
       ],
-      "docs": "/docs#/components/halo"
+      "docs": "/docs#/components/halo",
+      "ficha": "ai-tools/components/halo.md"
     },
     {
       "id": "marquee",
@@ -2984,7 +2876,8 @@
           "code": "<Marquee items={[\"Fade\", \"Taper\", \"Navaja\", \"Agenda\", \"Comisiones\", \"IA que aprende\"]} />"
         }
       ],
-      "docs": "/docs#/components/marquee"
+      "docs": "/docs#/components/marquee",
+      "ficha": "ai-tools/components/marquee.md"
     },
     {
       "id": "pole-ring",
@@ -3042,7 +2935,8 @@
           "code": "<PoleRing size=\"64rem\" opacity={0.3} className=\"top-[34%]\" />"
         }
       ],
-      "docs": "/docs#/components/pole-ring"
+      "docs": "/docs#/components/pole-ring",
+      "ficha": "ai-tools/components/pole-ring.md"
     },
     {
       "id": "reveal",
@@ -3100,7 +2994,8 @@
           "code": "<Reveal className=\"mx-auto max-w-3xl text-center\">\n  <Heading level={2}>La construimos juntos.</Heading>\n  <Text variant=\"lead\">Entra al canal y preséntate con el nombre de tu barbería.</Text>\n</Reveal>"
         }
       ],
-      "docs": "/docs#/components/reveal"
+      "docs": "/docs#/components/reveal",
+      "ficha": "ai-tools/components/reveal.md"
     },
     {
       "id": "rotating-seal",
@@ -3171,7 +3066,8 @@
           "code": "<RotatingSeal text=\"Cohorte 02 · Cupos abiertos ·\" size={112}>\n  <span className=\"font-heading text-xl font-semibold text-text-primary\">02</span>\n</RotatingSeal>"
         }
       ],
-      "docs": "/docs#/components/rotating-seal"
+      "docs": "/docs#/components/rotating-seal",
+      "ficha": "ai-tools/components/rotating-seal.md"
     },
     {
       "id": "tilt",
@@ -3222,7 +3118,8 @@
           "code": "<Tilt maxDegrees={2.5}>\n  <Card className=\"brand-ring panel-sheen grid gap-8 rounded-3xl p-8 lg:grid-cols-12\">…</Card>\n</Tilt>"
         }
       ],
-      "docs": "/docs#/components/tilt"
+      "docs": "/docs#/components/tilt",
+      "ficha": "ai-tools/components/tilt.md"
     },
     {
       "id": "vignette",
@@ -3272,7 +3169,8 @@
           "code": "<section className=\"relative overflow-hidden\">\n  <Vignette />\n  <div className=\"relative\">…</div>\n</section>"
         }
       ],
-      "docs": "/docs#/components/vignette"
+      "docs": "/docs#/components/vignette",
+      "ficha": "ai-tools/components/vignette.md"
     },
     {
       "id": "data-list-block",
@@ -3458,7 +3356,8 @@
           "code": "<DataListBlock\n  tableId=\"procesos-vacio\"\n  title=\"Lista de procesos\"\n  noun=\"procesos\"\n  rows={[]}\n  columns={columns}\n  cells={cells}\n  getRowId={(row) => row.id}\n/>"
         }
       ],
-      "docs": "/docs#/components/data-list-block"
+      "docs": "/docs#/components/data-list-block",
+      "ficha": "ai-tools/components/data-list-block.md"
     },
     {
       "id": "area-chart",
@@ -3606,7 +3505,8 @@
           "code": "<div className=\"grid gap-4 md:grid-cols-2\">\n  <AreaChart title=\"Como área\" data={completadosAcumulados} seriesName=\"Completados\" height={200} />\n  <LineChart title=\"Como línea\" data={completadosAcumulados} seriesName=\"Completados\" height={200} />\n</div>"
         }
       ],
-      "docs": "/docs#/components/area-chart"
+      "docs": "/docs#/components/area-chart",
+      "ficha": "ai-tools/components/area-chart.md"
     },
     {
       "id": "bar-chart",
@@ -3767,7 +3667,8 @@
           "code": "<BarChart title=\"Horas por área\" data={horasPorArea} height={160} loading />\n<BarChart title=\"Horas por área\" data={[]} height={160} empty />"
         }
       ],
-      "docs": "/docs#/components/bar-chart"
+      "docs": "/docs#/components/bar-chart",
+      "ficha": "ai-tools/components/bar-chart.md"
     },
     {
       "id": "bar-list",
@@ -3882,7 +3783,8 @@
           "code": "<Card className=\"p-card\">\n  <h3 className=\"mb-stack text-sm font-semibold\">Top 3 del mes</h3>\n  <BarList items={servicios} limit={3} />\n</Card>"
         }
       ],
-      "docs": "/docs#/components/bar-list"
+      "docs": "/docs#/components/bar-list",
+      "ficha": "ai-tools/components/bar-list.md"
     },
     {
       "id": "chart-card",
@@ -4032,7 +3934,8 @@
           "code": "<ChartCard title=\"Ranking por área\" description=\"Colaboradores activos\" height=\"auto\">\n  <ol className=\"flex flex-col gap-2 text-sm\">\n    {ranking.map((item, i) => (\n      <li key={item.area} className=\"flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2\">\n        <span><span className=\"mr-2 text-muted-foreground\">{i + 1}.</span>{item.area}</span>\n        <span className=\"font-medium tabular-nums\">{item.activos}</span>\n      </li>\n    ))}\n  </ol>\n</ChartCard>"
         }
       ],
-      "docs": "/docs#/components/chart-card"
+      "docs": "/docs#/components/chart-card",
+      "ficha": "ai-tools/components/chart-card.md"
     },
     {
       "id": "chart-shell",
@@ -4150,7 +4053,8 @@
           "code": "<ChartShell\n  height=\"auto\"\n  ariaLabel=\"Avance de objetivos por equipo\"\n  footer=\"Porcentaje de objetivos cumplidos sobre el total del trimestre\"\n>\n  <ul className=\"flex flex-col gap-3\">\n    {equipos.map((equipo, i) => (\n      <li key={equipo} className=\"grid grid-cols-[96px_1fr_40px] items-center gap-3 text-sm\">\n        <span>{equipo}</span>\n        <Progress value={(cumplidos[i] / totales[i]) * 100} />\n        <span className=\"text-right text-muted-foreground\">{Math.round((cumplidos[i] / totales[i]) * 100)}%</span>\n      </li>\n    ))}\n  </ul>\n</ChartShell>"
         }
       ],
-      "docs": "/docs#/components/chart-shell"
+      "docs": "/docs#/components/chart-shell",
+      "ficha": "ai-tools/components/chart-shell.md"
     },
     {
       "id": "composition-donut",
@@ -4261,7 +4165,8 @@
           "code": "<CompositionDonut title=\"Cómo se agendaron\" slices={[]} emptyLabel=\"Sin citas en este periodo\" />"
         }
       ],
-      "docs": "/docs#/components/composition-donut"
+      "docs": "/docs#/components/composition-donut",
+      "ficha": "ai-tools/components/composition-donut.md"
     },
     {
       "id": "distribution-bar",
@@ -4357,7 +4262,8 @@
           "code": "<DistributionBar unit=\"citas\" segments={canales} />"
         }
       ],
-      "docs": "/docs#/components/distribution-bar"
+      "docs": "/docs#/components/distribution-bar",
+      "ficha": "ai-tools/components/distribution-bar.md"
     },
     {
       "id": "donut-chart",
@@ -4505,7 +4411,8 @@
           "code": "<DonutChart\n  title=\"Estado de los objetivos\"\n  data={estadoObjetivos}\n  seriesName=\"Objetivos\"\n  height={260}\n  actions={<Button variant=\"ghost\" size=\"icon-sm\" aria-label=\"Descargar\"><Download /></Button>}\n  summary=\"Cumplidos 46 %, en progreso 31 %, en riesgo 12 %, sin iniciar 11 %.\"\n  footer=\"Porcentaje sobre 214 objetivos activos\"\n/>"
         }
       ],
-      "docs": "/docs#/components/donut-chart"
+      "docs": "/docs#/components/donut-chart",
+      "ficha": "ai-tools/components/donut-chart.md"
     },
     {
       "id": "echart",
@@ -4607,7 +4514,8 @@
           "code": "<EChart option={option} height={180} loading />\n<EChart option={option} height={180} empty />"
         }
       ],
-      "docs": "/docs#/components/echart"
+      "docs": "/docs#/components/echart",
+      "ficha": "ai-tools/components/echart.md"
     },
     {
       "id": "heatmap-chart",
@@ -4774,7 +4682,8 @@
           "code": "<HeatmapChart\n  title=\"Actividad por día y franja horaria\"\n  xLabels={dias}\n  yLabels={franjas}\n  data={actividad}\n  seriesName=\"Sesiones\"\n  height={300}\n  summary=\"El pico es jueves de 15 a 18 con 82 sesiones; el mínimo, domingo de 06 a 09 con 2.\"\n  footer=\"Verde = baja actividad, rojo = alta. Promedio de las últimas 4 semanas.\"\n/>"
         }
       ],
-      "docs": "/docs#/components/heatmap-chart"
+      "docs": "/docs#/components/heatmap-chart",
+      "ficha": "ai-tools/components/heatmap-chart.md"
     },
     {
       "id": "heatmap-matrix",
@@ -4884,7 +4793,8 @@
           "code": "const objetivos = [{\n  id: \"crecer-pipeline\",\n  label: \"Duplicar el pipeline enterprise\",\n  values: { ventas: 96, marketing: 88, producto: null, operaciones: null },\n}];"
         }
       ],
-      "docs": "/docs#/components/heatmap-matrix"
+      "docs": "/docs#/components/heatmap-matrix",
+      "ficha": "ai-tools/components/heatmap-matrix.md"
     },
     {
       "id": "kpi-card",
@@ -4996,7 +4906,8 @@
           "code": "<KpiCard\n  className=\"max-w-xs\"\n  title=\"Cumplimiento de objetivos\"\n  value=\"72 %\"\n  delta=\"+1 pp\"\n  trend=\"positive\"\n  description=\"Objetivos cerrados sobre el total\"\n  sparklineData={cumplimientoPorSemana}\n  actions={<Button variant=\"ghost\" size=\"icon-xs\" aria-label=\"Más opciones\"><MoreHorizontal /></Button>}\n  footer=\"Corte al 30 de septiembre · ver detalle\"\n/>"
         }
       ],
-      "docs": "/docs#/components/kpi-card"
+      "docs": "/docs#/components/kpi-card",
+      "ficha": "ai-tools/components/kpi-card.md"
     },
     {
       "id": "line-chart",
@@ -5151,7 +5062,8 @@
           "code": "<LineChart\n  title=\"Usuarios activos mensuales\"\n  data={usuariosActivos}\n  height={180}\n  error=\"El servicio de analítica no respondió a tiempo.\"\n/>"
         }
       ],
-      "docs": "/docs#/components/line-chart"
+      "docs": "/docs#/components/line-chart",
+      "ficha": "ai-tools/components/line-chart.md"
     },
     {
       "id": "metric-card",
@@ -5288,7 +5200,8 @@
           "code": "<div className=\"flex flex-wrap items-center gap-3\">\n  <DeltaPill value={3.2} label=\"+3,2 pp\" />\n  <DeltaPill value={-2.4} label=\"-2,4 pp\" />\n  <DeltaPill value={0.2} label=\"Sin variación relevante\" />\n  <DeltaPill value={1.7} tone=\"negative\" label=\"+1,7 pp\" />\n  <DeltaPill value={8.5} size=\"md\" label=\"+8,5 %\" />\n  <DeltaPill value={8.5} size=\"xs\" showIcon={false} label=\"+8,5 %\" />\n</div>"
         }
       ],
-      "docs": "/docs#/components/metric-card"
+      "docs": "/docs#/components/metric-card",
+      "ficha": "ai-tools/components/metric-card.md"
     },
     {
       "id": "sparkline-chart",
@@ -5395,7 +5308,8 @@
           "code": "const serie = [\n  { label: \"Sem 1\", value: 40 },\n  { label: \"Sem 2\", value: 46 },\n  { label: \"Sem 3\", value: 52 },\n  { label: \"Sem 4\", value: 55 },\n  { label: \"Sem 5\", value: 61 },\n  { label: \"Sem 6\", value: 68 },\n  { label: \"Sem 7\", value: 72 },\n  { label: \"Sem 8\", value: 78 },\n];\n\n<SparklineChart data={serie} height={64} trend=\"positive\" showTooltip ariaLabel=\"Avance semanal de Producto\" />"
         }
       ],
-      "docs": "/docs#/components/sparkline-chart"
+      "docs": "/docs#/components/sparkline-chart",
+      "ficha": "ai-tools/components/sparkline-chart.md"
     },
     {
       "id": "kanban",
@@ -5563,7 +5477,8 @@
           "code": "<Kanban\n  columns={[{ id: \"oferta\", title: \"Oferta\" }]}\n  items={[]}\n  emptyColumnLabel=\"Ninguna oferta activa\"\n/>"
         }
       ],
-      "docs": "/docs#/components/kanban"
+      "docs": "/docs#/components/kanban",
+      "ficha": "ai-tools/components/kanban.md"
     },
     {
       "id": "list-item",
@@ -5689,7 +5604,8 @@
           "code": "<TableShell title=\"Lista de procesos\" surface=\"header\">\n  <ListItemGroup className=\"py-2\">\n    <ListItem title=\"Plan trimestral 2026\" description=\"Trimestre · 3 elementos\" meta=\"7%\" onClick={…} />\n    <ListItem title=\"Seguimiento mensual 2026\" description=\"Año · 10 elementos\" meta=\"30%\" onClick={…} />\n  </ListItemGroup>\n</TableShell>"
         }
       ],
-      "docs": "/docs#/components/list-item"
+      "docs": "/docs#/components/list-item",
+      "ficha": "ai-tools/components/list-item.md"
     },
     {
       "id": "row-actions-menu",
@@ -5761,7 +5677,8 @@
           "code": "{ id: \"delete\", label: \"Eliminar\", tone: \"danger\",\n  blockedReason: \"Un proceso en curso no se puede eliminar.\" }"
         }
       ],
-      "docs": "/docs#/components/row-actions-menu"
+      "docs": "/docs#/components/row-actions-menu",
+      "ficha": "ai-tools/components/row-actions-menu.md"
     },
     {
       "id": "sortable",
@@ -5893,7 +5810,8 @@
           "code": "<Sortable items={items} getId={(item) => item.id} onReorder={setItems}>\n  {items.map((item) => (\n    <SortableItem key={item.id} id={item.id}>\n      <span>{item.label}</span>\n      <span>{item.duration}</span>\n    </SortableItem>\n  ))}\n</Sortable>"
         }
       ],
-      "docs": "/docs#/components/sortable"
+      "docs": "/docs#/components/sortable",
+      "ficha": "ai-tools/components/sortable.md"
     },
     {
       "id": "status-badge",
@@ -5967,7 +5885,8 @@
           "code": "<TableRow>\n  <TableCell>{cycle.name}</TableCell>\n  <TableCell><StatusBadge status={cycle.status} label={cycle.label} /></TableCell>\n</TableRow>"
         }
       ],
-      "docs": "/docs#/components/status-badge"
+      "docs": "/docs#/components/status-badge",
+      "ficha": "ai-tools/components/status-badge.md"
     },
     {
       "id": "status-badge-animated",
@@ -6035,7 +5954,8 @@
           "code": "<StatusBadge state=\"neutral\" />\n<StatusBadge state=\"pending\" />\n<StatusBadge state=\"success\" />\n<StatusBadge state=\"failed\" />\n<StatusBadge state=\"info\" />"
         }
       ],
-      "docs": "/docs#/components/status-badge-animated"
+      "docs": "/docs#/components/status-badge-animated",
+      "ficha": "ai-tools/components/status-badge-animated.md"
     },
     {
       "id": "table-config",
@@ -6210,7 +6130,8 @@
           "code": "<Card>\n  <CardHeader><CardTitle>Participantes del ciclo</CardTitle></CardHeader>\n  <CardContent>\n    <TableBleedBox>            {/* bleed=\"-mx-6\" por defecto */}\n      <Table>…</Table>\n    </TableBleedBox>\n  </CardContent>\n</Card>"
         }
       ],
-      "docs": "/docs#/components/table-config"
+      "docs": "/docs#/components/table-config",
+      "ficha": "ai-tools/components/table-config.md"
     },
     {
       "id": "table-header-controls",
@@ -6335,7 +6256,8 @@
           "code": "<FilterSortHeader\n  label=\"Área\"\n  options={AREAS}\n  selected={areas}\n  onToggleFilter={toggleArea}\n  onClearFilter={() => setAreas(new Set())}\n  sortActive={sort?.key === \"area\"}\n  onSort={() => sortBy(\"area\")}\n/>\n<SortOnlyHeader label=\"Puntaje\" align=\"right\" sortActive={sort?.key === \"score\"} onSort={() => sortBy(\"score\")} />"
         }
       ],
-      "docs": "/docs#/components/table-header-controls"
+      "docs": "/docs#/components/table-header-controls",
+      "ficha": "ai-tools/components/table-header-controls.md"
     },
     {
       "id": "table-shell",
@@ -6450,7 +6372,8 @@
           "code": "<TableShell stickyHeader className=\"[&_.overflow-x-auto]:max-h-64\">\n  <table className=\"w-full text-sm\">\n    <TableHeader>…</TableHeader>\n    <TableBody>…</TableBody>\n  </table>\n</TableShell>"
         }
       ],
-      "docs": "/docs#/components/table-shell"
+      "docs": "/docs#/components/table-shell",
+      "ficha": "ai-tools/components/table-shell.md"
     },
     {
       "id": "timeline",
@@ -6552,7 +6475,8 @@
           "code": "<TimelineItem icon={<FileText />} title=\"Plan de formación actualizado\" time=\"hace 2 h\" description=\"Se añadieron 3 cursos al itinerario de liderazgo.\">\n  <div className=\"flex flex-wrap gap-1.5\">\n    <Badge variant=\"secondary\">Feedback efectivo</Badge>\n    <Badge variant=\"secondary\">Delegación</Badge>\n    <Badge variant=\"secondary\">1:1 que funcionan</Badge>\n  </div>\n</TimelineItem>"
         }
       ],
-      "docs": "/docs#/components/timeline"
+      "docs": "/docs#/components/timeline",
+      "ficha": "ai-tools/components/timeline.md"
     },
     {
       "id": "tree",
@@ -6696,7 +6620,8 @@
           "code": "<Tree nodes={[]} emptyLabel=\"Sin áreas para esta empresa\" />"
         }
       ],
-      "docs": "/docs#/components/tree"
+      "docs": "/docs#/components/tree",
+      "ficha": "ai-tools/components/tree.md"
     },
     {
       "id": "date-filter-bar",
@@ -6810,7 +6735,8 @@
           "code": "<DateFilterBar mode=\"date\" date={new Date(2026, 8, 9)} disabled />"
         }
       ],
-      "docs": "/docs#/components/date-filter-bar"
+      "docs": "/docs#/components/date-filter-bar",
+      "ficha": "ai-tools/components/date-filter-bar.md"
     },
     {
       "id": "date-picker",
@@ -6936,7 +6862,8 @@
           "code": "<DatePicker value={date} onChange={setDate} label=\"es-ES\" locale=\"es-ES\" />\n<DatePicker value={date} onChange={setDate} label=\"en-US (por defecto)\" />"
         }
       ],
-      "docs": "/docs#/components/date-picker"
+      "docs": "/docs#/components/date-picker",
+      "ficha": "ai-tools/components/date-picker.md"
     },
     {
       "id": "date-range-picker",
@@ -7063,7 +6990,8 @@
           "code": "<DateRangePicker label=\"Con error\" error=\"Selecciona un rango válido.\" locale=\"es-ES\" />\n<DateRangePicker label=\"Deshabilitado\" disabled locale=\"es-ES\" />"
         }
       ],
-      "docs": "/docs#/components/date-range-picker"
+      "docs": "/docs#/components/date-range-picker",
+      "ficha": "ai-tools/components/date-range-picker.md"
     },
     {
       "id": "dual-date-range-picker",
@@ -7226,7 +7154,8 @@
           "code": "<DualDateRangePicker\n  startDate={range.startDate}\n  endDate={range.endDate}\n  onChange={setRange}\n  minDate={today}\n  maxDate={addDays(today, 60)}\n  startPlaceholder=\"Desde hoy\"\n  endPlaceholder=\"Máx. 60 días\"\n/>"
         }
       ],
-      "docs": "/docs#/components/dual-date-range-picker"
+      "docs": "/docs#/components/dual-date-range-picker",
+      "ficha": "ai-tools/components/dual-date-range-picker.md"
     },
     {
       "id": "event-calendar",
@@ -7373,7 +7302,8 @@
           "code": "<EventCalendar events={[]} defaultDate={new Date(2026, 8, 15)} />"
         }
       ],
-      "docs": "/docs#/components/event-calendar"
+      "docs": "/docs#/components/event-calendar",
+      "ficha": "ai-tools/components/event-calendar.md"
     },
     {
       "id": "month-picker",
@@ -7485,7 +7415,8 @@
           "code": "<MonthPicker label=\"Con error\" error=\"Elige un mes.\" />\n<MonthPicker label=\"Deshabilitado\" disabled placeholder=\"Sin acceso\" />"
         }
       ],
-      "docs": "/docs#/components/month-picker"
+      "docs": "/docs#/components/month-picker",
+      "ficha": "ai-tools/components/month-picker.md"
     },
     {
       "id": "period-navigator",
@@ -7576,7 +7507,8 @@
           "code": "formatPeriodLabel(date, \"day\", \"es-CO\")   // \"Lunes, 28 de septiembre\"\nformatPeriodLabel(date, \"week\", \"es-CO\")  // \"28 sept – 4 oct 2026\"\nformatPeriodLabel(date, \"month\", \"en-US\") // \"September 2026\""
         }
       ],
-      "docs": "/docs#/components/period-navigator"
+      "docs": "/docs#/components/period-navigator",
+      "ficha": "ai-tools/components/period-navigator.md"
     },
     {
       "id": "period-selector",
@@ -7682,7 +7614,8 @@
           "code": "<PeriodSelector options={PERIODOS} label=\"Con error\" error=\"Selecciona un periodo.\" />\n<PeriodSelector options={PERIODOS} label=\"Deshabilitado\" value=\"this_month\" disabled />"
         }
       ],
-      "docs": "/docs#/components/period-selector"
+      "docs": "/docs#/components/period-selector",
+      "ficha": "ai-tools/components/period-selector.md"
     },
     {
       "id": "quarter-selector",
@@ -7794,7 +7727,8 @@
           "code": "<QuarterSelector label=\"Con error\" error=\"Selecciona un trimestre.\" />\n<QuarterSelector label=\"Deshabilitado\" disabled />"
         }
       ],
-      "docs": "/docs#/components/quarter-selector"
+      "docs": "/docs#/components/quarter-selector",
+      "ficha": "ai-tools/components/quarter-selector.md"
     },
     {
       "id": "range-slider",
@@ -7925,7 +7859,8 @@
           "code": "<RangeSlider value={[10, 90]} label=\"Sin valor visible\" showValue={false} />\n<RangeSlider value={[70, 75]} label=\"Con error\" error=\"El rango es demasiado estrecho.\" />\n<RangeSlider value={[30, 60]} label=\"Deshabilitado\" disabled />"
         }
       ],
-      "docs": "/docs#/components/range-slider"
+      "docs": "/docs#/components/range-slider",
+      "ficha": "ai-tools/components/range-slider.md"
     },
     {
       "id": "date-utils",
@@ -8039,7 +7974,8 @@
           "code": "isValidDate(date)                       // true si es Date y no es NaN\nisDateInRange(date, min, max)           // ambos límites inclusivos y opcionales\ncompareDates(a, b)                      // -1 | 0 | 1, solo por fecha\nstartOfDay(date)                        // 00:00:00.000 local\nendOfDay(date)                          // 23:59:59.999 local"
         }
       ],
-      "docs": "/docs#/components/date-utils"
+      "docs": "/docs#/components/date-utils",
+      "ficha": "ai-tools/components/date-utils.md"
     },
     {
       "id": "attention-strip",
@@ -8171,7 +8107,8 @@
           "code": "<AttentionStrip label=\"Resumen\" icon={BellRing} tone=\"brand\" title=\"1.240 avisos en la organización\" detail=\"Agrupados por motivo\">\n  <AttentionAction icon={CheckCircle2} label=\"Completados\" hint=\"Evaluaciones enviadas y cerradas.\" value={1024} tone=\"positive\" onClick={goCompleted} />\n  <AttentionAction icon={Clock} label=\"Pendientes\" hint=\"Evaluaciones sin enviar.\" value={198} tone=\"warning\" onClick={goPending} />\n  <AttentionAction icon={UserX} label=\"Bloqueados\" hint=\"Sin líder o sin plantilla asignada.\" value={18} tone=\"negative\" onClick={goBlocked} />\n</AttentionStrip>"
         }
       ],
-      "docs": "/docs#/components/attention-strip"
+      "docs": "/docs#/components/attention-strip",
+      "ficha": "ai-tools/components/attention-strip.md"
     },
     {
       "id": "empty-state",
@@ -8265,7 +8202,8 @@
           "code": "<EmptyState icon={Inbox} title=\"Sin información\" description=\"No se encontraron registros.\" className=\"border-none bg-transparent p-6 shadow-none\" />"
         }
       ],
-      "docs": "/docs#/components/empty-state"
+      "docs": "/docs#/components/empty-state",
+      "ficha": "ai-tools/components/empty-state.md"
     },
     {
       "id": "empty-state-action-button",
@@ -8339,7 +8277,8 @@
           "code": "<EmptyStateActionButton>Ver ejemplos</EmptyStateActionButton>"
         }
       ],
-      "docs": "/docs#/components/empty-state-action-button"
+      "docs": "/docs#/components/empty-state-action-button",
+      "ficha": "ai-tools/components/empty-state-action-button.md"
     },
     {
       "id": "spinner",
@@ -8424,7 +8363,8 @@
           "code": "<div className=\"flex h-40 flex-col items-center justify-center gap-3 rounded-xl border border-border/60 bg-surface\">\n  <Spinner size=\"lg\" tone=\"primary\" label=\"Cargando el plan de formación\" />\n  <span className=\"text-sm text-text-secondary\">Cargando el plan de formación…</span>\n</div>"
         }
       ],
-      "docs": "/docs#/components/spinner"
+      "docs": "/docs#/components/spinner",
+      "ficha": "ai-tools/components/spinner.md"
     },
     {
       "id": "thema-toaster",
@@ -8501,7 +8441,8 @@
           "code": "toast.promise(saveChanges(), {\n  loading: \"Guardando…\",\n  success: \"Cambios guardados\",\n  error: \"No se pudo guardar\",\n});"
         }
       ],
-      "docs": "/docs#/components/thema-toaster"
+      "docs": "/docs#/components/thema-toaster",
+      "ficha": "ai-tools/components/thema-toaster.md"
     },
     {
       "id": "feedback-campaign",
@@ -8577,7 +8518,8 @@
           "code": "const campana: FeedbackCampaignConfig = {\n  id: \"rediseno-2026-09\",\n  name: \"Rediseño\",\n  sections: [{ value: \"general\", label: \"Impresión general\" }],\n  tour: [\n    { id: \"hola\", icon: \"rocket\", title: \"Lanzamos algo nuevo\", description: \"…\" },\n    { id: \"boton\", icon: \"feedback\", target: FEEDBACK_LAUNCHER_TARGET, title: \"Tu opinión, aquí\", description: \"…\" },\n  ],\n}\n\n<FeedbackCampaign campaign={campana} context=\"Métricas\" onSubmit={enviar} />"
         }
       ],
-      "docs": "/docs#/components/feedback-campaign"
+      "docs": "/docs#/components/feedback-campaign",
+      "ficha": "ai-tools/components/feedback-campaign.md"
     },
     {
       "id": "feedback-launcher",
@@ -8647,7 +8589,8 @@
           "code": "<FeedbackLauncher highlight onClick={abrir} />\n<FeedbackLauncher collapsed onClick={abrir} />"
         }
       ],
-      "docs": "/docs#/components/feedback-launcher"
+      "docs": "/docs#/components/feedback-launcher",
+      "ficha": "ai-tools/components/feedback-launcher.md"
     },
     {
       "id": "feedback-panel",
@@ -8730,7 +8673,8 @@
           "code": "const enviar = async (values) => {\n  await api.post(\"/feedback\", values) // si lanza, el panel enseña error.message\n}"
         }
       ],
-      "docs": "/docs#/components/feedback-panel"
+      "docs": "/docs#/components/feedback-panel",
+      "ficha": "ai-tools/components/feedback-panel.md"
     },
     {
       "id": "guided-tour",
@@ -8796,7 +8740,8 @@
           "code": "const pasos: TourStep[] = [\n  { id: \"hola\", icon: \"rocket\", title: \"Bienvenido\", description: \"…\" },\n  { id: \"filtros\", target: '[data-tour=\"filtros\"]', title: \"Filtra lo que ves\", description: \"…\" },\n  { id: \"crear\", target: '[data-tour=\"crear\"]', advanceOnTargetClick: true, title: \"Pruébalo tú\", description: \"…\" },\n]\n\n<GuidedTour steps={pasos} open={open} onOpenChange={setOpen} onComplete={marcarVisto} />"
         }
       ],
-      "docs": "/docs#/components/guided-tour"
+      "docs": "/docs#/components/guided-tour",
+      "ficha": "ai-tools/components/guided-tour.md"
     },
     {
       "id": "field",
@@ -8898,7 +8843,8 @@
           "code": "<div className=\"flex items-start justify-between gap-6 rounded-xl border border-border/60 bg-surface p-4\">\n  <div className=\"space-y-1\">\n    <FieldLabel htmlFor=\"notify\">Notificaciones semanales</FieldLabel>\n    <FieldDescription>Resumen de avances cada lunes a las 8:00.</FieldDescription>\n    {!enabled && <FieldError>Sin notificaciones no recibirás recordatorios.</FieldError>}\n  </div>\n  <Switch id=\"notify\" checked={enabled} onCheckedChange={setEnabled} />\n</div>"
         }
       ],
-      "docs": "/docs#/components/field"
+      "docs": "/docs#/components/field",
+      "ficha": "ai-tools/components/field.md"
     },
     {
       "id": "filter-bar",
@@ -9002,7 +8948,8 @@
           "code": "<FilterBar searchValue={search} onSearchChange={setSearch} searchPlaceholder=\"Buscar cursos…\" />"
         }
       ],
-      "docs": "/docs#/components/filter-bar"
+      "docs": "/docs#/components/filter-bar",
+      "ficha": "ai-tools/components/filter-bar.md"
     },
     {
       "id": "form-section",
@@ -9085,7 +9032,8 @@
           "code": "<FormSection>\n  <Field label=\"Código de acceso\">\n    <Input placeholder=\"UB-2024-…\" />\n  </Field>\n</FormSection>"
         }
       ],
-      "docs": "/docs#/components/form-section"
+      "docs": "/docs#/components/form-section",
+      "ficha": "ai-tools/components/form-section.md"
     },
     {
       "id": "input-otp",
@@ -9199,7 +9147,8 @@
           "code": "<InputOtp value=\"482915\" disabled groups={[3, 3]} />"
         }
       ],
-      "docs": "/docs#/components/input-otp"
+      "docs": "/docs#/components/input-otp",
+      "ficha": "ai-tools/components/input-otp.md"
     },
     {
       "id": "multi-select",
@@ -9302,7 +9251,8 @@
           "code": "const MAX = 2;\nconst handleChange = (next: string[]) => setValue(next.slice(0, MAX));\n\n<Field label=\"Habilidades prioritarias\" error={value.length >= MAX ? `Máximo ${MAX} habilidades.` : undefined}>\n  <MultiSelect options={options} value={value} onValueChange={handleChange} placeholder=\"Hasta dos habilidades\" />\n</Field>"
         }
       ],
-      "docs": "/docs#/components/multi-select"
+      "docs": "/docs#/components/multi-select",
+      "ficha": "ai-tools/components/multi-select.md"
     },
     {
       "id": "number-field",
@@ -9429,7 +9379,8 @@
           "code": "<NumberField defaultValue={3} size=\"sm\" />\n<NumberField value={12} readOnly />\n<NumberField value={12} disabled />"
         }
       ],
-      "docs": "/docs#/components/number-field"
+      "docs": "/docs#/components/number-field",
+      "ficha": "ai-tools/components/number-field.md"
     },
     {
       "id": "phone-input",
@@ -9537,7 +9488,8 @@
           "code": "<PhoneInput value=\"+573001234567\" disabled aria-label=\"Teléfono registrado\" />"
         }
       ],
-      "docs": "/docs#/components/phone-input"
+      "docs": "/docs#/components/phone-input",
+      "ficha": "ai-tools/components/phone-input.md"
     },
     {
       "id": "rating",
@@ -9675,7 +9627,8 @@
           "code": "const [value, setValue] = React.useState(0);\n\n<Field label=\"Califica esta sesión de formación\">\n  <Rating value={value} onValueChange={setValue} allowHalf label=\"Calificación de la sesión\" />\n</Field>"
         }
       ],
-      "docs": "/docs#/components/rating"
+      "docs": "/docs#/components/rating",
+      "ficha": "ai-tools/components/rating.md"
     },
     {
       "id": "searchable-select",
@@ -9778,7 +9731,8 @@
           "code": "<SearchableSelect options={countries} value=\"co\" disabled />"
         }
       ],
-      "docs": "/docs#/components/searchable-select"
+      "docs": "/docs#/components/searchable-select",
+      "ficha": "ai-tools/components/searchable-select.md"
     },
     {
       "id": "single-select",
@@ -9879,7 +9833,8 @@
           "code": "<SingleSelect options={levels} value=\"advanced\" disabled />"
         }
       ],
-      "docs": "/docs#/components/single-select"
+      "docs": "/docs#/components/single-select",
+      "ficha": "ai-tools/components/single-select.md"
     },
     {
       "id": "glass-icon",
@@ -9975,7 +9930,8 @@
           "code": "{/* Decorativa: el texto la describe */}\n<GlassIcon name=\"success\" tone=\"green\" size={48} /> Publicada\n\n{/* Significativa: sin texto al lado */}\n<GlassIcon name=\"success\" tone=\"green\" size={48} label=\"Publicada\" />"
         }
       ],
-      "docs": "/docs#/components/glass-icon"
+      "docs": "/docs#/components/glass-icon",
+      "ficha": "ai-tools/components/glass-icon.md"
     },
     {
       "id": "thema-icon",
@@ -10077,7 +10033,8 @@
           "code": "import { iconRegistry, type IconName } from \"@/icons\";\n\nconst names = Object.keys(iconRegistry) as IconName[];\nnames.map((name) => <ThemaIcon key={name} name={name} />)"
         }
       ],
-      "docs": "/docs#/components/thema-icon"
+      "docs": "/docs#/components/thema-icon",
+      "ficha": "ai-tools/components/thema-icon.md"
     },
     {
       "id": "account-menu",
@@ -10211,7 +10168,8 @@
           "code": "<AccountMenu\n  user={user}\n  onLogout={logout}\n  companies={COMPANIES}\n  activeCompany={activeCompany}\n  onSelectCompany={setCompanyId}\n  links={COMPANY_MENU_LINKS}\n  roles={USER_ROLES}\n  activeRole={activeRole}\n  onSelectRole={setRoleId}\n/>"
         }
       ],
-      "docs": "/docs#/components/account-menu"
+      "docs": "/docs#/components/account-menu",
+      "ficha": "ai-tools/components/account-menu.md"
     },
     {
       "id": "admin-shell",
@@ -10315,7 +10273,8 @@
           "code": "<AdminShell>\n  <Stats />\n  <Sections />\n</AdminShell>"
         }
       ],
-      "docs": "/docs#/components/admin-shell"
+      "docs": "/docs#/components/admin-shell",
+      "ficha": "ai-tools/components/admin-shell.md"
     },
     {
       "id": "agent-view",
@@ -10386,7 +10345,8 @@
           "code": "<div className=\"h-[360px] bg-background\">\n  <AgentView />\n</div>"
         }
       ],
-      "docs": "/docs#/components/agent-view"
+      "docs": "/docs#/components/agent-view",
+      "ficha": "ai-tools/components/agent-view.md"
     },
     {
       "id": "app-header",
@@ -10506,7 +10466,8 @@
           "code": "<AppHeader\n  onToggleSidebar={toggleSidebar}\n  isDark={isDark}\n  onToggleDark={() => setIsDark((value) => !value)}\n  onOpenNews={noop}\n  onSlotRef={setHeaderSlot}\n/>"
         }
       ],
-      "docs": "/docs#/components/app-header"
+      "docs": "/docs#/components/app-header",
+      "ficha": "ai-tools/components/app-header.md"
     },
     {
       "id": "app-sidebar",
@@ -10619,7 +10580,8 @@
           "code": "<ShellConfigContext.Provider\n  value={resolveShellConfig({\n    promo: {\n      title: \"El LMS que trabaja por ti\",\n      description: \"Conoce nuestro nuevo sistema inteligente para crear contenido.\",\n      cta: \"Conocer más\",\n    },\n  })}\n>\n  <AppSidebar collapsed={false} mobileOpen={false} mode=\"workspace\" onModeChange={setMode} onToggleCollapse={toggle} onOpenFeedback={openFeedback} />\n</ShellConfigContext.Provider>"
         }
       ],
-      "docs": "/docs#/components/app-sidebar"
+      "docs": "/docs#/components/app-sidebar",
+      "ficha": "ai-tools/components/app-sidebar.md"
     },
     {
       "id": "company-menu",
@@ -10742,7 +10704,8 @@
           "code": "<CompanyMark company={COMPANIES[0]} />\n<CompanyMark company={COMPANIES[1]} />\n<CompanyMark company={COMPANIES[2]} size=\"sm\" />"
         }
       ],
-      "docs": "/docs#/components/company-menu"
+      "docs": "/docs#/components/company-menu",
+      "ficha": "ai-tools/components/company-menu.md"
     },
     {
       "id": "header",
@@ -10824,7 +10787,8 @@
           "code": "const item = navigationConfig.find((entry) => entry.id === activeId)!;\n\n<Header title={item.label} description={item.description} breadcrumbs={item.breadcrumbs} />"
         }
       ],
-      "docs": "/docs#/components/header"
+      "docs": "/docs#/components/header",
+      "ficha": "ai-tools/components/header.md"
     },
     {
       "id": "page-shell",
@@ -10895,7 +10859,8 @@
           "code": "<AdminShell config={config}>\n  <PageShell maxWidth=\"constrained\">{children}</PageShell>\n</AdminShell>"
         }
       ],
-      "docs": "/docs#/components/page-shell"
+      "docs": "/docs#/components/page-shell",
+      "ficha": "ai-tools/components/page-shell.md"
     },
     {
       "id": "resizable",
@@ -11016,7 +10981,8 @@
           "code": "<ResizableGroup direction=\"horizontal\" className=\"h-full rounded-xl border border-border\">\n  <ResizablePanel defaultSize={22} minSize={15} collapsible>\n    <CandidateList />\n  </ResizablePanel>\n  <ResizableHandle withGrip />\n  <ResizablePanel defaultSize={78} minSize={30}>\n    <CandidateDetail />\n  </ResizablePanel>\n</ResizableGroup>"
         }
       ],
-      "docs": "/docs#/components/resizable"
+      "docs": "/docs#/components/resizable",
+      "ficha": "ai-tools/components/resizable.md"
     },
     {
       "id": "sidebar-icon-rail",
@@ -11145,7 +11111,8 @@
           "code": "<ShellConfigContext.Provider value={resolveShellConfig({ chrome: { modeSwitch: false } })}>\n  <SidebarIconRail … />\n</ShellConfigContext.Provider>"
         }
       ],
-      "docs": "/docs#/components/sidebar-icon-rail"
+      "docs": "/docs#/components/sidebar-icon-rail",
+      "ficha": "ai-tools/components/sidebar-icon-rail.md"
     },
     {
       "id": "workspace-menu",
@@ -11236,7 +11203,8 @@
           "code": "<WorkspaceMenu\n  trigger={<BrandRow />}\n  productName={brand.productName}\n  tagline={brand.tagline}\n  groups={config.settings}\n  all={config.settingsAll}\n  onNavigate={config.onNavigate}\n  extra={<ThemeSelector className=\"w-full justify-start\" />}\n/>"
         }
       ],
-      "docs": "/docs#/components/workspace-menu"
+      "docs": "/docs#/components/workspace-menu",
+      "ficha": "ai-tools/components/workspace-menu.md"
     },
     {
       "id": "empty-gallery-state",
@@ -11312,7 +11280,8 @@
           "code": "<Gallery\n  title=\"Recursos de Ventas\"\n  items={filtered}\n  emptyState={\n    <EmptyGalleryState\n      title=\"Ningún recurso coincide\"\n      description=\"Prueba con otro tipo o quita los filtros activos.\"\n      action={<Button size=\"sm\" variant=\"outline\"><FolderOpen /> Quitar filtros</Button>}\n    />\n  }\n/>"
         }
       ],
-      "docs": "/docs#/components/empty-gallery-state"
+      "docs": "/docs#/components/empty-gallery-state",
+      "ficha": "ai-tools/components/empty-gallery-state.md"
     },
     {
       "id": "gallery",
@@ -11437,7 +11406,8 @@
           "code": "<Gallery\n  title=\"Material del curso\"\n  items={items}\n  emptyState={\n    <EmptyGalleryState\n      title=\"Este curso aún no tiene material\"\n      description=\"Sube el primer recurso para que aparezca aquí.\"\n      action={<Button size=\"sm\"><Upload /> Subir material</Button>}\n    />\n  }\n/>"
         }
       ],
-      "docs": "/docs#/components/gallery"
+      "docs": "/docs#/components/gallery",
+      "ficha": "ai-tools/components/gallery.md"
     },
     {
       "id": "image-grid",
@@ -11551,7 +11521,8 @@
           "code": "const items: MediaItem[] = [\n  { id: \"img\", title: \"Imagen sin miniatura\", kind: \"image\", metadata: \"PNG\" },\n  { id: \"vid\", title: \"Video sin miniatura\", kind: \"video\", metadata: \"MP4\" },\n  { id: \"doc\", title: \"Documento\", kind: \"document\", metadata: \"PDF\" },\n  { id: \"oth\", title: \"Otro recurso\", kind: \"other\", metadata: \"ZIP\" },\n];\n\n<ImageGrid items={items} columns={4} />"
         }
       ],
-      "docs": "/docs#/components/image-grid"
+      "docs": "/docs#/components/image-grid",
+      "ficha": "ai-tools/components/image-grid.md"
     },
     {
       "id": "media-preview",
@@ -11651,7 +11622,8 @@
           "code": "<Dialog>\n  <DialogTrigger asChild>\n    <Button variant=\"outline\">Abrir previsualización</Button>\n  </DialogTrigger>\n  <DialogContent className=\"sm:max-w-2xl\">\n    <DialogHeader>\n      <DialogTitle>Detalle del recurso</DialogTitle>\n    </DialogHeader>\n    <MediaPreview item={item} actions={<Button size=\"sm\"><Download /> Descargar</Button>} />\n  </DialogContent>\n</Dialog>"
         }
       ],
-      "docs": "/docs#/components/media-preview"
+      "docs": "/docs#/components/media-preview",
+      "ficha": "ai-tools/components/media-preview.md"
     },
     {
       "id": "preview-card",
@@ -11745,7 +11717,8 @@
           "code": "<PreviewCard item={{ id: \"doc\", title: \"Documento\", kind: \"document\", metadata: \"PDF\" }} />\n<PreviewCard item={{ id: \"vid\", title: \"Video sin miniatura\", kind: \"video\" }} disabled />"
         }
       ],
-      "docs": "/docs#/components/preview-card"
+      "docs": "/docs#/components/preview-card",
+      "ficha": "ai-tools/components/preview-card.md"
     },
     {
       "id": "thema-carousel",
@@ -11871,7 +11844,8 @@
           "code": "<ThemaCarousel orientation=\"vertical\" contentClassName=\"h-[260px]\" itemClassName=\"basis-1/2\">\n  {slides.map((slide) => (\n    <img key={slide} src={placeholder(slide)} alt={slide} className=\"h-full w-full rounded-lg object-cover\" />\n  ))}\n</ThemaCarousel>"
         }
       ],
-      "docs": "/docs#/components/thema-carousel"
+      "docs": "/docs#/components/thema-carousel",
+      "ficha": "ai-tools/components/thema-carousel.md"
     },
     {
       "id": "breadcrumbs",
@@ -11948,7 +11922,8 @@
           "code": "<header className=\"space-y-1\">\n  <Breadcrumbs items={[\"Desempeño\", \"Evaluaciones 360\", \"Ciclo 2026-Q1\"]} />\n  <h1 className=\"text-xl font-bold text-text-primary\">Ciclo 2026-Q1</h1>\n</header>"
         }
       ],
-      "docs": "/docs#/components/breadcrumbs"
+      "docs": "/docs#/components/breadcrumbs",
+      "ficha": "ai-tools/components/breadcrumbs.md"
     },
     {
       "id": "global-search",
@@ -12052,7 +12027,8 @@
           "code": "<AdminShell\n  config={{\n    search: {\n      objects: misRegistros,\n      scope: empresaActiva.name,\n    },\n  }}\n>\n  …\n</AdminShell>"
         }
       ],
-      "docs": "/docs#/components/global-search"
+      "docs": "/docs#/components/global-search",
+      "ficha": "ai-tools/components/global-search.md"
     },
     {
       "id": "pagination-shell",
@@ -12140,7 +12116,8 @@
           "code": "const [page, setPage] = React.useState(3);\n\n<PaginationShell page={page} pageCount={5} showSummary={false} onPageChange={setPage} />"
         }
       ],
-      "docs": "/docs#/components/pagination-shell"
+      "docs": "/docs#/components/pagination-shell",
+      "ficha": "ai-tools/components/pagination-shell.md"
     },
     {
       "id": "scrollspy",
@@ -12249,7 +12226,8 @@
           "code": "const ids = sections.map((s) => s.id);\nconst { activeId, setActiveId } = useScrollspy(ids, { scrollContainer });\n\n<button\n  onClick={() => {\n    setActiveId(section.id);\n    document.getElementById(section.id)?.scrollIntoView({ block: \"start\" });\n  }}\n  aria-current={activeId === section.id ? \"true\" : undefined}\n>\n  {section.label}\n</button>"
         }
       ],
-      "docs": "/docs#/components/scrollspy"
+      "docs": "/docs#/components/scrollspy",
+      "ficha": "ai-tools/components/scrollspy.md"
     },
     {
       "id": "stepper",
@@ -12345,7 +12323,8 @@
           "code": "<Stepper size=\"sm\" current={3} steps={steps} />"
         }
       ],
-      "docs": "/docs#/components/stepper"
+      "docs": "/docs#/components/stepper",
+      "ficha": "ai-tools/components/stepper.md"
     },
     {
       "id": "tabs-nav",
@@ -12420,7 +12399,8 @@
           "code": "<TabsNav\n  tabs={periods}\n  activeTabId={active}\n  onTabChange={setActive}\n  className=\"w-auto rounded-full border border-border/60 px-2 py-1.5\"\n/>"
         }
       ],
-      "docs": "/docs#/components/tabs-nav"
+      "docs": "/docs#/components/tabs-nav",
+      "ficha": "ai-tools/components/tabs-nav.md"
     },
     {
       "id": "thema-mobile-tab-bar",
@@ -12491,7 +12471,8 @@
           "code": "<ThemaMobileTabBar\n  items={[\n    { id: \"home\", label: \"Inicio\", icon: \"home\" },\n    { id: \"learning\", label: \"Aprender\", icon: \"graduation\" },\n    { id: \"profile\", label: \"Perfil\", icon: \"users\" },\n  ]}\n  activeItemId={active}\n  onItemSelect={setActive}\n/>"
         }
       ],
-      "docs": "/docs#/components/thema-mobile-tab-bar"
+      "docs": "/docs#/components/thema-mobile-tab-bar",
+      "ficha": "ai-tools/components/thema-mobile-tab-bar.md"
     },
     {
       "id": "thema-product-header",
@@ -12562,7 +12543,8 @@
           "code": "<ThemaProductHeader title=\"Encuestas\">\n  <Button size=\"sm\" variant=\"outline\">Exportar</Button>\n</ThemaProductHeader>"
         }
       ],
-      "docs": "/docs#/components/thema-product-header"
+      "docs": "/docs#/components/thema-product-header",
+      "ficha": "ai-tools/components/thema-product-header.md"
     },
     {
       "id": "thema-tabs",
@@ -12651,7 +12633,8 @@
           "code": "<ThemaTabs\n  tabs={[\n    { id: \"pending\", label: \"Pendientes\", icon: <Clock />, badge: 12, badgeTone: \"warning\" },\n    { id: \"approved\", label: \"Aprobadas\", icon: <CheckCircle2 />, badge: 48, badgeTone: \"positive\" },\n    { id: \"rejected\", label: \"Rechazadas\", icon: <XCircle />, badge: 3, badgeTone: \"negative\" },\n  ]}\n  activeTabId={active}\n  onTabChange={setActive}\n/>"
         }
       ],
-      "docs": "/docs#/components/thema-tabs"
+      "docs": "/docs#/components/thema-tabs",
+      "ficha": "ai-tools/components/thema-tabs.md"
     },
     {
       "id": "confirm-dialog",
@@ -12777,7 +12760,8 @@
           "code": "<ConfirmDialog\n  open={open}\n  onOpenChange={setOpen}\n  trigger={<Button variant=\"outline\">Salir del editor</Button>}\n  variant=\"warning\"\n  title=\"Tienes cambios sin guardar\"\n  cancelLabel=\"Seguir editando\"\n  secondaryLabel=\"Salir sin guardar\"\n  secondaryVariant=\"destructive\"\n  onSecondary={() => { discard(); setOpen(false); }}\n  confirmLabel=\"Guardar y salir\"\n  onConfirm={() => { save(); setOpen(false); }}\n/>"
         }
       ],
-      "docs": "/docs#/components/confirm-dialog"
+      "docs": "/docs#/components/confirm-dialog",
+      "ficha": "ai-tools/components/confirm-dialog.md"
     },
     {
       "id": "drawer-section",
@@ -12890,7 +12874,8 @@
           "code": "<div className=\"h-[280px] overflow-y-auto\">\n  <DrawerSection\n    icon={Users}\n    tone=\"neutral\"\n    title=\"Participantes\"\n    hint=\"Desplázate: la cabecera se queda arriba.\"\n    badge=\"14\"\n    stickyHeader\n    action={<Button size=\"xs\" variant=\"outline\"><Plus /> Invitar</Button>}\n  >\n    <ul>…</ul>\n  </DrawerSection>\n</div>"
         }
       ],
-      "docs": "/docs#/components/drawer-section"
+      "docs": "/docs#/components/drawer-section",
+      "ficha": "ai-tools/components/drawer-section.md"
     },
     {
       "id": "drawer-shell",
@@ -13028,7 +13013,8 @@
           "code": "<DrawerShell open={open} onOpenChange={setOpen} trigger={<Button variant=\"outline\"><Filter /> Ordenar</Button>} side=\"bottom\" title=\"Ordenar por\">\n  {options.map((option) => (\n    <button onClick={() => { setSort(option); setOpen(false); }}>{option}</button>\n  ))}\n</DrawerShell>"
         }
       ],
-      "docs": "/docs#/components/drawer-shell"
+      "docs": "/docs#/components/drawer-shell",
+      "ficha": "ai-tools/components/drawer-shell.md"
     },
     {
       "id": "modal-shell",
@@ -13135,7 +13121,8 @@
           "code": "<ModalShell open={open} onOpenChange={setOpen} trigger={<Button variant=\"ghost\">¿Cómo se calcula?</Button>} size=\"sm\" title=\"Índice de avance\">\n  <p>Es el promedio ponderado del cumplimiento de cada resultado clave…</p>\n</ModalShell>"
         }
       ],
-      "docs": "/docs#/components/modal-shell"
+      "docs": "/docs#/components/modal-shell",
+      "ficha": "ai-tools/components/modal-shell.md"
     },
     {
       "id": "template-catalog-drawer",
@@ -13234,7 +13221,8 @@
           "code": "<TemplateCatalogDrawer\n  open={open}\n  onOpenChange={setOpen}\n  groups={estantes}\n  title=\"Encuestas listas para lanzar\"\n  description=\"Cada una trae sus preguntas escritas y el peso con el que entran al resultado.\"\n  onUseTemplate={usar}\n/>"
         }
       ],
-      "docs": "/docs#/components/template-catalog-drawer"
+      "docs": "/docs#/components/template-catalog-drawer",
+      "ficha": "ai-tools/components/template-catalog-drawer.md"
     },
     {
       "id": "month-occupancy-grid",
@@ -13312,7 +13300,8 @@
           "code": "const [selected, setSelected] = React.useState<Date | null>(hoy);\n\n<MonthOccupancyGrid month={hoy} days={dias} selected={selected} onSelectDay={setSelected} />"
         }
       ],
-      "docs": "/docs#/components/month-occupancy-grid"
+      "docs": "/docs#/components/month-occupancy-grid",
+      "ficha": "ai-tools/components/month-occupancy-grid.md"
     },
     {
       "id": "resource-day-grid",
@@ -13441,7 +13430,8 @@
           "code": "<ResourceDayGrid date={hoy} resources={[{ id: \"tomas\", name: \"Tomás Peña\", workingHours: [] }]} events={[]} />"
         }
       ],
-      "docs": "/docs#/components/resource-day-grid"
+      "docs": "/docs#/components/resource-day-grid",
+      "ficha": "ai-tools/components/resource-day-grid.md"
     },
     {
       "id": "time-slot-picker",
@@ -13538,7 +13528,8 @@
           "code": "<TimeSlotPicker\n  value={value}\n  onChange={setValue}\n  isSlotDisabled={(fecha) => !isWorkingAt(horario, minutesOfDay(fecha)) || ocupadas.includes(fecha.getTime())}\n/>"
         }
       ],
-      "docs": "/docs#/components/time-slot-picker"
+      "docs": "/docs#/components/time-slot-picker",
+      "ficha": "ai-tools/components/time-slot-picker.md"
     },
     {
       "id": "card-selection",
@@ -13647,7 +13638,8 @@
           "code": "<CardSelection columns={1} options={formats.slice(0, 2)} value=\"course\" />"
         }
       ],
-      "docs": "/docs#/components/card-selection"
+      "docs": "/docs#/components/card-selection",
+      "ficha": "ai-tools/components/card-selection.md"
     },
     {
       "id": "checkbox-card-group",
@@ -13749,7 +13741,8 @@
           "code": "<CheckboxCardGroup\n  label=\"Elige al menos un módulo\"\n  columns={3}\n  options={modules}\n  value={value}\n  onChange={setValue}\n  error={value.length === 0 ? \"Selecciona al menos uno.\" : undefined}\n/>"
         }
       ],
-      "docs": "/docs#/components/checkbox-card-group"
+      "docs": "/docs#/components/checkbox-card-group",
+      "ficha": "ai-tools/components/checkbox-card-group.md"
     },
     {
       "id": "option-tile",
@@ -13830,7 +13823,8 @@
           "code": "<div className=\"grid grid-cols-2 gap-2\">\n  {options.map((option) => (\n    <OptionTile key={option.value} option={option} compact selected={values.includes(option.value)} onSelect={toggle} />\n  ))}\n</div>"
         }
       ],
-      "docs": "/docs#/components/option-tile"
+      "docs": "/docs#/components/option-tile",
+      "ficha": "ai-tools/components/option-tile.md"
     },
     {
       "id": "radio-card-group",
@@ -13937,7 +13931,8 @@
           "code": "<form onSubmit={handleSubmit}>\n  <RadioCardGroup\n    name=\"channel\"\n    columns={3}\n    label=\"Canal\"\n    options={channels}\n    value={value}\n    onChange={setValue}\n    error={submitted && !value ? \"Selecciona un canal.\" : undefined}\n  />\n  <Button type=\"submit\" size=\"sm\">Guardar preferencia</Button>\n</form>"
         }
       ],
-      "docs": "/docs#/components/radio-card-group"
+      "docs": "/docs#/components/radio-card-group",
+      "ficha": "ai-tools/components/radio-card-group.md"
     },
     {
       "id": "segmented-control",
@@ -14062,7 +14057,8 @@
           "code": "<SegmentedControl\n  variant=\"underline\"\n  fullWidth\n  label=\"Estado\"\n  description=\"Filtra la tabla de programas.\"\n  options={[\n    { value: \"all\", label: \"Todos\" },\n    { value: \"active\", label: \"Activos\" },\n    { value: \"archived\", label: \"Archivados\" },\n  ]}\n  value={value}\n  onChange={setValue}\n/>"
         }
       ],
-      "docs": "/docs#/components/segmented-control"
+      "docs": "/docs#/components/segmented-control",
+      "ficha": "ai-tools/components/segmented-control.md"
     },
     {
       "id": "selectable-card",
@@ -14150,7 +14146,8 @@
           "code": "<SelectableCard option={{ value: \"module\", label: \"Módulo\", description: \"Agrupa varios bloques.\", icon: Layers, disabled: true }} />"
         }
       ],
-      "docs": "/docs#/components/selectable-card"
+      "docs": "/docs#/components/selectable-card",
+      "ficha": "ai-tools/components/selectable-card.md"
     },
     {
       "id": "template-tile",
@@ -14243,7 +14240,8 @@
           "code": "const desigual = { ...plantilla, items: [\n  { label: \"La que manda\", weight: 80 },\n  { label: \"La segunda\", weight: 15 },\n  { label: \"La última\", weight: 5 },\n] };\n\n<TemplateTile template={desigual} variant=\"card\" onClick={abrir} />"
         }
       ],
-      "docs": "/docs#/components/template-tile"
+      "docs": "/docs#/components/template-tile",
+      "ficha": "ai-tools/components/template-tile.md"
     },
     {
       "id": "heading",
@@ -14338,7 +14336,8 @@
           "code": "<div className=\"flex w-72 items-center gap-3\">\n  <Heading level={5} truncate className=\"min-w-0 flex-1\">\n    Plan de desarrollo individual de María Fernanda Restrepo Gómez\n  </Heading>\n  <Badge>Activo</Badge>\n</div>"
         }
       ],
-      "docs": "/docs#/components/heading"
+      "docs": "/docs#/components/heading",
+      "ficha": "ai-tools/components/heading.md"
     },
     {
       "id": "text",
@@ -14457,7 +14456,8 @@
           "code": "<Text truncate className=\"w-64\">\n  Ana María Ospina completó la autoevaluación y envió comentarios a tres pares.\n</Text>\n<Text className=\"w-64 line-clamp-2\">\n  Ana María Ospina completó la autoevaluación y envió comentarios a tres pares.\n</Text>"
         }
       ],
-      "docs": "/docs#/components/text"
+      "docs": "/docs#/components/text",
+      "ficha": "ai-tools/components/text.md"
     },
     {
       "id": "accordion",
@@ -14544,7 +14544,8 @@
           "code": "const [open, setOpen] = React.useState<string[]>([\"plans\"]);\n\n<Button size=\"sm\" variant=\"outline\" onClick={() => setOpen([\"plans\", \"seats\", \"support\"])}>Expandir todo</Button>\n<Button size=\"sm\" variant=\"ghost\" onClick={() => setOpen([])}>Colapsar todo</Button>\n\n<Accordion type=\"multiple\" value={open} onValueChange={setOpen}>\n  …\n</Accordion>"
         }
       ],
-      "docs": "/docs#/components/accordion"
+      "docs": "/docs#/components/accordion",
+      "ficha": "ai-tools/components/accordion.md"
     },
     {
       "id": "activity-dropdown",
@@ -14647,7 +14648,8 @@
           "code": "{ id: \"vencido\", icon: <TriangleAlert />, tone: \"negative\", title: \"Plan vencido\", description: \"«Inducción comercial» cerró con 8 personas sin terminar.\", time: \"Hace 1 h\" }"
         }
       ],
-      "docs": "/docs#/components/activity-dropdown"
+      "docs": "/docs#/components/activity-dropdown",
+      "ficha": "ai-tools/components/activity-dropdown.md"
     },
     {
       "id": "alert",
@@ -14723,7 +14725,8 @@
           "code": "const [visible, setVisible] = React.useState(true);\n\n{visible && (\n  <Alert variant=\"info\">\n    <Info />\n    <AlertTitle>Nueva versión disponible</AlertTitle>\n    <AlertDescription>Actualiza para obtener los últimos reportes de aprendizaje.</AlertDescription>\n    <AlertAction>\n      <Button variant=\"ghost\" size=\"icon-xs\" aria-label=\"Cerrar\" onClick={() => setVisible(false)}>\n        <X />\n      </Button>\n    </AlertAction>\n  </Alert>\n)}"
         }
       ],
-      "docs": "/docs#/components/alert"
+      "docs": "/docs#/components/alert",
+      "ficha": "ai-tools/components/alert.md"
     },
     {
       "id": "alert-dialog",
@@ -14811,7 +14814,8 @@
           "code": "const [open, setOpen] = React.useState(false);\nconst [pending, setPending] = React.useState(false);\n\nconst confirm = async (event: React.MouseEvent) => {\n  event.preventDefault(); // evita que Radix cierre antes de terminar\n  setPending(true);\n  await deleteTeam();\n  setPending(false);\n  setOpen(false);\n};\n\n<AlertDialog open={open} onOpenChange={setOpen}>\n  <AlertDialogTrigger asChild>\n    <Button variant=\"destructive\"><Trash2 /> Eliminar equipo</Button>\n  </AlertDialogTrigger>\n  <AlertDialogContent>\n    …\n    <AlertDialogFooter>\n      <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>\n      <AlertDialogAction variant=\"destructive\" onClick={confirm} disabled={pending}>\n        {pending && <Loader2 className=\"animate-spin\" />}\n        {pending ? \"Eliminando…\" : \"Sí, eliminar\"}\n      </AlertDialogAction>\n    </AlertDialogFooter>\n  </AlertDialogContent>\n</AlertDialog>"
         }
       ],
-      "docs": "/docs#/components/alert-dialog"
+      "docs": "/docs#/components/alert-dialog",
+      "ficha": "ai-tools/components/alert-dialog.md"
     },
     {
       "id": "avatar",
@@ -14905,7 +14909,8 @@
           "code": "<AvatarGroup>\n  <Avatar><AvatarImage src=\"…\" /><AvatarFallback>AT</AvatarFallback></Avatar>\n  <Avatar><AvatarImage src=\"…\" /><AvatarFallback>LP</AvatarFallback></Avatar>\n  <Avatar><AvatarFallback>MG</AvatarFallback></Avatar>\n  <AvatarGroupCount>+8</AvatarGroupCount>\n</AvatarGroup>\n\n<AvatarGroup>\n  <Avatar size=\"sm\"><AvatarFallback>AT</AvatarFallback></Avatar>\n  <Avatar size=\"sm\"><AvatarFallback>LP</AvatarFallback></Avatar>\n  <AvatarGroupCount><Plus /></AvatarGroupCount>\n</AvatarGroup>"
         }
       ],
-      "docs": "/docs#/components/avatar"
+      "docs": "/docs#/components/avatar",
+      "ficha": "ai-tools/components/avatar.md"
     },
     {
       "id": "badge",
@@ -14982,7 +14987,8 @@
           "code": "const [active, setActive] = React.useState([\"Diseño\", \"Liderazgo\", \"Datos\"]);\n\n{active.map((filter) => (\n  <Badge key={filter} variant=\"secondary\" className=\"pr-1\">\n    {filter}\n    <button type=\"button\" aria-label={`Quitar ${filter}`} onClick={() => setActive((items) => items.filter((item) => item !== filter))}>\n      <X />\n    </button>\n  </Badge>\n))}"
         }
       ],
-      "docs": "/docs#/components/badge"
+      "docs": "/docs#/components/badge",
+      "ficha": "ai-tools/components/badge.md"
     },
     {
       "id": "barberlytics-logo",
@@ -15066,7 +15072,8 @@
           "code": "<div className=\"bg-surface-nav text-nav-foreground p-6\">\n  <BarberlyticsLogo height={24} />\n</div>"
         }
       ],
-      "docs": "/docs#/components/barberlytics-logo"
+      "docs": "/docs#/components/barberlytics-logo",
+      "ficha": "ai-tools/components/barberlytics-logo.md"
     },
     {
       "id": "border-beam",
@@ -15166,16 +15173,14 @@
           "code": "const [active, setActive] = React.useState(false);\n\n<Card className=\"relative\">\n  …\n  <Button onClick={() => setActive((value) => !value)}>Destacar plan</Button>\n  {active && <BorderBeam duration={8} />}\n</Card>"
         }
       ],
-      "docs": "/docs#/components/border-beam"
+      "docs": "/docs#/components/border-beam",
+      "ficha": "ai-tools/components/border-beam.md"
     },
     {
       "id": "button",
       "name": "Button",
       "group": "ui",
-      "description": {
-        "es": "La acción del sistema. Seis variantes por intención (primaria, contorno, secundaria, fantasma, destructiva y enlace) y una escala de tamaños compacta pensada para interfaces densas.",
-        "en": "The system's action. Six variants by intent (primary, outline, secondary, ghost, destructive and link) and a compact size scale meant for dense interfaces."
-      },
+      "description": "La acción del sistema. Seis variantes por intención (primaria, contorno, secundaria, fantasma, destructiva y enlace) y una escala de tamaños compacta pensada para interfaces densas.",
       "import": "import { Button } from \"@/components/ui/button\"",
       "source": "src/components/ui/button.tsx",
       "status": "stable",
@@ -15262,7 +15267,8 @@
           "code": "<Button asChild>\n  <a href=\"#/foundations/themes\">Ir a temas</a>\n</Button>"
         }
       ],
-      "docs": "/docs#/components/button"
+      "docs": "/docs#/components/button",
+      "ficha": "ai-tools/components/button.md"
     },
     {
       "id": "button-group",
@@ -15340,7 +15346,8 @@
           "code": "<ButtonGroup aria-label=\"Paginación\">\n  <Button variant=\"outline\" size=\"icon\" aria-label=\"Anterior\"><ChevronLeft /></Button>\n  <Button variant=\"outline\" size=\"icon\" aria-label=\"Siguiente\"><ChevronRight /></Button>\n</ButtonGroup>\n\n<ButtonGroup orientation=\"vertical\">\n  <Button variant=\"secondary\" size=\"sm\"><FileUp data-icon=\"inline-start\" /> Subir plantilla</Button>\n  <Button variant=\"secondary\" size=\"sm\"><FileDown data-icon=\"inline-start\" /> Descargar ejemplo</Button>\n</ButtonGroup>"
         }
       ],
-      "docs": "/docs#/components/button-group"
+      "docs": "/docs#/components/button-group",
+      "ficha": "ai-tools/components/button-group.md"
     },
     {
       "id": "calendar",
@@ -15459,7 +15466,8 @@
           "code": "<Calendar\n  mode=\"single\"\n  locale={es}\n  selected={date}\n  onSelect={setDate}\n  disabled={[{ before: new Date() }, { dayOfWeek: [0, 6] }]}\n/>"
         }
       ],
-      "docs": "/docs#/components/calendar"
+      "docs": "/docs#/components/calendar",
+      "ficha": "ai-tools/components/calendar.md"
     },
     {
       "id": "card",
@@ -15553,7 +15561,8 @@
           "code": "<Card className=\"w-full max-w-sm\">\n  <CardHeader>\n    <CardTitle>Reporte semanal</CardTitle>\n    <CardDescription>Generado el lunes a las 8:00.</CardDescription>\n  </CardHeader>\n  <CardFooter>\n    <Button variant=\"link\" className=\"px-0\" asChild>\n      <a href=\"#/components/table\">Abrir reporte <ArrowUpRight /></a>\n    </Button>\n  </CardFooter>\n</Card>"
         }
       ],
-      "docs": "/docs#/components/card"
+      "docs": "/docs#/components/card",
+      "ficha": "ai-tools/components/card.md"
     },
     {
       "id": "carousel",
@@ -15646,7 +15655,8 @@
           "code": "<Carousel orientation=\"vertical\" className=\"w-full max-w-xs\">\n  <CarouselContent className=\"h-[220px]\">\n    {courses.map((course) => (\n      <CarouselItem key={course} className=\"basis-1/2\">\n        <Card><CardContent className=\"flex h-[100px] items-center justify-center\">{course}</CardContent></Card>\n      </CarouselItem>\n    ))}\n  </CarouselContent>\n  <CarouselPrevious />\n  <CarouselNext />\n</Carousel>"
         }
       ],
-      "docs": "/docs#/components/carousel"
+      "docs": "/docs#/components/carousel",
+      "ficha": "ai-tools/components/carousel.md"
     },
     {
       "id": "checkbox",
@@ -15734,7 +15744,8 @@
           "code": "<Checkbox disabled />\n<Checkbox disabled checked />\n<Checkbox aria-invalid />"
         }
       ],
-      "docs": "/docs#/components/checkbox"
+      "docs": "/docs#/components/checkbox",
+      "ficha": "ai-tools/components/checkbox.md"
     },
     {
       "id": "collapsible",
@@ -15817,7 +15828,8 @@
           "code": "<Collapsible defaultOpen>\n  <CollapsibleTrigger asChild>\n    <button type=\"button\" className=\"flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-muted\">\n      <Filter className=\"size-4\" /> Filtros avanzados <Badge variant=\"secondary\">2</Badge>\n      <ChevronDown className=\"ml-auto size-4\" />\n    </button>\n  </CollapsibleTrigger>\n  <CollapsibleContent>\n    <div className=\"grid grid-cols-2 gap-2 pt-2\">…</div>\n  </CollapsibleContent>\n</Collapsible>"
         }
       ],
-      "docs": "/docs#/components/collapsible"
+      "docs": "/docs#/components/collapsible",
+      "ficha": "ai-tools/components/collapsible.md"
     },
     {
       "id": "command",
@@ -15931,7 +15943,8 @@
           "code": "const [selected, setSelected] = React.useState<string[]>([\"Liderazgo\"]);\n\n<Command>\n  <CommandInput placeholder=\"Filtrar habilidades…\" />\n  <CommandList>\n    <CommandEmpty>Ninguna habilidad coincide.</CommandEmpty>\n    <CommandGroup heading=\"Habilidades\">\n      {SKILLS.map((skill) => (\n        <CommandItem key={skill} value={skill} data-checked={selected.includes(skill)} onSelect={() => toggle(skill)}>\n          {skill}\n        </CommandItem>\n      ))}\n    </CommandGroup>\n  </CommandList>\n</Command>"
         }
       ],
-      "docs": "/docs#/components/command"
+      "docs": "/docs#/components/command",
+      "ficha": "ai-tools/components/command.md"
     },
     {
       "id": "context-menu",
@@ -16045,7 +16058,8 @@
           "code": "<ContextMenuContent>\n  <ContextMenuCheckboxItem checked>Mostrar archivados</ContextMenuCheckboxItem>\n  <ContextMenuItem inset>Refrescar</ContextMenuItem>\n  <ContextMenuItem inset disabled>Exportar (sin permisos)</ContextMenuItem>\n</ContextMenuContent>"
         }
       ],
-      "docs": "/docs#/components/context-menu"
+      "docs": "/docs#/components/context-menu",
+      "ficha": "ai-tools/components/context-menu.md"
     },
     {
       "id": "dialog",
@@ -16140,7 +16154,8 @@
           "code": "<DialogContent className=\"sm:max-w-2xl\">…</DialogContent>"
         }
       ],
-      "docs": "/docs#/components/dialog"
+      "docs": "/docs#/components/dialog",
+      "ficha": "ai-tools/components/dialog.md"
     },
     {
       "id": "dropdown-menu",
@@ -16248,7 +16263,8 @@
           "code": "const [sort, setSort] = React.useState(\"recent\");\n\n<DropdownMenuContent className=\"w-48\">\n  <DropdownMenuRadioGroup value={sort} onValueChange={setSort}>\n    <DropdownMenuRadioItem value=\"recent\">Más recientes</DropdownMenuRadioItem>\n    <DropdownMenuRadioItem value=\"name\">Nombre</DropdownMenuRadioItem>\n    <DropdownMenuRadioItem value=\"progress\">Progreso</DropdownMenuRadioItem>\n  </DropdownMenuRadioGroup>\n</DropdownMenuContent>"
         }
       ],
-      "docs": "/docs#/components/dropdown-menu"
+      "docs": "/docs#/components/dropdown-menu",
+      "ficha": "ai-tools/components/dropdown-menu.md"
     },
     {
       "id": "fluid-highlight",
@@ -16331,7 +16347,8 @@
           "code": "const [active, setActive] = React.useState<number | null>(null);\n\n<div className=\"relative rounded-xl bg-popover p-2 ring-1 ring-foreground/10\" onPointerLeave={() => setActive(null)}>\n  <FluidHighlight />\n  {ACTIONS.map((action, index) => (\n    <div\n      key={action.label}\n      data-highlighted={active === index ? \"\" : undefined}\n      data-variant={action.variant}\n      onPointerEnter={() => setActive(index)}\n      className=\"relative z-[1] flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm\"\n    >\n      {action.icon} {action.label}\n    </div>\n  ))}\n</div>"
         }
       ],
-      "docs": "/docs#/components/fluid-highlight"
+      "docs": "/docs#/components/fluid-highlight",
+      "ficha": "ai-tools/components/fluid-highlight.md"
     },
     {
       "id": "hover-card",
@@ -16425,7 +16442,8 @@
           "code": "<HoverCard openDelay={300}>\n  <HoverCardTrigger asChild>\n    <Badge variant=\"outline\" className=\"cursor-default border-warning/40 text-warning\">Pendiente</Badge>\n  </HoverCardTrigger>\n  <HoverCardContent side=\"top\" className=\"w-56\">\n    <p className=\"text-[13px] text-text-secondary\">Esperando aprobación del manager desde el 12 de septiembre.</p>\n  </HoverCardContent>\n</HoverCard>"
         }
       ],
-      "docs": "/docs#/components/hover-card"
+      "docs": "/docs#/components/hover-card",
+      "ficha": "ai-tools/components/hover-card.md"
     },
     {
       "id": "input",
@@ -16532,7 +16550,8 @@
           "code": "<Input disabled placeholder=\"Deshabilitado\" />\n<Input readOnly value=\"Solo lectura\" />"
         }
       ],
-      "docs": "/docs#/components/input"
+      "docs": "/docs#/components/input",
+      "ficha": "ai-tools/components/input.md"
     },
     {
       "id": "input-group",
@@ -16633,7 +16652,8 @@
           "code": "<InputGroup>\n  <InputGroupTextarea placeholder=\"Escribe una descripción corta…\" rows={3} value={text} onChange={…} />\n  <InputGroupAddon align=\"block-end\" className=\"justify-end border-t\">\n    <InputGroupText>{text.length}/140</InputGroupText>\n  </InputGroupAddon>\n</InputGroup>"
         }
       ],
-      "docs": "/docs#/components/input-group"
+      "docs": "/docs#/components/input-group",
+      "ficha": "ai-tools/components/input-group.md"
     },
     {
       "id": "kbd",
@@ -16711,7 +16731,8 @@
           "code": "<KbdGroup>\n  <Kbd><Command /></Kbd>\n  <Kbd><ArrowUp /></Kbd>\n  <Kbd>P</Kbd>\n</KbdGroup>"
         }
       ],
-      "docs": "/docs#/components/kbd"
+      "docs": "/docs#/components/kbd",
+      "ficha": "ai-tools/components/kbd.md"
     },
     {
       "id": "label",
@@ -16795,7 +16816,8 @@
           "code": "<div className=\"flex items-center gap-2\">\n  <Checkbox id=\"locked\" disabled className=\"peer\" />\n  <Label htmlFor=\"locked\">Opción bloqueada por el administrador</Label>\n</div>"
         }
       ],
-      "docs": "/docs#/components/label"
+      "docs": "/docs#/components/label",
+      "ficha": "ai-tools/components/label.md"
     },
     {
       "id": "magic-card",
@@ -16878,7 +16900,8 @@
           "code": "<MagicCard variant=\"ai\" isSelected={selected} onClick={toggle} contentClassName=\"flex-col gap-1.5\">\n  <span className=\"flex items-center gap-2 text-sm font-semibold\"><Sparkles className=\"size-4\" /> Generar con IA</span>\n  <span className=\"text-xs text-text-secondary\">Redactamos las preguntas a partir de tu objetivo.</span>\n</MagicCard>"
         }
       ],
-      "docs": "/docs#/components/magic-card"
+      "docs": "/docs#/components/magic-card",
+      "ficha": "ai-tools/components/magic-card.md"
     },
     {
       "id": "moving-border-beam",
@@ -16972,7 +16995,8 @@
           "code": "<div className=\"relative w-80 rounded-2xl border border-border/60 bg-surface p-5 shadow-card\">\n  <MovingBorderBeam mode=\"line\" rx={16} ry={16} duration={9000} colorFrom=\"hsl(var(--primary))\" colorTo=\"hsl(var(--ai-gradient-end))\" />\n  <h3 className=\"text-sm font-semibold\">Plan sugerido</h3>\n  <p className=\"mt-1 text-xs text-text-secondary\">Generado a partir de las respuestas del último trimestre.</p>\n</div>"
         }
       ],
-      "docs": "/docs#/components/moving-border-beam"
+      "docs": "/docs#/components/moving-border-beam",
+      "ficha": "ai-tools/components/moving-border-beam.md"
     },
     {
       "id": "pagination",
@@ -17047,7 +17071,8 @@
           "code": "<Pagination>\n  <PaginationContent>\n    <PaginationItem><PaginationPrevious href=\"#\" text=\"Más recientes\" /></PaginationItem>\n    <PaginationItem><PaginationNext href=\"#\" text=\"Más antiguas\" /></PaginationItem>\n  </PaginationContent>\n</Pagination>"
         }
       ],
-      "docs": "/docs#/components/pagination"
+      "docs": "/docs#/components/pagination",
+      "ficha": "ai-tools/components/pagination.md"
     },
     {
       "id": "popover",
@@ -17137,7 +17162,8 @@
           "code": "const [open, setOpen] = React.useState(false);\n\n<Popover open={open} onOpenChange={setOpen}>\n  <PopoverTrigger asChild><Button variant=\"outline\">Archivar encuesta</Button></PopoverTrigger>\n  <PopoverContent align=\"start\">\n    <PopoverHeader>\n      <PopoverTitle>¿Archivar \"Clima Q3\"?</PopoverTitle>\n      <PopoverDescription>Dejará de recibir respuestas. Podrás restaurarla.</PopoverDescription>\n    </PopoverHeader>\n    <div className=\"flex justify-end gap-2\">\n      <Button size=\"sm\" variant=\"ghost\" onClick={() => setOpen(false)}>Cancelar</Button>\n      <Button size=\"sm\" onClick={() => setOpen(false)}>Archivar</Button>\n    </div>\n  </PopoverContent>\n</Popover>"
         }
       ],
-      "docs": "/docs#/components/popover"
+      "docs": "/docs#/components/popover",
+      "ficha": "ai-tools/components/popover.md"
     },
     {
       "id": "progress",
@@ -17211,7 +17237,8 @@
           "code": "<div className=\"space-y-2\">\n  <div className=\"flex justify-between text-sm\">\n    <span className=\"font-medium\">Licencias usadas</span>\n    <span className=\"text-text-secondary\">184 / 250</span>\n  </div>\n  <Progress value={74} className=\"h-3\" aria-label=\"Licencias usadas\" />\n</div>"
         }
       ],
-      "docs": "/docs#/components/progress"
+      "docs": "/docs#/components/progress",
+      "ficha": "ai-tools/components/progress.md"
     },
     {
       "id": "radio-group",
@@ -17295,7 +17322,8 @@
           "code": "<RadioGroup defaultValue=\"es\">\n  <div className=\"flex items-center gap-2\">\n    <RadioGroupItem id=\"es\" value=\"es\" />\n    <Label htmlFor=\"es\">Español</Label>\n  </div>\n  <div className=\"flex items-center gap-2\">\n    <RadioGroupItem id=\"pt\" value=\"pt\" disabled />\n    <Label htmlFor=\"pt\">Portugués (próximamente)</Label>\n  </div>\n</RadioGroup>"
         }
       ],
-      "docs": "/docs#/components/radio-group"
+      "docs": "/docs#/components/radio-group",
+      "ficha": "ai-tools/components/radio-group.md"
     },
     {
       "id": "scroll-area",
@@ -17370,7 +17398,8 @@
           "code": "<ScrollArea className=\"h-40 w-full max-w-md rounded-xl border border-border/60 bg-surface p-4 text-sm leading-relaxed\">\n  <p>…</p>\n</ScrollArea>"
         }
       ],
-      "docs": "/docs#/components/scroll-area"
+      "docs": "/docs#/components/scroll-area",
+      "ficha": "ai-tools/components/scroll-area.md"
     },
     {
       "id": "select",
@@ -17468,7 +17497,8 @@
           "code": "<Select>\n  <SelectTrigger className=\"w-64\"><SelectValue placeholder=\"Plantilla\" /></SelectTrigger>\n  <SelectContent position=\"popper\">\n    <SelectItem value=\"pulse\">Pulso semanal</SelectItem>\n    <SelectItem value=\"climate\">Clima organizacional</SelectItem>\n    <SelectItem value=\"exit\" disabled>Salida (próximamente)</SelectItem>\n  </SelectContent>\n</Select>"
         }
       ],
-      "docs": "/docs#/components/select"
+      "docs": "/docs#/components/select",
+      "ficha": "ai-tools/components/select.md"
     },
     {
       "id": "separator",
@@ -17529,7 +17559,8 @@
           "code": "<div className=\"flex h-5 items-center gap-3 text-sm\">\n  <span>Vista previa</span>\n  <Separator orientation=\"vertical\" />\n  <span>Duplicar</span>\n  <Separator orientation=\"vertical\" />\n  <span>Archivar</span>\n</div>"
         }
       ],
-      "docs": "/docs#/components/separator"
+      "docs": "/docs#/components/separator",
+      "ficha": "ai-tools/components/separator.md"
     },
     {
       "id": "sheet",
@@ -17619,7 +17650,8 @@
           "code": "<SheetContent side=\"bottom\" showCloseButton={false}>\n  <SheetHeader>\n    <SheetTitle>Clima Q3</SheetTitle>\n    <SheetDescription>¿Qué quieres hacer con esta encuesta?</SheetDescription>\n  </SheetHeader>\n  <div className=\"grid gap-2 px-4 pb-4 sm:grid-cols-2\">\n    <SheetClose asChild><Button variant=\"outline\"><Share2 /> Compartir resultados</Button></SheetClose>\n    <SheetClose asChild><Button variant=\"outline\" className=\"text-destructive\"><Trash2 /> Eliminar</Button></SheetClose>\n  </div>\n</SheetContent>"
         }
       ],
-      "docs": "/docs#/components/sheet"
+      "docs": "/docs#/components/sheet",
+      "ficha": "ai-tools/components/sheet.md"
     },
     {
       "id": "skeleton",
@@ -17689,7 +17721,8 @@
           "code": "{isLoading ? <ProfileSkeleton /> : <ProfileRow user={user} />}"
         }
       ],
-      "docs": "/docs#/components/skeleton"
+      "docs": "/docs#/components/skeleton",
+      "ficha": "ai-tools/components/skeleton.md"
     },
     {
       "id": "slider",
@@ -17789,7 +17822,8 @@
           "code": "<div className=\"h-48\">\n  <Slider orientation=\"vertical\" value={[value]} onValueChange={([v]) => setValue(v)} max={100} step={5} />\n</div>"
         }
       ],
-      "docs": "/docs#/components/slider"
+      "docs": "/docs#/components/slider",
+      "ficha": "ai-tools/components/slider.md"
     },
     {
       "id": "switch",
@@ -17883,7 +17917,8 @@
           "code": "<Switch checked disabled />\n<Switch disabled />"
         }
       ],
-      "docs": "/docs#/components/switch"
+      "docs": "/docs#/components/switch",
+      "ficha": "ai-tools/components/switch.md"
     },
     {
       "id": "table",
@@ -17973,7 +18008,8 @@
           "code": "/* globals.css */\n[data-slot=\"table-body\"] > tr { animation: table-row-in 780ms cubic-bezier(0.16, 1, 0.3, 1) both; }\n[data-slot=\"table-body\"] > tr:nth-child(2) { animation-delay: 55ms; }\n/* … hasta nth-child(20) */\n\n<PeopleTable key={reloadCount} rows={people} />"
         }
       ],
-      "docs": "/docs#/components/table"
+      "docs": "/docs#/components/table",
+      "ficha": "ai-tools/components/table.md"
     },
     {
       "id": "tabs",
@@ -18062,7 +18098,8 @@
           "code": "const [step, setStep] = React.useState(\"datos\");\n\n<Tabs value={step} onValueChange={setStep}>\n  <TabsList variant=\"page\">\n    <TabsTrigger value=\"datos\">1. Datos</TabsTrigger>\n    <TabsTrigger value=\"preguntas\">2. Preguntas</TabsTrigger>\n    <TabsTrigger value=\"envio\">3. Envío</TabsTrigger>\n  </TabsList>\n  …\n</Tabs>\n<Button onClick={() => setStep(\"preguntas\")}>Siguiente</Button>"
         }
       ],
-      "docs": "/docs#/components/tabs"
+      "docs": "/docs#/components/tabs",
+      "ficha": "ai-tools/components/tabs.md"
     },
     {
       "id": "textarea",
@@ -18157,7 +18194,8 @@
           "code": "<Textarea disabled defaultValue=\"La encuesta está cerrada; no se pueden editar las instrucciones.\" />"
         }
       ],
-      "docs": "/docs#/components/textarea"
+      "docs": "/docs#/components/textarea",
+      "ficha": "ai-tools/components/textarea.md"
     },
     {
       "id": "thema-logo",
@@ -18226,7 +18264,8 @@
           "code": "<div className=\"text-primary\">\n  <ThemaLogo size={32} color=\"currentColor\" />\n</div>"
         }
       ],
-      "docs": "/docs#/components/thema-logo"
+      "docs": "/docs#/components/thema-logo",
+      "ficha": "ai-tools/components/thema-logo.md"
     },
     {
       "id": "sonner",
@@ -18329,7 +18368,8 @@
           "code": "const id = toast.warning(\"Tu sesión expira en 5 minutos\", {\n  description: \"Guarda los cambios pendientes.\",\n  duration: Infinity,\n});\n\ntoast.dismiss(id);"
         }
       ],
-      "docs": "/docs#/components/sonner"
+      "docs": "/docs#/components/sonner",
+      "ficha": "ai-tools/components/sonner.md"
     },
     {
       "id": "toggle",
@@ -18425,7 +18465,8 @@
           "code": "<Toggle size=\"sm\" aria-label=\"Negrita\"><Bold /></Toggle>\n<Toggle aria-label=\"Negrita\"><Bold /></Toggle>\n<Toggle size=\"lg\" aria-label=\"Negrita\"><Bold /></Toggle>"
         }
       ],
-      "docs": "/docs#/components/toggle"
+      "docs": "/docs#/components/toggle",
+      "ficha": "ai-tools/components/toggle.md"
     },
     {
       "id": "toggle-group",
@@ -18534,7 +18575,8 @@
           "code": "<ToggleGroup type=\"single\" defaultValue=\"left\" variant=\"outline\" disabled>\n  …\n</ToggleGroup>\n\n<ToggleGroup type=\"single\" defaultValue=\"left\" variant=\"outline\">\n  <ToggleGroupItem value=\"left\" aria-label=\"Izquierda\"><AlignLeft /></ToggleGroupItem>\n  <ToggleGroupItem value=\"center\" aria-label=\"Centro\" disabled><AlignCenter /></ToggleGroupItem>\n  <ToggleGroupItem value=\"right\" aria-label=\"Derecha\"><AlignRight /></ToggleGroupItem>\n</ToggleGroup>"
         }
       ],
-      "docs": "/docs#/components/toggle-group"
+      "docs": "/docs#/components/toggle-group",
+      "ficha": "ai-tools/components/toggle-group.md"
     },
     {
       "id": "tooltip",
@@ -18635,7 +18677,8 @@
           "code": "<TooltipProvider delayDuration={0}>\n  <Tooltip>\n    <TooltipTrigger asChild><Button variant=\"ghost\" size=\"icon-sm\" aria-label=\"Ayuda\"><Info /></Button></TooltipTrigger>\n    <TooltipContent>Aparece al instante</TooltipContent>\n  </Tooltip>\n</TooltipProvider>"
         }
       ],
-      "docs": "/docs#/components/tooltip"
+      "docs": "/docs#/components/tooltip",
+      "ficha": "ai-tools/components/tooltip.md"
     },
     {
       "id": "attachment-list",
@@ -18735,7 +18778,8 @@
           "code": "<AttachmentList files={[]} />\n\n<AttachmentList\n  files={[]}\n  emptyState={\n    <EmptyState\n      icon={FolderOpen}\n      title=\"Aún no hay soportes\"\n      description=\"Adjunta al menos un documento para enviar la solicitud.\"\n      action={<Button size=\"sm\">Adjuntar</Button>}\n    />\n  }\n/>"
         }
       ],
-      "docs": "/docs#/components/attachment-list"
+      "docs": "/docs#/components/attachment-list",
+      "ficha": "ai-tools/components/attachment-list.md"
     },
     {
       "id": "file-preview",
@@ -18834,7 +18878,8 @@
           "code": "<FilePreview file={file} variant=\"row\" error=\"Excede el límite de 5 MB.\" removable />\n<FilePreview file={file} variant=\"card\" error=\"No se pudo escanear el archivo.\" />"
         }
       ],
-      "docs": "/docs#/components/file-preview"
+      "docs": "/docs#/components/file-preview",
+      "ficha": "ai-tools/components/file-preview.md"
     },
     {
       "id": "file-upload",
@@ -18958,7 +19003,8 @@
           "code": "// Archivos de ejemplo (en producción vienen del <input type=\"file\">)\nconst files = [\n  new File([new Uint8Array(1240 * 1024)], \"informe-trimestral.pdf\", { type: \"application/pdf\" }),\n  new File([new Uint8Array(340 * 1024)], \"portada-curso.png\", { type: \"image/png\" }),\n  new File([new Uint8Array(96 * 1024)], \"nomina-marzo.xlsx\", { type: \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\" }),\n];\n\n<FileUpload\n  value={files}\n  onChange={setFiles}\n  label=\"Documentos del contrato\"\n  multiple\n  error=\"El servidor rechazó la carga: sesión expirada.\"\n/>"
         }
       ],
-      "docs": "/docs#/components/file-upload"
+      "docs": "/docs#/components/file-upload",
+      "ficha": "ai-tools/components/file-upload.md"
     },
     {
       "id": "image-cropper",
@@ -19074,7 +19120,8 @@
           "code": "const [open, setOpen] = React.useState(false);\n\n<ImageCropDialog\n  open={open}\n  onOpenChange={setOpen}\n  image={src}\n  aspect={1}\n  cropShape=\"round\"\n  title=\"Foto de perfil\"\n  output={{ maxSize: 512, maxBytes: 1024 * 1024 }}\n  onApply={(result) => save(result.blob)}\n/>"
         }
       ],
-      "docs": "/docs#/components/image-cropper"
+      "docs": "/docs#/components/image-cropper",
+      "ficha": "ai-tools/components/image-cropper.md"
     },
     {
       "id": "import-csv-panel",
@@ -19193,7 +19240,8 @@
           "code": "<ImportCsvPanel\n  file={file}\n  previewColumns={columns}\n  previewRows={rows}\n  status=\"error\"\n  progress={100}\n  error=\"La columna «correo» tiene 2 valores inválidos.\"\n  actions={<Button variant=\"outline\">Descargar reporte de errores</Button>}\n/>"
         }
       ],
-      "docs": "/docs#/components/import-csv-panel"
+      "docs": "/docs#/components/import-csv-panel",
+      "ficha": "ai-tools/components/import-csv-panel.md"
     },
     {
       "id": "upload-progress",
@@ -19287,7 +19335,8 @@
           "code": "<UploadProgress status=\"uploading\" value={30} showValue={false} />"
         }
       ],
-      "docs": "/docs#/components/upload-progress"
+      "docs": "/docs#/components/upload-progress",
+      "ficha": "ai-tools/components/upload-progress.md"
     },
     {
       "id": "upload-zone",
@@ -19437,7 +19486,8 @@
           "code": "<UploadZone value={[]} idleText=\"Arrastra archivos aquí\" error=\"No se pudo conectar con el almacenamiento.\" />\n<UploadZone value={[]} idleText=\"Arrastra archivos aquí\" description=\"Carga cerrada para este periodo.\" disabled />"
         }
       ],
-      "docs": "/docs#/components/upload-zone"
+      "docs": "/docs#/components/upload-zone",
+      "ficha": "ai-tools/components/upload-zone.md"
     },
     {
       "id": "icon-tile",
@@ -19521,7 +19571,8 @@
           "code": "<a className=\"flex items-center gap-3 rounded-xl border border-border/60 bg-surface p-3 hover:bg-surface-subtle\">\n  <IconTile icon={<UserPlus />} tone=\"primary\" size=\"lg\" />\n  <span className=\"flex flex-col\">\n    <span className=\"text-sm font-medium text-text-primary\">Nueva vacante</span>\n    <span className=\"text-xs text-text-secondary\">Publica en 4 pasos</span>\n  </span>\n</a>"
         }
       ],
-      "docs": "/docs#/components/icon-tile"
+      "docs": "/docs#/components/icon-tile",
+      "ficha": "ai-tools/components/icon-tile.md"
     },
     {
       "id": "page-header",
@@ -19611,7 +19662,8 @@
           "code": "<PageHeader\n  title=\"Reporte trimestral\"\n  description=\"Avance consolidado por área.\"\n  meta={\n    <>\n      <Tag label=\"Q3 2026\" />\n      <Tag label=\"Comercial\" tone=\"info\" />\n      <Tag label=\"Solo lectura\" tone=\"warning\" />\n    </>\n  }\n/>"
         }
       ],
-      "docs": "/docs#/components/page-header"
+      "docs": "/docs#/components/page-header",
+      "ficha": "ai-tools/components/page-header.md"
     },
     {
       "id": "section-header",
@@ -19693,7 +19745,8 @@
           "code": "<SectionHeader\n  eyebrow=\"Reportes\"\n  title=\"Avance por equipo\"\n  actions={\n    <>\n      <Button size=\"sm\" variant=\"ghost\"><Filter /> Filtrar</Button>\n      <Button size=\"sm\" variant=\"outline\">Exportar</Button>\n    </>\n  }\n/>"
         }
       ],
-      "docs": "/docs#/components/section-header"
+      "docs": "/docs#/components/section-header",
+      "ficha": "ai-tools/components/section-header.md"
     },
     {
       "id": "tag",
@@ -19775,173 +19828,105 @@
           "code": "<div className=\"flex items-center gap-3\">\n  <span className=\"text-sm font-medium\">Onboarding comercial</span>\n  <Tag label=\"Ruta\" />\n  <Tag label=\"12 lecciones\" />\n  <Tag label=\"Obligatorio\" tone=\"warning\" />\n</div>"
         }
       ],
-      "docs": "/docs#/components/tag"
+      "docs": "/docs#/components/tag",
+      "ficha": "ai-tools/components/tag.md"
     }
   ],
   "guides": [
     {
       "id": "como-usar",
       "section": "start",
-      "label": {
-        "es": "Cómo usar el sistema",
-        "en": "How to use the system"
-      },
-      "description": {
-        "es": "Las cinco reglas y dónde está cada cosa.",
-        "en": "The five rules and where everything lives."
-      },
+      "label": "Cómo usar el sistema",
+      "description": "Las cinco reglas y dónde está cada cosa.",
       "docs": "/docs#/guides/como-usar"
     },
     {
       "id": "flujo-de-trabajo",
       "section": "start",
-      "label": {
-        "es": "Flujo de trabajo",
-        "en": "Workflow"
-      },
-      "description": {
-        "es": "Cómo se suma una pantalla nueva, del archivo al enlace publicado.",
-        "en": "How a new screen gets added, from file to published link."
-      },
+      "label": "Flujo de trabajo",
+      "description": "Cómo se suma una pantalla nueva, del archivo al enlace publicado.",
       "docs": "/docs#/guides/flujo-de-trabajo"
     },
     {
       "id": "trabajar-con-ia",
       "section": "start",
-      "label": {
-        "es": "Trabajar con la IA",
-        "en": "Working with AI"
-      },
-      "description": {
-        "es": "Qué sabe la IA de este proyecto y de dónde lo saca.",
-        "en": "What the AI knows about this project and where it gets it."
-      },
+      "label": "Trabajar con la IA",
+      "description": "Qué sabe la IA de este proyecto y de dónde lo saca.",
       "docs": "/docs#/guides/trabajar-con-ia"
     },
     {
       "id": "botones",
       "section": "patterns",
-      "label": {
-        "es": "Botones",
-        "en": "Buttons"
-      },
-      "description": {
-        "es": "Jerarquía, combinaciones y el botón de IA.",
-        "en": "Hierarchy, combinations and the AI button."
-      },
+      "label": "Botones",
+      "description": "Jerarquía, combinaciones y el botón de IA.",
       "docs": "/docs#/guides/botones"
     },
     {
       "id": "ventanas",
       "section": "patterns",
-      "label": {
-        "es": "Modales y drawers",
-        "en": "Modals and drawers"
-      },
-      "description": {
-        "es": "Cuándo una ventana, cuándo un panel, cuándo un aviso.",
-        "en": "When a window, when a panel, when an alert."
-      },
+      "label": "Modales y drawers",
+      "description": "Cuándo una ventana, cuándo un panel, cuándo un aviso.",
       "docs": "/docs#/guides/ventanas"
     },
     {
       "id": "estados",
       "section": "patterns",
-      "label": {
-        "es": "Estados y feedback",
-        "en": "States and feedback"
-      },
-      "description": {
-        "es": "Vacíos, carga, avisos, confirmaciones y errores.",
-        "en": "Empty, loading, alerts, confirmations and errors."
-      },
+      "label": "Estados y feedback",
+      "description": "Vacíos, carga, avisos, confirmaciones y errores.",
       "docs": "/docs#/guides/estados"
     },
     {
       "id": "formularios",
       "section": "patterns",
-      "label": {
-        "es": "Formularios",
-        "en": "Forms"
-      },
-      "description": {
-        "es": "Anatomía del campo, validación y formularios largos.",
-        "en": "Field anatomy, validation and long forms."
-      },
+      "label": "Formularios",
+      "description": "Anatomía del campo, validación y formularios largos.",
       "docs": "/docs#/guides/formularios"
     }
   ],
   "foundations": [
     {
       "id": "brand",
-      "label": {
-        "es": "Marca",
-        "en": "Brand"
-      },
+      "label": "Marca",
       "docs": "/docs#/foundations/brand"
     },
     {
       "id": "themes",
-      "label": {
-        "es": "Temas",
-        "en": "Themes"
-      },
+      "label": "Temas",
       "docs": "/docs#/foundations/themes"
     },
     {
       "id": "colors",
-      "label": {
-        "es": "Colores y tokens",
-        "en": "Colors and tokens"
-      },
+      "label": "Colores y tokens",
       "docs": "/docs#/foundations/colors"
     },
     {
       "id": "typography",
-      "label": {
-        "es": "Tipografía",
-        "en": "Typography"
-      },
+      "label": "Tipografía",
       "docs": "/docs#/foundations/typography"
     },
     {
       "id": "radius",
-      "label": {
-        "es": "Radios y sombras",
-        "en": "Radii and shadows"
-      },
+      "label": "Radios y sombras",
       "docs": "/docs#/foundations/radius"
     },
     {
       "id": "spacing",
-      "label": {
-        "es": "Espaciado",
-        "en": "Spacing"
-      },
+      "label": "Espaciado",
       "docs": "/docs#/foundations/spacing"
     },
     {
       "id": "icons",
-      "label": {
-        "es": "Iconos",
-        "en": "Icons"
-      },
+      "label": "Iconos",
       "docs": "/docs#/foundations/icons"
     },
     {
       "id": "language",
-      "label": {
-        "es": "Idioma",
-        "en": "Language"
-      },
+      "label": "Idioma",
       "docs": "/docs#/foundations/language"
     },
     {
       "id": "motion",
-      "label": {
-        "es": "Motion",
-        "en": "Motion"
-      },
+      "label": "Motion",
       "docs": "/docs#/foundations/motion"
     }
   ],

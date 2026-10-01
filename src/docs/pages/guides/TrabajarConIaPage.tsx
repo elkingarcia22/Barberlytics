@@ -67,7 +67,7 @@ export function TrabajarConIaPage() {
             <code>docs/API_CONTRACT.md</code> dice qué espera el frontend; <code>src/mocks/</code> lo implementa. Por eso una tabla dice lo mismo que la API y no algo inventado.
           </RuleCard>
           <RuleCard icon={Bot} title="Las reglas y el mapa del repo">
-            <code>AGENTS.md</code> (las reglas, para cualquier IA) y <code>CLAUDE.md</code> (el mapa del repo, las trampas conocidas y cómo cerrar un trabajo).
+            <code>AGENTS.md</code> (las reglas, para cualquier IA) y <code>CLAUDE.md</code> (el mapa del repo, las trampas conocidas y cómo cerrar un trabajo). <code>ai-tools/CODEMAP.md</code> es el mapa del producto: qué ruta monta qué pantalla, qué endpoints existen y qué exporta cada archivo, para ir directo en vez de leer carpetas enteras.
           </RuleCard>
         </div>
       </DocSection>
@@ -89,7 +89,7 @@ export function TrabajarConIaPage() {
               {[
                 ["AGENTS.md", "Las reglas: qué librería, qué iconos, qué colores, qué no se toca y cómo se entrega. Las leen Cursor, Codex, Gemini y Claude."],
                 ["CLAUDE.md", "Además, para Claude: el mapa del repo, dónde está cada cosa, las trampas conocidas y cómo cerrar un trabajo."],
-                ["ai-tools/", "El catálogo generado: CATALOG.md (índice), components/ (una ficha por componente) y catalog.json (para scripts)."],
+                ["ai-tools/", "El catálogo generado: CATALOG.md (índice), components/ (una ficha por componente), catalog.json (para scripts) y CODEMAP.md (rutas, endpoints y qué exporta cada archivo del producto)."],
                 [".claude/skills/", "Los procedimientos: elegir componentes, nueva pantalla, revisar, documentar."],
                 [".claude/settings.json", "Los hooks: bloquear escrituras fuera de las reglas y repasar al terminar."],
                 ["scripts/check-design-system.mjs", "La validación (npm run check)."],

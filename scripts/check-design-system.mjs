@@ -12,7 +12,8 @@
  *   6b. se pide un icono con un nombre que no está en el registro (hoy caería al fallback
  *       en silencio) o una pantalla de `src/features` no está enrutada;
  *   7. se tocaron archivos protegidos (tokens, temas, shell, configuración) respecto a `main`;
- *   8. el catálogo de `ai-tools/` no corresponde al registro actual (falta `npm run catalog`).
+ *   8. el catálogo de `ai-tools/` no corresponde al registro actual (falta `npm run catalog`);
+ *   9. el mapa del código (`ai-tools/CODEMAP.md`) no corresponde a `src/` (falta `npm run codemap`).
  *
  * Reporta todos los hallazgos de cada archivo, no solo el primero. Salida 1 si hay errores.
  *
@@ -233,6 +234,25 @@ try {
   }
 } catch (error) {
   staleCatalog(`No se pudo leer el catálogo (${error.message}). Corre \`npm run catalog\`.`);
+}
+
+/* --- Mapa viejo: cambió una ruta, un export o un endpoint y `CODEMAP.md` no. --- */
+let codemap = null;
+try {
+  codemap = await import("./generate-codemap.mjs");
+} catch {
+  /* sin dependencias instaladas no hay parser de TypeScript: la regla se salta */
+}
+if (codemap) {
+  let onDisk = "";
+  try {
+    onDisk = readFileSync(join(ROOT, codemap.CODEMAP_FILE), "utf8");
+  } catch {
+    /* si no existe, la comparación de abajo lo reporta */
+  }
+  if (onDisk !== codemap.buildCodemap(ROOT)) {
+    findings.push({ file: codemap.CODEMAP_FILE, line: 0, rule: "mapa-viejo", message: "Cambió una ruta, un export o un endpoint y el mapa no. Corre `npm run codemap`.", level: WARN_ONLY ? "warn" : "error" });
+  }
 }
 
 const errors = findings.filter((f) => f.level === "error");

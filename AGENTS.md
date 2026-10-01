@@ -64,3 +64,4 @@ cambia el doc, el mock y el esquema Zod a la vez. Cliente en `src/lib/api/`, err
 - Rama por cambio y PR con resumen y plan de pruebas. La CI corre lint, tipos, pruebas, build y e2e.
 - Probar en claro, oscuro (`ThemeModeToggle`) y en pantalla angosta (375px).
 - Si creaste o cambiaste un componente: entrada en el registry al día y `npm run catalog`.
+- Si añadiste o cambiaste una pantalla, una ruta, un export o un endpoint: `npm run codemap`.

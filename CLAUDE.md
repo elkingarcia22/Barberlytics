@@ -11,7 +11,8 @@ npm ci --legacy-peer-deps   # instalar (react 19 + radix-ui único; sin el flag 
 npm run dev                 # app + doc en http://localhost:5173 (login admin@thema.dev / thema123)
 npm run check               # reglas del sistema de diseño (scripts/check-design-system.mjs)
 npm run verify              # lint + type-check + test + build
-npm run catalog             # regenera ai-tools/catalog.json y CATALOG.md desde el registry
+npm run catalog             # regenera el catálogo de componentes en ai-tools/ desde el registry
+npm run codemap             # regenera ai-tools/CODEMAP.md (rutas, endpoints, exports) desde src/
 npm run e2e                 # Playwright (antes: npm run e2e:install)
 ```
 
@@ -34,7 +35,11 @@ En la app de escritorio el dev server se levanta con `.claude/launch.json` (`the
 - `src/app/` — router, providers, layout, páginas de error. `src/features/` — auth, users, dashboard.
 - `src/lib/api/` (cliente, `ApiError`), `src/lib/query/` (`QueryBoundary`, `queryClient`).
 - `src/mocks/` — MSW; implementa `docs/API_CONTRACT.md`.
-- `ai-tools/` — catálogo generado. `.claude/skills/` — procedimientos. `scripts/` — check y catálogo.
+- `ai-tools/` — catálogo generado: `CATALOG.md` (índice, lo único que se lee entero),
+  `components/<id>.md` (ficha por componente) y `catalog.json` (para scripts). `CODEMAP.md` es el
+  mapa del código de producto: rutas, endpoints simulados y, por archivo, qué exporta y qué usa.
+  **Antes de buscar con grep dónde vive algo de `src/app`, `features`, `lib`, `mocks`, `i18n` o
+  `themes`, lee `CODEMAP.md`.** `.claude/skills/` — procedimientos. `scripts/` — check y catálogo.
 - `docs/` — ARCHITECTURE, API_CONTRACT, THEMING, DEPLOYMENT, DESIGN y las decisiones de cada fase.
 
 ## Documentar un componente
@@ -44,6 +49,17 @@ importPath, sourcePath, status, tags, playground?, examples, props, guidelines, 
 al `index.ts` del grupo. Un grupo nuevo se declara en `registry/types.ts` (`DocGroupId` +
 `DOC_GROUPS`), en `registry/index.ts` y en `docsNavigation.ts` (`GROUP_ICONS`). Luego `npm run catalog`.
 Las páginas de guía viven en `docs/guidePages.ts` + `pages/guides/`.
+
+## Orientarse en el código
+
+Tres niveles, del más barato al más caro; sube solo si el anterior no basta:
+
+1. `ai-tools/CODEMAP.md` — dónde vive algo (rutas, endpoints, qué exporta cada archivo). Va en el repo.
+2. **CodeGraph** (`codegraph_explore`, opcional: cada quien corre `codegraph install -t claude -l global -y`
+   una vez y `codegraph init` en su checkout; el índice `.codegraph/` es local y está en `.gitignore`).
+   Úsalo antes de editar un símbolo: devuelve su código, quién lo llama y el radio de impacto.
+   Sin `.codegraph/`, sáltatelo y usa grep.
+3. Leer o buscar archivos a mano, solo para lo que los dos anteriores no cubren.
 
 ## Trampas conocidas
 
@@ -60,6 +76,10 @@ Las páginas de guía viven en `docs/guidePages.ts` + `pages/guides/`.
   helper de login está en `e2e/helpers.ts`.
 - **Cobertura**: Vitest solo cuenta `src/lib`, `src/features`, `src/themes`, `src/app`. Los
   componentes se prueban con Testing Library junto al archivo y con e2e.
+- **El catálogo caduca**: `npm run check` compara la huella del registro, los iconos y los tokens
+  con la de `ai-tools/catalog.json` y falla con `catalogo-viejo` si no coinciden. Se arregla con
+  `npm run catalog`, nunca editando `ai-tools/` a mano. Lo mismo el mapa: `mapa-viejo` se arregla
+  con `npm run codemap`.
 - **`npm run check` compara contra `main`** para detectar archivos protegidos tocados; sin `main`
   local solo mira el árbol de trabajo. Es estricto (error) en `src/features`, `src/app`, `src/lib`
   y `src/mocks`, y avisa (deuda heredada) en el resto de `src/`; `--strict` sube todo a error.
@@ -69,7 +89,8 @@ Las páginas de guía viven en `docs/guidePages.ts` + `pages/guides/`.
 
 ## Cómo cerrar un trabajo
 
-1. `npm run check` y `npm run verify` en verde. Si tocaste el registry, `npm run catalog`.
+1. `npm run check` y `npm run verify` en verde. Si tocaste el registry, `npm run catalog`; si
+   cambiaste rutas, exports o endpoints, `npm run codemap`.
 2. Revisa la pantalla en claro y oscuro y a 375px (`resize_window` en el navegador integrado).
 3. Commit con conventional commits; resumen de PR con qué cambió, por qué y cómo se probó.
 4. Si cambiaste una regla o una pieza general, actualiza la página de la doc que la cuenta

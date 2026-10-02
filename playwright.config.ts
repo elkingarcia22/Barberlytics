@@ -19,7 +19,12 @@ export default defineConfig({
     command: `npm run dev -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
-    env: { VITE_USE_MOCKS: "true" },
+    env: {
+      VITE_USE_MOCKS: "true",
+      // El centro de ayuda se publica aparte y cambia con cada edición: en e2e
+      // se lee un índice fijo que sirve el propio dev server, sin salir a la red.
+      VITE_HELP_BASE_URL: `http://localhost:${PORT}/e2e/fixtures/help`,
+    },
     timeout: 60_000,
   },
 });

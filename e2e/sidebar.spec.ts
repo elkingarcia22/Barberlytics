@@ -31,11 +31,12 @@ test.describe("Menú lateral", () => {
   });
 
   test("el panel se despliega a 240px y empuja el contenido", async ({ page }) => {
-    const panel = page.locator("aside");
+    // El panel de chat también es un <aside>: aquí se mide el del menú.
+    const panel = page.locator('aside:not([data-testid="chat-panel"])');
     await expect(panel).toHaveCSS("width", "240px");
 
     // Colapsado: el panel está fuera salvo el ancho del rail.
-    const spacer = page.locator("aside").locator("xpath=..");
+    const spacer = panel.locator("xpath=..");
     await expect(spacer).toHaveCSS("width", "64px");
 
     await page.locator(RAIL).getByLabel("Expandir menú").click();

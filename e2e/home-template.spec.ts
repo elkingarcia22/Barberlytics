@@ -93,6 +93,8 @@ test.describe("home plantilla", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
     await login(page);
+    // Al entrar se aterriza en Métricas; la home plantilla vive en /dashboard.
+    await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
   });
 

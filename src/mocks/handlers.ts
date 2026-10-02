@@ -1,5 +1,9 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { calendarHandlers } from "./calendar/handlers";
+import { teamHandlers } from "./team/handlers";
+import { buildBusinessMetrics } from "./metrics";
+import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -72,6 +76,29 @@ function normalizePhone(value: unknown): string {
   return typeof value === "string" ? value.replace(/[^\d+]/g, "") : "";
 }
 
+/** Intentos fallidos seguidos con un mismo celular antes de bloquearlo. */
+export const MAX_LOGIN_FAILURES = 4;
+
+function lockedError() {
+  return error(429, "rate_limited", "Bloqueamos el acceso con este número por seguridad tras varios intentos fallidos.", {
+    details: { reason: "locked" },
+  });
+}
+
+function registerFailure(phone: string, message: string) {
+  const failures = (db.loginFailures.get(phone) ?? 0) + 1;
+  db.loginFailures.set(phone, failures);
+  if (failures >= MAX_LOGIN_FAILURES) return lockedError();
+  return error(401, "unauthorized", message, { details: { attemptsLeft: MAX_LOGIN_FAILURES - failures } });
+}
+
+const TICKET_REASONS = ["recovery", "lockout", "other"] as const;
+const SIGNUP_TEXT_FIELDS = ["firstName", "lastName", "company", "country", "timezone"] as const;
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function openSession(account: MockAccount) {
   const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
   db.sessions.set(token, account.id);
@@ -107,17 +134,56 @@ export const handlers = [
   http.post(`${BASE}/auth/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
     const body = (await request.json().catch(() => ({}))) as { phone?: string };
-    if (!PHONE_E164.test(normalizePhone(body.phone))) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    const phone = normalizePhone(body.phone);
+    if (!PHONE_E164.test(phone)) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    if ((db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES) return lockedError();
     return new HttpResponse(null, { status: 204 });
   }),
 
+  // Cada fallo seguido suma; al cuarto el número queda bloqueado (429 con
+  // `details.reason: "locked"`) hasta que soporte lo libere. Entrar lo pone en cero.
   http.post(`${BASE}/auth/otp/verify`, async ({ request }) => {
     await delay(LATENCY_MS);
     const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
-    const account = ACCOUNTS.find((item) => item.phone === normalizePhone(body.phone));
-    if (!account) return error(401, "unauthorized", "Ese número no está registrado en ninguna barbería.");
-    if (body.code !== OTP_CODE) return error(401, "unauthorized", "El código no es correcto o ya venció. Pide uno nuevo.");
+    const phone = normalizePhone(body.phone);
+    if ((db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES) return lockedError();
+    const account = ACCOUNTS.find((item) => item.phone === phone);
+    if (!account) return registerFailure(phone, "Ese número no está registrado en ninguna barbería.");
+    if (body.code !== OTP_CODE) return registerFailure(phone, "El código no es correcto o ya venció. Pide uno nuevo.");
+    db.loginFailures.delete(phone);
     return openSession(account);
+  }),
+
+  // Crear cuenta: deja la barbería pendiente de activar y avisa por correo.
+  http.post(`${BASE}/auth/signup`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const fields: Record<string, string[]> = {};
+    for (const key of SIGNUP_TEXT_FIELDS) if (!text(body[key])) fields[key] = ["Este campo es obligatorio."];
+    const email = text(body.email).toLowerCase();
+    if (!EMAIL.test(email)) fields.email = ["Escribe un correo válido."];
+    else if (ACCOUNTS.some((item) => item.email === email)) fields.email = ["Ya hay una cuenta con ese correo. Inicia sesión."];
+    if (!PHONE_E164.test(normalizePhone(body.phone))) fields.phone = ["Escribe un celular válido."];
+    const barbers = Number(body.barbers);
+    if (!Number.isInteger(barbers) || barbers < 1) fields.barbers = ["Escribe cuántos barberos tiene tu equipo."];
+    if (Object.keys(fields).length) return error(422, "validation_error", "Revisa los campos marcados.", { fields });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Ticket a soporte: sin sesión, desde el login. Devuelve el número para seguirlo.
+  http.post(`${BASE}/support/tickets`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const fields: Record<string, string[]> = {};
+    if (!text(body.name)) fields.name = ["Escribe tu nombre completo."];
+    if (!text(body.company)) fields.company = ["Escribe el nombre de tu barbería."];
+    if (!EMAIL.test(text(body.email))) fields.email = ["Escribe un correo válido."];
+    if (!PHONE_E164.test(normalizePhone(body.phone))) fields.phone = ["Escribe un celular válido."];
+    if (!text(body.message)) fields.message = ["Cuéntanos qué pasó."];
+    if (!TICKET_REASONS.includes(body.reason as (typeof TICKET_REASONS)[number])) fields.reason = ["Motivo inválido."];
+    if (Object.keys(fields).length) return error(422, "validation_error", "Revisa los campos marcados.", { fields });
+    const id = `BL-${String(1000 + Math.floor(Math.random() * 9000))}`;
+    return HttpResponse.json({ id }, { status: 201 });
   }),
 
   // Entrar con Google u Outlook: el frontend manda la credencial que le dio el
@@ -157,6 +223,19 @@ export const handlers = [
   }),
 
   // ---------- Dashboard ----------
+  // Feedback de campañas: en producción lo atiende la función de Vercel
+  // `api/feedback`, que lo guarda en la hoja de Google de la campaña. Aquí se
+  // guarda en memoria para poder inspeccionarlo.
+  http.post(`${BASE}/feedback`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    const comment = typeof body?.comment === "string" ? body.comment.trim() : "";
+    if (!body || typeof body.campaignId !== "string" || comment.length < 5) {
+      return error(422, "validation_error", "El comentario necesita al menos 5 caracteres.");
+    }
+    db.feedback.push({ ...body, receivedAt: new Date().toISOString() });
+    return HttpResponse.json({ ok: true });
+  }),
   http.get(`${BASE}/dashboard/summary`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
@@ -179,6 +258,35 @@ export const handlers = [
       byArea,
       signups,
     });
+  }),
+
+  // ---------- Métricas ----------
+  ...(
+    [
+      ["business", buildBusinessMetrics],
+      ["customers", buildCustomersMetrics],
+      ["barbers", buildBarbersMetrics],
+      ["marketing", buildMarketingMetrics],
+    ] as const
+  ).map(([tab, build]) =>
+    http.get(`${BASE}/metrics/${tab}`, async ({ request }) => {
+      await delay(LATENCY_MS);
+      if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+      const url = new URL(request.url);
+      return HttpResponse.json(
+        build({
+          granularity: url.searchParams.get("granularity"),
+          date: url.searchParams.get("date"),
+          barberId: url.searchParams.get("barberId"),
+        })
+      );
+    })
+  ),
+
+  http.get(`${BASE}/metrics/insights`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    return HttpResponse.json(buildInsightsMetrics());
   }),
 
   // ---------- Users ----------
@@ -274,4 +382,10 @@ export const handlers = [
     db.persist();
     return HttpResponse.json(db.branding);
   }),
+
+  // ---------- Calendario ----------
+  ...calendarHandlers,
+
+  // ---------- Equipo ----------
+  ...teamHandlers,
 ];

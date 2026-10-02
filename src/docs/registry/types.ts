@@ -20,8 +20,10 @@ export type DocGroupId =
   | "navigation"
   | "overlays"
   | "feedback"
+  | "feedback-loop"
   | "data-display"
   | "date"
+  | "scheduling"
   | "upload"
   | "charts"
   | "ai"
@@ -76,6 +78,14 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     description: { es: "Estados vacíos, avisos y toasts.", en: "Empty states, alerts and toasts." },
   },
   {
+    id: "feedback-loop",
+    label: { es: "Feedback de usuarios", en: "User feedback" },
+    description: {
+      es: "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.",
+      en: "Collect feedback at scale on something just launched: guided tour, floating button and comment panel.",
+    },
+  },
+  {
     id: "data-display",
     label: { es: "Datos", en: "Data" },
     description: { es: "Tablas configurables y badges de estado.", en: "Configurable tables and status badges." },
@@ -84,6 +94,11 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     id: "date",
     label: { es: "Fechas y rangos", en: "Dates and ranges" },
     description: { es: "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.", en: "Date, range, month, quarter and period pickers, plus a range slider." },
+  },
+  {
+    id: "scheduling",
+    label: { es: "Agenda", en: "Scheduling" },
+    description: { es: "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.", en: "The day grid by barber, month occupancy and the date-and-time picker." },
   },
   {
     id: "upload",

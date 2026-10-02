@@ -10,12 +10,23 @@ import { useAuth } from "./useAuth";
 import { LoginForm } from "./LoginForm";
 import { RecoveryPanel } from "./RecoveryPanel";
 import { LoginHeroImage } from "./LoginHeroImage";
+import { LockedPanel } from "./LockedPanel";
+import { SignupPanel } from "./SignupPanel";
+import { SupportTicketPanel, type TicketContext } from "./SupportTicketPanel";
+import { cn } from "@/lib/utils";
 
 interface LocationState {
   from?: string;
 }
 
-type View = "login" | "recovery";
+type View =
+  | { name: "login" }
+  | { name: "recovery" }
+  | { name: "signup" }
+  | { name: "locked"; phone: string }
+  | { name: "ticket"; context: TicketContext };
+
+const WIDE_VIEWS: ReadonlySet<View["name"]> = new Set(["signup", "ticket"]);
 
 /** El login siempre se presenta con el tema premium, elija lo que elija la persona en la app. */
 const LOGIN_PRESET = "premium";
@@ -32,8 +43,9 @@ export function LoginPage() {
   useForcedPreset(LOGIN_PRESET);
   const { status } = useAuth();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/dashboard";
-  const [view, setView] = React.useState<View>("login");
+  const from = (location.state as LocationState | null)?.from ?? "/metricas";
+  const [view, setView] = React.useState<View>({ name: "login" });
+  const toLogin = () => setView({ name: "login" });
 
   if (status === "authenticated") return <Navigate to={from} replace />;
 
@@ -90,13 +102,27 @@ export function LoginPage() {
         </header>
 
         <div className="flex flex-1 items-center justify-center px-6 pb-16 pt-4 sm:px-10">
-          <Enter delay={120} className="w-full max-w-sm">
+          <Enter delay={120} className={cn("w-full", WIDE_VIEWS.has(view.name) ? "max-w-md" : "max-w-sm")}>
             <section aria-labelledby="login-heading" className="brand-ring panel-sheen rounded-3xl bg-card/85 p-6 backdrop-blur-xl sm:p-8">
-              {view === "login" ? (
-                <LoginForm onForgotNumber={() => setView("recovery")} />
-              ) : (
-                <RecoveryPanel onBack={() => setView("login")} />
+              {view.name === "login" && (
+                <LoginForm
+                  onForgotNumber={() => setView({ name: "recovery" })}
+                  onCreateAccount={() => setView({ name: "signup" })}
+                  onLocked={(phone) => setView({ name: "locked", phone })}
+                />
               )}
+              {view.name === "recovery" && (
+                <RecoveryPanel onBack={toLogin} onCreateTicket={(email) => setView({ name: "ticket", context: { reason: "recovery", email } })} />
+              )}
+              {view.name === "signup" && <SignupPanel onBack={toLogin} />}
+              {view.name === "locked" && (
+                <LockedPanel
+                  phone={view.phone}
+                  onBack={toLogin}
+                  onCreateTicket={() => setView({ name: "ticket", context: { reason: "lockout", phone: view.phone } })}
+                />
+              )}
+              {view.name === "ticket" && <SupportTicketPanel context={view.context} onBack={toLogin} />}
             </section>
           </Enter>
         </div>

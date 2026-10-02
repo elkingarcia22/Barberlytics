@@ -14,6 +14,7 @@ import { ThemaIcon } from "@/icons";
 import { describeError } from "@/lib/api";
 import { useAuth } from "./useAuth";
 import { describePhone } from "./phoneLabel";
+import { attemptsLeftFrom, isLockedError } from "./authErrors";
 import { OTP_LENGTH, otpRequestSchema, type AuthProvider, type OtpRequest } from "./types";
 
 interface LocationState {
@@ -34,18 +35,21 @@ const PROVIDERS: readonly { id: AuthProvider; label: "auth.google" | "auth.micro
 
 export interface LoginFormProps {
   onForgotNumber: () => void;
+  onCreateAccount: () => void;
+  /** El backend bloqueó el celular tras varios intentos fallidos seguidos. */
+  onLocked: (phone: string) => void;
 }
 
 /**
  * Entrar en dos pasos: el celular pide el código por SMS y el código abre
  * la sesión. Google y Outlook entran directo. Sin contraseña.
  */
-export function LoginForm({ onForgotNumber }: LoginFormProps) {
+export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFormProps) {
   const t = useAppT();
   const { requestCode, verifyCode, loginWithProvider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/dashboard";
+  const from = (location.state as LocationState | null)?.from ?? "/metricas";
 
   const [step, setStep] = React.useState<Step>("phone");
   const [phone, setPhone] = React.useState("");
@@ -70,6 +74,7 @@ export function LoginForm({ onForgotNumber }: LoginFormProps) {
       setWasResent(false);
       setStep("code");
     } catch (error) {
+      if (isLockedError(error)) return onLocked(values.phone);
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
     }
   });
@@ -82,6 +87,7 @@ export function LoginForm({ onForgotNumber }: LoginFormProps) {
       setCode("");
       setWasResent(true);
     } catch (error) {
+      if (isLockedError(error)) return onLocked(phone);
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
     } finally {
       setIsVerifying(false);
@@ -96,7 +102,11 @@ export function LoginForm({ onForgotNumber }: LoginFormProps) {
       await verifyCode({ phone, code: value });
       enter();
     } catch (error) {
-      setServerError({ title: t("auth.code.errorTitle"), description: describeError(error).description });
+      if (isLockedError(error)) return onLocked(phone);
+      const attemptsLeft = attemptsLeftFrom(error);
+      const warning =
+        attemptsLeft === null ? "" : attemptsLeft === 1 ? t("auth.code.lastAttempt") : t("auth.code.attemptsLeft", { count: attemptsLeft });
+      setServerError({ title: t("auth.code.errorTitle"), description: [describeError(error).description, warning].filter(Boolean).join(" ") });
       setCode("");
       setIsVerifying(false);
     }
@@ -256,6 +266,13 @@ export function LoginForm({ onForgotNumber }: LoginFormProps) {
           </Button>
         ))}
       </div>
+
+      <Text size="sm" tone="secondary" className="mt-6 text-center">
+        {t("auth.noAccount")}{" "}
+        <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={onCreateAccount} data-testid="login-signup">
+          {t("auth.createAccount")}
+        </Button>
+      </Text>
     </>
   );
 }

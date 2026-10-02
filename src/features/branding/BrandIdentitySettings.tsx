@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BrandSlot, logoShape, type ShellBrandLogo } from "@/components/app-shell";
+import { logoShape } from "@/components/app-shell";
 import { Field, FormSection } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,8 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UploadZone } from "@/components/upload";
 import { QueryBoundary } from "@/lib/query";
-import { buildThemeTokens, useTheme, type ResolvedMode } from "@/themes";
-import { logoQualityWarning, readLogoFile } from "./logoFile";
+import { ThemaIcon } from "@/icons";
+import { BrandMenuPreview } from "./BrandMenuPreview";
+import { useLogoEditor } from "./useLogoEditor";
+import { logoQualityWarning } from "./logoFile";
 import { useBrandingQuery, useSaveBranding } from "./queries";
 import { BRAND_NAME_MAX, LOGO_ACCEPT, LOGO_MAX_MB, type Branding } from "./types";
 
@@ -29,52 +31,35 @@ function toDraft(branding: Branding): Draft {
 
 const sameDraft = (a: Draft, b: Draft) => a.name.trim() === b.name.trim() && a.logo === b.logo && a.logoDark === b.logoDark;
 
-/** El menú lateral en miniatura, con los tokens del modo pedido: fila del panel y cuadro del rail. */
-function MenuPreview({ mode, logo, name }: { mode: ResolvedMode; logo: ShellBrandLogo | null; name: string }) {
-  const { preset } = useTheme();
-  const tokens = React.useMemo(() => buildThemeTokens(preset, mode), [preset, mode]);
-  return (
-    <div className="space-y-2">
-      <Text variant="small" tone="muted">
-        {mode === "light" ? "Modo claro" : "Modo oscuro"}
-      </Text>
-      <div
-        className="flex items-start gap-3 rounded-xl border border-border p-3"
-        style={{ ...(tokens as unknown as React.CSSProperties), background: "var(--color-bg-app)", color: "var(--color-text-primary)" }}
-      >
-        <div className="flex flex-col items-center gap-2 rounded-lg bg-surface-nav p-2">
-          <BrandSlot variant="icon" logo={logo} name={name} mode={mode} />
-        </div>
-        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/60 bg-surface px-3 py-2">
-          <BrandSlot logo={logo} name={name} tagline="Barbería" mode={mode} className="flex-1" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function LogoUpload({
   label,
   description,
   value,
+  name,
   onChange,
 }: {
   label: string;
   description: string;
   value: string | null;
+  name: string;
   onChange: (dataUrl: string | null) => void;
 }) {
   const [error, setError] = React.useState<string | null>(null);
   const [warning, setWarning] = React.useState<string | null>(null);
+  const editor = useLogoEditor({
+    name,
+    onApply: (logo) => {
+      onChange(logo.dataUrl);
+      setWarning(logoQualityWarning(logo));
+    },
+  });
 
   const handleFiles = async (files: File[]) => {
     const file = files[0];
     if (!file) return;
     try {
-      const read = await readLogoFile(file);
       setError(null);
-      setWarning(logoQualityWarning(read));
-      onChange(read.dataUrl);
+      await editor.edit(file);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo leer el archivo.");
     }
@@ -88,6 +73,10 @@ function LogoUpload({
             <span className="flex h-12 min-w-0 flex-1 items-center">
               <img src={value} alt={label} className="max-h-full max-w-full object-contain object-left" />
             </span>
+            <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => editor.editExisting(value)}>
+              <ThemaIcon name="crop" size="sm" />
+              Recortar
+            </Button>
             <Button type="button" size="sm" variant="ghost" className="shrink-0" onClick={() => onChange(null)}>
               Quitar
             </Button>
@@ -100,7 +89,7 @@ function LogoUpload({
           value={[]}
           onChange={(files) => void handleFiles(files)}
           accept={LOGO_ACCEPT}
-          maxSizeMB={LOGO_MAX_MB}
+          maxSizeMB={LOGO_MAX_MB * 10}
           idleText="Arrastra tu logo aquí o haz clic para elegirlo"
           activeText="Suelta el logo aquí"
           error={error ?? undefined}
@@ -111,6 +100,7 @@ function LogoUpload({
           <AlertDescription>{warning}</AlertDescription>
         </Alert>
       )}
+      {editor.dialog}
     </div>
   );
 }
@@ -160,8 +150,9 @@ function BrandIdentityForm({ branding }: { branding: Branding }) {
 
         <LogoUpload
           label="Isologo"
-          description={`El símbolo de tu marca, cuadrado y con fondo transparente. PNG, SVG, JPG o WebP de hasta ${LOGO_MAX_MB} MB. Es el que se ve sobre fondos claros.`}
+          description="El símbolo de tu marca, con fondo transparente. PNG, SVG, JPG o WebP: al elegirlo lo recortas en cuadrado, lo acercas o lo giras. Es el que se ve sobre fondos claros."
           value={draft.logo}
+          name={name}
           onChange={setLogo("logo")}
         />
 
@@ -179,6 +170,7 @@ function BrandIdentityForm({ branding }: { branding: Branding }) {
             label="Isologo para fondos oscuros (opcional)"
             description="Tu isologo en blanco o en colores claros. Sin él, en modo oscuro se muestra sobre una placa blanca."
             value={draft.logoDark}
+            name={name}
             onChange={setLogo("logoDark")}
           />
         )}
@@ -207,8 +199,8 @@ function BrandIdentityForm({ branding }: { branding: Branding }) {
           <Heading level={5}>Vista previa</Heading>
           <Text tone="secondary">A la izquierda, el menú plegado; a la derecha, la fila del menú abierto.</Text>
         </div>
-        <MenuPreview mode="light" logo={previewLogo} name={name} />
-        <MenuPreview mode="dark" logo={previewLogo} name={name} />
+        <BrandMenuPreview mode="light" logo={previewLogo} name={name} />
+        <BrandMenuPreview mode="dark" logo={previewLogo} name={name} />
         <Text size="xs" tone="muted">
           Consejo: recorta el aire sobrante alrededor del símbolo y deja el fondo transparente; a 32 px cada píxel de margen cuenta.
         </Text>

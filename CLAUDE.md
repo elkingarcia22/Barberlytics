@@ -8,7 +8,7 @@ un trabajo.
 
 ```bash
 npm ci --legacy-peer-deps   # instalar (react 19 + radix-ui único; sin el flag falla)
-npm run dev                 # app + doc en http://localhost:5173 (login admin@thema.dev / thema123)
+npm run dev                 # app + doc en http://localhost:5173 (login: celular 3001234567, código 246810)
 npm run check               # reglas del sistema de diseño (scripts/check-design-system.mjs)
 npm run verify              # lint + type-check + test + build
 npm run catalog             # regenera el catálogo de componentes en ai-tools/ desde el registry
@@ -17,6 +17,8 @@ npm run e2e                 # Playwright (antes: npm run e2e:install)
 ```
 
 En la app de escritorio el dev server se levanta con `.claude/launch.json` (`thema-dev`, puerto 5195).
+Para el centro de ayuda en local: `ayuda-contenido` (sirve el `dist/` del repo vecino en 8787) y
+`thema-help` (la app en 5198 apuntando a él); `thema-shots` (5197) es el que usan las capturas.
 
 ## Mapa del repo
 
@@ -29,6 +31,10 @@ En la app de escritorio el dev server se levanta con `.claude/launch.json` (`the
   (forms, selection, navigation, overlays, feedback, data-display, date, upload, charts, ai,
   ai-interaction, action-rail, app-shell, layout, media, utility, typography, filters, search).
 - `src/icons/` — `iconRegistry.ts` (concepto → Hugeicons) y `ThemaIcon`.
+- `src/help/` — el **centro de ayuda** (`/ayuda`): lee el contenido publicado por el repo
+  `centro-de-ayuda` (GitHub Pages; en local `VITE_HELP_BASE_URL`), lo renderiza con Thema
+  (`markdown/HelpMarkdown.tsx`), el cajón contextual del botón «Ayuda» (`HelpDrawer.tsx`) y la
+  búsqueda (`src/lib/help/search.ts`). Plan y arquitectura en `docs/HELP_CENTER_PLAN.md`.
 - `src/docs/` — la doc: `registry/<grupo>/<componente>.tsx` (`defineEntry`), `pages/` (fundamentos),
   `pages/guides/` (Empezar y Patrones), `router.ts` (hash), `docsNavigation.ts`, `docsSearchIndex.ts`.
   La doc monta el `AdminShell` real; no tiene shell propio.

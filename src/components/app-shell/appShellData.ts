@@ -300,15 +300,41 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
   { title: "Exportar reportes a Excel", description: "Los paneles de participación y evaluaciones ahora se pueden exportar directamente en formato .xlsx para compartir con liderazgo." },
 ];
 
+export interface ChatHistoryItem {
+  id: string;
+  title: string;
+  /** Sin leer (llegó respuesta y no se miró) o pensando (el agente sigue escribiendo). */
+  status?: "read" | "unread" | "thinking";
+}
+
 export interface ChatHistoryGroup {
   label: string;
-  items: readonly string[];
+  items: readonly ChatHistoryItem[];
 }
 
 export const CHAT_HISTORY: readonly ChatHistoryGroup[] = [
-  { label: "Hoy", items: ["Evaluaciones pendientes por equipo", "Participación de Ventas Bogotá"] },
-  { label: "Ayer", items: ["Resumen encuesta de clima laboral", "Plan de onboarding para operarios"] },
-  { label: "Últimos 7 días", items: ["Riesgo de rotación Q3", "Cursos con baja satisfacción", "Matriz de talento de liderazgo"] },
+  {
+    label: "Hoy",
+    items: [
+      { id: "evaluaciones", title: "Evaluaciones pendientes por equipo", status: "unread" },
+      { id: "participacion", title: "Participación de Ventas Bogotá" },
+    ],
+  },
+  {
+    label: "Ayer",
+    items: [
+      { id: "clima", title: "Resumen encuesta de clima laboral" },
+      { id: "onboarding", title: "Plan de onboarding para operarios" },
+    ],
+  },
+  {
+    label: "Últimos 7 días",
+    items: [
+      { id: "rotacion", title: "Riesgo de rotación Q3" },
+      { id: "cursos", title: "Cursos con baja satisfacción" },
+      { id: "matriz", title: "Matriz de talento de liderazgo" },
+    ],
+  },
 ];
 
 export const AGENT_SUGGESTIONS: readonly string[] = [

@@ -38,7 +38,7 @@ function FieldError({ message }: { message?: string }) {
 export function UserFormDrawer({ open, onOpenChange, user }: UserFormDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+      <SheetContent side="right" className="flex w-[calc(100%-1.5rem)] flex-col gap-0 p-0 sm:max-w-md">
         {/* El cuerpo se monta al abrir y se desmonta al cerrar: cada apertura
             arranca con el formulario limpio sin efectos de reinicio. */}
         <UserFormBody user={user ?? null} onClose={() => onOpenChange(false)} />

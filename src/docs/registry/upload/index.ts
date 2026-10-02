@@ -5,6 +5,7 @@ import { filePreviewEntry } from "./file-preview";
 import { attachmentListEntry } from "./attachment-list";
 import { uploadProgressEntry } from "./upload-progress";
 import { importCsvPanelEntry } from "./import-csv-panel";
+import { imageCropperEntry } from "./image-cropper";
 
 /** Entradas del grupo "upload". Cada componente vive en su propio archivo de esta carpeta. */
 export const uploadEntries: readonly DocEntry[] = [
@@ -14,4 +15,5 @@ export const uploadEntries: readonly DocEntry[] = [
   attachmentListEntry,
   uploadProgressEntry,
   importCsvPanelEntry,
+  imageCropperEntry,
 ];

@@ -3,6 +3,10 @@
  * semilla produce los mismos registros, así las pruebas E2E y las capturas
  * son reproducibles. Se reinicia al recargar la página.
  */
+import { seededRandom } from "./random";
+import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
+import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember } from "./team/seed";
+
 export type MockUserStatus = "active" | "invited" | "inactive";
 export type MockUserRole = "admin" | "manager" | "member";
 
@@ -34,16 +38,7 @@ const FIRST = ["Ana", "Luis", "María", "Carlos", "Antonia", "Andrés", "Valenti
 const LAST = ["Pérez", "Gómez", "Ruiz", "Díaz", "Torres", "Rojas", "Castro", "Herrera", "Méndez", "Vargas", "Moreno", "Jiménez", "Ortiz", "Silva", "Ramírez"];
 const AREAS = ["Producto", "Ingeniería", "Ventas", "Personas", "Marketing", "Finanzas", "Operaciones", "Soporte"];
 
-/** Generador pseudoaleatorio con semilla (mulberry32). */
-export function seededRandom(seed: number) {
-  let t = seed >>> 0;
-  return () => {
-    t += 0x6d2b79f5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export { seededRandom };
 
 function slug(text: string): string {
   return text
@@ -104,11 +99,50 @@ export interface MockBranding {
 
 const EMPTY_BRANDING: MockBranding = { name: null, logo: null, logoDark: null, updatedAt: null };
 
+/** La agenda: lo que se genera por día se recuerda para que las mutaciones sobrevivan. */
+export interface MockCalendarState {
+  clients: MockClient[];
+  appointments: MockAppointment[];
+  blocks: MockTimeBlock[];
+  waitlist: MockWaitlistEntry[];
+  sales: MockSale[];
+  /** `sucursal:AAAA-MM-DD` de los días ya generados. */
+  seededDays: string[];
+}
+
+const emptyCalendar = (): MockCalendarState => ({
+  clients: seedClients(),
+  appointments: [],
+  blocks: seedBlocks(),
+  waitlist: [],
+  sales: [],
+  seededDays: [],
+});
+
+/** El equipo: las personas con su ficha, los niveles, el orden por sucursal y las excepciones de horario. */
+export interface MockTeamState {
+  members: MockTeamMember[];
+  levels: MockLevel[];
+  orders: MockBranchOrder[];
+  overrides: MockScheduleOverride[];
+}
+
+const emptyTeam = (): MockTeamState => {
+  const members = seedTeam();
+  return { members, levels: [...LEVELS], orders: seedOrders(members), overrides: seedOverrides() };
+};
+
 export interface MockDb {
+  /** Feedback de campañas recibido; en memoria, se pierde al recargar. */
+  feedback: Record<string, unknown>[];
   users: MockUser[];
   branding: MockBranding;
+  calendar: MockCalendarState;
+  team: MockTeamState;
   /** token → id de cuenta */
   sessions: Map<string, string>;
+  /** celular → intentos fallidos seguidos al verificar el código. Solo en memoria. */
+  loginFailures: Map<string, number>;
   /** Guarda el estado; se llama tras cada mutación para sobrevivir recargas. */
   persist(): void;
   reset(): void;
@@ -120,6 +154,8 @@ interface PersistedDb {
   users: MockUser[];
   sessions: [string, string][];
   branding?: MockBranding;
+  calendar?: MockCalendarState;
+  team?: MockTeamState;
 }
 
 function storage(): Storage | null {
@@ -149,12 +185,16 @@ export function createDb(): MockDb {
   const db: MockDb = {
     users: saved?.users ?? seedUsers(),
     branding: saved?.branding ?? EMPTY_BRANDING,
+    calendar: saved?.calendar ?? emptyCalendar(),
+    team: saved?.team ?? emptyTeam(),
     sessions: new Map(saved?.sessions ?? []),
+    loginFailures: new Map(),
+    feedback: [],
     persist() {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], branding: db.branding } satisfies PersistedDb)
+          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -163,7 +203,11 @@ export function createDb(): MockDb {
     reset() {
       db.users = seedUsers();
       db.branding = EMPTY_BRANDING;
+      db.calendar = emptyCalendar();
+      db.team = emptyTeam();
       db.sessions.clear();
+      db.loginFailures.clear();
+      db.feedback = [];
       try {
         storage()?.removeItem(STORAGE_KEY);
       } catch {

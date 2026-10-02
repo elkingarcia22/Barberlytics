@@ -1,0 +1,37 @@
+// Agenda: la rejilla del día por recurso, la ocupación del mes y el selector de hora.
+export { ResourceDayGrid, type ResourceDayGridProps } from "./ResourceDayGrid";
+export { ScheduleEventCard, type ScheduleEventCardProps } from "./ScheduleEventCard";
+export { MonthOccupancyGrid, type MonthOccupancyGridProps, type MonthOccupancyDay } from "./MonthOccupancyGrid";
+export { TimeSlotPicker, type TimeSlotPickerProps } from "./TimeSlotPicker";
+export { ShiftWeekGrid, weekHours, type ShiftWeekGridProps, type ShiftRow, type ShiftDay } from "./ShiftWeekGrid";
+export { useScheduleDrag, type DragPreview, type DragMode } from "./useScheduleDrag";
+export type {
+  ScheduleResource,
+  ScheduleEvent,
+  ScheduleEventKind,
+  ScheduleTone,
+  ScheduleEventAction,
+  ScheduleDrop,
+  ScheduleSlot,
+  ScheduleResourceAction,
+  ScheduleWorkingHours,
+} from "./scheduleTypes";
+export {
+  atMinutes,
+  minutesOfDay,
+  parseClock,
+  snapMinutes,
+  slotMinutes,
+  isWorkingAt,
+  workingMinutes,
+  earliestWorkingMinute,
+  eventMinutes,
+  eventsForResource,
+  layoutEvents,
+  occupancyRate,
+  nowPercent,
+  formatClock,
+  formatClockRange,
+  initialsOf,
+  SLOT_HEIGHT_PX,
+} from "./scheduleUtils";

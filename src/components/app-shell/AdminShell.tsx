@@ -52,7 +52,17 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const resolved = React.useMemo(() => resolveShellConfig(overrides), [overrides]);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [mode, setMode] = React.useState<ShellMode>("workspace");
+  // El modo lo puede llevar la app (para abrir el chat en pantalla completa
+  // desde fuera del shell); si no, lo guarda el shell.
+  const [innerMode, setInnerMode] = React.useState<ShellMode>("workspace");
+  const mode = resolved.mode ?? innerMode;
+  const setMode = React.useCallback(
+    (next: ShellMode) => {
+      setInnerMode(next);
+      resolved.onModeChange?.(next);
+    },
+    [resolved]
+  );
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [feedbackSent, setFeedbackSent] = React.useState(false);
   const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
@@ -220,7 +230,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             <ShellRailSlotProvider value={railSlot}>
               <ShellAgentPanelSlotProvider value={agentPanelSlot}>
               {isAgent ? (
-                <AgentView />
+                (resolved.agentView ?? <AgentView />)
               ) : scrollContent ? (
                 // `flex flex-col`: with short content, the padded wrapper's
                 // own `flex-1` stretches to fill this scroller and pushes the
@@ -229,7 +239,12 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                 // is what scrolls, so the footer rides along at the true end
                 // of the page instead of staying pinned while everything
                 // above it scrolls underneath.
-                <div className="min-h-0 flex-1 overflow-y-auto flex flex-col">
+                // `relative`: the scroller has to be the containing block of
+                // anything absolute inside it (every `sr-only` is). Without
+                // it those boxes anchor to `<main>`, escape the scroll clip
+                // and make the shell root scrollable — focusing a control
+                // then shifts the whole frame up by a few pixels.
+                <div className="relative min-h-0 flex-1 overflow-y-auto flex flex-col">
                   {/* The content column, on the same gutter + centered-cap
                       rhythm the docs shell uses: it never sits flush against
                       the header, the sidebar or the window, and past its

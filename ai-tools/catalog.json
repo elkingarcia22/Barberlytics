@@ -1,5 +1,5 @@
 {
-  "sourceHash": "aa05aa17d4b4ccbd",
+  "sourceHash": "3eab86aeac40c50e",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -39,6 +39,11 @@
       "description": "Estados vacíos, avisos y toasts."
     },
     {
+      "id": "feedback-loop",
+      "label": "Feedback de usuarios",
+      "description": "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios."
+    },
+    {
       "id": "data-display",
       "label": "Datos",
       "description": "Tablas configurables y badges de estado."
@@ -47,6 +52,11 @@
       "id": "date",
       "label": "Fechas y rangos",
       "description": "Pickers de fecha, rango, mes, trimestre, periodo y slider de rango."
+    },
+    {
+      "id": "scheduling",
+      "label": "Agenda",
+      "description": "La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora."
     },
     {
       "id": "upload",
@@ -1832,6 +1842,310 @@
       "ficha": "ai-tools/components/ai-spark-glyph.md"
     },
     {
+      "id": "chat-composer",
+      "name": "ChatComposer",
+      "group": "ai",
+      "description": "La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y archivos (⌘U), Voz y el botón de enviar con halo. Encima, chips para arrancar; dentro, el aviso de novedad y la pastilla de contexto.",
+      "import": "import { ChatComposer } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatComposer.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "formulario"
+      ],
+      "props": [
+        {
+          "name": "value / onChange",
+          "type": "string / (value) => void",
+          "default": null,
+          "description": "El texto, controlado."
+        },
+        {
+          "name": "onSend",
+          "type": "(text, files) => void",
+          "default": null,
+          "description": "Con el texto recortado y los archivos; la caja se vacía sola."
+        },
+        {
+          "name": "news",
+          "type": "ChatNews",
+          "default": null,
+          "description": "El aviso «Nuevo» encima del texto, con «Ver qué cambió» y cerrar."
+        },
+        {
+          "name": "contextChip",
+          "type": "string",
+          "default": null,
+          "description": "El objeto sobre el que responde el agente."
+        },
+        {
+          "name": "connectors / onToggleConnector / onAddConnectors",
+          "type": "ChatConnector[] / …",
+          "default": null,
+          "description": "El submenú Conectores del «+», con interruptores."
+        },
+        {
+          "name": "onVoice",
+          "type": "() => void",
+          "default": null,
+          "description": "Sin esto no hay botón Voz."
+        },
+        {
+          "name": "chips / onChip",
+          "type": "string[] / (text) => void",
+          "default": null,
+          "description": "Preguntas para arrancar, encima de la caja."
+        },
+        {
+          "name": "compact",
+          "type": "boolean",
+          "default": "false",
+          "description": "Una fila, para el pie de un hilo."
+        },
+        {
+          "name": "maxFiles / maxSizeMb",
+          "type": "number",
+          "default": "10 / 25",
+          "description": "Los límites del adjunto; se muestran en el menú."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Una sola caja por pantalla: es la misma en el panel, en pantalla completa y al volver de la voz.",
+          "Deja el aviso «puede cometer errores» salvo en un pie muy apretado."
+        ],
+        "dont": [
+          "No metas el aviso de novedad en el panel: ahí no cabe; va en la pantalla completa.",
+          "No la uses como buscador: para buscar está GlobalSearch."
+        ]
+      },
+      "related": [
+        "chat-thread",
+        "chat-panel",
+        "chat-screen",
+        "chat-voice-mode"
+      ],
+      "examples": [],
+      "docs": "/docs#/components/chat-composer",
+      "ficha": "ai-tools/components/chat-composer.md"
+    },
+    {
+      "id": "chat-panel",
+      "name": "ChatPanel",
+      "group": "ai",
+      "description": "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
+      "import": "import { ChatPanel, ChatProvider } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatPanel.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "portal",
+        "shell"
+      ],
+      "props": [
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Abierto o cerrado; Escape cierra."
+        },
+        {
+          "name": "title / subtitle",
+          "type": "string",
+          "default": "«Agente IA» / «Asistente de la plataforma»",
+          "description": "La cabecera; el chat de ayuda pone «Ayuda»."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Monta un solo ChatProvider en la app: el panel y la pantalla completa comparten conversaciones e historial."
+        ],
+        "dont": [
+          "No abras el panel y el modo agente a la vez: es el mismo chat en dos sitios."
+        ]
+      },
+      "related": [
+        "chat-screen",
+        "chat-composer",
+        "chat-thread",
+        "ai-agent-drawer"
+      ],
+      "examples": [
+        {
+          "id": "panel",
+          "title": "Dentro del shell",
+          "description": "Sustituye a AiAgentDrawer: mismo ancla, mismo movimiento, pero con conversación de verdad. «Pregúntame» del menú Ayuda abre este panel con el centro de ayuda como fuente.",
+          "code": "const [open, setOpen] = React.useState(false);\n\n<ChatProvider value={{ store, backend, user, lang: \"es-CO\", onOpenFull: openAgentMode, onOpenVoice }}>\n  <AdminShell config={config}>\n    …\n    <ChatPanel open={open} onOpenChange={setOpen} title=\"Ayuda\" />\n  </AdminShell>\n</ChatProvider>"
+        }
+      ],
+      "docs": "/docs#/components/chat-panel",
+      "ficha": "ai-tools/components/chat-panel.md"
+    },
+    {
+      "id": "chat-screen",
+      "name": "ChatScreen",
+      "group": "ai",
+      "description": "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
+      "import": "import { ChatScreen, ChatHistoryList } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatScreen.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "pantalla",
+        "historial"
+      ],
+      "props": [
+        {
+          "name": "history",
+          "type": "boolean",
+          "default": "true",
+          "description": "El historial a la izquierda, con «Nuevo chat»; se pliega y recuerda cómo lo dejaste."
+        },
+        {
+          "name": "onMore",
+          "type": "(messageId, action) => void",
+          "default": null,
+          "description": "El menú «Más» de cada respuesta."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Con `agentSidebar: \"navigation\"` la barra lateral sigue llevando a las pantallas y el historial vive junto al chat; tocar una pantalla sale del modo agente."
+        ],
+        "dont": [
+          "No hagas una página con ruta para el chat: es un modo del shell, y la URL se queda donde estaba."
+        ]
+      },
+      "related": [
+        "chat-panel",
+        "chat-thread",
+        "chat-composer",
+        "admin-shell"
+      ],
+      "examples": [
+        {
+          "id": "history",
+          "title": "El historial",
+          "description": "Hoy, Ayer, Últimos 7 días y Anteriores; el punto dice si hay respuesta sin leer o si el agente sigue escribiendo. Es lo que el sidebar enseña en modo agente.",
+          "code": "<ChatHistoryList activeId={activeId} onSelect={setActive} onNew={newConversation} onRemove={remove} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-screen",
+      "ficha": "ai-tools/components/chat-screen.md"
+    },
+    {
+      "id": "chat-thread",
+      "name": "ChatThread",
+      "group": "ai",
+      "description": "El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben solas y se pueden detener. Una respuesta trae fuentes, una tarjeta con datos, una pregunta con opciones numeradas, un enlace y las acciones: copiar, útil o no, regenerar, leer en voz alta.",
+      "import": "import { ChatThread, ChatProvider } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatThread.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "mensajes"
+      ],
+      "props": [
+        {
+          "name": "conversation",
+          "type": "Conversation",
+          "default": null,
+          "description": "La conversación a mostrar (del almacén del ChatProvider)."
+        },
+        {
+          "name": "onMore",
+          "type": "(messageId, action) => void",
+          "default": null,
+          "description": "El menú «Más» de cada respuesta: compartir, crear tarea, reportar."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Deja que el hilo siga el final solo mientras la persona lo mira; si subió a releer, no la muevas.",
+          "Solo la última respuesta enseña sugerencias y deja contestar su pregunta."
+        ],
+        "dont": [
+          "No pongas títulos ni tablas en una respuesta: es un mensaje, no un documento."
+        ]
+      },
+      "related": [
+        "chat-composer",
+        "chat-panel",
+        "chat-screen"
+      ],
+      "examples": [
+        {
+          "id": "seeded",
+          "title": "Una conversación con todo",
+          "description": "Fuentes con su detalle al pasar, una tarjeta de barras, las sugerencias para seguir y la fila de acciones. Toca una sugerencia: se envía y responde de ejemplo.",
+          "code": "<ChatProvider value={{ store, backend, user, lang: \"es-CO\" }}>\n  <ChatThread conversation={conversation} />\n</ChatProvider>"
+        }
+      ],
+      "docs": "/docs#/components/chat-thread",
+      "ficha": "ai-tools/components/chat-thread.md"
+    },
+    {
+      "id": "chat-voice-mode",
+      "name": "ChatVoiceMode",
+      "group": "ai",
+      "description": "El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
+      "import": "import { ChatVoiceMode } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatVoiceMode.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "voz",
+        "diálogo"
+      ],
+      "props": [
+        {
+          "name": "open / onClose",
+          "type": "boolean / () => void",
+          "default": null,
+          "description": "Abierto o cerrado; Escape cierra."
+        },
+        {
+          "name": "onWrite",
+          "type": "(text) => void",
+          "default": null,
+          "description": "«Escribir»: volver al chat con lo dicho."
+        },
+        {
+          "name": "onSend",
+          "type": "(text) => void",
+          "default": null,
+          "description": "Terminar: lo dicho (o la sugerencia elegida) va al chat."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Usa `lang` del ChatProvider (`es-CO`, `en-US`): es el idioma en que escucha y en que lee en voz alta."
+        ],
+        "dont": [
+          "No lo abras desde el panel en un contenedor angosto sin sitio: es a pantalla completa."
+        ]
+      },
+      "related": [
+        "chat-composer",
+        "chat-panel"
+      ],
+      "examples": [
+        {
+          "id": "voice",
+          "title": "Abrir el modo voz",
+          "description": "Pide permiso de micrófono la primera vez. En un navegador sin Web Speech enseña el aviso y el botón Escribir.",
+          "code": "<ChatVoiceMode open={open} onClose={close} onWrite={(text) => setDraft(text)} onSend={(text) => send(text)} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-voice-mode",
+      "ficha": "ai-tools/components/chat-voice-mode.md"
+    },
+    {
       "id": "chip",
       "name": "Chip",
       "group": "ai",
@@ -3357,6 +3671,122 @@
       "ficha": "ai-tools/components/bar-chart.md"
     },
     {
+      "id": "bar-list",
+      "name": "BarList",
+      "group": "charts",
+      "description": "Un ranking: qué se vendió más, de dónde salió el ingreso, qué servicio se pidió. Cada fila lleva su nombre, una barra proporcional al máximo y su valor escrito; la barra compara y el número informa. Con título trae su propia Card; sin él es solo la lista, para meterla dentro de otro panel sin caja dentro de caja.",
+      "import": "import { BarList } from \"@/components/charts\"",
+      "source": "src/components/charts/BarList.tsx",
+      "status": "stable",
+      "tags": [
+        "ranking",
+        "panel",
+        "dashboard",
+        "barras"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "default": null,
+          "description": "Con título el componente se envuelve en su Card con `PanelHeading`; sin él es solo la lista."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "default": null,
+          "description": "Una línea apagada bajo el título."
+        },
+        {
+          "name": "count",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Una cifra junto al título: cuántos elementos suman las filas, cuánto es el total."
+        },
+        {
+          "name": "items",
+          "type": "BarListItem[]",
+          "default": null,
+          "description": "Las filas: `{ id, label, value, tone?, meta? }`. `meta` es un segundo dato apagado junto al valor."
+        },
+        {
+          "name": "formatValue",
+          "type": "(value: number) => string",
+          "default": null,
+          "description": "Cómo se escribe el valor de cada fila; por defecto en es-ES."
+        },
+        {
+          "name": "tone",
+          "type": "\"brand\" | \"positive\" | \"warning\" | \"negative\" | \"neutral\"",
+          "default": "\"brand\"",
+          "description": "El tono de las barras. Una fila puede traer el suyo."
+        },
+        {
+          "name": "sorted",
+          "type": "boolean",
+          "default": "true",
+          "description": "Ordena de mayor a menor antes de pintar."
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "default": null,
+          "description": "Deja fuera las filas a partir de esta posición."
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Controles a la derecha del título."
+        },
+        {
+          "name": "emptyLabel",
+          "type": "string",
+          "default": null,
+          "description": "Qué decir cuando no hay filas."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Deja que la barra compare y el número informe: el valor va siempre escrito.",
+          "Apaga `sorted` cuando el orden significa algo (un desglose contable, los pasos de un embudo).",
+          "Usa `meta` para el importe cuando la barra mide unidades, o al revés; nunca dos barras para el mismo concepto."
+        ],
+        "dont": [
+          "No pases más de diez filas sin `limit`: a partir de ahí es una tabla, no un ranking.",
+          "No mezcles tonos por fila sin motivo; el color por fila es para señalar una (la que está en riesgo), no para decorar."
+        ]
+      },
+      "related": [
+        "bar-chart",
+        "composition-donut",
+        "distribution-bar",
+        "table-shell"
+      ],
+      "examples": [
+        {
+          "id": "ranking",
+          "title": "Ranking con importe al lado",
+          "description": "`meta` pone un segundo dato apagado junto al valor: las unidades mandan en la barra y el importe acompaña. El título lleva la cifra total en su badge.",
+          "code": "const servicios = [\n  { id: \"maintenance\", label: \"Corte de mantenimiento\", value: 148, meta: \"US$ 6.660\" },\n  { id: \"cut-beard\", label: \"Corte + barba\", value: 68, meta: \"US$ 4.420\" },\n  { id: \"kids\", label: \"Corte infantil\", value: 17, meta: \"US$ 544\" },\n];\n\n<BarList title=\"Servicios más vendidos\" count={247} items={servicios} tone=\"positive\" />"
+        },
+        {
+          "id": "desglose",
+          "title": "Desglose en el orden del negocio",
+          "description": "Con `sorted={false}` las filas se quedan como llegan: un desglose del ingreso se lee en el orden contable —servicios, productos, impuestos—, no de mayor a menor. `formatValue` escribe la moneda.",
+          "code": "<BarList\n  title=\"Origen del ingreso\"\n  count=\"US$ 15.642\"\n  items={ingreso}\n  formatValue={money}\n  sorted={false}\n/>"
+        },
+        {
+          "id": "sin-tarjeta",
+          "title": "Dentro de otro panel",
+          "description": "Sin `title` el componente es solo la lista. Así entra en una Card que ya tiene cabecera propia sin duplicar el marco.",
+          "code": "<Card className=\"p-card\">\n  <h3 className=\"mb-stack text-sm font-semibold\">Top 3 del mes</h3>\n  <BarList items={servicios} limit={3} />\n</Card>"
+        }
+      ],
+      "docs": "/docs#/components/bar-list",
+      "ficha": "ai-tools/components/bar-list.md"
+    },
+    {
       "id": "chart-card",
       "name": "ChartCard",
       "group": "charts",
@@ -3625,6 +4055,215 @@
       ],
       "docs": "/docs#/components/chart-shell",
       "ficha": "ai-tools/components/chart-shell.md"
+    },
+    {
+      "id": "composition-donut",
+      "name": "CompositionDonut",
+      "group": "charts",
+      "description": "El reparto de un total en pocas partes como panel de tablero: un anillo mudo con el total escrito en el centro y una leyenda al lado con cada parte, su valor y su porcentaje. A diferencia de DonutChart, el dato es la leyenda y el anillo es contexto; el texto lo pone el DOM, así que sigue al tema y a la densidad sin pasar por el canvas.",
+      "import": "import { CompositionDonut } from \"@/components/charts\"",
+      "source": "src/components/charts/CompositionDonut.tsx",
+      "status": "stable",
+      "tags": [
+        "echarts",
+        "panel",
+        "dashboard",
+        "donut"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "default": null,
+          "description": "Qué reparte el panel. Va en la cabecera compartida de los paneles (`PanelHeading`)."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "default": null,
+          "description": "Una línea apagada bajo el título."
+        },
+        {
+          "name": "slices",
+          "type": "CompositionSlice[]",
+          "default": null,
+          "description": "Las partes: `{ id, label, value, tone? }`. El tono es uno de los del sistema; sin él, el color sale por posición del ciclo del tema."
+        },
+        {
+          "name": "center",
+          "type": "{ value: ReactNode; label?: string }",
+          "default": null,
+          "description": "Lo que va escrito en el centro. Por defecto, la suma de las porciones formateada. Una cifra larga baja de tamaño sola."
+        },
+        {
+          "name": "formatValue",
+          "type": "(value: number) => string",
+          "default": null,
+          "description": "Cómo se escribe cada valor de la leyenda; por defecto en es-ES."
+        },
+        {
+          "name": "showShare",
+          "type": "boolean",
+          "default": "false",
+          "description": "Añade el porcentaje sobre el total a cada fila."
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "default": "136",
+          "description": "Diámetro del anillo en píxeles."
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Controles a la derecha del título."
+        },
+        {
+          "name": "emptyLabel",
+          "type": "string",
+          "default": null,
+          "description": "Qué decir cuando no hay porciones o todas valen cero."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "default": null,
+          "description": "Cómo se anuncia el anillo; por defecto, el título con cada parte y su valor."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo para un reparto de dos a cinco partes; a partir de seis, la leyenda deja de caber al lado y el anillo deja de leerse.",
+          "Da tono a las porciones que son estados (positivo, aviso, negativo) y déjalo vacío cuando solo son «otra parte».",
+          "Pasa `center` cuando el total tiene otra unidad o nombre que la suma: 303 clientes sobre 369 citas.",
+          "Formatea el valor con la misma función que el resto del tablero, para que «US$ 14.641» se escriba igual en la tarjeta y en la leyenda."
+        ],
+        "dont": [
+          "No lo uses para analizar una distribución con etiquetas sobre las porciones: para eso está `DonutChart`.",
+          "No pintes un 0 como un anillo lleno de gris con una leyenda de ceros; deja que muestre su vacío.",
+          "No lo metas dentro de otra `Card`: ya trae la suya."
+        ]
+      },
+      "related": [
+        "donut-chart",
+        "distribution-bar",
+        "bar-list",
+        "metric-card"
+      ],
+      "examples": [
+        {
+          "id": "tres-repartos",
+          "title": "Tres repartos en una fila",
+          "description": "La forma natural del panel: tres tercios de fila con la misma anatomía. Con tono por porción cuando las partes son estados (completada, cancelada); sin tono cuando no significan nada más que «otra parte», y entonces el ciclo del tema reparte los colores.",
+          "code": "const citas = [\n  { id: \"completed\", label: \"Completadas\", value: 247, tone: \"positive\" },\n  { id: \"pending\", label: \"Por cobrar\", value: 23, tone: \"warning\" },\n  { id: \"cancelled\", label: \"Canceladas\", value: 86, tone: \"negative\" },\n  { id: \"noShow\", label: \"No-show\", value: 13, tone: \"neutral\" },\n];\n\n<div className=\"grid gap-3 lg:grid-cols-2\">\n  <CompositionDonut title=\"En qué acabaron las citas\" center={{ value: 303, label: \"clientes\" }} slices={citas} showShare />\n  <CompositionDonut title=\"Cómo se pagó\" center={{ value: money(14641), label: \"cobrado\" }} slices={pagos} formatValue={money} showShare />\n</div>"
+        },
+        {
+          "id": "vacio",
+          "title": "Sin datos",
+          "description": "Con todas las porciones a cero el anillo baja a un aro neutro y la leyenda cede el sitio a una línea que lo dice. Nunca un anillo pintado sobre nada.",
+          "code": "<CompositionDonut title=\"Cómo se agendaron\" slices={[]} emptyLabel=\"Sin citas en este periodo\" />"
+        }
+      ],
+      "docs": "/docs#/components/composition-donut",
+      "ficha": "ai-tools/components/composition-donut.md"
+    },
+    {
+      "id": "distribution-bar",
+      "name": "DistributionBar",
+      "group": "charts",
+      "description": "Un total repartido en pocos tramos contiguos —mañana, tarde y noche; con cita, sin cita— como una sola barra donde cada tramo ocupa lo que le toca, y debajo la leyenda con cada parte, su valor y su porcentaje. Es el hermano lineal de CompositionDonut: la misma pregunta cuando las partes tienen un orden natural que en un anillo se pierde.",
+      "import": "import { DistributionBar } from \"@/components/charts\"",
+      "source": "src/components/charts/DistributionBar.tsx",
+      "status": "stable",
+      "tags": [
+        "panel",
+        "dashboard",
+        "barras",
+        "reparto"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "default": null,
+          "description": "Con título se envuelve en su Card con `PanelHeading`; sin él es solo la barra con su leyenda."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "default": null,
+          "description": "Una línea apagada bajo el título."
+        },
+        {
+          "name": "segments",
+          "type": "DistributionSegment[]",
+          "default": null,
+          "description": "Los tramos, en el orden en que se pintan: `{ id, label, value, tone?, hint? }`."
+        },
+        {
+          "name": "formatValue",
+          "type": "(value: number) => string",
+          "default": null,
+          "description": "Cómo se escribe cada valor; por defecto en es-ES."
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "default": null,
+          "description": "La unidad que acompaña al valor en la leyenda: «citas», «ventas»."
+        },
+        {
+          "name": "actions",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Controles a la derecha del título."
+        },
+        {
+          "name": "emptyLabel",
+          "type": "string",
+          "default": null,
+          "description": "Qué decir cuando todos los tramos valen cero."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "default": null,
+          "description": "Cómo se anuncia la barra; por defecto, el título con cada tramo y su valor."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo cuando los tramos tienen un orden natural (horas del día, pasos de un embudo, tallas).",
+          "Mantén los tramos entre dos y cinco: más allá la barra se llena de rayas que no se distinguen.",
+          "Da el mismo tono a la misma franja en todo el producto: la mañana es siempre ámbar, la tarde siempre marca."
+        ],
+        "dont": [
+          "No lo uses para comparar magnitudes independientes; eso es un `BarList`.",
+          "No lo pintes con todos los tramos en el mismo tono: sin contraste no hay reparto."
+        ]
+      },
+      "related": [
+        "composition-donut",
+        "bar-list",
+        "progress"
+      ],
+      "examples": [
+        {
+          "id": "franjas",
+          "title": "Franjas del día",
+          "description": "Los tramos van en el orden de la barra —mañana, tarde, noche— y cada uno lleva su franja como `hint`. Los tonos son los del sistema.",
+          "code": "const franjas = [\n  { id: \"morning\", label: \"Mañana\", hint: \"hasta las 12\", value: 105, tone: \"warning\" },\n  { id: \"afternoon\", label: \"Tarde\", hint: \"12 a 17\", value: 138, tone: \"brand\" },\n  { id: \"evening\", label: \"Noche\", hint: \"desde las 17\", value: 126, tone: \"neutral\" },\n];\n\n<DistributionBar title=\"Cuándo se reservan\" unit=\"citas\" segments={franjas} />"
+        },
+        {
+          "id": "sin-tono",
+          "title": "Sin tono ni tarjeta",
+          "description": "Sin `tone` el ciclo del tema reparte los colores; sin `title` es solo la barra con su leyenda, para meterla en otro panel.",
+          "code": "<DistributionBar unit=\"citas\" segments={canales} />"
+        }
+      ],
+      "docs": "/docs#/components/distribution-bar",
+      "ficha": "ai-tools/components/distribution-bar.md"
     },
     {
       "id": "donut-chart",
@@ -6780,6 +7419,98 @@
       "ficha": "ai-tools/components/month-picker.md"
     },
     {
+      "id": "period-navigator",
+      "name": "PeriodNavigator",
+      "group": "date",
+      "description": "La barra de tiempo de un tablero: el grano (día, semana, mes), el periodo que se está mirando y las flechas para moverlo. Cambiar de grano conserva la fecha ancla, el rótulo sale de Intl con el idioma que se le pase y el salto adelante se frena en hoy. Trae en periodRange las utilidades que calculan el rango y el periodo anterior, para que la consulta y la barra digan lo mismo.",
+      "import": "import { PeriodNavigator, periodRange, previousPeriodRange } from \"@/components/date\"",
+      "source": "src/components/date/PeriodNavigator.tsx",
+      "status": "stable",
+      "tags": [
+        "periodo",
+        "fecha",
+        "dashboard",
+        "filtro"
+      ],
+      "props": [
+        {
+          "name": "granularity",
+          "type": "\"day\" | \"week\" | \"month\"",
+          "default": null,
+          "description": "El grano del periodo. Es controlado."
+        },
+        {
+          "name": "onGranularityChange",
+          "type": "(granularity) => void",
+          "default": null,
+          "description": "Al cambiar de grano. La fecha ancla se conserva."
+        },
+        {
+          "name": "date",
+          "type": "Date",
+          "default": null,
+          "description": "La fecha ancla: cualquier día dentro del periodo que se mira."
+        },
+        {
+          "name": "onDateChange",
+          "type": "(date: Date) => void",
+          "default": null,
+          "description": "Al pulsar una flecha o «ir a hoy». Devuelve un nuevo `Date`, nunca muta el que recibió."
+        },
+        {
+          "name": "labels",
+          "type": "PeriodNavigatorLabels",
+          "default": null,
+          "description": "Los rótulos traducidos: los tres granos, «ir a hoy», anterior, siguiente y el aria del grupo."
+        },
+        {
+          "name": "locale",
+          "type": "string",
+          "default": "\"es-CO\"",
+          "description": "Con qué idioma escribe el periodo."
+        },
+        {
+          "name": "clampToToday",
+          "type": "boolean",
+          "default": "true",
+          "description": "Desactiva la flecha de avance cuando el periodo ya incluye hoy."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Guarda el grano y la fecha ancla en la URL (`?period=week&date=2026-09-28`) y deriva el rango con `periodRange`.",
+          "Pasa el idioma activo (`useLocale().current.intl`), no uno escrito a mano.",
+          "Mantén la consulta y la comparación sobre `periodRange` y `previousPeriodRange`: si divergen, la píldora de variación miente."
+        ],
+        "dont": [
+          "No lo uses para elegir un rango libre; para eso está `DateRangePicker`.",
+          "No dejes avanzar al futuro en un tablero de lo que ya pasó: enseñaría un periodo vacío como si fuera un dato."
+        ]
+      },
+      "related": [
+        "date-filter-bar",
+        "period-selector",
+        "date-range-picker",
+        "segmented-control"
+      ],
+      "examples": [
+        {
+          "id": "consulta",
+          "title": "De la barra a la consulta",
+          "description": "`periodRange(date, granularity)` devuelve el rango que la barra está enseñando y `previousPeriodRange` el de comparar. La pantalla guarda solo la fecha ancla y el grano (en la URL) y deriva el resto: así el backend, la píldora de variación y el rótulo hablan del mismo periodo.",
+          "code": "const { from, to } = periodRange(date, granularity);\nconst previous = previousPeriodRange(date, granularity);\n// GET /metrics/business?granularity=week&date=2026-09-28\n\n<PeriodNavigator granularity={granularity} onGranularityChange={setGranularity} date={date} onDateChange={setDate} labels={labels} />"
+        },
+        {
+          "id": "rotulos",
+          "title": "Los rótulos que escribe",
+          "description": "Un día, una semana y un mes con el mismo ancla, en español y en inglés. La primera letra va en mayúscula; el resto respeta la convención del idioma.",
+          "code": "formatPeriodLabel(date, \"day\", \"es-CO\")   // \"Lunes, 28 de septiembre\"\nformatPeriodLabel(date, \"week\", \"es-CO\")  // \"28 sept – 4 oct 2026\"\nformatPeriodLabel(date, \"month\", \"en-US\") // \"September 2026\""
+        }
+      ],
+      "docs": "/docs#/components/period-navigator",
+      "ficha": "ai-tools/components/period-navigator.md"
+    },
+    {
       "id": "period-selector",
       "name": "PeriodSelector",
       "group": "date",
@@ -7712,6 +8443,305 @@
       ],
       "docs": "/docs#/components/thema-toaster",
       "ficha": "ai-tools/components/thema-toaster.md"
+    },
+    {
+      "id": "feedback-campaign",
+      "name": "FeedbackCampaign",
+      "group": "feedback-loop",
+      "description": "El circuito completo para pedir feedback masivo sobre algo recién lanzado: recorrido guiado la primera vez, botón flotante en todas las páginas y panel de comentarios. Recuerda por campaña —en el navegador— si ya se vio el recorrido y si ya se abrió el panel; una campaña con otro `id` empieza de cero. En la app lo monta `FeedbackHost` (src/features/feedback), que añade página, campaña y persona y lo envía a `POST /feedback`, donde una función de Vercel lo guarda en la hoja de Google de la campaña y un cron semanal lo resume con Claude (docs/FEEDBACK_LOOP.md).",
+      "import": "import { FeedbackCampaign, type FeedbackCampaignConfig } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackCampaign.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "campaña",
+        "onboarding",
+        "composición"
+      ],
+      "props": [
+        {
+          "name": "campaign",
+          "type": "FeedbackCampaignConfig",
+          "default": null,
+          "description": "`{ id, name, sections, tour? }`. El `id` separa respuestas y memoria."
+        },
+        {
+          "name": "context",
+          "type": "string",
+          "default": null,
+          "description": "La página actual; se enseña en el panel."
+        },
+        {
+          "name": "onSubmit",
+          "type": "(values) => Promise<void> | void",
+          "default": null,
+          "description": "Recibe sección y comentario; quien monta añade lo demás."
+        },
+        {
+          "name": "autoStartTour",
+          "type": "boolean",
+          "default": "true",
+          "description": "Lanza el recorrido la primera vez."
+        },
+        {
+          "name": "tourDelayMs",
+          "type": "number",
+          "default": "700",
+          "description": "Espera antes del recorrido, para que la pantalla termine de pintarse."
+        },
+        {
+          "name": "startTourRef",
+          "type": "Ref<(() => void) | null>",
+          "default": null,
+          "description": "Recibe una función para relanzar el recorrido desde otro sitio."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Cambia el `id` al lanzar otra cosa: así todos ven el nuevo recorrido.",
+          "Apunta el último paso al botón con `FEEDBACK_LAUNCHER_TARGET`."
+        ],
+        "dont": [
+          "No montes dos campañas a la vez: habría dos botones en la misma esquina."
+        ]
+      },
+      "related": [
+        "guided-tour",
+        "feedback-launcher",
+        "feedback-panel"
+      ],
+      "examples": [
+        {
+          "id": "live",
+          "title": "Campaña montada",
+          "description": "Al montarla sale el recorrido y el botón aparece en la esquina de la ventana (es fijo, no vive en este marco).",
+          "code": "const campana: FeedbackCampaignConfig = {\n  id: \"rediseno-2026-09\",\n  name: \"Rediseño\",\n  sections: [{ value: \"general\", label: \"Impresión general\" }],\n  tour: [\n    { id: \"hola\", icon: \"rocket\", title: \"Lanzamos algo nuevo\", description: \"…\" },\n    { id: \"boton\", icon: \"feedback\", target: FEEDBACK_LAUNCHER_TARGET, title: \"Tu opinión, aquí\", description: \"…\" },\n  ],\n}\n\n<FeedbackCampaign campaign={campana} context=\"Métricas\" onSubmit={enviar} />"
+        }
+      ],
+      "docs": "/docs#/components/feedback-campaign",
+      "ficha": "ai-tools/components/feedback-campaign.md"
+    },
+    {
+      "id": "feedback-launcher",
+      "name": "FeedbackLauncher",
+      "group": "feedback-loop",
+      "description": "El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). Empieza como pastilla con texto y, una vez usado, se contrae a un círculo; `highlight` añade un pulso para una campaña que aún no tiene tu opinión. En móvil sube para no pisar el `ActionFab`.",
+      "import": "import { FeedbackLauncher } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackLauncher.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "fab",
+        "campaña"
+      ],
+      "props": [
+        {
+          "name": "collapsed",
+          "type": "boolean",
+          "default": "false",
+          "description": "Solo el icono, con `aria-label` y `title`."
+        },
+        {
+          "name": "highlight",
+          "type": "boolean",
+          "default": "false",
+          "description": "Pulso suave alrededor; se apaga con `prefers-reduced-motion`."
+        },
+        {
+          "name": "expanded",
+          "type": "boolean",
+          "default": null,
+          "description": "El panel que abre está abierto (`aria-expanded`)."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "\"Feedback\"",
+          "description": "Texto visible y nombre accesible."
+        },
+        {
+          "name": "...props",
+          "type": "React.ComponentProps<\"button\">",
+          "default": null,
+          "description": "Atributos del botón: `onClick`, `data-tour` para que el recorrido lo señale."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Móntalo una sola vez, en el layout, para que acompañe a todas las páginas.",
+          "Pásale `data-tour` si el recorrido debe señalarlo."
+        ],
+        "dont": [
+          "No lo pongas dentro del contenido de una pantalla: es un elemento del marco.",
+          "No cambies su color: es la llamada a la acción de la campaña."
+        ]
+      },
+      "related": [
+        "feedback-panel",
+        "feedback-campaign",
+        "action-fab"
+      ],
+      "examples": [
+        {
+          "id": "states",
+          "title": "Primera vez y ya usado",
+          "description": "Con texto mientras nadie lo ha abierto; contraído a icono después. El nombre accesible es el mismo en los dos.",
+          "code": "<FeedbackLauncher highlight onClick={abrir} />\n<FeedbackLauncher collapsed onClick={abrir} />"
+        }
+      ],
+      "docs": "/docs#/components/feedback-launcher",
+      "ficha": "ai-tools/components/feedback-launcher.md"
+    },
+    {
+      "id": "feedback-panel",
+      "name": "FeedbackPanel",
+      "group": "feedback-loop",
+      "description": "El panel flotante donde se deja el feedback: sección a evaluar y comentario, con la página en la que estás a la vista. No es modal —la pantalla sigue visible para señalar lo que se comenta—, conserva el texto si el envío falla y, al acertar, agradece y deja escribir otro.",
+      "import": "import { FeedbackPanel } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/FeedbackPanel.tsx",
+      "status": "beta",
+      "tags": [
+        "feedback",
+        "form",
+        "campaña"
+      ],
+      "props": [
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Controlado. Escape, ✕ y «Cancelar» piden cerrar."
+        },
+        {
+          "name": "sections",
+          "type": "{ value; label }[]",
+          "default": null,
+          "description": "Partes evaluables. Con una sola, el selector no se enseña."
+        },
+        {
+          "name": "defaultSection",
+          "type": "string",
+          "default": null,
+          "description": "La preseleccionada; por defecto, la primera."
+        },
+        {
+          "name": "context",
+          "type": "string",
+          "default": null,
+          "description": "Dónde está la persona («Métricas»)."
+        },
+        {
+          "name": "onSubmit",
+          "type": "(values: { section; comment }) => Promise<void> | void",
+          "default": null,
+          "description": "Envía. El comentario llega recortado. Si la promesa falla, su `message` se enseña."
+        },
+        {
+          "name": "minLength / maxLength",
+          "type": "number",
+          "default": "5 / 1000",
+          "description": "Límites del comentario, con contador."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<FeedbackPanelLabels>",
+          "default": null,
+          "description": "Todos los textos, para traducir o ajustar el tono."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Traduce los errores a lenguaje de persona antes de lanzarlos desde `onSubmit`.",
+          "Ofrece pocas secciones (5–7) y una para «algo que falta»."
+        ],
+        "dont": [
+          "No pidas la página en un campo: `context` ya la dice y viaja sola.",
+          "No lo metas en un Dialog: debe dejar ver la pantalla."
+        ]
+      },
+      "related": [
+        "feedback-launcher",
+        "feedback-campaign",
+        "textarea",
+        "select"
+      ],
+      "examples": [
+        {
+          "id": "error",
+          "title": "Si el envío falla",
+          "description": "Escribe un comentario con la palabra «error» y envíalo: el texto se queda y el mensaje de `onSubmit` sale debajo.",
+          "code": "const enviar = async (values) => {\n  await api.post(\"/feedback\", values) // si lanza, el panel enseña error.message\n}"
+        }
+      ],
+      "docs": "/docs#/components/feedback-panel",
+      "ficha": "ai-tools/components/feedback-panel.md"
+    },
+    {
+      "id": "guided-tour",
+      "name": "GuidedTour",
+      "group": "feedback-loop",
+      "description": "Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por un anillo. El recorte también deja pasar los clics, así que un paso puede avanzar cuando se pulsa lo resaltado. La tarjeta se coloca debajo, encima o acoplada abajo según el sitio, y vuelve a medirse con scroll y cambios de tamaño.",
+      "import": "import { GuidedTour, type TourStep } from \"@/components/feedback-loop\"",
+      "source": "src/components/feedback-loop/GuidedTour.tsx",
+      "status": "beta",
+      "tags": [
+        "onboarding",
+        "coachmarks",
+        "tour",
+        "a11y"
+      ],
+      "props": [
+        {
+          "name": "steps",
+          "type": "TourStep[]",
+          "default": null,
+          "description": "`{ id, title, description, icon?, target?, advanceOnTargetClick? }`. `target` es un selector CSS; admite una lista y gana el primero visible."
+        },
+        {
+          "name": "open / onOpenChange",
+          "type": "boolean / (open) => void",
+          "default": null,
+          "description": "Controlado. Cada apertura empieza en el primer paso."
+        },
+        {
+          "name": "onComplete",
+          "type": "() => void",
+          "default": null,
+          "description": "Solo al pulsar «Finalizar»; ✕, Escape o el velo cierran sin completar."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<GuidedTourLabels>",
+          "default": null,
+          "description": "Textos de los botones y el formato de «Paso N de M»."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Marca los objetivos con `data-tour` en vez de depender de clases de estilo.",
+          "Cuatro o cinco pasos como mucho; el último, hacia la acción que quieres (el botón de feedback).",
+          "Da objetivos alternativos (`nav, aside`) cuando el elemento cambia entre escritorio y móvil."
+        ],
+        "dont": [
+          "No lo relances en cada visita: recuerda que se vio (ver FeedbackCampaign).",
+          "No escondas información imprescindible solo en el recorrido."
+        ]
+      },
+      "related": [
+        "feedback-campaign",
+        "feedback-launcher",
+        "popover"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Recorrido con objetivos",
+          "description": "El segundo paso señala «Filtros»; el tercero espera a que pulses «Crear cita».",
+          "code": "const pasos: TourStep[] = [\n  { id: \"hola\", icon: \"rocket\", title: \"Bienvenido\", description: \"…\" },\n  { id: \"filtros\", target: '[data-tour=\"filtros\"]', title: \"Filtra lo que ves\", description: \"…\" },\n  { id: \"crear\", target: '[data-tour=\"crear\"]', advanceOnTargetClick: true, title: \"Pruébalo tú\", description: \"…\" },\n]\n\n<GuidedTour steps={pasos} open={open} onOpenChange={setOpen} onComplete={marcarVisto} />"
+        }
+      ],
+      "docs": "/docs#/components/guided-tour",
+      "ficha": "ai-tools/components/guided-tour.md"
     },
     {
       "id": "field",
@@ -12193,6 +13223,313 @@
       ],
       "docs": "/docs#/components/template-catalog-drawer",
       "ficha": "ai-tools/components/template-catalog-drawer.md"
+    },
+    {
+      "id": "month-occupancy-grid",
+      "name": "MonthOccupancyGrid",
+      "group": "scheduling",
+      "description": "El mes de un barbero (o del equipo) día por día: cuánta de la jornada está reservada, en porcentaje y en barra, y cuántas citas hay. Un día sin jornada se atenúa y lo dice; a partir del 80 % el porcentaje avisa en naranja. Cada día es un botón para abrir esa fecha en la rejilla.",
+      "import": "import { MonthOccupancyGrid } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/MonthOccupancyGrid.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "ocupación",
+        "mes"
+      ],
+      "props": [
+        {
+          "name": "month",
+          "type": "Date",
+          "default": null,
+          "description": "Cualquier día del mes a mostrar."
+        },
+        {
+          "name": "days",
+          "type": "{ date: Date; occupancy: number | null; count: number }[]",
+          "default": null,
+          "description": "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas."
+        },
+        {
+          "name": "selected",
+          "type": "Date | null",
+          "default": null,
+          "description": "El día marcado."
+        },
+        {
+          "name": "onSelectDay",
+          "type": "(date: Date) => void",
+          "default": null,
+          "description": "Se llama al tocar un día del mes."
+        },
+        {
+          "name": "today",
+          "type": "Date",
+          "default": null,
+          "description": "Qué día lleva el círculo de «hoy». Inyectable para la doc y las pruebas."
+        },
+        {
+          "name": "locale",
+          "type": "Locale",
+          "default": null,
+          "description": "Locale de date-fns; sin él, el idioma de la aplicación."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Calcula la ocupación como minutos reservados sobre minutos de jornada, no sobre 24 horas.",
+          "Al tocar un día, cambia a la vista Día en esa fecha: es lo que quien mira espera.",
+          "Manda `occupancy: null` para los días sin jornada; un 0 % se lee como «libre», no como «no trabaja»."
+        ],
+        "dont": [
+          "No lo uses como selector de fecha: para eso están `DatePicker` y `Calendar`.",
+          "No pintes aquí las citas una a una; para eso está la vista de mes de `EventCalendar`."
+        ]
+      },
+      "related": [
+        "resource-day-grid",
+        "event-calendar",
+        "progress",
+        "kpi-card"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Septiembre de un barbero",
+          "description": "Descansa los domingos y estuvo de vacaciones del 7 al 11: esos días no tienen jornada. Los sábados van más llenos y el porcentaje lo avisa.",
+          "code": "const [selected, setSelected] = React.useState<Date | null>(hoy);\n\n<MonthOccupancyGrid month={hoy} days={dias} selected={selected} onSelectDay={setSelected} />"
+        }
+      ],
+      "docs": "/docs#/components/month-occupancy-grid",
+      "ficha": "ai-tools/components/month-occupancy-grid.md"
+    },
+    {
+      "id": "resource-day-grid",
+      "name": "ResourceDayGrid",
+      "group": "scheduling",
+      "description": "El día de una barbería: una columna por barbero, las horas hacia abajo y cada cita como tarjeta en la columna de quien la atiende. Sombrea las horas en que alguien no trabaja, dibuja la línea de «ahora», ofrece cada hueco libre como botón para agendar y deja mover y estirar las tarjetas arrastrándolas. Es su propia región de scroll, así la fila de barberos y la columna de horas se quedan fijas.",
+      "import": "import { ResourceDayGrid } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/ResourceDayGrid.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "arrastrar",
+        "teclado",
+        "barbería"
+      ],
+      "props": [
+        {
+          "name": "date",
+          "type": "Date",
+          "default": null,
+          "description": "El día que se muestra."
+        },
+        {
+          "name": "resources",
+          "type": "ScheduleResource[]",
+          "default": null,
+          "description": "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»)."
+        },
+        {
+          "name": "events",
+          "type": "ScheduleEvent[]",
+          "default": null,
+          "description": "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `kind: \"block\"` tacha la franja; `locked` impide arrastrar."
+        },
+        {
+          "name": "startHour / endHour",
+          "type": "number",
+          "default": "6 / 24",
+          "description": "Primera y última hora visibles (la última exclusiva)."
+        },
+        {
+          "name": "slotMinutes",
+          "type": "number",
+          "default": "30",
+          "description": "Minutos por franja; también el paso al arrastrar."
+        },
+        {
+          "name": "now",
+          "type": "Date",
+          "default": null,
+          "description": "El «ahora» de la línea roja. Sin él, el reloj real."
+        },
+        {
+          "name": "onSlotClick",
+          "type": "(slot: { resourceId; start; isWorking }) => void",
+          "default": null,
+          "description": "Clic en un hueco libre: dónde y a qué hora, y si el recurso trabaja ahí."
+        },
+        {
+          "name": "onEventClick",
+          "type": "(event: ScheduleEvent) => void",
+          "default": null,
+          "description": "Abrir una tarjeta. Sin él las tarjetas no son botones."
+        },
+        {
+          "name": "onEventMove",
+          "type": "(event, drop: { resourceId; start; end }) => void",
+          "default": null,
+          "description": "Se soltó la tarjeta en otra hora o columna. Sin él no se arrastra."
+        },
+        {
+          "name": "onEventResize",
+          "type": "(event, drop) => void",
+          "default": null,
+          "description": "Se estiró la tarjeta desde abajo. Sin él no hay tirador."
+        },
+        {
+          "name": "resourceActions",
+          "type": "(resource) => ScheduleResourceAction[]",
+          "default": null,
+          "description": "El menú al tocar el nombre de un recurso (ver perfil, bloquear…)."
+        },
+        {
+          "name": "height",
+          "type": "string",
+          "default": "\"max(28rem, calc(100dvh - 17rem))\"",
+          "description": "Alto de la región con scroll."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pasa `now` fijo en pruebas y en la doc; en producto déjalo vacío para que la línea siga al reloj.",
+          "Traduce tus citas a `ScheduleEvent` en un módulo aparte: la rejilla no sabe de clientes ni de precios.",
+          "Con `onSlotClick` abre el formulario con el barbero y la hora ya puestos: es la forma más rápida de agendar.",
+          "Acepta el `drop` de `onEventMove` en el servidor y revierte si dice que no; la rejilla solo avisa."
+        ],
+        "dont": [
+          "No pintes la agenda de varios días aquí: es la rejilla de un día. Para la semana está `EventCalendar`.",
+          "No metas más de una acción en cada tarjeta; el siguiente paso es uno.",
+          "No ocultes recursos sin horario en silencio: enséñalos sombreados o explica por qué no están."
+        ]
+      },
+      "related": [
+        "month-occupancy-grid",
+        "time-slot-picker",
+        "event-calendar",
+        "drawer-shell"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "El día por barbero",
+          "description": "Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se sombrea. Tomás no tiene horario y su columna lo dice. Las citas cuentan el cliente, el servicio y el siguiente paso; el bloqueo del almuerzo va tachado y no se toca.",
+          "code": "<ResourceDayGrid\n  date={hoy}\n  resources={[\n    { id: \"andres\", name: \"Andrés Beltrán\", workingHours: [{ start: \"09:00\", end: \"19:00\" }] },\n    { id: \"tomas\", name: \"Tomás Peña\", workingHours: [] },\n  ]}\n  events={[\n    { id: \"e1\", resourceId: \"andres\", start, end, title: \"Laura Gómez\", subtitle: \"Corte clásico · US$ 35\", badge: { label: \"VIP\", tone: \"warning\" }, action: { label: \"Ingresar\", onClick } },\n    { id: \"b1\", resourceId: \"andres\", start, end, title: \"Almuerzo\", kind: \"block\", locked: true },\n  ]}\n  startHour={8}\n  endHour={20}\n/>"
+        },
+        {
+          "id": "drag",
+          "title": "Mover y estirar",
+          "description": "Con `onEventMove` la tarjeta se arrastra a otra hora o a otra columna (la sombra punteada enseña dónde caerá) y con `onEventResize` se estira desde el tirador de abajo. La rejilla no guarda nada: avisa y quien la monta decide. Solo con ratón o lápiz; con el dedo la agenda se desplaza.",
+          "code": "<ResourceDayGrid\n  date={hoy}\n  resources={barberos}\n  events={citas}\n  onEventMove={(cita, { resourceId, start, end }) => moverCita(cita.id, resourceId, start)}\n  onEventResize={(cita, { end }) => cambiarDuracion(cita.id, end)}\n/>"
+        },
+        {
+          "id": "nobody",
+          "title": "Sin horario",
+          "description": "Un recurso sin franjas ese día se pinta entero sombreado con el aviso. La pantalla decide si en vez de la rejilla muestra «Nadie trabaja este día».",
+          "code": "<ResourceDayGrid date={hoy} resources={[{ id: \"tomas\", name: \"Tomás Peña\", workingHours: [] }]} events={[]} />"
+        }
+      ],
+      "docs": "/docs#/components/resource-day-grid",
+      "ficha": "ai-tools/components/resource-day-grid.md"
+    },
+    {
+      "id": "time-slot-picker",
+      "name": "TimeSlotPicker",
+      "group": "scheduling",
+      "description": "Elegir cuándo: una tira de días para la fecha y, debajo, las horas repartidas en mañana, tarde y noche como chips. Es el «Fecha & Hora» de crear una cita: se ven el día y la hora de una vez, sin abrir un calendario y luego un reloj. Las horas que no sirven se apagan con `isSlotDisabled`.",
+      "import": "import { TimeSlotPicker } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/TimeSlotPicker.tsx",
+      "status": "beta",
+      "tags": [
+        "agenda",
+        "fecha",
+        "hora",
+        "formulario"
+      ],
+      "props": [
+        {
+          "name": "value",
+          "type": "Date | null",
+          "default": null,
+          "description": "La fecha y hora elegidas."
+        },
+        {
+          "name": "onChange",
+          "type": "(date: Date) => void",
+          "default": null,
+          "description": "Se llama al tocar una hora; el día es el marcado en la tira."
+        },
+        {
+          "name": "startDate",
+          "type": "Date",
+          "default": "hoy",
+          "description": "Primer día de la tira."
+        },
+        {
+          "name": "daysCount",
+          "type": "number",
+          "default": "28",
+          "description": "Cuántos días se pueden recorrer hacia delante."
+        },
+        {
+          "name": "startHour / endHour",
+          "type": "number",
+          "default": "8 / 24",
+          "description": "Primera y última hora ofrecidas (la última exclusiva)."
+        },
+        {
+          "name": "slotMinutes",
+          "type": "number",
+          "default": "30",
+          "description": "Minutos entre una hora y la siguiente."
+        },
+        {
+          "name": "isSlotDisabled",
+          "type": "(date: Date) => boolean",
+          "default": null,
+          "description": "Qué horas se apagan (fuera de horario, ocupadas, pasadas)."
+        },
+        {
+          "name": "locale",
+          "type": "Locale",
+          "default": null,
+          "description": "Locale de date-fns; sin él, el idioma de la aplicación."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Apaga las horas pasadas de hoy y las que caen fuera del horario de quien atiende.",
+          "Envuélvelo en un `Field` con `error` cuando el formulario exija la fecha.",
+          "Deja que el paso siga al catálogo: si los servicios se agendan cada 15 minutos, `slotMinutes={15}`."
+        ],
+        "dont": [
+          "No lo uses para rangos ni para fechas sin hora: para eso están `DateRangePicker` y `DatePicker`.",
+          "No ofrezcas 24 horas si la barbería abre 12: la tira de chips se hace larga sin motivo."
+        ]
+      },
+      "related": [
+        "resource-day-grid",
+        "date-picker",
+        "segmented-control",
+        "field"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Día y hora de una vez",
+          "description": "La tira arranca en `startDate` y avanza por semanas. Las horas van de media en media hora y se agrupan en mañana, tarde y noche.",
+          "code": "const [value, setValue] = React.useState<Date | null>(null);\n\n<TimeSlotPicker value={value} onChange={setValue} startHour={8} endHour={22} />"
+        },
+        {
+          "id": "availability",
+          "title": "Solo lo disponible",
+          "description": "`isSlotDisabled` apaga lo que no sirve: fuera del horario del barbero y las horas ya ocupadas. El selector no sabe por qué, solo lo pinta tachado.",
+          "code": "<TimeSlotPicker\n  value={value}\n  onChange={setValue}\n  isSlotDisabled={(fecha) => !isWorkingAt(horario, minutesOfDay(fecha)) || ocupadas.includes(fecha.getTime())}\n/>"
+        }
+      ],
+      "docs": "/docs#/components/time-slot-picker",
+      "ficha": "ai-tools/components/time-slot-picker.md"
     },
     {
       "id": "card-selection",
@@ -17670,6 +19007,123 @@
       "ficha": "ai-tools/components/file-upload.md"
     },
     {
+      "id": "image-cropper",
+      "name": "ImageCropper",
+      "group": "upload",
+      "description": "Recorte de imagen sobre `react-easy-crop`: mover con arrastre o flechas, acercar con rueda, pellizco, teclas + y − o la barra, girar en pasos de 90° o fino, y «Encajar entera» para meter una imagen ancha en un hueco cuadrado con el sobrante transparente. `ImageCropDialog` lo pone en una ventana con vista previa en los tamaños reales y exporta con `cropImage` a PNG (conserva la transparencia) dentro de un tope de bytes.",
+      "import": "import { ImageCropper, ImageCropDialog, cropImage } from \"@/components/upload\"",
+      "source": "src/components/upload/ImageCropper.tsx",
+      "status": "beta",
+      "tags": [
+        "recorte",
+        "imagen",
+        "logo",
+        "avatar",
+        "zoom",
+        "giro"
+      ],
+      "props": [
+        {
+          "name": "image",
+          "type": "string",
+          "default": null,
+          "description": "URL o data URL de la imagen."
+        },
+        {
+          "name": "aspect",
+          "type": "number",
+          "default": "1",
+          "description": "Proporción del recorte (`1` cuadrado, `16 / 9`…)."
+        },
+        {
+          "name": "cropShape",
+          "type": "\"rect\" | \"round\"",
+          "default": "\"rect\"",
+          "description": "Guía circular para avatares; el resultado sigue siendo rectangular."
+        },
+        {
+          "name": "minZoom / maxZoom",
+          "type": "number",
+          "default": "1 / 4",
+          "description": "Límites del zoom. Con `allowFit` se puede bajar de `minZoom` hasta encajar la imagen entera."
+        },
+        {
+          "name": "allowFit",
+          "type": "boolean",
+          "default": "true",
+          "description": "Botón «Encajar entera» y zoom por debajo de 1; lo que sobra sale transparente."
+        },
+        {
+          "name": "fineRotation",
+          "type": "boolean",
+          "default": "true",
+          "description": "Barra de giro fino de −45° a 45°, además de los giros de 90°."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: { area: PixelArea; rotation: number }) => void",
+          "default": null,
+          "description": "Recorte en píxeles de la imagen original y giro, al terminar cada gesto."
+        },
+        {
+          "name": "labels",
+          "type": "Partial<ImageCropperLabels>",
+          "default": null,
+          "description": "Textos de los controles; vienen en español."
+        },
+        {
+          "name": "ImageCropDialog · onApply",
+          "type": "(result: CroppedImage) => void",
+          "default": null,
+          "description": "`{ blob, dataUrl, width, height }` ya exportado."
+        },
+        {
+          "name": "ImageCropDialog · output",
+          "type": "CropImageOptions",
+          "default": null,
+          "description": "`maxSize` (lado mayor), `maxBytes` (reduce hasta cumplirlo), `type` (`image/png` por defecto) y `quality`."
+        },
+        {
+          "name": "ImageCropDialog · renderPreview",
+          "type": "(src: string | null) => ReactNode",
+          "default": null,
+          "description": "Vista previa propia; por defecto, la imagen a 96, 48 y 32 px."
+        },
+        {
+          "name": "ImageCropDialog · onSkip",
+          "type": "() => void",
+          "default": null,
+          "description": "Ofrece usar el archivo sin recortar (p. ej. un SVG, que se rasterizaría)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pasa siempre por el recortador cuando la imagen va a un hueco de forma fija (logo, avatar, portada).",
+          "Muestra con `renderPreview` el sitio real donde se verá, no solo la imagen suelta.",
+          "Exporta en PNG si la imagen puede tener transparencia; WebP solo para fotos."
+        ],
+        "dont": [
+          "No lo uses para documentos o adjuntos: ahí va `UploadZone` o `FileUpload`.",
+          "No rasterices un SVG sin ofrecer `onSkip`: se pierde la nitidez del vector."
+        ]
+      },
+      "related": [
+        "upload-zone",
+        "file-upload",
+        "file-preview"
+      ],
+      "examples": [
+        {
+          "id": "dialog",
+          "title": "En una ventana, con vista previa y exportación",
+          "description": "`ImageCropDialog` es la forma habitual: elige el archivo, ábrela y recibe en `onApply` el PNG ya recortado, girado y dentro de `maxBytes`. Con `renderPreview` muestras los huecos reales donde irá la imagen (el menú, el avatar…).",
+          "code": "const [open, setOpen] = React.useState(false);\n\n<ImageCropDialog\n  open={open}\n  onOpenChange={setOpen}\n  image={src}\n  aspect={1}\n  cropShape=\"round\"\n  title=\"Foto de perfil\"\n  output={{ maxSize: 512, maxBytes: 1024 * 1024 }}\n  onApply={(result) => save(result.blob)}\n/>"
+        }
+      ],
+      "docs": "/docs#/components/image-cropper",
+      "ficha": "ai-tools/components/image-cropper.md"
+    },
+    {
       "id": "import-csv-panel",
       "name": "ImportCsvPanel",
       "group": "upload",
@@ -18480,55 +19934,91 @@
     "analytics",
     "arrowLeft",
     "arrowRight",
+    "attach",
+    "audioWave",
     "award",
     "bolt",
     "building",
     "calendar",
     "chart",
+    "chat",
     "check",
     "chevronDown",
     "chevronLeft",
     "chevronRight",
     "chevronUp",
+    "clock",
     "close",
     "code",
+    "compass",
+    "copy",
+    "crop",
     "dashboard",
     "download",
+    "edit",
     "error",
+    "expand",
     "eyeOff",
     "eyeOn",
+    "feedback",
     "file",
     "filter",
+    "flag",
+    "folderAdd",
     "google",
     "graduation",
     "help",
     "home",
+    "image",
     "info",
     "layers",
+    "link",
     "lock",
     "logout",
+    "magicWand",
+    "mic",
+    "micOff",
     "microsoft",
     "moon",
+    "more",
     "neutral",
     "notification",
     "palette",
+    "pause",
     "phone",
+    "plus",
+    "pointer",
     "refresh",
+    "rocket",
+    "rotateLeft",
+    "rotateRight",
     "scissors",
     "search",
+    "securityLock",
+    "send",
     "settings",
+    "share",
     "smsCode",
     "sparkles",
+    "stop",
     "success",
     "sun",
     "survey",
+    "task",
     "templates",
+    "thumbsDown",
+    "thumbsUp",
+    "ticket",
     "trendDown",
     "trendUp",
     "upload",
+    "userAdd",
     "users",
     "vacancies",
-    "warning"
+    "volume",
+    "warning",
+    "zoomIn",
+    "zoomOut"
   ],
   "tokens": [
     {

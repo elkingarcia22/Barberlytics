@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'dist-lib', 'public/mockServiceWorker.js', 'playwright-report', 'test-results']),
+  globalIgnores(['dist', 'dist-lib', 'public/mockServiceWorker.js', 'playwright-report', 'test-results', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+  },
+  {
+    // Funciones de servidor (Vercel) y su lógica: corren en Node, no en el navegador.
+    files: ['api/**/*.ts', 'server/**/*.ts'],
+    languageOptions: { globals: globals.node },
   },
   {
     // Deuda heredada del proyecto de origen: los componentes copiados usan

@@ -1,5 +1,7 @@
+import type { ShellHelpAction } from "./HelpMenu";
 import * as React from "react";
 import type { GlobalSearchProps } from "@/components/search";
+import type { ShellMode } from "./shellTypes";
 import {
   AGENT_SUGGESTIONS,
   CHAT_HISTORY,
@@ -138,6 +140,17 @@ export interface ShellConfig {
   activeRoleId?: string;
   /** Se llama con el id del rol elegido; la app decide qué recarga. */
   onSelectRole?: (id: string) => void;
+  /**
+   * Qué hace el botón «Ayuda» de la cabecera. La app abre con él el panel de
+   * ayuda contextual de la pantalla actual; sin esto el botón no hace nada,
+   * así que quien lo enciende en `chrome.help` tiene que darle destino.
+   */
+  onOpenHelp?: () => void;
+  /**
+   * Las puertas del botón «Ayuda». Con ellas el botón abre un menú (preguntar,
+   * ir al centro de ayuda, que te guíen…) en vez de ejecutar `onOpenHelp`.
+   */
+  helpActions?: readonly ShellHelpAction[];
   companies: readonly Company[];
   /** Espacio activo. Sin él, el shell arranca en el primero y lo gestiona. */
   activeCompanyId?: string;
@@ -170,7 +183,30 @@ export interface ShellConfig {
    */
   workspaceMenuExtra?: React.ReactNode;
   chatHistory: readonly ChatHistoryGroup[];
+  /** La conversación abierta en el historial; `null` es una nueva. */
+  activeChatId?: string | null;
+  onSelectChat?: (id: string) => void;
+  onNewChat?: () => void;
+  /** Borrar una conversación desde el historial; sin esto no hay botón. */
+  onRemoveChat?: (id: string) => void;
+  /**
+   * Qué enseña la barra lateral en modo «Agente IA»: el historial de chats
+   * (por defecto) o la navegación de siempre, cuando la vista del agente
+   * (`agentView`) ya trae su propio historial.
+   */
+  agentSidebar?: "history" | "navigation";
   agentSuggestions: readonly string[];
+  /**
+   * Lo que se enseña en modo «Agente IA» en vez del contenido. Sin esto va
+   * la portada de demostración (`AgentView`); la app pone aquí su chat.
+   */
+  agentView?: React.ReactNode;
+  /**
+   * El modo del shell, controlado desde fuera. Sin `mode` el shell lo
+   * guarda él; `onModeChange` avisa igual en los dos casos.
+   */
+  mode?: ShellMode;
+  onModeChange?: (mode: ShellMode) => void;
   /**
    * Tarjeta promocional del sidebar (modo Workspace). Apagada por defecto:
    * no sale sola, solo cuando una pantalla la pide a propósito pasando el

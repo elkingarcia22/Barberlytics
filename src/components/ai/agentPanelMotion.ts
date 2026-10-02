@@ -36,17 +36,27 @@ export const AGENT_PANEL_WIDTH = "min(400px, 45vw)";
 export const AGENT_PANEL_GUTTER = 32;
 
 /**
- * Lo que el cajón tiene que descontar además del panel para quedar *junto* a
- * él y no encima.
- *
- * La concha lleva `p-2` alrededor y `gap-2` entre columnas, así que el panel
- * no empieza en el borde de la pantalla: empieza 8 px antes. Un cajón `fixed`
- * vive por encima de ese marco y no lo sabe, así que correrlo solo el ancho
- * del panel lo mete 8 px por debajo de su borde izquierdo —que es justo lo
- * que se ve como "el chat montado sobre el contenido"—. Son los dos ochos:
- * el del padding y el del gap.
+ * El margen exterior de todo lo que flota sobre la página: el panel del Agente
+ * IA, el cajón de ayuda, los `Sheet` y el tope de alto de los diálogos. Ni el
+ * panel ni los cajones van pegados al borde de la ventana: dejarlos flotar a
+ * esta distancia es lo que los separa visualmente de la app que tapan. Es
+ * margen, no relleno: lo de dentro no cambia. Coincide con `3` de Tailwind
+ * (0.75rem), que es lo que usan `sheet.tsx` y `dialog.tsx`.
  */
-export const AGENT_PANEL_SHELL_FRAME = 16;
+export const OVERLAY_INSET = 12;
+
+/**
+ * Lo que ocupa el panel en la fila del shell: su ancho más el margen que lo
+ * separa del borde derecho de la ventana. Es lo que se anima al abrirlo.
+ */
+export const AGENT_PANEL_OUTER_WIDTH = `calc(${AGENT_PANEL_WIDTH} + ${OVERLAY_INSET}px)`;
+
+/**
+ * Lo que un cajón tiene que descontar además del ancho del panel para quedar
+ * *junto* a él y no encima: el margen derecho del panel y el mismo margen entre
+ * los dos.
+ */
+export const AGENT_PANEL_SHELL_FRAME = OVERLAY_INSET * 2;
 
 export const AGENT_PANEL_DURATION_MS = 320;
 export const AGENT_PANEL_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
@@ -68,9 +78,8 @@ export function agentPanelShift(open: boolean): {
   content: React.CSSProperties;
   overlay: React.CSSProperties;
 } {
-  const right = open
-    ? `calc(${AGENT_PANEL_WIDTH} + ${AGENT_PANEL_SHELL_FRAME}px)`
-    : 0;
+  // Cerrado no vuelve a 0: el cajón flota a `OVERLAY_INSET` del borde, como sin el panel.
+  const right = open ? `calc(${AGENT_PANEL_WIDTH} + ${AGENT_PANEL_SHELL_FRAME}px)` : `${OVERLAY_INSET}px`;
   return {
     content: {
       right,
@@ -79,9 +88,10 @@ export function agentPanelShift(open: boolean): {
       // estrecho— en cuanto se cerraba el panel.
       maxWidth: open
         ? `calc(100vw - ${AGENT_PANEL_WIDTH} - ${AGENT_PANEL_SHELL_FRAME + AGENT_PANEL_GUTTER}px)`
-        : "min(1280px, 96vw)",
+        : `min(1280px, calc(100vw - ${OVERLAY_INSET * 2}px))`,
       transition: agentPanelTransition("right", "max-width"),
     },
-    overlay: { right, transition: agentPanelTransition("right") },
+    // El velo llega hasta el borde izquierdo del panel (abierto) o hasta la ventana (cerrado).
+    overlay: { right: open ? AGENT_PANEL_OUTER_WIDTH : 0, transition: agentPanelTransition("right") },
   };
 }

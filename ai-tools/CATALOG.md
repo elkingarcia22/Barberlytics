@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**181 componentes** en 19 familias · 52 iconos en el registro · 113 tokens.
+**198 componentes** en 21 familias · 88 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -147,6 +147,15 @@ Estados vacíos, avisos y toasts.
 - **Spinner** [spinner] — Indicador de carga indeterminado en cuatro tamaños (12, 16, 24 y 32px) y tres tonos. `@/components/feedback/Spinner`
 - **ThemaToaster** [thema-toaster] — El contenedor de toasts de Sonner con los ajustes Thema: apilados arriba a la derecha, por debajo del header, sin colores saturados y con b… `@/components/feedback/ThemaToaster`
 
+## Feedback de usuarios · 4
+
+Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.
+
+- **FeedbackCampaign** [feedback-campaign] (beta) — El circuito completo para pedir feedback masivo sobre algo recién lanzado: recorrido guiado la primera vez, botón flotante en todas las pág… `@/components/feedback-loop`
+- **FeedbackLauncher** [feedback-launcher] (beta) — El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). `@/components/feedback-loop`
+- **FeedbackPanel** [feedback-panel] (beta) — El panel flotante donde se deja el feedback: sección a evaluar y comentario, con la página en la que estás a la vista. `@/components/feedback-loop`
+- **GuidedTour** [guided-tour] (beta) — Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por… `@/components/feedback-loop`
+
 ## Datos · 11
 
 Tablas configurables y badges de estado.
@@ -163,7 +172,7 @@ Tablas configurables y badges de estado.
 - **Timeline** [timeline] — Línea de tiempo de eventos: un punto o icono de 24px sobre una línea vertical continua, con título, hora y una descripción o cuerpo opciona… `@/components/data-display/Timeline`
 - **Tree** [tree] — Árbol jerárquico con expansión y selección: empresa → áreas → equipos, o cualquier estructura anidada que haya que recorrer o elegir. `@/components/data-display/Tree`
 
-## Fechas y rangos · 10
+## Fechas y rangos · 11
 
 Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.
 
@@ -173,30 +182,43 @@ Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.
 - **DualDateRangePicker** [dual-date-range-picker] — Dos campos (inicio y cierre) que comparten un calendario de dos meses con pasos guiados, previsualización al pasar el ratón y confirmación… `@/components/date`
 - **EventCalendar** [event-calendar] (beta) — La agenda del producto en una rejilla: sesiones de formación, entrevistas de una vacante y fechas de cierre de encuestas, en vista de mes,… `@/components/date`
 - **MonthPicker** [month-picker] — Selector de mes y año con una cuadrícula de doce meses y navegación por año. `@/components/date`
+- **PeriodNavigator** [period-navigator] — La barra de tiempo de un tablero: el grano (día, semana, mes), el periodo que se está mirando y las flechas para moverlo. `@/components/date`
 - **PeriodSelector** [period-selector] — Select de periodos predefinidos (hoy, últimos 7 días, este mes…) con etiqueta, ayuda y error. `@/components/date`
 - **QuarterSelector** [quarter-selector] — Selector de trimestre y año con cuatro botones (Q1–Q4) y navegación por año. `@/components/date`
 - **RangeSlider** [range-slider] — Slider de dos manejadores para acotar un rango numérico, con etiqueta, valores visibles y formateador propio. `@/components/range`
 - **Utilidades de fecha** [date-utils] — Funciones puras sobre Date nativo e Intl.DateTimeFormat que usan todos los pickers: formateo por locale, rangos, comparación sin hora y lím… `@/components/date`
 
-## Archivos · 6
+## Agenda · 3
+
+La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.
+
+- **MonthOccupancyGrid** [month-occupancy-grid] (beta) — El mes de un barbero (o del equipo) día por día: cuánta de la jornada está reservada, en porcentaje y en barra, y cuántas citas hay. `@/components/scheduling`
+- **ResourceDayGrid** [resource-day-grid] (beta) — El día de una barbería: una columna por barbero, las horas hacia abajo y cada cita como tarjeta en la columna de quien la atiende. `@/components/scheduling`
+- **TimeSlotPicker** [time-slot-picker] (beta) — Elegir cuándo: una tira de días para la fecha y, debajo, las horas repartidas en mañana, tarde y noche como chips. `@/components/scheduling`
+
+## Archivos · 7
 
 Zonas de carga, previsualización y progreso.
 
 - **AttachmentList** [attachment-list] — Colección de archivos renderizada con FilePreview en tres layouts: lista de filas, grilla de tarjetas o chips compactos. `@/components/upload`
 - **FilePreview** [file-preview] — Muestra los metadatos de un archivo (nombre, tamaño y familia) con un icono por tipo. `@/components/upload`
 - **FileUpload** [file-upload] — Selección de archivos mediante un botón y la File API nativa, sin arrastrar. `@/components/upload`
+- **ImageCropper** [image-cropper] (beta) — Recorte de imagen sobre `react-easy-crop`: mover con arrastre o flechas, acercar con rueda, pellizco, teclas + y − o la barra, girar en pas… `@/components/upload`
 - **ImportCsvPanel** [import-csv-panel] — Panel completo de importación CSV que orquesta UploadZone, FilePreview, UploadProgress y una tabla de previsualización. `@/components/upload`
 - **UploadProgress** [upload-progress] — Barra de progreso con etiqueta, descripción, porcentaje y un icono por estado (cargando, validando, éxito, error). `@/components/upload`
 - **UploadZone** [upload-zone] — Zona de arrastrar y soltar con la Drag & Drop API nativa y clic como alternativa. `@/components/upload`
 
-## Gráficos · 12
+## Gráficos · 15
 
 ECharts con el tema Thema resuelto en tiempo real.
 
 - **AreaChart** [area-chart] — Preset de área sobre ChartCard para tendencias donde importa el volumen acumulado: cursos completados en el año, minutos de aprendizaje por… `@/components/charts`
 - **BarChart** [bar-chart] — Preset de barras sobre ChartCard para comparar magnitudes entre categorías: áreas, equipos, cursos. `@/components/charts`
+- **BarList** [bar-list] — Un ranking: qué se vendió más, de dónde salió el ingreso, qué servicio se pidió. `@/components/charts`
 - **ChartCard** [chart-card] — La Card pensada para alojar un gráfico: encabezado con eyebrow, título, descripción, acciones y un slot de filtros, y debajo un ChartShell… `@/components/charts`
 - **ChartShell** [chart-shell] — El contenedor estructural de todo gráfico: gestiona los cuatro estados (datos, cargando, vacío y error), anuncia el lienzo como region role… `@/components/charts`
+- **CompositionDonut** [composition-donut] — El reparto de un total en pocas partes como panel de tablero: un anillo mudo con el total escrito en el centro y una leyenda al lado con ca… `@/components/charts`
+- **DistributionBar** [distribution-bar] — Un total repartido en pocos tramos contiguos —mañana, tarde y noche; con cita, sin cita— como una sola barra donde cada tramo ocupa lo que… `@/components/charts`
 - **DonutChart** [donut-chart] — Preset de dona o pastel sobre ChartCard para composiciones parte-todo: estado de los objetivos, modalidad de los cursos, distribución por s… `@/components/charts`
 - **EChart** [echart] — El wrapper base de Apache ECharts: inicializa la instancia una sola vez, la redimensiona con ResizeObserver y la destruye al desmontar. `@/components/charts`
 - **HeatmapChart** [heatmap-chart] — Preset de mapa de calor sobre ChartCard para cruzar dos dimensiones: día por franja horaria, equipo por competencia. `@/components/charts`
@@ -206,7 +228,7 @@ ECharts con el tema Thema resuelto en tiempo real.
 - **MetricCard** [metric-card] — La tarjeta de la que se hace una fila de indicadores: acento vertical del tono junto al título, icono en chip, número grande y neutro, píld… `@/components/charts`
 - **SparklineChart** [sparkline-chart] — Línea ultracompacta sin ejes, leyenda ni cuadrícula, pensada para acompañar un número: dentro de un KpiCard, en una celda de tabla o al lad… `@/components/charts`
 
-## IA · 10
+## IA · 15
 
 Botones, loaders, badges y paneles con la identidad de IA.
 
@@ -218,6 +240,11 @@ Botones, loaders, badges y paneles con la identidad de IA.
 - **AILoader** [ai-loader] — Estado de espera mientras la IA trabaja, en tres formas: una línea con spinner, un bloque con esqueleto o una tarjeta con progreso. `@/components/ai-interaction`
 - **AIPanel** [ai-panel] — Contenedor de insights de IA: una Card con la chispa en el título, acciones en la cabecera, pie opcional y estados de carga y vacío ya resu… `@/components/ai`
 - **AiSparkGlyph** [ai-spark-glyph] — La chispa de la IA: el destello grande con dos satélites que laten a destiempo. `@/components/ai-interaction`
+- **ChatComposer** [chat-composer] (beta) — La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y… `@/components/chat`
+- **ChatPanel** [chat-panel] (beta) — El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. `@/components/chat`
+- **ChatScreen** [chat-screen] (beta) — El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. `@/components/chat`
+- **ChatThread** [chat-thread] (beta) — El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben sola… `@/components/chat`
+- **ChatVoiceMode** [chat-voice-mode] (beta) — El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande… `@/components/chat`
 - **Chip** [chip] — Pastilla compacta para filtros, etiquetas y sugerencias. `@/components/ai-interaction`
 - **SaveIndicator** [save-indicator] — Indicador discreto del estado de autoguardado: en la nube, guardando, guardado, error o sin conexión. `@/components/ai-interaction`
 
@@ -306,4 +333,4 @@ Composiciones completas listas para una pantalla: piezas del sistema ya cableada
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, award, bolt, building, calendar, chart, check, chevronDown, chevronLeft, chevronRight, chevronUp, close, code, dashboard, download, error, eyeOff, eyeOn, file, filter, google, graduation, help, home, info, layers, lock, logout, microsoft, moon, neutral, notification, palette, phone, refresh, scissors, search, settings, smsCode, sparkles, success, sun, survey, templates, trendDown, trendUp, upload, users, vacancies, warning
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, building, calendar, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, feedback, file, filter, flag, folderAdd, google, graduation, help, home, image, info, layers, link, lock, logout, magicWand, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, volume, warning, zoomIn, zoomOut

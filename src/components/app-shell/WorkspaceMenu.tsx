@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { SettingsGroup } from "./appShellData";
+import { CloseWorkspaceMenuContext } from "./workspaceMenuContext";
 
 export interface WorkspaceMenuProps {
   /** El elemento que lo abre: la fila de marca del panel, o su icono en el rail. */
@@ -49,6 +50,7 @@ export function WorkspaceMenu({
   align = "start",
 }: WorkspaceMenuProps) {
   const [open, setOpen] = React.useState(false);
+  const close = React.useCallback(() => setOpen(false), []);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -62,7 +64,9 @@ export function WorkspaceMenu({
         {extra && (
           <>
             <DropdownMenuSeparator />
-            <div className="flex flex-col gap-0.5 px-0.5 py-1">{extra}</div>
+            <div className="flex flex-col gap-0.5 px-0.5 py-1">
+              <CloseWorkspaceMenuContext.Provider value={close}>{extra}</CloseWorkspaceMenuContext.Provider>
+            </div>
           </>
         )}
 

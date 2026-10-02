@@ -6,8 +6,10 @@ import { selectionEntries } from "./selection";
 import { navigationEntries } from "./navigation";
 import { overlaysEntries } from "./overlays";
 import { feedbackEntries } from "./feedback";
+import { feedbackLoopEntries } from "./feedback-loop";
 import { dataDisplayEntries } from "./data-display";
 import { dateEntries } from "./date";
+import { schedulingEntries } from "./scheduling";
 import { uploadEntries } from "./upload";
 import { chartsEntries } from "./charts";
 import { aiEntries } from "./ai";
@@ -29,8 +31,10 @@ export const ALL_ENTRIES: readonly DocEntry[] = [
   ...navigationEntries,
   ...overlaysEntries,
   ...feedbackEntries,
+  ...feedbackLoopEntries,
   ...dataDisplayEntries,
   ...dateEntries,
+  ...schedulingEntries,
   ...uploadEntries,
   ...chartsEntries,
   ...aiEntries,

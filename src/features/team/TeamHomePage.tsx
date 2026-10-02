@@ -12,6 +12,8 @@ import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { OptionTile } from "@/components/selection";
 import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
 import { TeamHeaderActions } from "./TeamHeaderActions";
+import { CreateMemberDrawer } from "./CreateMemberDrawer";
+import { ActivateTeamDrawer } from "./ActivateTeamDrawer";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
 import { DataListBlock } from "@/components/blocks";
 import type { TableActionsPlacement } from "@/components/data-display/table-config";
@@ -21,6 +23,7 @@ import { TableShell } from "@/components/data-display/TableShell";
 import { useLocale } from "@/i18n";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
+import { useBranchId } from "./teamUtils";
 import {
   ALL_ROLES,
   IDLE_OCCUPANCY,
@@ -60,16 +63,26 @@ const PAGE_SIZE = 10;
  * decisión con otro volumen, no una configuración aparte, así que no se
  * pliega con las de «más acciones»—.
  */
-function railActions(t: (key: AppMessageKey) => string): readonly RailActionSpec[] {
+interface TeamHomeHandlers {
+  sortBarbers: () => void;
+  createLevel: () => void;
+  walkInOrder: () => void;
+  enableInBranch: () => void;
+  createMember: () => void;
+  edit: () => void;
+  schedule: () => void;
+}
+
+function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers): readonly RailActionSpec[] {
   return [
-    { id: "sort-barbers", label: t("team.action.sortBarbers"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"] },
-    { id: "create-level", label: t("team.action.createLevel"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true },
-    { id: "walk-in-order", label: t("team.action.walkInOrder"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true },
-    { id: "enable-in-branch", label: t("team.action.enableInBranch"), icon: <ToggleRight className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true },
+    { id: "sort-barbers", label: t("team.action.sortBarbers"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.sortBarbers },
+    { id: "create-level", label: t("team.action.createLevel"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.createLevel },
+    { id: "walk-in-order", label: t("team.action.walkInOrder"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.walkInOrder },
+    { id: "enable-in-branch", label: t("team.action.enableInBranch"), icon: <ToggleRight className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.enableInBranch },
     { id: "bulk-import", label: t("team.action.bulkImport"), icon: <Upload className="size-5" strokeWidth={2} />, scope: ["screen"] },
-    { id: "create-member", label: t("team.action.createMember"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true },
-    { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"] },
-    { id: "schedule", label: t("team.action.schedule"), icon: <CalendarCheck className="size-5" strokeWidth={2} />, scope: ["single"] },
+    { id: "create-member", label: t("team.action.createMember"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.createMember },
+    { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.edit },
+    { id: "schedule", label: t("team.action.schedule"), icon: <CalendarCheck className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.schedule },
     { id: "remind", label: t("team.action.remind"), icon: <BellRing className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true },
     { id: "deactivate", label: t("team.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], tone: "danger", countInLabel: true },
   ];
@@ -118,7 +131,23 @@ export function TeamHomePage() {
     [formatNumber]
   );
 
-  const actions = React.useMemo(() => railActions(t), [t]);
+  const branchId = useBranchId();
+  const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
+  const [drawer, setDrawer] = React.useState<"create" | "activate" | null>(null);
+  /* Las acciones de la barra llevan a las pantallas del módulo: la ficha, el
+     orden, los niveles, la fila y la activación por sucursal. */
+  const actions = React.useMemo(() => {
+    const single = [...selected][0];
+    return railActions(t, {
+      sortBarbers: () => navigate("/usuarios/orden"),
+      createLevel: () => navigate("/usuarios/niveles"),
+      walkInOrder: () => navigate("/usuarios/fila"),
+      enableInBranch: () => setDrawer("activate"),
+      createMember: () => setDrawer("create"),
+      edit: () => single && navigate(`/usuarios/miembros/${single}?editar=1`),
+      schedule: () => single && navigate(`/calendario?equipo=${single}`),
+    });
+  }, [navigate, selected, t]);
   const columns = React.useMemo(() => teamColumns(t), [t]);
   const cells = React.useMemo(
     () => teamCells(t, { intlLocale: current.intl, formatCount, formatMoney }),
@@ -128,7 +157,6 @@ export function TeamHomePage() {
   const [tab, setTab] = React.useState("equipo");
   const [role, setRole] = React.useState<TeamRoleFilter>(ALL_ROLES);
   const [alert, setAlert] = React.useState<TeamAlertId | null>(null);
-  const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
   /* Lo decide quien mira, desde el panel de configuración de la tabla; la
      pantalla solo necesita saberlo para no repetir las acciones en el rail. */
   const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
@@ -417,9 +445,12 @@ export function TeamHomePage() {
           apilan las de la pantalla con las de las filas. */}
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="f" />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="f" isBlocked={drawer !== null} />
         </ShellRailSlot>
       )}
+
+      <CreateMemberDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} />
+      <ActivateTeamDrawer open={drawer === "activate"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} />
     </div>
   );
 }

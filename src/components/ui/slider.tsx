@@ -9,6 +9,8 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -47,6 +49,9 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          // El rol `slider` está en el tirador, no en la raíz: el nombre va aquí.
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           className="relative block size-4 shrink-0 rounded-full border-2 border-primary bg-background shadow-card transition-[color,box-shadow,transform] select-none hover:scale-110 hover:shadow-drawer focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:outline-none active:scale-95 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

@@ -37,7 +37,7 @@ type NavTemplate =
   | { kind: "group"; labelKey: AppMessageKey };
 
 const NAV_TEMPLATE: readonly NavTemplate[] = [
-  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/dashboard" },
+  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/metricas" },
   { kind: "item", id: "calendario", labelKey: "nav.calendar", icon: CalendarDays, path: "/calendario" },
   { kind: "item", id: "clientes", labelKey: "nav.clients", icon: Users, path: "/clientes" },
   // Quién trabaja aquí y con qué rol entra. Estaba como «Permisos» dentro de
@@ -53,6 +53,8 @@ const NAV_TEMPLATE: readonly NavTemplate[] = [
   { kind: "item", id: "nomina", labelKey: "nav.payroll", icon: HandCoins, path: "/nomina" },
   { kind: "item", id: "transacciones", labelKey: "nav.transactions", icon: ArrowLeftRight, path: "/transacciones" },
   { kind: "group", labelKey: "nav.resources" },
+  // El centro de ayuda no va aquí: se llega desde el menú «Ayuda» de la
+  // cabecera (preguntar, ir al centro de ayuda, que te guíen).
   { kind: "item", id: "docs", labelKey: "nav.designSystem", icon: BookOpen, path: "/docs" },
 ];
 

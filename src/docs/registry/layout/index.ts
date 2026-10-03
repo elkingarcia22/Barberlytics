@@ -9,6 +9,7 @@ import { accountMenuEntry } from "./account-menu";
 import { workspaceMenuEntry } from "./workspace-menu";
 import { sidebarIconRailEntry } from "./sidebar-icon-rail";
 import { agentViewEntry } from "./agent-view";
+import { processCenterEntry } from "./process-center";
 import { resizableEntry } from "./resizable";
 
 /** Entradas del grupo "layout". Cada componente vive en su propio archivo de esta carpeta. */
@@ -18,6 +19,7 @@ export const layoutEntries: readonly DocEntry[] = [
   adminShellEntry,
   appSidebarEntry,
   appHeaderEntry,
+  processCenterEntry,
   accountMenuEntry,
   companyMenuEntry,
   workspaceMenuEntry,

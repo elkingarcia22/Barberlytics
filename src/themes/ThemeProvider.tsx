@@ -14,7 +14,7 @@ interface StoredTheme {
   headingFont?: HeadingFontId;
 }
 
-const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "light", radius: "md", density: "normal" };
+const DEFAULT_STORED: StoredTheme = { preset: DEFAULT_THEME_ID, mode: "dark", radius: "md", density: "normal" };
 
 function readStored(): StoredTheme {
   if (typeof window === "undefined") return DEFAULT_STORED;
@@ -24,7 +24,7 @@ function readStored(): StoredTheme {
     const parsed = JSON.parse(raw) as Partial<StoredTheme>;
     return {
       preset: findPreset(parsed.preset).id,
-      mode: parsed.mode === "dark" || parsed.mode === "system" ? parsed.mode : "light",
+      mode: parsed.mode === "light" || parsed.mode === "system" ? parsed.mode : "dark",
       radius: parsed.radius === "none" || parsed.radius === "sm" || parsed.radius === "lg" ? parsed.radius : "md",
       density: parsed.density === "compact" || parsed.density === "comfortable" ? parsed.density : "normal",
       font: isFontId(parsed.font) ? parsed.font : undefined,

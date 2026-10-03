@@ -22,6 +22,8 @@ export interface DrawerShellProps {
   title?: string
   /** Brief description or subtitle */
   description?: string
+  /** Avatar o icono a la izquierda del título: quién o qué es lo que se abre. */
+  leading?: React.ReactNode
   /** Drawer body content */
   children?: React.ReactNode
   /** Custom footer content (replaces actions) */
@@ -110,6 +112,7 @@ export function DrawerShell({
   trigger,
   title,
   description,
+  leading,
   children,
   footer,
   actions,
@@ -146,9 +149,12 @@ export function DrawerShell({
         onInteractOutside={onInteractOutside}
       >
         {(title || description) && (
-          <SheetHeader className="border-b bg-muted/30">
-            {title && <SheetTitle>{title}</SheetTitle>}
-            {description && <SheetDescription>{description}</SheetDescription>}
+          <SheetHeader className={cn("border-b bg-muted/30", leading && "flex-row items-center gap-3")}>
+            {leading && <div className="shrink-0">{leading}</div>}
+            <div className={cn(leading && "min-w-0 flex-1 space-y-1.5")}>
+              {title && <SheetTitle>{title}</SheetTitle>}
+              {description && <SheetDescription>{description}</SheetDescription>}
+            </div>
           </SheetHeader>
         )}
         

@@ -1,10 +1,11 @@
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { ScheduleDrop, ScheduleEvent, ScheduleResource, ScheduleResourceAction, ScheduleSlot } from "./scheduleTypes";
+import type { ScheduleDrop, ScheduleDropValidator, ScheduleEvent, ScheduleResource, ScheduleResourceAction, ScheduleSlot, ScheduleTone } from "./scheduleTypes";
 import { ScheduleEventCard } from "./ScheduleEventCard";
 import { useScheduleDrag, type DragPreview } from "./useScheduleDrag";
 import {
@@ -28,17 +29,21 @@ import {
  *
  * El día de una barbería: una columna por barbero, las horas hacia abajo y
  * cada cita como tarjeta dentro de la columna de quien la atiende. Las horas
- * en las que alguien no trabaja salen sombreadas, una línea marca «ahora» y
- * cada hueco libre es un botón para agendar ahí mismo.
+ * en las que alguien no trabaja salen oscurecidas y rayadas, lo que ya pasó se atenúa,
+ * una línea marca «ahora» y cada hueco libre es un botón para agendar ahí
+ * mismo.
  *
  * La rejilla es su propia región de scroll: así la fila de barberos y la
  * columna de horas se quedan fijas mientras se recorre la jornada, y al
  * abrir el día se coloca sola en la hora actual (o en la primera hora en
- * que alguien trabaja).
+ * que alguien trabaja). Con más columnas de las que caben se desplaza a lo
+ * ancho, y la columna de horas se queda pegada a la izquierda.
  *
  * Las tarjetas se arrastran a otra hora o a otra columna y se estiran desde
- * abajo. El componente no guarda nada: avisa por `onEventMove` y
- * `onEventResize` y quien lo monta decide si acepta el cambio.
+ * abajo. Con `validateDrop` la rejilla pregunta antes de soltar: mientras se
+ * arrastra enseña el motivo («Se pisa con Marcela») y al soltar no mueve nada,
+ * avisa por `onDropRejected`. El componente no guarda nada: avisa por
+ * `onEventMove` y `onEventResize` y quien lo monta decide si acepta el cambio.
  */
 
 export interface ResourceDayGridProps {
@@ -50,16 +55,28 @@ export interface ResourceDayGridProps {
   endHour?: number;
   /** Minutos por franja de la rejilla. */
   slotMinutes?: number;
+  /** Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae las tres. */
+  slotHeight?: number;
   /** El «ahora» de la línea roja. Inyectable para que la doc y las pruebas no cambien cada día. */
   now?: Date;
   onSlotClick?: (slot: ScheduleSlot) => void;
   onEventClick?: (event: ScheduleEvent) => void;
   onEventMove?: (event: ScheduleEvent, drop: ScheduleDrop) => void;
   onEventResize?: (event: ScheduleEvent, drop: ScheduleDrop) => void;
+  /** Si un destino vale al arrastrar; devuelve el motivo cuando no. */
+  validateDrop?: ScheduleDropValidator;
+  /** Se soltó una tarjeta donde `validateDrop` dijo que no. */
+  onDropRejected?: (event: ScheduleEvent, drop: ScheduleDrop, reason: string) => void;
   /** Lo que se puede hacer desde el nombre de un recurso (ver perfil, bloquear…). */
   resourceActions?: (resource: ScheduleResource) => readonly ScheduleResourceAction[];
   /** Alto de la región con scroll. Por defecto, lo que queda de pantalla. */
   height?: string;
+  /**
+   * Ocupa el alto que le deje su contenedor flex en vez de medir la ventana:
+   * la rejilla es entonces lo único que se desplaza y la página no suma una
+   * segunda barra. El contenedor debe ser una columna flex con alto definido.
+   */
+  fill?: boolean;
   className?: string;
 }
 
@@ -69,7 +86,20 @@ const DEFAULT_SLOT_MINUTES = 30;
 const DEFAULT_HEIGHT = "max(28rem, calc(100dvh - 17rem))";
 /** Ancho de la columna de horas y mínimo de cada columna de recurso. */
 const GUTTER = "4.5rem";
-const COLUMN_MIN = "12.5rem";
+const COLUMN_MIN = "11rem";
+/** El rayado de las horas en que el recurso no trabaja: se nota sin gritar, en claro y en oscuro. */
+const OFF_HOURS_PATTERN = "repeating-linear-gradient(135deg, hsl(var(--foreground) / 0.07) 0 1px, transparent 1px 8px)";
+/** Margen para decidir que el scroll llegó a un borde. */
+const EDGE_TOLERANCE_PX = 4;
+
+const ALERT_TONE: Record<ScheduleTone, string> = {
+  primary: "bg-primary/10 text-primary hover:bg-primary/20",
+  positive: "bg-success/15 text-success hover:bg-success/25",
+  warning: "bg-warning/15 text-warning hover:bg-warning/25",
+  negative: "bg-destructive/10 text-destructive hover:bg-destructive/20",
+  info: "bg-info/15 text-info hover:bg-info/25",
+  neutral: "bg-muted text-text-secondary hover:bg-muted/80",
+};
 
 export function ResourceDayGrid({
   date,
@@ -78,13 +108,17 @@ export function ResourceDayGrid({
   startHour = DEFAULT_START_HOUR,
   endHour = DEFAULT_END_HOUR,
   slotMinutes: step = DEFAULT_SLOT_MINUTES,
+  slotHeight = SLOT_HEIGHT_PX,
   now,
   onSlotClick,
   onEventClick,
   onEventMove,
   onEventResize,
+  validateDrop,
+  onDropRejected,
   resourceActions,
   height = DEFAULT_HEIGHT,
+  fill = false,
   className,
 }: ResourceDayGridProps) {
   const t = useT();
@@ -96,18 +130,54 @@ export function ResourceDayGrid({
   const nowDate = React.useMemo(() => now ?? new Date(), [now]);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
-  const { preview, bind, wasDragged } = useScheduleDrag({ bodyRef, day: date, dayStart, dayEnd, step, onMove: onEventMove, onResize: onEventResize });
+  const { preview, bind, wasDragged } = useScheduleDrag({ bodyRef, day: date, dayStart, dayEnd, step, onMove: onEventMove, onResize: onEventResize, validate: validateDrop, onRejected: onDropRejected });
 
   // Al abrir un día la rejilla se coloca sola: en «ahora» si es hoy, y si no
-  // una hora antes de que alguien empiece a trabajar.
+  // una hora antes de que alguien empiece a trabajar. Depende del día y de esa
+  // hora —no de la lista de recursos, que cambia de identidad al repintar—:
+  // así no devuelve el scroll a su sitio cada vez que algo se actualiza.
+  const dayKey = date.getTime();
+  const earliest = earliestWorkingMinute(resources);
   React.useEffect(() => {
     const node = scrollRef.current;
     if (!node) return;
-    const pxPerMinute = SLOT_HEIGHT_PX / step;
-    const nowPct = nowPercent(nowDate, date, dayStart, dayEnd);
-    const target = nowPct !== null ? minutesOfDay(nowDate) - 60 : (earliestWorkingMinute(resources) ?? dayStart) - 60;
+    const day = new Date(dayKey);
+    const pxPerMinute = slotHeight / step;
+    const nowPct = nowPercent(nowDate, day, dayStart, dayEnd);
+    const target = nowPct !== null ? minutesOfDay(nowDate) - 60 : (earliest ?? dayStart) - 60;
     node.scrollTop = Math.max(0, (target - dayStart) * pxPerMinute);
-  }, [date, dayEnd, dayStart, nowDate, resources, step]);
+  }, [dayKey, dayEnd, dayStart, earliest, nowDate, slotHeight, step]);
+
+  // Con más columnas de las que caben, la rejilla se desplaza a lo ancho: dos
+  // botones en la cabecera dicen que hay más barberos a cada lado y saltan a ellos.
+  const [edges, setEdges] = React.useState({ previous: false, next: false });
+  const measureEdges = React.useCallback(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const previous = node.scrollLeft > EDGE_TOLERANCE_PX;
+    const next = node.scrollLeft + node.clientWidth < node.scrollWidth - EDGE_TOLERANCE_PX;
+    setEdges((current) => (current.previous === previous && current.next === next ? current : { previous, next }));
+  }, []);
+  React.useEffect(() => {
+    const node = scrollRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measureEdges);
+    observer.observe(node);
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
+    return () => observer.disconnect();
+  }, [measureEdges, resources.length]);
+  /** Avanza o retrocede por columnas enteras, dejando una a la vista como referencia. */
+  const scrollColumns = (direction: 1 | -1) => {
+    const node = scrollRef.current;
+    const column = bodyRef.current?.querySelector<HTMLElement>("[data-resource-id]");
+    if (!node || !column) return;
+    const width = column.getBoundingClientRect().width;
+    const gutter = bodyRef.current ? bodyRef.current.offsetLeft : 0;
+    const visible = Math.max(1, Math.floor((node.clientWidth - gutter) / width) - 1);
+    const aligned = Math.round(node.scrollLeft / width) * width;
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node.scrollTo({ left: aligned + direction * visible * width, behavior: reduced ? "auto" : "smooth" });
+  };
 
   const columns = `${GUTTER} repeat(${Math.max(resources.length, 1)}, minmax(${COLUMN_MIN}, 1fr))`;
   const marker = nowPercent(nowDate, date, dayStart, dayEnd);
@@ -118,9 +188,19 @@ export function ResourceDayGrid({
   };
 
   return (
-    <section aria-label={t("schedule.grid")} className={cn("relative isolate overflow-hidden rounded-xl border border-border bg-surface", className)}>
+    <section aria-label={t("schedule.grid")} className={cn("relative isolate overflow-hidden rounded-xl border border-border bg-surface", fill && "flex min-h-[24rem] flex-1 flex-col", className)}>
       {marker !== null && <p className="sr-only">{t("schedule.now", { time: formatClock(nowDate, intl) })}</p>}
-      <div ref={scrollRef} className="relative overflow-auto overscroll-contain" style={{ maxHeight: height }}>
+      {edges.previous && (
+        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollPrevious")} onClick={() => scrollColumns(-1)} className="absolute top-3 z-overlay rounded-full bg-surface shadow-card" style={{ left: `calc(${GUTTER} + 0.375rem)` }} data-testid="schedule-scroll-previous">
+          <ChevronLeft />
+        </Button>
+      )}
+      {edges.next && (
+        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollNext")} onClick={() => scrollColumns(1)} className="absolute right-1.5 top-3 z-overlay rounded-full bg-surface shadow-card" data-testid="schedule-scroll-next">
+          <ChevronRight />
+        </Button>
+      )}
+      <div ref={scrollRef} onScroll={measureEdges} className={cn("relative overflow-auto overscroll-contain", fill && "min-h-0 flex-1 basis-0")} style={fill ? undefined : { maxHeight: height }}>
         <div className="grid" style={{ gridTemplateColumns: columns, width: `max(100%, calc(${GUTTER} + ${resources.length} * ${COLUMN_MIN}))` }}>
           {/* Cabecera pegajosa: un barbero por columna. La esquina va al final
               del DOM para pintarse encima cuando las dos pegajosas se cruzan. */}
@@ -130,10 +210,10 @@ export function ResourceDayGrid({
           <div className="sticky left-0 top-0 z-sticky border-b border-r border-border bg-surface" style={{ gridColumn: 1, gridRow: 1 }} aria-hidden="true" />
 
           {/* Columna de horas; la pastilla de «ahora» vive aquí para quedarse a la vista al desplazar. */}
-          <div className="sticky left-0 z-raised border-r border-border bg-surface" style={{ gridColumn: 1, gridRow: 2 }} aria-hidden="true">
+          <div className={cn("sticky left-0 z-raised border-r border-border bg-surface", edges.previous && "shadow-card")} style={{ gridColumn: 1, gridRow: 2 }} aria-hidden="true">
             <div className="relative">
               {slots.map((minute) => (
-                <div key={minute} className="relative border-b border-border/60 pr-2 text-right" style={{ height: SLOT_HEIGHT_PX }}>
+                <div key={minute} className="relative border-b border-border/60 pr-2 text-right" style={{ height: slotHeight }}>
                   <span className="-translate-y-1/2 inline-block text-xs tabular-nums text-text-muted">{formatClock(atMinutes(date, minute), intl)}</span>
                 </div>
               ))}
@@ -157,8 +237,11 @@ export function ResourceDayGrid({
                 resource={resource}
                 events={eventsForResource(events, date, resource.id)}
                 slots={slots}
+                slotHeight={slotHeight}
+                step={step}
                 dayStart={dayStart}
                 dayEnd={dayEnd}
+                nowMarker={marker}
                 intl={intl}
                 preview={preview}
                 bind={bind}
@@ -186,7 +269,7 @@ function ResourceHeader({ resource, actions }: { resource: ScheduleResource; act
   const t = useT();
   const identity = (
     <>
-      <Avatar size="default">
+      <Avatar size="sm">
         {resource.avatarUrl && <AvatarImage src={resource.avatarUrl} alt="" />}
         <AvatarFallback>{initialsOf(resource.name)}</AvatarFallback>
       </Avatar>
@@ -197,8 +280,16 @@ function ResourceHeader({ resource, actions }: { resource: ScheduleResource; act
     </>
   );
 
+  const progress = resource.progress === undefined ? null : Math.min(1, Math.max(0, resource.progress));
+  const alert = resource.alert;
+
   return (
-    <div className="sticky top-0 z-sticky flex min-w-0 items-center justify-center border-b border-l border-border bg-surface px-2 py-2">
+    <div className="sticky top-0 z-sticky flex min-w-0 flex-col items-center justify-center gap-1 border-b border-l border-border bg-surface px-2 py-2">
+      {progress !== null && (
+        <span className="absolute inset-x-0 bottom-0 h-0.5 bg-border/60" role="progressbar" aria-label={`${t("schedule.occupancy")}: ${resource.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
+          <span className="block h-full origin-left bg-primary transition-transform duration-normal ease-out-expo motion-reduce:transition-none" style={{ transform: `scaleX(${progress})` }} />
+        </span>
+      )}
       {actions && actions.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -227,6 +318,27 @@ function ResourceHeader({ resource, actions }: { resource: ScheduleResource; act
       ) : (
         <div className="flex min-w-0 max-w-full items-center gap-2 px-2 py-1">{identity}</div>
       )}
+
+      {/* El aviso de la columna («Hueco 15:00 · 2 en espera»): un chip que lleva a resolverlo. */}
+      {alert &&
+        (alert.onClick ? (
+          <button
+            type="button"
+            onClick={alert.onClick}
+            data-testid={`schedule-alert-${resource.id}`}
+            className={cn(
+              "max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-semibold",
+              "transition-colors duration-fast ease-out-expo motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+              ALERT_TONE[alert.tone ?? "warning"]
+            )}
+          >
+            {alert.label}
+          </button>
+        ) : (
+          <span data-testid={`schedule-alert-${resource.id}`} className={cn("max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-semibold", ALERT_TONE[alert.tone ?? "warning"])}>
+            {alert.label}
+          </span>
+        ))}
     </div>
   );
 }
@@ -238,8 +350,12 @@ interface ResourceColumnProps {
   resource: ScheduleResource;
   events: ScheduleEvent[];
   slots: number[];
+  slotHeight: number;
+  step: number;
   dayStart: number;
   dayEnd: number;
+  /** Dónde cae «ahora» en la columna (porcentaje), o `null` si no es hoy. */
+  nowMarker: number | null;
   intl: string;
   preview: DragPreview | null;
   bind: ReturnType<typeof useScheduleDrag>["bind"];
@@ -248,7 +364,7 @@ interface ResourceColumnProps {
   onOpen?: (event: ScheduleEvent) => void;
 }
 
-function ResourceColumn({ date, resource, events, slots, dayStart, dayEnd, intl, preview, bind, canResize, onSlotClick, onOpen }: ResourceColumnProps) {
+function ResourceColumn({ date, resource, events, slots, slotHeight, step, dayStart, dayEnd, nowMarker, intl, preview, bind, canResize, onSlotClick, onOpen }: ResourceColumnProps) {
   const t = useT();
   const placed = React.useMemo(() => layoutEvents(events, dayStart, dayEnd), [events, dayStart, dayEnd]);
   const total = dayEnd - dayStart;
@@ -271,13 +387,17 @@ function ResourceColumn({ date, resource, events, slots, dayStart, dayEnd, intl,
             className={cn(
               "block w-full border-b border-border/60",
               "transition-colors duration-fast ease-out-expo motion-reduce:transition-none",
-              working ? "bg-surface hover:bg-primary/5" : "bg-surface-muted/70 hover:bg-surface-muted",
+              working ? "bg-surface hover:bg-primary/5" : "border-border/30 bg-foreground/[0.06] hover:bg-foreground/10",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
             )}
-            style={{ height: SLOT_HEIGHT_PX }}
+            data-off-hours={!working || undefined}
+            style={{ height: slotHeight, backgroundImage: working ? undefined : OFF_HOURS_PATTERN }}
           />
         );
       })}
+
+      {/* Lo que ya pasó hoy se atenúa: la vista va a lo que queda por atender. */}
+      {nowMarker !== null && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 bg-foreground/[0.035]" style={{ height: `${nowMarker}%` }} />}
 
       {!worksToday && (
         <span className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs text-text-muted">{t("schedule.notWorking")}</span>
@@ -291,17 +411,19 @@ function ResourceColumn({ date, resource, events, slots, dayStart, dayEnd, intl,
           const shownTop = dragged ? ((dragged.startMin - dayStart) / total) * 100 : top;
           const shownHeight = dragged ? ((dragged.endMin - dragged.startMin) / total) * 100 : height;
           const isBlock = event.kind === "block";
-          const moveHandlers = onOpen || canResize ? bind(event, "move") : {};
+          const moveHandlers = (onOpen || canResize) && !event.ghost ? bind(event, "move") : {};
           return (
             <ScheduleEventCard
               key={event.id}
               event={event}
               minutes={eventMinutes({ ...event, start, end })}
+              heightPx={(eventMinutes({ ...event, start, end }) / step) * slotHeight}
               timeLabel={formatClockRange(start, end, intl)}
               onOpen={onOpen}
               dragging={Boolean(dragged) && dragged?.resourceId === resource.id}
               dragLabel={dragged ? formatClockRange(start, end, intl) : undefined}
-              onResizeStart={canResize && !isBlock ? bind(event, "resize").onPointerDown : undefined}
+              dragReason={dragged?.reason}
+              onResizeStart={canResize && !isBlock && !event.ghost ? bind(event, "resize").onPointerDown : undefined}
               className={cn("pointer-events-auto", isBlock && "z-base", dragged && dragged.resourceId !== resource.id && "opacity-30")}
               style={{
                 top: `${shownTop}%`,
@@ -317,11 +439,11 @@ function ResourceColumn({ date, resource, events, slots, dayStart, dayEnd, intl,
         {incoming && (
           <div
             aria-hidden="true"
-            className="absolute inset-x-1 rounded-lg border-2 border-dashed border-primary/60 bg-primary/10"
+            className={cn("absolute inset-x-1 rounded-lg border-2 border-dashed", incoming.reason ? "border-destructive/60 bg-destructive/10" : "border-primary/60 bg-primary/10")}
             style={{ top: `${((incoming.startMin - dayStart) / total) * 100}%`, height: `${((incoming.endMin - incoming.startMin) / total) * 100}%` }}
           >
-            <span className="absolute right-1 top-1 rounded-sm bg-foreground px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-background">
-              {formatClockRange(atMinutes(date, incoming.startMin), atMinutes(date, incoming.endMin), intl)}
+            <span className={cn("absolute right-1 top-1 max-w-[calc(100%-0.5rem)] truncate rounded-sm px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", incoming.reason ? "bg-destructive text-destructive-foreground" : "bg-foreground text-background")}>
+              {incoming.reason ?? formatClockRange(atMinutes(date, incoming.startMin), atMinutes(date, incoming.endMin), intl)}
             </span>
           </div>
         )}

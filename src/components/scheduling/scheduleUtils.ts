@@ -7,8 +7,22 @@ import type { ScheduleEvent, ScheduleResource, ScheduleWorkingHours } from "./sc
  * la pantalla compartan exactamente las mismas reglas y se puedan probar solas.
  */
 
-/** Alto de una franja de `slotMinutes` en la rejilla, en píxeles. */
+/** Alto de una franja de `slotMinutes` en la rejilla, en píxeles (densidad «normal»). */
 export const SLOT_HEIGHT_PX = 56;
+
+/**
+ * Las tres densidades de la rejilla: cuántos píxeles ocupa una franja.
+ * Compacta para ver la jornada entera de un vistazo, amplia para leer cada
+ * tarjeta con calma.
+ */
+export const SCHEDULE_DENSITIES = { compact: 40, normal: SLOT_HEIGHT_PX, wide: 72 } as const;
+export type ScheduleDensity = keyof typeof SCHEDULE_DENSITIES;
+
+/** Cuántos colores tiene la paleta categórica de la agenda (`schedule.css`). */
+export const SCHEDULE_COLOR_COUNT = 12;
+
+/** La clase que fija el matiz de la paleta categórica para un índice cualquiera (da la vuelta al pasar de 12). */
+export const scheduleColorClass = (index: number): string => `schedule-color-${(((Math.trunc(index) - 1) % SCHEDULE_COLOR_COUNT) + SCHEDULE_COLOR_COUNT) % SCHEDULE_COLOR_COUNT + 1}`;
 
 /** Minutos desde la medianoche. */
 export const minutesOfDay = (date: Date): number => date.getHours() * 60 + date.getMinutes();
@@ -60,6 +74,28 @@ export function earliestWorkingMinute(resources: readonly ScheduleResource[]): n
 
 export const eventMinutes = (event: ScheduleEvent): number => Math.max(5, differenceInMinutes(event.end, event.start));
 
+/** Dos tramos se pisan si uno empieza antes de que el otro termine. */
+export const rangesOverlap = (aStart: number, aEnd: number, bStart: number, bEnd: number): boolean => aStart < bEnd && bStart < aEnd;
+
+/** Lo que ya ocupa sitio en una columna: ni propuestas ni anuladas. */
+export const occupiesSlot = (event: ScheduleEvent): boolean => !event.ghost && !event.muted;
+
+/**
+ * Los eventos de una columna que se pisan con el tramo dado. Las propuestas y
+ * las citas anuladas no cuentan; `excludeId` deja fuera la cita que se está
+ * moviendo. Sirve para decir «ahí no cabe» antes de soltar.
+ */
+export function findConflicts(events: readonly ScheduleEvent[], resourceId: string, start: Date, end: Date, excludeId?: string): ScheduleEvent[] {
+  return events.filter(
+    (event) =>
+      event.resourceId === resourceId &&
+      event.id !== excludeId &&
+      occupiesSlot(event) &&
+      isSameDay(event.start, start) &&
+      rangesOverlap(event.start.getTime(), event.end.getTime(), start.getTime(), end.getTime())
+  );
+}
+
 /** Los eventos que caen en un día y en una columna, por hora de inicio. */
 export function eventsForResource(events: readonly ScheduleEvent[], day: Date, resourceId: string): ScheduleEvent[] {
   return events
@@ -91,7 +127,8 @@ export function layoutEvents(events: readonly ScheduleEvent[], dayStart: number,
   let current: ScheduleEvent[] = [];
   let groupEnd = Number.NEGATIVE_INFINITY;
   for (const event of sorted) {
-    if (event.kind === "block") {
+    // Los bloqueos y las propuestas no reparten sitio: van a todo el ancho, detrás o encima.
+    if (event.kind === "block" || event.ghost) {
       groups.push([event]);
       continue;
     }
@@ -112,7 +149,7 @@ export function layoutEvents(events: readonly ScheduleEvent[], dayStart: number,
       const offset = minutesOfDay(event.start) - dayStart;
       const top = (clamp(offset, 0, total) / total) * 100;
       const height = (clamp(eventMinutes(event), 0, total - clamp(offset, 0, total)) / total) * 100;
-      return { event, top, height: Math.max(height, 2), column: index, columns: event.kind === "block" ? 1 : group.length };
+      return { event, top, height: Math.max(height, 2), column: index, columns: event.kind === "block" || event.ghost ? 1 : group.length };
     })
   );
 }
@@ -121,7 +158,7 @@ export function layoutEvents(events: readonly ScheduleEvent[], dayStart: number,
 export function occupancyRate(events: readonly ScheduleEvent[], hours: readonly ScheduleWorkingHours[] | undefined): number | null {
   const capacity = workingMinutes(hours);
   if (capacity === 0) return null;
-  const booked = events.filter((event) => event.kind !== "block" && !event.muted).reduce((sum, event) => sum + eventMinutes(event), 0);
+  const booked = events.filter((event) => event.kind !== "block" && occupiesSlot(event)).reduce((sum, event) => sum + eventMinutes(event), 0);
   return clamp(booked / capacity, 0, 1);
 }
 

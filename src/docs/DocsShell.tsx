@@ -130,7 +130,7 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
             sesión pasa antes por el login y vuelve aquí al entrar.
           */}
           <Button asChild className="gap-inline">
-            <Link to="/dashboard" title={t("docs.openAppTitle")}>
+            <Link to="/metricas" title={t("docs.openAppTitle")}>
               <AppWindow className="size-3.5" />
               {t("docs.openApp")}
             </Link>
@@ -138,7 +138,8 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
         </>
       ),
       // La vista del sistema de diseño no tiene empresas que cambiar, ni
-      // agente, ni novedades, ni sesión, ni ajustes, ni roles que asumir: ese
+      // agente, ni novedades, ni sesión, ni ajustes, ni roles que asumir, ni
+      // procesos en segundo plano: ese
       // cromo del producto solo añadiría botones que no llevan a ninguna parte.
       chrome: {
         company: false,
@@ -149,6 +150,7 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
         profile: false,
         role: false,
         settings: false,
+        processes: false,
       },
       // Sin `promo`: la tarjeta del sidebar es opt-in (ver ShellConfig.promo) y
       // esta doc no tiene nada propio que anunciar cada vez que alguien la abre.

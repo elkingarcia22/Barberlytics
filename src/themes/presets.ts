@@ -263,7 +263,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
   },
 ];
 
-export const DEFAULT_THEME_ID = "thema";
+export const DEFAULT_THEME_ID = "premium";
 
 export function findPreset(id: string | null | undefined): ThemePreset {
   return THEME_PRESETS.find((preset) => preset.id === id) ?? THEME_PRESETS[0];

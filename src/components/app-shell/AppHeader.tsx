@@ -6,6 +6,7 @@ import { SHELL_MENU_PANEL } from "./shellPanel";
 import { AccountMenu } from "./AccountMenu";
 import { NewsMenu } from "./NewsMenu";
 import { HelpMenu } from "./HelpMenu";
+import { ProcessCenter } from "./ProcessCenter";
 import { useLiquidOrigin } from "./useLiquidOrigin";
 import { GlobalSearch } from "@/components/search";
 import { useT } from "@/i18n";
@@ -31,6 +32,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
     notifications,
     onLogout,
     onOpenHelp,
+    onOpenProcessHistory,
     helpActions,
     headerActions,
     chrome,
@@ -98,17 +100,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
           `overflow-hidden`: en pantalla estrecha este hueco se queda sin
           ancho, y sin recorte su contenido se montaba encima de los botones
           de la derecha en vez de ceder el sitio. */}
-      <div ref={onSlotRef} className="flex min-w-0 items-center gap-2 overflow-hidden" />
+      <div ref={onSlotRef} className="flex min-w-0 flex-1 basis-0 items-center gap-2 overflow-hidden" />
+
+      {/* ---------- Búsqueda general (⌘K) ----------
+          En el centro de la cabecera: los dos lados crecen por igual
+          (`flex-1 basis-0`), así que queda centrada respecto a la franja y no
+          respecto a lo que haya a cada lado. Si la derecha necesita más
+          sitio del que hay, cede el centrado antes que recortar acciones. */}
+      {chrome.search && search && <GlobalSearch {...search} className="shrink-0 md:w-72 lg:w-80" />}
 
       {/* ---------- Right actions ---------- */}
       {/* En el móvil solo queda lo que responde a dónde estás: búsqueda,
           avisos y el chip de la cuenta. Novedades baja al pie del menú
           lateral y la ayuda se va: son lo único de esta fila que no depende
           de la pantalla que estás mirando. */}
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
-
-        {/* ---------- Búsqueda general (⌘K) ---------- */}
-        {chrome.search && search && <GlobalSearch {...search} />}
+      <div className="flex flex-1 basis-0 items-center justify-end gap-1.5 sm:gap-3">
 
         {/* ---------- Novedades ----------
             Por debajo de `md` se va al pie del menú lateral: el chip de la
@@ -215,6 +221,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar, onSlotRef
             </PopoverContent>
           </Popover>
         )}
+
+        {/* ---------- Centro de procesos ----------
+            Por debajo de `sm` se va: en el móvil la fila es para lo que
+            responde a dónde estás, y un proceso sigue corriendo igual. */}
+        {chrome.processes && <ProcessCenter onOpenHistory={onOpenProcessHistory} className="max-sm:hidden" />}
 
         {/* ---------- La cuenta y su contexto ----------
             Quién eres, en qué sucursal estás y como quién miras: una sola

@@ -1,9 +1,9 @@
 import * as React from "react";
 import { UserRound, Ban } from "lucide-react";
-import { ResourceDayGrid, type ScheduleEvent } from "@/components/scheduling";
+import { findConflicts, ResourceDayGrid, SCHEDULE_DENSITIES, type ScheduleEvent } from "@/components/scheduling";
 import { defineEntry, definePlayground } from "../types";
 import { ValueReadout } from "../date/_shared";
-import { DAY, EVENTS, NOW, RESOURCES } from "./_shared";
+import { DAY, EVENTS, NOW, PROPOSALS, RESOURCES, RESOURCES_WITH_ALERT } from "./_shared";
 
 const FRAME = "min-h-[36rem] items-start";
 
@@ -74,6 +74,55 @@ function NobodyWorksDemo() {
   return <ResourceDayGrid date={DAY} resources={[RESOURCES[3]]} events={[]} now={NOW} startHour={8} endHour={14} height="20rem" />;
 }
 
+function ProposalsDemo() {
+  const [last, setLast] = React.useState("—");
+  return (
+    <div className="w-full space-y-3">
+      <ResourceDayGrid
+        date={DAY}
+        resources={RESOURCES_WITH_ALERT.slice(0, 2)}
+        events={[...EVENTS, ...PROPOSALS]}
+        now={NOW}
+        startHour={8}
+        endHour={15}
+        height="26rem"
+        onEventClick={(event) => setLast(event.ghost ? `Aceptada: ${event.title}` : `Abrir: ${event.title}`)}
+      />
+      <ValueReadout label="Último gesto" value={last} />
+    </div>
+  );
+}
+
+function ValidateDemo() {
+  const [events, setEvents] = React.useState<readonly ScheduleEvent[]>(EVENTS);
+  const [last, setLast] = React.useState("—");
+  return (
+    <div className="w-full space-y-3">
+      <ResourceDayGrid
+        date={DAY}
+        resources={RESOURCES.slice(0, 3)}
+        events={events}
+        now={NOW}
+        startHour={8}
+        endHour={17}
+        height="26rem"
+        slotHeight={SCHEDULE_DENSITIES.compact}
+        onEventClick={() => undefined}
+        validateDrop={(event, drop) => {
+          const clash = findConflicts(events, drop.resourceId, drop.start, drop.end, event.id)[0];
+          return clash ? `Se pisa con ${clash.title}` : null;
+        }}
+        onDropRejected={(_event, _drop, reason) => setLast(`Rechazada: ${reason}`)}
+        onEventMove={(event, drop) => {
+          setEvents((current) => current.map((item) => (item.id === event.id ? { ...item, resourceId: drop.resourceId, start: drop.start, end: drop.end } : item)));
+          setLast(`Movida: ${event.title}`);
+        }}
+      />
+      <ValueReadout label="Último gesto" value={last} />
+    </div>
+  );
+}
+
 export const resourceDayGridEntry = defineEntry({
   id: "resource-day-grid",
   name: "ResourceDayGrid",
@@ -109,7 +158,7 @@ export const resourceDayGridEntry = defineEntry({
       id: "basic",
       title: "El día por barbero",
       description:
-        "Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se sombrea. Tomás no tiene horario y su columna lo dice. Las citas cuentan el cliente, el servicio y el siguiente paso; el bloqueo del almuerzo va tachado y no se toca.",
+        "Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se oscurece y se raya. Tomás no tiene horario y su columna lo dice. Las citas cuentan el cliente, el servicio y el siguiente paso; el bloqueo del almuerzo va tachado y no se toca.",
       layout: "stretch",
       frameClassName: FRAME,
       code: `<ResourceDayGrid
@@ -119,7 +168,7 @@ export const resourceDayGridEntry = defineEntry({
     { id: "tomas", name: "Tomás Peña", workingHours: [] },
   ]}
   events={[
-    { id: "e1", resourceId: "andres", start, end, title: "Laura Gómez", subtitle: "Corte clásico · US$ 35", badge: { label: "VIP", tone: "warning" }, action: { label: "Ingresar", onClick } },
+    { id: "e1", resourceId: "andres", start, end, title: "Marcela Gómez", subtitle: "Corte clásico · US$ 35", badge: { label: "VIP", tone: "warning" }, action: { label: "Ingresar", onClick } },
     { id: "b1", resourceId: "andres", start, end, title: "Almuerzo", kind: "block", locked: true },
   ]}
   startHour={8}
@@ -152,20 +201,63 @@ export const resourceDayGridEntry = defineEntry({
       code: `<ResourceDayGrid date={hoy} resources={[{ id: "tomas", name: "Tomás Peña", workingHours: [] }]} events={[]} />`,
       render: () => <NobodyWorksDemo />,
     },
+    {
+      id: "proposals",
+      title: "Propuestas, marcadores y avisos",
+      description:
+        "La tarjeta dice quién (el nombre y su `badge`), en qué va (`status`: una píldora con punto de color) y qué se hace ahora (`action`); su color (`tone`) lo decide quien la monta —en la barbería, el servicio—. El borde discontinuo marca lo que se puede mover sin preguntar (`flexible`). Una propuesta (`ghost`) se dibuja translúcida y punteada con su porqué (`note`): un hueco sugerido o a dónde iría una cita en un reacomodo; tocarla es aceptar. El `alert` de un recurso sale como chip bajo su nombre.",
+      layout: "stretch",
+      frameClassName: "min-h-[32rem] items-start",
+      code: `<ResourceDayGrid
+  date={hoy}
+  resources={[{ id: "nicolas", name: "Nicolás Duarte", workingHours, alert: { label: "Hueco 12:00 · 2 en espera", tone: "warning", onClick: ofrecer } }]}
+  events={[
+    { id: "e3", resourceId: "andres", start, end, title: "Mariana López", flexible: true, markers: [{ id: "online", icon: "online", label: "Reservó online" }] },
+    { id: "p1", resourceId: "nicolas", start, end, title: "Hueco para Mariana", note: "Sin dejar hueco entre citas", badge: { label: "Sugerido" }, ghost: true },
+  ]}
+  onEventClick={(event) => (event.ghost ? aceptar(event) : abrir(event))}
+/>`,
+      render: () => <ProposalsDemo />,
+    },
+    {
+      id: "validate",
+      title: "Validar al arrastrar y densidad compacta",
+      description:
+        "Con `validateDrop` la rejilla pregunta antes de soltar: si devuelve un motivo, la sombra se pone roja con el texto y al soltar no se mueve nada (avisa por `onDropRejected`). `slotHeight` cambia la densidad: `SCHEDULE_DENSITIES` trae compacta (40 px), normal (56 px) y amplia (72 px) por media hora. Lo que ya pasó hoy se atenúa.",
+      layout: "stretch",
+      frameClassName: FRAME,
+      code: `<ResourceDayGrid
+  date={hoy}
+  resources={barberos}
+  events={citas}
+  slotHeight={SCHEDULE_DENSITIES.compact}
+  validateDrop={(cita, destino) => {
+    const choque = findConflicts(citas, destino.resourceId, destino.start, destino.end, cita.id)[0];
+    return choque ? \`Se pisa con \${choque.title}\` : null;
+  }}
+  onDropRejected={(cita, destino, motivo) => avisar(motivo)}
+  onEventMove={(cita, destino) => moverCita(cita, destino)}
+/>`,
+      render: () => <ValidateDemo />,
+    },
   ],
   props: [
     { name: "date", type: "Date", description: "El día que se muestra." },
-    { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»)." },
-    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `kind: \"block\"` tacha la franja; `locked` impide arrastrar." },
+    { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo." },
+    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que solo salen en tarjetas altas; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro." },
     { name: "startHour / endHour", type: "number", default: "6 / 24", description: "Primera y última hora visibles (la última exclusiva)." },
     { name: "slotMinutes", type: "number", default: "30", description: "Minutos por franja; también el paso al arrastrar." },
-    { name: "now", type: "Date", description: "El «ahora» de la línea roja. Sin él, el reloj real." },
+    { name: "slotHeight", type: "number", default: "56", description: "Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae compact, normal y wide." },
+    { name: "now", type: "Date", description: "El «ahora» de la línea roja. Sin él, el reloj real. Hoy, lo que ya pasó se atenúa." },
     { name: "onSlotClick", type: "(slot: { resourceId; start; isWorking }) => void", description: "Clic en un hueco libre: dónde y a qué hora, y si el recurso trabaja ahí." },
-    { name: "onEventClick", type: "(event: ScheduleEvent) => void", description: "Abrir una tarjeta. Sin él las tarjetas no son botones." },
+    { name: "onEventClick", type: "(event: ScheduleEvent) => void", description: "Abrir una tarjeta, o aceptar una propuesta si es `ghost`. Sin él las tarjetas no son botones." },
     { name: "onEventMove", type: "(event, drop: { resourceId; start; end }) => void", description: "Se soltó la tarjeta en otra hora o columna. Sin él no se arrastra." },
     { name: "onEventResize", type: "(event, drop) => void", description: "Se estiró la tarjeta desde abajo. Sin él no hay tirador." },
+    { name: "validateDrop", type: "(event, drop) => string | null", description: "Si un destino vale. El motivo que devuelva se enseña mientras se arrastra y al soltar no se mueve nada." },
+    { name: "onDropRejected", type: "(event, drop, reason) => void", description: "Se soltó donde `validateDrop` dijo que no." },
     { name: "resourceActions", type: "(resource) => ScheduleResourceAction[]", description: "El menú al tocar el nombre de un recurso (ver perfil, bloquear…)." },
     { name: "height", type: "string", default: '"max(28rem, calc(100dvh - 17rem))"', description: "Alto de la región con scroll." },
+    { name: "fill", type: "boolean", default: "false", description: "Ocupa el alto que le deje su contenedor flex en vez de medir la ventana: la rejilla es lo único que se desplaza y la página no suma una segunda barra." },
   ],
   guidelines: {
     do: [

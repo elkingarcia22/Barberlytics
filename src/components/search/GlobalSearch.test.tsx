@@ -129,4 +129,60 @@ describe("GlobalSearch", () => {
     await userEvent.keyboard("{Meta>}k{/Meta}");
     expect(screen.queryByPlaceholderText("Buscar o preguntar")).toBeNull();
   });
+
+  describe("antes de escribir, con contexto", () => {
+    const run = vi.fn();
+    const ACTIONS = [
+      { id: "nueva", label: "Nueva cita", onSelect: run },
+      { id: "cierre", label: "Cerrar caja", blockedReason: "Hay citas sin cobrar", onSelect: vi.fn() },
+    ];
+
+    test("ofrece las acciones de la pantalla y la pregunta sugerida en vez del índice", async () => {
+      const onAsk = vi.fn();
+      renderSearch({ actions: ACTIONS, contextLabel: "Calendario", onAsk, askSuggestions: ["¿Qué huecos tengo hoy?"] });
+      await open();
+      expect(screen.getByText("Acciones rápidas · Calendario")).toBeTruthy();
+      expect(screen.queryByRole("tab", { name: "Todo" })).toBeNull();
+      expect(screen.queryByRole("option", { name: /Selección, Vacantes/ })).toBeNull();
+      expect(screen.getByRole("option", { name: "Cerrar caja, Hay citas sin cobrar" })).toHaveAttribute("aria-disabled", "true");
+
+      await userEvent.click(screen.getByRole("option", { name: "Preguntar al agente: ¿Qué huecos tengo hoy?" }));
+      expect(onAsk).toHaveBeenCalledWith("¿Qué huecos tengo hoy?");
+    });
+
+    test("elegir una acción la ejecuta y cierra", async () => {
+      renderSearch({ actions: ACTIONS });
+      await open();
+      await userEvent.click(screen.getByRole("option", { name: "Nueva cita" }));
+      expect(run).toHaveBeenCalledOnce();
+      expect(screen.queryByPlaceholderText("Buscar o preguntar")).toBeNull();
+    });
+
+    test("al escribir vuelven los resultados, con las acciones que coinciden", async () => {
+      renderSearch({ actions: ACTIONS });
+      await open();
+      await userEvent.type(screen.getByPlaceholderText("Buscar o preguntar"), "cita");
+      expect(screen.getByRole("option", { name: "Nueva cita" })).toBeTruthy();
+      expect(screen.queryByRole("option", { name: /Cerrar caja/ })).toBeNull();
+      expect(screen.getByRole("tab", { name: "Acciones" })).toBeTruthy();
+    });
+
+    test("recuerda lo último que se abrió y lo ofrece la próxima vez", async () => {
+      renderSearch();
+      await open();
+      await userEvent.click(screen.getByRole("option", { name: /Andrés Malo, candidato/ }));
+      await open();
+      expect(screen.getByText("Últimas búsquedas")).toBeTruthy();
+      expect(screen.getAllByRole("option")).toHaveLength(1);
+      expect(screen.getByRole("option", { name: /Andrés Malo, candidato/ })).toBeTruthy();
+    });
+
+    test("con `recentsKey` nulo no recuerda nada", async () => {
+      renderSearch({ recentsKey: null });
+      await open();
+      await userEvent.click(screen.getByRole("option", { name: /Andrés Malo, candidato/ }));
+      await open();
+      expect(screen.getByText("4 resultados")).toBeTruthy();
+    });
+  });
 });

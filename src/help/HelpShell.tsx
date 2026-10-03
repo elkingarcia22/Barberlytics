@@ -78,7 +78,7 @@ export function HelpShell({ children }: { children: React.ReactNode }) {
         <>
           <ThemeModeToggle />
           <Button asChild className="gap-inline">
-            <Link to="/dashboard">
+            <Link to="/metricas">
               <AppWindow className="size-3.5" />
               {t("help.openApp")}
             </Link>

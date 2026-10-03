@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/card"
 import { Heading } from "@/components/typography"
 import { EmptyState } from "@/components/feedback"
-import { Database } from "lucide-react"
 
 interface TableShellProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /**
@@ -103,7 +102,7 @@ export function TableShell({
           <div className="p-card">
             {emptyState || (
               <EmptyState
-                icon={Database}
+                icon="layers"
                 title="Sin información"
                 description="No se encontraron registros para mostrar en esta tabla."
                 className="border-none bg-transparent shadow-none"

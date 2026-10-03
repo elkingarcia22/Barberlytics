@@ -42,3 +42,6 @@ export { railScreenTiers } from "./railActions";
 export type { ActionFabProps } from "./ActionFab";
 export { useCompactViewport } from "./useCompactViewport";
 export { railActionsFor, railActionLabel, railModeFor, selectionLabel } from "./railActions";
+export { useActionsPlacement, setActionsPlacement, DEFAULT_ACTIONS_PLACEMENT as DEFAULT_SCREEN_ACTIONS_PLACEMENT, type ActionsPlacement } from "./actionsPlacement";
+export { ScreenHeaderActions, type ScreenHeaderActionsProps } from "./ScreenHeaderActions";
+export { RailAgentProvider, useRailAgentAction, useRailVisible } from "./railAgent";

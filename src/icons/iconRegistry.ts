@@ -1,4 +1,9 @@
 import {
+  Queue02Icon,
+  Camera01Icon,
+  Video01Icon,
+  RecordIcon,
+  Idea01Icon,
   Alert02Icon,
   Analytics01Icon,
   ArrowDown01Icon,
@@ -8,6 +13,7 @@ import {
   ArrowRight02Icon,
   ArrowUp01Icon,
   Award01Icon,
+  Bug01Icon,
   Building03Icon,
   Calendar03Icon,
   Cancel01Icon,
@@ -187,6 +193,14 @@ export const iconRegistry: Record<IconName, IconData> = {
   pointer: Cursor01Icon,
   compass: Compass01Icon,
   rocket: Rocket01Icon,
+  // Centro de procesos
+  queue: Queue02Icon,
+  // Feedback: tipo de comentario y adjuntos
+  bug: Bug01Icon,
+  idea: Idea01Icon,
+  video: Video01Icon,
+  record: RecordIcon,
+  camera: Camera01Icon,
 };
 
 /**

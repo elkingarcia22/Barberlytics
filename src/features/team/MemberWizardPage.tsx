@@ -68,7 +68,7 @@ export function MemberWizardPage() {
   return (
     <div className="space-y-6">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamCreate.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamCreate.title")]} />
       </ShellHeaderSlot>
 
       <PageHeader

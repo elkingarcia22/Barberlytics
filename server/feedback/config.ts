@@ -14,6 +14,8 @@ export interface FeedbackServerConfig {
   /** La que Vercel manda en las invocaciones del cron (`Authorization: Bearer`). */
   cronSecret: string | undefined;
   model: string;
+  /** Carpeta de una unidad compartida donde se guardan capturas y videos. Sin ella no se aceptan adjuntos. */
+  driveFolderId: string | undefined;
 }
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
@@ -31,5 +33,6 @@ export function readConfig(env: Record<string, string | undefined> = process.env
     adminKey: env.FEEDBACK_ADMIN_KEY?.trim() || undefined,
     cronSecret: env.CRON_SECRET?.trim() || undefined,
     model: env.FEEDBACK_MODEL?.trim() || DEFAULT_MODEL,
+    driveFolderId: env.FEEDBACK_DRIVE_FOLDER_ID?.trim() || undefined,
   };
 }

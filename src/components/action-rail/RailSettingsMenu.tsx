@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Check, Minimize2, PanelBottom, PanelRight, Pin, Settings } from "lucide-react";
+import { Check, LayoutPanelTop, Minimize2, PanelBottom, PanelBottomDashed, PanelRight, Pin, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useActionsPlacement } from "./actionsPlacement";
 import { useRailAutoHide } from "./railAutoHide";
 import { useRailOrientation, useRailPopoutSide, type RailOrientation } from "./railOrientation";
 
@@ -19,6 +20,7 @@ import { useRailOrientation, useRailPopoutSide, type RailOrientation } from "./r
 export function RailSettingsMenu() {
   const [autoHide, setAutoHide] = useRailAutoHide();
   const [orientation, setOrientation] = useRailOrientation();
+  const [placement, setPlacement] = useActionsPlacement();
   const [open, setOpen] = React.useState(false);
   const side = useRailPopoutSide();
 
@@ -76,6 +78,25 @@ export function RailSettingsMenu() {
             label="Ocultar sola"
             active={autoHide}
             onClick={() => setAutoHide(true)}
+          />
+        </SettingGroup>
+
+        {/* Pasarlas a la pantalla apaga esta barra; se vuelve a encender en «Personalización». */}
+        <SettingGroup label="Dónde van las acciones" className="mt-1.5">
+          <ChoiceRow
+            icon={<PanelBottomDashed className="h-[18px] w-[18px]" strokeWidth={2} />}
+            label="En esta barra"
+            active={placement === "rail"}
+            onClick={() => setPlacement("rail")}
+          />
+          <ChoiceRow
+            icon={<LayoutPanelTop className="h-[18px] w-[18px]" strokeWidth={2} />}
+            label="En la pantalla"
+            active={placement === "inline"}
+            onClick={() => {
+              setOpen(false);
+              setPlacement("inline");
+            }}
           />
         </SettingGroup>
       </PopoverContent>

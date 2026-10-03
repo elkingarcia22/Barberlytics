@@ -9,10 +9,21 @@ import { ThemaTabs } from "@/components/navigation";
 import { Field } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Text } from "@/components/typography";
 import { useAddClientNote } from "../queries";
-import { NOTE_KIND_KEYS, noteKindSchema, type Client, type NoteKind } from "../types";
+import {
+  NOTE_KIND_KEYS,
+  noteKindSchema,
+  type Client,
+  type NoteKind,
+} from "../types";
 
 /**
  * Notas: las del cliente en tres pestañas —Notas, Medicamento, Alergias—
@@ -24,7 +35,10 @@ export interface AppointmentNotesTabProps {
   branchId: string;
 }
 
-export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabProps) {
+export function AppointmentNotesTab({
+  client,
+  branchId,
+}: AppointmentNotesTabProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const [kind, setKind] = React.useState<NoteKind>("note");
@@ -38,7 +52,8 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
   }
 
   const notes = client.notes.filter((note) => note.kind === kind);
-  const count = (of: NoteKind) => client.notes.filter((note) => note.kind === of).length;
+  const count = (of: NoteKind) =>
+    client.notes.filter((note) => note.kind === of).length;
 
   const submit = () => {
     addNote.mutate(
@@ -51,7 +66,7 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
           setKind(draftKind);
         },
         onError: (error) => toast.error(describeError(error).title),
-      }
+      },
     );
   };
 
@@ -60,7 +75,11 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
       <ThemaTabs
         className="mb-0"
         fitContent
-        tabs={noteKindSchema.options.map((option) => ({ id: option, label: t(NOTE_KIND_KEYS[option]), badge: count(option) }))}
+        tabs={noteKindSchema.options.map((option) => ({
+          id: option,
+          label: t(NOTE_KIND_KEYS[option]),
+          badge: count(option),
+        }))}
         activeTabId={kind}
         onTabChange={(id) => setKind(id as NoteKind)}
       />
@@ -71,7 +90,11 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
         hint={t("calendar.client.visitsHint")}
         badge={String(notes.length)}
         action={
-          <Button size="xs" variant="outline" onClick={() => setAdding((current) => !current)}>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => setAdding((current) => !current)}
+          >
             <Plus /> {t("calendar.notes.add")}
           </Button>
         }
@@ -86,7 +109,10 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
               }}
             >
               <Field label={t("calendar.notes.type")} required>
-                <Select value={draftKind} onValueChange={(value) => setDraftKind(value as NoteKind)}>
+                <Select
+                  value={draftKind}
+                  onValueChange={(value) => setDraftKind(value as NoteKind)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -100,13 +126,26 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
                 </Select>
               </Field>
               <Field label={t("calendar.notes.description")} required>
-                <Textarea value={text} onChange={(event) => setText(event.target.value)} rows={3} />
+                <Textarea
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  rows={3}
+                />
               </Field>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setAdding(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAdding(false)}
+                >
                   {t("common.cancel")}
                 </Button>
-                <Button type="submit" size="sm" disabled={text.trim().length < 3 || addNote.isPending}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={text.trim().length < 3 || addNote.isPending}
+                >
                   {t("calendar.notes.create")}
                 </Button>
               </div>
@@ -117,9 +156,18 @@ export function AppointmentNotesTab({ client, branchId }: AppointmentNotesTabPro
           ) : (
             <ul className="space-y-2">
               {notes.map((note) => (
-                <li key={note.id} className="rounded-lg border border-border/60 p-3">
+                <li
+                  key={note.id}
+                  className="rounded-lg border border-border/60 p-3"
+                >
                   <Text>{note.text}</Text>
-                  <Text variant="caption">{formatDate(new Date(note.createdAt), { day: "numeric", month: "short", year: "numeric" })}</Text>
+                  <Text variant="caption">
+                    {formatDate(new Date(note.createdAt), {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
                 </li>
               ))}
             </ul>

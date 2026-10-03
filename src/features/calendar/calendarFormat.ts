@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLocale } from "@/i18n";
+import { atMinutes, formatClock, parseClock } from "@/components/scheduling";
 
 /**
  * Formateadores y ayudas sin JSX del calendario: el dinero de la sucursal,
@@ -39,3 +40,6 @@ export function useOpenKey(open: boolean): number {
   }
   return key;
 }
+
+/** «13:00» como se lee en el idioma activo: «1:00 p. m.». */
+export const clockLabel = (value: string, intl: string): string => formatClock(atMinutes(new Date(2000, 0, 1), parseClock(value)), intl);

@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { ScheduleDrop, ScheduleEvent } from "./scheduleTypes";
+import type { ScheduleDrop, ScheduleDropValidator, ScheduleEvent } from "./scheduleTypes";
 import { atMinutes, clamp, eventMinutes, minutesOfDay, snapMinutes } from "./scheduleUtils";
 
 /**
@@ -21,6 +21,8 @@ export interface DragPreview {
   resourceId: string;
   startMin: number;
   endMin: number;
+  /** Por qué ahí no se puede soltar, si no se puede. */
+  reason: string | null;
 }
 
 interface DragOrigin {
@@ -43,12 +45,16 @@ export interface UseScheduleDragOptions {
   step: number;
   onMove?: (event: ScheduleEvent, drop: ScheduleDrop) => void;
   onResize?: (event: ScheduleEvent, drop: ScheduleDrop) => void;
+  /** Decide si un destino vale; mientras se arrastra se enseña el motivo y al soltar no se mueve. */
+  validate?: ScheduleDropValidator;
+  /** Se soltó en un sitio que no vale. */
+  onRejected?: (event: ScheduleEvent, drop: ScheduleDrop, reason: string) => void;
 }
 
 /** Cuántos píxeles hay que moverse antes de que un clic pase a ser arrastre. */
 const DRAG_THRESHOLD_PX = 4;
 
-export function useScheduleDrag({ bodyRef, day, dayStart, dayEnd, step, onMove, onResize }: UseScheduleDragOptions) {
+export function useScheduleDrag({ bodyRef, day, dayStart, dayEnd, step, onMove, onResize, validate, onRejected }: UseScheduleDragOptions) {
   const origin = React.useRef<DragOrigin | null>(null);
   const suppressClick = React.useRef(false);
   const [preview, setPreview] = React.useState<DragPreview | null>(null);
@@ -65,6 +71,11 @@ export function useScheduleDrag({ bodyRef, day, dayStart, dayEnd, step, onMove, 
     [bodyRef]
   );
 
+  const toDrop = React.useCallback(
+    (resourceId: string, startMin: number, endMin: number): ScheduleDrop => ({ resourceId, start: atMinutes(day, startMin), end: atMinutes(day, endMin) }),
+    [day]
+  );
+
   const computePreview = React.useCallback(
     (current: DragOrigin, clientX: number, clientY: number): DragPreview => {
       const rect = bodyRef.current?.getBoundingClientRect();
@@ -73,24 +84,21 @@ export function useScheduleDrag({ bodyRef, day, dayStart, dayEnd, step, onMove, 
       const duration = current.endMin - current.startMin;
       if (current.mode === "resize") {
         const endMin = clamp(snapMinutes(current.endMin + delta, step), current.startMin + step, dayEnd);
-        return { mode: "resize", eventId: current.event.id, resourceId: current.event.resourceId, startMin: current.startMin, endMin };
+        const reason = validate?.(current.event, toDrop(current.event.resourceId, current.startMin, endMin)) ?? null;
+        return { mode: "resize", eventId: current.event.id, resourceId: current.event.resourceId, startMin: current.startMin, endMin, reason };
       }
       const startMin = clamp(snapMinutes(current.startMin + delta, step), dayStart, dayEnd - duration);
-      return {
-        mode: "move",
-        eventId: current.event.id,
-        resourceId: resourceAt(clientX, current.event.resourceId),
-        startMin,
-        endMin: startMin + duration,
-      };
+      const resourceId = resourceAt(clientX, current.event.resourceId);
+      const reason = validate?.(current.event, toDrop(resourceId, startMin, startMin + duration)) ?? null;
+      return { mode: "move", eventId: current.event.id, resourceId, startMin, endMin: startMin + duration, reason };
     },
-    [bodyRef, dayEnd, dayStart, resourceAt, step]
+    [bodyRef, dayEnd, dayStart, resourceAt, step, toDrop, validate]
   );
 
   const start = React.useCallback(
     (event: ScheduleEvent, mode: DragMode, nativeEvent: React.PointerEvent<HTMLElement>) => {
       const canDrag = mode === "move" ? Boolean(onMove) : Boolean(onResize);
-      if (!canDrag || event.locked || nativeEvent.button !== 0 || nativeEvent.pointerType === "touch") return;
+      if (!canDrag || event.locked || event.ghost || nativeEvent.button !== 0 || nativeEvent.pointerType === "touch") return;
       const startMin = minutesOfDay(event.start);
       origin.current = {
         mode,
@@ -145,11 +153,15 @@ export function useScheduleDrag({ bodyRef, day, dayStart, dayEnd, step, onMove, 
       const unchanged =
         result.resourceId === current.event.resourceId && result.startMin === current.startMin && result.endMin === current.endMin;
       if (unchanged) return;
-      const drop: ScheduleDrop = { resourceId: result.resourceId, start: atMinutes(day, result.startMin), end: atMinutes(day, result.endMin) };
+      const drop = toDrop(result.resourceId, result.startMin, result.endMin);
+      if (result.reason) {
+        onRejected?.(current.event, drop, result.reason);
+        return;
+      }
       if (current.mode === "move") onMove?.(current.event, drop);
       else onResize?.(current.event, drop);
     },
-    [computePreview, day, onMove, onResize]
+    [computePreview, onMove, onRejected, onResize, toDrop]
   );
 
   /** Las props de puntero de una tarjeta. `mode` decide qué gesto empieza. */

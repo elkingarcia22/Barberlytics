@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { FileSpreadsheet, Upload, Info } from 'lucide-react'
+import { FileSpreadsheet, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useT } from '@/i18n'
 import type { 
@@ -165,7 +165,7 @@ export function ImportCsvPanel({
               <EmptyState
                 title={t("upload.noPreview")}
                 description="Selecciona un archivo válido para ver una muestra de los datos."
-                icon={Upload}
+                icon="upload"
                 className="py-12 border-2"
               />
             )}

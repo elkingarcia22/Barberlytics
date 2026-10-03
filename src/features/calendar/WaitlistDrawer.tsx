@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
-import { DrawerSection, DrawerShell } from "@/components/overlays";
+import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, SearchableSelect } from "@/components/forms";
 import { DatePicker } from "@/components/date";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
@@ -15,10 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Text } from "@/components/typography";
 import { QueryBoundary } from "@/lib/query";
 import { PersonAvatar } from "./calendarShared";
-import { halfHourOptions, useOpenKey } from "./calendarFormat";
+import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
 import { findBarber, findClient, type ModelContext } from "./calendarModel";
 import { useAddToWaitlist, useRemoveFromWaitlist, useWaitlistQuery } from "./queries";
-import { CLIENT_TYPE_KEYS, type WaitlistEntry } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { formatClock } from "@/components/scheduling";
+import { waitlistMatch, type WaitlistMatch } from "./dayBrief";
+import { CLIENT_TYPE_KEYS, type CalendarDay, type WaitlistEntry } from "./types";
 
 /**
  * La lista de espera: quién espera un hueco, para qué servicio, con quién y
@@ -31,7 +34,9 @@ export interface WaitlistDrawerProps {
   branchId: string;
   ctx: ModelContext;
   date: Date;
-  onSchedule: (entry: WaitlistEntry) => void;
+  /** La agenda del día que se mira: con ella se sabe a quién se le puede ofrecer un hueco ya. */
+  day?: CalendarDay;
+  onSchedule: (entry: WaitlistEntry, match?: WaitlistMatch) => void;
 }
 
 interface DraftSlot {
@@ -45,7 +50,7 @@ export function WaitlistDrawer(props: WaitlistDrawerProps) {
   return <WaitlistPanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: WaitlistDrawerProps) {
+function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedule }: WaitlistDrawerProps) {
   const t = useAppT();
   const { current, formatDate } = useLocale();
   const query = useWaitlistQuery(branchId, null, open);
@@ -77,7 +82,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: 
   };
 
   return (
-    <DrawerShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.waitlist.title")} description={t("calendar.waitlist.hint")}>
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.waitlist.title")} description={t("calendar.waitlist.hint")}>
       <div className="space-y-3" data-testid="waitlist-drawer">
         <DrawerSection
           icon={ListOrdered}
@@ -135,7 +140,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: 
                         <SelectContent>
                           {HOURS.map((hour) => (
                             <SelectItem key={hour} value={hour}>
-                              {hour}
+                              {clockLabel(hour, ctx.intl)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -154,7 +159,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: 
               </div>
             )}
 
-            <QueryBoundary query={query} empty={{ when: (data) => data.items.length === 0, render: <EmptyState icon={ListOrdered} title={t("calendar.waitlist.empty")} /> }}>
+            <QueryBoundary query={query} empty={{ when: (data) => data.items.length === 0, render: <EmptyState icon="task" title={t("calendar.waitlist.empty")} /> }}>
               {(data) => (
                 <ListItemGroup>
                   {data.items.map((entry) => {
@@ -162,17 +167,25 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: 
                     const service = ctx.catalog.services.find((item) => item.id === entry.serviceId);
                     const barber = findBarber(ctx.catalog, entry.barberId);
                     const name = client?.name ?? "";
+                    const match = day ? waitlistMatch(entry, day, ctx.catalog, date, ctx.now) : null;
                     return (
                       <ListItem
                         key={entry.id}
                         leading={<PersonAvatar name={name} />}
                         title={name}
-                        description={`${service?.name ?? ""} · ${barber?.name ?? t("calendar.waitlist.anyBarber")} · ${entry.slots.map((slot) => `${formatDate(new Date(`${slot.date}T00:00:00`), { day: "numeric", month: "short" })} ${slot.time}`).join(", ")}`}
+                        description={`${service?.name ?? ""} · ${barber?.name ?? t("calendar.waitlist.anyBarber")} · ${entry.slots.map((slot) => `${formatDate(new Date(`${slot.date}T00:00:00`), { day: "numeric", month: "short" })} ${clockLabel(slot.time, ctx.intl)}`).join(", ")}`}
+                        meta={match ? <Badge variant="secondary">{t("calendar.waitlist.match", { time: formatClock(match.start, ctx.intl), barber: match.barber.name.split(" ")[0] })}</Badge> : undefined}
                         actions={
                           <>
-                            <Button size="icon-sm" variant="ghost" aria-label={`${t("calendar.waitlist.schedule")}: ${name}`} onClick={() => onSchedule(entry)}>
-                              <CalendarPlus />
-                            </Button>
+                            {match ? (
+                              <Button size="xs" onClick={() => onSchedule(entry, match)} data-testid={`waitlist-offer-${entry.id}`}>
+                                <CalendarPlus /> {t("calendar.waitlist.offer")}
+                              </Button>
+                            ) : (
+                              <Button size="icon-sm" variant="ghost" aria-label={`${t("calendar.waitlist.schedule")}: ${name}`} onClick={() => onSchedule(entry)}>
+                                <CalendarPlus />
+                              </Button>
+                            )}
                             <Button size="icon-sm" variant="ghost" aria-label={`${t("calendar.waitlist.remove")}: ${name}`} onClick={() => remove.mutate(entry.id)}>
                               <Trash2 />
                             </Button>
@@ -188,6 +201,6 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, onSchedule }: 
         </DrawerSection>
         <Text variant="caption">{t("calendar.waitlist.hint")}</Text>
       </div>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }

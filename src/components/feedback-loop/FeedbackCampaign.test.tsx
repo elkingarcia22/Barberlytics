@@ -27,15 +27,20 @@ describe("FeedbackCampaign", () => {
     expect(screen.queryByRole("dialog", { name: "Hola" })).not.toBeInTheDocument()
   })
 
-  test("el botón abre el panel y, usado una vez, se contrae a icono", async () => {
+  test("el botón abre el diálogo y, usado una vez, se contrae a icono", async () => {
     const user = userEvent.setup()
     render(<FeedbackCampaign campaign={CAMPAIGN} onSubmit={vi.fn()} autoStartTour={false} />)
     const launcher = screen.getByRole("button", { name: "Feedback" })
     expect(launcher).toHaveTextContent("Feedback")
     await user.click(launcher)
-    expect(screen.getByRole("dialog", { name: "Tu opinión importa" })).toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "Enviar feedback" })).toBeInTheDocument()
     expect(launcher).toHaveAttribute("aria-expanded", "true")
     expect(launcher).toHaveAttribute("aria-label", "Feedback")
     expect(window.localStorage.getItem(campaignKey("prueba", "opened"))).toBe("1")
+  })
+
+  test("controlado desde fuera, otra puerta abre el mismo diálogo", () => {
+    render(<FeedbackCampaign campaign={CAMPAIGN} onSubmit={vi.fn()} autoStartTour={false} dialogOpen onDialogOpenChange={vi.fn()} />)
+    expect(screen.getByRole("dialog", { name: "Enviar feedback" })).toBeInTheDocument()
   })
 })

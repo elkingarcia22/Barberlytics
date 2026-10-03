@@ -3,17 +3,20 @@ import { Banknote, CreditCard, HandCoins, Link2, Package, Scissors, Split, Trash
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
-import { DrawerSection, DrawerShell } from "@/components/overlays";
+import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, NumberField, SearchableSelect } from "@/components/forms";
 import { RadioCardGroup } from "@/components/selection";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { IconTile } from "@/components/utility";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
-import { cn } from "@/lib/utils";
+import { Chip } from "@/components/ai-interaction";
 import { findBarber, findClient, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
 import { useCheckoutAppointment } from "./queries";
+import { useSettingsSection } from "@/features/settings/settingsQueries";
+import { cardFeeSchema, tipsSchema } from "@/features/settings/settingsTypes";
+import { FALLBACK_TIPS, changeDue, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type Appointment, type PaymentMethod, type ProductLine } from "./types";
 
 /**
@@ -30,7 +33,6 @@ export interface CheckoutDrawerProps {
   onPaid: (appointment: Appointment) => void;
 }
 
-const TIP_PERCENTS = [10, 15, 20] as const;
 const METHOD_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, mixed: Split };
 
 export function CheckoutDrawer(props: CheckoutDrawerProps) {
@@ -42,7 +44,12 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
   const checkout = useCheckoutAppointment();
   const [serviceIds, setServiceIds] = React.useState<string[]>(appointment?.serviceIds ?? []);
   const [products, setProducts] = React.useState<ProductLine[]>(appointment?.products ?? []);
-  const [tipChoice, setTipChoice] = React.useState<"none" | "custom" | (typeof TIP_PERCENTS)[number]>("none");
+  // Las propinas sugeridas y el recargo por tarjeta son los de Configuración.
+  const tipSettings = useSettingsSection("tips", tipsSchema);
+  const cardFee = useSettingsSection("cardFee", cardFeeSchema);
+  const tipOptions: readonly TipChoice[] = tipSettings.data?.options.length ? tipSettings.data.options : FALLBACK_TIPS;
+  const [tipChoice, setTipChoice] = React.useState<string>("none");
+  const [received, setReceived] = React.useState<number | null>(null);
   const [customTip, setCustomTip] = React.useState<number | null>(null);
   const [method, setMethod] = React.useState<PaymentMethod>("cash");
 
@@ -53,8 +60,11 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
   const services = serviceIds.map((id) => ctx.catalog.services.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   const lines = products.map((line) => ({ line, product: ctx.catalog.products.find((item) => item.id === line.productId) })).filter((item): item is { line: ProductLine; product: NonNullable<typeof item.product> } => Boolean(item.product));
   const subtotal = services.reduce((sum, item) => sum + item.price, 0) + lines.reduce((sum, { line, product }) => sum + product.price * line.qty, 0);
-  const tip = tipChoice === "none" ? 0 : tipChoice === "custom" ? Math.max(0, customTip ?? 0) : Math.round(subtotal * (tipChoice / 100) * 100) / 100;
-  const total = subtotal + tip;
+  const chosenTip = tipOptions.find((option) => option.id === tipChoice);
+  const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, subtotal) : 0;
+  const surcharge = surchargeAmount(cardFee.data, method, subtotal);
+  const total = subtotal + tip + surcharge;
+  const change = method === "cash" ? changeDue(received, total) : null;
 
   const addProduct = (productId: string) => {
     setProducts((current) => {
@@ -65,7 +75,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
 
   const pay = () => {
     checkout.mutate(
-      { id: appointment.id, input: { serviceIds, products, tip, method } },
+      { id: appointment.id, input: { serviceIds, products, tip, method, surcharge } },
       {
         onSuccess: (paid) => {
           toast.success(t("calendar.checkout.paid"), { description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(paid.payment?.total ?? total), method: t(PAYMENT_METHOD_KEYS[method]) }) });
@@ -78,22 +88,23 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
   };
 
   return (
-    <DrawerShell
+    <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
       size="lg"
       title={t("calendar.checkout.title")}
       description={client ? `${client.name} · ${barber?.name ?? ""}` : undefined}
       footer={
-        <div className="space-y-3 border-t border-border bg-surface p-4">
+        <div className="space-y-3 border-t border-border px-5 py-4">
           <div className="space-y-1">
             <TotalRow label={t("calendar.checkout.subtotal")} value={ctx.formatMoney(subtotal)} />
-            <TotalRow label={t("calendar.checkout.tip")} value={ctx.formatMoney(tip)} />
-            <TotalRow label={t("calendar.checkout.tax")} value={ctx.formatMoney(0)} />
+            {tip > 0 && <TotalRow label={t("calendar.checkout.tip")} value={ctx.formatMoney(tip)} />}
+            {surcharge > 0 && <TotalRow label={cardFee.data?.name || t("calendar.checkout.surcharge")} value={ctx.formatMoney(surcharge)} />}
             <TotalRow label={t("calendar.checkout.total")} value={ctx.formatMoney(total)} strong />
+            {change !== null && change >= 0 && <TotalRow label={t("calendar.checkout.change")} value={ctx.formatMoney(change)} />}
           </div>
           <Button className="w-full" onClick={pay} disabled={checkout.isPending || services.length === 0} data-testid="checkout-pay">
-            <HandCoins /> {t("calendar.checkout.pay")}
+            <HandCoins /> {t("calendar.checkout.payAmount", { total: ctx.formatMoney(total) })}
           </Button>
         </div>
       }
@@ -163,17 +174,11 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
         <DrawerSection icon={HandCoins} tone="warning" title={t("calendar.checkout.tip")} hint={t("calendar.checkout.tipFor", { name: barber?.name.split(" ")[0] ?? "" })}>
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <TipChip active={tipChoice === "none"} onClick={() => setTipChoice("none")}>
-                {t("calendar.checkout.noTip")}
-              </TipChip>
-              {TIP_PERCENTS.map((percent) => (
-                <TipChip key={percent} active={tipChoice === percent} onClick={() => setTipChoice(percent)}>
-                  {percent}% · {ctx.formatMoney(Math.round(subtotal * (percent / 100) * 100) / 100)}
-                </TipChip>
+              <Chip label={t("calendar.checkout.noTip")} selected={tipChoice === "none"} tone={tipChoice === "none" ? "primary" : "default"} onClick={() => setTipChoice("none")} />
+              {tipOptions.map((option) => (
+                <Chip key={option.id} label={option.type === "percent" ? `${option.value}% · ${ctx.formatMoney(tipAmount(option, subtotal))}` : ctx.formatMoney(option.value)} selected={tipChoice === option.id} tone={tipChoice === option.id ? "primary" : "default"} onClick={() => setTipChoice(option.id)} />
               ))}
-              <TipChip active={tipChoice === "custom"} onClick={() => setTipChoice("custom")}>
-                {t("calendar.checkout.customTip")}
-              </TipChip>
+              <Chip label={t("calendar.checkout.customTip")} selected={tipChoice === "custom"} tone={tipChoice === "custom" ? "primary" : "default"} onClick={() => setTipChoice("custom")} />
             </div>
             {tipChoice === "custom" && (
               <Field label={t("calendar.checkout.tip")}>
@@ -190,9 +195,26 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
             onChange={(value) => setMethod(value as PaymentMethod)}
             options={paymentMethodSchema.options.map((option) => ({ value: option, label: t(PAYMENT_METHOD_KEYS[option]), icon: METHOD_ICONS[option] }))}
           />
+          {method === "cash" && (
+            <div className="mt-3 space-y-1">
+              <Field label={t("calendar.checkout.received")}>
+                <NumberField value={received} onValueChange={setReceived} min={0} step={1} prefix="$" size="sm" data-testid="checkout-received" />
+              </Field>
+              {change !== null && (
+                <Text variant="muted" className={change < 0 ? "text-destructive" : undefined} data-testid="checkout-change">
+                  {change < 0 ? t("calendar.checkout.missing", { amount: ctx.formatMoney(-change) }) : t("calendar.checkout.changeHint", { amount: ctx.formatMoney(change) })}
+                </Text>
+              )}
+            </div>
+          )}
+          {surcharge > 0 && (
+            <Text variant="muted" className="mt-3" data-testid="checkout-surcharge">
+              {t("calendar.checkout.surchargeHint", { amount: ctx.formatMoney(surcharge) })}
+            </Text>
+          )}
         </DrawerSection>
       </div>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }
 
@@ -206,22 +228,5 @@ function TotalRow({ label, value, strong }: { label: string; value: string; stro
         {value}
       </Text>
     </div>
-  );
-}
-
-function TipChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1.5 text-sm tabular-nums transition-colors duration-fast ease-out-expo motion-reduce:transition-none",
-        active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface text-text-primary hover:bg-surface-subtle",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-      )}
-    >
-      {children}
-    </button>
   );
 }

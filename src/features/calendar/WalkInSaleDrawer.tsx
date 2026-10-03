@@ -1,20 +1,21 @@
 import * as React from "react";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { Footprints } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
-import { DrawerSection, DrawerShell } from "@/components/overlays";
+import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, SearchableSelect } from "@/components/forms";
 import { DatePicker } from "@/components/date";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonAvatar } from "./calendarShared";
-import { halfHourOptions, useOpenKey } from "./calendarFormat";
-import type { ModelContext } from "./calendarModel";
+import { atMinutes, formatClock, minutesOfDay } from "@/components/scheduling";
+import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
+import { nextFreeMinute, type ModelContext } from "./calendarModel";
 import { useCreateAppointment } from "./queries";
-import { CLIENT_TYPE_KEYS, type Appointment } from "./types";
+import { CLIENT_TYPE_KEYS, type Appointment, type CalendarDay } from "./types";
 
 /**
  * Venta sin cita: registrar un servicio que ya se hizo sin agendar —fecha,
@@ -28,6 +29,8 @@ export interface WalkInSaleDrawerProps {
   ctx: ModelContext;
   date: Date;
   now?: Date;
+  /** La agenda del día: con ella se sabe quién está libre para atender ya. */
+  day?: CalendarDay;
   onCreated: (appointment: Appointment) => void;
 }
 
@@ -42,7 +45,7 @@ export function WalkInSaleDrawer(props: WalkInSaleDrawerProps) {
   return <WalkInSalePanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: WalkInSaleDrawerProps) {
+function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCreated }: WalkInSaleDrawerProps) {
   const t = useAppT();
   const { current } = useLocale();
   const create = useCreateAppointment();
@@ -50,7 +53,13 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: Walk
   const [time, setTime] = React.useState(roundedClock(now ?? new Date()));
   const [clientId, setClientId] = React.useState("cli_walkin");
   const [serviceId, setServiceId] = React.useState("");
-  const [barberId, setBarberId] = React.useState("");
+  // Quien llega sin cita quiere al primero que quede libre: los barberos salen
+  // en ese orden y el más pronto viene ya elegido.
+  const nowDate = now ?? new Date();
+  const ranked = ctx.catalog.barbers
+    .map((barber) => ({ barber, free: agenda && isSameDay(date, nowDate) ? nextFreeMinute(barber, date, agenda.appointments, agenda.blocks, minutesOfDay(nowDate)) : null }))
+    .sort((a, b) => (a.free ?? Infinity) - (b.free ?? Infinity));
+  const [barberId, setBarberId] = React.useState(() => ranked.find((item) => item.free !== null && item.barber.acceptsWalkIns)?.barber.id ?? "");
 
   const submit = () => {
     if (!day || !serviceId || !barberId) return;
@@ -67,7 +76,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: Walk
   };
 
   return (
-    <DrawerShell
+    <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
       title={t("calendar.walkInSale.title")}
@@ -95,7 +104,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: Walk
                 <SelectContent>
                   {HOURS.map((hour) => (
                     <SelectItem key={hour} value={hour}>
-                      {hour}
+                      {clockLabel(hour, ctx.intl)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -124,11 +133,12 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: Walk
                 <SelectValue placeholder={t("calendar.create.pickBarber")} />
               </SelectTrigger>
               <SelectContent>
-                {ctx.catalog.barbers.map((barber) => (
+                {ranked.map(({ barber, free }) => (
                   <SelectItem key={barber.id} value={barber.id}>
                     <span className="flex items-center gap-2">
                       <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />
                       {barber.name}
+                      {free !== null && <span className="text-text-muted">· {t("calendar.resource.free", { time: formatClock(atMinutes(date, free), ctx.intl) })}</span>}
                     </span>
                   </SelectItem>
                 ))}
@@ -137,6 +147,6 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, onCreated }: Walk
           </Field>
         </div>
       </DrawerSection>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }

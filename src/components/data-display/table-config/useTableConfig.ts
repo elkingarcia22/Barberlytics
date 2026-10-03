@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useActionsPlacement } from "@/components/action-rail/actionsPlacement";
 import {
   DEFAULT_ACTIONS_PLACEMENT,
   DEFAULT_ROW_CONTROL,
@@ -252,6 +253,10 @@ export function useTableConfig(
    * dejaría el botón marcado en un ciclo cerrado sin que nadie haya tocado
    * nada.
    */
+  // Dónde van las acciones es una preferencia de la persona, la misma en
+  // todas las tablas: sale del ajuste global, no de lo guardado por tabla.
+  const [actions, setActions] = useActionsPlacement();
+
   const defaultOrder = React.useMemo(() => reconcileOrder([], specIds), [specIds]);
   const knownOrder = state.order.filter((id) => specById.has(id));
   const isDirty =
@@ -261,7 +266,6 @@ export function useTableConfig(
     state.pinned.length > 0 ||
     !knownOrder.every((id, index) => id === defaultOrder[index]) ||
     state.view !== DEFAULT_TABLE_VIEW ||
-    state.actions !== DEFAULT_ACTIONS_PLACEMENT ||
     state.rowControl !== DEFAULT_ROW_CONTROL;
 
   return {
@@ -285,12 +289,12 @@ export function useTableConfig(
     mode: state.mode,
     isLazy: state.mode === "lazy",
     view: state.view,
-    actions: state.actions,
+    actions,
     rowControl: state.rowControl,
     isDirty,
     setMode: (mode) => update({ ...state, mode }),
     setView: (view) => update({ ...state, view }),
-    setActions: (actions) => update({ ...state, actions }),
+    setActions,
     setRowControl: (rowControl) => update({ ...state, rowControl }),
     toggleVisibility: (id) =>
       update({

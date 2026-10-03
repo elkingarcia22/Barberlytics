@@ -6,7 +6,7 @@ import type { HelpArticleMeta, HelpIndex } from "./types";
  * contextual funcione en las dos. Se compara por prefijo de ruta.
  */
 const ROUTE_ALIASES: readonly (readonly [string, string])[] = [
-  ["/dashboard", "/"],
+  ["/metricas", "/"],
   ["/calendario", "/calendar"],
   ["/clientes", "/customers"],
   ["/servicios", "/services"],

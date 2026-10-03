@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { AlertTriangle, CalendarClock, CheckCircle2, FileQuestion, Inbox, Lock, SearchX, UserX } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, UserX } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,10 +12,10 @@ import { DocSection, PageIntro } from "../../components/PageIntro";
 import { Decision, Demo, DoDont } from "./GuideBits";
 
 const EMPTY_CODE = `// Primera vez: invita a crear el primero
-<EmptyState icon={Inbox} title="Todavía no hay planes de formación" description="Cuando crees el primero aparecerá aquí junto a su avance y sus participantes." action={<Button>Crear plan</Button>} />
+<EmptyState icon="file" title="Todavía no hay planes de formación" description="Cuando crees el primero aparecerá aquí junto a su avance y sus participantes." action={<Button>Crear plan</Button>} />
 
 // Sin resultados: la salida es aflojar el filtro
-<EmptyState icon={SearchX} title="Sin resultados para «onboarding»" description="Revisa la ortografía o quita alguno de los 3 filtros activos." action={<Button variant="outline">Limpiar filtros</Button>} />`;
+<EmptyState icon="search" title="Sin resultados para «onboarding»" description="Revisa la ortografía o quita alguno de los 3 filtros activos." action={<Button variant="outline">Limpiar filtros</Button>} />`;
 
 const BOUNDARY_CODE = `// La pantalla no decide: QueryBoundary pinta carga → error → vacío → datos
 <QueryBoundary query={query} loading={<Skeleton className="h-40" />} empty={<EmptyState … />}>
@@ -56,10 +56,10 @@ export function EstadosPage() {
 
       <DocSection id="vacios" title="Estados vacíos" description="Cuatro motivos distintos por los que una pantalla puede no tener nada que mostrar. Cada uno cuenta qué pasó y ofrece la salida que corresponde.">
         <div className="grid gap-4 lg:grid-cols-2">
-          <EmptyState icon={Inbox} title="Todavía no hay planes de formación" description="Cuando crees el primero aparecerá aquí junto a su avance y sus participantes." action={<Button>Crear plan de formación</Button>} />
-          <EmptyState icon={SearchX} title="Sin resultados para «onboarding»" description="Revisa la ortografía o quita alguno de los 3 filtros activos." action={<Button variant="outline">Limpiar filtros</Button>} />
-          <EmptyState icon={FileQuestion} title="No pudimos cargar la lista" description="Se perdió la conexión con el servidor. Vuelve a intentarlo en unos segundos." action={<Button variant="outline">Reintentar</Button>} />
-          <EmptyState icon={Lock} title="No tienes acceso a este reporte" description="Pídele a un administrador de tu empresa que te habilite el módulo de Métricas." />
+          <EmptyState icon="file" title="Todavía no hay planes de formación" description="Cuando crees el primero aparecerá aquí junto a su avance y sus participantes." action={<Button>Crear plan de formación</Button>} />
+          <EmptyState icon="search" title="Sin resultados para «onboarding»" description="Revisa la ortografía o quita alguno de los 3 filtros activos." action={<Button variant="outline">Limpiar filtros</Button>} />
+          <EmptyState icon="help" title="No pudimos cargar la lista" description="Se perdió la conexión con el servidor. Vuelve a intentarlo en unos segundos." action={<Button variant="outline">Reintentar</Button>} />
+          <EmptyState icon="lock" title="No tienes acceso a este reporte" description="Pídele a un administrador de tu empresa que te habilite el módulo de Métricas." />
         </div>
         <CodeBlock code={EMPTY_CODE} language="tsx" />
       </DocSection>

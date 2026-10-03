@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router";
-import { FileQuestion } from "lucide-react";
 import { ShellHeaderSlot } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/navigation";
 import { HelpPage } from "../HelpPage";
@@ -19,7 +18,7 @@ export function HelpNotFoundPage() {
         <Breadcrumbs items={[{ label: t("help.title"), onClick: () => navigate(helpPath()) }, t("help.notFound")]} />
       </ShellHeaderSlot>
       <EmptyState
-        icon={FileQuestion}
+        icon="help"
         title={t("help.notFound")}
         description={t("help.notFoundHint")}
         action={

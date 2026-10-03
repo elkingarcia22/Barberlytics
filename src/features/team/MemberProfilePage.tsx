@@ -61,7 +61,7 @@ export function MemberProfilePage() {
   return (
     <div className="space-y-4">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, member.data ? memberName(member.data) : t("teamMember.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, member.data ? memberName(member.data) : t("teamMember.title")]} />
       </ShellHeaderSlot>
 
       <QueryBoundary

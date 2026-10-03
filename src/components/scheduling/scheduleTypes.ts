@@ -14,6 +14,15 @@ export interface ScheduleWorkingHours {
   end: string;
 }
 
+export type ScheduleTone = "primary" | "positive" | "warning" | "negative" | "info" | "neutral";
+
+/** Un aviso bajo el nombre de un recurso: «Hueco 15:00 · 2 en espera». */
+export interface ScheduleResourceAlert {
+  label: string;
+  tone?: ScheduleTone;
+  onClick?: () => void;
+}
+
 export interface ScheduleResource {
   id: string;
   name: string;
@@ -22,16 +31,28 @@ export interface ScheduleResource {
   subtitle?: string;
   /** Franjas en las que trabaja ese día; vacío o ausente es «no trabaja». */
   workingHours?: readonly ScheduleWorkingHours[];
+  /** Cuánto de la jornada está ocupado, de 0 a 1: una barra bajo el nombre. */
+  progress?: number;
+  /** Algo que la columna pide mirar ahora: se pinta como chip bajo el nombre. */
+  alert?: ScheduleResourceAlert;
 }
 
 export type ScheduleEventKind = "appointment" | "block";
-
-export type ScheduleTone = "primary" | "positive" | "warning" | "negative" | "info" | "neutral";
 
 export interface ScheduleEventAction {
   label: string;
   icon?: React.ReactNode;
   onClick: () => void;
+}
+
+/** Los iconos pequeños de la esquina de una tarjeta. Son conceptos, no iconos: la tarjeta decide cuál dibuja. */
+export type ScheduleMarkerIcon = "online" | "walkIn" | "new" | "note" | "paid" | "repeat" | "requested";
+
+export interface ScheduleMarker {
+  id: string;
+  /** Lo que significa, para el tooltip y el lector de pantalla. */
+  label: string;
+  icon: ScheduleMarkerIcon;
 }
 
 export interface ScheduleEvent {
@@ -45,17 +66,45 @@ export interface ScheduleEvent {
   subtitle?: string;
   /** Una tercera línea: el barbero, una nota. */
   detail?: string;
+  /** El color de la tarjeta cuando sale de los colores del tema. */
   tone?: ScheduleTone;
-  /** Etiqueta corta junto al título (el tipo de cliente, el estado). */
+  /**
+   * El color de la tarjeta tomado de la paleta categórica (1 a 12): para
+   * distinguir muchas cosas a la vez —en la barbería, un color por servicio—.
+   * Si viene, manda sobre `tone`.
+   */
+  color?: number;
+  /** Etiqueta corta junto al título: quién es (el tipo de cliente). */
   badge?: { label: string; tone?: ScheduleTone };
+  /** En qué va ahora mismo («Ya ingresó», «En silla», «Por cobrar»): una píldora con su punto de color. */
+  status?: { label: string; tone?: ScheduleTone };
   /** El siguiente paso de la tarjeta: «Ingresar», «Cobrar». */
   action?: ScheduleEventAction;
   /** Algo que revisar; se muestra como icono con tooltip. */
   warning?: string;
+  /** Algo que corre prisa ahora mismo («12 min tarde»): una pastilla roja. */
+  urgent?: string;
+  /** Los iconos de la esquina: de dónde vino, si es nuevo, si tiene nota… */
+  markers?: readonly ScheduleMarker[];
+  /** Fuera del filtro activo: se queda en su sitio, pero apagada. */
+  faded?: boolean;
   /** Ya pasó o se anuló: se atenúa y se tacha. */
   muted?: boolean;
-  /** No se puede arrastrar ni estirar. */
+  /** No se puede arrastrar ni estirar. Una cita cobrada enseña además un candado. */
   locked?: boolean;
+  /**
+   * Nadie la ha fijado —el cliente no pidió barbero, es interna—: el borde
+   * va discontinuo para decir que se puede mover sin preguntar.
+   */
+  flexible?: boolean;
+  /**
+   * No existe todavía: es una propuesta (un hueco sugerido, a dónde iría una
+   * cita si se reacomoda). Se dibuja translúcida y con borde discontinuo, no
+   * se arrastra y tocarla es aceptar la propuesta.
+   */
+  ghost?: boolean;
+  /** Por qué se propone («Sin dejar hueco entre citas»): una línea bajo el título. */
+  note?: string;
 }
 
 /** Dónde soltó alguien una tarjeta: la columna y la hora nuevas. */
@@ -64,6 +113,13 @@ export interface ScheduleDrop {
   start: Date;
   end: Date;
 }
+
+/**
+ * Si un destino vale. Devuelve `null` cuando sí y, si no, el motivo en una
+ * frase («Se pisa con Marcela Gómez»): la rejilla lo enseña mientras se
+ * arrastra y no suelta la tarjeta ahí.
+ */
+export type ScheduleDropValidator = (event: ScheduleEvent, drop: ScheduleDrop) => string | null;
 
 /** Un hueco libre que alguien tocó. */
 export interface ScheduleSlot {

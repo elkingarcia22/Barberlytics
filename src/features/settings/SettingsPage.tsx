@@ -25,7 +25,7 @@ export function SettingsPage() {
   return (
     <>
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, t("settings.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("settings.title")]} />
       </ShellHeaderSlot>
 
       <PageHeader title={t("settings.title")} description={t("settings.description")} />

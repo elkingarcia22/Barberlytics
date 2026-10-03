@@ -133,13 +133,23 @@ export function FluidHighlight({ className }: { className?: string }) {
   const [state, setState] = React.useState<HighlightState>(INITIAL)
 
   React.useEffect(() => {
-    const container = ref.current?.parentElement
+    /*
+     * Se mide contra el bloque que posiciona la píldora (`offsetParent`), no
+     * contra el padre directo: cmdk envuelve los ítems en un `cmdk-list-sizer`
+     * estático entre la lista `relative` y la píldora. Medir contra el sizer
+     * dejaba la medida referida a un bloque que no es el de la píldora y la
+     * pintaba un campo de búsqueda más abajo, cortando el ítem.
+     */
+    const pill = ref.current
+    const container = (pill?.offsetParent as HTMLElement | null) ?? pill?.parentElement
     if (!container) return
 
     let previous: Placement | null = null
     let lastActive: HTMLElement | null = null
     let queued = false
     let disposed = false
+    // Se asigna más abajo; `sync` solo lo usa cuando ya existe.
+    let resizeObserver: ResizeObserver | null = null
 
     const sync = () => {
       queued = false
@@ -152,6 +162,15 @@ export function FluidHighlight({ className }: { className?: string }) {
        * cuesta nada.
        */
       if (active === lastActive) return
+      /*
+       * La píldora se mide una vez por ítem, así que si el ítem cambia de
+       * tamaño después —el popover todavía no tenía su ancho definitivo
+       * cuando cmdk marcó el primero, o una descripción pasó a dos líneas—
+       * la medida se queda vieja y la píldora corta el ítem. Vigilar el
+       * tamaño del ítem activo y del contenedor obliga a medir de nuevo.
+       */
+      if (lastActive) resizeObserver?.unobserve(lastActive)
+      if (active) resizeObserver?.observe(active)
       lastActive = active
 
       const next = active ? measure(active, container) : null
@@ -194,6 +213,16 @@ export function FluidHighlight({ className }: { className?: string }) {
       queueMicrotask(sync)
     }
 
+    /* Un cambio de tamaño invalida la medida: se vuelve a medir aunque el ítem activo sea el mismo. */
+    resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            lastActive = null
+            schedule()
+          })
+    resizeObserver?.observe(container)
+
     sync()
 
     /*
@@ -222,6 +251,7 @@ export function FluidHighlight({ className }: { className?: string }) {
       container.removeEventListener("pointermove", schedule)
       container.removeEventListener("pointerleave", schedule)
       observer.disconnect()
+      resizeObserver?.disconnect()
     }
   }, [])
 

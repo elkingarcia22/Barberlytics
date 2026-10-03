@@ -10,7 +10,6 @@ import {
 } from "date-fns";
 import type { Locale } from "date-fns";
 
-import { CalendarOff } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n";
@@ -236,7 +235,7 @@ export function EventCalendar({
 
       {isEmpty ? (
         <EmptyState
-          icon={CalendarOff}
+          icon="calendar"
           title={t("date.nothingScheduled")}
           description={`No encontramos eventos en ${title.toLowerCase()}. Cambia de periodo o crea el primero desde un hueco del calendario.`}
         />

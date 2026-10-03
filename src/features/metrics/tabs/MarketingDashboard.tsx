@@ -1,4 +1,3 @@
-import { Megaphone } from "lucide-react";
 import { BarList, MetricCard } from "@/components/charts";
 import { EmptyState } from "@/components/feedback";
 import { useAppT } from "@/app/i18n";
@@ -86,7 +85,7 @@ export function MarketingDashboard({ data }: { data: MetricsMarketing }) {
           />
         </div>
       ) : (
-        <EmptyState icon={Megaphone} title={t("metrics.marketing.empty")} description={t("metrics.marketing.emptyHint")} />
+        <EmptyState icon="analytics" title={t("metrics.marketing.empty")} description={t("metrics.marketing.emptyHint")} />
       )}
     </div>
   );

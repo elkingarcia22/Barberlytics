@@ -109,6 +109,10 @@ export const globalSearchEntry = defineEntry({
     { name: "navigate", type: "SearchNavigateItem[]", description: "Destinos. `path` es la ruta legible completa: se pinta como migas y se busca por cualquier tramo." },
     { name: "onAsk", type: "(question: string) => void", description: "Habilita preguntar al agente con lo escrito. Sin esto no hay grupo de preguntas." },
     { name: "askHint", type: "string", description: "Una línea que explica dónde responde la pregunta." },
+    { name: "askSuggestions", type: "string[]", description: "Preguntas que se ofrecen antes de escribir (hasta dos). Pásale las de la pantalla en la que se está." },
+    { name: "actions", type: "SearchActionItem[]", description: "Acciones que se ofrecen siempre. Las de la pantalla abierta no hace falta pasarlas: llegan solas desde su barra de acciones (`usePublishSearchActions`)." },
+    { name: "contextLabel", type: "string", description: "El nombre de la pantalla actual; rotula el grupo «Acciones rápidas · Calendario»." },
+    { name: "recentsKey", type: "string | null", default: '"thema.search.recents"', description: "Dónde se recuerdan en el navegador los últimos resultados abiertos. `null` para no recordarlos." },
     { name: "scope", type: "string", description: "Sobre qué se busca; se muestra en la barra inferior como «Alcance»." },
     { name: "placeholder", type: "string", default: '"Buscar o preguntar"', description: "Texto del campo." },
     { name: "triggerLabel", type: "string", description: "Texto del disparador en la cabecera; por defecto, el del campo." },
@@ -116,6 +120,7 @@ export const globalSearchEntry = defineEntry({
   ],
   guidelines: {
     do: [
+      "Con el campo vacío deja que hable el contexto: acciones de la pantalla, una pregunta sobre ella y lo último abierto. El índice entero llega al escribir.",
       "Deja que el shell la monte: así el atajo ⌘K y su sitio en la cabecera son los mismos en todo el producto.",
       "Pon en `meta` lo que distingue a dos registros con el mismo nombre: tipo, estado, cifras.",
       "Usa `keywords` para alias y jerga que la gente escribe pero que no quieres pintar en la fila.",

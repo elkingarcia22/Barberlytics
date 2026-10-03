@@ -1,4 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from "vitest"
+import { setActionsPlacement } from "@/components/action-rail"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DataListBlock } from "./DataListBlock"
@@ -66,6 +67,8 @@ class ObservadorInerte {
 
 beforeEach(() => {
   window.localStorage.clear()
+  // Dónde van las acciones es un ajuste de la persona, no de cada tabla.
+  setActionsPlacement("rail")
   vi.stubGlobal("IntersectionObserver", ObservadorInerte)
 })
 
@@ -207,6 +210,7 @@ describe("DataListBlock", () => {
       "thema.tabla.inline",
       JSON.stringify({ order: [], hidden: [], pinned: [], mode: "paged", view: "table", actions: "inline" })
     )
+    setActionsPlacement("inline")
     renderBlock({
       tableId: "inline",
       selectable: true,
@@ -233,6 +237,7 @@ describe("DataListBlock", () => {
       "thema.tabla.ambitos",
       JSON.stringify({ order: [], hidden: [], pinned: [], mode: "paged", view: "table", actions: "inline" })
     )
+    setActionsPlacement("inline")
     renderBlock({
       tableId: "ambitos",
       selectable: true,
@@ -295,6 +300,7 @@ describe("DataListBlock", () => {
       "thema.tabla.genero",
       JSON.stringify({ order: [], hidden: [], pinned: [], mode: "paged", view: "table", actions: "inline" })
     )
+    setActionsPlacement("inline")
     renderBlock({ tableId: "genero", selectable: true, gender: "f" })
 
     await user.click(screen.getByRole("checkbox", { name: "Seleccionar Plan trimestral" }))

@@ -29,6 +29,8 @@ export interface FakeCloud {
   failShareFor: Set<string>;
   /** Simula una carrera: otra instancia crea una hoja justo antes que esta. */
   raceOnCreate: boolean;
+  /** Archivos de Drive que no son hojas: los adjuntos ya subidos. */
+  files: { id: string; parents: string[]; webViewLink: string }[];
 }
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -40,6 +42,7 @@ export function createFakeCloud(): FakeCloud {
     claude: { reply: null, requests: [] },
     failShareFor: new Set(),
     raceOnCreate: false,
+    files: [],
     fetchImpl: undefined as unknown as typeof fetch,
   };
   let nextId = 1;
@@ -61,6 +64,16 @@ export function createFakeCloud(): FakeCloud {
       const reply = cloud.claude.reply;
       if (reply instanceof Error) return json({ error: { message: reply.message } }, 529);
       return json({ model: "claude-sonnet-5-5", content: [{ type: "text", text: reply ?? "{}" }] });
+    }
+
+    if (url.startsWith("https://www.googleapis.com/upload/drive/v3/files?") && method === "POST") {
+      return new Response(null, { status: 200, headers: { Location: `https://www.googleapis.com/upload/drive/v3/files?upload_id=sesion-${nextId++}` } });
+    }
+
+    const attachment = /drive\/v3\/files\/([^/?]+)\?fields=id,webViewLink,parents/.exec(url);
+    if (attachment && method === "GET") {
+      const found = cloud.files.find((item) => item.id === attachment[1]);
+      return found ? json(found) : json({ error: { message: "File not found" } }, 404);
     }
 
     if (url.startsWith("https://www.googleapis.com/drive/v3/files?")) {

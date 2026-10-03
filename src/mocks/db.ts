@@ -4,6 +4,11 @@
  * son reproducibles. Se reinicia al recargar la página.
  */
 import { seededRandom } from "./random";
+import { emptyCustomers, type MockCustomersState } from "./customers/seed";
+import { seedServices, type MockServicesState } from "./services/seed";
+import { seedProducts, type MockProductsState } from "./products/seed";
+import { seedExpenses, type MockExpense } from "./expenses/seed";
+import { seedSettings, type MockSettingsState } from "./settings/seed";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember } from "./team/seed";
 
@@ -135,10 +140,22 @@ const emptyTeam = (): MockTeamState => {
 export interface MockDb {
   /** Feedback de campañas recibido; en memoria, se pierde al recargar. */
   feedback: Record<string, unknown>[];
+  /** Adjuntos de feedback «subidos»; solo se guarda qué eran. */
+  feedbackUploads: { id: string; name: string; size: number }[];
   users: MockUser[];
   branding: MockBranding;
   calendar: MockCalendarState;
   team: MockTeamState;
+  /** Lo que la ficha de un cliente añade a los clientes de la agenda. */
+  customers: MockCustomersState;
+  /** El catálogo de servicios: de aquí sale lo que la agenda puede agendar. */
+  services: MockServicesState;
+  /** El catálogo de productos: de aquí sale lo que la caja puede vender. */
+  products: MockProductsState;
+  /** Lo que sale de caja, por sucursal. */
+  expenses: MockExpense[];
+  /** La configuración: un documento por ajuste y las listas (sucursales, cierres, impuestos, datáfonos). */
+  settings: MockSettingsState;
   /** token → id de cuenta */
   sessions: Map<string, string>;
   /** celular → intentos fallidos seguidos al verificar el código. Solo en memoria. */
@@ -149,13 +166,21 @@ export interface MockDb {
 }
 
 const STORAGE_KEY = "thema.mock.db";
+/** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
+const SCHEMA_VERSION = 6;
 
 interface PersistedDb {
+  version?: number;
   users: MockUser[];
   sessions: [string, string][];
   branding?: MockBranding;
   calendar?: MockCalendarState;
   team?: MockTeamState;
+  customers?: MockCustomersState;
+  services?: MockServicesState;
+  products?: MockProductsState;
+  expenses?: MockExpense[];
+  settings?: MockSettingsState;
 }
 
 function storage(): Storage | null {
@@ -169,7 +194,8 @@ function storage(): Storage | null {
 function load(): PersistedDb | null {
   try {
     const raw = storage()?.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PersistedDb) : null;
+    const saved = raw ? (JSON.parse(raw) as PersistedDb) : null;
+    return saved && saved.version === SCHEMA_VERSION ? saved : null;
   } catch {
     return null;
   }
@@ -187,14 +213,20 @@ export function createDb(): MockDb {
     branding: saved?.branding ?? EMPTY_BRANDING,
     calendar: saved?.calendar ?? emptyCalendar(),
     team: saved?.team ?? emptyTeam(),
+    customers: saved?.customers ?? emptyCustomers(),
+    services: saved?.services ?? seedServices(),
+    products: saved?.products ?? seedProducts(),
+    expenses: saved?.expenses ?? seedExpenses(),
+    settings: saved?.settings ?? seedSettings(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
     feedback: [],
+    feedbackUploads: [],
     persist() {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -205,9 +237,15 @@ export function createDb(): MockDb {
       db.branding = EMPTY_BRANDING;
       db.calendar = emptyCalendar();
       db.team = emptyTeam();
+      db.customers = emptyCustomers();
+      db.services = seedServices();
+      db.products = seedProducts();
+      db.expenses = seedExpenses();
+      db.settings = seedSettings();
       db.sessions.clear();
       db.loginFailures.clear();
       db.feedback = [];
+      db.feedbackUploads = [];
       try {
         storage()?.removeItem(STORAGE_KEY);
       } catch {

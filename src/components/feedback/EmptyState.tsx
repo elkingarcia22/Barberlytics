@@ -1,19 +1,23 @@
 import * as React from "react"
-import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { GlassIcon, type GlassTone, type IconName } from "@/icons"
 import { Card } from "@/components/ui/card"
 
 interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string
   description?: string
-  icon?: LucideIcon
+  /** Concepto del registro de iconos; se pinta como ilustración Glass sobre el título. */
+  icon?: IconName
+  /** Tono del cristal; `brand` sigue al gradiente de marca del tema. */
+  iconTone?: GlassTone
   action?: React.ReactNode
 }
 
 export function EmptyState({
   title,
   description,
-  icon: Icon,
+  icon,
+  iconTone = "brand",
   action,
   className,
   ...props
@@ -26,11 +30,7 @@ export function EmptyState({
       )}
       {...props}
     >
-      {Icon && (
-        <div className="mb-4 rounded-full bg-surface-muted p-4 text-text-muted">
-          <Icon size={32} strokeWidth={2} />
-        </div>
-      )}
+      {icon && <GlassIcon name={icon} tone={iconTone} size={64} className="mb-3" />}
       <h3 className="text-lg font-bold text-text-primary mb-2">
         {title}
       </h3>

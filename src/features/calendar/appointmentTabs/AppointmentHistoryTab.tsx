@@ -16,7 +16,10 @@ export interface AppointmentHistoryTabProps {
   ctx: ModelContext;
 }
 
-const TONE_BY_EVENT: Record<string, "default" | "primary" | "positive" | "negative" | "warning"> = {
+const TONE_BY_EVENT: Record<
+  string,
+  "default" | "primary" | "positive" | "negative" | "warning"
+> = {
   created: "primary",
   walkin: "primary",
   "status:paid": "positive",
@@ -26,24 +29,41 @@ const TONE_BY_EVENT: Record<string, "default" | "primary" | "positive" | "negati
   "status:seated": "warning",
 };
 
-export function AppointmentHistoryTab({ appointment, ctx }: AppointmentHistoryTabProps) {
+export function AppointmentHistoryTab({
+  appointment,
+  ctx,
+}: AppointmentHistoryTabProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const entries = [...appointment.history].reverse();
-  const origin = appointment.source === "online" ? t("calendar.history.online") : t("calendar.history.inShop");
+  const origin =
+    appointment.source === "online"
+      ? t("calendar.history.online")
+      : t("calendar.history.inShop");
 
   return (
-    <DrawerSection icon={History} tone="neutral" title={t("calendar.history.title")} hint={t("calendar.history.hint")}>
+    <DrawerSection
+      icon={History}
+      tone="neutral"
+      title={t("calendar.history.title")}
+      hint={t("calendar.history.hint")}
+    >
       <Timeline>
         {entries.map((entry) => {
           const kind = entry.event.split(":")[0];
-          const tone = TONE_BY_EVENT[entry.event] ?? TONE_BY_EVENT[kind] ?? "default";
+          const tone =
+            TONE_BY_EVENT[entry.event] ?? TONE_BY_EVENT[kind] ?? "default";
           return (
             <TimelineItem
               key={entry.id}
               tone={tone}
               title={historyLabel(entry.event, ctx)}
-              time={formatDate(new Date(entry.at), { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" })}
+              time={formatDate(new Date(entry.at), {
+                day: "2-digit",
+                month: "short",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
               description={`${origin} · ${entry.actor}`}
             />
           );

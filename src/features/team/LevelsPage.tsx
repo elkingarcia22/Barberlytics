@@ -48,7 +48,7 @@ export function LevelsPage() {
   return (
     <div className="space-y-4">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamLevels.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamLevels.title")]} />
       </ShellHeaderSlot>
       <PageHeader title={t("teamLevels.title")} description={t("teamLevels.description")} meta={levels.data ? <span>{t("teamLevels.total", { count: levels.data.items.length })}</span> : undefined} />
 
@@ -58,7 +58,7 @@ export function LevelsPage() {
           when: (data) => data.items.length === 0,
           render: (
             <EmptyState
-              icon={Layers}
+              icon="layers"
               title={t("teamLevels.empty")}
               description={t("teamLevels.emptyHint")}
               action={

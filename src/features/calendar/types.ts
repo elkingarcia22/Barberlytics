@@ -173,6 +173,8 @@ export const appointmentInputSchema = z.object({
   repeat: repeatRuleSchema,
   requestedBarberId: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  /** Quien agenda sin reglas (dueño, administrador, recepción, barbero de renta) puede pisar otra cita o un bloqueo. */
+  force: z.boolean().optional(),
 });
 export type AppointmentInput = z.infer<typeof appointmentInputSchema>;
 
@@ -184,6 +186,12 @@ export interface AppointmentPatch {
   durationMin?: number;
   serviceIds?: string[];
   notes?: string | null;
+  /** Por qué se hace el cambio («movida 15 min porque la anterior se alargó»): queda en el historial. */
+  reason?: string;
+  /** Saltarse la regla de no pisar: solo quien agenda sin reglas. */
+  force?: boolean;
+  /** Quién lo decidió cuando no fue la persona que está en pantalla: el asistente. */
+  actor?: "assistant";
 }
 
 export interface CheckoutInput {
@@ -191,6 +199,8 @@ export interface CheckoutInput {
   products: ProductLine[];
   tip: number;
   method: PaymentMethod;
+  /** El recargo por tarjeta, si Configuración lo tiene encendido. */
+  surcharge?: number;
 }
 
 export const blockInputSchema = z.object({
@@ -226,8 +236,8 @@ export interface NoteInput {
 
 /* --------------------------------------------------------------- claves */
 
-export type CalendarView = "agenda" | "day" | "month";
-export const CALENDAR_VIEWS: readonly CalendarView[] = ["agenda", "day", "month"];
+export type CalendarView = "agenda" | "day" | "week" | "month";
+export const CALENDAR_VIEWS: readonly CalendarView[] = ["agenda", "day", "week", "month"];
 
 /** El filtro «Equipo»: los que trabajan, todos, o un barbero por id. */
 export type TeamFilter = "working" | "all" | (string & {});

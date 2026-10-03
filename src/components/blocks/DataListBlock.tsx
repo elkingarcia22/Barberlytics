@@ -342,7 +342,7 @@ export function DataListBlock<T>({
                 <Search />
               </Button>
             ))}
-          <TableConfigButton config={config} noun={noun} showActionsPlacement={selectable} />
+          <TableConfigButton config={config} noun={noun} />
         </>
         )
       }

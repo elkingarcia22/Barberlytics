@@ -21,7 +21,7 @@ export function MediaPreview({
   if (!item) {
     return emptyState || (
       <EmptyState 
-        icon={ImageIcon}
+        icon="image"
         title="No hay elemento seleccionado"
         description="Selecciona un recurso multimedia para ver su previsualización técnica."
         className={cn("border-dashed", className)}

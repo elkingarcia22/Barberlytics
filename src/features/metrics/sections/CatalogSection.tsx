@@ -1,4 +1,3 @@
-import { Package } from "lucide-react";
 import { BarList } from "@/components/charts";
 import { EmptyState } from "@/components/feedback";
 import { useAppT } from "@/app/i18n";
@@ -34,7 +33,7 @@ export function CatalogSection({ data }: CatalogSectionProps) {
         emptyLabel={t("metrics.services.empty")}
       />
       {data.products.length === 0 ? (
-        <EmptyState icon={Package} title={t("metrics.products.empty")} description={t("metrics.products.emptyHint")} className="p-card" />
+        <EmptyState icon="templates" title={t("metrics.products.empty")} description={t("metrics.products.emptyHint")} className="p-card" />
       ) : (
         <BarList
           title={t("metrics.products.title")}

@@ -196,6 +196,7 @@ export const drawerShellEntry = defineEntry({
     { name: "open / onOpenChange", type: "boolean / (open: boolean) => void", description: "Estado controlado del panel." },
     { name: "trigger", type: "React.ReactNode", description: "Elemento que abre el drawer (`asChild`)." },
     { name: "title / description", type: "string", description: "Cabecera con borde inferior; si ambos faltan, no se pinta." },
+    { name: "leading", type: "React.ReactNode", description: "Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo)." },
     { name: "children", type: "React.ReactNode", description: "Cuerpo con scroll propio y `scrollbar-gutter: stable`." },
     { name: "actions", type: "React.ReactNode", description: "Botones del pie, en un `SheetFooter` con borde superior." },
     { name: "footer", type: "React.ReactNode", description: "Pie completamente personalizado; reemplaza a `actions`." },

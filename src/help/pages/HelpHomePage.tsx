@@ -218,7 +218,7 @@ function HomeContent({ index }: { index: HelpIndex }) {
             {t("help.ctaSearch")}
           </Button>
           <Button asChild>
-            <Link to="/dashboard">
+            <Link to="/metricas">
               {t("help.ctaOpenApp")}
               <ArrowRight className="size-4" />
             </Link>

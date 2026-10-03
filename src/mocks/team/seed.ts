@@ -290,11 +290,18 @@ export function seedTeam(): MockTeamMember[] {
     person(2, "Mateo", "Herrera", "admin", "ma"),
     person(3, "Lucía", "Bernal", "recepcion", "ma"),
     person(4, "Andrés", "Beltrán", "barbero-comision", "ma", { levelId: "lvl_master", schedule: week(MON_SAT, "09:00", "19:00"), description: "Especialista en corte clásico y barba a navaja.", skills: ["Corte clásico", "Barba a navaja", "Fade"], compensation: { basic: 45, recurring: 50 } }),
+    person(29, "Emilio", "Arango", "barbero-comision", "ma", { levelId: "lvl_junior", schedule: week(MON_SAT, "10:00", "19:00"), skills: ["Corte clásico", "Fade"] }),
+    person(30, "Paola", "Zuluaga", "barbero-renta", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "09:00", "17:00"), skills: ["Barba a navaja", "Diseño"] }),
     person(5, "Nicolás", "Duarte", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "10:00", "20:00"), skills: ["Fade", "Diseño"] }),
     person(6, "Valeria", "Marín", "barbero-renta", "ma", { levelId: "lvl_master", schedule: week(MON_FRI, "08:00", "16:00"), bookingVisible: true, options: { newClients: false } }),
     person(7, "Tomás", "Peña", "barbero-renta", "ma", { levelId: "lvl_junior", schedule: week(WED_SAT, "12:00", "22:00") }),
-    person(8, "Daniela", "Osorio", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(MON_SAT, "09:00", "18:00", { "3": { start: "09:00", end: "13:00" } }), skills: ["Color", "Tratamientos"] }),
+    person(8, "Daniela", "Osorio", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(MON_SAT, "09:00", "18:00", { "3": { start: "09:00", end: "13:00" } }), skills: ["Color", "Tratamientos"], compensation: { type: "salary", salary: 650 } }),
     person(9, "Julián", "Cifuentes", "barbero-comision", "ma", { status: "invited", levelId: "lvl_aprendiz", schedule: NO_SCHEDULE, skills: [] }),
+    // Massachusetts es la sucursal grande a propósito: con once barberos la
+    // agenda del día no cabe en pantalla y se desplaza a lo ancho (diez trabajando un viernes).
+    person(26, "Samuel", "Pardo", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(MON_SAT, "09:00", "18:00"), skills: ["Fade", "Barba"] }),
+    person(27, "Martín", "Quiroga", "barbero-renta", "ma", { levelId: "lvl_junior", schedule: week(TUE_SAT, "11:00", "20:00"), skills: ["Corte clásico"] }),
+    person(28, "Lorena", "Lemos", "barbero-comision", "ma", { levelId: "lvl_master", schedule: week(MON_FRI, "08:00", "17:00"), skills: ["Color", "Diseño", "Tratamientos"], compensation: { basic: 45, recurring: 50 } }),
 
     person(10, "Valentina", "Ruiz", "admin", "nc"),
     person(11, "Camilo", "Restrepo", "barbero-comision", "nc", { levelId: "lvl_senior", schedule: week(MON_SAT, "09:00", "18:00") }),

@@ -1,8 +1,8 @@
 # Catálogo de componentes Thema
 
-Generado el 2026-09-30 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
+Generado el 2026-10-02 con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`; cada ficha completa en `/docs#/components/<id>`.
 
-**198 componentes** en 21 familias · 88 iconos en el registro · 113 tokens.
+**200 componentes** en 21 familias · 94 iconos en el registro · 113 tokens.
 
 ## Guías
 
@@ -2470,6 +2470,10 @@ import { GlobalSearch } from "@/components/search"
 | `navigate` | `SearchNavigateItem[]` |  | Destinos. `path` es la ruta legible completa: se pinta como migas y se busca por cualquier tramo. |
 | `onAsk` | `(question: string) => void` |  | Habilita preguntar al agente con lo escrito. Sin esto no hay grupo de preguntas. |
 | `askHint` | `string` |  | Una línea que explica dónde responde la pregunta. |
+| `askSuggestions` | `string[]` |  | Preguntas que se ofrecen antes de escribir (hasta dos). Pásale las de la pantalla en la que se está. |
+| `actions` | `SearchActionItem[]` |  | Acciones que se ofrecen siempre. Las de la pantalla abierta no hace falta pasarlas: llegan solas desde su barra de acciones (`usePublishSearchActions`). |
+| `contextLabel` | `string` |  | El nombre de la pantalla actual; rotula el grupo «Acciones rápidas · Calendario». |
+| `recentsKey` | `string \| null` | `"thema.search.recents"` | Dónde se recuerdan en el navegador los últimos resultados abiertos. `null` para no recordarlos. |
 | `scope` | `string` |  | Sobre qué se busca; se muestra en la barra inferior como «Alcance». |
 | `placeholder` | `string` | `"Buscar o preguntar"` | Texto del campo. |
 | `triggerLabel` | `string` |  | Texto del disparador en la cabecera; por defecto, el del campo. |
@@ -2488,7 +2492,7 @@ const navigate = [
 ];
 ```
 
-Sí: Deja que el shell la monte: así el atajo ⌘K y su sitio en la cabecera son los mismos en todo el producto. · Pon en `meta` lo que distingue a dos registros con el mismo nombre: tipo, estado, cifras. · Usa `keywords` para alias y jerga que la gente escribe pero que no quieres pintar en la fila. · Pasa `scope` cuando la búsqueda no abarque todo: la empresa, el espacio o el proyecto activo.
+Sí: Con el campo vacío deja que hable el contexto: acciones de la pantalla, una pregunta sobre ella y lo último abierto. El índice entero llega al escribir. · Deja que el shell la monte: así el atajo ⌘K y su sitio en la cabecera son los mismos en todo el producto. · Pon en `meta` lo que distingue a dos registros con el mismo nombre: tipo, estado, cifras. · Usa `keywords` para alias y jerga que la gente escribe pero que no quieres pintar en la fila. · Pasa `scope` cuando la búsqueda no abarque todo: la empresa, el espacio o el proyecto activo.
 No: No la uses para filtrar una tabla o una lista de una pantalla: para eso está su propio campo de búsqueda. · No pases `onAsk` si no hay un agente que responda; la fila de preguntas prometería algo que no ocurre. · No metas cientos de objetos sin filtrar en el cliente: por encima de unos pocos cientos, filtra en el servidor y pasa el resultado.
 Relacionados: thema-product-header, admin-shell, command
 
@@ -2732,7 +2736,7 @@ No: No anides una tira `page` dentro de un panel `view`. · No pongas un contado
 Relacionados: tabs, tabs-nav, badge
 
 
-## [object Object] · 5
+## [object Object] · 6
 
 [object Object]
 
@@ -2923,6 +2927,45 @@ Sí: Úsalo para tareas de uno o dos campos; si crece, pásate a `DrawerShell`. 
 No: No lo uses para confirmar acciones destructivas: para eso está `ConfirmDialog`. · No apiles modales; abre un `ConfirmDialog` encima si hace falta, nunca otro `ModalShell`.
 Relacionados: dialog, drawer-shell, confirm-dialog, button
 
+### SidePanelShell (beta)
+
+Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae solo a un drawer cuando no hay sitio para dos columnas o no hay shell alrededor.
+
+```ts
+import { SidePanelShell } from "@/components/overlays"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `open / onOpenChange` | `boolean / (open: boolean) => void` |  | Estado controlado del panel. Escape y la X llaman a `onOpenChange(false)`. |
+| `title / description` | `string` |  | Cabecera; el título es también el nombre accesible del panel. |
+| `children` | `React.ReactNode` |  | Cuerpo con scroll propio. Solo se monta mientras está abierto. |
+| `actions` | `React.ReactNode` |  | Botones del pie, alineados a la derecha. |
+| `footer` | `React.ReactNode` |  | Pie completamente personalizado; reemplaza a `actions`. |
+| `size` | `"sm" … "full"` | `"md"` | Solo cuenta cuando cae a `DrawerShell`; al lado el ancho es fijo (460px, o 42% de la ventana), pegado al borde y separado de la página por una línea. |
+| `showCloseButton` | `boolean` | `true` | Muestra la X de la cabecera. |
+| `disablePadding` | `boolean` | `false` | Quita el padding del cuerpo. |
+
+Ejemplo · Panel al lado:
+
+```tsx
+const [open, setOpen] = React.useState(false);
+
+<SidePanelShell
+  open={open}
+  onOpenChange={setOpen}
+  title="Martín Martínez"
+  description="Jueves 1 de octubre"
+  actions={<Button onClick={() => setOpen(false)}>Ingresar</Button>}
+>
+  …
+</SidePanelShell>
+```
+
+Sí: Úsalo cuando la tarea necesita ver la página de atrás: una agenda, una lista, un tablero. · Mantén un solo panel abierto a la vez: abrir otro cierra el anterior y el hueco no salta. · Compón el cuerpo con `DrawerSection`, igual que en un drawer.
+No: No lo uses para un formulario que pide toda la atención: ahí va `DrawerShell` o `ModalShell`. · No pongas dentro confirmaciones destructivas: abre un `ConfirmDialog` encima. · No fijes anchos propios: el panel decide cuánto le quita a la página.
+Relacionados: drawer-shell, drawer-section, ai-agent-drawer, confirm-dialog
+
 ### TemplateCatalogDrawer
 
 El catálogo de plantillas en un panel: galería por estantes con buscador y dos vistas, una plantilla destacada arriba, y un paso más adentro la ficha con las líneas que trae, su peso dibujado y una fila de alternativas. Usa las mismas TemplateTile que van en la página, así que la plantilla que alguien reconoció fuera es la que reconoce dentro.
@@ -3006,7 +3049,7 @@ Relacionados: alert, badge, button, tooltip
 
 ### EmptyState
 
-La tarjeta punteada que ocupa el lugar de una lista vacía: un icono, un título, una explicación breve y, si aplica, la acción que la llena. Reutiliza `Card` con borde discontinuo y fondo sutil.
+La tarjeta punteada que ocupa el lugar de una lista vacía: una ilustración Glass, un título, una explicación breve y, si aplica, la acción que la llena. Reutiliza `Card` con borde discontinuo y fondo sutil.
 
 ```ts
 import { EmptyState } from "@/components/feedback/EmptyState"
@@ -3016,7 +3059,8 @@ import { EmptyState } from "@/components/feedback/EmptyState"
 |---|---|---|---|
 | `title` | `string` |  | El titular del estado vacío. |
 | `description` | `string` |  | Explicación breve de por qué está vacío o qué hacer. |
-| `icon` | `LucideIcon` |  | Icono en el disco superior; se omite si no se pasa. |
+| `icon` | `IconName` |  | Concepto del registro de iconos (`file`, `search`, `calendar`…); se pinta como ilustración Glass sobre el título y se omite si no se pasa. |
+| `iconTone` | `"brand" \| "violet" \| "blue" \| "green" \| "orange" \| "rose" \| "amber" \| "teal"` | `"brand"` | Tono del cristal. Por defecto `brand`, que sigue al tema. |
 | `action` | `React.ReactNode` |  | Botón o grupo de botones bajo la descripción. |
 | `className` | `string` |  | Clases extra sobre la `Card` (p. ej. para quitar el marco). |
 | `...props` | `React.HTMLAttributes<HTMLDivElement>` |  | Cualquier atributo nativo del contenedor. |
@@ -3024,7 +3068,7 @@ import { EmptyState } from "@/components/feedback/EmptyState"
 Ejemplo · Sin acción:
 
 ```tsx
-<EmptyState icon={FolderOpen} title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />
+<EmptyState icon="file" title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />
 ```
 
 Sí: Di qué está vacío y qué lo llenaría, en una o dos frases. · Ofrece la acción que resuelve el vacío cuando el usuario puede hacerla desde aquí. · Quita el marco con `className` si el contenedor ya dibuja uno.
@@ -3163,6 +3207,36 @@ Sí: Cambia el `id` al lanzar otra cosa: así todos ven el nuevo recorrido. · A
 No: No montes dos campañas a la vez: habría dos botones en la misma esquina.
 Relacionados: guided-tour, feedback-launcher, feedback-panel
 
+### FeedbackDialog (beta)
+
+El único diálogo donde se deja feedback, lo abra el menú lateral o el botón de una campaña: tipo (mejora, error o idea), comentario y, si ayuda, lo que se ve —un recorte de la pantalla, un video de hasta un minuto o imágenes subidas—. Mientras se captura o se graba se aparta para dejar ver la página y vuelve con el adjunto puesto. Conserva todo si el envío falla y, al acertar, agradece y deja escribir otro.
+
+```ts
+import { FeedbackDialog } from "@/components/feedback-loop"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `open / onOpenChange` | `boolean / (open) => void` |  | Controlado. Escape, ✕ y «Cancelar» piden cerrar. |
+| `sections` | `{ value; label }[]` |  | Partes evaluables. Con una o ninguna, el selector no se enseña. |
+| `defaultSection` | `string` |  | La preseleccionada; por defecto, la primera. |
+| `context` | `string` |  | Dónde está la persona («Métricas»). Va con el comentario salvo que desmarque la casilla. |
+| `onSubmit` | `(values: { type; section; comment; attachments: File[]; includePage; canContact }) => Promise<void> \| void` |  | Envía. El comentario llega recortado y los adjuntos como archivos. Si la promesa falla, su `message` se enseña. |
+| `minLength / maxLength` | `number` | `5 / 1000` | Límites del comentario, con contador. |
+| `labels` | `Partial<FeedbackDialogLabels>` |  | Todos los textos, para traducir o ajustar el tono. |
+
+Ejemplo · Si el envío falla:
+
+```tsx
+const enviar = async (values) => {
+  await api.post("/feedback", values) // si lanza, el diálogo enseña error.message
+}
+```
+
+Sí: Usa este mismo diálogo desde cualquier puerta: menú lateral, campaña o un enlace de ayuda. · Traduce los errores a lenguaje de persona antes de lanzarlos desde `onSubmit`. · Ofrece pocas secciones (5–7) y una para «algo que falta».
+No: No pidas la página en un campo: `context` ya la dice y viaja sola. · No montes otro formulario de feedback al lado: dos experiencias distintas dan dos calidades de comentario.
+Relacionados: feedback-launcher, feedback-campaign, textarea, toggle-group
+
 ### FeedbackLauncher (beta)
 
 El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). Empieza como pastilla con texto y, una vez usado, se contrae a un círculo; `highlight` añade un pulso para una campaña que aún no tiene tu opinión. En móvil sube para no pisar el `ActionFab`.
@@ -3189,36 +3263,6 @@ Ejemplo · Primera vez y ya usado:
 Sí: Móntalo una sola vez, en el layout, para que acompañe a todas las páginas. · Pásale `data-tour` si el recorrido debe señalarlo.
 No: No lo pongas dentro del contenido de una pantalla: es un elemento del marco. · No cambies su color: es la llamada a la acción de la campaña.
 Relacionados: feedback-panel, feedback-campaign, action-fab
-
-### FeedbackPanel (beta)
-
-El panel flotante donde se deja el feedback: sección a evaluar y comentario, con la página en la que estás a la vista. No es modal —la pantalla sigue visible para señalar lo que se comenta—, conserva el texto si el envío falla y, al acertar, agradece y deja escribir otro.
-
-```ts
-import { FeedbackPanel } from "@/components/feedback-loop"
-```
-
-| Prop | Tipo | Default | Qué hace |
-|---|---|---|---|
-| `open / onOpenChange` | `boolean / (open) => void` |  | Controlado. Escape, ✕ y «Cancelar» piden cerrar. |
-| `sections` | `{ value; label }[]` |  | Partes evaluables. Con una sola, el selector no se enseña. |
-| `defaultSection` | `string` |  | La preseleccionada; por defecto, la primera. |
-| `context` | `string` |  | Dónde está la persona («Métricas»). |
-| `onSubmit` | `(values: { section; comment }) => Promise<void> \| void` |  | Envía. El comentario llega recortado. Si la promesa falla, su `message` se enseña. |
-| `minLength / maxLength` | `number` | `5 / 1000` | Límites del comentario, con contador. |
-| `labels` | `Partial<FeedbackPanelLabels>` |  | Todos los textos, para traducir o ajustar el tono. |
-
-Ejemplo · Si el envío falla:
-
-```tsx
-const enviar = async (values) => {
-  await api.post("/feedback", values) // si lanza, el panel enseña error.message
-}
-```
-
-Sí: Traduce los errores a lenguaje de persona antes de lanzarlos desde `onSubmit`. · Ofrece pocas secciones (5–7) y una para «algo que falta».
-No: No pidas la página en un campo: `context` ya la dice y viaja sola. · No lo metas en un Dialog: debe dejar ver la pantalla.
-Relacionados: feedback-launcher, feedback-campaign, textarea, select
 
 ### GuidedTour (beta)
 
@@ -3624,7 +3668,7 @@ const rows = PEOPLE.filter((person) => person.name.toLowerCase().includes(query.
   title="Colaboradores"
   description={`${rows.length} de ${PEOPLE.length}`}
   empty={rows.length === 0}
-  emptyState={<EmptyState icon={Search} title="Nadie coincide" className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />}
+  emptyState={<EmptyState icon="search" title="Nadie coincide" className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />}
   actions={<Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar…" className="h-8 w-44" />}
 >
   <Table>…</Table>
@@ -4187,17 +4231,21 @@ import { ResourceDayGrid } from "@/components/scheduling"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `date` | `Date` |  | El día que se muestra. |
-| `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). |
-| `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `kind: "block"` tacha la franja; `locked` impide arrastrar. |
+| `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. |
+| `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: "block"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que solo salen en tarjetas altas; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. |
 | `startHour / endHour` | `number` | `6 / 24` | Primera y última hora visibles (la última exclusiva). |
 | `slotMinutes` | `number` | `30` | Minutos por franja; también el paso al arrastrar. |
-| `now` | `Date` |  | El «ahora» de la línea roja. Sin él, el reloj real. |
+| `slotHeight` | `number` | `56` | Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae compact, normal y wide. |
+| `now` | `Date` |  | El «ahora» de la línea roja. Sin él, el reloj real. Hoy, lo que ya pasó se atenúa. |
 | `onSlotClick` | `(slot: { resourceId; start; isWorking }) => void` |  | Clic en un hueco libre: dónde y a qué hora, y si el recurso trabaja ahí. |
-| `onEventClick` | `(event: ScheduleEvent) => void` |  | Abrir una tarjeta. Sin él las tarjetas no son botones. |
+| `onEventClick` | `(event: ScheduleEvent) => void` |  | Abrir una tarjeta, o aceptar una propuesta si es `ghost`. Sin él las tarjetas no son botones. |
 | `onEventMove` | `(event, drop: { resourceId; start; end }) => void` |  | Se soltó la tarjeta en otra hora o columna. Sin él no se arrastra. |
 | `onEventResize` | `(event, drop) => void` |  | Se estiró la tarjeta desde abajo. Sin él no hay tirador. |
+| `validateDrop` | `(event, drop) => string \| null` |  | Si un destino vale. El motivo que devuelva se enseña mientras se arrastra y al soltar no se mueve nada. |
+| `onDropRejected` | `(event, drop, reason) => void` |  | Se soltó donde `validateDrop` dijo que no. |
 | `resourceActions` | `(resource) => ScheduleResourceAction[]` |  | El menú al tocar el nombre de un recurso (ver perfil, bloquear…). |
 | `height` | `string` | `"max(28rem, calc(100dvh - 17rem))"` | Alto de la región con scroll. |
+| `fill` | `boolean` | `false` | Ocupa el alto que le deje su contenedor flex en vez de medir la ventana: la rejilla es lo único que se desplaza y la página no suma una segunda barra. |
 
 Ejemplo · El día por barbero:
 
@@ -4209,7 +4257,7 @@ Ejemplo · El día por barbero:
     { id: "tomas", name: "Tomás Peña", workingHours: [] },
   ]}
   events={[
-    { id: "e1", resourceId: "andres", start, end, title: "Laura Gómez", subtitle: "Corte clásico · US$ 35", badge: { label: "VIP", tone: "warning" }, action: { label: "Ingresar", onClick } },
+    { id: "e1", resourceId: "andres", start, end, title: "Marcela Gómez", subtitle: "Corte clásico · US$ 35", badge: { label: "VIP", tone: "warning" }, action: { label: "Ingresar", onClick } },
     { id: "b1", resourceId: "andres", start, end, title: "Almuerzo", kind: "block", locked: true },
   ]}
   startHour={8}
@@ -6158,7 +6206,7 @@ No: No dupliques los ajustes como botones sueltos en la barra: costarían dos hu
 Relacionados: action-rail-shell, rail-drag-handle, rail-overflow-menu, drawer-action-rail
 
 
-## [object Object] · 11
+## [object Object] · 12
 
 [object Object]
 
@@ -6445,6 +6493,40 @@ Ejemplo · Los tres anchos:
 Sí: Usa `enterprise` para tablas anchas y dashboards; `constrained` cuando el contenido se lee de arriba abajo. · Encabeza la página con PageHeader como primera sección. · Deja que PageShell sea el único elemento con scroll vertical de la vista.
 No: No pongas otro `<main>` dentro; ya lo es. · No sobrescribas el padding por sección: es el ritmo de página compartido.
 Relacionados: admin-shell, page-header, section-header
+
+### ProcessCenter (beta)
+
+El Centro de procesos de la cabecera: lo que sigue trabajando aunque la persona cambie de pantalla —importaciones, subidas, exportaciones— con su avance, y lo que ya terminó o falló. No lanza nada: cada pantalla publica lo suyo con `publishProcess` y el panel lo enseña. El botón lleva un punto mientras algo corre, y vacío explica qué aparecerá ahí.
+
+```ts
+import { ProcessCenter, publishProcess, updateProcess, removeProcess } from "@/components/app-shell"
+```
+
+| Prop | Tipo | Default | Qué hace |
+|---|---|---|---|
+| `onOpenHistory` | `() => void` |  | Abre el historial completo. Sin esto el pie no ofrece «Historial». En el shell llega por `onOpenProcessHistory`. |
+| `className` | `string` |  | Clases extra sobre el botón de la cabecera. |
+| `publishProcess(process)` | `(process: ShellProcess) => void` |  | Añade un proceso o lo reemplaza en su sitio. Los nuevos van arriba. Publicar lo mismo dos veces no repinta nada. |
+| `updateProcess(id, change)` | `(id, Partial<ShellProcess>) => void` |  | Cambia parte de uno ya publicado: el avance, la línea de detalle, que terminó. |
+| `removeProcess(id)` | `(id: string) => void` |  | Lo retira de la lista. |
+| `ShellProcess` | `{ id; title; meta; progress?; done?; failed?; icon?; actionLabel?; onAction? }` |  | Con `progress` (0–100) está en curso; sin él, en espera. `done` y `failed` lo dejan en la lista como terminado o fallido, con `meta` diciendo cómo acabó. |
+
+Ejemplo · Publicar y actualizar un proceso:
+
+```tsx
+// Quien lanza el trabajo lo publica…
+publishProcess({ id: "importar-clientes", icon: "upload", title: "Importar clientes", meta: "0 de 480", progress: 0 });
+
+// …lo va actualizando…
+updateProcess("importar-clientes", { progress: 25, meta: "120 de 480" });
+
+// …y lo deja como terminado (o fallido, con su motivo en `meta`).
+updateProcess("importar-clientes", { progress: undefined, done: true, meta: "480 clientes importados", actionLabel: "Ver", onAction: abrirClientes });
+```
+
+Sí: Publica aquí lo que tarda y no necesita a la persona mirando: importar, subir archivos, exportar. · Escribe en `meta` algo que se pueda leer de un vistazo: «120 de 480», «Faltan dos columnas». · Deja el proceso como `done` o `failed` en vez de quitarlo: es lo que confirma que acabó. · Da una acción cuando haya algo que hacer con el resultado: «Ver», «Reintentar», «Descargar».
+No: No lo uses para lo que termina en un segundo: para eso está el toast. · No publiques desde un efecto sin `id` estable: cada pintado añadiría una fila nueva. · No metas aquí avisos ni novedades: eso es de Notificaciones y de Novedades.
+Relacionados: app-header, admin-shell, progress, empty-state
 
 ### Resizable
 
@@ -7425,4 +7507,4 @@ Relacionados: table-shell, list-item, status-badge, heatmap-matrix
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, building, calendar, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, feedback, file, filter, flag, folderAdd, google, graduation, help, home, image, info, layers, link, lock, logout, magicWand, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, volume, warning, zoomIn, zoomOut
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, bug, building, calendar, camera, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, feedback, file, filter, flag, folderAdd, google, graduation, help, home, idea, image, info, layers, link, lock, logout, magicWand, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, queue, record, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, video, volume, warning, zoomIn, zoomOut

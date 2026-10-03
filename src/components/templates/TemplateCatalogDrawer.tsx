@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, LayoutGrid, Rows3, Search, SearchX, Sparkles, Target, X } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Rows3, Search, Sparkles, Target, X } from "lucide-react";
 import { DrawerShell } from "@/components/overlays";
 import { EmptyState } from "@/components/feedback";
 import { SegmentedControl } from "@/components/selection";
@@ -240,7 +240,7 @@ function TemplateGallery({
           </div>
         ) : (
           <EmptyState
-            icon={SearchX}
+            icon="search"
             title={`No encontramos plantillas para «${query.trim()}»`}
             description="Prueba con otra palabra o vuelve a ver todo el catálogo."
             action={

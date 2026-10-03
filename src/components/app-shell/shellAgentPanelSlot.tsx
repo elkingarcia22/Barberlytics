@@ -19,3 +19,17 @@ export function ShellAgentPanelSlot({ children }: { children: React.ReactNode })
   if (!host) return null;
   return createPortal(children, host);
 }
+
+/**
+ * El ancla de los paneles de trabajo (`SidePanelShell`): también al lado del
+ * contenido, pero *debajo* de la cabecera. El panel del Agente IA ocupa todo
+ * el alto de la ventana porque es de la app entera; un panel de trabajo es
+ * de la pantalla, así que la cabecera se queda donde está y solo se estrecha
+ * lo de abajo.
+ */
+const ShellSidePanelSlotContext = React.createContext<HTMLElement | null>(null);
+
+export const ShellSidePanelSlotProvider = ShellSidePanelSlotContext.Provider;
+
+/** El ancla de los paneles de trabajo, o `null` fuera del shell: para saber si se puede abrir al lado. */
+export const useShellSidePanelHost = (): HTMLElement | null => React.useContext(ShellSidePanelSlotContext);

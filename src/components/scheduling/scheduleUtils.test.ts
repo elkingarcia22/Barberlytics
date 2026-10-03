@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import {
   atMinutes,
   earliestWorkingMinute,
+  findConflicts,
+  rangesOverlap,
   isWorkingAt,
   layoutEvents,
   nowPercent,
@@ -72,5 +74,21 @@ describe("scheduleUtils", () => {
     expect(nowPercent(atMinutes(DAY, 720), DAY, 360, 1440)).toBeCloseTo((360 / 1080) * 100);
     expect(nowPercent(atMinutes(DAY, 100), DAY, 360, 1440)).toBeNull();
     expect(nowPercent(atMinutes(new Date(2026, 8, 26), 720), DAY, 360, 1440)).toBeNull();
+  });
+
+  test("un choque es otra cita viva de la misma columna en el mismo tramo", () => {
+    const events = [event("a", 600, 660), event("x", 600, 660, { muted: true }), event("g", 600, 660, { ghost: true }), event("blk", 720, 780, { kind: "block" })];
+    expect(rangesOverlap(600, 660, 660, 690)).toBe(false);
+    expect(rangesOverlap(600, 660, 630, 690)).toBe(true);
+    expect(findConflicts(events, "b1", atMinutes(DAY, 630), atMinutes(DAY, 690)).map((item) => item.id)).toEqual(["a"]);
+    expect(findConflicts(events, "b1", atMinutes(DAY, 630), atMinutes(DAY, 690), "a")).toEqual([]);
+    expect(findConflicts(events, "b1", atMinutes(DAY, 750), atMinutes(DAY, 800)).map((item) => item.id)).toEqual(["blk"]);
+    expect(findConflicts(events, "otra", atMinutes(DAY, 630), atMinutes(DAY, 690))).toEqual([]);
+  });
+
+  test("una propuesta no reparte sitio con las citas ni cuenta como ocupación", () => {
+    const placed = layoutEvents([event("a", 600, 660), event("g", 600, 660, { ghost: true })], 360, 1440);
+    expect(placed.every((item) => item.columns === 1)).toBe(true);
+    expect(occupancyRate([event("a", 600, 660), event("g", 660, 720, { ghost: true })], [{ start: "09:00", end: "17:00" }])).toBeCloseTo(60 / 480);
   });
 });

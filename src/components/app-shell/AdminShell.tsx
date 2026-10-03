@@ -1,14 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FeedbackDialog } from "@/components/feedback-loop";
 import { ThemaLogo } from "@/components/ui/ThemaLogo";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { AgentView } from "./AgentView";
 import { ShellHeaderSlotProvider } from "./shellHeaderSlot";
 import { ShellRailSlotProvider } from "./shellRailSlot";
-import { ShellAgentPanelSlotProvider } from "./shellAgentPanelSlot";
+import { ShellAgentPanelSlotProvider, ShellSidePanelSlotProvider } from "./shellAgentPanelSlot";
 import type { ShellMode } from "./shellTypes";
 import { ShellConfigContext, resolveShellConfig, type ShellConfig, type ShellConfigOverrides, type ShellContentWidth } from "./shellConfig";
 import { SEARCH_RECORDS, navigationPaths } from "./appShellData";
@@ -64,10 +64,15 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     [resolved]
   );
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
-  const [feedbackSent, setFeedbackSent] = React.useState(false);
+  // Dónde está la persona, tal como lo dice el menú: «Equipo › Horarios».
+  const activeLabel = React.useMemo(
+    () => navigationPaths(resolved.navigation).find((destination) => destination.id === resolved.activeNavId)?.path.join(" › "),
+    [resolved.navigation, resolved.activeNavId]
+  );
   const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
   const [railSlot, setRailSlot] = React.useState<HTMLDivElement | null>(null);
   const [agentPanelSlot, setAgentPanelSlot] = React.useState<HTMLDivElement | null>(null);
+  const [sidePanelSlot, setSidePanelSlot] = React.useState<HTMLDivElement | null>(null);
   // Pending auto-collapse: fires once, shortly after mount, so the sidebar
   // shows its labels first and then tucks itself away. Any manual toggle
   // before it fires cancels it — the user has already made the call.
@@ -200,10 +205,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         onNavigateHome={onNavigateHome}
         onCloseMobile={() => setMobileOpen(false)}
         onToggleCollapse={toggleSidebar}
-        onOpenFeedback={() => {
-          setFeedbackSent(false);
-          setFeedbackOpen(true);
-        }}
+        onOpenFeedback={resolved.onOpenFeedback ?? (() => setFeedbackOpen(true))}
       />
 
       {/* Mobile scrim behind the drawer */}
@@ -225,7 +227,12 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           onSlotRef={setHeaderSlot}
         />
 
-        <main className="relative flex min-h-0 flex-1 flex-col">
+        {/* Bajo la cabecera, la pantalla y su panel de trabajo van en fila: el
+            panel (ver `SidePanelShell`) le quita ancho a la pantalla sin
+            mover la cabecera. */}
+        <div className="flex min-h-0 flex-1">
+        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          <ShellSidePanelSlotProvider value={sidePanelSlot}>
           <ShellHeaderSlotProvider value={headerSlot}>
             <ShellRailSlotProvider value={railSlot}>
               <ShellAgentPanelSlotProvider value={agentPanelSlot}>
@@ -263,6 +270,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
               </ShellAgentPanelSlotProvider>
             </ShellRailSlotProvider>
           </ShellHeaderSlotProvider>
+          </ShellSidePanelSlotProvider>
 
           {/* Floating-rail anchor: outside the scroller, so a screen's rail
               stays put while its content scrolls underneath. */}
@@ -271,6 +279,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             className="pointer-events-none absolute inset-x-0 bottom-0 z-50 flex justify-center"
           />
         </main>
+        <div ref={setSidePanelSlot} className="flex min-h-0 shrink-0 empty:hidden" />
+        </div>
 
         {/* Solo aquí, fuera del scroller: el modo agente y las pantallas tipo
             app (`scrollContent={false}`) no tienen un scroller propio al que
@@ -286,39 +296,10 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           floating over the page. */}
       <div ref={setAgentPanelSlot} className="relative z-[51] flex h-full shrink-0 empty:hidden" />
 
-      {/* ---------- Feedback ---------- */}
-      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
-        <DialogContent className="max-w-sm rounded-3xl border-border/60">
-          {feedbackSent ? (
-            <div className="py-6 text-center">
-              <DialogTitle className="text-base font-bold text-text-primary">¡Gracias por tu feedback!</DialogTitle>
-              <DialogDescription className="mt-2 text-sm text-text-secondary">
-                Tu comentario nos ayuda a mejorar la plataforma.
-              </DialogDescription>
-            </div>
-          ) : (
-            <>
-              <DialogTitle className="text-base font-bold text-text-primary">Enviar feedback</DialogTitle>
-              <DialogDescription className="text-sm text-text-secondary">
-                Cuéntanos qué podemos mejorar de tu experiencia.
-              </DialogDescription>
-              <textarea
-                rows={4}
-                placeholder="Escribe tu comentario…"
-                className="w-full resize-none rounded-xl border border-border/70 bg-surface p-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
-              />
-              <button
-                onClick={() => setFeedbackSent(true)}
-                className={cn(
-                  "w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-brand-hover"
-                )}
-              >
-                Enviar
-              </button>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* ---------- Feedback ----------
+          El mismo diálogo que abre una campaña. Aquí no tiene a dónde enviar:
+          una app real pasa `onOpenFeedback` y abre el suyo, con destino. */}
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} context={activeLabel} onSubmit={() => undefined} />
     </div>
     </ShellConfigContext.Provider>
   );

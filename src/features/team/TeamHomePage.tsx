@@ -10,8 +10,7 @@ import { AttentionAction, AttentionStrip } from "@/components/feedback";
 import { PageHeader } from "@/components/utility";
 import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { OptionTile } from "@/components/selection";
-import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
-import { TeamHeaderActions } from "./TeamHeaderActions";
+import { DataListActionRail, ScreenHeaderActions, type RailActionSpec } from "@/components/action-rail";
 import { CreateMemberDrawer } from "./CreateMemberDrawer";
 import { ActivateTeamDrawer } from "./ActivateTeamDrawer";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
@@ -207,14 +206,14 @@ export function TeamHomePage() {
           queda con el título, su contexto y sus acciones (ver
           docs/SCREEN_BUILD_RULES.md). */}
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, t("team.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("team.title")]} />
       </ShellHeaderSlot>
 
       <PageHeader
         title={t("team.title")}
         description={t("team.description")}
         actions={
-          railOwnsActions ? undefined : <TeamHeaderActions actions={actions} moreLabel={t("action.more")} />
+          railOwnsActions ? undefined : <ScreenHeaderActions actions={actions} moreLabel={t("action.more")} />
         }
       />
 

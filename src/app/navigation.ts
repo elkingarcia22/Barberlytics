@@ -96,3 +96,16 @@ export function findActiveNavId(pathname: string): string | undefined {
   }
   return best?.id;
 }
+
+/**
+ * Rutas donde se muestra el pie legal: el home de cada módulo. Los procesos
+ * que cuelgan de él (fichas, asistentes, ajustes por sección) no lo llevan, y
+ * el calendario tampoco: es una pantalla de trabajo que ocupa todo el alto.
+ */
+const FOOTER_HOMES: ReadonlySet<string> = new Set(
+  ["/metricas", "/clientes", "/usuarios", "/servicios", "/productos", "/gastos", "/nomina", "/transacciones", "/configuracion"]
+);
+
+export function showsLegalFooter(pathname: string): boolean {
+  return FOOTER_HOMES.has(pathname.replace(/\/+$/, "") || "/");
+}

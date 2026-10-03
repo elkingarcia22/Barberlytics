@@ -3,13 +3,16 @@ import { CreditCard, Minus, Package, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
-import { DrawerSection, DrawerShell } from "@/components/overlays";
+import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { RadioCardGroup, SegmentedControl } from "@/components/selection";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { IconTile } from "@/components/utility";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import type { ModelContext } from "./calendarModel";
+import { Field, NumberField } from "@/components/forms";
+import { Input } from "@/components/ui/input";
+import { changeDue } from "./checkoutMath";
 import { useOpenKey } from "./calendarFormat";
 import { useCreateSale } from "./queries";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type PaymentMethod, type ProductLine } from "./types";
@@ -37,17 +40,22 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
   const [category, setCategory] = React.useState("all");
   const [items, setItems] = React.useState<ProductLine[]>([]);
   const [method, setMethod] = React.useState<PaymentMethod>("cash");
+  const [search, setSearch] = React.useState("");
+  const [received, setReceived] = React.useState<number | null>(null);
 
   const categories = [...new Set(ctx.catalog.products.map((product) => product.category))];
-  const products = ctx.catalog.products.filter((product) => category === "all" || product.category === category);
+  const needle = search.trim().toLowerCase();
+  const products = ctx.catalog.products.filter((product) => (category === "all" || product.category === category) && (needle === "" || product.name.toLowerCase().includes(needle)));
   const qtyOf = (productId: string) => items.find((line) => line.productId === productId)?.qty ?? 0;
-  const change = (productId: string, delta: number) =>
+  const changeQty = (productId: string, delta: number) =>
     setItems((current) => {
       const qty = qtyOf(productId) + delta;
       if (qty <= 0) return current.filter((line) => line.productId !== productId);
       return current.some((line) => line.productId === productId) ? current.map((line) => (line.productId === productId ? { ...line, qty } : line)) : [...current, { productId, qty }];
     });
   const total = items.reduce((sum, line) => sum + (ctx.catalog.products.find((product) => product.id === line.productId)?.price ?? 0) * line.qty, 0);
+
+  const change = method === "cash" ? changeDue(received, total) : null;
 
   const pay = () => {
     sale.mutate(
@@ -63,14 +71,14 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
   };
 
   return (
-    <DrawerShell
+    <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
       size="lg"
       title={t("calendar.quickSale.title")}
       description={t("calendar.quickSale.hint")}
       footer={
-        <div className="space-y-3 border-t border-border bg-surface p-4">
+        <div className="space-y-3 border-t border-border px-5 py-4">
           <div className="flex items-center justify-between">
             <Text weight="semibold">{t("calendar.quickSale.total")}</Text>
             <Text weight="semibold" size="lg" tabular>
@@ -86,6 +94,7 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
       <div className="space-y-3" data-testid="quick-sale-drawer">
         <DrawerSection icon={Package} tone="positive" title={t("calendar.checkout.products")} hint={t("calendar.quickSale.hint")} badge={String(items.reduce((sum, line) => sum + line.qty, 0))}>
           <div className="space-y-3">
+            <Input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("calendar.quickSale.search")} aria-label={t("calendar.quickSale.search")} data-testid="quick-sale-search" />
             <SegmentedControl
               size="sm"
               variant="outline"
@@ -110,13 +119,13 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
                       <span className="flex items-center gap-1">
                         {qty > 0 && (
                           <>
-                            <Button size="icon-xs" variant="outline" aria-label={`${t("calendar.checkout.remove")}: ${product.name}`} onClick={() => change(product.id, -1)}>
+                            <Button size="icon-xs" variant="outline" aria-label={`${t("calendar.checkout.remove")}: ${product.name}`} onClick={() => changeQty(product.id, -1)}>
                               <Minus />
                             </Button>
                             <span className="w-5 text-center text-sm tabular-nums">{qty}</span>
                           </>
                         )}
-                        <Button size="icon-xs" variant="outline" aria-label={`${t("calendar.checkout.addProduct")}: ${product.name}`} onClick={() => change(product.id, 1)}>
+                        <Button size="icon-xs" variant="outline" aria-label={`${t("calendar.checkout.addProduct")}: ${product.name}`} onClick={() => changeQty(product.id, 1)}>
                           <Plus />
                         </Button>
                       </span>
@@ -131,8 +140,20 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
 
         <DrawerSection icon={CreditCard} tone="neutral" title={t("calendar.checkout.method")} hint={t("calendar.checkout.methodHint")}>
           <RadioCardGroup columns={2} value={method} onChange={(value) => setMethod(value as PaymentMethod)} options={paymentMethodSchema.options.map((option) => ({ value: option, label: t(PAYMENT_METHOD_KEYS[option]) }))} />
+          {method === "cash" && items.length > 0 && (
+            <div className="mt-3 space-y-1">
+              <Field label={t("calendar.checkout.received")}>
+                <NumberField value={received} onValueChange={setReceived} min={0} step={1} prefix="$" size="sm" />
+              </Field>
+              {change !== null && (
+                <Text variant="muted" className={change < 0 ? "text-destructive" : undefined} data-testid="quick-sale-change">
+                  {change < 0 ? t("calendar.checkout.missing", { amount: ctx.formatMoney(-change) }) : t("calendar.checkout.changeHint", { amount: ctx.formatMoney(change) })}
+                </Text>
+              )}
+            </div>
+          )}
         </DrawerSection>
       </div>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }

@@ -1,4 +1,5 @@
 import type * as React from "react"
+import type { SearchActionItem } from "@/components/search"
 
 /**
  * Cuándo aparece una acción.
@@ -84,4 +85,20 @@ export function railScreenTiers(actions: readonly RailActionSpec[]): {
     inline: screen.filter((action) => !action.primary && !action.overflow),
     folded: screen.filter((action) => !action.primary && action.overflow),
   }
+}
+
+/**
+ * Las acciones de pantalla tal como las ofrece la búsqueda general: la
+ * principal primero, luego las de a diario y al final las plegadas. Las que
+ * necesitan algo marcado se quedan fuera: desde la búsqueda no hay selección.
+ */
+export function toSearchActions(actions: readonly RailActionSpec[]): readonly SearchActionItem[] {
+  const { primary, inline, folded } = railScreenTiers(actions)
+  return [...(primary ? [primary] : []), ...inline, ...folded].map((action) => ({
+    id: action.id,
+    label: action.label,
+    icon: action.icon,
+    blockedReason: action.blockedReason,
+    onSelect: () => action.onSelect?.(),
+  }))
 }

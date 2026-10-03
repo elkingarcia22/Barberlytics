@@ -23,6 +23,17 @@ export { RoleMenu, type RoleMenuProps } from "./RoleMenu";
 export { PersonalizationMenu, type PersonalizationMenuProps } from "./PersonalizationMenu";
 export { CompanyMenu, CompanyMark, type CompanyMenuProps } from "./CompanyMenu";
 export { AccountMenu, type AccountMenuProps } from "./AccountMenu";
+export { ProcessCenter, type ProcessCenterProps } from "./ProcessCenter";
+export {
+  publishProcess,
+  updateProcess,
+  removeProcess,
+  clearProcesses,
+  processState,
+  useShellProcesses,
+  type ShellProcess,
+  type ShellProcessState,
+} from "./processStore";
 export { HelpMenu, type HelpMenuProps, type ShellHelpAction } from "./HelpMenu";
 export { WorkspaceUsage, companyMeta } from "./workspaceUsage";
 export { WorkspaceMenu, type WorkspaceMenuProps } from "./WorkspaceMenu";

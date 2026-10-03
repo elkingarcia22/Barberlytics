@@ -1,20 +1,23 @@
 import * as React from "react";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { Ban } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError, isApiError } from "@/lib/api";
-import { DrawerSection, DrawerShell } from "@/components/overlays";
+import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field } from "@/components/forms";
 import { DatePicker } from "@/components/date";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonAvatar } from "./calendarShared";
-import { halfHourOptions, useOpenKey } from "./calendarFormat";
+import { Text } from "@/components/typography";
+import { parseClock } from "@/components/scheduling";
+import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
+import { blockClashes, workingHoursOn } from "./calendarModel";
 import { useCreateBlock } from "./queries";
-import { BLOCK_CATEGORY_KEYS, BLOCK_REPEAT_KEYS, blockCategorySchema, blockInputSchema, blockRepeatSchema, type Barber, type BlockCategory, type BlockRepeat } from "./types";
+import { BLOCK_CATEGORY_KEYS, BLOCK_REPEAT_KEYS, blockCategorySchema, blockInputSchema, blockRepeatSchema, type Barber, type BlockCategory, type BlockRepeat, type CalendarDay } from "./types";
 
 /**
  * Crear bloqueo: una franja del barbero que deja de estar disponible —
@@ -28,6 +31,8 @@ export interface BlockDrawerProps {
   barbers: readonly Barber[];
   initialBarberId: string | null;
   date: Date;
+  /** La agenda del día que se mira: con ella se avisa de las citas que el bloqueo pisaría. */
+  day?: CalendarDay;
 }
 
 const HOURS = halfHourOptions(6, 24);
@@ -36,7 +41,7 @@ export function BlockDrawer(props: BlockDrawerProps) {
   return <BlockPanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date }: BlockDrawerProps) {
+function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day }: BlockDrawerProps) {
   const t = useAppT();
   const { current } = useLocale();
   const create = useCreateBlock();
@@ -49,6 +54,17 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date }: Bloc
   const [endTime, setEndTime] = React.useState("14:00");
   const [description, setDescription] = React.useState("");
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const barber = barbers.find((item) => item.id === barberId);
+  const hours = barber ? workingHoursOn(barber, date) : [];
+  // Atajos para lo de siempre: el día completo de quien se bloquea.
+  const fullDay = () => {
+    if (hours.length === 0) return;
+    setStartTime(hours[0].start);
+    setEndTime(hours[hours.length - 1].end);
+  };
+  const sameDay = startDate !== null && isSameDay(startDate, date);
+  const clashes = day && sameDay ? blockClashes(day.appointments, barberId, parseClock(startTime), parseClock(endTime)) : 0;
 
   const submit = () => {
     const parsed = blockInputSchema.safeParse({
@@ -78,7 +94,7 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date }: Bloc
   };
 
   return (
-    <DrawerShell
+    <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
       title={t("calendar.block.title")}
@@ -156,7 +172,7 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date }: Bloc
                 <SelectContent>
                   {HOURS.map((hour) => (
                     <SelectItem key={hour} value={hour}>
-                      {hour}
+                      {clockLabel(hour, current.intl)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -170,18 +186,28 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date }: Bloc
                 <SelectContent>
                   {HOURS.map((hour) => (
                     <SelectItem key={hour} value={hour}>
-                      {hour}
+                      {clockLabel(hour, current.intl)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
           </div>
+          {hours.length > 0 && (
+            <Button type="button" size="sm" variant="outline" onClick={fullDay} data-testid="block-full-day">
+              {t("calendar.block.fullDay", { range: `${clockLabel(hours[0].start, current.intl)} – ${clockLabel(hours[hours.length - 1].end, current.intl)}` })}
+            </Button>
+          )}
+          {clashes > 0 && (
+            <Text variant="muted" className="text-warning" role="alert" data-testid="block-clashes">
+              {t("calendar.block.clashes", { count: clashes })}
+            </Text>
+          )}
           <Field label={t("calendar.block.description")}>
             <Textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={2} />
           </Field>
         </div>
       </DrawerSection>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }

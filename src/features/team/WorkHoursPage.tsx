@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { addDays, addWeeks, format, isValid, parseISO, startOfWeek } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight, Pencil, RotateCcw, Trash2, UserRound, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Pencil, RotateCcw, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -71,7 +71,7 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
   return (
     <div className="space-y-4">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamHours.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamHours.title")]} />
       </ShellHeaderSlot>
       <PageHeader
         title={t("teamHours.title")}
@@ -101,7 +101,7 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
         )}
       </div>
 
-      <QueryBoundary query={week} loading={<Skeleton className="h-96 w-full" />} empty={{ when: (data) => data.rows.length === 0, render: <EmptyState icon={Users} title={t("teamHours.empty")} description={t("teamHours.emptyHint")} /> }}>
+      <QueryBoundary query={week} loading={<Skeleton className="h-96 w-full" />} empty={{ when: (data) => data.rows.length === 0, render: <EmptyState icon="users" title={t("teamHours.empty")} description={t("teamHours.emptyHint")} /> }}>
         {(data) => (
           <ShiftWeekGrid
             days={days}

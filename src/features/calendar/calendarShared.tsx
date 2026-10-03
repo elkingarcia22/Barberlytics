@@ -54,10 +54,10 @@ export function PersonAvatar({ name, avatarUrl, size = "default" }: { name: stri
 }
 
 /** Una fila «etiqueta · valor» de las fichas de los drawers. */
-export function DetailRow({ label, children, strong }: { label: string; children: React.ReactNode; strong?: boolean }) {
+export function DetailRow({ label, children, strong, plain }: { label: string; children: React.ReactNode; strong?: boolean; /** Sin filete entre filas y con la etiqueta más legible: para el panel de la cita. */ plain?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-border/60 py-2 last:border-b-0">
-      <span className="text-sm text-text-muted">{label}</span>
+    <div className={plain ? "flex items-center justify-between gap-4 py-1.5" : "flex items-center justify-between gap-4 border-b border-border/60 py-2 last:border-b-0"}>
+      <span className={plain ? "text-sm text-text-secondary" : "text-sm text-text-muted"}>{label}</span>
       <span className={strong ? "text-sm font-semibold text-text-primary tabular-nums" : "text-sm text-text-primary tabular-nums"}>{children}</span>
     </div>
   );

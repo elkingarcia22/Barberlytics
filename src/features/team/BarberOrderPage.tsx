@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { RotateCcw, Save, Users } from "lucide-react";
+import { RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -56,7 +56,7 @@ export function BarberOrderPage() {
   return (
     <div className="space-y-4">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamOrder.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamOrder.title")]} />
       </ShellHeaderSlot>
       <PageHeader title={t("teamOrder.title")} description={t("teamOrder.description")} />
       <ThemaTabs className="mb-2" fitContent tabs={[{ id: "barber", label: t("teamOrder.tab.barber") }, { id: "level", label: t("teamOrder.tab.level") }]} activeTabId={tab} onTabChange={(id) => setTab(id as "barber" | "level")} />
@@ -64,7 +64,7 @@ export function BarberOrderPage() {
       <QueryBoundary query={order}>
         {() =>
           list.length === 0 ? (
-            <EmptyState icon={Users} title={t("teamOrder.empty")} description={t("teamOrder.emptyHint")} />
+            <EmptyState icon="users" title={t("teamOrder.empty")} description={t("teamOrder.emptyHint")} />
           ) : tab === "barber" ? (
             <Sortable
               items={list}

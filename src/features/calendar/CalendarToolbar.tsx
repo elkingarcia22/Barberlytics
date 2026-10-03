@@ -1,17 +1,15 @@
 import * as React from "react";
 import { addDays, addMonths, format } from "date-fns";
-import { CalendarIcon, ChevronLeft, ChevronRight, ClockIcon, ListOrderedIcon, SlidersHorizontal } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale } from "@/i18n";
 import { useAppT } from "@/app/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SegmentedControl } from "@/components/selection";
-import { ThemaIcon } from "@/icons/ThemaIcon";
-import { PersonAvatar } from "./calendarShared";
+import { TeamPicker } from "./TeamPicker";
+import { WEEK_DAYS, weekStartOf } from "./weekModel";
 import type { Barber, CalendarView, TeamFilter } from "./types";
 
 /**
@@ -29,45 +27,35 @@ export interface CalendarToolbarProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: CalendarView) => void;
   onTeamChange: (team: TeamFilter) => void;
-  onOpenWaitlist: () => void;
-  onOpenWorkHours: () => void;
+  /** El control de filtros (estado, servicio, densidad), cuando la vista lo admite: va en la misma fila, tras la fecha. */
+  status?: React.ReactNode;
 }
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, onOpenWaitlist, onOpenWorkHours }: CalendarToolbarProps) {
+export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, status }: CalendarToolbarProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const dateLocale = calendarLocale(locale);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const byMonth = view === "month";
-  const step = (direction: 1 | -1) => onDateChange(byMonth ? addMonths(date, direction) : addDays(date, direction));
-  const label = capitalize(byMonth ? format(date, "LLLL yyyy", { locale: dateLocale }) : format(date, "EEEE d MMM", { locale: dateLocale }));
+  const byWeek = view === "week";
+  const step = (direction: 1 | -1) => onDateChange(byMonth ? addMonths(date, direction) : addDays(date, byWeek ? direction * WEEK_DAYS : direction));
+  const weekStart = weekStartOf(date);
+  const label = byMonth
+    ? capitalize(format(date, "LLLL yyyy", { locale: dateLocale }))
+    : byWeek
+      ? `${format(weekStart, "d MMM", { locale: dateLocale })} – ${format(addDays(weekStart, WEEK_DAYS - 1), "d MMM", { locale: dateLocale })}`
+      : capitalize(format(date, "EEEE d MMM", { locale: dateLocale }));
+  const prevLabel = byMonth ? t("calendar.prevMonth") : byWeek ? t("calendar.prevWeek") : t("calendar.prevDay");
+  const nextLabel = byMonth ? t("calendar.nextMonth") : byWeek ? t("calendar.nextWeek") : t("calendar.nextDay");
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="calendar-toolbar">
-      <Select value={team} onValueChange={onTeamChange}>
-        <SelectTrigger className="w-[200px]" aria-label={t("calendar.team")} data-testid="calendar-team">
-          <ThemaIcon name="users" size="sm" decorative />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="working">{t("calendar.team.working")}</SelectItem>
-          <SelectItem value="all">{t("calendar.team.all")}</SelectItem>
-          <SelectSeparator />
-          {barbers.map((barber) => (
-            <SelectItem key={barber.id} value={barber.id}>
-              <span className="flex items-center gap-2">
-                <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />
-                {barber.name}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <TeamPicker team={team} barbers={barbers} onTeamChange={onTeamChange} />
 
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" aria-label={byMonth ? t("calendar.prevMonth") : t("calendar.prevDay")} onClick={() => step(-1)}>
+        <Button variant="outline" size="icon" aria-label={prevLabel} onClick={() => step(-1)}>
           <ChevronLeft />
         </Button>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -90,7 +78,7 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
             />
           </PopoverContent>
         </Popover>
-        <Button variant="outline" size="icon" aria-label={byMonth ? t("calendar.nextMonth") : t("calendar.nextDay")} onClick={() => step(1)}>
+        <Button variant="outline" size="icon" aria-label={nextLabel} onClick={() => step(1)}>
           <ChevronRight />
         </Button>
         {!isToday && (
@@ -100,22 +88,9 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
         )}
       </div>
 
+      {status}
+
       <div className="ml-auto flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label={t("calendar.settings")}>
-              <SlidersHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onOpenWorkHours}>
-              <ClockIcon className="size-4" /> {t("calendar.action.workHours")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onOpenWaitlist}>
-              <ListOrderedIcon className="size-4" /> {t("calendar.action.waitlist")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
         <SegmentedControl
           className="w-auto"
           size="sm"
@@ -123,6 +98,7 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
           options={[
             { value: "agenda", label: t("calendar.view.agenda") },
             { value: "day", label: t("calendar.view.day") },
+            { value: "week", label: t("calendar.view.week") },
             { value: "month", label: t("calendar.view.month") },
           ]}
           value={view}

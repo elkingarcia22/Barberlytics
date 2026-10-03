@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { RotateCcw, Save, Users } from "lucide-react";
+import { RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -76,7 +76,7 @@ export function LineupPage() {
   return (
     <div className="space-y-4">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamLineup.title")]} />
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamLineup.title")]} />
       </ShellHeaderSlot>
       <PageHeader title={t("teamLineup.title")} description={t("teamLineup.description")} />
       <ThemaTabs
@@ -106,7 +106,7 @@ export function LineupPage() {
       <QueryBoundary query={order}>
         {() =>
           list.length === 0 ? (
-            <EmptyState icon={Users} title={t("teamOrder.empty")} description={t("teamOrder.emptyHint")} />
+            <EmptyState icon="users" title={t("teamOrder.empty")} description={t("teamOrder.emptyHint")} />
           ) : (
             <Sortable
               key={tab}

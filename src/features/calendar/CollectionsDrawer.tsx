@@ -1,10 +1,10 @@
 import * as React from "react";
 import { addDays, format } from "date-fns";
-import { ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
-import { DrawerShell } from "@/components/overlays";
+import { SidePanelShell } from "@/components/overlays";
 import { ThemaTabs } from "@/components/navigation";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { EmptyState } from "@/components/feedback";
@@ -29,6 +29,8 @@ export interface CollectionsDrawerProps {
   ctx: ModelContext;
   initialDate: Date;
   onOpenAppointment: (appointment: Appointment, date: Date) => void;
+  /** Cobrar sin pasar por el detalle. */
+  onPay?: (appointment: Appointment) => void;
 }
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -37,7 +39,7 @@ export function CollectionsDrawer(props: CollectionsDrawerProps) {
   return <CollectionsPanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOpenAppointment }: CollectionsDrawerProps) {
+function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOpenAppointment, onPay }: CollectionsDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const [date, setDate] = React.useState(initialDate);
@@ -45,7 +47,7 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
   const query = useDayQuery(branchId, format(date, "yyyy-MM-dd"));
 
   return (
-    <DrawerShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.collections.title")}>
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.collections.title")}>
       <div className="space-y-4" data-testid="collections-drawer">
         <div className="flex items-center justify-between gap-2">
           <Button variant="outline" size="icon-sm" aria-label={t("calendar.prevDay")} onClick={() => setDate((current) => addDays(current, -1))}>
@@ -67,6 +69,7 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
               <div className="space-y-3">
                 <ThemaTabs
                   className="mb-0"
+                  variant="page"
                   tabs={[
                     { id: "toCollect", label: t("calendar.collections.toCollect"), badge: unpaid.length, badgeTone: "warning" },
                     { id: "paid", label: t("calendar.collections.paid"), badge: paid.length, badgeTone: "positive" },
@@ -74,9 +77,8 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
                   activeTabId={tab}
                   onTabChange={(id) => setTab(id as "toCollect" | "paid")}
                 />
-                <Text variant="muted">{tab === "toCollect" ? t("calendar.collections.toCollectHint") : t("calendar.collections.paidHint")}</Text>
                 {items.length === 0 ? (
-                  <EmptyState icon={ListChecks} title={t("calendar.collections.empty")} />
+                  <EmptyState icon="task" title={t("calendar.collections.empty")} />
                 ) : (
                   <>
                     <ListItemGroup>
@@ -97,6 +99,13 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
                                 <span className="font-semibold">{ctx.formatMoney(appointment.payment?.total ?? servicesPrice(services))}</span>
                               </span>
                             }
+                            actions={
+                              onPay && isUnpaid(appointment) ? (
+                                <Button size="xs" onClick={() => onPay(appointment)} aria-label={`${t("calendar.step.pay")}: ${name}`} data-testid={`collections-pay-${appointment.id}`}>
+                                  {t("calendar.step.pay")}
+                                </Button>
+                              ) : undefined
+                            }
                             onClick={() => onOpenAppointment(appointment, date)}
                           />
                         );
@@ -115,6 +124,6 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
           }}
         </QueryBoundary>
       </div>
-    </DrawerShell>
+    </SidePanelShell>
   );
 }

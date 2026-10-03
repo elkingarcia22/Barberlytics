@@ -97,6 +97,8 @@ export interface ShellChrome {
   profile: boolean;
   /** Búsqueda general de la cabecera (⌘K). */
   search: boolean;
+  /** Centro de procesos: lo que sigue trabajando en segundo plano. */
+  processes: boolean;
 }
 
 export const DEFAULT_SHELL_CHROME: ShellChrome = {
@@ -109,6 +111,7 @@ export const DEFAULT_SHELL_CHROME: ShellChrome = {
   notifications: true,
   profile: true,
   search: true,
+  processes: true,
 };
 
 export interface ShellPromo {
@@ -146,6 +149,14 @@ export interface ShellConfig {
    * así que quien lo enciende en `chrome.help` tiene que darle destino.
    */
   onOpenHelp?: () => void;
+  /**
+   * Qué hace «Enviar feedback» en el menú lateral. La app abre con él su
+   * diálogo de feedback, que sabe a dónde enviar; sin esto el shell abre el
+   * mismo diálogo por su cuenta, pero sin destino.
+   */
+  onOpenFeedback?: () => void;
+  /** Abre el historial de procesos. Sin esto el Centro de procesos no ofrece «Historial». */
+  onOpenProcessHistory?: () => void;
   /**
    * Las puertas del botón «Ayuda». Con ellas el botón abre un menú (preguntar,
    * ir al centro de ayuda, que te guíen…) en vez de ejecutar `onOpenHelp`.

@@ -168,12 +168,12 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/calendar/catalog?branchId` | `{ barbers, clients, services, products }` de la sucursal. El cliente `cli_walkin` («Walk in») siempre va el primero. |
+| GET | `/calendar/catalog?branchId` | `{ barbers, clients, services, products }` de la sucursal. El cliente `cli_walkin` («Walk in») siempre va el primero. `services` son los del catálogo (sección «Servicios») activos en la sucursal; `products`, los de «Productos» activos y a la venta. |
 | GET | `/calendar/day?branchId&date=AAAA-MM-DD` | `{ date, appointments, blocks }`. Los bloqueos ya vienen resueltos para ese día (con su repetición aplicada). |
 | GET | `/calendar/month?branchId&month=AAAA-MM&barberId?` | `{ month, days: [{ date, occupancy: 0–1 \| null, count }] }`. `occupancy` es minutos de cita sobre minutos de jornada; `null` si nadie trabaja. Sin `barberId`, todo el equipo. |
-| POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. |
-| PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes }`. Cada cambio deja una línea en `history`. `422` · `404`. |
-| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed" }`. Cierra la cita como `paid` con su `payment`. `409` si ya estaba cobrada o anulada. |
+| POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. `409 conflict` si el tramo pisa otra cita viva o un bloqueo del barbero (el mensaje dice con quién), salvo con `force: true`, que usan los roles que agendan sin reglas (dueño, administrador, recepción, barbero de renta). |
+| PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, reason?, actor? }`. Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión. `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, salvo con `force: true`. `422` · `404`. |
+| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge? }`. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`. `409` si ya estaba cobrada o anulada. |
 | POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
 | POST | `/blocks` | El bloqueo de arriba, sin `id`. `201 block`. `422` si la hora de cierre no es posterior a la de inicio. |
 | DELETE | `/blocks/:id` | `204`. |
@@ -185,6 +185,152 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 `history.event` es un código estable que el front traduce: `created`, `walkin`, `barber_ready`, `status:<estado>`, `moved:<inicio>`, `barber:<nombre>`, `duration:<min>`, `paid:<método>`.
 
 El mock genera la agenda de cada día la primera vez que se pide, de forma determinista (la misma fecha y sucursal dan las mismas citas), y recuerda lo que se cambia durante la sesión.
+
+## Clientes (`/customers`)
+
+El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `client` del calendario (mismo `id`): aquí se le suma lo que la agenda no necesita —contacto, dirección, en qué momento de la relación está y su historial—.
+
+`customer`: `{ id, name, phone, email, branchId, segment, blocked, ltv, visits, cancellations, noShows, lastVisitAt, visitEveryDays, preferredBarber (nombre \| null), birthDate (AAAA-MM-DD \| null), createdAt, medicalNotes }`
+`segment`: `new` · `retained` · `frequent` · `vip` (cuánto viene) · `atRisk` (dos ciclos de su ritmo sin volver) · `lost` (meses sin venir) · `recovered` (volvió tras perderse) · `blocked` (decisión del negocio; manda sobre los demás). Lo calcula el backend.
+`medicalNotes`: cuántas notas `medication` o `allergy` tiene; la lista lo señala sin traer las notas.
+`customerDetail`: `customer` + `{ country, state, city, address, zipcode, onlineOnly, stats: { avgTicket, transactions, completedRate, cancelledRate, noShowRate, rebookRate, leadTimeDays }, notes, guests: [{ id, name, relation, visits }], appointments: [{ id, service, start, barber, source: "internal" \| "online" \| "walkin", requestedBarber, status: "scheduled" \| "completed" \| "cancelled" \| "no_show", total }], lastAppointmentId, payments: [{ id, date, status: "paid" \| "refunded", amount, method: "cash" \| "card" \| "link", reference }], products: [{ id, name, units, total, lastBoughtAt }] }`. Las tasas son porcentajes (0–100) sobre las citas reservadas; `appointments` va de la más reciente a la más antigua, con la próxima (`scheduled`) primero si existe.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/customers` | `{ items: customer[] }`, por nombre. Sin paginar: el front filtra por segmento y busca en memoria. |
+| GET | `/customers/:id` | `customerDetail`. `404` si no existe. |
+| POST | `/customers` | `{ firstName, lastName, phone, email, branchId, country?, state?, city?, address?, zipcode?, birthDate?, onlineOnly? }`. `201 customerDetail`. `422` con `fields` si falta nombre, apellido, celular o correo válidos, si el celular ya es de otro cliente o si la fecha de nacimiento es futura. |
+| PATCH | `/customers/:id` | Los mismos campos del alta, o solo `{ blocked: boolean }` para bloquear y desbloquear sin reenviar la ficha. Devuelve `customerDetail`. `422` · `404`. |
+| POST | `/customers/:id/guests` | `{ name, relation? }`. `201 customerDetail`. Un invitado solo necesita nombre: la cita queda a nombre del titular. |
+| DELETE | `/customers/:id/guests/:guestId` | `customerDetail` sin ese invitado. `404`. |
+
+Las notas se crean con `POST /clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
+
+## Servicios (`/services`)
+
+El catálogo de lo que se ofrece. Es la **fuente de lo que la agenda puede agendar**: `GET /calendar/catalog` devuelve como `services` los de aquí que están activos en la sucursal (servicios y combos, con el nombre de su categoría en `category`). Un servicio se crea una vez y cada sucursal decide si lo ofrece.
+
+`category`: `{ id, name, description, visibility: "public" | "private" }`. `cat_none` («Sin categoría») existe siempre y no se puede borrar.
+`service`: `{ id, kind: "service" | "combo", name, description, categoryId, price, cost (\| null), durationMin, taxRate (0–100 \| null), visibility, active, multiservice, prep: { enabled, minutes, position: "start" | "end" }, giftCards, includes: string[] (solo combos), createdAt, offeredBy, teamSize }`. `active` es relativo al `branchId` de la petición; `offeredBy` / `teamSize` cuentan los barberos de esa sucursal que lo ofrecen.
+`serviceDetail`: `service` + `team: [{ memberId, name, avatarUrl, offered, price, durationMin, custom }]`. `price` y `durationMin` son los efectivos de esa persona (los suyos o los del catálogo); `custom` dice si tiene valores propios. Los valores propios se editan en la ficha del miembro (`PATCH /team/members/:id`, `services`).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/services?branchId` | `{ categories, items }`, los dos en el orden de la reserva en línea. |
+| GET | `/services/:id?branchId` | `serviceDetail`. `404`. |
+| POST | `/services` | `{ kind, name, categoryId, price, durationMin (5–480), branchId, description?, cost?, taxRate?, visibility?, multiservice?, prep?, giftCards?, includes? }`. `201 serviceDetail`, activo solo en `branchId`. `422` con `fields`: nombre repetido, precio o duración fuera de rango, categoría inexistente, combo con menos de dos servicios, preparación fuera de 1–60 min. |
+| PATCH | `/services/:id?branchId` | Los mismos campos; `kind` no cambia. `serviceDetail`. `422` · `404`. |
+| DELETE | `/services/:id` | `204`. `409` si está dentro de un combo o tiene citas por atender. |
+| PUT | `/services/activation` | `{ branchId, serviceIds, active }`: activa o desactiva varios en la sucursal. Devuelve el catálogo. Desactivar no toca las citas ya agendadas. |
+| PUT | `/services/:id/team` | `{ branchId, memberIds }`: quién lo ofrece en la sucursal. No toca los valores propios de nadie. `serviceDetail`. |
+| PUT | `/services/order?branchId` | `{ categoryIds, serviceIds }` en el orden nuevo; lo que no venga se queda al final. Devuelve el catálogo. |
+| POST | `/service-categories` | `{ name, description?, visibility? }`. `201 category`. `422` si el nombre falta o se repite. |
+| PATCH | `/service-categories/:id` | Igual. `category`. |
+| DELETE | `/service-categories/:id` | `204`; sus servicios pasan a `cat_none`. `409` para `cat_none`. |
+
+## Productos (`/products`)
+
+El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuente de lo que la caja puede cobrar**: `GET /calendar/catalog` devuelve como `products` los de aquí que están activos en la sucursal **y** a la venta (`sellable`). No hay inventario: el contrato no lleva existencias.
+
+`category`: `{ id, name, description }`. `pcat_none` («Sin categoría») existe siempre y no se puede borrar.
+`product`: `{ id, name, description, categoryId, price (venta), cost (compra \| null), taxRate (0–100 \| null), sku (\| null), brand (\| null), distributor (\| null), visibility: "public" | "private", sellable, active, createdAt }`. `visibility` dice si el cliente lo ve al reservar en línea; `sellable`, si el equipo puede venderlo (uno de uso interno va en `false`); `active` es relativo al `branchId` de la petición.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/products?branchId` | `{ categories, items }`. |
+| GET | `/products/:id?branchId` | `product`. `404`. |
+| POST | `/products` | `{ name, categoryId, price, branchId, description?, cost?, taxRate?, sku?, brand?, distributor?, visibility?, sellable? }`. `201 product`, activo solo en `branchId`. `422` con `fields`: nombre o SKU repetidos, precio o impuesto fuera de rango, categoría inexistente. |
+| PATCH | `/products/:id?branchId` | Los mismos campos. `product`. `422` · `404`. |
+| DELETE | `/products/:id` | `204`. `409` si está en una cita por cobrar. |
+| PUT | `/products/activation` | `{ branchId, productIds, active }`: activa o desactiva varios en la sucursal. Devuelve el catálogo. |
+| POST | `/product-categories` | `{ name, description? }`. `201 category`. `422` si el nombre falta o se repite. |
+| PATCH | `/product-categories/:id` | Igual. `category`. |
+| DELETE | `/product-categories/:id` | `204`; sus productos pasan a `pcat_none`. `409` para `pcat_none`. |
+
+## Transacciones (`/transactions`)
+
+Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí —cada cita es una cuenta y cada venta de mostrador (`POST /sales`) es otra—, y cobrar, cancelar o mover una cita se hace por los endpoints del calendario.
+
+`account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, tax, tip, total, collected, refunded, balance, method (\| null), paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
+`status`: `open` (cita agendada o en curso, sin cobrar) · `paid` (cobrada) · `refunded` (se cobró y se devolvió) · `void` (cita cancelada o a la que no se presentaron: no se factura).
+`total` = `subtotal + tax`; la propina (`tip`) va aparte y no entra en `collected`. `collected` es `total` solo si está `paid`; `balance` es `total` solo si está `open`; `refunded` es `total` solo si está `refunded`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/transactions?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, items: account[] }`, de la más reciente a la más antigua. Sin paginar: el front resume, filtra por estado y busca en memoria. `422` si el rango es inválido, va al revés o pasa de 62 días. |
+
+Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, devuelto) se calculan en el front sobre `items`; si el backend real pagina, tendrá que devolverlas en un `summary` aparte.
+
+## Gastos (`/expenses`)
+
+Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuencia; uno **variable** pasó una vez.
+
+`expense`: `{ id, branchId, kind: "fixed" | "variable", name, amount, frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual" (\| null en los variables), description, createdAt }`. `amount` es lo que vale **cada vez que se paga**; en un variable, `createdAt` hace de fecha del gasto.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/expenses?branchId` | `{ items: expense[] }`, del más reciente al más antiguo. Sin paginar. |
+| POST | `/expenses` | `{ kind, name, amount, branchId, frequency? (obligatoria si es `fixed`), description? }`. `201 expense`. `422` con `fields`: nombre corto, valor que no es mayor que cero, fijo sin frecuencia. |
+| PATCH | `/expenses/:id` | `{ name, amount, frequency?, description? }`. `kind` no cambia aunque se mande. `expense`. `422` · `404`. |
+| DELETE | `/expenses/:id` | `204`. `404`. |
+
+El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes los calcula el front sobre `items`.
+
+## Nómina (`/payroll`)
+
+Lo que se le paga a cada barbero en un periodo. Es de **solo lectura** y no se guarda: se calcula sobre las citas **cobradas** del rango y la compensación de cada persona (su ficha en Equipo, `compensation` y `payments`). La renta y el salario son **por semana**; un rango de N días son N/7 semanas.
+
+`member`: `{ memberId, name, avatarUrl, payout: "commission" | "rent" | "salary", rules (\| null), rentBase (\| null), salaryBase (\| null), services, serviceSales, productSales, serviceCommission, productCommission, tips, salary, rent, deductions, net, lines }`
+`rules` (solo comisión): `{ type: "commission" | "scale", basic, recurring, walkIn, noPreference, newClient, productPercent, scale: [{ from, percent }] }` en porcentajes; una regla `null` usa la básica.
+`line`: `{ appointmentId, date, client, service, rule: "walkIn" | "noPreference" | "newClient" | "recurring" | "basic", rate (\| null), sale, commission, tip, deduction }`. La regla sale de quién trajo al cliente, de la más específica a la menos: sin cita → sin preferencia → cliente nuevo → cliente que repite → básica.
+`net` = `serviceCommission + productCommission + tips + salary − rent − deductions`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, weeks, members: member[] }` con los barberos de la sucursal en su orden de calendario. `422` si el rango es inválido, va al revés o pasa de 62 días. |
+
+Los impuestos que muestra producción no se modelan: el mock no los cobra.
+
+## Configuración (`/settings`)
+
+Dos formas, y nada más: **documentos** (un objeto por sección, se lee y se guarda entero) y
+**listas** (registros que se crean, editan y borran uno a uno).
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/settings/:section` | El documento de la sección. |
+| `PUT` | `/settings/:section` | Lo reemplaza y devuelve el guardado. `422` con `fieldErrors` si algo no cuadra. |
+| `GET` | `/settings/lists/:list` | Todos los registros de la lista (sin paginar: son pocos). |
+| `POST` | `/settings/lists/:list` | Crea uno. `201`. |
+| `PATCH` | `/settings/lists/:list/:id` | Edita uno. |
+| `DELETE` | `/settings/lists/:list/:id` | Borra uno. `204`. |
+| `POST` | `/settings/payments/test` | Prueba la conexión con la pasarela. `200 { ok }` o `409` si faltan las claves. |
+| `POST` | `/account/delete` | Elimina la cuenta. Cuerpo `{ confirmation }`. `204`. |
+
+Secciones (`:section`): `business` (zona horaria, horario por día, festivos, enlaces), `booking`
+(reglas de la reserva en línea, política de cancelación, portal del cliente), `pricing` (precios
+por nivel, redondeo), `tips` (propinas sugeridas), `cardFee` (recargo por tarjeta), `commissions`
+(qué se descuenta antes de comisionar), `payrollCycle` (cada cuánto y desde qué día se paga),
+`payments` (pasarela), `notifications` (`toggles` por `destinatario.evento.canal` y `thresholds`),
+`company` (razón social, moneda, contacto) y `billing` (plan y datos de facturación).
+
+Listas (`:list`): `branches`, `closures`, `taxGroups`, `devices`.
+
+Reglas que el cliente da por hechas:
+
+- `booking.links` (enlace de reserva, del portal, del kiosco y el widget) lo pone el servidor: un
+  `PUT` que lo traiga se ignora.
+- `payments` nunca devuelve la clave secreta: responde `{ provider, publicKey, secretKeySet,
+  connected }`. Un `PUT` sin `secretKey` conserva la que había.
+- `devices` tampoco devuelve su clave de acceso: responde `hasAuthKey`.
+- `billing` solo acepta los datos de facturación; el plan y el medio de pago no se cambian por aquí.
+- `cardFee` exige nombre cuando está encendido; `closures` exige `endDate >= startDate`; un
+  `taxGroup` necesita al menos una tasa con nombre.
+- `DELETE /settings/lists/branches/:id` responde `409 conflict` si es la última sucursal o si
+  todavía tiene equipo activo.
+- `POST /account/delete` responde `422` si `confirmation` no es exactamente el nombre de la empresa.
+
+Los permisos por rol no están aquí: viven en Equipo.
 
 ## Feedback de campañas (`/feedback`)
 
@@ -201,6 +347,9 @@ El mock genera la agenda de cada día la primera vez que se pide, de forma deter
   "user": "Ana Ruiz",
   "email": "ana@barberia.co",
   "role": "Administrador",
+  "type": "bug",
+  "canContact": true,
+  "attachments": ["1AbCdEfGhIjKlMnOpQrStUv"],
   "timestamp": "2026-09-29T15:00:00.000Z"
 }
 ```
@@ -213,6 +362,14 @@ El mock genera la agenda de cada día la primera vez que se pide, de forma deter
 | `503 server` | El servidor no tiene configurada la cuenta de Google. |
 | `502 server` | No se pudo escribir en la hoja. |
 
+- `type` es `improvement` (por defecto), `bug` o `idea`. `page` vale `-` si la persona desmarcó
+  «incluir la página». `attachments` son ids de Drive, hasta 4, obtenidos antes con la subida:
+
+  `POST /feedback/attachments` con `{ campaignId, name, mimeType, size }` → `{ ok, uploadUrl }`.
+  Acepta `image/png` e `image/jpeg` (5 MB) y `video/webm` y `video/mp4` (30 MB). El navegador hace
+  `PUT uploadUrl` con los bytes —van directo a Drive, no pasan por la función— y recibe `{ id }`.
+  Contesta `422` si el tipo o el tamaño no valen, `404` si la campaña no está abierta y `503` si
+  falta `FEEDBACK_DRIVE_FOLDER_ID`.
 - En producción lo atiende la función de Vercel `api/feedback` (ver `docs/FEEDBACK_LOOP.md`); en
   desarrollo, el mock.
 - Endpoints de administración, con `Authorization: Bearer <FEEDBACK_ADMIN_KEY>`:

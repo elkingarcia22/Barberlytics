@@ -1,4 +1,8 @@
 import * as React from "react";
+import { RailAgentProvider, type RailActionSpec } from "@/components/action-rail";
+import { AiSparkGlyph } from "@/components/ai-interaction";
+import { PageHeaderExtrasProvider } from "@/components/utility";
+import { AgentButton } from "./AgentButton";
 import { Armchair, BookOpen, ConciergeBell, Crown, ListChecks, Scissors, ShieldCheck, Sparkles } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { AdminShell, PersonalizationMenu, type ChatHistoryGroup, type ShellConfigOverrides, type ShellMode, type UserRoleOption } from "@/components/app-shell";
@@ -10,10 +14,10 @@ import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
-import { FeedbackHost, findNavLabel } from "@/features/feedback";
+import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
-import { buildAppNavigation, findActiveNavId } from "../navigation";
+import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
 import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
 import { helpPath, useHelpIndex } from "@/help/content";
@@ -21,6 +25,18 @@ import { chatStore, createAppChatBackend } from "../chat";
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
 const CHAT_SUGGESTION_KEYS = ["chat.suggestion1", "chat.suggestion2", "chat.suggestion3", "chat.suggestion4"] as const;
+
+/**
+ * Lo que el agente propone preguntar depende de dónde se abra: en el
+ * calendario, cosas del día; en clientes, de clientes. La pantalla que no
+ * tenga las suyas ofrece las generales.
+ */
+const CONTEXT_SUGGESTIONS: readonly { prefix: string; labelKey: AppMessageKey; keys: readonly AppMessageKey[] }[] = [
+  { prefix: "/calendario", labelKey: "calendar.title", keys: ["agent.calendar.1", "agent.calendar.2", "agent.calendar.3", "agent.calendar.4"] },
+  { prefix: "/clientes", labelKey: "agent.context.customers", keys: ["agent.customers.1", "agent.customers.2", "agent.customers.3", "agent.customers.4"] },
+  { prefix: "/usuarios", labelKey: "team.title", keys: ["agent.team.1", "agent.team.2", "agent.team.3", "agent.team.4"] },
+  { prefix: "/metricas", labelKey: "agent.context.metrics", keys: ["agent.metrics.1", "agent.metrics.2", "agent.metrics.3", "agent.metrics.4"] },
+];
 
 /**
  * Los roles de la barbería, de más alcance a menos, con la línea que explica
@@ -48,6 +64,14 @@ function buildAppRoles(t: (key: AppMessageKey) => string): readonly UserRoleOpti
  * el cierre de sesión. Las notificaciones y novedades siguen con datos demo
  * hasta que exista su endpoint (ver docs/API_CONTRACT.md).
  */
+/**
+ * La campaña de feedback (recorrido guiado + botón flotante) está apagada
+ * por ahora: el botón tapaba los paneles de trabajo. Volver a `true` la
+ * devuelve tal cual. El diálogo de feedback sigue disponible desde el menú
+ * lateral: esto solo decide si además se sale a pedir la opinión.
+ */
+const FEEDBACK_CAMPAIGN_VISIBLE = false;
+
 export function AppLayout() {
   const { user, logout } = useAuth();
   const { resolvedMode, setMode } = useTheme();
@@ -69,7 +93,10 @@ export function AppLayout() {
   // La ayuda: el botón de la cabecera abre el panel de la pantalla actual y
   // los artículos entran en la búsqueda general como objetos que se abren.
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
+  // Quién abrió el chat: «Ayuda» o el agente de la cabecera, que lo abre con el contexto de la pantalla.
+  const [chatFrom, setChatFrom] = React.useState<"help" | "agent">("help");
   const [isGuidesOpen, setIsGuidesOpen] = React.useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
   // El chat: «Pregúntame» abre el panel; el modo «Agente IA» del shell lo
   // abre a pantalla completa con el historial. Los dos miran el mismo
   // almacén de conversaciones.
@@ -87,6 +114,12 @@ export function AppLayout() {
       }),
     [t]
   );
+  const openHelp = React.useCallback(() => {
+    setChatFrom("help");
+    setIsHelpOpen(true);
+  }, []);
+  // El contexto del agente: la pantalla desde la que se abrió.
+  const agentContext = chatFrom === "agent" ? CONTEXT_SUGGESTIONS.find((item) => location.pathname.startsWith(item.prefix)) : undefined;
   const chatContext = React.useMemo<ChatContextValue>(
     () => ({
       store: chatStore,
@@ -98,7 +131,7 @@ export function AppLayout() {
         setShellMode("workspace");
         navigate(href);
       },
-      suggestions: CHAT_SUGGESTION_KEYS.map((key) => t(key)),
+      suggestions: (agentContext?.keys ?? CHAT_SUGGESTION_KEYS).map((key) => t(key)),
       news: { text: t("chat.news.help"), onOpen: () => navigate(helpPath()) },
       onOpenFull: (conversationId) => {
         chatStore.setActive(conversationId);
@@ -106,7 +139,7 @@ export function AppLayout() {
       },
       onOpenVoice: () => setIsVoiceOpen(true),
     }),
-    [chatBackend, user?.name, locale, navigate, t]
+    [agentContext, chatBackend, user?.name, locale, navigate, t]
   );
   // El historial de la barra lateral, con Hoy / Ayer / Últimos 7 días.
   const chatHistory = React.useMemo<readonly ChatHistoryGroup[]>(() => {
@@ -194,7 +227,10 @@ export function AppLayout() {
       // columna por barbero necesita el sitio, el resto de la app lee mejor
       // en la columna normal.
       contentWidth: location.pathname.startsWith("/calendario") ? "full" : "normal",
-      onOpenHelp: () => setIsHelpOpen(true),
+      onOpenHelp: openHelp,
+      // «Enviar feedback» del menú abre el mismo diálogo que el botón de la
+      // campaña; sin campaña activa no hay a dónde enviar y decide el shell.
+      onOpenFeedback: ACTIVE_FEEDBACK_CAMPAIGN ? () => setIsFeedbackOpen(true) : undefined,
       // El chat en pantalla completa y su historial.
       mode: shellMode,
       onModeChange: setShellMode,
@@ -210,11 +246,18 @@ export function AppLayout() {
       onAgentPrompt: (prompt) => chatStore.send(prompt, chatBackend),
       // «Ayuda» abre tres puertas: preguntar (el chat), leer (el centro de ayuda) y que te guíen (paso a paso).
       helpActions: [
-        { id: "ask", label: t("help.menuAsk"), description: t("help.menuAskHint"), icon: Sparkles, tone: "ai", onSelect: () => setIsHelpOpen(true) },
+        { id: "ask", label: t("help.menuAsk"), description: t("help.menuAskHint"), icon: Sparkles, tone: "ai", onSelect: openHelp },
         { id: "center", label: t("help.menuCenter"), description: t("help.menuCenterHint"), icon: BookOpen, onSelect: () => navigate(helpPath()) },
         { id: "guide", label: t("help.menuGuide"), description: t("help.menuGuideHint"), icon: ListChecks, onSelect: () => setIsGuidesOpen(true) },
       ],
-      search: { objects: helpObjects },
+      // La búsqueda sabe dónde se está: rotula las acciones de la pantalla con
+      // su nombre y sugiere las preguntas de esa pantalla, las mismas que
+      // ofrece el agente al abrirlo desde ahí.
+      search: {
+        objects: helpObjects,
+        contextLabel: findNavLabel(navigation, activeNavId),
+        askSuggestions: (CONTEXT_SUGGESTIONS.find((item) => location.pathname.startsWith(item.prefix))?.keys ?? CHAT_SUGGESTION_KEYS).map((key) => t(key)),
+      },
       // Tema e idioma ya no van sueltos en la cabecera ni son dos filas
       // aparte en el menú de la marca: son la misma pregunta —«cómo se ve
       // esto»— así que cuelgan de una sola puerta, «Personalización», con la
@@ -230,16 +273,40 @@ export function AppLayout() {
     [user, brand, roles, viewRoleId, branchId, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
+  const openAgent = React.useCallback(() => {
+    setChatFrom("agent");
+    setIsHelpOpen(true);
+  }, []);
+  const agentButton = React.useMemo(() => <AgentButton onOpen={openAgent} />, [openAgent]);
+  // El mismo agente como acción de la barra flotante, para cuando las acciones viven ahí.
+  const agentRailAction = React.useMemo<RailActionSpec>(
+    () => ({ id: "agent", label: t("agent.name"), icon: <AiSparkGlyph size={20} />, scope: ["screen"], onSelect: openAgent }),
+    [openAgent, t]
+  );
+
   return (
     <ChatProvider value={chatContext}>
-      <AdminShell config={config}>
-        <React.Suspense fallback={<PageLoader />}>
-          <Outlet />
-        </React.Suspense>
-        <ChatPanel open={isHelpOpen && shellMode !== "agent"} onOpenChange={setIsHelpOpen} title={t("help.drawerTitle")} subtitle={t("help.title")} />
+      <AdminShell config={config} showFooter={showsLegalFooter(location.pathname)}>
+        <RailAgentProvider value={agentRailAction}>
+          <PageHeaderExtrasProvider value={agentButton}>
+            <React.Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </React.Suspense>
+          </PageHeaderExtrasProvider>
+        </RailAgentProvider>
+        <ChatPanel
+          open={isHelpOpen && shellMode !== "agent"}
+          onOpenChange={setIsHelpOpen}
+          title={chatFrom === "agent" ? t("agent.name") : t("help.drawerTitle")}
+          subtitle={chatFrom === "agent" ? (agentContext ? t(agentContext.labelKey) : t("agent.subtitle")) : t("help.title")}
+        />
         <HelpGuidesDrawer open={isGuidesOpen} onOpenChange={setIsGuidesOpen} />
-        {/* La campaña de feedback activa: recorrido la primera vez y botón en todas las páginas. */}
+        {/* El feedback: un solo diálogo, que abre «Enviar feedback» del menú y,
+            con la campaña a la vista, también su recorrido y su botón flotante. */}
         <FeedbackHost
+          open={isFeedbackOpen}
+          onOpenChange={setIsFeedbackOpen}
+          showCampaign={FEEDBACK_CAMPAIGN_VISIBLE}
           page={location.pathname}
           pageLabel={findNavLabel(navigation, activeNavId)}
           roleLabel={roles.find((role) => role.id === user?.role)?.label}

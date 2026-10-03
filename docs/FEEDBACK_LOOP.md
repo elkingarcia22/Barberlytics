@@ -50,9 +50,26 @@ van a una hoja propia.
 | `FEEDBACK_SHARE_WITH` | Correos (separados por comas) que reciben edición sobre cada hoja. **Sin esto nadie puede abrirla.** |
 | `FEEDBACK_ADMIN_KEY` | Una clave larga y aleatoria para activar o analizar a mano. |
 | `CRON_SECRET` | Otra, aleatoria. Vercel la manda sola en cada ejecución del cron. |
+| `FEEDBACK_DRIVE_FOLDER_ID` | El id de la carpeta, dentro de una **unidad compartida**, donde se guardan capturas y videos. Sin ella el diálogo no acepta adjuntos. |
 | `FEEDBACK_MODEL` | Opcional. Por defecto `claude-sonnet-5-5`. |
 
 Son variables **del servidor**: no llevan prefijo `VITE_` y no llegan al navegador.
+
+### La carpeta de adjuntos
+
+Las capturas y los videos van a Drive, no a la hoja. Tiene que ser una **unidad compartida**: una
+cuenta de servicio no tiene cuota propia y no puede guardar archivos en «Mi unidad».
+
+1. Crea una unidad compartida (o usa una) y, dentro, una carpeta para el feedback.
+2. Añade el correo de la cuenta de servicio (`client_email` del JSON) como **Gestor de contenido**
+   de la unidad.
+3. Copia el id de la carpeta —lo que va tras `/folders/` en su URL— en `FEEDBACK_DRIVE_FOLDER_ID`.
+
+Quien pueda ver esa carpeta puede abrir los enlaces de la columna `adjuntos`. El servidor no sube
+los archivos: abre una sesión de subida para cada uno, atada a su tipo, su tamaño y el origen de la
+app, y el navegador le manda los bytes a Drive. Por eso el CSP (`vercel.json`) permite
+`https://www.googleapis.com` en `connect-src`, y por eso la cuenta usa el permiso `drive` completo
+en vez de `drive.file`, que no alcanza carpetas que ella no creó.
 
 ## Qué hay en la hoja
 
@@ -60,7 +77,9 @@ Una hoja por campaña, «Feedback · <nombre>», con dos pestañas que el servid
 cabecera fija:
 
 - **Comentarios** — una fila por comentario: `fecha_recibido, fecha_envio, campana_id, campana,
-  pagina, ruta, seccion, comentario, usuario, correo, rol`.
+  pagina, ruta, seccion, comentario, usuario, correo, rol, tipo, contactar, adjuntos`. `adjuntos`
+  trae un enlace de Drive por línea. Una hoja creada antes de estas tres columnas no tiene sus
+  cabeceras: escríbelas a mano en la fila 1.
 - **Resumen** — una fila por análisis: `fecha_analisis, campana_id, campana, total_comentarios,
   desde, hasta, resumen, sentimiento, temas_principales, prioridades, quick_wins, riesgos,
   metricas_sugeridas, modelo`.

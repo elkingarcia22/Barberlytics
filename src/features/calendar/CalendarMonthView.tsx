@@ -8,7 +8,7 @@ import { Text } from "@/components/typography";
 import { MonthOccupancyGrid, type MonthOccupancyDay } from "@/components/scheduling";
 import { QueryBoundary } from "@/lib/query";
 import { PersonAvatar } from "./calendarShared";
-import { monthKey } from "./calendarModel";
+import { monthKey, teamIds } from "./calendarModel";
 import { useMonthQuery } from "./queries";
 import type { Barber, TeamFilter } from "./types";
 
@@ -31,7 +31,9 @@ export interface CalendarMonthViewProps {
 export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange, onSelectDay, today }: CalendarMonthViewProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
-  const barberId = team === "working" || team === "all" ? null : team;
+  // La ocupación del mes se pide de un barbero o de todo el equipo: con varios marcados, de todos.
+  const picked = teamIds(team);
+  const barberId = picked.length === 1 ? picked[0] : null;
   const query = useMonthQuery(branchId, monthKey(date), barberId);
 
   return (

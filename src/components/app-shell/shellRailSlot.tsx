@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { SearchActionsScope } from "@/components/search";
 
 /**
  * The floating-rail anchor at the bottom of the shell's content area.
@@ -17,5 +18,7 @@ export const ShellRailSlotProvider = ShellRailSlotContext.Provider;
 export function ShellRailSlot({ children }: { children: React.ReactNode }) {
   const host = React.useContext(ShellRailSlotContext);
   if (!host) return null;
-  return createPortal(children, host);
+  // Lo que cuelga de aquí son las acciones de la pantalla: la búsqueda general
+  // las ofrece como acciones rápidas.
+  return createPortal(<SearchActionsScope>{children}</SearchActionsScope>, host);
 }

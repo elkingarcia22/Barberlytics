@@ -74,7 +74,7 @@ export function UsersPage() {
       <ShellHeaderSlot>
         <Breadcrumbs
           items={[
-            { label: t("nav.home"), onClick: () => navigate("/dashboard") },
+            { label: t("nav.home"), onClick: () => navigate("/metricas") },
             { label: t("team.title"), onClick: () => navigate("/usuarios") },
             t("users.title"),
           ]}

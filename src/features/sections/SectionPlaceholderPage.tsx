@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n";
@@ -6,6 +5,7 @@ import { ShellHeaderSlot } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/navigation";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/feedback";
+import type { IconName } from "@/icons";
 import { PageHeader } from "@/components/utility";
 
 export interface SectionPlaceholderPageProps {
@@ -13,7 +13,8 @@ export interface SectionPlaceholderPageProps {
   titleKey: AppMessageKey;
   /** Qué vivirá aquí: lo que se promete, no un "próximamente" vacío. */
   descriptionKey: AppMessageKey;
-  icon: LucideIcon;
+  /** Concepto del registro de iconos; es la ilustración del estado. */
+  icon: IconName;
   /** Migas de más de un nivel (p. ej. Servicios & Productos › Servicios). */
   trail?: readonly AppMessageKey[];
 }
@@ -34,7 +35,7 @@ export function SectionPlaceholderPage({ titleKey, descriptionKey, icon, trail =
     <>
       <ShellHeaderSlot>
         <Breadcrumbs
-          items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, ...trail.map((key) => t(key)), t(titleKey)]}
+          items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, ...trail.map((key) => t(key)), t(titleKey)]}
         />
       </ShellHeaderSlot>
 

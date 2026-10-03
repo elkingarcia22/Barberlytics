@@ -115,7 +115,14 @@ export type IconName =
   | 'feedback'
   | 'pointer'
   | 'compass'
-  | 'rocket';
+  | 'rocket'
+  // Feedback
+  | 'bug'
+  | 'idea'
+  | 'video'
+  | 'record'
+  | 'camera'
+  | 'queue';
 
 export interface ThemaIconProps {
   /** Nombre semántico del icono en el registro */

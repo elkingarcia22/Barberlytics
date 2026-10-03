@@ -227,7 +227,7 @@ describe("screens", () => {
   });
 
   test("las rutas del rediseño se traducen a las de producción", () => {
-    expect(toProductionRoute("/dashboard")).toBe("/");
+    expect(toProductionRoute("/metricas")).toBe("/");
     expect(toProductionRoute("/clientes/8")).toBe("/customers/8");
     expect(toProductionRoute("/usuarios/lista")).toBe("/team/barbers/lista");
     expect(toProductionRoute("/configuracion/precios")).toBe("/settings/precios");

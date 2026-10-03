@@ -1,5 +1,6 @@
 import * as React from "react";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sparkles } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ActionRailShell,
   RailDivider,
@@ -14,11 +15,14 @@ import { RailOverflowMenu, type RailOverflowItem } from "./RailOverflowMenu";
 import { RailSelectionChip } from "./RailSelectionChip";
 import { ActionFab } from "./ActionFab";
 import { useCompactViewport } from "./useCompactViewport";
+import { usePublishSearchActions } from "@/components/search";
+import { useAnnounceRail, useRailAgentAction } from "./railAgent";
 import {
   railActionLabel,
   railActionsFor,
   railModeFor,
   railScreenTiers,
+  toSearchActions,
   type RailActionScope,
   type RailActionSpec,
 } from "./railActions";
@@ -81,7 +85,7 @@ const DEFAULT_INLINE_LIMIT = 5;
  * />
  */
 export function DataListActionRail({
-  actions,
+  actions: screenActions,
   selectedCount,
   onClearSelection,
   gender = "m",
@@ -89,6 +93,12 @@ export function DataListActionRail({
   locked = false,
   isBlocked = false,
 }: DataListActionRailProps) {
+  // El agente de IA de la app, si lo hay, cierra la barra por la derecha como
+  // una segunda principal con el degradado de la IA: es de todas las
+  // pantallas, no una acción más de esta.
+  const agent = useRailAgentAction();
+  const actions = screenActions;
+  useAnnounceRail();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const isCompact = useCompactViewport();
 
@@ -103,6 +113,7 @@ export function DataListActionRail({
   // la fila, las de a diario se quedan a la vista y lo que se configura una
   // vez se pliega tras el «⋯».
   const { primary, inline: screenInline, folded: screenFolded } = railScreenTiers(actions);
+  usePublishSearchActions(toSearchActions(actions));
   const screenOverflow: readonly RailOverflowItem[] = screenFolded.map((action) => ({
     id: action.id,
     label: action.label,
@@ -135,7 +146,7 @@ export function DataListActionRail({
   if (isCompact) {
     return (
       <ActionFab
-        actions={actions}
+        actions={agent ? [agent, ...actions] : actions}
         selectedCount={selectedCount}
         onClearSelection={onClearSelection}
         gender={gender}
@@ -239,6 +250,25 @@ export function DataListActionRail({
                     label={primary.label}
                     onClick={() => primary.onSelect?.()}
                   />
+                </AnimatedActionItem>
+              )}
+              {agent && (
+                <AnimatedActionItem animKey={animKey} staggerIndex={screenInline.length + (screenOverflow.length > 0 ? 1 : 0) + (primary ? 1 : 0)} skipColorFlash>
+                  {/* Solo la chispa: el nombre va en el tooltip, como en el resto de iconos de la barra. */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={agent.label}
+                        data-testid="rail-agent"
+                        onClick={() => agent.onSelect?.()}
+                        className="hover-icon-pop bg-ai-gradient relative flex size-10 items-center justify-center rounded-xl text-white shadow-ai-premium transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95"
+                      >
+                        <Sparkles className="size-[18px]" strokeWidth={2.5} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{agent.label}</TooltipContent>
+                  </Tooltip>
                 </AnimatedActionItem>
               )}
             </>

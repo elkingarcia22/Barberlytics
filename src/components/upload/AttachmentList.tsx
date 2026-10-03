@@ -4,7 +4,6 @@ import type { UploadFileItem } from './uploadTypes'
 import { FilePreview } from './FilePreview'
 import type { FilePreviewVariant } from './FilePreview'
 import { EmptyState } from '@/components/feedback'
-import { Inbox } from 'lucide-react'
 
 export interface AttachmentListProps {
   /** List of files to display */
@@ -45,7 +44,7 @@ export function AttachmentList({
           <EmptyState
             title={t("upload.noFiles")}
             description={t("upload.noFilesHint")}
-            icon={Inbox}
+            icon="file"
           />
         )}
       </div>

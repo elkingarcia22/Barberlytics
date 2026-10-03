@@ -1,6 +1,5 @@
 import * as React from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import { ArrowLeftRight, HandCoins, Package, Receipt, Scissors, Users } from "lucide-react";
 import { RequireAuth } from "@/features/auth";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { AppLayout } from "./layouts/AppLayout";
@@ -14,11 +13,20 @@ import type { AppMessageKey } from "./i18n";
 import {
   BarberOrderPage,
   CalendarPage,
-  DashboardPage,
+  CustomerProfilePage,
+  CustomersPage,
+  ExpensesPage,
   DocsApp,
   LevelsPage,
   LineupPage,
   MemberProfilePage,
+  PayrollPage,
+  ProductProfilePage,
+  ProductsPage,
+  ServiceOrderPage,
+  ServiceProfilePage,
+  ServicesPage,
+  TransactionsPage,
   MemberWizardPage,
   WorkHoursPage,
   HelpApp,
@@ -40,14 +48,8 @@ const lazy = (element: React.ReactNode) => <React.Suspense fallback={<PageLoader
 const PLACEHOLDER_SECTIONS: readonly (Omit<SectionPlaceholderPageProps, "trail"> & {
   path: string;
   trail?: readonly AppMessageKey[];
-})[] = [
-  { path: "clientes", titleKey: "nav.clients", descriptionKey: "section.clientsHint", icon: Users },
-  { path: "servicios", titleKey: "nav.services", descriptionKey: "section.servicesHint", icon: Scissors },
-  { path: "productos", titleKey: "nav.products", descriptionKey: "section.productsHint", icon: Package },
-  { path: "gastos", titleKey: "nav.expenses", descriptionKey: "section.expensesHint", icon: Receipt },
-  { path: "nomina", titleKey: "nav.payroll", descriptionKey: "section.payrollHint", icon: HandCoins },
-  { path: "transacciones", titleKey: "nav.transactions", descriptionKey: "section.transactionsHint", icon: ArrowLeftRight },
-];
+  /* Hoy todas las secciones del menú tienen pantalla; el hueco se queda para la próxima. */
+})[] = [];
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage />, errorElement: <RouteError /> },
@@ -61,10 +63,26 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/metricas" replace /> },
           // Lo primero que se abre: cómo le fue a la barbería en el periodo.
           { path: "metricas", element: lazy(<MetricsPage />) },
-          // La plantilla de una pantalla de gestión completa; la referencia
-          // la doc (Flujo de trabajo) y la fijan los e2e, así que sigue enrutada.
-          { path: "dashboard", element: lazy(<DashboardPage />) },
+          // El home anterior ya no existe: quien llegue a esta ruta cae en Métricas.
+          { path: "dashboard", element: <Navigate to="/metricas" replace /> },
           { path: "calendario", element: lazy(<CalendarPage />) },
+          // Clientes: la lista con sus segmentos y la ficha de cada uno.
+          { path: "clientes", element: lazy(<CustomersPage />) },
+          { path: "clientes/:id", element: lazy(<CustomerProfilePage />) },
+          // Servicios: el catálogo, el orden de la reserva en línea y la ficha de cada uno.
+          // «orden» va antes que `:id` para que no se lea como un servicio.
+          { path: "servicios", element: lazy(<ServicesPage />) },
+          { path: "servicios/orden", element: lazy(<ServiceOrderPage />) },
+          { path: "servicios/:id", element: lazy(<ServiceProfilePage />) },
+          // Productos: el catálogo de lo que se vende en mostrador y la ficha de cada uno.
+          { path: "productos", element: lazy(<ProductsPage />) },
+          { path: "productos/:id", element: lazy(<ProductProfilePage />) },
+          // Transacciones: las cuentas de un periodo. De solo consulta.
+          { path: "transacciones", element: lazy(<TransactionsPage />) },
+          // Gastos: lo que sale de caja, fijo y variable, en una sola lista.
+          { path: "gastos", element: lazy(<ExpensesPage />) },
+          // Nómina: lo que se le paga a cada barbero en el periodo. De solo consulta.
+          { path: "nomina", element: lazy(<PayrollPage />) },
           ...PLACEHOLDER_SECTIONS.map((section) => ({
             path: section.path,
             element: lazy(

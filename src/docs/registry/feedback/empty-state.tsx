@@ -1,9 +1,10 @@
 import * as React from "react";
-import { FolderOpen, Inbox, Plus, Search, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { EmptyStateActionButton } from "@/components/feedback/EmptyStateActionButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { GlassTone, IconName } from "@/icons";
 import { defineEntry, definePlayground } from "../types";
 
 function SearchEmptyDemo() {
@@ -23,7 +24,7 @@ function SearchEmptyDemo() {
         </ul>
       ) : (
         <EmptyState
-          icon={Search}
+          icon="search"
           title={`Sin resultados para "${query}"`}
           description="Revisa la ortografía o prueba con otro término."
           action={
@@ -42,7 +43,7 @@ export const emptyStateEntry = defineEntry({
   name: "EmptyState",
   group: "feedback",
   description:
-    "La tarjeta punteada que ocupa el lugar de una lista vacía: un icono, un título, una explicación breve y, si aplica, la acción que la llena. Reutiliza `Card` con borde discontinuo y fondo sutil.",
+    "La tarjeta punteada que ocupa el lugar de una lista vacía: una ilustración Glass, un título, una explicación breve y, si aplica, la acción que la llena. Reutiliza `Card` con borde discontinuo y fondo sutil.",
   importPath: 'import { EmptyState } from "@/components/feedback/EmptyState"',
   sourcePath: "src/components/feedback/EmptyState.tsx",
   status: "stable",
@@ -52,12 +53,15 @@ export const emptyStateEntry = defineEntry({
       title: { type: "text", default: "Aún no hay objetivos" },
       description: { type: "text", default: "Crea el primero para empezar a hacer seguimiento del ciclo." },
       withIcon: { type: "boolean", label: "Con icono", default: true },
+      icon: { type: "select", label: "Icono", options: ["file", "search", "calendar", "users", "task", "layers", "image", "upload", "lock", "help", "rocket"], default: "file" },
+      iconTone: { type: "select", label: "Tono", options: ["brand", "violet", "blue", "green", "orange", "rose", "amber", "teal"], default: "brand" },
       withAction: { type: "boolean", label: "Con acción", default: true },
     },
     layout: "stretch",
-    render: ({ title, description, withIcon, withAction }) => (
+    render: ({ title, description, withIcon, icon, iconTone, withAction }) => (
       <EmptyState
-        icon={withIcon ? Inbox : undefined}
+        icon={withIcon ? (icon as IconName) : undefined}
+        iconTone={iconTone as GlassTone}
         title={title}
         description={description || undefined}
         action={
@@ -69,8 +73,8 @@ export const emptyStateEntry = defineEntry({
         }
       />
     ),
-    code: ({ title, description, withIcon, withAction }) => {
-      const attrs = [withIcon ? "icon={Inbox}" : "", `title="${title}"`, description ? `description="${description}"` : ""].filter(Boolean);
+    code: ({ title, description, withIcon, icon, iconTone, withAction }) => {
+      const attrs = [withIcon ? `icon="${icon}"` : "", withIcon && iconTone !== "brand" ? `iconTone="${iconTone}"` : "", `title="${title}"`, description ? `description="${description}"` : ""].filter(Boolean);
       if (!withAction) return `<EmptyState ${attrs.join(" ")} />`;
       return `<EmptyState
   ${attrs.join("\n  ")}
@@ -84,8 +88,8 @@ export const emptyStateEntry = defineEntry({
       title: "Sin acción",
       description: "Cuando no hay nada que el usuario pueda hacer aquí, basta con explicar por qué está vacío.",
       layout: "stretch",
-      code: `<EmptyState icon={FolderOpen} title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />`,
-      render: () => <EmptyState icon={FolderOpen} title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />,
+      code: `<EmptyState icon="file" title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />`,
+      render: () => <EmptyState icon="file" title="Sin evaluaciones recibidas" description="Cuando tu líder envíe la evaluación aparecerá aquí." />,
     },
     {
       id: "search",
@@ -97,7 +101,7 @@ const matches = items.filter((item) => item.toLowerCase().includes(query.toLower
 
 {matches.length === 0 && (
   <EmptyState
-    icon={Search}
+    icon="search"
     title={\`Sin resultados para "\${query}"\`}
     description="Revisa la ortografía o prueba con otro término."
     action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar búsqueda</Button>}
@@ -111,7 +115,7 @@ const matches = items.filter((item) => item.toLowerCase().includes(query.toLower
       description: "Dos `EmptyStateActionButton` con el mismo peso: crear a mano o dejar que la IA proponga.",
       layout: "stretch",
       code: `<EmptyState
-  icon={Inbox}
+  icon="file"
   title="Aún no hay objetivos"
   description="Empieza con uno propio o deja que la IA proponga a partir del rol."
   action={
@@ -123,7 +127,7 @@ const matches = items.filter((item) => item.toLowerCase().includes(query.toLower
 />`,
       render: () => (
         <EmptyState
-          icon={Inbox}
+          icon="file"
           title="Aún no hay objetivos"
           description="Empieza con uno propio o deja que la IA proponga a partir del rol."
           action={
@@ -140,10 +144,10 @@ const matches = items.filter((item) => item.toLowerCase().includes(query.toLower
       title: "Compacto dentro de un panel",
       description: "Con `className` se quita el marco cuando el contenedor ya lo pone (es lo que hace TableShell).",
       layout: "stretch",
-      code: `<EmptyState icon={Inbox} title="Sin información" description="No se encontraron registros." className="border-none bg-transparent p-6 shadow-none" />`,
+      code: `<EmptyState icon="file" title="Sin información" description="No se encontraron registros." className="border-none bg-transparent p-6 shadow-none" />`,
       render: () => (
         <div className="rounded-xl border border-border/60 bg-surface p-2">
-          <EmptyState icon={Inbox} title="Sin información" description="No se encontraron registros." className="border-none bg-transparent p-6 shadow-none" />
+          <EmptyState icon="file" title="Sin información" description="No se encontraron registros." className="border-none bg-transparent p-6 shadow-none" />
         </div>
       ),
     },
@@ -151,7 +155,8 @@ const matches = items.filter((item) => item.toLowerCase().includes(query.toLower
   props: [
     { name: "title", type: "string", description: "El titular del estado vacío." },
     { name: "description", type: "string", description: "Explicación breve de por qué está vacío o qué hacer." },
-    { name: "icon", type: "LucideIcon", description: "Icono en el disco superior; se omite si no se pasa." },
+    { name: "icon", type: "IconName", description: "Concepto del registro de iconos (`file`, `search`, `calendar`…); se pinta como ilustración Glass sobre el título y se omite si no se pasa." },
+    { name: "iconTone", type: '"brand" | "violet" | "blue" | "green" | "orange" | "rose" | "amber" | "teal"', description: "Tono del cristal. Por defecto `brand`, que sigue al tema.", default: '"brand"' },
     { name: "action", type: "React.ReactNode", description: "Botón o grupo de botones bajo la descripción." },
     { name: "className", type: "string", description: "Clases extra sobre la `Card` (p. ej. para quitar el marco)." },
     { name: "...props", type: 'React.HTMLAttributes<HTMLDivElement>', description: "Cualquier atributo nativo del contenedor." },

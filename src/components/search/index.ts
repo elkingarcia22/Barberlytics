@@ -5,3 +5,4 @@ export {
   type SearchNavigateItem,
   type SearchScope,
 } from "./GlobalSearch";
+export { SearchActionsScope, readSearchActions, usePublishSearchActions, type SearchActionItem } from "./searchActions";

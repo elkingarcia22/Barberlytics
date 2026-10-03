@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Clock, FileText, SearchX, Sparkles } from "lucide-react";
+import { Clock, FileText, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShellHeaderSlot } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/navigation";
@@ -56,7 +56,7 @@ function Results({ index, docs, query }: { index: HelpIndex; docs: HelpSearchDoc
   if (!hits.length) {
     return (
       <EmptyState
-        icon={SearchX}
+        icon="search"
         title={t("help.noResults", { query })}
         description={t("help.noResultsHint")}
         action={

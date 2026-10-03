@@ -1,189 +1,247 @@
-import { format } from "date-fns";
-import { CalendarClock, Flag, HeartHandshake, Lock, Route, UserCheck } from "lucide-react";
+import * as React from "react";
+import { Check, Ellipsis, Pencil, Pill, TriangleAlert, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
-import { useLocale } from "@/i18n";
-import { calendarLocale } from "@/components/date/calendarLocale";
-import { DrawerSection } from "@/components/overlays";
+import { cn } from "@/lib/utils";
 import { Stepper } from "@/components/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Text } from "@/components/typography";
-import { ClientTypeBadge, DetailRow } from "../calendarShared";
-import {
-  JOURNEY,
-  appointmentRange,
-  appointmentStart,
-  findBarber,
-  findClient,
-  isUnpaid,
-  nextStep,
-  servicesMinutes,
-  servicesOf,
-  servicesPrice,
-  type ModelContext,
-} from "../calendarModel";
-import { CLIENT_TYPE_KEYS, PAYMENT_METHOD_KEYS, type Appointment, type AppointmentStatus } from "../types";
+import { formatClock, ScheduleColorDot } from "@/components/scheduling";
+import { ClientTypeBadge, DetailRow, PersonAvatar } from "../calendarShared";
+import { appointmentEnd, appointmentRange, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, serviceColor, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
+import { appointmentPlaybook, type AppointmentActionId } from "../appointmentPlaybook";
+import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
+import { AppointmentEditForm } from "./AppointmentEditForm";
+import { ACTION_ICON, ACTION_LABEL } from "../appointmentActions";
+import { StageHeadline } from "./AppointmentPanelParts";
+import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus } from "../types";
 
 /**
- * Resumen: lo que toca hacer ahora, el recorrido del cliente, la cita tal
- * cual se agendó y la fidelidad al barbero. Cuatro tarjetas con la misma
- * anatomía; cambia el icono, el tono y el texto.
+ * Resumen: en qué va la cita y su avance, lo que no se puede pasar por alto
+ * (alergias), la cita en filas —lo mismo que dice su tarjeta— y, debajo de
+ * todo eso, lo que toca hacer ahora. Las sugerencias de la IA van en la
+ * pestaña de Clipper.
  */
 
 export interface AppointmentSummaryTabProps {
   appointment: Appointment;
   ctx: ModelContext;
   onStatus: (appointment: Appointment, status: AppointmentStatus) => void;
+  onBarberReady: (appointment: Appointment) => void;
   onPay: (appointment: Appointment) => void;
-  onDuration: (appointment: Appointment, minutes: number) => void;
+  onPatch: (appointment: Appointment, patch: AppointmentPatch) => void;
+  onRebook: (initial: CreateAppointmentInitial) => void;
+  onCancel: (appointment: Appointment) => void;
+  onNoShow: (appointment: Appointment) => void;
+  onOpenClient: (clientId: string) => void;
 }
 
-const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180];
+const TRACK: readonly AppointmentStatus[] = ["scheduled", "arrived", "seated", "paid"];
+const CONTACT_ACTIONS: readonly AppointmentActionId[] = ["call", "whatsapp"];
+const ACTION_TEST_ID: Partial<Record<AppointmentActionId, string>> = { checkIn: "appointment-next-step", seat: "appointment-next-step", pay: "appointment-pay", rebook: "appointment-rebook" };
+/** Solo los dígitos de un teléfono, para los enlaces de llamada y WhatsApp. */
+const digits = (phone: string) => phone.replace(/[^\d+]/g, "");
 
-export function AppointmentSummaryTab({ appointment, ctx, onStatus, onPay, onDuration }: AppointmentSummaryTabProps) {
+export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberReady, onPay, onPatch, onRebook, onCancel, onNoShow, onOpenClient }: AppointmentSummaryTabProps) {
   const t = useAppT();
-  const { locale, formatDate } = useLocale();
+  // Lo de todos los días es ver la cita; cambiarla es la excepción y se pide.
+  const [editing, setEditing] = React.useState(false);
+
   const client = findClient(ctx.catalog, appointment.clientId);
+  const known = client && client.type !== "walkin" ? client : undefined;
   const barber = findBarber(ctx.catalog, appointment.barberId);
-  const requested = findBarber(ctx.catalog, appointment.requestedBarberId);
-  const manager = findBarber(ctx.catalog, client?.preferredBarberId ?? null);
-  const services = servicesOf(ctx.catalog, appointment);
-  const price = servicesPrice(services);
-  const step = nextStep(appointment.status);
-  const unpaid = isUnpaid(appointment);
   const firstName = (client?.name ?? t("calendar.clientType.walkin")).split(" ")[0];
-  const dayLabel = format(appointmentStart(appointment), "dd/MMM/yyyy", { locale: calendarLocale(locale) }).toUpperCase();
+  const unpaid = isUnpaid(appointment);
+  const services = servicesOf(ctx.catalog, appointment);
+  const serviceDot = services[0] ? serviceColor(ctx.catalog, services[0].id) : undefined;
+  const price = appointment.payment?.total ?? servicesPrice(services);
+  const critical = client?.notes.filter((note) => note.kind !== "note") ?? [];
+  const phone = known?.phone ? digits(known.phone) : "";
+  const playbook = appointmentPlaybook(appointment, ctx.now, { hasPhone: phone !== "" });
+  const trackIndex = TRACK.indexOf(appointment.status);
 
-  const nextText =
-    appointment.status === "scheduled"
-      ? t("calendar.next.notArrived", { name: firstName })
-      : appointment.status === "arrived"
-        ? t("calendar.next.arrived", { name: firstName })
-        : appointment.status === "seated"
-          ? t("calendar.next.seated", { name: firstName })
-          : appointment.status === "paid"
-            ? t("calendar.next.paid", { date: appointment.payment ? formatDate(new Date(appointment.payment.paidAt), { day: "numeric", month: "short" }) : "—", method: appointment.payment ? t(PAYMENT_METHOD_KEYS[appointment.payment.method]) : "—" })
-            : appointment.status === "no_show"
-              ? t("calendar.next.noShow")
-              : t("calendar.next.cancelled");
+  // Lo secundario que no tiene sitio propio: editar va en la cabecera de «La cita» y el contacto, en la fila del cliente.
+  const secondary = playbook.secondary.filter((action) => action !== "edit" && !(known && CONTACT_ACTIONS.includes(action)));
+  const contactInline = phone !== "" ? CONTACT_ACTIONS.filter((action) => !playbook.primary.includes(action)) : [];
 
-  const journeyIndex = client ? Math.max(0, JOURNEY.indexOf(client.type)) : -1;
+  const headline = (): string => {
+    switch (playbook.stage) {
+      case "late":
+        return t("calendar.stage.late", { time: durationLabel(lateMinutes(appointment, ctx.now) ?? 0) });
+      case "upcoming":
+        return t("calendar.next.notArrived", { name: firstName });
+      case "waiting":
+        return t("calendar.next.arrived", { name: firstName });
+      case "seated":
+        return t("calendar.stage.seated", { time: formatClock(appointmentEnd(appointment), ctx.intl) });
+      case "toCollect":
+        return t("calendar.stage.toCollect");
+      case "paid":
+        return t("calendar.stage.paid", { method: appointment.payment ? t(PAYMENT_METHOD_KEYS[appointment.payment.method]) : "—" });
+      case "noShow":
+        return t("calendar.next.noShow");
+      case "cancelled":
+        return t("calendar.next.cancelled");
+    }
+  };
+
+  const run = (action: AppointmentActionId) => {
+    if (action === "checkIn") onStatus(appointment, "arrived");
+    if (action === "seat") onStatus(appointment, "seated");
+    if (action === "pay") onPay(appointment);
+    if (action === "ready") onBarberReady(appointment);
+    if (action === "rebook") onRebook({ clientId: appointment.clientId, serviceId: appointment.serviceIds[0], barberId: appointment.barberId });
+    if (action === "noShow") onNoShow(appointment);
+    if (action === "cancel") onCancel(appointment);
+  };
+
+  const href = (action: AppointmentActionId) => (action === "call" ? `tel:${phone}` : action === "whatsapp" ? `https://wa.me/${phone.replace("+", "")}` : null);
+
+  const actionButton = (action: AppointmentActionId, variant: "default" | "secondary" | "ghost", grow = false) => {
+    const Icon = ACTION_ICON[action];
+    const label = action === "pay" && variant === "default" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(price) }) : t(ACTION_LABEL[action]);
+    const link = href(action);
+    const className = cn(grow && "flex-1");
+    return link ? (
+      <Button key={action} asChild variant={variant} size={grow ? "default" : "sm"} className={className}>
+        <a href={link} target={action === "whatsapp" ? "_blank" : undefined} rel="noreferrer">
+          <Icon /> {label}
+        </a>
+      </Button>
+    ) : (
+      <Button key={action} variant={variant} size={grow ? "default" : "sm"} className={className} onClick={() => run(action)} data-testid={ACTION_TEST_ID[action]}>
+        <Icon /> {label}
+      </Button>
+    );
+  };
 
   return (
-    <div className="space-y-3">
-      <DrawerSection icon={Flag} tone="brand" title={t("calendar.section.nextStep")} hint={t("calendar.section.nextStepHint")}>
-        <div className="space-y-3">
-          <Text>{nextText}</Text>
-          {unpaid && (
-            <div className="flex flex-col gap-2">
-              {step && step.status !== "paid" && (
-                <Button onClick={() => onStatus(appointment, step.status)} data-testid="appointment-next-step">
-                  {t("calendar.detail.stepWithPrice", { label: t(step.labelKey), price: ctx.formatMoney(price) })}
-                </Button>
-              )}
-              <Button variant={step && step.status !== "paid" ? "outline" : "default"} onClick={() => onPay(appointment)} data-testid="appointment-pay">
-                {t("calendar.detail.payAppointment")}
-              </Button>
-            </div>
-          )}
-        </div>
-      </DrawerSection>
-
-      <DrawerSection icon={Route} tone="positive" title={t("calendar.section.journey")} hint={t("calendar.section.journeyHint")}>
-        {client && client.type !== "walkin" ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <ClientTypeBadge type={client.type} />
-                <Text variant="muted">{t("calendar.journey.visitsHere", { count: client.visits })}</Text>
-              </div>
-              <Text variant="small" tone="secondary">
-                {t("calendar.journey.visitNumber", { count: client.visits + (appointment.status === "paid" ? 0 : 1) })}
-              </Text>
-            </div>
-            <Stepper size="sm" current={journeyIndex} steps={JOURNEY.map((type) => ({ id: type, label: t(CLIENT_TYPE_KEYS[type]) }))} />
-          </div>
-        ) : (
-          <Text variant="muted">{t("calendar.journey.walkIn")}</Text>
+    <div className="space-y-6">
+      {/* Ahora: en qué va la cita y por dónde va del recorrido. */}
+      <section aria-label={t("calendar.section.nextStep")} className="space-y-4" data-stage={playbook.stage}>
+        <StageHeadline stage={playbook.stage}>{headline()}</StageHeadline>
+        {trackIndex >= 0 && (
+          <Stepper
+            size="sm"
+            aria-label={t("calendar.detail.track")}
+            // Cobrada es el final: todos los pasos quedan hechos, no «en curso».
+            current={appointment.status === "paid" ? TRACK.length : trackIndex}
+            steps={TRACK.map((status) => ({ id: status, label: t(status === "scheduled" ? "calendar.detail.trackScheduled" : STATUS_KEYS[status]) }))}
+          />
         )}
-      </DrawerSection>
+      </section>
 
-      <DrawerSection icon={CalendarClock} tone="neutral" title={t("calendar.section.appointment", { date: dayLabel })} hint={t("calendar.section.appointmentHint")}>
-        <div>
-          <DetailRow label={t("calendar.field.client")}>{client?.name ?? t("calendar.clientType.walkin")}</DetailRow>
-          <DetailRow label={t("calendar.field.service")}>
-            {services.map((service) => `${service.name} · ${t("calendar.field.minutes", { count: service.durationMin })}`).join(" + ")}
-          </DetailRow>
-          <DetailRow label={t("calendar.field.barber")}>{barber?.name ?? "—"}</DetailRow>
-          <DetailRow label={t("calendar.field.datetime")}>{appointmentRange(appointment, ctx.intl)}</DetailRow>
-          <DetailRow label={t("calendar.field.duration")}>
-            {unpaid ? (
-              <Select value={String(appointment.durationMin)} onValueChange={(value) => onDuration(appointment, Number(value))}>
-                <SelectTrigger size="sm" className="w-28" aria-label={t("calendar.detail.changeDuration")} data-testid="appointment-duration">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...new Set([...DURATIONS, appointment.durationMin])].sort((a, b) => a - b).map((minutes) => (
-                    <SelectItem key={minutes} value={String(minutes)}>
-                      {t("calendar.field.minutes", { count: minutes })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              t("calendar.field.minutes", { count: appointment.durationMin })
-            )}
-          </DetailRow>
-          <DetailRow label={t("calendar.field.price")} strong>
-            {ctx.formatMoney(price)}
-          </DetailRow>
-          <div className="flex items-center justify-between pt-3">
-            <Text variant="muted">{t("calendar.field.total", { count: services.length, minutes: servicesMinutes(services) })}</Text>
-            <Text weight="semibold" tabular>
-              {ctx.formatMoney(price)}
-            </Text>
-          </div>
+      {critical.length > 0 && (
+        <div className="space-y-2" aria-label={t("calendar.detail.alerts")} data-testid="appointment-alerts">
+          {critical.map((note) => (
+            <Alert key={note.id} variant="warning">
+              {note.kind === "allergy" ? <TriangleAlert /> : <Pill />}
+              <AlertTitle>{t(note.kind === "allergy" ? "calendar.detail.allergy" : "calendar.detail.medication")}</AlertTitle>
+              <AlertDescription>{note.text}</AlertDescription>
+            </Alert>
+          ))}
         </div>
-      </DrawerSection>
+      )}
 
-      <DrawerSection
-        icon={HeartHandshake}
-        tone="warning"
-        title={t("calendar.section.loyalty")}
-        hint={t("calendar.section.loyaltyHint")}
-        action={
-          <span className="inline-flex items-center gap-1 text-xs text-text-muted">
-            <Lock className="size-3.5" aria-hidden="true" /> {t("calendar.loyalty.auto")}
-          </span>
-        }
-      >
-        <div className="space-y-3">
-          {manager && (
-            <div className="flex items-start gap-3 rounded-lg bg-surface-subtle p-3">
-              <UserCheck className="mt-0.5 size-5 shrink-0 text-text-secondary" aria-hidden="true" />
-              <div>
-                <Text weight="semibold">{t("calendar.loyalty.managedBy", { name: manager.name })}</Text>
-                {manager.id !== appointment.barberId && <Text variant="muted">{t("calendar.loyalty.managedByOther", { name: manager.name })}</Text>}
-              </div>
-            </div>
+      {/* La cita: las mismas cosas que dice su tarjeta, en filas. */}
+      <section aria-label={t("calendar.detail.edit.title")}>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <Text variant="label" weight="semibold">
+            {t("calendar.detail.edit.title")}
+          </Text>
+          {unpaid && (
+            <Button variant="ghost" size="xs" onClick={() => setEditing((value) => !value)} data-testid="appointment-edit-toggle">
+              {editing ? <Check /> : <Pencil />} {editing ? t("calendar.detail.edit.done") : t("action.edit")}
+            </Button>
           )}
+        </div>
+        {unpaid && editing ? (
+          <AppointmentEditForm appointment={appointment} ctx={ctx} onPatch={onPatch} />
+        ) : (
           <div>
-            <DetailRow label={t("calendar.loyalty.requested")} strong>
-              {requested?.name ?? t("calendar.loyalty.noPreference")}
+            <DetailRow plain label={t("calendar.field.service")}>
+              <span className="inline-flex min-w-0 items-center gap-2">
+                {serviceDot !== undefined && <ScheduleColorDot color={serviceDot} className="size-2.5" />}
+                <span className="truncate">{services.map((service) => service.name).join(" + ") || "—"}</span>
+              </span>
             </DetailRow>
-            {barber && client && client.type !== "walkin" && (
-              <DetailRow label={t("calendar.loyalty.withBarber", { name: barber.name.split(" ")[0] })} strong>
-                {t("calendar.loyalty.visitsWith", { count: Math.max(1, Math.round(client.visits * (manager?.id === barber.id ? 0.7 : 0.25))), total: client.visits })}
+            <DetailRow plain label={t("calendar.field.barber")}>
+              <span className="inline-flex items-center gap-2">
+                {barber && <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />}
+                {barber?.name ?? "—"}
+              </span>
+            </DetailRow>
+            <DetailRow plain label={t("calendar.detail.edit.time")}>
+              {appointmentRange(appointment, ctx.intl)} · {durationLabel(appointment.durationMin)}
+            </DetailRow>
+            {known && (
+              <DetailRow plain label={t("calendar.field.client")}>
+                <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                  <ClientTypeBadge type={known.type} />
+                  {appointment.walkIn && <Badge variant="neutral">{t("calendar.card.walkIn")}</Badge>}
+                  {known.phone && <span className="whitespace-nowrap text-text-secondary">{known.phone}</span>}
+                  {contactInline.map((action) => {
+                    const Icon = ACTION_ICON[action];
+                    return (
+                      <Button key={action} asChild variant="ghost" size="icon-xs" aria-label={t(ACTION_LABEL[action])}>
+                        <a href={href(action) ?? undefined} target={action === "whatsapp" ? "_blank" : undefined} rel="noreferrer">
+                          <Icon />
+                        </a>
+                      </Button>
+                    );
+                  })}
+                  <Button variant="ghost" size="icon-xs" aria-label={t("calendar.client.openProfile")} onClick={() => onOpenClient(known.id)}>
+                    <UserRound />
+                  </Button>
+                </span>
               </DetailRow>
             )}
-            {client && client.type !== "walkin" && (
-              <DetailRow label={t("calendar.loyalty.otherBarbers")} strong>
-                {Math.min(ctx.catalog.barbers.length - 1, Math.max(0, Math.round(client.visits / 10)))}
-              </DetailRow>
+            <DetailRow plain label={appointment.payment ? t("calendar.detail.paid") : t("calendar.field.price")} strong>
+              <span data-testid="appointment-price">{ctx.formatMoney(price)}</span>
+            </DetailRow>
+          </div>
+        )}
+      </section>
+
+      {appointment.notes && (
+        <div className="rounded-lg bg-surface-subtle px-3 py-2">
+          <Text variant="caption">{t("calendar.create.notes")}</Text>
+          <Text>{appointment.notes}</Text>
+        </div>
+      )}
+
+      {/* Lo que toca hacer, debajo de lo que hay que saber para hacerlo. */}
+      <section aria-label={t("calendar.detail.actions")} className="space-y-2">
+        <div className="flex flex-wrap gap-2" data-testid="appointment-primary">
+          {playbook.primary.map((action, index) => actionButton(action, index === playbook.primary.length - 1 ? "default" : "secondary", true))}
+        </div>
+        {(secondary.length > 0 || playbook.more.length > 0) && (
+          <div className="-mx-1 flex flex-wrap items-center gap-1">
+            {secondary.map((action) => actionButton(action, "ghost"))}
+            {playbook.more.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label={t("calendar.detail.actions")} className="ml-auto" data-testid="appointment-actions">
+                    <Ellipsis />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {playbook.more.map((action) => {
+                    const Icon = ACTION_ICON[action];
+                    return (
+                      <DropdownMenuItem key={action} variant={action === "cancel" ? "destructive" : undefined} onSelect={() => run(action)}>
+                        <Icon className="size-4" /> {t(ACTION_LABEL[action])}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
-        </div>
-      </DrawerSection>
+        )}
+      </section>
     </div>
   );
 }

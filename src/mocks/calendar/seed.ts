@@ -175,7 +175,7 @@ export const PRODUCTS: readonly MockProduct[] = [
 
 /* --------------------------------------------------------------- clients */
 
-const CLIENT_FIRST = ["Laura", "Santiago", "Mariana", "Juan", "Camila", "Andrés", "Valentina", "Sebastián", "Daniela", "Mateo", "Sara", "Nicolás", "Isabella", "Samuel", "Gabriela", "Martín", "Antonia", "Emilio", "Luciana", "Tomás", "Renata", "Diego", "Julieta", "Felipe", "Elena", "Simón", "Paula", "Gael", "Victoria", "Bruno"];
+const CLIENT_FIRST = ["Marcela", "Santiago", "Mariana", "Juan", "Camila", "Andrés", "Valentina", "Sebastián", "Daniela", "Mateo", "Sara", "Nicolás", "Isabella", "Samuel", "Gabriela", "Martín", "Antonia", "Emilio", "Luciana", "Tomás", "Renata", "Diego", "Julieta", "Felipe", "Elena", "Simón", "Paula", "Gael", "Victoria", "Bruno"];
 const CLIENT_LAST = ["Gómez", "Pérez", "Rodríguez", "Martínez", "López", "García", "Hernández", "Torres", "Ramírez", "Castro", "Moreno", "Jiménez", "Ortiz", "Silva", "Rojas", "Vargas"];
 const TYPES: readonly MockClientType[] = ["new", "retained", "frequent", "vip"];
 const NOTE_SAMPLES: readonly [MockNoteKind, string][] = [
@@ -187,7 +187,7 @@ const NOTE_SAMPLES: readonly [MockNoteKind, string][] = [
 ];
 
 /** Los barberos de Massachusetts (ids del equipo), para repartir preferencias. */
-const MA_BARBER_IDS: readonly string[] = ["team-04", "team-05", "team-06", "team-07", "team-08"];
+const MA_BARBER_IDS: readonly string[] = ["team-04", "team-05", "team-06", "team-07", "team-08", "team-26", "team-27", "team-28", "team-29", "team-30"];
 
 export const WALK_IN_CLIENT: MockClient = {
   id: "cli_walkin",
@@ -211,7 +211,7 @@ export function seedClients(count = 44, seed = 11): MockClient[] {
     const type = index === 0 ? "vip" : index === 1 ? "new" : pick(TYPES);
     const visits = type === "new" ? 1 + Math.floor(rand() * 2) : type === "retained" ? 3 + Math.floor(rand() * 5) : type === "frequent" ? 8 + Math.floor(rand() * 10) : 18 + Math.floor(rand() * 25);
     const notes: MockClientNote[] = rand() < 0.4 ? [pick(NOTE_SAMPLES)].map(([kind, text], noteIndex) => ({ id: `note_${index}_${noteIndex}`, kind, text, createdAt: new Date(base - Math.floor(rand() * 90) * 86_400_000).toISOString() })) : [];
-    const name = index === 0 ? "Laura Gómez" : `${pick(CLIENT_FIRST)} ${pick(CLIENT_LAST)}`;
+    const name = index === 0 ? "Marcela Gómez" : `${pick(CLIENT_FIRST)} ${pick(CLIENT_LAST)}`;
     const barbers = MA_BARBER_IDS;
     return {
       id: `cli_${String(index + 1).padStart(3, "0")}`,
@@ -254,6 +254,9 @@ function hashKey(value: string): number {
   return hash >>> 0;
 }
 
+/** Cada cuántas citas, de media, se vende además un producto. */
+const PRODUCT_SALE_EVERY = 5;
+
 export interface SeedDayOptions {
   branchId: string;
   day: string;
@@ -262,6 +265,8 @@ export interface SeedDayOptions {
   clients: readonly MockClient[];
   /** Ahora, para decidir en qué estado va cada cita de hoy. */
   now: Date;
+  /** Los bloqueos de ese día (almuerzos, reuniones…): ahí no se siembran citas. */
+  blocks?: readonly MockTimeBlock[];
 }
 
 /**
@@ -270,7 +275,7 @@ export interface SeedDayOptions {
  * pasados están cobradas (con algún plantón o cancelación); las de hoy van
  * según la hora; las futuras siguen agendadas.
  */
-export function seedDay({ branchId, day, barbers, clients, now }: SeedDayOptions): MockAppointment[] {
+export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: SeedDayOptions): MockAppointment[] {
   const rand = seededRandom(hashKey(`${branchId}:${day}`));
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
   const date = new Date(`${day}T00:00:00`);
@@ -294,6 +299,13 @@ export function seedDay({ branchId, day, barbers, clients, now }: SeedDayOptions
         }
         const service = pick(SERVICES);
         if (cursor + service.durationMin > end) break;
+        // Nadie agenda encima de un almuerzo o de una reunión: la cita se va a después del bloqueo.
+        const from = cursor;
+        const blocked = blocks.find((block) => block.barberId === barber.id && from < parseClock(block.endTime) && parseClock(block.startTime) < from + service.durationMin);
+        if (blocked) {
+          cursor = parseClock(blocked.endTime);
+          continue;
+        }
         const client = pick(realClients);
         const startMinutes = cursor;
         const endMinutes = cursor + service.durationMin;
@@ -302,6 +314,11 @@ export function seedDay({ branchId, day, barbers, clients, now }: SeedDayOptions
         const id = `apt_${day.replace(/-/g, "")}_${barber.id.replace("team-", "")}_${counter++}`;
         const createdAt = new Date(date.getTime() - Math.floor(rand() * 10 + 1) * 86_400_000).toISOString();
         const paidAt = new Date(`${day}T${clockOf(endMinutes)}:00`).toISOString();
+        // Una de cada cinco citas se lleva además un producto. Sale del id, no del dado: la agenda sembrada no cambia.
+        const productRoll = hashKey(id);
+        const product = productRoll % PRODUCT_SALE_EVERY === 0 ? PRODUCTS[productRoll % PRODUCTS.length] : null;
+        const sold = product ? [{ productId: product.id, qty: 1 + (productRoll % 2) }] : [];
+        const soldTotal = product ? product.price * sold[0].qty : 0;
         appointments.push({
           id,
           branchId,
@@ -309,7 +326,7 @@ export function seedDay({ branchId, day, barbers, clients, now }: SeedDayOptions
           barberId: barber.id,
           requestedBarberId: rand() < 0.75 ? barber.id : null,
           serviceIds: [service.id],
-          products: [],
+          products: sold,
           start: localIso(day, clockOf(startMinutes)),
           durationMin: service.durationMin,
           status,
@@ -322,7 +339,7 @@ export function seedDay({ branchId, day, barbers, clients, now }: SeedDayOptions
           createdAt,
           createdBy: walkIn ? barber.name : rand() < 0.5 ? "Lucía Bernal" : "Reserva online",
           history: [{ id: `${id}_h0`, at: createdAt, actor: walkIn ? barber.name : "Lucía Bernal", event: walkIn ? "walkin" : "created" }],
-          payment: status === "paid" ? { method: pick(["cash", "card", "link"] as const), tip: rand() < 0.6 ? Math.round(service.price * 0.15) : 0, tax: 0, total: service.price, paidAt } : null,
+          payment: status === "paid" ? { method: pick(["cash", "card", "link"] as const), tip: rand() < 0.6 ? Math.round(service.price * 0.15) : 0, tax: 0, total: service.price + soldTotal, paidAt } : null,
         });
         cursor = endMinutes + (rand() < 0.4 ? 0 : 30);
       }

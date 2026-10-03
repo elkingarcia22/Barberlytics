@@ -1,5 +1,4 @@
 import * as React from "react";
-import { FolderOpen } from "lucide-react";
 import { AttachmentList } from "@/components/upload";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/feedback";
@@ -103,7 +102,7 @@ const [attachments, setAttachments] = React.useState(files);
   files={[]}
   emptyState={
     <EmptyState
-      icon={FolderOpen}
+      icon="file"
       title="Aún no hay soportes"
       description="Adjunta al menos un documento para enviar la solicitud."
       action={<Button size="sm">Adjuntar</Button>}
@@ -115,7 +114,7 @@ const [attachments, setAttachments] = React.useState(files);
           <AttachmentList files={[]} />
           <AttachmentList
             files={[]}
-            emptyState={<EmptyState icon={FolderOpen} title="Aún no hay soportes" description="Adjunta al menos un documento para enviar la solicitud." action={<Button size="sm">Adjuntar</Button>} />}
+            emptyState={<EmptyState icon="file" title="Aún no hay soportes" description="Adjunta al menos un documento para enviar la solicitud." action={<Button size="sm">Adjuntar</Button>} />}
           />
         </div>
       ),

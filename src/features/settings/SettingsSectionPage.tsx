@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Settings } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { useAppT } from "@/app/i18n";
 import { ShellHeaderSlot } from "@/components/app-shell";
@@ -8,19 +7,53 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/feedback";
 import { PageHeader } from "@/components/utility";
 import { buildSettingsGroups, findSettingsItem } from "./settingsCatalog";
-import { SETTINGS_ICONS } from "./settingsIcons";
 import { BrandIdentitySettings } from "@/features/branding";
+import { BillingSettings } from "./sections/BillingSettings";
+import { BookingSettings } from "./sections/BookingSettings";
+import { BranchesSettings } from "./sections/BranchesSettings";
+import { BusinessSettings } from "./sections/BusinessSettings";
+import { CardFeeSettings } from "./sections/CardFeeSettings";
+import { ClosuresSettings } from "./sections/ClosuresSettings";
+import { CommissionSettings } from "./sections/CommissionSettings";
+import { CompanySettings } from "./sections/CompanySettings";
+import { DeleteAccountSettings } from "./sections/DeleteAccountSettings";
+import { DevicesSettings } from "./sections/DevicesSettings";
+import { NotificationSettings } from "./sections/NotificationSettings";
+import { PaymentsSettings } from "./sections/PaymentsSettings";
+import { PayrollCycleSettings } from "./sections/PayrollCycleSettings";
+import { PricingSettings } from "./sections/PricingSettings";
+import { TaxesSettings } from "./sections/TaxesSettings";
+import { TipsSettings } from "./sections/TipsSettings";
 
-/** Los ajustes que ya tienen formulario; el resto sigue en «Próximamente». */
+/**
+ * El formulario de cada ajuste, por su id del catálogo. Uno que entre al
+ * catálogo sin cuerpo cae en «Próximamente» hasta que tenga el suyo.
+ */
 const SETTINGS_BODIES: Record<string, React.ComponentType | undefined> = {
+  negocio: BusinessSettings,
   identidad: BrandIdentitySettings,
+  sucursales: BranchesSettings,
+  cierres: ClosuresSettings,
+  agendamiento: BookingSettings,
+  "centro-notificaciones": NotificationSettings,
+  empresa: CompanySettings,
+  precios: PricingSettings,
+  impuestos: TaxesSettings,
+  propinas: TipsSettings,
+  "tarifa-tarjeta": CardFeeSettings,
+  dispositivos: DevicesSettings,
+  pagos: PaymentsSettings,
+  comisiones: CommissionSettings,
+  nomina: PayrollCycleSettings,
+  facturacion: BillingSettings,
+  "eliminar-cuenta": DeleteAccountSettings,
 };
 
 /**
- * Un ajuste concreto, todavía sin formulario.
+ * Un ajuste concreto.
  *
- * El marco ya es el definitivo —migas hasta su grupo, título y descripción del
- * catálogo—, así que construir el ajuste es rellenar el cuerpo. Un id que no
+ * El marco es común —migas hasta su grupo, título y descripción del
+ * catálogo— y el cuerpo es el formulario de ese ajuste. Un id que no
  * está en el catálogo cae en la propia pantalla de configuración en vez de en
  * un 404: el ajuste no existe, pero el sitio donde buscarlo sí.
  */
@@ -35,16 +68,15 @@ export function SettingsSectionPage() {
     return (
       <>
         <ShellHeaderSlot>
-          <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/dashboard") }, t("settings.title")]} />
+          <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("settings.title")]} />
         </ShellHeaderSlot>
         <PageHeader title={t("settings.title")} description={t("settings.description")} />
-        <EmptyState icon={Settings} title={t("soon.title")} description={t("soon.hint")} />
+        <EmptyState icon="settings" title={t("soon.title")} description={t("soon.hint")} />
       </>
     );
   }
 
   const { group, item } = found;
-  const Icon = SETTINGS_ICONS[item.id] ?? Settings;
   const Body = SETTINGS_BODIES[item.id];
 
   return (
@@ -76,7 +108,7 @@ export function SettingsSectionPage() {
         description={item.description}
       />
 
-      {Body ? <Body /> : <EmptyState icon={Icon} title={t("soon.title")} description={t("soon.hint")} />}
+      {Body ? <Body /> : <EmptyState icon="rocket" title={t("soon.title")} description={t("soon.hint")} />}
     </>
   );
 }

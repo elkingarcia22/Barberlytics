@@ -1,9 +1,11 @@
 import * as React from "react";
-import { CornerDownLeft, FileText, ListTree, Search, Sparkles } from "lucide-react";
+import { Clock, CornerDownLeft, FileText, ListTree, Search, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
+import { readSearchActions, type SearchActionItem } from "./searchActions";
+import { pushRecent, readRecents, type SearchRecent } from "./searchRecents";
 
 /** Un registro del producto: una vacante, una persona, un curso, un componente. */
 export interface SearchObjectItem {
@@ -29,7 +31,7 @@ export interface SearchNavigateItem {
   onSelect: () => void;
 }
 
-export type SearchScope = "all" | "navigate" | "objects" | "ask";
+export type SearchScope = "all" | "actions" | "navigate" | "objects" | "ask";
 
 export interface GlobalSearchProps {
   objects?: readonly SearchObjectItem[];
@@ -38,6 +40,20 @@ export interface GlobalSearchProps {
   onAsk?: (question: string) => void;
   /** Una línea que explica qué hará la pregunta y dónde responde. */
   askHint?: string;
+  /**
+   * Preguntas que se ofrecen antes de escribir nada. Las de la pantalla en la
+   * que se está: en el calendario, sobre la agenda; en clientes, sobre ellos.
+   */
+  askSuggestions?: readonly string[];
+  /**
+   * Acciones que se ofrecen siempre, además de las de la pantalla abierta, que
+   * llegan solas (ver `usePublishSearchActions`).
+   */
+  actions?: readonly SearchActionItem[];
+  /** La pantalla en la que se está («Calendario»); rotula sus acciones rápidas. */
+  contextLabel?: string;
+  /** Dónde se recuerdan las últimas búsquedas en el navegador; `null` para no recordarlas. */
+  recentsKey?: string | null;
   /** Sobre qué se está buscando: la empresa activa, el espacio, el proyecto. */
   scope?: string;
   placeholder?: string;
@@ -70,6 +86,7 @@ function matches(haystack: readonly string[], needle: string): boolean {
 
 const SCOPE_LABELS: Readonly<Record<SearchScope, string>> = {
   all: "Todo",
+  actions: "Acciones",
   navigate: "Ir a",
   objects: "Objetos",
   ask: "Preguntar",
@@ -97,11 +114,23 @@ function Hint({ keys, label }: { keys: string; label: string }) {
  * pestañas de alcance y el recuento necesitan saber cuántos resultados hay en
  * cada grupo antes de pintarlos.
  */
+const NO_ACTIONS: readonly SearchActionItem[] = [];
+const NO_SUGGESTIONS: readonly string[] = [];
+const DEFAULT_RECENTS_KEY = "thema.search.recents";
+/** Con el campo vacío la pregunta sugerida es una invitación, no una lista. */
+const MAX_SUGGESTIONS = 2;
+/** Las primeras de la pantalla —van de más a menos peso—; el resto aparece al escribir. */
+const MAX_HOME_ACTIONS = 4;
+
 export function GlobalSearch({
   objects = [],
   navigate = [],
   onAsk,
   askHint,
+  askSuggestions = NO_SUGGESTIONS,
+  actions = NO_ACTIONS,
+  contextLabel,
+  recentsKey = DEFAULT_RECENTS_KEY,
   scope,
   placeholder,
   triggerLabel,
@@ -113,22 +142,32 @@ export function GlobalSearch({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [activeScope, setActiveScope] = React.useState<SearchScope>("all");
+  // Lo que depende del momento de abrir: qué ofrece la pantalla que hay debajo
+  // y qué se buscó la última vez. Se toma entonces, no mientras está cerrada.
+  const [screenActions, setScreenActions] = React.useState<readonly SearchActionItem[]>(NO_ACTIONS);
+  const [recents, setRecents] = React.useState<readonly SearchRecent[]>([]);
+
+  // Cada apertura empieza en limpio: abrir la búsqueda con los restos de la
+  // anterior es desconcertante. Reiniciar también al cerrar no molesta, así
+  // que no hace falta saber hacia dónde va el conmutador.
+  const prepare = React.useCallback(() => {
+    setQuery("");
+    setActiveScope("all");
+    setScreenActions(readSearchActions());
+    setRecents(recentsKey ? readRecents(recentsKey) : []);
+  }, [recentsKey]);
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        // Cada apertura empieza en limpio: abrir la búsqueda con los restos de
-        // la anterior es desconcertante. Reiniciar también al cerrar no
-        // molesta, así que no hace falta saber hacia dónde va el conmutador.
-        setQuery("");
-        setActiveScope("all");
+        prepare();
         setOpen((value) => !value);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [prepare]);
 
   const trimmed = query.trim();
   const canAsk = Boolean(onAsk) && trimmed.length > 0;
@@ -142,23 +181,60 @@ export function GlobalSearch({
     [navigate, trimmed]
   );
 
+  // Las de la pantalla primero: son la razón de abrir la búsqueda desde ahí.
+  const allActions = React.useMemo(() => [...screenActions, ...actions], [screenActions, actions]);
+  const foundActions = React.useMemo(() => allActions.filter((item) => matches([item.label, item.hint ?? ""], trimmed)), [allActions, trimmed]);
+
+  // Los recientes guardan solo el id: se pintan con lo que hoy diga el índice,
+  // y uno que ya no exista —un registro borrado— simplemente no aparece.
+  const recentRows = React.useMemo(
+    () =>
+      recents.flatMap((recent) => {
+        if (recent.kind === "object") {
+          const item = objects.find((candidate) => candidate.id === recent.id);
+          return item ? [{ key: `object-${item.id}`, title: item.title, secondary: item.meta?.join(" · "), label: [item.title, ...(item.meta ?? [])].join(", "), action: item.actionLabel ?? "Abrir", recent, onSelect: item.onSelect }] : [];
+        }
+        const item = navigate.find((candidate) => candidate.id === recent.id);
+        if (!item) return [];
+        const title = item.path[item.path.length - 1] ?? "";
+        return [{ key: `navigate-${item.id}`, title, secondary: item.path.slice(0, -1).join(" › "), label: item.path.join(", "), action: item.actionLabel ?? "Navegar", recent, onSelect: item.onSelect }];
+      }),
+    [recents, objects, navigate]
+  );
+
+  const suggestions = onAsk ? askSuggestions.slice(0, MAX_SUGGESTIONS) : NO_SUGGESTIONS;
+  /*
+   * Antes de escribir, la búsqueda no enseña el índice entero sino por dónde
+   * empezar desde aquí: qué se puede hacer en esta pantalla, qué preguntar
+   * sobre ella y lo último que se abrió. Si no hay nada de eso —la
+   * documentación, una app sin acciones—, se queda el índice de siempre.
+   */
+  const isHome = trimmed.length === 0 && (allActions.length > 0 || suggestions.length > 0 || recentRows.length > 0);
+
   const scopes = React.useMemo<readonly SearchScope[]>(() => {
     const available: SearchScope[] = ["all"];
+    if (allActions.length) available.push("actions");
     if (navigate.length) available.push("navigate");
     if (objects.length) available.push("objects");
     if (onAsk) available.push("ask");
     return available;
-  }, [navigate.length, objects.length, onAsk]);
+  }, [allActions.length, navigate.length, objects.length, onAsk]);
 
   const showAsk = canAsk && (activeScope === "all" || activeScope === "ask");
   const showObjects = foundObjects.length > 0 && (activeScope === "all" || activeScope === "objects");
   const showNavigate = foundNavigate.length > 0 && (activeScope === "all" || activeScope === "navigate");
-  const count = (showAsk ? 1 : 0) + (showObjects ? foundObjects.length : 0) + (showNavigate ? foundNavigate.length : 0);
+  const showActions = foundActions.length > 0 && (activeScope === "all" || activeScope === "actions");
+  const count = (showAsk ? 1 : 0) + (showActions ? foundActions.length : 0) + (showObjects ? foundObjects.length : 0) + (showNavigate ? foundNavigate.length : 0);
 
   const openSearch = () => {
-    setQuery("");
-    setActiveScope("all");
+    prepare();
     setOpen(true);
+  };
+
+  /** Abrir un resultado lo deja el primero de «Últimas búsquedas». */
+  const closeAndRemember = (recent: SearchRecent, run: () => void) => {
+    if (recentsKey) pushRecent(recentsKey, recent);
+    close(run);
   };
 
   const close = (run: () => void) => {
@@ -169,7 +245,7 @@ export function GlobalSearch({
   // El tabulador cambia de alcance en vez de sacar el foco del campo, que es
   // lo que anuncia la barra de atajos.
   const onCommandKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== "Tab" || scopes.length < 2) return;
+    if (event.key !== "Tab" || scopes.length < 2 || isHome) return;
     event.preventDefault();
     const index = scopes.indexOf(activeScope);
     const next = event.shiftKey ? index - 1 + scopes.length : index + 1;
@@ -188,7 +264,7 @@ export function GlobalSearch({
       >
         <Search className="size-3.5" />
         <span className="hidden sm:inline">{triggerLabel ?? searchLabel}</span>
-        <kbd className="ml-1 hidden rounded border border-border/70 bg-surface-muted px-1.5 font-sans text-[10px] font-semibold text-text-muted sm:inline">
+        <kbd className="ml-auto hidden rounded border border-border/70 bg-surface-muted px-1.5 font-sans text-[10px] font-semibold text-text-muted sm:inline">
           ⌘K
         </kbd>
       </button>
@@ -223,6 +299,7 @@ export function GlobalSearch({
               </kbd>
             </div>
 
+            {!isHome && (
             <div className="flex items-center gap-1 border-b border-border/60 px-3 py-2">
               {scopes.map((item) => (
                 <button
@@ -245,69 +322,124 @@ export function GlobalSearch({
                 {count} {count === 1 ? "resultado" : "resultados"}
               </span>
             </div>
+            )}
 
             <CommandList className="max-h-[min(60vh,26rem)] [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-[10.5px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.12em] [&_[cmdk-group-heading]]:text-text-muted">
-              {count === 0 && (
-                <CommandEmpty className="px-3 py-8 text-[13px] text-text-muted">
-                  {trimmed ? `Nada que coincida con «${trimmed}».` : "Escribe para buscar."}
-                </CommandEmpty>
-              )}
+              {isHome ? (
+                <>
+                  {allActions.length > 0 && (
+                    <CommandGroup heading={contextLabel ? `Acciones rápidas · ${contextLabel}` : "Acciones rápidas"}>
+                      {allActions.slice(0, MAX_HOME_ACTIONS).map((item) => (
+                        <ActionRow key={item.id} item={item} onSelect={() => close(item.onSelect)} />
+                      ))}
+                    </CommandGroup>
+                  )}
 
-              {showAsk && (
-                <CommandGroup heading="Preguntar al agente">
-                  <SearchRow
-                    value={`ask-${trimmed}`}
-                    icon={
-                      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-ai-gradient text-white">
-                        <Sparkles className="size-3.5" strokeWidth={2.5} />
-                      </span>
-                    }
-                    title={`«${trimmed}»`}
-                    description={askHint}
-                    ariaLabel={`Preguntar al agente: ${trimmed}`}
-                    action={<CornerDownLeft className="size-3.5" />}
-                    onSelect={() => close(() => onAsk?.(trimmed))}
-                  />
-                </CommandGroup>
-              )}
+                  {suggestions.length > 0 && (
+                    <CommandGroup heading="Preguntar al agente">
+                      {suggestions.map((question) => (
+                        <SearchRow
+                          key={question}
+                          value={`suggestion-${question}`}
+                          icon={<AskTile />}
+                          title={question}
+                          secondary={askHint}
+                          ariaLabel={`Preguntar al agente: ${question}`}
+                          action="Preguntar"
+                          onSelect={() => close(() => onAsk?.(question))}
+                        />
+                      ))}
+                    </CommandGroup>
+                  )}
 
-              {showObjects && (
-                <CommandGroup heading="Objetos">
-                  {foundObjects.map((item) => (
-                    <SearchRow
-                      key={item.id}
-                      value={`object-${item.id}`}
-                      icon={item.icon ?? <FileText className="mt-0.5 size-4 shrink-0 text-text-muted" />}
-                      title={item.title}
-                      meta={item.meta}
-                      action={item.actionLabel ?? "Abrir"}
-                      onSelect={() => close(item.onSelect)}
-                    />
-                  ))}
-                </CommandGroup>
-              )}
+                  {recentRows.length > 0 && (
+                    <CommandGroup heading="Últimas búsquedas">
+                      {recentRows.map((row) => (
+                        <SearchRow
+                          key={row.key}
+                          value={`recent-${row.key}`}
+                          icon={<Tile><Clock /></Tile>}
+                          title={row.title}
+                          secondary={row.secondary}
+                          ariaLabel={row.label}
+                          action={row.action}
+                          onSelect={() => closeAndRemember(row.recent, row.onSelect)}
+                        />
+                      ))}
+                    </CommandGroup>
+                  )}
+                </>
+              ) : (
+                <>
+                  {count === 0 && (
+                    <CommandEmpty className="px-3 py-8 text-[13px] text-text-muted">
+                      {trimmed ? `Nada que coincida con «${trimmed}».` : "Escribe para buscar."}
+                    </CommandEmpty>
+                  )}
 
-              {showNavigate && (
-                <CommandGroup heading="Ir a">
-                  {foundNavigate.map((item) => (
-                    <SearchRow
-                      key={item.id}
-                      value={`navigate-${item.id}`}
-                      icon={item.icon ?? <ListTree className="mt-0.5 size-4 shrink-0 text-text-muted" />}
-                      title={item.path[item.path.length - 1] ?? ""}
-                      breadcrumb={item.path.slice(0, -1)}
-                      action={item.actionLabel ?? "Navegar"}
-                      onSelect={() => close(item.onSelect)}
-                    />
-                  ))}
-                </CommandGroup>
+                  {showAsk && (
+                    <CommandGroup heading="Preguntar al agente">
+                      <SearchRow
+                        value={`ask-${trimmed}`}
+                        icon={<AskTile />}
+                        title={`«${trimmed}»`}
+                        secondary={askHint}
+                        ariaLabel={`Preguntar al agente: ${trimmed}`}
+                        action="Preguntar"
+                        onSelect={() => close(() => onAsk?.(trimmed))}
+                      />
+                    </CommandGroup>
+                  )}
+
+                  {showActions && (
+                    <CommandGroup heading={contextLabel ? `Acciones · ${contextLabel}` : "Acciones"}>
+                      {foundActions.map((item) => (
+                        <ActionRow key={item.id} item={item} onSelect={() => close(item.onSelect)} />
+                      ))}
+                    </CommandGroup>
+                  )}
+
+                  {showObjects && (
+                    <CommandGroup heading="Objetos">
+                      {foundObjects.map((item) => (
+                        <SearchRow
+                          key={item.id}
+                          value={`object-${item.id}`}
+                          icon={<Tile>{item.icon ?? <FileText />}</Tile>}
+                          title={item.title}
+                          secondary={item.meta?.join(" · ")}
+                          ariaLabel={[item.title, ...(item.meta ?? [])].join(", ")}
+                          action={item.actionLabel ?? "Abrir"}
+                          onSelect={() => closeAndRemember({ kind: "object", id: item.id }, item.onSelect)}
+                        />
+                      ))}
+                    </CommandGroup>
+                  )}
+
+                  {showNavigate && (
+                    <CommandGroup heading="Ir a">
+                      {foundNavigate.map((item) => (
+                        <SearchRow
+                          key={item.id}
+                          value={`navigate-${item.id}`}
+                          icon={<Tile>{item.icon ?? <ListTree />}</Tile>}
+                          title={item.path[item.path.length - 1] ?? ""}
+                          secondary={item.path.slice(0, -1).join(" › ")}
+                          ariaLabel={item.path.join(", ")}
+                          action={item.actionLabel ?? "Navegar"}
+                          onSelect={() => closeAndRemember({ kind: "navigate", id: item.id }, item.onSelect)}
+                        />
+                      ))}
+                    </CommandGroup>
+                  )}
+                </>
               )}
             </CommandList>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 px-3 py-2 text-[11px] text-text-muted">
               <Hint keys="↑↓" label="moverse" />
               <Hint keys="↵" label={onAsk ? "abrir o preguntar" : "abrir"} />
-              {scopes.length > 1 && <Hint keys="⇥" label="cambiar de grupo" />}
+              {scopes.length > 1 && !isHome && <Hint keys="⇥" label="cambiar de grupo" />}
               {scope && (
                 <span className="ml-auto">
                   Alcance: <span className="font-medium text-text-secondary">{scope}</span>
@@ -321,65 +453,85 @@ export function GlobalSearch({
   );
 }
 
-/** Una fila de resultado: icono, título con su contexto y la acción a la derecha. */
+/** El recuadro del icono: da a todas las filas el mismo arranque, traigan el icono que traigan. */
+function Tile({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-muted text-text-secondary [&_svg]:size-4">
+      {children}
+    </span>
+  );
+}
+
+function AskTile() {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-ai-gradient text-white [&_svg]:size-4">
+      <Sparkles strokeWidth={2.5} />
+    </span>
+  );
+}
+
+/** Una acción de la pantalla. Bloqueada sigue a la vista, apagada y con su motivo. */
+function ActionRow({ item, onSelect }: { item: SearchActionItem; onSelect: () => void }) {
+  const secondary = item.blockedReason ?? item.hint;
+  return (
+    <SearchRow
+      value={`action-${item.id}`}
+      icon={<Tile>{item.icon ?? <Zap />}</Tile>}
+      title={item.label}
+      secondary={secondary}
+      ariaLabel={secondary ? `${item.label}, ${secondary}` : item.label}
+      action="Ejecutar"
+      disabled={Boolean(item.blockedReason)}
+      onSelect={onSelect}
+    />
+  );
+}
+
+/**
+ * Una fila de resultado: icono, título y, debajo, su contexto. La acción solo
+ * se enseña en la fila activa: diez «Abrir» apilados no dicen nada, y uno al
+ * lado de lo que se va a abrir sí.
+ */
 function SearchRow({
   value,
   icon,
   title,
-  meta,
-  breadcrumb,
-  description,
+  secondary,
   action,
   ariaLabel,
+  disabled,
   onSelect,
 }: {
   value: string;
   icon?: React.ReactNode;
   title: string;
-  meta?: readonly string[];
-  breadcrumb?: readonly string[];
-  description?: string;
-  action?: React.ReactNode;
-  ariaLabel?: string;
-  onSelect: () => void;
-}) {
-  /*
+  /** La segunda línea: el contexto, la ruta o qué pasa al elegirla. */
+  secondary?: string;
+  action?: string;
+  /**
    * Etiqueta explícita: los «·» y «›» que separan las partes son decorativos,
    * así que sin esto un lector de pantalla leía "Analista de datosvacante"
    * todo junto. Con comas hace las pausas donde toca.
    */
-  const label = ariaLabel ?? [...(breadcrumb ?? []), title, ...(meta ?? [])].join(", ");
+  ariaLabel: string;
+  disabled?: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <CommandItem
-      value={value}
-      aria-label={label}
-      onSelect={onSelect}
-      className="mx-1 items-start gap-2.5 px-2.5 py-2 data-[selected=true]:before:absolute data-[selected=true]:before:inset-y-1 data-[selected=true]:before:left-0 data-[selected=true]:before:w-[3px] data-[selected=true]:before:rounded-full data-[selected=true]:before:bg-primary"
-    >
+    <CommandItem value={value} aria-label={ariaLabel} disabled={disabled} onSelect={onSelect} className="mx-1 items-center gap-3 px-2 py-2">
       {icon}
-      <span className="min-w-0 flex-1 overflow-hidden">
-        <span className="flex min-w-0 items-baseline gap-x-1.5 whitespace-nowrap text-[13px]">
-          {breadcrumb?.map((step) => (
-            <React.Fragment key={step}>
-              <span className="text-text-secondary">{step}</span>
-              <span aria-hidden className="text-text-muted">
-                ›
-              </span>
-            </React.Fragment>
-          ))}
-          <span className="shrink-0 font-semibold text-text-primary">{title}</span>
-          {meta?.map((entry) => (
-            <React.Fragment key={entry}>
-              <span aria-hidden className="text-text-muted">
-                ·
-              </span>
-              <span className="text-text-secondary">{entry}</span>
-            </React.Fragment>
-          ))}
-        </span>
-        {description && <span className="mt-0.5 block text-[11.5px] leading-snug text-text-muted">{description}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-medium text-text-primary">{title}</span>
+        {secondary && <span className="block truncate text-[12.5px] leading-snug text-text-secondary">{secondary}</span>}
       </span>
-      {action && <CommandShortcut className="shrink-0 self-center tracking-normal">{action}</CommandShortcut>}
+      {action && (
+        <CommandShortcut className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-medium tracking-normal opacity-0 group-data-selected/command-item:opacity-100">
+          {action}
+          <kbd className="grid h-5 w-6 place-items-center rounded-md border border-border/70 bg-surface">
+            <CornerDownLeft className="size-3" />
+          </kbd>
+        </CommandShortcut>
+      )}
     </CommandItem>
   );
 }

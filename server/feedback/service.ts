@@ -1,4 +1,5 @@
-import { feedbackSubmissionSchema } from "../../src/features/feedback/types.js";
+import { FEEDBACK_NO_PAGE, feedbackSubmissionSchema, feedbackUploadRequestSchema } from "../../src/features/feedback/types.js";
+import { createUploadSession, resolveAttachmentLinks } from "./attachments.js";
 import type { CampaignDefinition } from "../../src/features/feedback/campaignRegistry.js";
 import { askClaude, buildPrompt, parseAnalysis, toSummaryRow } from "./analysis.js";
 import { appendComment, appendSummary, ensureCampaignSheet, findCampaignSheet, readComments, readSummaries } from "./campaignSheet.js";
@@ -14,6 +15,8 @@ export interface Reply {
 export interface FeedbackService {
   /** Guarda un comentario en la hoja de la campaña activa (creándola si falta). */
   submit(payload: unknown): Promise<Reply>;
+  /** Abre una sesión de subida en Drive para un adjunto y devuelve a dónde mandarlo. */
+  createUpload(payload: unknown, origin: string): Promise<Reply>;
   /** Crea la hoja de la campaña activa y la comparte, sin esperar al primer comentario. */
   activate(): Promise<Reply>;
   /** Resume con Claude los comentarios nuevos de la campaña activa y lo guarda en «Resumen». */
@@ -28,6 +31,9 @@ export interface FeedbackServiceOptions {
   now?: () => Date;
   log?: (message: string, error: unknown) => void;
 }
+
+/** Como se lee el tipo en la hoja, que la abre gente y no solo el análisis. */
+const TYPE_LABELS = { improvement: "Mejora", bug: "Error", idea: "Idea" } as const;
 
 const fail = (status: number, code: string, message: string): Reply => ({ status, body: { code, message } });
 const NOT_OPEN = fail(404, "not_found", "Esta campaña ya no está abierta.");
@@ -70,23 +76,41 @@ export function createFeedbackService(options: FeedbackServiceOptions): Feedback
         "submit",
         async (api, active) => {
           const sheet = await ensureCampaignSheet(api, active, config.shareWith);
+          const links = config.driveFolderId ? await resolveAttachmentLinks(api, config.driveFolderId, submission.attachments) : [];
           await appendComment(api, sheet.id, {
             fecha_recibido: now().toISOString(),
             fecha_envio: submission.timestamp,
             campana_id: active.id,
             // El nombre sale del registro del servidor, no de lo que mande el navegador.
             campana: active.name,
-            pagina: submission.pageLabel || submission.page,
+            pagina: submission.pageLabel || (submission.page === FEEDBACK_NO_PAGE ? "" : submission.page),
             ruta: submission.page,
             seccion: submission.section,
             comentario: submission.comment,
             usuario: submission.user,
             correo: submission.email,
             rol: submission.role,
+            tipo: TYPE_LABELS[submission.type],
+            contactar: submission.canContact ? "Sí" : "No",
+            adjuntos: links.join("\n"),
           });
           return { status: 200, body: { ok: true } };
         },
         "No pudimos guardar tu comentario. Inténtalo de nuevo."
+      );
+    },
+
+    async createUpload(payload, origin) {
+      const parsed = feedbackUploadRequestSchema.safeParse(payload);
+      if (!parsed.success) return fail(422, "validation_error", "Solo se aceptan imágenes JPG o PNG de hasta 5 MB y videos de hasta 30 MB.");
+      if (!campaign || parsed.data.campaignId !== campaign.id) return NOT_OPEN;
+      const folderId = config.driveFolderId;
+      if (!folderId) return fail(503, "server", "Los adjuntos todavía no están configurados en el servidor. Quítalos para enviar el comentario.");
+
+      return guarded(
+        "createUpload",
+        async (api) => ({ status: 200, body: { ok: true, uploadUrl: await createUploadSession(api, parsed.data, { folderId, origin, receivedAt: now() }) } }),
+        "No pudimos preparar la subida del archivo. Inténtalo de nuevo."
       );
     },
 

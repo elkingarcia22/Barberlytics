@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Image as ImageIcon } from 'lucide-react'
 import type { EmptyGalleryStateProps } from './mediaTypes'
 
 /**
@@ -14,7 +13,7 @@ export function EmptyGalleryState({
 }: EmptyGalleryStateProps) {
   return (
     <EmptyState 
-      icon={ImageIcon}
+      icon="image"
       title={title}
       description={description}
       action={action}

@@ -11,7 +11,9 @@ export interface ServiceAccount {
 }
 
 export const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/drive.file",
+  // `drive` y no `drive.file`: los adjuntos van a una carpeta de una unidad
+  // compartida que la cuenta no creó, y `drive.file` no llega a ella.
+  "https://www.googleapis.com/auth/drive",
   "https://www.googleapis.com/auth/spreadsheets",
 ] as const;
 
@@ -67,6 +69,8 @@ export function signServiceAccountJwt(account: ServiceAccount, scopes: readonly 
 export interface GoogleClient {
   /** Llama a una API de Google con el token de la cuenta de servicio y devuelve el JSON. */
   json<T>(url: string, init?: { method?: string; body?: unknown }): Promise<T>;
+  /** Lo mismo, pero devuelve la respuesta entera: para leer cabeceras, como la de una sesión de subida. */
+  raw(url: string, init: { method: string; headers?: Record<string, string>; body?: unknown }): Promise<Response>;
 }
 
 export interface GoogleClientOptions {
@@ -100,6 +104,18 @@ export function createGoogleClient(account: ServiceAccount, options: GoogleClien
   }
 
   return {
+    async raw(url, init) {
+      const response = await doFetch(url, {
+        method: init.method,
+        headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json; charset=UTF-8", ...init.headers },
+        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        throw new GoogleApiError(response.status, payload?.error?.message ?? `Google respondió ${response.status}.`);
+      }
+      return response;
+    },
     async json<T>(url: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
       const response = await doFetch(url, {
         method: init.method ?? (init.body === undefined ? "GET" : "POST"),

@@ -1,5 +1,4 @@
 import * as React from "react";
-import { CalendarX2 } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,9 @@ import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { Text } from "@/components/typography";
 import { minutesOfDay } from "@/components/scheduling";
 import { AppointmentStatusBadge, ClientTypeBadge, PersonAvatar } from "./calendarShared";
-import { appointmentRange, appointmentStart, findBarber, findClient, nextStep, servicesOf, servicesPrice, visibleBarbers, type ModelContext } from "./calendarModel";
+import { appointmentRange, appointmentStart, hasFilters, matchesFilters, findBarber, findClient, nextStep, servicesOf, servicesPrice, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
+
+const NO_FILTERS: AgendaFilters = { stages: [], serviceIds: [] };
 import type { Appointment, CalendarDay, TeamFilter } from "./types";
 
 /**
@@ -22,6 +23,9 @@ export interface CalendarAgendaViewProps {
   team: TeamFilter;
   day: CalendarDay;
   ctx: ModelContext;
+  /** Los filtros puestos (estado, servicio): solo se listan las citas que pasan. */
+  filters?: AgendaFilters;
+  onClearFocus?: () => void;
   onOpenAppointment: (appointment: Appointment) => void;
   onNextStep: (appointment: Appointment) => void;
 }
@@ -29,17 +33,32 @@ export interface CalendarAgendaViewProps {
 const AFTERNOON_FROM = 12 * 60;
 const EVENING_FROM = 18 * 60;
 
-export function CalendarAgendaView({ date, team, day, ctx, onOpenAppointment, onNextStep }: CalendarAgendaViewProps) {
+export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS, onClearFocus, onOpenAppointment, onNextStep }: CalendarAgendaViewProps) {
   const t = useAppT();
   const systemT = useT();
   const barberIds = React.useMemo(() => new Set(visibleBarbers(ctx.catalog.barbers, team, date).map((barber) => barber.id)), [ctx.catalog.barbers, team, date]);
   const appointments = React.useMemo(
-    () => day.appointments.filter((item) => barberIds.has(item.barberId)).sort((a, b) => a.start.localeCompare(b.start)),
-    [day.appointments, barberIds]
+    () =>
+      day.appointments
+        .filter((item) => barberIds.has(item.barberId) && matchesFilters(item, filters, ctx.now))
+        .sort((a, b) => a.start.localeCompare(b.start)),
+    [day.appointments, barberIds, filters, ctx.now]
   );
 
+  if (appointments.length === 0 && hasFilters(filters)) {
+    return (
+      <EmptyState
+        icon="calendar"
+        title={t("calendar.pulse.focusEmpty")}
+        description={t("calendar.pulse.focusEmptyHint")}
+        action={onClearFocus ? <Button onClick={onClearFocus}>{t("calendar.pulse.clear")}</Button> : undefined}
+        data-testid="calendar-agenda-focus-empty"
+      />
+    );
+  }
+
   if (appointments.length === 0) {
-    return <EmptyState icon={CalendarX2} title={t("calendar.agenda.empty")} description={t("calendar.agenda.emptyHint")} data-testid="calendar-agenda-empty" />;
+    return <EmptyState icon="calendar" title={t("calendar.agenda.empty")} description={t("calendar.agenda.emptyHint")} data-testid="calendar-agenda-empty" />;
   }
 
   const groups = [

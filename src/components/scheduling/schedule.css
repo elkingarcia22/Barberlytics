@@ -1,0 +1,33 @@
+/*
+ * La paleta categórica de la agenda: doce colores para distinguir cosas que
+ * conviven en la rejilla (en la barbería, un color por servicio). Son matices
+ * repartidos por la rueda con la misma fuerza, así ninguno pesa más que otro
+ * ni se confunde con los colores de estado. Cada clase solo fija el matiz
+ * (`--schedule-color`); quien la usa decide la opacidad, y por eso vale igual
+ * en claro y en oscuro.
+ */
+.schedule-color-1 { --schedule-color: 217 85% 56%; }
+.schedule-color-2 { --schedule-color: 152 60% 40%; }
+.schedule-color-3 { --schedule-color: 32 92% 52%; }
+.schedule-color-4 { --schedule-color: 280 62% 58%; }
+.schedule-color-5 { --schedule-color: 188 78% 42%; }
+.schedule-color-6 { --schedule-color: 338 78% 58%; }
+.schedule-color-7 { --schedule-color: 48 90% 48%; }
+.schedule-color-8 { --schedule-color: 244 70% 64%; }
+.schedule-color-9 { --schedule-color: 96 52% 42%; }
+.schedule-color-10 { --schedule-color: 14 82% 56%; }
+.schedule-color-11 { --schedule-color: 168 64% 38%; }
+.schedule-color-12 { --schedule-color: 304 52% 54%; }
+
+/*
+ * El relleno de las tarjetas de cita, uno solo para todas y sin borde (a la manera de Google
+ * Calendar). En claro, un tono suave del color de la marca; en oscuro, un gris un paso más claro que
+ * el fondo. Es una capa plana y opaca sobre la superficie: el rayado de fuera de horario no se
+ * transparenta.
+ */
+.schedule-card-fill {
+  background-image: linear-gradient(hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.18));
+}
+.dark .schedule-card-fill {
+  background-image: linear-gradient(hsl(var(--foreground) / 0.11), hsl(var(--foreground) / 0.11));
+}

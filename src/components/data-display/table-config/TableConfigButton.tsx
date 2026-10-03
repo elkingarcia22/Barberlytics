@@ -103,7 +103,9 @@ export function TableConfigButton({
   /** Falso donde la tabla no ofrece paginación —una lista corta dentro de un panel. */
   showRowsMode = true,
   /** Falso donde no se marcan filas: sin selección no hay acciones que colocar. */
-  showActionsPlacement = true,
+  // Dónde van las acciones se elige una vez para toda la app, en
+  // «Personalización» o en los ajustes de la barra: aquí ya no se ofrece.
+  showActionsPlacement = false,
   /** Falso donde las filas no se operan una a una ni en lote. */
   showRowControl = true,
   className,

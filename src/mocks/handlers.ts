@@ -2,6 +2,13 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
+import { customersHandlers } from "./customers/handlers";
+import { servicesHandlers } from "./services/handlers";
+import { productsHandlers } from "./products/handlers";
+import { transactionsHandlers } from "./transactions/handlers";
+import { expensesHandlers } from "./expenses/handlers";
+import { payrollHandlers } from "./payroll/handlers";
+import { settingsHandlers } from "./settings/handlers";
 import { buildBusinessMetrics } from "./metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
 
@@ -236,6 +243,22 @@ export const handlers = [
     db.feedback.push({ ...body, receivedAt: new Date().toISOString() });
     return HttpResponse.json({ ok: true });
   }),
+  // Adjuntos del feedback: en producción el servidor abre una sesión de subida
+  // de Drive y el navegador le manda los bytes; aquí las dos mitades son mock.
+  http.post(`${BASE}/feedback/attachments`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => null)) as { name?: unknown; size?: unknown } | null;
+    if (!body || typeof body.name !== "string" || typeof body.size !== "number") {
+      return error(422, "validation_error", "Solo se aceptan imágenes JPG o PNG de hasta 5 MB y videos de hasta 30 MB.");
+    }
+    const id = `adjunto-mock-${String(db.feedbackUploads.length + 1).padStart(4, "0")}`;
+    db.feedbackUploads.push({ id, name: body.name, size: body.size });
+    return HttpResponse.json({ ok: true, uploadUrl: new URL(`/api/feedback/attachments/upload/${id}`, request.url).toString() });
+  }),
+  http.put(`${BASE}/feedback/attachments/upload/:id`, async ({ params }) => {
+    await delay(LATENCY_MS);
+    return HttpResponse.json({ id: String(params.id) });
+  }),
   http.get(`${BASE}/dashboard/summary`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
@@ -388,4 +411,25 @@ export const handlers = [
 
   // ---------- Equipo ----------
   ...teamHandlers,
+
+  // ---------- Clientes ----------
+  ...customersHandlers,
+
+  // ---------- Servicios ----------
+  ...servicesHandlers,
+
+  // ---------- Productos ----------
+  ...productsHandlers,
+
+  // ---------- Transacciones ----------
+  ...transactionsHandlers,
+
+  // ---------- Gastos ----------
+  ...expensesHandlers,
+
+  // ---------- Nómina ----------
+  ...payrollHandlers,
+
+  // ---------- Configuración ----------
+  ...settingsHandlers,
 ];

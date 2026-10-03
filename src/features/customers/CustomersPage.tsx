@@ -1,0 +1,334 @@
+import * as React from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import { Ban, CalendarPlus, CheckCircle2, Eye, NotebookPen, ShieldCheck, TriangleAlert, UserPlus, Users } from "lucide-react";
+import { toast } from "sonner";
+import { useAppT } from "@/app/i18n";
+import type { AppMessageKey } from "@/app/i18n/types";
+import { useLocale } from "@/i18n";
+import { describeError } from "@/lib/api";
+import { QueryBoundary } from "@/lib/query";
+import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
+import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
+import { DataListBlock } from "@/components/blocks";
+import { MetricCard, MetricDial, MetricRing, getChartTheme } from "@/components/charts";
+import { ListItem } from "@/components/data-display/ListItem";
+import type { TableActionsPlacement } from "@/components/data-display/table-config";
+import { AttentionAction, AttentionStrip, EmptyState } from "@/components/feedback";
+import { Breadcrumbs } from "@/components/navigation";
+import { ConfirmDialog } from "@/components/overlays";
+import { OptionTile } from "@/components/selection";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/utility";
+import { useMoney } from "@/features/calendar/calendarFormat";
+import { useBranchId } from "@/features/team/teamUtils";
+import { CustomerFormDrawer } from "./CustomerFormDrawer";
+import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
+import { ALL_SEGMENTS, BIRTHDAY_WINDOW_DAYS, CUSTOMER_ALERTS, UNRELIABLE_MISSES, countBySegment, customerCells, customerColumns, customerPulse, parseSegment, type CustomerAlertId } from "./customersHome";
+import { CustomerAvatar, SegmentBadge } from "./customersShared";
+import { SEGMENT_STYLE, branchName, formatAgo, maskPhone } from "./customersUtils";
+import { useCustomersQuery, useSetCustomerBlocked } from "./queries";
+import { SEGMENT_HINT_KEYS, SEGMENT_KEYS, customerSegmentSchema, type Customer } from "./types";
+
+const PAGE_SIZE = 10;
+/* En el móvil los segmentos son una fila que se desliza; desde `sm`, una rejilla con todos a la vista. */
+const TILE_CLASS = "w-44 shrink-0 sm:w-auto";
+const ringColor = getChartTheme().color[0];
+const ALERT_IDS: readonly string[] = CUSTOMER_ALERTS.map((alert) => alert.id);
+
+/**
+ * La lista de clientes.
+ *
+ * El mismo molde que el home de equipo: arriba, en qué momento de la
+ * relación está cada quien —con su recuento y lo que significa a la vista,
+ * no escondido tras nueve pestañas—; después cómo va la base, quién necesita
+ * algo hoy y la lista con todo. El segmento y el aviso viven en la URL: el
+ * enlace reproduce la misma vista.
+ */
+export function CustomersPage() {
+  const t = useAppT();
+  const navigate = useNavigate();
+  const query = useCustomersQuery();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <ShellHeaderSlot>
+        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("customers.title")]} />
+      </ShellHeaderSlot>
+
+      <PageHeader title={t("customers.title")} description={t("customers.description")} />
+
+      <QueryBoundary
+        query={query}
+        loading={
+          <div className="space-y-section" data-testid="customers-loading">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <div className="grid gap-stack lg:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <Skeleton key={item} className="h-[168px] rounded-2xl" />
+              ))}
+            </div>
+            <Skeleton className="h-72 w-full rounded-2xl" />
+          </div>
+        }
+      >
+        {(data) => <CustomersHome rows={data.items} />}
+      </QueryBoundary>
+    </div>
+  );
+}
+
+function railActions(t: (key: AppMessageKey) => string, on: { create: () => void; open: () => void; book: () => void; note: () => void; block: () => void }, blocked: boolean): readonly RailActionSpec[] {
+  return [
+    { id: "create", label: t("customers.action.create"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
+    { id: "open", label: t("customers.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.open },
+    { id: "book", label: t("customers.action.book"), icon: <CalendarPlus className="size-5" strokeWidth={2} />, scope: ["single"], blockedReason: blocked ? t("customers.action.bookBlocked") : null, onSelect: on.book },
+    { id: "note", label: t("customers.action.note"), icon: <NotebookPen className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.note },
+    blocked
+      ? { id: "unblock", label: t("customers.action.unblock"), icon: <ShieldCheck className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.block }
+      : { id: "block", label: t("customers.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: on.block },
+  ];
+}
+
+function CustomersHome({ rows }: { rows: readonly Customer[] }) {
+  const t = useAppT();
+  const navigate = useNavigate();
+  const branchId = useBranchId();
+  const { formatNumber, formatDate, formatRelativeTime } = useLocale();
+  const formatMoney = useMoney();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const setBlocked = useSetCustomerBlocked();
+
+  const segment = parseSegment(searchParams.get("tipo"));
+  const alertParam = searchParams.get("aviso");
+  const alert = ALERT_IDS.includes(alertParam ?? "") ? (alertParam as CustomerAlertId) : null;
+  const setFilters = (next: { tipo?: string | null; aviso?: string | null }) =>
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(next)) {
+          if (value) params.set(key, value);
+          else params.delete(key);
+        }
+        return params;
+      },
+      { replace: true }
+    );
+
+  const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
+  const [drawer, setDrawer] = React.useState<"create" | "note" | null>(null);
+  const [confirmBlock, setConfirmBlock] = React.useState<Customer | null>(null);
+  const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
+  const railOwnsActions = actionsPlacement === "rail";
+
+  const formatCount = React.useCallback((value: number) => formatNumber(value), [formatNumber]);
+  const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
+  const columns = React.useMemo(() => customerColumns(t), [t]);
+  const cells = React.useMemo(() => customerCells(t, { formatCount, formatMoney, formatDate, formatRelativeTime }), [t, formatCount, formatMoney, formatDate, formatRelativeTime]);
+
+  const counts = React.useMemo(() => countBySegment(rows), [rows]);
+  const pool = React.useMemo(() => (segment === ALL_SEGMENTS ? rows : rows.filter((row) => row.segment === segment)), [rows, segment]);
+  const pulse = React.useMemo(() => customerPulse(pool), [pool]);
+  const preset = CUSTOMER_ALERTS.find((item) => item.id === alert);
+  const filtered = React.useMemo(() => pool.filter((row) => !preset || preset.matches(row)), [pool, preset]);
+  const attention = pool.filter((row) => CUSTOMER_ALERTS.some((item) => item.matches(row))).length;
+  const calm = attention === 0;
+
+  const single = selected.size === 1 ? rows.find((row) => row.id === [...selected][0]) : undefined;
+  const actions = React.useMemo(
+    () =>
+      railActions(
+        t,
+        {
+          create: () => setDrawer("create"),
+          open: () => single && navigate(`/clientes/${single.id}`),
+          book: () => single && navigate(`/calendario?cliente=${single.id}`),
+          note: () => single && setDrawer("note"),
+          block: () => single && setConfirmBlock(single),
+        },
+        single?.blocked ?? false
+      ),
+    [navigate, single, t]
+  );
+
+  /* Cambiar de segmento con un aviso puesto puede dejar la lista en blanco
+     —«en riesgo» no le pasa a un cliente nuevo—, así que elegirlo suelta el aviso. */
+  const pickSegment = (value: string) => {
+    setFilters({ tipo: value === ALL_SEGMENTS ? null : value, aviso: null });
+    setSelected(new Set());
+  };
+  const pickAlert = (id: CustomerAlertId) => setFilters({ aviso: alert === id ? null : id });
+
+  const segmentHint = segment === ALL_SEGMENTS ? t("customers.segment.allHint") : t(SEGMENT_HINT_KEYS[segment]);
+  const hasFilter = segment !== ALL_SEGMENTS || alert !== null;
+
+  if (rows.length === 0) {
+    return (
+      <>
+        <EmptyState
+          icon="users"
+          title={t("customers.emptyTitle")}
+          description={t("customers.emptyHint")}
+          action={
+            <Button onClick={() => setDrawer("create")}>
+              <UserPlus /> {t("customers.action.create")}
+            </Button>
+          }
+        />
+        <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <section aria-label={t("customers.segmentsAria")} className="mb-section shrink-0">
+        <div className="mb-stack flex items-baseline gap-2">
+          <h2 className="shrink-0 text-sm font-semibold text-text-secondary">{t("customers.segments")}</h2>
+          <p className="min-w-0 truncate text-xs text-text-muted" data-testid="customers-segment-hint">
+            {segmentHint}
+          </p>
+        </div>
+        <div role="radiogroup" aria-label={t("customers.segmentsAria")} className="-mx-1 flex gap-stack overflow-x-auto px-1 pb-1 [scrollbar-width:thin] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:p-0 xl:grid-cols-5">
+          <OptionTile compact className={TILE_CLASS} option={{ value: ALL_SEGMENTS, label: t("customers.segment.all"), badge: formatCount(rows.length), icon: Users }} selected={segment === ALL_SEGMENTS} onSelect={pickSegment} />
+          {customerSegmentSchema.options.map((id) => (
+            <OptionTile key={id} compact className={TILE_CLASS} option={{ value: id, label: t(SEGMENT_KEYS[id]), badge: formatCount(counts[id]), icon: SEGMENT_STYLE[id].icon }} selected={segment === id} onSelect={pickSegment} />
+          ))}
+        </div>
+      </section>
+
+      <section aria-label={t("customers.pulseAria")} className="mb-section shrink-0">
+        <React.Suspense
+          fallback={
+            <div className="grid gap-stack lg:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <Skeleton key={item} className="h-[168px] rounded-2xl" />
+              ))}
+            </div>
+          }
+        >
+          <div className="grid gap-stack lg:grid-cols-3">
+            <MetricCard
+              label={t("customers.pulse.returning")}
+              value={formatPercent(pulse.returningRate)}
+              caption={t("customers.pulse.returningCaption", { count: pulse.visited })}
+              hint={t("customers.pulse.returningHint")}
+              tone="brand"
+              icon="users"
+              chart={<MetricRing value={pulse.returningRate} color={ringColor} ariaLabel={`${t("customers.pulse.returning")}: ${formatPercent(pulse.returningRate)}`} />}
+            />
+            <MetricCard label={t("customers.pulse.ltv")} value={formatMoney(pulse.avgLtv)} caption={t("customers.pulse.ltvCaption", { total: formatMoney(pulse.totalLtv) })} hint={t("customers.pulse.ltvHint")} tone="positive" icon="chart" />
+            <MetricCard
+              label={t("customers.pulse.onTrack")}
+              value={formatPercent(100 - pulse.driftingRate)}
+              caption={t("customers.pulse.onTrackCaption", { count: pulse.drifting })}
+              hint={t("customers.pulse.onTrackHint")}
+              tone="warning"
+              icon="calendar"
+              chart={<MetricDial value={100 - pulse.driftingRate} ariaLabel={`${t("customers.pulse.onTrack")}: ${formatPercent(100 - pulse.driftingRate)}`} />}
+            />
+          </div>
+        </React.Suspense>
+      </section>
+
+      <AttentionStrip
+        className="mb-section shrink-0"
+        label={t("customers.alert.aria")}
+        tone={calm ? "positive" : "warning"}
+        icon={calm ? CheckCircle2 : TriangleAlert}
+        title={calm ? t("customers.alert.calmTitle") : t("customers.alert.title", { count: attention })}
+        detail={calm ? t("customers.alert.calmDetail") : t("customers.alert.detail")}
+      >
+        {CUSTOMER_ALERTS.map((item) => {
+          const count = pool.filter(item.matches).length;
+          if (count === 0 && alert !== item.id) return null;
+          return <AttentionAction key={item.id} icon={item.icon} label={t(item.labelKey)} hint={t(item.hintKey, { days: BIRTHDAY_WINDOW_DAYS, misses: UNRELIABLE_MISSES })} value={count} tone={item.tone} active={alert === item.id} onClick={() => pickAlert(item.id)} />;
+        })}
+      </AttentionStrip>
+
+      <DataListBlock
+        tableId="clientes-lista"
+        title={t("customers.listTitle")}
+        noun={t("customers.noun")}
+        gender="m"
+        rows={filtered}
+        columns={columns}
+        cells={cells}
+        getRowId={(row) => row.id}
+        getRowLabel={(row) => row.name}
+        searchBy={(row) => `${row.name} ${row.email} ${row.phone.replace(/\D/g, "")} ${t(SEGMENT_KEYS[row.segment])} ${branchName(row.branchId)}`}
+        searchPlaceholder={t("customers.searchPlaceholder")}
+        pageSize={PAGE_SIZE}
+        selectable
+        selected={selected}
+        onSelectedChange={setSelected}
+        onActionsPlacementChange={setActionsPlacement}
+        recordActions={actions}
+        emptyState={
+          <div className="flex flex-col items-center gap-3 py-6 text-center text-sm text-text-muted">
+            <p>{hasFilter ? t("customers.emptyFiltered") : t("customers.emptySearch")}</p>
+            {hasFilter && (
+              <Button size="sm" variant="outline" onClick={() => setFilters({ tipo: null, aviso: null })}>
+                {t("customers.clearFilters")}
+              </Button>
+            )}
+          </div>
+        }
+        renderListItem={(row, state) => (
+          <ListItem
+            leading={
+              <span className="flex items-center gap-3">
+                {state.checkbox}
+                <CustomerAvatar name={row.name} />
+              </span>
+            }
+            title={row.name}
+            description={`${maskPhone(row.phone)} · ${row.lastVisitAt ? formatAgo(row.lastVisitAt, formatRelativeTime) : t("customers.neverVisited")}`}
+            meta={<span className="tabular-nums">{row.ltv === 0 ? "—" : formatMoney(row.ltv)}</span>}
+            actions={
+              <>
+                <SegmentBadge segment={row.segment} />
+                {state.menu}
+              </>
+            }
+            selected={state.selected}
+          />
+        )}
+      />
+
+      {railOwnsActions && (
+        <ShellRailSlot>
+          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={actions} gender="m" isBlocked={drawer !== null || confirmBlock !== null} />
+        </ShellRailSlot>
+      )}
+
+      <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
+      <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
+
+      <ConfirmDialog
+        open={confirmBlock !== null}
+        onOpenChange={(open) => !open && setConfirmBlock(null)}
+        variant={confirmBlock?.blocked ? "default" : "destructive"}
+        title={t(confirmBlock?.blocked ? "customers.unblock.title" : "customers.block.title", { name: confirmBlock?.name ?? "" })}
+        description={t(confirmBlock?.blocked ? "customers.unblock.hint" : "customers.block.hint")}
+        confirmLabel={t(confirmBlock?.blocked ? "customers.action.unblock" : "customers.action.block")}
+        loading={setBlocked.isPending}
+        onConfirm={() => {
+          if (!confirmBlock) return;
+          const blocking = !confirmBlock.blocked;
+          setBlocked.mutate(
+            { id: confirmBlock.id, blocked: blocking },
+            {
+              onSuccess: () => {
+                toast.success(t(blocking ? "customers.block.done" : "customers.unblock.done"), { description: confirmBlock.name });
+                setConfirmBlock(null);
+                setSelected(new Set());
+              },
+              onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+            }
+          );
+        }}
+      />
+    </>
+  );
+}

@@ -9,7 +9,7 @@ describe("ThemeSelector", () => {
     await user.click(screen.getByRole("button", { name: /cambiar tema/i }));
     await user.click(await screen.findByRole("radio", { name: /esmeralda/i }));
     expect(document.documentElement.dataset.theme).toBe("emerald");
-    expect(document.documentElement.style.getPropertyValue("--color-brand")).toBe("#059669");
+    expect(document.documentElement.style.getPropertyValue("--color-brand")).toBe("#34D399");
     expect(JSON.parse(window.localStorage.getItem("thema-theme") ?? "{}")).toMatchObject({ preset: "emerald" });
   });
 

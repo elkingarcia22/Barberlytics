@@ -24,6 +24,10 @@ export const COMMENT_COLUMNS = [
   "usuario",
   "correo",
   "rol",
+  // Al final: las hojas de campañas ya abiertas conservan sus columnas.
+  "tipo",
+  "contactar",
+  "adjuntos",
 ] as const;
 
 export const SUMMARY_COLUMNS = [

@@ -83,6 +83,9 @@ describe("submit", () => {
       usuario: "Ana Ruiz",
       correo: "ana@barberia.co",
       rol: "Administrador",
+      tipo: "Mejora",
+      contactar: "No",
+      adjuntos: "",
     });
   });
 
@@ -233,5 +236,49 @@ describe("analyze", () => {
     const reply = await api.analyze();
     expect(reply.status).toBe(503);
     expect(reply.body.message).toMatch(/ANTHROPIC_API_KEY/);
+  });
+});
+
+describe("adjuntos", () => {
+  const FOLDER = "carpeta-compartida-01";
+  const upload = (over: Record<string, unknown> = {}) => ({ campaignId: CAMPAIGN.id, name: "captura.png", mimeType: "image/png", size: 120_000, ...over });
+  const ORIGIN = "https://app.barberlytics.com";
+
+  test("abre una sesión de subida en la carpeta, atada al tipo, al tamaño y al origen", async () => {
+    const reply = await service({ FEEDBACK_DRIVE_FOLDER_ID: FOLDER }).createUpload(upload(), ORIGIN);
+    expect(reply.status).toBe(200);
+    expect(reply.body.uploadUrl).toMatch(/^https:\/\/www\.googleapis\.com\/upload\/drive\/v3\/files\?upload_id=/);
+
+    const call = cloud.calls.find((item) => item.url.includes("/upload/drive/v3/files"));
+    expect(call?.url).toContain("supportsAllDrives=true");
+    expect(call?.headers).toMatchObject({ "X-Upload-Content-Type": "image/png", "X-Upload-Content-Length": "120000", Origin: ORIGIN });
+    expect(call?.body).toMatchObject({ name: "2026-09-30-15-00-00 · captura.png", parents: [FOLDER] });
+  });
+
+  test("sin carpeta configurada no acepta adjuntos y lo dice", async () => {
+    const reply = await service().createUpload(upload(), ORIGIN);
+    expect(reply.status).toBe(503);
+    expect(cloud.calls).toHaveLength(0);
+  });
+
+  test("rechaza tipos no permitidos, archivos que pesan de más y campañas cerradas", async () => {
+    const api = service({ FEEDBACK_DRIVE_FOLDER_ID: FOLDER });
+    expect((await api.createUpload(upload({ mimeType: "application/pdf" }), ORIGIN)).status).toBe(422);
+    expect((await api.createUpload(upload({ size: 6 * 1024 * 1024 }), ORIGIN)).status).toBe(422);
+    expect((await api.createUpload(upload({ campaignId: "otra" }), ORIGIN)).status).toBe(404);
+    expect(cloud.calls).toHaveLength(0);
+  });
+
+  test("la fila enlaza solo los adjuntos que están en la carpeta de feedback", async () => {
+    cloud.files.push(
+      { id: "archivo-bueno-0001", parents: [FOLDER], webViewLink: "https://drive.google.com/file/d/archivo-bueno-0001/view" },
+      { id: "archivo-ajeno-0001", parents: ["otra-carpeta"], webViewLink: "https://drive.google.com/file/d/archivo-ajeno-0001/view" }
+    );
+    const reply = await service({ FEEDBACK_DRIVE_FOLDER_ID: FOLDER }).submit(
+      submission({ type: "bug", canContact: true, attachments: ["archivo-bueno-0001", "archivo-ajeno-0001", "archivo-inventado-1"] })
+    );
+    expect(reply.status).toBe(200);
+    const row = Object.fromEntries(COMMENT_COLUMNS.map((column, index) => [column, cloud.sheets[0].comments[0][index]]));
+    expect(row).toMatchObject({ tipo: "Error", contactar: "Sí", adjuntos: "https://drive.google.com/file/d/archivo-bueno-0001/view" });
   });
 });

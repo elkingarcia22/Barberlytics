@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Download, Plus, Search } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { TableShell } from "@/components/data-display/TableShell";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
 import { EmptyState } from "@/components/feedback/EmptyState";
@@ -78,7 +78,7 @@ function FilterableShellDemo() {
       description={`${rows.length} de ${PEOPLE.length}`}
       empty={rows.length === 0}
       emptyState={
-        <EmptyState icon={Search} title="Nadie coincide" description={`No hay colaboradores que contengan "${query}".`} className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />
+        <EmptyState icon="search" title="Nadie coincide" description={`No hay colaboradores que contengan "${query}".`} className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />
       }
       actions={<Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar…" className="h-8 w-44" />}
     >
@@ -144,7 +144,7 @@ export const tableShellEntry = defineEntry({
   title="Colaboradores"
   description={\`\${rows.length} de \${PEOPLE.length}\`}
   empty={rows.length === 0}
-  emptyState={<EmptyState icon={Search} title="Nadie coincide" className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />}
+  emptyState={<EmptyState icon="search" title="Nadie coincide" className="border-none bg-transparent shadow-none" action={<Button variant="outline" size="sm" onClick={() => setQuery("")}>Limpiar</Button>} />}
   actions={<Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar…" className="h-8 w-44" />}
 >
   <Table>…</Table>

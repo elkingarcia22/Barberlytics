@@ -6,6 +6,11 @@ import { login } from "./helpers";
  * la aplicación y en la documentación; lo único que cambia es el índice que
  * cada una le pasa. Aquí se comprueba el lado de la aplicación: sus
  * registros, sus destinos y la pregunta al agente.
+ *
+ * Los registros de la aplicación son los artículos del centro de ayuda. En
+ * e2e ese contenido no viene del sitio publicado sino de
+ * `e2e/fixtures/help/index.json` (ver `VITE_HELP_BASE_URL` en
+ * `playwright.config.ts`), así que los títulos de aquí son los de ese archivo.
  */
 test.describe("búsqueda general en la aplicación", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,20 +21,20 @@ test.describe("búsqueda general en la aplicación", () => {
   });
 
   test("encuentra registros y destinos, y los separa en grupos", async ({ page }) => {
-    await page.getByPlaceholder("Buscar o preguntar").fill("analista");
-    await expect(page.getByRole("option", { name: /Analista de datos, vacante/ })).toBeVisible();
-    await expect(page.getByRole("option", { name: /Andrés Malo, candidato/ })).toBeVisible();
+    await page.getByPlaceholder("Buscar o preguntar").fill("agenda");
+    await expect(page.getByRole("option", { name: /Agendar una cita/ })).toBeVisible();
+    await expect(page.getByRole("option", { name: /Añadir un barbero a la agenda/ })).toBeVisible();
 
     await page.getByPlaceholder("Buscar o preguntar").fill("clientes");
     await expect(page.getByRole("option", { name: /Clientes/ })).toBeVisible();
   });
 
   test("busca sin tildes y acota por pestaña", async ({ page }) => {
-    await page.getByPlaceholder("Buscar o preguntar").fill("andres");
-    await expect(page.getByRole("option", { name: /Andrés Malo/ })).toBeVisible();
+    await page.getByPlaceholder("Buscar o preguntar").fill("anadir");
+    await expect(page.getByRole("option", { name: /Añadir un barbero/ })).toBeVisible();
 
     await page.getByRole("tab", { name: "Ir a" }).click();
-    await expect(page.getByRole("option", { name: /Andrés Malo/ })).toHaveCount(0);
+    await expect(page.getByRole("option", { name: /Añadir un barbero/ })).toHaveCount(0);
   });
 
   test("un destino navega de verdad", async ({ page }) => {
@@ -55,7 +60,9 @@ test.describe("búsqueda general en la aplicación", () => {
     await expect(ask).toBeVisible();
     await ask.click();
     // El shell cambia al modo agente: su conmutador queda en "Agente IA".
-    await expect(page.getByRole("button", { name: "Agente IA" })).toHaveClass(/font-semibold/);
+    // Por texto y no por nombre accesible: el rail compacto tiene un botón con
+    // la misma etiqueta, y con el menú contraído los dos existen a la vez.
+    await expect(page.locator("button", { hasText: /^Agente IA$/ })).toHaveClass(/font-semibold/);
   });
 
   test("⌘K la abre desde cualquier parte", async ({ page }) => {

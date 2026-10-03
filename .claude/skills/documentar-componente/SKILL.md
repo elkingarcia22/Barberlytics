@@ -5,7 +5,7 @@ description: Crear o documentar un componente reutilizable en el sistema Thema �
 
 # Documentar un componente
 
-1. **¿Ya existe?** Busca en `ai-tools/CATALOG.md` y en `src/components/`. Si existe algo cercano,
+1. **¿Ya existe?** Busca en el índice `ai-tools/CATALOG.md` y en `src/components/`. Si existe algo cercano,
    extiende sus props antes de crear otro (dos piezas para lo mismo es la deuda más cara).
 2. **Componente** en `src/components/<familia>/<Nombre>.tsx` (PascalCase; primitivos shadcn en
    `ui/` en kebab-case). Estilo: `cva` para variantes, `cn` de `@/lib/utils`, `data-slot`, foco

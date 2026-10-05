@@ -94,6 +94,8 @@ export function HelpShell({ children }: { children: React.ReactNode }) {
         profile: false,
         role: false,
         settings: false,
+        // Leer la ayuda no lanza importaciones ni subidas: no hay procesos que seguir.
+        processes: false,
       },
       promo: null,
       isDark: resolvedMode === "dark",

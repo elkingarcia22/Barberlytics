@@ -5,7 +5,7 @@ import { db } from "@/mocks/db";
 import { RequireAuth } from "@/features/auth";
 import { CalendarPage } from "./CalendarPage";
 import { weekCell, weekStartOf } from "./weekModel";
-import { DEFAULT_CARD_PREFS } from "./calendarCardPrefs";
+import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
 import { appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
@@ -523,6 +523,28 @@ describe("Calendario", () => {
     await waitFor(() => expect(within(month).getAllByRole("button", { name: /Ocupación \d+%/ }).length).toBeGreaterThan(10));
   });
 
+  test("los ajustes de las tarjetas también cambian las filas de la Agenda", async () => {
+    const user = userEvent.setup();
+    try {
+      mount("/calendario?vista=agenda");
+      const agenda = await screen.findByTestId("calendar-agenda");
+      const rows = () => within(screen.getByTestId("calendar-agenda")).getAllByRole("listitem");
+      expect(rows().some((row) => /US\$/.test(row.textContent ?? ""))).toBe(true);
+      expect(agenda.querySelector(".schedule-pastel")).toBeNull();
+
+      await user.click(screen.getByTestId("calendar-view-options"));
+      const panel = await screen.findByTestId("calendar-view-panel");
+      // Sin precio en la tarjeta, la lista tampoco lo dice.
+      await user.click(within(panel).getByTestId("calendar-card-price"));
+      await waitFor(() => expect(rows().some((row) => /US\$/.test(row.textContent ?? ""))).toBe(false));
+      // Teñir por estado tiñe también las filas.
+      await user.click(within(panel).getByRole("radio", { name: "Estado" }));
+      await waitFor(() => expect(screen.getByTestId("calendar-agenda").querySelector(".schedule-pastel")).not.toBeNull());
+    } finally {
+      resetCalendarCardPrefs();
+    }
+  });
+
   test("tocar un hueco abre Crear cita con el barbero y la hora puestos, y la cita aparece", async () => {
     const user = userEvent.setup();
     mount();
@@ -576,8 +598,9 @@ describe("Calendario", () => {
     const user = userEvent.setup();
     mount("/calendario?vista=agenda");
     const agenda = await screen.findByTestId("calendar-agenda");
-    const all = within(agenda).getAllByRole("listitem").length;
-    const rows = () => within(screen.getByTestId("calendar-agenda")).getAllByRole("listitem").length;
+    // Solo las filas de cita: los iconos de cada fila son otra lista dentro.
+    const rows = () => screen.getByTestId("calendar-agenda").querySelectorAll('[data-slot="list-item"]').length;
+    const all = agenda.querySelectorAll('[data-slot="list-item"]').length;
     // Estados y servicios viven en el mismo panel, como listas de casillas con su cuenta.
     await user.click(screen.getByTestId("calendar-filters"));
     const panel = await screen.findByTestId("calendar-filters-panel");

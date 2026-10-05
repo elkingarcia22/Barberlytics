@@ -6,9 +6,10 @@ import { EmptyState } from "@/components/feedback";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { RowContextMenu, type RowAction } from "@/components/data-display";
 import { Text } from "@/components/typography";
-import { minutesOfDay } from "@/components/scheduling";
+import { minutesOfDay, scheduleColorClass, ScheduleColorDot, ScheduleMarkers } from "@/components/scheduling";
+import { cn } from "@/lib/utils";
 import { AppointmentStatusBadge, ClientAvatar, ClientTypeBadge } from "./calendarShared";
-import { appointmentRange, appointmentStart, hasFilters, matchesFilters, findBarber, findClient, nextStep, servicesOf, servicesPrice, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
+import { appointmentRange, appointmentStart, hasFilters, matchesFilters, findBarber, findClient, toEvent, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
 
 const NO_FILTERS: AgendaFilters = { stages: [], serviceIds: [] };
 import type { Appointment, CalendarDay, TeamFilter } from "./types";
@@ -16,7 +17,8 @@ import type { Appointment, CalendarDay, TeamFilter } from "./types";
 /**
  * La vista Agenda: las citas del día una debajo de otra, repartidas en
  * mañana, tarde y noche, con el cliente, el servicio, el barbero, el estado
- * y el siguiente paso a mano. Sirve para repasar el día sin columnas.
+ * y el siguiente paso a mano. Sirve para repasar el día sin columnas. Cada
+ * fila sigue los mismos ajustes de tarjeta que la rejilla del día.
  */
 
 export interface CalendarAgendaViewProps {
@@ -71,45 +73,23 @@ export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS,
   ].filter((group) => group.items.length > 0);
 
   return (
-    <div className="space-y-6" data-testid="calendar-agenda">
+    <div className={cn("space-y-6", ctx.card?.vivid && "schedule-vivid")} data-testid="calendar-agenda">
       {groups.map((group) => (
         <section key={group.id} aria-label={group.label} className="space-y-2">
           <Text variant="label" tone="muted" className="uppercase tracking-wide">
             {group.label} · {group.items.length}
           </Text>
           <ListItemGroup>
-            {group.items.map((appointment) => {
-              const client = findClient(ctx.catalog, appointment.clientId);
-              const barber = findBarber(ctx.catalog, appointment.barberId);
-              const services = servicesOf(ctx.catalog, appointment);
-              const step = nextStep(appointment.status);
-              const clientName = client?.name ?? t("calendar.clientType.walkin");
-              return (
-                <RowContextMenu key={appointment.id} rowLabel={clientName} actions={appointmentActions?.(appointment) ?? []}>
-                  <div className="contents">
-                    <ListItem
-                      leading={<ClientAvatar client={client} name={clientName} />}
-                      title={
-                        <span className="flex items-center gap-2">
-                          {clientName}
-                          {client && client.type !== "walkin" && <ClientTypeBadge type={client.type} />}
-                        </span>
-                      }
-                      description={`${appointmentRange(appointment, ctx.intl)} · ${services.map((service) => service.name).join(" + ")} · ${ctx.formatMoney(servicesPrice(services))} · ${barber?.name ?? ""}`}
-                      meta={<AppointmentStatusBadge status={appointment.status} />}
-                      actions={
-                        step ? (
-                          <Button size="sm" variant="outline" onClick={() => onNextStep(appointment)} aria-label={`${t(step.labelKey)}: ${clientName}`}>
-                            {t(step.labelKey)}
-                          </Button>
-                        ) : undefined
-                      }
-                      onClick={() => onOpenAppointment(appointment)}
-                    />
-                  </div>
-                </RowContextMenu>
-              );
-            })}
+            {group.items.map((appointment) => (
+              <AgendaRow
+                key={appointment.id}
+                appointment={appointment}
+                ctx={ctx}
+                onOpen={onOpenAppointment}
+                onNextStep={onNextStep}
+                actions={appointmentActions?.(appointment) ?? []}
+              />
+            ))}
           </ListItemGroup>
         </section>
       ))}
@@ -117,5 +97,61 @@ export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS,
         {t("calendar.agenda.noMore")}
       </Text>
     </div>
+  );
+}
+
+interface AgendaRowProps {
+  appointment: Appointment;
+  ctx: ModelContext;
+  onOpen: (appointment: Appointment) => void;
+  onNextStep: (appointment: Appointment) => void;
+  actions: readonly RowAction[];
+}
+
+/**
+ * Una cita de la lista. Sale del mismo `toEvent` que la tarjeta de la rejilla,
+ * así que los ajustes de «Cómo se ven las tarjetas» —qué cuenta, qué iconos,
+ * de qué se tiñe y si el color es pastel o vivo— valen igual en las dos vistas.
+ * Lo único propio de la lista es el barbero, que aquí no da la columna.
+ */
+function AgendaRow({ appointment, ctx, onOpen, onNextStep, actions }: AgendaRowProps) {
+  const event = toEvent(appointment, ctx);
+  const client = findClient(ctx.catalog, appointment.clientId);
+  const barber = findBarber(ctx.catalog, appointment.barberId);
+  const clientName = event.title;
+  const tint = event.muted ? null : event.fill === "category" && event.color !== undefined ? scheduleColorClass(event.color) : event.fill === "tone" ? `schedule-tone-${event.tone ?? "neutral"}` : null;
+  // Sin teñir, el servicio se reconoce por su punto de color, como en la tarjeta.
+  const dot = !tint && event.fill !== "category" && event.color !== undefined ? <ScheduleColorDot color={event.color} className="size-2.5" /> : null;
+  const description = [event.hideTime ? null : appointmentRange(appointment, ctx.intl), event.subtitle, barber?.name].filter(Boolean).join(" · ");
+
+  return (
+    <RowContextMenu rowLabel={clientName} actions={actions}>
+      <div className="contents">
+        <ListItem
+          className={cn(tint && cn("schedule-pastel", tint), event.muted && "opacity-60")}
+          leading={<ClientAvatar client={client} name={clientName} />}
+          title={
+            <span className="flex items-center gap-2">
+              {dot}
+              <span data-card-ink className={cn("truncate", event.muted && "line-through")}>
+                {clientName}
+              </span>
+              {event.markers && event.markers.length > 0 && <ScheduleMarkers markers={event.markers} />}
+              {event.badge && client && client.type !== "walkin" && <ClientTypeBadge type={client.type} />}
+            </span>
+          }
+          description={description || undefined}
+          meta={event.status ? <AppointmentStatusBadge status={appointment.status} /> : undefined}
+          actions={
+            event.action ? (
+              <Button size="sm" variant="outline" onClick={() => onNextStep(appointment)} aria-label={`${event.action.label}: ${clientName}`}>
+                {event.action.label}
+              </Button>
+            ) : undefined
+          }
+          onClick={() => onOpen(appointment)}
+        />
+      </div>
+    </RowContextMenu>
   );
 }

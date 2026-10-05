@@ -238,7 +238,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
               {dot}
               <span data-card-ink className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
-              {markers.length > 0 && <MarkerRow markers={markers} />}
+              {markers.length > 0 && <ScheduleMarkers markers={markers} />}
               {event.badge && <CardBadge badge={event.badge} tone={palette ? "neutral" : tone} sober={palette} />}
             </div>
 
@@ -296,8 +296,12 @@ function CardBadge({ badge, tone, sober = false }: { badge: NonNullable<Schedule
   return <span className={cn("shrink-0 rounded-sm px-1 text-[10px] font-semibold uppercase leading-4 tracking-wide", sober ? TONE_BADGE.neutral : TONE_BADGE[badge.tone ?? tone])}>{badge.label}</span>;
 }
 
-/** Los iconos de detalle junto al nombre (desde dos líneas de alto): cada uno con su significado para el lector de pantalla. */
-function MarkerRow({ markers }: { markers: readonly NonNullable<ScheduleEvent["markers"]>[number][] }) {
+/**
+ * Los iconos de detalle junto al nombre (desde dos líneas de alto): cada uno con su significado para el
+ * lector de pantalla. Pública para que otra vista de las mismas citas (la lista de la agenda) pinte los
+ * mismos iconos que la tarjeta.
+ */
+export function ScheduleMarkers({ markers }: { markers: readonly NonNullable<ScheduleEvent["markers"]>[number][] }) {
   return (
     <span className="flex shrink-0 items-center gap-1 text-text-muted" role="list">
       {markers.map((marker) => {

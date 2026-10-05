@@ -20,7 +20,8 @@
     "catalog": "node scripts/generate-catalog.mjs",
     "codemap": "node scripts/generate-codemap.mjs",
     "verify": "npm run check && npm run lint && npm run type-check && npm test && npm run build",
-    "build:lib": "vite build --config vite.lib.config.ts"
+    "build:lib": "vite build --config vite.lib.config.ts",
+    "estado": "node scripts/estado.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

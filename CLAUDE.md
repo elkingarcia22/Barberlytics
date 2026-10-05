@@ -14,9 +14,12 @@ npm run verify              # lint + type-check + test + build
 npm run catalog             # regenera el catálogo de componentes en ai-tools/ desde el registry
 npm run codemap             # regenera ai-tools/CODEMAP.md (rutas, endpoints, exports) desde src/
 npm run e2e                 # Playwright (antes: npm run e2e:install)
+npm run estado              # qué copias (worktrees) tienen trabajo que main no tiene
 ```
 
-En la app de escritorio el dev server se levanta con `.claude/launch.json` (`thema-dev`, puerto 5195).
+En la app de escritorio el dev server se levanta con `.claude/launch.json`. **`thema-dev` (5195) sirve
+siempre `main` desde la carpeta principal del repo**, no la copia de la sesión: es «lo último». Para ver
+tu copia antes de fusionar usa `thema-dev-2` (5196).
 Para el centro de ayuda en local: `ayuda-contenido` (sirve el `dist/` del repo vecino en 8787) y
 `thema-help` (la app en 5198 apuntando a él); `thema-shots` (5197) es el que usan las capturas.
 
@@ -95,9 +98,21 @@ Tres niveles, del más barato al más caro; sube solo si el anterior no basta:
 
 ## Cómo cerrar un trabajo
 
+**`main` es la única fuente de verdad.** Cada sesión trabaja en su propia copia (worktree, en
+`.claude/worktrees/`) que nace de `main`; lo que no llega a `main` no lo ve la siguiente sesión ni el
+5195. El 2026-10-05 dos sesiones dejaron su trabajo sin commit en dos copias y ningún localhost tenía
+todo. Por eso:
+
 1. `npm run check` y `npm run verify` en verde. Si tocaste el registry, `npm run catalog`; si
    cambiaste rutas, exports o endpoints, `npm run codemap`.
 2. Revisa la pantalla en claro y oscuro y a 375px (`resize_window` en el navegador integrado).
-3. Commit con conventional commits; resumen de PR con qué cambió, por qué y cómo se probó.
-4. Si cambiaste una regla o una pieza general, actualiza la página de la doc que la cuenta
+3. Commit con conventional commits en la rama de la sesión.
+4. **Fusiona en `main`** (`git -C <carpeta principal> merge --ff-only <rama>`; si no es fast-forward,
+   trae `main` a tu rama, resuelve y repite) **y súbelo** (`git push origin main`).
+5. Si cambiaste una regla o una pieza general, actualiza la página de la doc que la cuenta
    (`pages/guides/*` o `pages/*`) en el mismo cambio.
+
+`npm run estado` lista las copias con trabajo que `main` no tiene (`-- --detalle` dice qué archivos).
+Dos hooks lo vigilan (`.claude/settings.json`): al abrir sesión avisa de trabajo pendiente en otras
+copias, y al terminar no deja cerrar con cambios sin commit sin decirlo. No escribas en la copia de
+otra sesión; si hace falta algo de allí, pídeselo al usuario.

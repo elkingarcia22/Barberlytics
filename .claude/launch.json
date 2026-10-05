@@ -5,6 +5,8 @@
       "name": "thema-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "/Users/ub-col-pro-lf4/Documents/Thema Shadcn",
         "run",
         "dev",
         "--",

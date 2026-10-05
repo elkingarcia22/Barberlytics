@@ -12,6 +12,17 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/estado.mjs --session-start",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -19,6 +30,11 @@
             "type": "command",
             "command": "node scripts/check-design-system.mjs --changed --quiet",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "node scripts/estado.mjs --stop",
+            "timeout": 10
           }
         ]
       }

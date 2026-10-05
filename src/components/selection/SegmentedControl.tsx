@@ -48,8 +48,10 @@ export function SegmentedControl({
   className,
 }: SegmentedControlProps) {
   
+  // El sólido comparte pista y activo con las pestañas `view` (ui/tabs): un
+  // segmentado y una tira de pestañas de panel se leen como la misma familia.
   const containerStyles = {
-    solid: 'p-1 bg-muted/40 rounded-lg border border-border/60',
+    solid: 'p-1 bg-tab-track rounded-lg',
     outline: 'p-0.5 border border-border rounded-lg',
     underline: 'p-0 border-b border-border rounded-none bg-transparent',
   }[variant]
@@ -92,14 +94,14 @@ export function SegmentedControl({
               onClick={() => onChange?.(option.value)}
               className={cn(
                 segmentBase,
-                'font-bold  ',
-                
+                isActive ? 'font-semibold' : 'font-medium',
+
                 // Solid Variant logic
                 variant === 'solid' && cn(
                   'rounded-md',
-                  isActive 
-                    ? 'bg-surface text-primary shadow-card ring-1 ring-black/[0.05] dark:ring-white/[0.1]' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  isActive
+                    ? 'bg-surface text-primary shadow-card'
+                    : 'text-text-secondary hover:text-text-primary'
                 ),
 
                 // Outline Variant logic

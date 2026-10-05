@@ -30,8 +30,11 @@ import { SegmentedControl } from "@/components/selection"
 - Sí: Úsalo con 2 a 5 opciones de label corto.
 - Sí: Pasa `ariaLabel` siempre que no haya `label` visible.
 - Sí: Usa underline cuando el control actúa como filtro de una tabla o lista.
+- Sí: En los menús del marco (Personalización, selector de tema) envuélvelo en `SegmentedGroup` de `@/components/ui/segmented-group`: pone la etiqueta en versalitas de 11px encima. En una pantalla, el título de la sección va en la escala normal, sin mayúsculas.
 - No: No lo uses para navegar entre páginas: para eso están Tabs.
 - No: No pongas labels largos: el segmento trunca y pierde sentido.
+- No: No pintes otro grupo de botones a mano para elegir una opción: el sólido ya comparte pista y activo con las pestañas `view`.
+- No: No lo metas, ni metas otras pestañas, dentro de una pestaña para filtrar una lista: ahí van chips (`Chip` con `selected` y `count`).
 
 Relacionados: tabs, radio-group, option-tile, card-selection
 

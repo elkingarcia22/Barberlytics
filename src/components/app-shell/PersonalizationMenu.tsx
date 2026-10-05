@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCompactViewport } from "@/components/action-rail/useCompactViewport";
 import { useActionsPlacement, type ActionsPlacement } from "@/components/action-rail/actionsPlacement";
-import { SegmentedControl } from "@/components/selection";
+import { SegmentedGroup } from "@/components/ui/segmented-group";
 import { ThemeSelectorPanel, ThemeSwatch, useTheme } from "@/themes";
 import { LanguagePickerPanel, useT } from "@/i18n";
 import { SHELL_MENU_PANEL } from "./shellPanel";
@@ -76,20 +76,19 @@ export function PersonalizationMenu({ leading, className, style }: Personalizati
         {leading?.(closeAll)}
         <ThemeSelectorPanel advanced={false} />
         <LanguagePickerPanel />
-        <section className="space-y-2" data-testid="actions-placement">
-          <h3 className="text-xs font-semibold text-text-secondary">{t("shell.actionsPlacement")}</h3>
-          <SegmentedControl
-            size="sm"
-            ariaLabel={t("shell.actionsPlacement")}
-            options={[
-              { value: "rail", label: t("shell.actionsPlacement.rail") },
-              { value: "inline", label: t("shell.actionsPlacement.inline") },
-            ]}
-            value={placement}
-            onChange={(value) => setPlacement(value as ActionsPlacement)}
-          />
-          <p className="text-xs text-text-muted">{t(placement === "rail" ? "shell.actionsPlacement.railHint" : "shell.actionsPlacement.inlineHint")}</p>
-        </section>
+        {/* Mismo ajuste que Modo e Idioma: etiqueta del marco y el segmentado del sistema. */}
+        <SegmentedGroup<ActionsPlacement>
+          data-testid="actions-placement"
+          label={t("shell.actionsPlacement")}
+          options={[
+            { id: "rail", label: t("shell.actionsPlacement.rail") },
+            { id: "inline", label: t("shell.actionsPlacement.inline") },
+          ]}
+          value={placement}
+          onChange={setPlacement}
+          hint={t(placement === "rail" ? "shell.actionsPlacement.railHint" : "shell.actionsPlacement.inlineHint")}
+        />
+
       </PopoverContent>
     </Popover>
   );

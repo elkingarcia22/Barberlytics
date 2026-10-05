@@ -5,7 +5,7 @@ import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { DrawerSection } from "@/components/overlays";
-import { ThemaTabs } from "@/components/navigation";
+import { Chip } from "@/components/ai-interaction";
 import { Field } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,8 +26,10 @@ import {
 } from "../types";
 
 /**
- * Notas: las del cliente en tres pestañas —Notas, Medicamento, Alergias—
- * con su contador, y el formulario para agregar una sin salir de la cita.
+ * Notas: las del cliente filtradas por tipo —Notas, Medicamento, Alergias—
+ * con chips y su contador, y el formulario para agregar una sin salir de la
+ * cita. Chips y no otra tira de pestañas: esto ya vive dentro de la pestaña
+ * «Notas» del panel, y pestañas dentro de pestañas no se leen como un filtro.
  */
 
 export interface AppointmentNotesTabProps {
@@ -71,109 +73,114 @@ export function AppointmentNotesTab({
   };
 
   return (
-    <div className="space-y-3">
-      <ThemaTabs
-        className="mb-0"
-        fitContent
-        tabs={noteKindSchema.options.map((option) => ({
-          id: option,
-          label: t(NOTE_KIND_KEYS[option]),
-          badge: count(option),
-        }))}
-        activeTabId={kind}
-        onTabChange={(id) => setKind(id as NoteKind)}
-      />
-      <DrawerSection
-        icon={NotebookPen}
-        tone="neutral"
-        title={t(NOTE_KIND_KEYS[kind])}
-        hint={t("calendar.client.visitsHint")}
-        badge={String(notes.length)}
-        action={
-          <Button
-            size="xs"
-            variant="outline"
-            onClick={() => setAdding((current) => !current)}
-          >
-            <Plus /> {t("calendar.notes.add")}
-          </Button>
-        }
-      >
-        <div className="space-y-3">
-          {adding && (
-            <form
-              className="space-y-3 rounded-lg bg-surface-subtle p-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submit();
-              }}
-            >
-              <Field label={t("calendar.notes.type")} required>
-                <Select
-                  value={draftKind}
-                  onValueChange={(value) => setDraftKind(value as NoteKind)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {noteKindSchema.options.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {t(NOTE_KIND_KEYS[option])}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label={t("calendar.notes.description")} required>
-                <Textarea
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  rows={3}
-                />
-              </Field>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAdding(false)}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={text.trim().length < 3 || addNote.isPending}
-                >
-                  {t("calendar.notes.create")}
-                </Button>
-              </div>
-            </form>
-          )}
-          {notes.length === 0 ? (
-            <Text variant="muted">{t("calendar.notes.empty")}</Text>
-          ) : (
-            <ul className="space-y-2">
-              {notes.map((note) => (
-                <li
-                  key={note.id}
-                  className="rounded-lg border border-border/60 p-3"
-                >
-                  <Text>{note.text}</Text>
-                  <Text variant="caption">
-                    {formatDate(new Date(note.createdAt), {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Text>
-                </li>
-              ))}
-            </ul>
-          )}
+    <DrawerSection
+      icon={NotebookPen}
+      tone="neutral"
+      title={t("calendar.notes.title")}
+      hint={t("calendar.notes.hint")}
+      badge={String(client.notes.length)}
+      action={
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => setAdding((current) => !current)}
+        >
+          <Plus /> {t("calendar.notes.add")}
+        </Button>
+      }
+    >
+      <div className="space-y-3">
+        <div
+          role="group"
+          aria-label={t("calendar.notes.type")}
+          className="flex flex-wrap gap-2"
+          data-testid="notes-kind"
+        >
+          {noteKindSchema.options.map((option) => (
+            <Chip
+              key={option}
+              size="sm"
+              label={t(NOTE_KIND_KEYS[option])}
+              count={count(option)}
+              selected={kind === option}
+              tone={kind === option ? "primary" : "default"}
+              onClick={() => setKind(option)}
+            />
+          ))}
         </div>
-      </DrawerSection>
-    </div>
+        {adding && (
+          <form
+            className="space-y-3 rounded-lg bg-surface-subtle p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submit();
+            }}
+          >
+            <Field label={t("calendar.notes.type")} required>
+              <Select
+                value={draftKind}
+                onValueChange={(value) => setDraftKind(value as NoteKind)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {noteKindSchema.options.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {t(NOTE_KIND_KEYS[option])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t("calendar.notes.description")} required>
+              <Textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                rows={3}
+              />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAdding(false)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={text.trim().length < 3 || addNote.isPending}
+              >
+                {t("calendar.notes.create")}
+              </Button>
+            </div>
+          </form>
+        )}
+        {notes.length === 0 ? (
+          <Text variant="muted">{t("calendar.notes.empty")}</Text>
+        ) : (
+          <ul className="space-y-2">
+            {notes.map((note) => (
+              <li
+                key={note.id}
+                className="rounded-lg border border-border/60 p-3"
+              >
+                <Text>{note.text}</Text>
+                <Text variant="caption">
+                  {formatDate(new Date(note.createdAt), {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Text>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </DrawerSection>
   );
 }

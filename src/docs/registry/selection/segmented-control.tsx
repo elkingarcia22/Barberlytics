@@ -167,8 +167,18 @@ export const segmentedControlEntry = defineEntry({
     { name: "className", type: "string", description: "Clases para el contenedor." },
   ],
   guidelines: {
-    do: ["Úsalo con 2 a 5 opciones de label corto.", "Pasa `ariaLabel` siempre que no haya `label` visible.", "Usa underline cuando el control actúa como filtro de una tabla o lista."],
-    dont: ["No lo uses para navegar entre páginas: para eso están Tabs.", "No pongas labels largos: el segmento trunca y pierde sentido."],
+    do: [
+      "Úsalo con 2 a 5 opciones de label corto.",
+      "Pasa `ariaLabel` siempre que no haya `label` visible.",
+      "Usa underline cuando el control actúa como filtro de una tabla o lista.",
+      "En los menús del marco (Personalización, selector de tema) envuélvelo en `SegmentedGroup` de `@/components/ui/segmented-group`: pone la etiqueta en versalitas de 11px encima. En una pantalla, el título de la sección va en la escala normal, sin mayúsculas.",
+    ],
+    dont: [
+      "No lo uses para navegar entre páginas: para eso están Tabs.",
+      "No pongas labels largos: el segmento trunca y pierde sentido.",
+      "No pintes otro grupo de botones a mano para elegir una opción: el sólido ya comparte pista y activo con las pestañas `view`.",
+      "No lo metas, ni metas otras pestañas, dentro de una pestaña para filtrar una lista: ahí van chips (`Chip` con `selected` y `count`).",
+    ],
   },
   related: ["tabs", "radio-group", "option-tile", "card-selection"],
 });

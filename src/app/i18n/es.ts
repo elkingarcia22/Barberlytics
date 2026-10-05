@@ -1032,6 +1032,8 @@ export const appEs = {
   "calendar.journey.visitsHere": "{count} visitas en esta sucursal",
   "calendar.journey.visitNumber": "Visita {count}",
   "calendar.journey.walkIn": "Cliente sin ficha: no hay recorrido que contar.",
+  "calendar.notes.title": "Notas del cliente",
+  "calendar.notes.hint": "Lo que el equipo debe saber antes de atender.",
   "calendar.notes.note": "Notas",
   "calendar.notes.medication": "Medicamento",
   "calendar.notes.allergies": "Alergias",

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/selection/SegmentedControl";
 
 export interface SegmentedGroupOption<T extends string> {
   id: T;
@@ -12,46 +13,35 @@ export interface SegmentedGroupProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   options: readonly SegmentedGroupOption<T>[];
+  /** Una línea bajo el control que explica la opción elegida. */
+  hint?: React.ReactNode;
   className?: string;
+  "data-testid"?: string;
 }
 
 /**
- * Una fila de opciones excluyentes, todas a la vista: el modo claro/oscuro,
- * el radio, la densidad, el idioma. Es la alternativa corta a una lista
- * vertical cuando las opciones son pocas y caben en una sola línea — cada
- * elección se ve y se toca sin desplegar nada.
+ * Un ajuste del cromo (menús del marco y selector de tema): la etiqueta en
+ * versalitas de 11px —la escala propia del marco, ver Fundamentos › Tipografía—
+ * sobre el `SegmentedControl` del sistema a todo el ancho. El control es el
+ * mismo de las pantallas: aquí solo cambia la etiqueta. Modo, idioma, radio,
+ * densidad y dónde van las acciones se eligen así.
  */
-export function SegmentedGroup<T extends string>({ label, value, onChange, options, className }: SegmentedGroupProps<T>) {
+export function SegmentedGroup<T extends string>({ label, value, onChange, options, hint, className, "data-testid": testId }: SegmentedGroupProps<T>) {
+  const segments = React.useMemo(
+    () =>
+      options.map((option) => ({
+        value: option.id,
+        label: option.label,
+        icon: option.render ? () => <>{option.render}</> : undefined,
+      })),
+    [options]
+  );
+
   return (
-    <fieldset className={cn("space-y-2", className)}>
+    <fieldset className={cn("space-y-2", className)} data-testid={testId}>
       <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">{label}</legend>
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className="grid gap-1 rounded-lg bg-tab-track p-1"
-        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-      >
-        {options.map((option) => {
-          const active = option.id === value;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onChange(option.id)}
-              className={cn(
-                "flex h-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium transition-all",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                active ? "bg-surface text-text-primary shadow-card" : "text-text-secondary hover:text-text-primary"
-              )}
-            >
-              {option.render}
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl fullWidth ariaLabel={label} options={segments} value={value} onChange={(next) => onChange(next as T)} />
+      {hint && <p className="text-xs text-text-muted">{hint}</p>}
     </fieldset>
   );
 }

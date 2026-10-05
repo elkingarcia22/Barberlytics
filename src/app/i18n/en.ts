@@ -996,6 +996,8 @@ export const appEn: AppMessageCatalog = {
   "calendar.journey.visitsHere": "{count} visits at this branch",
   "calendar.journey.visitNumber": "Visit {count}",
   "calendar.journey.walkIn": "Client without a profile: no journey to tell.",
+  "calendar.notes.title": "Client notes",
+  "calendar.notes.hint": "What the team should know before the service.",
   "calendar.notes.note": "Notes",
   "calendar.notes.medication": "Medication",
   "calendar.notes.allergies": "Allergies",

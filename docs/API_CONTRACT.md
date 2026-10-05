@@ -179,6 +179,8 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, reason?, actor? }`. Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión. `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, salvo con `force: true`. `422` · `404`. |
 | POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge? }`. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`. `409` si ya estaba cobrada o anulada. |
 | POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
+| PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404`. |
+| DELETE | `/clients/:id/notes/:noteId` | `200 client` sin la nota. `404`. |
 | POST | `/blocks` | El bloqueo de arriba, sin `id`. `201 block`. `422` si la hora de cierre no es posterior a la de inicio. |
 | DELETE | `/blocks/:id` | `204`. |
 | GET | `/waitlist?branchId&date?` | `{ items: [{ id, branchId, clientId, serviceId, barberId, slots: [{ date, time }], createdAt }] }`. |
@@ -208,7 +210,7 @@ El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `cl
 | POST | `/customers/:id/guests` | `{ name, relation? }`. `201 customerDetail`. Un invitado solo necesita nombre: la cita queda a nombre del titular. |
 | DELETE | `/customers/:id/guests/:guestId` | `customerDetail` sin ese invitado. `404`. |
 
-Las notas se crean con `POST /clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
+Las notas se crean, corrigen y borran con `/clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
 
 ## Servicios (`/services`)
 

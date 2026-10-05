@@ -4,11 +4,11 @@ import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { MetricCard } from "@/components/charts";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
-import { ThemaTabs } from "@/components/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import { NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calendar/types";
+import { ClientNoteList, NoteKindChips } from "@/features/calendar/clientNotes/ClientNotes";
 import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
 import { APPOINTMENT_STATUS_BADGE, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
 import { APPOINTMENT_STATUS_KEYS, type CustomerAppointment, type CustomerDetail } from "./types";
@@ -210,14 +210,15 @@ function AppointmentSummary({ appointment, formatMoney }: { appointment: Custome
   );
 }
 
-/** Las notas del cliente; sin permiso de información, solo las generales (no alergias ni medicamentos). */
+/**
+ * Las notas del cliente; sin permiso de información, solo las generales (no alergias ni medicamentos).
+ * Filtro y lista son los de la cita (`clientNotes`): cada nota se corrige o se borra desde su menú.
+ */
 function CustomerNotes({ customer, onAddNote, showMedical }: { customer: CustomerDetail; onAddNote: () => void; showMedical: boolean }) {
   const t = useAppT();
-  const { formatDate } = useLocale();
   const [kind, setKind] = React.useState<NoteKind>("note");
-  const kinds = showMedical ? noteKindSchema.options : (["note"] as const);
-  const notes = customer.notes.filter((note) => note.kind === kind);
-  const count = (of: NoteKind) => customer.notes.filter((note) => note.kind === of).length;
+  const kinds: readonly NoteKind[] = showMedical ? noteKindSchema.options : ["note"];
+  const visible = customer.notes.filter((note) => kinds.includes(note.kind));
 
   return (
     <InfoCard
@@ -229,19 +230,10 @@ function CustomerNotes({ customer, onAddNote, showMedical }: { customer: Custome
         </Button>
       }
     >
-      <ThemaTabs className="mb-3" fitContent tabs={kinds.map((option) => ({ id: option, label: t(NOTE_KIND_KEYS[option]), badge: count(option) }))} activeTabId={kind} onTabChange={(id) => setKind(id as NoteKind)} />
-      {notes.length === 0 ? (
-        <Text variant="muted">{t("calendar.notes.empty")}</Text>
-      ) : (
-        <ul className="space-y-2" data-testid="customer-notes">
-          {notes.map((note) => (
-            <li key={note.id} className="rounded-lg border border-border/60 p-3">
-              <Text>{note.text}</Text>
-              <Text variant="caption">{formatDate(new Date(note.createdAt), DATE_LONG)}</Text>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="space-y-3">
+        {kinds.length > 1 && <NoteKindChips kinds={kinds} value={kind} onChange={setKind} notes={visible} />}
+        <ClientNoteList clientId={customer.id} notes={visible.filter((note) => note.kind === kind)} kinds={kinds} data-testid="customer-notes" />
+      </div>
     </InfoCard>
   );
 }

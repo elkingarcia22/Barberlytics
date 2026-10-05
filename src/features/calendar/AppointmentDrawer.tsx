@@ -33,7 +33,6 @@ export interface AppointmentDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ctx: ModelContext;
-  branchId: string;
   onStatus: (appointment: Appointment, status: AppointmentStatus) => void;
   onBarberReady: (appointment: Appointment) => void;
   onPay: (appointment: Appointment) => void;
@@ -54,7 +53,7 @@ export function AppointmentDrawer(props: AppointmentDrawerProps) {
   return <AppointmentPanel key={`${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`} {...props} />;
 }
 
-function AppointmentPanel({ appointment, open, onOpenChange, ctx, branchId, onOpenClient, onPatch, onRebook, ...actions }: AppointmentDrawerProps) {
+function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, ...actions }: AppointmentDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const [tab, setTab] = React.useState<Tab>("summary");
@@ -93,7 +92,7 @@ function AppointmentPanel({ appointment, open, onOpenChange, ctx, branchId, onOp
 
           {tab === "summary" && <AppointmentSummaryTab appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} onOpenClient={onOpenClient} {...actions} />}
           {tab === "clipper" && <AppointmentClipperTab appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />}
-          {tab === "notes" && <AppointmentNotesTab client={client ?? null} branchId={branchId} />}
+          {tab === "notes" && <AppointmentNotesTab client={client ?? null} />}
           {tab === "client" && <AppointmentClientTab client={client ?? null} appointment={appointment} ctx={ctx} onOpenClient={onOpenClient} />}
           {tab === "history" && <AppointmentHistoryTab appointment={appointment} ctx={ctx} />}
         </div>

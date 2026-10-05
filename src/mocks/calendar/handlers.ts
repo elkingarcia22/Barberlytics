@@ -415,6 +415,37 @@ export const calendarHandlers = [
     return HttpResponse.json(updated, { status: 201 });
   }),
 
+  // Corregir una nota: cambia su texto o su tipo; conserva la fecha en que se escribió.
+  http.patch(`${BASE}/clients/:id/notes/:noteId`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = db.calendar.clients.find((item) => item.id === params.id);
+    const current = client?.notes.find((note) => note.id === params.noteId);
+    if (!client || !current) return error(404, "not_found", "Esa nota no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const kind = (input.kind === undefined ? current.kind : text(input.kind)) as MockClientNote["kind"];
+    const body = input.text === undefined ? current.text : text(input.text);
+    const fields: Record<string, string[]> = {};
+    if (!["note", "medication", "allergy"].includes(kind)) fields.kind = ["Elige el tipo de nota."];
+    if (body.length < 3) fields.text = ["Escribe la nota."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const updated = { ...client, notes: client.notes.map((note) => (note.id === current.id ? { ...note, kind, text: body } : note)) };
+    db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
+    db.persist();
+    return HttpResponse.json(updated);
+  }),
+
+  http.delete(`${BASE}/clients/:id/notes/:noteId`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = db.calendar.clients.find((item) => item.id === params.id);
+    if (!client || !client.notes.some((note) => note.id === params.noteId)) return error(404, "not_found", "Esa nota no existe.");
+    const updated = { ...client, notes: client.notes.filter((note) => note.id !== params.noteId) };
+    db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
+    db.persist();
+    return HttpResponse.json(updated);
+  }),
+
   http.post(`${BASE}/blocks`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

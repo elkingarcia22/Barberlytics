@@ -782,7 +782,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 open={Boolean(currentAppointment) && !sidePanelOpen}
                 onOpenChange={(open) => !open && state.openAppointment(null)}
                 ctx={ctx}
-                branchId={branchId}
                 onStatus={changeStatus}
                 onBarberReady={onBarberReady}
                 onPay={(appointment) => {

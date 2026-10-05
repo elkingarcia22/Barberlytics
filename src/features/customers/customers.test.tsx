@@ -152,6 +152,34 @@ describe("pantallas de clientes", () => {
     expect(screen.getByText("Cómo cumple sus citas")).toBeInTheDocument();
   });
 
+  test("una nota del cliente se corrige y se borra desde la ficha", async () => {
+    db.reset();
+    const client = db.calendar.clients.find((item) => item.notes.some((note) => note.kind === "note"));
+    const note = client?.notes.find((item) => item.kind === "note");
+    expect(note).toBeDefined();
+    renderApp(`/clientes/${client?.id}`);
+    const user = userEvent.setup();
+    const notes = await screen.findByTestId("customer-notes");
+
+    await user.click(within(notes).getByRole("button", { name: `Acciones de ${note?.text}` }));
+    await user.click(await screen.findByRole("menuitem", { name: "Editar" }));
+    const field = await screen.findByTestId("client-note-edit-text");
+    await user.clear(field);
+    await user.type(field, "Prefiere la máquina en el 2");
+    await user.click(screen.getByTestId("client-note-save"));
+    // Se guarda en el servidor y el editor se cierra con el texto nuevo a la vista.
+    await vi.waitFor(() => expect(screen.queryByTestId("client-note-editing")).toBeNull());
+    expect(within(screen.getByTestId("customer-notes")).getByText("Prefiere la máquina en el 2")).toBeInTheDocument();
+    expect(db.calendar.clients.find((item) => item.id === client?.id)?.notes.find((item) => item.id === note?.id)?.text).toBe("Prefiere la máquina en el 2");
+    expect(db.calendar.clients.find((item) => item.id === client?.id)?.notes.find((item) => item.id === note?.id)?.text).toBe("Prefiere la máquina en el 2");
+
+    await user.click(within(screen.getByTestId("customer-notes")).getByRole("button", { name: "Acciones de Prefiere la máquina en el 2" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
+    await user.click(await screen.findByRole("button", { name: "Eliminar" }));
+    await vi.waitFor(() => expect(db.calendar.clients.find((item) => item.id === client?.id)?.notes.some((item) => item.id === note?.id)).toBe(false));
+    await vi.waitFor(() => expect(screen.queryByText("Prefiere la máquina en el 2")).toBeNull());
+  });
+
   test("un cliente que no existe ofrece volver a la lista", async () => {
     renderApp("/clientes/no-existe");
     expect(await screen.findByText("No encontramos a este cliente")).toBeInTheDocument();

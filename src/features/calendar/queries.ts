@@ -5,7 +5,9 @@ import type {
   AppointmentInput,
   AppointmentPatch,
   BlockInput,
+  CalendarCatalog,
   CalendarDay,
+  Client,
   CheckoutInput,
   NoteInput,
   SaleInput,
@@ -111,11 +113,45 @@ export function useCheckoutAppointment() {
   });
 }
 
-export function useAddClientNote(branchId: string) {
+/**
+ * Las notas son del cliente y se ven en la cita y en su ficha: cualquier cambio
+ * refresca las dos (la agenda y el módulo de clientes).
+ */
+function useRefreshClientNotes() {
   const queryClient = useQueryClient();
+  return (client: Client) => {
+    // La respuesta ya trae las notas al día: se escriben donde se ven para que el cambio
+    // aparezca al instante, y después se recarga por si algo más cambió en el servidor.
+    queryClient.setQueriesData<CalendarCatalog>({ queryKey: [...calendarKeys.all, "catalog"] }, (old) =>
+      old ? { ...old, clients: old.clients.map((item) => (item.id === client.id ? { ...item, notes: client.notes } : item)) } : old
+    );
+    queryClient.setQueriesData<{ notes: Client["notes"] }>({ queryKey: ["customers", "detail", client.id] }, (old) => (old ? { ...old, notes: client.notes } : old));
+    void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    void queryClient.invalidateQueries({ queryKey: ["customers"] });
+  };
+}
+
+export function useAddClientNote() {
+  const refresh = useRefreshClientNotes();
   return useMutation({
     mutationFn: ({ clientId, input }: { clientId: string; input: NoteInput }) => calendarApi.addClientNote(clientId, input),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: calendarKeys.catalog(branchId) }),
+    onSuccess: refresh,
+  });
+}
+
+export function useUpdateClientNote() {
+  const refresh = useRefreshClientNotes();
+  return useMutation({
+    mutationFn: ({ clientId, noteId, input }: { clientId: string; noteId: string; input: Partial<NoteInput> }) => calendarApi.updateClientNote(clientId, noteId, input),
+    onSuccess: refresh,
+  });
+}
+
+export function useRemoveClientNote() {
+  const refresh = useRefreshClientNotes();
+  return useMutation({
+    mutationFn: ({ clientId, noteId }: { clientId: string; noteId: string }) => calendarApi.removeClientNote(clientId, noteId),
+    onSuccess: refresh,
   });
 }
 

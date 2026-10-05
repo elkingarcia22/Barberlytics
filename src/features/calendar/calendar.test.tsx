@@ -669,6 +669,35 @@ describe("Calendario", () => {
     expect(screen.queryByTestId("calendar-gaps")).toBeNull();
   });
 
+  test("desde la cita una nota del cliente se corrige y se borra", async () => {
+    const user = userEvent.setup();
+    // Las citas se generan al pedir el día: la nota se le pone a todos y se abre la primera cita con ficha.
+    db.calendar.clients = db.calendar.clients.map((item) => ({ ...item, notes: [{ id: `note_test_${item.id}`, kind: "note" as const, text: "Prefiere tijera arriba", createdAt: "2026-09-01T10:00:00.000Z" }, ...item.notes] }));
+    mount();
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    const cards = await within(grid).findAllByRole("button", { name: /^Abrir / });
+    await user.click(cards.find((card) => !/Sin cita|Cliente de paso/i.test(card.getAttribute("aria-label") ?? "")) as HTMLElement);
+    const drawer = await screen.findByTestId("appointment-drawer");
+    await user.click(within(drawer).getByRole("tab", { name: /Notas/ }));
+
+    await user.click(await within(drawer).findByRole("button", { name: "Acciones de Prefiere tijera arriba" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Editar" }));
+    const field = await screen.findByTestId("client-note-edit-text");
+    await user.clear(field);
+    await user.type(field, "Trae su propia cera");
+    await user.click(screen.getByTestId("client-note-save"));
+    await waitFor(() => expect(within(drawer).queryByTestId("client-note-editing")).toBeNull());
+    expect(within(drawer).getByText("Trae su propia cera")).toBeInTheDocument();
+
+    await user.click(within(drawer).getByRole("button", { name: "Acciones de Trae su propia cera" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
+    await user.click(await screen.findByRole("button", { name: "Eliminar" }));
+    await waitFor(() => expect(within(drawer).queryByText("Trae su propia cera")).toBeNull());
+    // En el servidor: corregida en un cliente y luego borrada de su ficha.
+    expect(db.calendar.clients.some((item) => item.notes.some((entry) => entry.text === "Trae su propia cera"))).toBe(false);
+    expect(db.calendar.clients.filter((item) => item.notes.some((entry) => entry.text === "Prefiere tijera arriba"))).toHaveLength(db.calendar.clients.length - 1);
+  });
+
   test("el detalle de la cita pone a la vista el siguiente paso y cobrar lo sustituye por el cobro", async () => {
     const user = userEvent.setup();
     mount();

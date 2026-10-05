@@ -3,10 +3,12 @@ import { useAppT } from "@/app/i18n";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { IconTile } from "@/components/utility";
+import { Package, Scissors } from "lucide-react";
 import { initialsOf } from "@/components/scheduling";
 import type { ScheduleTone } from "@/components/scheduling";
 import { clientTypeTone } from "./calendarModel";
-import { CLIENT_TYPE_KEYS, STATUS_KEYS, type AppointmentStatus, type ClientType } from "./types";
+import { CLIENT_TYPE_KEYS, STATUS_KEYS, type AppointmentStatus, type Client, type ClientType, type Product, type Service } from "./types";
 
 /**
  * Las piezas chicas que se repiten en toda la pantalla del calendario —el
@@ -37,6 +39,7 @@ const TYPE_VARIANT: Record<ScheduleTone, React.ComponentProps<typeof Badge>["var
   negative: "destructive",
   info: "outline",
   neutral: "neutral",
+  accent: "outline",
 };
 
 export function ClientTypeBadge({ type }: { type: ClientType }) {
@@ -51,6 +54,21 @@ export function PersonAvatar({ name, avatarUrl, size = "default" }: { name: stri
       <AvatarFallback>{initialsOf(name)}</AvatarFallback>
     </Avatar>
   );
+}
+
+/** El avatar de un cliente: su foto o sus iniciales. */
+export function ClientAvatar({ client, name, size = "default" }: { client: Pick<Client, "name" | "avatarUrl"> | undefined; name?: string; size?: "sm" | "default" | "lg" }) {
+  return <PersonAvatar name={client?.name ?? name ?? ""} avatarUrl={client?.avatarUrl} size={size} />;
+}
+
+/** La miniatura de un servicio: su foto o las tijeras. */
+export function ServiceThumb({ service, size = "sm" }: { service: Pick<Service, "imageUrl"> | undefined; size?: "sm" | "md" | "lg" }) {
+  return <IconTile icon={<Scissors />} size={size} src={service?.imageUrl} />;
+}
+
+/** La miniatura de un producto: su foto o la caja. */
+export function ProductThumb({ product, size = "sm", tone = "positive" }: { product: Pick<Product, "imageUrl"> | undefined; size?: "sm" | "md" | "lg"; tone?: "positive" | "neutral" }) {
+  return <IconTile icon={<Package />} size={size} tone={tone} src={product?.imageUrl} />;
 }
 
 /** Una fila «etiqueta · valor» de las fichas de los drawers. */

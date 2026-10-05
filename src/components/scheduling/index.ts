@@ -11,6 +11,7 @@ export type {
   ScheduleEvent,
   ScheduleEventKind,
   ScheduleTone,
+  ScheduleFill,
   ScheduleEventAction,
   ScheduleMarker,
   ScheduleMarkerIcon,

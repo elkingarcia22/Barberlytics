@@ -9,7 +9,9 @@ vi.mock("@/components/charts/EChart", () => ({
 import { renderWithProviders, screen, waitFor, within, userEvent } from "@/test/render";
 import { db } from "@/mocks/db";
 import { RequireAuth } from "@/features/auth";
-import { buildBusinessMetrics } from "@/mocks/metrics";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
+import { buildBusinessMetrics, resolveMetricsBarber } from "@/mocks/metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics } from "@/mocks/metricsTabs";
 import { MetricsPage } from "./MetricsPage";
 
@@ -18,22 +20,24 @@ function LocationProbe() {
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
 }
 
-function mount(route = "/metricas") {
+function mount(route = "/metricas", role: TeamRole = "owner") {
   db.sessions.set("mock-acc_admin-test", "acc_admin");
   return renderWithProviders(
-    <Routes>
-      <Route element={<RequireAuth />}>
-        <Route
-          path="/metricas"
-          element={
-            <>
-              <MetricsPage />
-              <LocationProbe />
-            </>
-          }
-        />
-      </Route>
-    </Routes>,
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route element={<RequireAuth />}>
+          <Route
+            path="/metricas"
+            element={
+              <>
+                <MetricsPage />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Route>
+      </Routes>
+    </AccessProvider>,
     { route, token: "mock-acc_admin-test" }
   );
 }
@@ -79,6 +83,45 @@ describe("Métricas", () => {
     expect(await screen.findByText("Salud del negocio")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Periodo" })).toBeNull();
     expect(screen.getByText("Sugerencias")).toBeInTheDocument();
+  });
+});
+
+describe("Métricas de un barbero", () => {
+  test("el de comisión ve sus tres pestañas, sin selector de barbero ni IA", async () => {
+    mount("/metricas?period=week&date=2026-09-21", "barbero-comision");
+    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" });
+    const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-04" });
+    expect(within(pulse).getByText(`${own.appointments.total}`)).toBeInTheDocument();
+    expect(screen.queryByTestId("metrics-barber")).toBeNull();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Negocio", "Clientes", "Barberos"]);
+  });
+
+  test("un enlace con otro barbero o con la IA no le abre nada ajeno", async () => {
+    mount("/metricas?tab=insights&barber=b6&period=week&date=2026-09-21", "barbero-renta");
+    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" });
+    const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-30" });
+    expect(within(pulse).getByText(`${own.appointments.total}`)).toBeInTheDocument();
+    expect(screen.queryByText("Salud del negocio")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Marketing" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "IA" })).toBeNull();
+  });
+
+  test("en Barberos ve solo su fila, sin el neto del equipo ni el reparto", async () => {
+    mount("/metricas?tab=barbers&period=week&date=2026-09-21", "barbero-comision");
+    expect(await screen.findByText("Tu neto")).toBeInTheDocument();
+    expect(screen.queryByText("Neto del equipo")).toBeNull();
+    expect(screen.queryByText("Neto por barbero")).toBeNull();
+    expect(screen.getByRole("cell", { name: "Andrés Beltrán" })).toBeInTheDocument();
+    expect(screen.queryByRole("cell", { name: "Valeria Marín" })).toBeNull();
+  });
+
+  test("el id del equipo se traduce al de las métricas o se simula aparte", () => {
+    expect(resolveMetricsBarber("team-04")).toEqual({ id: "b4", name: "Andrés Beltrán" });
+    expect(resolveMetricsBarber("team-30")).toEqual({ id: "team-30", name: "Paola Zuluaga" });
+    expect(resolveMetricsBarber("team-01")).toBeNull();
+    const team = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all" });
+    const paola = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-30" });
+    expect(paola.appointments.total).toBeLessThan(team.appointments.total);
   });
 });
 

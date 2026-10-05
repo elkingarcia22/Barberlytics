@@ -4,6 +4,7 @@
  * son reproducibles. Se reinicia al recargar la página.
  */
 import { seededRandom } from "./random";
+import { ACCOUNT_PHOTOS, userPhoto } from "./media";
 import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
@@ -72,7 +73,7 @@ export function seedUsers(count = 57, seed = 7): MockUser[] {
       status,
       createdAt,
       lastActiveAt: status === "invited" ? null : new Date(base + Math.floor(rand() * 260) * 86_400_000).toISOString(),
-      avatarUrl: null,
+      avatarUrl: userPhoto(index + 1, name),
     };
   });
 }
@@ -83,14 +84,14 @@ export const ACCOUNTS: readonly MockAccount[] = [
     phone: "+573001234567",
     email: "admin@thema.dev",
     providers: ["google"],
-    user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: null },
+    user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: ACCOUNT_PHOTOS.owner },
   },
   {
     id: "acc_manager",
     phone: "+573007654321",
     email: "lider@thema.dev",
     providers: ["microsoft"],
-    user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: null },
+    user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: ACCOUNT_PHOTOS.manager },
   },
 ];
 
@@ -167,7 +168,7 @@ export interface MockDb {
 
 const STORAGE_KEY = "thema.mock.db";
 /** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 11;
 
 interface PersistedDb {
   version?: number;

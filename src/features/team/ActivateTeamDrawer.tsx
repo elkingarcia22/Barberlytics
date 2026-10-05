@@ -10,7 +10,9 @@ import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/typography";
+import { useAccess } from "@/features/access";
 import { useOpenKey } from "@/features/calendar/calendarFormat";
+import { managesRole, seesManagers } from "./teamAccess";
 import { useMembersQuery, useSetActivation } from "./queries";
 import { MemberAvatar, RoleBadge } from "./teamShared";
 import { isBarberRole, memberName, type TeamMember } from "./types";
@@ -33,6 +35,9 @@ export function ActivateTeamDrawer(props: ActivateTeamDrawerProps) {
 
 function ActivatePanel({ open, onOpenChange, branchId }: ActivateTeamDrawerProps) {
   const t = useAppT();
+  // Solo se encienden o apagan los roles que quien mira gestiona; los gerentes, con su casilla.
+  const access = useAccess();
+  const withManagers = seesManagers(access);
   const query = useMembersQuery(branchId, true);
   const save = useSetActivation();
   const [tab, setTab] = React.useState<"barbers" | "managers">("barbers");
@@ -82,7 +87,7 @@ function ActivatePanel({ open, onOpenChange, branchId }: ActivateTeamDrawerProps
       }
     >
       <div className="space-y-3" data-testid="activate-drawer">
-        <ThemaTabs className="mb-0" fitContent tabs={[{ id: "barbers", label: t("teamActivate.tab.barbers") }, { id: "managers", label: t("teamActivate.tab.managers") }]} activeTabId={tab} onTabChange={(id) => setTab(id as "barbers" | "managers")} />
+        <ThemaTabs className="mb-0" fitContent tabs={[{ id: "barbers", label: t("teamActivate.tab.barbers") }, ...(withManagers ? [{ id: "managers", label: t("teamActivate.tab.managers") }] : [])]} activeTabId={tab} onTabChange={(id) => setTab(id as "barbers" | "managers")} />
         {tab === "barbers" && (
           <SegmentedControl size="sm" variant="outline" ariaLabel={t("teamActivate.tab.barbers")} options={[{ value: "barbero-comision", label: t("teamActivate.commission") }, { value: "barbero-renta", label: t("teamActivate.rent") }]} value={kind} onChange={(value) => setKind(value as typeof kind)} />
         )}
@@ -99,7 +104,7 @@ function ActivatePanel({ open, onOpenChange, branchId }: ActivateTeamDrawerProps
                     title={memberName(member)}
                     description={others.length > 0 ? t("teamActivate.alsoIn", { branches: others.join(", ") }) : t("teamActivate.onlyHere")}
                     meta={<RoleBadge role={member.role} />}
-                    actions={<Switch aria-label={`${memberName(member)} · ${branchName(branchId)}`} checked={active.has(member.id)} onCheckedChange={(checked) => toggle(member.id, checked)} />}
+                    actions={<Switch aria-label={`${memberName(member)} · ${branchName(branchId)}`} checked={active.has(member.id)} disabled={!managesRole(access, member.role)} onCheckedChange={(checked) => toggle(member.id, checked)} />}
                   />
                 );
               })}

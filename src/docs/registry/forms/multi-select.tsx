@@ -150,7 +150,7 @@ const handleChange = (next: string[]) => setValue(next.slice(0, MAX));
     },
   ],
   props: [
-    { name: "options", type: "MultiSelectOption[]", description: "Lista de opciones: value, label, description opcional y disabled." },
+    { name: "options", type: "MultiSelectOption[]", description: "Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura) y disabled. Se filtra por label y description." },
     { name: "value", type: "string[]", default: "[]", description: "Valores seleccionados (controlado)." },
     { name: "onValueChange", type: "(value: string[]) => void", description: "Se llama con el arreglo completo al añadir o quitar una opción." },
     { name: "placeholder", type: "string", default: '"Seleccionar opciones"', description: "Texto del trigger cuando no hay selección." },

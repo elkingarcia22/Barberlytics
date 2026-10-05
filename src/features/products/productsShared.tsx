@@ -7,8 +7,9 @@ import { PRODUCT_VISIBILITY_KEYS, type ProductVisibility } from "./types";
 
 /** Las piezas chicas del módulo de productos: el icono y las insignias de estado, venta y reserva. */
 
-export function ProductGlyph({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  return <IconTile icon={<Package />} tone="neutral" size={size} />;
+/** La foto del producto y, mientras no hay o no carga, el icono. */
+export function ProductGlyph({ size = "md", imageUrl }: { size?: "sm" | "md" | "lg" | "xl"; imageUrl?: string | null }) {
+  return <IconTile icon={<Package />} tone="neutral" size={size} src={imageUrl} />;
 }
 
 export function ProductActiveBadge({ active }: { active: boolean }) {

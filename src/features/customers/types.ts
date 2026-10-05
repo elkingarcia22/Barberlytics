@@ -14,6 +14,8 @@ export const customerSchema = z.object({
   id: z.string(),
   name: z.string(),
   phone: z.string(),
+  /** La foto del cliente; sin ella se pintan sus iniciales. */
+  avatarUrl: z.string().nullable().optional(),
   email: z.string(),
   branchId: z.string(),
   segment: customerSegmentSchema,
@@ -25,6 +27,10 @@ export const customerSchema = z.object({
   lastVisitAt: z.string().nullable(),
   visitEveryDays: z.number().nullable(),
   preferredBarber: z.string().nullable(),
+  /** La ficha de equipo del barbero que prefiere: con ella se recorta «sus clientes». */
+  preferredBarberId: z.string().nullable().default(null),
+  /** Los barberos con los que tiene cita por atender o cobrada en los últimos 12 meses. */
+  barberIds: z.array(z.string()).default([]),
   birthDate: z.string().nullable(),
   createdAt: z.string(),
   /** Alergias y medicamentos anotados: lo que el barbero tiene que ver antes de empezar. */
@@ -43,6 +49,7 @@ export const customerAppointmentSchema = z.object({
   service: z.string(),
   start: z.string(),
   barber: z.string().nullable(),
+  barberId: z.string().nullable().default(null),
   source: z.enum(["internal", "online", "walkin"]),
   requestedBarber: z.boolean(),
   status: customerAppointmentStatusSchema,
@@ -63,7 +70,7 @@ export type CustomerPayment = z.infer<typeof customerPaymentSchema>;
 export const customerGuestSchema = z.object({ id: z.string(), name: z.string(), relation: z.string(), visits: z.number() });
 export type CustomerGuest = z.infer<typeof customerGuestSchema>;
 
-export const customerProductSchema = z.object({ id: z.string(), name: z.string(), units: z.number(), total: z.number(), lastBoughtAt: z.string() });
+export const customerProductSchema = z.object({ id: z.string(), name: z.string(), units: z.number(), total: z.number(), lastBoughtAt: z.string(), imageUrl: z.string().nullable().optional() });
 export type CustomerProduct = z.infer<typeof customerProductSchema>;
 
 export const customerDetailSchema = customerSchema.extend({

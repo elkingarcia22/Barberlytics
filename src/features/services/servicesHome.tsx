@@ -28,8 +28,9 @@ export const parseCategory = (value: string | null, categories: readonly Service
 
 const EMPTY = "—";
 
-export function serviceColumns(t: Translate): readonly TableColumnSpec[] {
-  return [
+/** Costo y margen son cifras de negocio: sin `money` no se ofrecen ni en el panel de columnas. */
+export function serviceColumns(t: Translate, { money = true }: { money?: boolean } = {}): readonly TableColumnSpec[] {
+  const columns: TableColumnSpec[] = [
     { id: "select", label: t("column.selection"), fixed: true },
     { id: "service", label: t("services.column.service") },
     { id: "category", label: t("services.column.category") },
@@ -41,6 +42,7 @@ export function serviceColumns(t: Translate): readonly TableColumnSpec[] {
     { id: "booking", label: t("services.column.booking") },
     { id: "status", label: t("services.column.status") },
   ];
+  return money ? columns : columns.filter((column) => column.id !== "cost" && column.id !== "margin");
 }
 
 export interface ServiceCellContext {
@@ -55,7 +57,7 @@ export function serviceCells(t: Translate, { categories, formatMoney, formatPerc
       head: t("services.column.service"),
       cell: (row) => (
         <span className="flex items-center gap-3">
-          <ServiceGlyph kind={row.kind} />
+          <ServiceGlyph kind={row.kind} imageUrl={row.imageUrl} />
           <span className="flex min-w-0 flex-col">
             <span className="flex items-center gap-inline">
               <Link to={`/servicios/${row.id}`} className="truncate font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">

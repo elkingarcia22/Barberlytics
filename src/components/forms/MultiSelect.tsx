@@ -21,6 +21,8 @@ export type MultiSelectOption = {
   value: string
   label: string
   description?: string
+  /** Avatar o miniatura a la izquierda de la opción. */
+  leading?: React.ReactNode
   disabled?: boolean
 }
 
@@ -129,11 +131,13 @@ export function MultiSelect({
                 <CommandItem
                   key={option.value}
                   value={option.value}
+                  keywords={[option.label, option.description ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => handleSelect(option.value)}
                   className="flex items-center px-4 py-3 rounded-xl cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-1 hover:bg-surface-subtle"
                 >
                   <div className="flex items-center w-full gap-3">
+                    {option.leading}
                     <span className="flex-1 text-[13px] font-bold tracking-tight leading-none">{option.label}</span>
                     {value.includes(option.value) && (
                       <div className="bg-primary/10 p-1 rounded-full">

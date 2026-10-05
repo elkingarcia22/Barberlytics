@@ -146,7 +146,11 @@ export const payrollHandlers = [
     const appointments = Array.from({ length: days }, (_, index) => appointmentsOn(branchId, dateKey(new Date(start.getTime() + index * DAY_MS)))).flat();
     /* La renta y el salario son por semana: un mes de 30 días son 30/7 semanas. */
     const weeks = round(days / DAYS_PER_WEEK);
-    const members = barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks));
+    /* `memberId`: la nómina de una sola persona («Lo que llevo» / «Mi negocio» del barbero). */
+    const memberId = params.get("memberId");
+    const members = barbersOf(db.team.members, db.team.orders, branchId)
+      .filter((member) => !memberId || member.id === memberId)
+      .map((member) => payrollOf(member, appointments, weeks));
     return HttpResponse.json({ from, to, weeks, members });
   }),
 ];

@@ -13,6 +13,8 @@ import { useTheme } from "@/themes";
 import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
+import { AccessProvider, buildAccess, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
@@ -80,12 +82,26 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   // Mirar como otro rol es estado de la app, no de la sesión: el token sigue
-  // siendo el mismo y al recargar se vuelve al rol propio.
-  const [viewRoleId, setViewRoleId] = React.useState<string | null>(null);
+  // siendo el mismo. Se recuerda entre recargas (features/access/viewAs).
+  const [viewRoleId, setViewRoleId] = React.useState<TeamRole | null>(() => readViewAs());
+  const ownRole = teamRoleFromSession(user?.role);
+  const effectiveRole = viewRoleId ?? ownRole;
+  // Quién mira y qué puede: el menú, las rutas y cada pantalla preguntan aquí.
+  const access = React.useMemo(() => buildAccess({ role: effectiveRole, previewing: viewRoleId !== null && viewRoleId !== ownRole }), [effectiveRole, viewRoleId, ownRole]);
+  const selectRole = React.useCallback(
+    (roleId: string) => {
+      const next = roleId === ownRole ? null : (roleId as TeamRole);
+      setViewRoleId(next);
+      writeViewAs(next);
+      // Como en producción: al cambiar de perfil se aterriza en el inicio de ese rol.
+      navigate(ROLE_HOME[roleId as TeamRole] ?? "/");
+    },
+    [navigate, ownRole]
+  );
   // La sucursal activa: mientras no haya endpoint, la recuerda la sesión de
   // navegación. Todo lo que se ve debajo es de esta sucursal.
   const [branchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
-  const settings = React.useMemo(() => buildSettingsGroups(t), [t]);
+  const settings = React.useMemo(() => buildSettingsGroups(t, access), [t, access]);
   // La identidad que subió la barbería: su isologo, su nombre y debajo
   // «Barbería». Mientras carga (o si falla) va la flecha de Barberlytics con
   // el mismo formato, así el menú nunca cambia de forma.
@@ -189,13 +205,13 @@ export function AppLayout() {
     [brand, navigate]
   );
 
-  const navigation = React.useMemo(() => buildAppNavigation(t), [t]);
+  const navigation = React.useMemo(() => buildAppNavigation(t, access), [t, access]);
   const activeNavId = findActiveNavId(location.pathname);
 
   const config = React.useMemo<ShellConfigOverrides>(
     () => ({
       user: user
-        ? { id: user.id, name: user.name, email: user.email, role: roles.find((role) => role.id === user.role)?.label ?? user.role, avatarUrl: user.avatarUrl ?? null }
+        ? { id: user.id, name: user.name, email: user.email, role: roles.find((role) => role.id === effectiveRole)?.label ?? effectiveRole, avatarUrl: user.avatarUrl ?? null }
         : undefined,
       brand,
       navigation,
@@ -210,8 +226,8 @@ export function AppLayout() {
       showWorkspaceUsage: false,
       settings,
       settingsAll: { ...SETTINGS_ALL, label: t("settings.all") },
-      activeRoleId: viewRoleId ?? user?.role,
-      onSelectRole: setViewRoleId,
+      activeRoleId: effectiveRole,
+      onSelectRole: selectRole,
       activeNavId,
       onNavigate: (_id, path) => {
         // Desde el chat a pantalla completa, ir a una pantalla es salir del modo agente.
@@ -270,7 +286,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, viewRoleId, branchId, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
+    [user, brand, roles, effectiveRole, selectRole, branchId, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
   const openAgent = React.useCallback(() => {
@@ -285,6 +301,7 @@ export function AppLayout() {
   );
 
   return (
+    <AccessProvider value={access}>
     <ChatProvider value={chatContext}>
       <AdminShell config={config} showFooter={showsLegalFooter(location.pathname)}>
         <RailAgentProvider value={agentRailAction}>
@@ -309,7 +326,7 @@ export function AppLayout() {
           showCampaign={FEEDBACK_CAMPAIGN_VISIBLE}
           page={location.pathname}
           pageLabel={findNavLabel(navigation, activeNavId)}
-          roleLabel={roles.find((role) => role.id === user?.role)?.label}
+          roleLabel={roles.find((role) => role.id === effectiveRole)?.label}
         />
       </AdminShell>
       <ChatVoiceMode
@@ -321,5 +338,6 @@ export function AppLayout() {
         onSend={(text) => chatStore.send(text, chatBackend)}
       />
     </ChatProvider>
+    </AccessProvider>
   );
 }

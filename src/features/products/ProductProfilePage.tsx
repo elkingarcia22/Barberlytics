@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/typography";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { marginOf } from "@/features/services/servicesUtils";
 import { InfoCard, InfoRow } from "@/features/team/teamShared";
@@ -88,6 +90,8 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
   const remove = useRemoveProduct();
   const [editing, setEditing] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
+  // Recepción abre la ficha para vender: precio de venta sí; costo, ganancia y margen no.
+  const { canToggle, canDelete, canEdit, seesMoney } = catalogAccess(useAccess(), "products");
 
   const margin = marginOf(product);
   const profit = profitOf(product);
@@ -107,13 +111,15 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
 
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () => [
-      product.active
-        ? { id: "deactivate", label: t("products.action.deactivate"), icon: <PowerOff className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: toggleActive }
-        : { id: "activate", label: t("products.action.activate"), icon: <Power className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: toggleActive },
-      { id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"], tone: "danger", overflow: true, onSelect: () => setConfirmRemove(true) },
-      { id: "edit", label: t("action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setEditing(true) },
+      ...(!canToggle
+        ? []
+        : product.active
+        ? [{ id: "deactivate", label: t("products.action.deactivate"), icon: <PowerOff className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: toggleActive }]
+        : [{ id: "activate", label: t("products.action.activate"), icon: <Power className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: toggleActive }]),
+      ...(canDelete ? [{ id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"] as const, tone: "danger" as const, overflow: true, onSelect: () => setConfirmRemove(true) }] : []),
+      ...(canEdit ? [{ id: "edit", label: t("action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => setEditing(true) }] : []),
     ],
-    [product.active, t, toggleActive]
+    [canDelete, canEdit, canToggle, product.active, t, toggleActive]
   );
 
   return (
@@ -121,7 +127,7 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            <ProductGlyph size="lg" />
+            <ProductGlyph size="xl" imageUrl={product.imageUrl} />
             <span className="flex flex-wrap items-center gap-2">
               {product.name}
               <ProductActiveBadge active={product.active} />
@@ -138,11 +144,15 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
       />
 
       <div className="space-y-section">
-        <section aria-label={t("products.profile.numbersAria")} className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-label={t("products.profile.numbersAria")} className={seesMoney ? "grid gap-stack sm:grid-cols-2 xl:grid-cols-4" : "grid gap-stack sm:grid-cols-2"}>
           <MetricCard label={t("products.column.price")} value={formatMoney(product.price)} caption={product.taxRate === null ? t("products.profile.noTax") : t("products.profile.plusTax", { rate: percent(product.taxRate) })} tone="brand" icon="chart" />
+          {seesMoney && (
+            <>
           <MetricCard label={t("products.column.cost")} value={product.cost === null ? "—" : formatMoney(product.cost)} caption={product.cost === null ? t("products.profile.costMissing") : t("products.profile.costCaption")} hint={t("products.profile.costHint")} tone="warning" icon="file" />
           <MetricCard label={t("products.profile.profit")} value={profit === null ? "—" : formatMoney(profit)} caption={profit === null ? t("products.profile.marginMissing") : t("products.profile.profitCaption")} tone="positive" icon="award" />
           <MetricCard label={t("products.column.margin")} value={margin === null ? "—" : percent(margin)} caption={margin === null ? t("products.profile.marginMissing") : t("products.profile.marginCaption")} hint={t("products.pulse.marginHint")} tone="brand" icon="chart" />
+            </>
+          )}
         </section>
 
         <div className="grid items-start gap-stack lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

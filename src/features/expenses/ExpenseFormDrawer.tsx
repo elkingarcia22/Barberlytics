@@ -24,6 +24,8 @@ export interface ExpenseFormDrawerProps {
   expense?: Expense | null;
   kind?: ExpenseKind;
   branchId: string;
+  /** Un gasto nuevo de este barbero de renta; `null` (por defecto), de la sucursal. */
+  ownerMemberId?: string | null;
 }
 
 const FORM_ID = "expense-form";
@@ -34,7 +36,7 @@ const KIND_HINT_KEYS: Readonly<Record<ExpenseKind, AppMessageKey>> = { fixed: "e
  * los dos tipos: se elige si es fijo o variable y, si es fijo, cada cuánto
  * se paga —y al momento se lee cuánto pesa en un mes—.
  */
-export function ExpenseFormDrawer({ open, onOpenChange, expense = null, kind = "fixed", branchId }: ExpenseFormDrawerProps) {
+export function ExpenseFormDrawer({ open, onOpenChange, expense = null, kind = "fixed", branchId, ownerMemberId = null }: ExpenseFormDrawerProps) {
   const t = useAppT();
   const isEdit = expense !== null;
   const [submitting, setSubmitting] = React.useState(false);
@@ -59,7 +61,7 @@ export function ExpenseFormDrawer({ open, onOpenChange, expense = null, kind = "
       }
     >
       {/* El cuerpo se monta al abrir: cada apertura arranca limpia. */}
-      {open && <ExpenseFormBody expense={expense} kind={kind} branchId={branchId} onSubmittingChange={setSubmitting} onDone={() => onOpenChange(false)} />}
+      {open && <ExpenseFormBody expense={expense} kind={kind} branchId={branchId} ownerMemberId={ownerMemberId} onSubmittingChange={setSubmitting} onDone={() => onOpenChange(false)} />}
     </DrawerShell>
   );
 }
@@ -68,16 +70,17 @@ interface ExpenseFormBodyProps {
   expense: Expense | null;
   kind: ExpenseKind;
   branchId: string;
+  ownerMemberId: string | null;
   onSubmittingChange: (submitting: boolean) => void;
   onDone: () => void;
 }
 
 type Errors = Partial<Record<keyof ExpenseInput, string>>;
 
-function ExpenseFormBody({ expense, kind, branchId, onSubmittingChange, onDone }: ExpenseFormBodyProps) {
+function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingChange, onDone }: ExpenseFormBodyProps) {
   const t = useAppT();
   const formatMoney = useMoney();
-  const create = useCreateExpense(branchId);
+  const create = useCreateExpense(branchId, ownerMemberId);
   const update = useUpdateExpense();
   const [draft, setDraft] = React.useState<ExpenseInput>(() => (expense ? inputFromExpense(expense) : emptyExpenseInput(kind)));
   const [errors, setErrors] = React.useState<Errors>({});

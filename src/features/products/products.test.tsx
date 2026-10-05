@@ -8,6 +8,9 @@ vi.mock("@/components/charts/EChart", () => ({
 }));
 import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { db } from "@/mocks/db";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { ProductProfilePage } from "./ProductProfilePage";
 import { ProductsPage } from "./ProductsPage";
 import { productsApi } from "./api";
@@ -29,6 +32,20 @@ function renderApp(route: string) {
       <Route path="/productos" element={<ProductsPage />} />
       <Route path="/productos/:id" element={<ProductProfilePage />} />
     </Routes>,
+    { route, token: TOKEN }
+  );
+}
+
+/** La misma app, mirada con un rol concreto. */
+function renderAppAs(role: TeamRole, route: string) {
+  db.sessions.set(TOKEN, "acc_admin");
+  return renderWithProviders(
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/productos" element={<ProductsPage />} />
+        <Route path="/productos/:id" element={<ProductProfilePage />} />
+      </Routes>
+    </AccessProvider>,
     { route, token: TOKEN }
   );
 }
@@ -118,6 +135,47 @@ describe("catálogo de productos", () => {
   test("un producto que no existe ofrece volver al catálogo", async () => {
     renderApp("/productos/no-existe");
     expect(await screen.findByText("No encontramos este producto")).toBeInTheDocument();
+  });
+});
+
+describe("productos según el rol", () => {
+  beforeAll(() => {
+    vi.stubGlobal("IntersectionObserver", InertObserver);
+  });
+  beforeEach(() => {
+    db.reset();
+  });
+
+  test("recepción solo consulta: ni crea, ni edita, ni borra, ni ve costo", () => {
+    const can = catalogAccess(buildAccess({ role: "recepcion" }), "products");
+    expect([can.canCreate, can.canEdit, can.canToggle, can.canDelete, can.seesMoney]).toEqual([false, false, false, false, false]);
+    expect(can.categories).toEqual({ view: true, create: false, edit: false, delete: false });
+  });
+
+  test("el admin gestiona el catálogo pero borrar es del dueño", () => {
+    const admin = catalogAccess(buildAccess({ role: "admin" }), "products");
+    expect([admin.canCreate, admin.canEdit, admin.canDelete]).toEqual([true, true, false]);
+    expect(catalogAccess(buildAccess({ role: "owner" }), "products").canDelete).toBe(true);
+  });
+
+  test("en la lista, recepción no ve el precio de compra ni los avisos de gestión", async () => {
+    renderAppAs("recepcion", "/productos");
+    expect(await screen.findByRole("link", { name: "Cera mate" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Precio de compra" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /sin precio de compra/i })).toBeNull();
+  });
+
+  test("el dueño sí ve el precio de compra en la lista", async () => {
+    renderAppAs("owner", "/productos");
+    expect(await screen.findByRole("link", { name: "Cera mate" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Precio de compra" })).toBeInTheDocument();
+  });
+
+  test("en la ficha, recepción ve el precio de venta pero no lo que deja", async () => {
+    renderAppAs("recepcion", "/productos/prd_aceite");
+    expect(await screen.findByRole("heading", { name: /Aceite de barba/ })).toBeInTheDocument();
+    expect(screen.queryByText("Deja por unidad")).toBeNull();
+    expect(screen.getByText("BR-ACE-030")).toBeInTheDocument();
   });
 });
 

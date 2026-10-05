@@ -6,7 +6,6 @@ import { describeError } from "@/lib/api";
 import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { RadioCardGroup, SegmentedControl } from "@/components/selection";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
-import { IconTile } from "@/components/utility";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import type { ModelContext } from "./calendarModel";
@@ -16,6 +15,7 @@ import { changeDue } from "./checkoutMath";
 import { useOpenKey } from "./calendarFormat";
 import { useCreateSale } from "./queries";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type PaymentMethod, type ProductLine } from "./types";
+import { ProductThumb } from "./calendarShared";
 
 /**
  * Venta rápida de productos: para quien se lleva una cera sin tener cita.
@@ -110,7 +110,7 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
                   <ListItem
                     key={product.id}
                     size="sm"
-                    leading={<IconTile icon={<Package />} size="sm" tone={qty > 0 ? "positive" : "neutral"} />}
+                    leading={<ProductThumb product={product} tone={qty > 0 ? "positive" : "neutral"} />}
                     title={product.name}
                     description={product.category}
                     meta={ctx.formatMoney(product.price)}

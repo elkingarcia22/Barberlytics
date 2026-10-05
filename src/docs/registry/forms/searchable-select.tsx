@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Field, SearchableSelect, type SearchableSelectOption } from "@/components/forms";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { defineEntry, definePlayground } from "../types";
 
 const COUNTRIES: SearchableSelectOption[] = [
@@ -11,6 +12,29 @@ const COUNTRIES: SearchableSelectOption[] = [
   { value: "ec", label: "Ecuador" },
   { value: "uy", label: "Uruguay" },
 ];
+
+const CLIENT_PHOTO = "https://randomuser.me/api/portraits/men/32.jpg";
+
+const CLIENTS: SearchableSelectOption[] = [
+  {
+    value: "cli_1",
+    label: "Simón Hernández",
+    description: "+57 370 318 683 · Nuevo",
+    leading: (
+      <Avatar size="sm">
+        <AvatarImage src={CLIENT_PHOTO} alt="" />
+        <AvatarFallback>SH</AvatarFallback>
+      </Avatar>
+    ),
+  },
+  { value: "cli_2", label: "Isabella Silva", description: "+57 382 484 633 · Retenido", leading: <Avatar size="sm"><AvatarFallback>IS</AvatarFallback></Avatar> },
+  { value: "cli_3", label: "Antonia Castro", description: "+57 386 095 481 · VIP", leading: <Avatar size="sm"><AvatarFallback>AC</AvatarFallback></Avatar> },
+];
+
+function LeadingDemo() {
+  const [value, setValue] = React.useState("cli_1");
+  return <SearchableSelect options={CLIENTS} value={value} onValueChange={setValue} placeholder="Elige el cliente" searchPlaceholder="Buscar por nombre o teléfono" />;
+}
 
 const MANAGERS: SearchableSelectOption[] = [
   { value: "ana", label: "Ana Rodríguez", description: "Gerente comercial · Bogotá" },
@@ -83,7 +107,7 @@ export const searchableSelectEntry = defineEntry({
     {
       id: "basic",
       title: "Controlado con filtro",
-      description: "Abre el popover y escribe: la lista se filtra por el label de cada opción.",
+      description: "Abre el popover y escribe: la lista se filtra por el label y la descripción de cada opción.",
       layout: "start",
       frameClassName: "min-h-[360px]",
       code: `const [value, setValue] = React.useState<string>("co");
@@ -130,6 +154,33 @@ export const searchableSelectEntry = defineEntry({
       ),
     },
     {
+      id: "leading",
+      title: "Con avatar o miniatura",
+      description: "`leading` pinta la cara del cliente (o la miniatura de un servicio, con `IconTile src`) en cada opción y en el botón con la opción elegida. La búsqueda mira el label y la descripción, no el id.",
+      layout: "start",
+      frameClassName: "min-h-[320px]",
+      code: `<SearchableSelect
+  options={clients.map((client) => ({
+    value: client.id,
+    label: client.name,
+    description: client.phone,
+    leading: (
+      <Avatar size="sm">
+        {client.avatarUrl && <AvatarImage src={client.avatarUrl} alt="" />}
+        <AvatarFallback>{initials(client.name)}</AvatarFallback>
+      </Avatar>
+    ),
+  }))}
+  value={clientId}
+  onValueChange={setClientId}
+/>`,
+      render: () => (
+        <div className="w-full max-w-sm">
+          <LeadingDemo />
+        </div>
+      ),
+    },
+    {
       id: "disabled",
       title: "Deshabilitado",
       layout: "start",
@@ -142,7 +193,7 @@ export const searchableSelectEntry = defineEntry({
     },
   ],
   props: [
-    { name: "options", type: "SearchableSelectOption[]", description: "Opciones con value, label, description opcional y disabled." },
+    { name: "options", type: "SearchableSelectOption[]", description: "Opciones con value, label, description, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label y description." },
     { name: "value", type: "string", description: "Valor seleccionado (controlado)." },
     { name: "onValueChange", type: "(value: string) => void", description: "Se llama al elegir; el popover se cierra solo." },
     { name: "placeholder", type: "string", default: '"Selecciona una opción"', description: "Texto del trigger sin selección." },

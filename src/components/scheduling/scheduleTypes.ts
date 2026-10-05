@@ -14,7 +14,11 @@ export interface ScheduleWorkingHours {
   end: string;
 }
 
-export type ScheduleTone = "primary" | "positive" | "warning" | "negative" | "info" | "neutral";
+/** `accent` es el sexto color sin significado de estado: el índigo (ciruela en Oro) del tono neutro del sistema. */
+export type ScheduleTone = "primary" | "positive" | "warning" | "negative" | "info" | "neutral" | "accent";
+
+/** El relleno de una tarjeta: sobrio, el pastel de su color de categoría o el de su tono. */
+export type ScheduleFill = "neutral" | "category" | "tone";
 
 /** Un aviso bajo el nombre de un recurso: «Hueco 15:00 · 2 en espera». */
 export interface ScheduleResourceAlert {
@@ -74,6 +78,12 @@ export interface ScheduleEvent {
    * Si viene, manda sobre `tone`.
    */
   color?: number;
+  /**
+   * Cómo se rellena la tarjeta: `neutral` (por defecto) es el relleno sobrio de
+   * siempre con el color solo en el punto; `category` la tiñe con el pastel de
+   * `color`; `tone`, con el pastel de `tone`. Los pasteles los da el tema.
+   */
+  fill?: ScheduleFill;
   /** Etiqueta corta junto al título: quién es (el tipo de cliente). */
   badge?: { label: string; tone?: ScheduleTone };
   /** En qué va ahora mismo («Ya ingresó», «En silla», «Por cobrar»): una píldora con su punto de color. */
@@ -86,6 +96,8 @@ export interface ScheduleEvent {
   urgent?: string;
   /** Los iconos de la esquina: de dónde vino, si es nuevo, si tiene nota… */
   markers?: readonly ScheduleMarker[];
+  /** No enseñar la línea de la hora (la persona la apagó; sigue en el tooltip). */
+  hideTime?: boolean;
   /** Fuera del filtro activo: se queda en su sitio, pero apagada. */
   faded?: boolean;
   /** Ya pasó o se anuló: se atenúa y se tacha. */

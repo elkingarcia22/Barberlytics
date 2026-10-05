@@ -14,10 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Text } from "@/components/typography";
 import { QueryBoundary } from "@/lib/query";
-import { PersonAvatar } from "./calendarShared";
+import { ClientAvatar, ServiceThumb } from "./calendarShared";
 import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
 import { findBarber, findClient, type ModelContext } from "./calendarModel";
 import { useAddToWaitlist, useRemoveFromWaitlist, useWaitlistQuery } from "./queries";
+import { waitlistInScope } from "./calendarAccess";
 import { Badge } from "@/components/ui/badge";
 import { formatClock } from "@/components/scheduling";
 import { waitlistMatch, type WaitlistMatch } from "./dayBrief";
@@ -54,6 +55,8 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
   const t = useAppT();
   const { current, formatDate } = useLocale();
   const query = useWaitlistQuery(branchId, null, open);
+  // Un barbero ve los suyos y los de «cualquier barbero», que puede tomar.
+  const inScope = (entry: WaitlistEntry) => waitlistInScope(entry, ctx.access?.ownBarberId ?? null);
   const add = useAddToWaitlist();
   const remove = useRemoveFromWaitlist();
   const [adding, setAdding] = React.useState(false);
@@ -103,7 +106,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
                     value={clientId}
                     onValueChange={setClientId}
                     placeholder={t("calendar.create.pickClient")}
-                    options={ctx.catalog.clients.filter((client) => client.type !== "walkin").map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}` }))}
+                    options={ctx.catalog.clients.filter((client) => client.type !== "walkin").map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, leading: <ClientAvatar client={client} size="sm" /> }))}
                   />
                 </Field>
                 <Field label={t("calendar.field.service")} required>
@@ -111,7 +114,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
                     value={serviceId}
                     onValueChange={setServiceId}
                     placeholder={t("calendar.create.pickService")}
-                    options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }) }))}
+                    options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }), leading: <ServiceThumb service={item} /> }))}
                   />
                 </Field>
                 <Field label={t("calendar.field.barber")}>
@@ -159,10 +162,10 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
               </div>
             )}
 
-            <QueryBoundary query={query} empty={{ when: (data) => data.items.length === 0, render: <EmptyState icon="task" title={t("calendar.waitlist.empty")} /> }}>
+            <QueryBoundary query={query} empty={{ when: (data) => data.items.filter(inScope).length === 0, render: <EmptyState icon="task" title={t("calendar.waitlist.empty")} /> }}>
               {(data) => (
                 <ListItemGroup>
-                  {data.items.map((entry) => {
+                  {data.items.filter(inScope).map((entry) => {
                     const client = findClient(ctx.catalog, entry.clientId);
                     const service = ctx.catalog.services.find((item) => item.id === entry.serviceId);
                     const barber = findBarber(ctx.catalog, entry.barberId);
@@ -171,7 +174,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
                     return (
                       <ListItem
                         key={entry.id}
-                        leading={<PersonAvatar name={name} />}
+                        leading={<ClientAvatar client={client} name={name} />}
                         title={name}
                         description={`${service?.name ?? ""} · ${barber?.name ?? t("calendar.waitlist.anyBarber")} · ${entry.slots.map((slot) => `${formatDate(new Date(`${slot.date}T00:00:00`), { day: "numeric", month: "short" })} ${clockLabel(slot.time, ctx.intl)}`).join(", ")}`}
                         meta={match ? <Badge variant="secondary">{t("calendar.waitlist.match", { time: formatClock(match.start, ctx.intl), barber: match.barber.name.split(" ")[0] })}</Badge> : undefined}

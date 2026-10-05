@@ -1,5 +1,6 @@
 import * as React from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Package } from "lucide-react";
+import { CatalogPhotoField } from "@/features/catalog/CatalogPhotoField";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -160,6 +161,8 @@ function ProductFormBody({ product, categories, branchId, defaultCategoryId, onS
       <Field label={t("products.form.name")} required error={message(errors.name)}>
         <Input value={draft.name} onChange={(event) => set("name", event.target.value)} autoComplete="off" aria-invalid={!!errors.name} data-testid="product-form-name" />
       </Field>
+
+      <CatalogPhotoField value={draft.imageUrl} onChange={(value) => set("imageUrl", value)} icon={<Package />} error={message(errors.imageUrl)} testId="product-form-photo" />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("products.form.category")} required error={message(errors.categoryId)}>

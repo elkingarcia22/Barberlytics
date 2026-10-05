@@ -7,8 +7,9 @@ import { VISIBILITY_KEYS, type ServiceKind, type Visibility } from "./types";
 
 /** Las piezas chicas del módulo de servicios: el icono por tipo y las insignias de estado y de reserva. */
 
-export function ServiceGlyph({ kind, size = "md" }: { kind: ServiceKind; size?: "sm" | "md" | "lg" }) {
-  return <IconTile icon={kind === "combo" ? <Layers /> : <Scissors />} tone={kind === "combo" ? "primary" : "neutral"} size={size} />;
+/** La foto del servicio y, mientras no hay o no carga, el icono de su tipo. */
+export function ServiceGlyph({ kind, size = "md", imageUrl }: { kind: ServiceKind; size?: "sm" | "md" | "lg" | "xl"; imageUrl?: string | null }) {
+  return <IconTile icon={kind === "combo" ? <Layers /> : <Scissors />} tone={kind === "combo" ? "primary" : "neutral"} size={size} src={imageUrl} />;
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {

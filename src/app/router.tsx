@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RequireAuth } from "@/features/auth";
+import { RequireArea, RoleHome, type AccessArea } from "@/features/access";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { AppLayout } from "./layouts/AppLayout";
 import { RouteError } from "./components/RouteError";
@@ -21,6 +22,7 @@ import {
   LineupPage,
   MemberProfilePage,
   PayrollPage,
+  MyPayPage,
   ProductProfilePage,
   ProductsPage,
   ServiceOrderPage,
@@ -39,6 +41,8 @@ import {
 } from "./lazyPages";
 
 const lazy = (element: React.ReactNode) => <React.Suspense fallback={<PageLoader />}>{element}</React.Suspense>;
+/** Una pantalla que solo abre el rol que tiene esa área; los demás caen en «Sin permiso». */
+const guarded = (area: AccessArea, element: React.ReactNode) => <RequireArea area={area}>{lazy(element)}</RequireArea>;
 
 /**
  * Las secciones del menú que ya existen para quien navega pero todavía no
@@ -60,29 +64,32 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/metricas" replace /> },
+          // Cada rol aterriza en lo suyo: el dueño en Métricas, recepción y los barberos en el Calendario.
+          { index: true, element: <RoleHome /> },
           // Lo primero que se abre: cómo le fue a la barbería en el periodo.
-          { path: "metricas", element: lazy(<MetricsPage />) },
+          { path: "metricas", element: guarded("metrics", <MetricsPage />) },
           // El home anterior ya no existe: quien llegue a esta ruta cae en Métricas.
           { path: "dashboard", element: <Navigate to="/metricas" replace /> },
-          { path: "calendario", element: lazy(<CalendarPage />) },
+          { path: "calendario", element: guarded("calendar", <CalendarPage />) },
           // Clientes: la lista con sus segmentos y la ficha de cada uno.
-          { path: "clientes", element: lazy(<CustomersPage />) },
-          { path: "clientes/:id", element: lazy(<CustomerProfilePage />) },
+          { path: "clientes", element: guarded("customers", <CustomersPage />) },
+          { path: "clientes/:id", element: guarded("customers", <CustomerProfilePage />) },
           // Servicios: el catálogo, el orden de la reserva en línea y la ficha de cada uno.
           // «orden» va antes que `:id` para que no se lea como un servicio.
-          { path: "servicios", element: lazy(<ServicesPage />) },
-          { path: "servicios/orden", element: lazy(<ServiceOrderPage />) },
-          { path: "servicios/:id", element: lazy(<ServiceProfilePage />) },
+          { path: "servicios", element: guarded("services", <ServicesPage />) },
+          { path: "servicios/orden", element: guarded("services", <ServiceOrderPage />) },
+          { path: "servicios/:id", element: guarded("services", <ServiceProfilePage />) },
           // Productos: el catálogo de lo que se vende en mostrador y la ficha de cada uno.
-          { path: "productos", element: lazy(<ProductsPage />) },
-          { path: "productos/:id", element: lazy(<ProductProfilePage />) },
+          { path: "productos", element: guarded("products", <ProductsPage />) },
+          { path: "productos/:id", element: guarded("products", <ProductProfilePage />) },
           // Transacciones: las cuentas de un periodo. De solo consulta.
-          { path: "transacciones", element: lazy(<TransactionsPage />) },
+          { path: "transacciones", element: guarded("transactions", <TransactionsPage />) },
           // Gastos: lo que sale de caja, fijo y variable, en una sola lista.
-          { path: "gastos", element: lazy(<ExpensesPage />) },
+          { path: "gastos", element: guarded("expenses", <ExpensesPage />) },
           // Nómina: lo que se le paga a cada barbero en el periodo. De solo consulta.
-          { path: "nomina", element: lazy(<PayrollPage />) },
+          { path: "nomina", element: guarded("payroll", <PayrollPage />) },
+          // El pago del propio barbero: «Lo que llevo» (comisión) o «Mi negocio» (renta).
+          { path: "mi-pago", element: guarded("myPay", <MyPayPage />) },
           ...PLACEHOLDER_SECTIONS.map((section) => ({
             path: section.path,
             element: lazy(
@@ -96,18 +103,18 @@ export const router = createBrowserRouter([
           })),
           // Equipo abre su home —el pulso del equipo, los avisos por rol y la
           // lista— y la administración de personas cuelga de él.
-          { path: "usuarios", element: lazy(<TeamHomePage />) },
-          { path: "usuarios/lista", element: lazy(<UsersPage />) },
+          { path: "usuarios", element: guarded("team", <TeamHomePage />) },
+          { path: "usuarios/lista", element: guarded("team", <UsersPage />) },
           // Lo que cuelga de Equipo: la ficha de cada persona, el alta paso a
           // paso, las horas de la semana, los niveles y los dos órdenes.
-          { path: "usuarios/miembros/:id", element: lazy(<MemberProfilePage />) },
-          { path: "usuarios/nuevo", element: lazy(<MemberWizardPage />) },
-          { path: "usuarios/horarios", element: lazy(<WorkHoursPage />) },
-          { path: "usuarios/niveles", element: lazy(<LevelsPage />) },
-          { path: "usuarios/orden", element: lazy(<BarberOrderPage />) },
-          { path: "usuarios/fila", element: lazy(<LineupPage />) },
-          { path: "configuracion", element: lazy(<SettingsPage />) },
-          { path: "configuracion/:seccion", element: lazy(<SettingsSectionPage />) },
+          { path: "usuarios/miembros/:id", element: guarded("team", <MemberProfilePage />) },
+          { path: "usuarios/nuevo", element: guarded("team", <MemberWizardPage />) },
+          { path: "usuarios/horarios", element: guarded("team", <WorkHoursPage />) },
+          { path: "usuarios/niveles", element: guarded("team", <LevelsPage />) },
+          { path: "usuarios/orden", element: guarded("team", <BarberOrderPage />) },
+          { path: "usuarios/fila", element: guarded("team", <LineupPage />) },
+          { path: "configuracion", element: guarded("settings", <SettingsPage />) },
+          { path: "configuracion/:seccion", element: guarded("settings", <SettingsSectionPage />) },
           { path: "403", element: <ForbiddenPage /> },
         ],
       },

@@ -1,4 +1,5 @@
 import { PRODUCTS, SERVICES, type MockClient } from "../calendar/seed";
+import { PRODUCT_PHOTOS } from "../media";
 
 /**
  * Los clientes del backend simulado. El directorio sale de los mismos
@@ -30,6 +31,8 @@ export interface MockCustomerProfile {
   blocked: boolean;
   createdAt: string;
   guests: MockGuest[];
+  /** Borrado del directorio; la agenda conserva sus citas. */
+  deleted?: boolean;
 }
 
 /** Solo lo que cambió o se creó; el resto se deriva al vuelo. */
@@ -154,6 +157,7 @@ export interface MockCustomerProduct {
   units: number;
   total: number;
   lastBoughtAt: string;
+  imageUrl: string | null;
 }
 
 export const ticketOf = (client: MockClient): number => 28 + (hashOf(client.id, 11) % 48);
@@ -219,6 +223,6 @@ export function productsOf(clientId: string, lastVisitAt: string | null): MockCu
   return Array.from({ length: h % 3 }, (_, index) => {
     const product = PRODUCTS[(h + index * 2) % PRODUCTS.length];
     const units = 1 + ((h >> (index + 1)) % 4);
-    return { id: product.id, name: product.name, units, total: units * product.price, lastBoughtAt: lastVisitAt };
+    return { id: product.id, name: product.name, units, total: units * product.price, lastBoughtAt: lastVisitAt, imageUrl: PRODUCT_PHOTOS[product.id] ?? null };
   });
 }

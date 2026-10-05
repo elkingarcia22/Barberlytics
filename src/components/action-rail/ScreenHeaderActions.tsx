@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -25,7 +26,21 @@ export interface ScreenHeaderActionsProps {
   actions: readonly RailActionSpec[];
   /** La etiqueta del menú que recoge las terciarias. */
   moreLabel: string;
+  /**
+   * Todo lo que no es la principal va al menú: las de a diario arriba y,
+   * tras un separador, las plegadas. Para cabeceras que comparten una sola
+   * fila con otros controles y no pueden gastar ancho en botones con texto.
+   */
+  compact?: boolean;
 }
+
+const MenuItems = ({ actions }: { actions: readonly RailActionSpec[] }) =>
+  actions.map((action) => (
+    <DropdownMenuItem key={action.id} onSelect={() => action.onSelect?.()}>
+      {withTextIcon(action.icon)}
+      <span className="leading-tight">{action.label}</span>
+    </DropdownMenuItem>
+  ));
 
 /**
  * Las acciones de la pantalla cuando no manda la barra flotante.
@@ -35,8 +50,12 @@ export interface ScreenHeaderActionsProps {
  * `railScreenTiers`, el mismo que usa la barra. Así cambiar dónde se ven las
  * acciones no les cambia cuál pesa más.
  */
-export function ScreenHeaderActions({ actions, moreLabel }: ScreenHeaderActionsProps) {
-  const { primary, inline, folded } = railScreenTiers(actions);
+export function ScreenHeaderActions({ actions, moreLabel, compact = false }: ScreenHeaderActionsProps) {
+  const tiers = railScreenTiers(actions);
+  const { primary } = tiers;
+  const inline = compact ? [] : tiers.inline;
+  // En compacto, lo de a diario entra al menú encima de lo plegado.
+  const menuGroups = (compact ? [tiers.inline, tiers.folded] : [tiers.folded]).filter((group) => group.length > 0);
   // Aquí no hay ancla del shell que marque el alcance: la cabecera de la
   // pantalla es, por definición, de la pantalla.
   usePublishSearchActions(toSearchActions(actions), true);
@@ -46,7 +65,7 @@ export function ScreenHeaderActions({ actions, moreLabel }: ScreenHeaderActionsP
       {/* De menor a mayor peso: lo plegado abre la fila reducido a su icono,
           y la principal la cierra. Un «⋯» con su palabra al lado pesaría
           tanto como la acción que sí se usa a diario. */}
-      {folded.length > 0 && (
+      {menuGroups.length > 0 && (
         <DropdownMenu>
           <TooltipProvider>
             <Tooltip>
@@ -62,12 +81,12 @@ export function ScreenHeaderActions({ actions, moreLabel }: ScreenHeaderActionsP
           </TooltipProvider>
           {/* Las terciarias traen etiquetas largas —son reglas, no verbos—,
               así que el menú se declara ancho en vez de recortarlas. */}
-          <DropdownMenuContent align="start" className="w-[19rem]">
-            {folded.map((action) => (
-              <DropdownMenuItem key={action.id} onSelect={() => action.onSelect?.()}>
-                {withTextIcon(action.icon)}
-                <span className="leading-tight">{action.label}</span>
-              </DropdownMenuItem>
+          <DropdownMenuContent align={compact ? "end" : "start"} className="w-[19rem]">
+            {menuGroups.map((group, index) => (
+              <React.Fragment key={group[0].id}>
+                {index > 0 && <DropdownMenuSeparator />}
+                <MenuItems actions={group} />
+              </React.Fragment>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>

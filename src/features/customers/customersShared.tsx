@@ -1,5 +1,5 @@
 import { useAppT } from "@/app/i18n";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { initialsOf } from "@/components/scheduling";
 import { SEGMENT_STYLE } from "./customersUtils";
@@ -20,9 +20,10 @@ export function SegmentBadge({ segment }: { segment: CustomerSegment }) {
   );
 }
 
-export function CustomerAvatar({ name, size = "default" }: { name: string; size?: "sm" | "default" | "lg" }) {
+export function CustomerAvatar({ name, avatarUrl, size = "default" }: { name: string; avatarUrl?: string | null; size?: "sm" | "default" | "lg" }) {
   return (
     <Avatar size={size}>
+      {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
       <AvatarFallback>{initialsOf(name)}</AvatarFallback>
     </Avatar>
   );

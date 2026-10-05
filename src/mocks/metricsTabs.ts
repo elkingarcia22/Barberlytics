@@ -4,6 +4,7 @@ import {
   daysOf,
   periodOf,
   previousOf,
+  resolveMetricsBarber,
   round2,
   simulateDay,
   simulatePeriod,
@@ -128,7 +129,8 @@ function barberOf(id: string, name: string, sim: SimulatedPeriod) {
 
 export function buildBarbersMetrics(query: MetricsQuery): MetricsBarbers {
   const sim = simulatePeriod(query);
-  const wanted = sim.barberId === "all" ? BARBERS : BARBERS.filter((barber) => barber.id === sim.barberId);
+  const one = resolveMetricsBarber(sim.barberId);
+  const wanted = sim.barberId === "all" || !one ? BARBERS : [one];
   const rows = wanted.map((barber) => barberOf(barber.id, barber.name, sim));
   const previousRows = wanted.map((barber) => barberOf(barber.id, barber.name, { ...sim, range: sim.previous }));
   const avg = (values: readonly number[]) => (values.length ? round2(sum(values) / values.length) : 0);

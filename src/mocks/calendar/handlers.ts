@@ -194,12 +194,12 @@ function validateAppointmentInput(body: DefaultBodyType) {
  * validar una cita valen todos —una ya agendada conserva su servicio aunque
  * luego se desactive—; el catálogo que se ofrece solo trae los activos.
  */
-const toAgenda = (item: MockCatalogService): MockService => ({ id: item.id, name: item.name, category: db.services.categories.find((category) => category.id === item.categoryId)?.name ?? "", durationMin: item.durationMin, price: item.price });
+const toAgenda = (item: MockCatalogService): MockService => ({ id: item.id, name: item.name, category: db.services.categories.find((category) => category.id === item.categoryId)?.name ?? "", durationMin: item.durationMin, price: item.price, imageUrl: item.imageUrl });
 const catalogServices = (): MockService[] => db.services.items.map(toAgenda);
 
 /* Lo mismo con los productos (`mocks/products`): para cobrar vale cualquiera
    que exista; el catálogo que se ofrece solo trae los activos y vendibles. */
-const toSale = (item: MockCatalogProduct): MockProduct => ({ id: item.id, name: item.name, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price });
+const toSale = (item: MockCatalogProduct): MockProduct => ({ id: item.id, name: item.name, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, imageUrl: item.imageUrl });
 const catalogProducts = (): MockProduct[] => db.products.items.map(toSale);
 const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map(toSale);
 const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map(toAgenda);

@@ -6,6 +6,7 @@ import { tableShellEntry } from "./table-shell";
 import { tableHeaderControlsEntry } from "./table-header-controls";
 import { tableConfigEntry } from "./table-config";
 import { rowActionsMenuEntry } from "./row-actions-menu";
+import { rowContextMenuEntry } from "./row-context-menu";
 import { timelineEntry } from "./timeline";
 import { treeEntry } from "./tree";
 import { sortableEntry } from "./sortable";
@@ -20,6 +21,7 @@ export const dataDisplayEntries: readonly DocEntry[] = [
   tableHeaderControlsEntry,
   tableConfigEntry,
   rowActionsMenuEntry,
+  rowContextMenuEntry,
   timelineEntry,
   treeEntry,
   sortableEntry,

@@ -6,7 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ListItemGroup } from "@/components/data-display/ListItem"
-import { RowActionsMenu } from "@/components/data-display/RowActionsMenu"
+import { RowActionsMenu, type RowAction } from "@/components/data-display/RowActionsMenu"
+import { RowContextMenu } from "@/components/data-display/RowContextMenu"
 import type { RailActionSpec } from "@/components/action-rail"
 import { TableShell } from "@/components/data-display/TableShell"
 import {
@@ -220,20 +221,33 @@ export function DataListBlock<T>({
   // El mismo reparto que hace la barra: con un registro entran también las
   // individuales; con varios se caen y el recuento pasa a la etiqueta.
   const singleActions = (recordActions ?? []).filter((action) => action.scope.includes("single"))
+  const rowActions: RowAction[] = singleActions.map((action) => ({
+    id: action.id,
+    label: action.label,
+    icon: action.icon,
+    tone: action.tone,
+    blockedReason: action.blockedReason,
+    onSelect: action.onSelect,
+  }))
+  /* Las acciones de un registro operan sobre lo marcado. Abrir el menú de una
+     fila —el «⋯» o el clic derecho— la deja como la única marcada, igual que
+     en un explorador de archivos: así la acción cae sobre esa fila. */
+  const focusRow = (id: string) => (open: boolean) => {
+    if (open && !(selected.size === 1 && selected.has(id))) commitSelected(new Set([id]))
+  }
   const rowMenuFor = (row: T) =>
     usesRowMenu ? (
-      <RowActionsMenu
-        rowLabel={getRowLabel?.(row)}
-        actions={singleActions.map((action) => ({
-          id: action.id,
-          label: action.label,
-          icon: action.icon,
-          tone: action.tone,
-          blockedReason: action.blockedReason,
-          onSelect: action.onSelect,
-        }))}
-      />
+      <RowActionsMenu rowLabel={getRowLabel?.(row)} actions={rowActions} onOpenChange={focusRow(getRowId(row))} />
     ) : null
+  /** El clic derecho de una fila: las mismas acciones individuales, en cualquier modo de fila. */
+  const withContextMenu = (row: T, element: React.ReactElement) =>
+    selectable && rowActions.length > 0 ? (
+      <RowContextMenu key={getRowId(row)} rowLabel={getRowLabel?.(row)} actions={rowActions} onOpenChange={focusRow(getRowId(row))}>
+        {element}
+      </RowContextMenu>
+    ) : (
+      element
+    )
 
   /* Picar en la fila la marca: la casilla sigue siendo el control accesible,
      esto es el atajo de ratón. Un clic que nace en un control de la fila —un
@@ -377,18 +391,23 @@ export function DataListBlock<T>({
             const id = getRowId(row)
             return (
               <React.Fragment key={id}>
-                {renderListItem?.(row, {
-                  selected: selected.has(id),
-                  toggle: () => toggleRow(id),
-                  checkbox: usesCheckbox ? (
-                    <Checkbox
-                      checked={selected.has(id)}
-                      onCheckedChange={() => toggleRow(id)}
-                      aria-label={`Seleccionar ${getRowLabel?.(row) ?? id}`}
-                    />
-                  ) : null,
-                  menu: rowMenuFor(row),
-                })}
+                {withContextMenu(
+                  row,
+                  <div className="contents">
+                    {renderListItem?.(row, {
+                      selected: selected.has(id),
+                      toggle: () => toggleRow(id),
+                      checkbox: usesCheckbox ? (
+                        <Checkbox
+                          checked={selected.has(id)}
+                          onCheckedChange={() => toggleRow(id)}
+                          aria-label={`Seleccionar ${getRowLabel?.(row) ?? id}`}
+                        />
+                      ) : null,
+                      menu: rowMenuFor(row),
+                    })}
+                  </div>
+                )}
               </React.Fragment>
             )
           })}
@@ -417,7 +436,8 @@ export function DataListBlock<T>({
           <TableBody>
             {visible.map((row) => {
               const id = getRowId(row)
-              return (
+              return withContextMenu(
+                row,
                 <TableRow
                   key={id}
                   data-state={selected.has(id) ? "selected" : undefined}

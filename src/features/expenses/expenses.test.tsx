@@ -8,6 +8,8 @@ vi.mock("@/components/charts/EChart", () => ({
 }));
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test/render";
 import { db } from "@/mocks/db";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { ExpensesPage } from "./ExpensesPage";
 import { expensesApi } from "./api";
@@ -19,15 +21,17 @@ const TOKEN = "mock-acc_admin-test";
 const NOW = new Date(2026, 9, 1, 12);
 
 function expense(draft: Partial<Expense> = {}): Expense {
-  return { id: "e1", branchId: "ma", kind: "fixed", name: "Renta", amount: 1200, frequency: "monthly", description: "", createdAt: new Date(2026, 3, 1).toISOString(), ...draft };
+  return { id: "e1", branchId: "ma", ownerMemberId: null, kind: "fixed", name: "Renta", amount: 1200, frequency: "monthly", description: "", createdAt: new Date(2026, 3, 1).toISOString(), ...draft };
 }
 
-function renderApp(route: string) {
+function renderApp(route: string, role: TeamRole = "owner") {
   db.sessions.set(TOKEN, "acc_admin");
   return renderWithProviders(
-    <Routes>
-      <Route path="/gastos" element={<ExpensesPage />} />
-    </Routes>,
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/gastos" element={<ExpensesPage />} />
+      </Routes>
+    </AccessProvider>,
     { route, token: TOKEN }
   );
 }
@@ -180,5 +184,43 @@ describe("contrato de gastos (mock)", () => {
     await expensesApi.remove(items[0].id);
     const after = await expensesApi.list("ma");
     expect(after.items).toHaveLength(items.length - 1);
+  });
+});
+
+describe("gastos por rol", () => {
+  beforeAll(() => {
+    vi.stubGlobal("IntersectionObserver", InertObserver);
+  });
+  beforeEach(() => {
+    db.reset();
+    db.sessions.set(TOKEN, "acc_admin");
+  });
+
+  test("el barbero de renta solo ve sus gastos, no los de la barbería", async () => {
+    renderApp("/gastos", "barbero-renta");
+    expect(await screen.findByRole("button", { name: "Máquina de corte inalámbrica" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cuchillas y navajas" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Limpieza" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Renta del local" })).toBeNull();
+    expect(screen.getByText(/Lo que compras para tu silla/)).toBeInTheDocument();
+  });
+
+  test("la lista de la barbería no trae los gastos de un barbero de renta", async () => {
+    renderApp("/gastos");
+    expect(await screen.findByRole("button", { name: "Limpieza" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Máquina de corte inalámbrica" })).toBeNull();
+  });
+
+  test("lo que registra el barbero de renta queda a su nombre", async () => {
+    renderWithProviders(<ExpenseFormDrawer open onOpenChange={vi.fn()} kind="variable" branchId="ma" ownerMemberId="team-30" />, { token: TOKEN });
+    const user = userEvent.setup();
+    await user.type(await screen.findByTestId("expense-form-name"), "Capa de corte");
+    await user.type(screen.getByTestId("expense-form-amount"), "25");
+    await user.click(screen.getByTestId("expense-form-submit"));
+    await waitFor(() => expect(db.expenses.find((item) => item.name === "Capa de corte")).toMatchObject({ ownerMemberId: "team-30", branchId: "ma" }));
+    const own = await expensesApi.list("ma", "team-30");
+    expect(own.items.every((item) => item.ownerMemberId === "team-30")).toBe(true);
+    const shop = await expensesApi.list("ma");
+    expect(shop.items.some((item) => item.name === "Capa de corte")).toBe(false);
   });
 });

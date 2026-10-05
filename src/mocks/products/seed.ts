@@ -1,4 +1,5 @@
 import { PRODUCTS } from "../calendar/seed";
+import { PRODUCT_PHOTOS } from "../media";
 
 /**
  * El catálogo de productos del backend simulado. Parte de los mismos
@@ -36,6 +37,8 @@ export interface MockCatalogProduct {
   sellable: boolean;
   /** Sucursales en las que se vende. */
   activeBranchIds: string[];
+  /** La foto del producto; `null` si aún no tiene. */
+  imageUrl: string | null;
   createdAt: string;
 }
 
@@ -97,14 +100,15 @@ export function seedProducts(): MockProductsState {
       visibility: "public",
       sellable: true,
       activeBranchIds: [...BRANCH_IDS],
+      imageUrl: PRODUCT_PHOTOS[product.id] ?? null,
       createdAt: CREATED_AT,
     };
   });
   /* Dos que la caja no conoce: uno de uso interno —no se vende— y otro que
      esta sucursal aún no activó. Así la lista enseña los dos estados. */
   const extras: MockCatalogProduct[] = [
-    { id: "prd_locion", name: "Loción after shave", description: "Se usa en el servicio; no está a la venta.", categoryId: "pcat_barba", price: 15, cost: 8, taxRate: 8, sku: "BR-LOC-100", brand: "Johnny B", distributor: "Barber Supply Co.", visibility: "private", sellable: false, activeBranchIds: [...BRANCH_IDS], createdAt: CREATED_AT },
-    { id: "prd_peine", name: "Peine de carbono", description: "", categoryId: UNCATEGORIZED_PRODUCT_ID, price: 9, cost: null, taxRate: null, sku: null, brand: null, distributor: null, visibility: "public", sellable: true, activeBranchIds: ["nc", "ri"], createdAt: CREATED_AT },
+    { id: "prd_locion", name: "Loción after shave", description: "Se usa en el servicio; no está a la venta.", categoryId: "pcat_barba", price: 15, cost: 8, taxRate: 8, sku: "BR-LOC-100", brand: "Johnny B", distributor: "Barber Supply Co.", visibility: "private", sellable: false, activeBranchIds: [...BRANCH_IDS], imageUrl: PRODUCT_PHOTOS.prd_locion ?? null, createdAt: CREATED_AT },
+    { id: "prd_peine", name: "Peine de carbono", description: "", categoryId: UNCATEGORIZED_PRODUCT_ID, price: 9, cost: null, taxRate: null, sku: null, brand: null, distributor: null, visibility: "public", sellable: true, activeBranchIds: ["nc", "ri"], imageUrl: PRODUCT_PHOTOS.prd_peine ?? null, createdAt: CREATED_AT },
   ];
   return { categories: [...CATEGORIES], items: [...fromAgenda, ...extras] };
 }

@@ -1,13 +1,14 @@
 import type * as React from "react";
-import { AlertTriangle, BarChart3, BookOpen, CalendarPlus, CheckCircle2, ClipboardList, Info, Sparkles, UserPlus, XCircle } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarPlus, CheckCircle2, ClipboardList, Info, Package, Sparkles, UserPlus, XCircle } from "lucide-react";
 import { IconTile } from "@/components/utility/IconTile";
 import { defineEntry, definePlayground } from "../types";
 
 const TONES = ["primary", "neutral", "positive", "negative", "warning", "info", "ai"] as const;
 type Tone = (typeof TONES)[number];
-const SIZES = ["sm", "md", "lg"] as const;
+const SIZES = ["sm", "md", "lg", "xl"] as const;
 type Size = (typeof SIZES)[number];
 const SHAPES = ["rounded", "circle"] as const;
+const SAMPLE_PHOTO = "https://images.unsplash.com/photo-1655394009794-df4f7cd8582a?w=320&h=320&fit=crop&auto=format&q=70";
 type Shape = (typeof SHAPES)[number];
 
 const TONE_ICON: Record<Tone, React.ReactNode> = {
@@ -32,7 +33,7 @@ export const iconTileEntry = defineEntry({
   name: "IconTile",
   group: "utility",
   description:
-    "Un icono sobre una baldosa tintada: fondo al 10 % del tono y glifo en el color pleno, en tres tamaños (28, 36 y 48px) y dos formas. Es la pieza que da color a atajos, filas de lista y cabeceras de tarjeta sin recurrir a un avatar.",
+    "Un icono sobre una baldosa tintada: fondo al 10 % del tono y glifo en el color pleno, en cuatro tamaños (28, 36, 48 y 64px) y dos formas. Es la pieza que da color a atajos, filas de lista y cabeceras de tarjeta sin recurrir a un avatar. Con `src` es la miniatura de una cosa con foto —un servicio, un producto— y el icono queda de respaldo.",
   importPath: 'import { IconTile } from "@/components/utility/IconTile"',
   sourcePath: "src/components/utility/IconTile.tsx",
   status: "stable",
@@ -90,6 +91,23 @@ export const iconTileEntry = defineEntry({
       ),
     },
     {
+      id: "photo",
+      title: "Con foto",
+      description: "`src` cubre la baldosa con la foto de la cosa. Mientras carga, si falta o si el enlace falla, se ve el icono: la lista nunca queda con un hueco roto.",
+      code: `<IconTile icon={<Package />} tone="neutral" src={product.imageUrl} />
+<IconTile icon={<Package />} tone="neutral" src={null} />
+<IconTile icon={<Package />} tone="neutral" size="xl" src="/ruta-rota.jpg" />`,
+      render: () => (
+        <div className="flex items-end gap-4">
+          <IconTile icon={<Package />} tone="neutral" src={SAMPLE_PHOTO} />
+          <IconTile icon={<Package />} tone="neutral" size="lg" src={SAMPLE_PHOTO} />
+          <IconTile icon={<Package />} tone="neutral" size="xl" src={SAMPLE_PHOTO} />
+          <IconTile icon={<Package />} tone="neutral" size="xl" src={null} />
+          <IconTile icon={<Package />} tone="neutral" size="xl" src="/ruta-rota.jpg" />
+        </div>
+      ),
+    },
+    {
       id: "shortcuts",
       title: "Atajos del home",
       description: "Cada atajo lleva una baldosa `lg` con el tono de su dominio; el texto cuelga a la derecha con 12px de separación.",
@@ -124,12 +142,13 @@ export const iconTileEntry = defineEntry({
   props: [
     { name: "icon", type: "React.ReactNode", description: "El icono. La baldosa fija su tamaño (14, 18 o 24px)." },
     { name: "tone", type: '"primary" | "neutral" | "positive" | "negative" | "warning" | "info" | "ai"', default: '"primary"', description: "Color del tinte y del glifo. `ai` usa el gradiente de IA." },
-    { name: "size", type: '"sm" | "md" | "lg"', default: '"md"', description: "28, 36 o 48px." },
+    { name: "size", type: '"sm" | "md" | "lg" | "xl"', default: '"md"', description: "28, 36, 48 o 64px. `xl` es para la cabecera de una ficha con foto." },
+    { name: "src", type: "string | null", description: "La foto de la cosa. Cubre la baldosa; sin ella, mientras carga o si falla, se ve el icono." },
     { name: "shape", type: '"rounded" | "circle"', default: '"rounded"', description: "Esquinas según el tamaño o círculo completo." },
     { name: "...props", type: 'React.HTMLAttributes<"span">', description: "Atributos del span. Lleva `aria-hidden`: el significado va en el texto contiguo." },
   ],
   guidelines: {
-    do: ["Asocia un tono a un dominio y mantenlo: formación en `positive`, selección en `primary`, IA en `ai`.", "Acompaña siempre la baldosa de un texto; es decorativa (`aria-hidden`).", "Usa `lg` en atajos y cabeceras de tarjeta, `md` en filas de lista y `sm` en tablas densas."],
+    do: ["Asocia un tono a un dominio y mantenlo: formación en `positive`, selección en `primary`, IA en `ai`.", "Acompaña siempre la baldosa de un texto; es decorativa (`aria-hidden`).", "Usa `lg` en atajos y cabeceras de tarjeta, `md` en filas de lista y `sm` en tablas densas.", "Con `src`, deja el icono del tipo de cosa: es lo que se ve si la foto no está."],
     dont: ["No mezcles baldosas y avatares en la misma lista: elige una convención por lista.", "No uses `negative` o `warning` de forma decorativa; son estados.", "No cambies el tamaño del icono con clases: lo controla la baldosa."],
   },
   related: ["list-item", "avatar", "badge", "tag"],

@@ -30,6 +30,8 @@ export const catalogServiceSchema = z.object({
   prep: z.object({ enabled: z.boolean(), minutes: z.number(), position: prepPositionSchema }),
   giftCards: z.boolean(),
   includes: z.array(z.string()),
+  /** La foto del servicio; sin ella se pinta el icono. */
+  imageUrl: z.string().nullable().optional(),
   createdAt: z.string(),
   /** Cuántos barberos de la sucursal lo ofrecen, y de cuántos. */
   offeredBy: z.number(),
@@ -79,6 +81,8 @@ export const serviceInputSchema = z
     prep: z.object({ enabled: z.boolean(), minutes: z.number(), position: prepPositionSchema }),
     giftCards: z.boolean(),
     includes: z.array(z.string()),
+    /** Enlace o imagen subida (data URL); `null` = sin foto. */
+    imageUrl: z.string().nullable(),
   })
   .superRefine((value, ctx) => {
     if (value.kind === "combo" && value.includes.length < MIN_COMBO_SERVICES) ctx.addIssue({ code: "custom", path: ["includes"], message: "services.form.error.includes" });
@@ -87,11 +91,11 @@ export const serviceInputSchema = z
 export type ServiceInput = z.infer<typeof serviceInputSchema>;
 
 export function emptyServiceInput(kind: ServiceKind, categoryId: string): ServiceInput {
-  return { kind, name: "", description: "", categoryId, price: Number.NaN, cost: null, durationMin: kind === "combo" ? 60 : 30, taxRate: null, visibility: "public", multiservice: false, prep: { enabled: false, minutes: 5, position: "start" }, giftCards: true, includes: [] };
+  return { kind, name: "", description: "", categoryId, price: Number.NaN, cost: null, durationMin: kind === "combo" ? 60 : 30, taxRate: null, visibility: "public", multiservice: false, prep: { enabled: false, minutes: 5, position: "start" }, giftCards: true, includes: [], imageUrl: null };
 }
 
 export function inputFromService(service: CatalogService): ServiceInput {
-  return { kind: service.kind, name: service.name, description: service.description, categoryId: service.categoryId, price: service.price, cost: service.cost, durationMin: service.durationMin, taxRate: service.taxRate, visibility: service.visibility, multiservice: service.multiservice, prep: { ...service.prep, minutes: service.prep.enabled ? service.prep.minutes : 5 }, giftCards: service.giftCards, includes: service.includes };
+  return { kind: service.kind, name: service.name, description: service.description, categoryId: service.categoryId, price: service.price, cost: service.cost, durationMin: service.durationMin, taxRate: service.taxRate, visibility: service.visibility, multiservice: service.multiservice, prep: { ...service.prep, minutes: service.prep.enabled ? service.prep.minutes : 5 }, giftCards: service.giftCards, includes: service.includes, imageUrl: service.imageUrl ?? null };
 }
 
 export const categoryInputSchema = z.object({ name: z.string().trim().min(2, "services.category.error.name"), description: z.string().trim(), visibility: visibilitySchema });

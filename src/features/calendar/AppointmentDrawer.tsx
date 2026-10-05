@@ -5,7 +5,7 @@ import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { SidePanelShell } from "@/components/overlays";
 import { ThemaTabs } from "@/components/navigation";
-import { PersonAvatar } from "./calendarShared";
+import { ClientAvatar } from "./calendarShared";
 import { useOpenKey } from "./calendarFormat";
 import { appointmentStart, findClient, type ModelContext } from "./calendarModel";
 import { appointmentInsights } from "./appointmentInsights";
@@ -71,7 +71,7 @@ function AppointmentPanel({ appointment, open, onOpenChange, ctx, branchId, onOp
       size="lg"
       title={appointment ? clientName : t("calendar.detail.title")}
       description={day}
-      leading={appointment ? <PersonAvatar name={clientName} size="lg" /> : undefined}
+      leading={appointment ? <ClientAvatar client={client} name={clientName} size="lg" /> : undefined}
     >
       {appointment && (
         <div className="space-y-5" data-testid="appointment-drawer">

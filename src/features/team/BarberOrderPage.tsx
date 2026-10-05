@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/feedback";
 import { Sortable } from "@/components/data-display/Sortable";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { DataListActionRail } from "@/components/action-rail";
+import { useAccess } from "@/features/access";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/typography";
 import { useLevelsQuery, useMembersQuery, useOrderQuery, useSaveOrder } from "./queries";
@@ -27,6 +28,8 @@ import { orderedBarbers, useBranchId } from "./teamUtils";
 
 export function BarberOrderPage() {
   const t = useAppT();
+  // El orden de las columnas del calendario es del dueño («Ordenar barberos agendas»).
+  const canEdit = useAccess().can("barber-order", "edit");
   const navigate = useNavigate();
   const branchId = useBranchId();
   const members = useMembersQuery(branchId);
@@ -71,6 +74,7 @@ export function BarberOrderPage() {
               getId={(item) => item.id}
               getLabel={memberName}
               onReorder={setDraft}
+              disabled={!canEdit}
               handle
               className="space-y-2"
               data-testid="barber-order"
@@ -109,6 +113,7 @@ export function BarberOrderPage() {
         }
       </QueryBoundary>
 
+      {canEdit && (
       <ShellRailSlot>
         <DataListActionRail
           actions={[
@@ -119,6 +124,7 @@ export function BarberOrderPage() {
           onClearSelection={() => undefined}
         />
       </ShellRailSlot>
+      )}
     </div>
   );
 }

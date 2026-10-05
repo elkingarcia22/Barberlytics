@@ -10,10 +10,14 @@ export interface CategoriesDrawerProps {
   onOpenChange: (open: boolean) => void;
   categories: readonly ServiceCategory[];
   items: readonly CatalogService[];
+  /** Las casillas de categorías de quien mira; sin ellas el panel es de consulta. */
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /** Las categorías de servicios: el panel compartido del catálogo, con sus textos y sus mutaciones. */
-export function CategoriesDrawer({ open, onOpenChange, categories, items }: CategoriesDrawerProps) {
+export function CategoriesDrawer({ open, onOpenChange, categories, items, canCreate, canEdit, canDelete }: CategoriesDrawerProps) {
   const t = useAppT();
   const save = useSaveCategory();
   const remove = useRemoveCategory();
@@ -62,6 +66,9 @@ export function CategoriesDrawer({ open, onOpenChange, categories, items }: Cate
       onSave={(id, input) => save.mutateAsync({ id, input })}
       onRemove={(id) => remove.mutateAsync(id)}
       renderBadge={(category) => <VisibilityBadge visibility={category.visibility ?? "public"} />}
+      canCreate={canCreate}
+      canEdit={canEdit}
+      canDelete={canDelete}
     />
   );
 }

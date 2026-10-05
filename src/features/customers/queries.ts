@@ -41,6 +41,17 @@ export function useSetCustomerBlocked() {
   return useMutation({ mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) => customersApi.setBlocked(id, blocked), onSuccess: store });
 }
 
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => customersApi.remove(id),
+    onSuccess: (_result, id) => {
+      queryClient.removeQueries({ queryKey: customerKeys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: customerKeys.list() });
+    },
+  });
+}
+
 export function useAddCustomerNote() {
   const queryClient = useQueryClient();
   return useMutation({

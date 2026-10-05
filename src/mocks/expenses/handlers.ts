@@ -6,6 +6,10 @@ import type { MockExpense, MockExpenseFrequency } from "./seed";
  * Los endpoints de gastos del backend simulado. Reproducen
  * docs/API_CONTRACT.md (sección «Gastos»): los gastos de una sucursal, y su
  * alta, edición y borrado.
+ *
+ * Un gasto es de la sucursal (`ownerMemberId: null`) o de un barbero de renta.
+ * La lista sin `ownerMemberId` trae los de la sucursal; con él, solo los de esa
+ * persona. Los guardados antes del campo no lo traen y cuentan como de la sucursal.
  */
 
 const BASE = "*/api";
@@ -44,8 +48,13 @@ export const expensesHandlers = [
   http.get(`${BASE}/expenses`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
-    const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
-    const items = db.expenses.filter((item) => item.branchId === branchId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const params = new URL(request.url).searchParams;
+    const branchId = params.get("branchId") ?? "ma";
+    const owner = params.get("ownerMemberId") || null;
+    const items = db.expenses
+      .map((item) => ({ ...item, ownerMemberId: item.ownerMemberId ?? null }))
+      .filter((item) => item.branchId === branchId && item.ownerMemberId === owner)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return HttpResponse.json({ items });
   }),
 
@@ -55,7 +64,7 @@ export const expensesHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const { fields, values } = validate(input);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const expense: MockExpense = { ...values, id: `exp_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", createdAt: new Date().toISOString() };
+    const expense: MockExpense = { ...values, id: `exp_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", ownerMemberId: text(input.ownerMemberId) || null, createdAt: new Date().toISOString() };
     db.expenses = [expense, ...db.expenses];
     db.persist();
     return HttpResponse.json(expense, { status: 201 });
@@ -69,7 +78,7 @@ export const expensesHandlers = [
     /* Un gasto no cambia de tipo: fijo y variable se cuentan distinto. */
     const { fields, values } = validate({ ...asRecord(await request.json().catch(() => ({}))), kind: expense.kind });
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const updated: MockExpense = { ...expense, ...values };
+    const updated: MockExpense = { ...expense, ownerMemberId: expense.ownerMemberId ?? null, ...values };
     db.expenses = db.expenses.map((item) => (item.id === updated.id ? updated : item));
     db.persist();
     return HttpResponse.json(updated);

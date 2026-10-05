@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
+import { useAccess } from "@/features/access";
 import { useOpenKey } from "@/features/calendar/calendarFormat";
 import { useCreateLevel, useLevelsQuery, useMembersQuery, useRemoveLevel, useUpdateLevel } from "./queries";
 import { MemberAvatar } from "./teamShared";
@@ -40,6 +41,11 @@ export function LevelsPage() {
   const create = useCreateLevel();
   const update = useUpdateLevel();
   const remove = useRemoveLevel();
+  // Ver niveles no es gestionarlos: crear, renombrar y borrar van por su casilla.
+  const access = useAccess();
+  const canCreate = access.can("levels", "create");
+  const canEdit = access.can("levels", "edit");
+  const canDelete = access.can("levels", "delete");
   const [dialog, setDialog] = React.useState<{ mode: "create" } | { mode: "edit"; level: Level } | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Level | null>(null);
   const barbers = (members.data?.items ?? []).filter((member) => isBarberRole(member.role) && member.status !== "inactive");
@@ -62,9 +68,11 @@ export function LevelsPage() {
               title={t("teamLevels.empty")}
               description={t("teamLevels.emptyHint")}
               action={
-                <Button onClick={() => setDialog({ mode: "create" })}>
-                  <Plus /> {t("teamLevels.create")}
-                </Button>
+                canCreate ? (
+                  <Button onClick={() => setDialog({ mode: "create" })}>
+                    <Plus /> {t("teamLevels.create")}
+                  </Button>
+                ) : undefined
               }
             />
           ),
@@ -73,7 +81,7 @@ export function LevelsPage() {
         {(data) => (
           <ListItemGroup data-testid="levels-list">
             {data.items.map((level) => (
-              <LevelRow key={level.id} level={level} barbers={byLevel(level.id)} onEdit={() => setDialog({ mode: "edit", level })} onDelete={() => setPendingDelete(level)} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />
+              <LevelRow key={level.id} level={level} barbers={byLevel(level.id)} onEdit={canEdit ? () => setDialog({ mode: "edit", level }) : undefined} onDelete={canDelete ? () => setPendingDelete(level) : undefined} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />
             ))}
             {byLevel(null).length > 0 && (
               <ListItem leading={<IconTile icon={<Layers />} tone="neutral" />} title={t("teamLevels.unassigned")} description={t("teamLevels.unassignedHint")} meta={<Faces members={byLevel(null)} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />} />
@@ -122,6 +130,7 @@ export function LevelsPage() {
         }}
       />
 
+      {canCreate && (
       <ShellRailSlot>
         <DataListActionRail
           actions={[{ id: "create-level", label: t("teamLevels.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDialog({ mode: "create" }) }]}
@@ -130,6 +139,7 @@ export function LevelsPage() {
           isBlocked={dialog !== null || pendingDelete !== null}
         />
       </ShellRailSlot>
+      )}
     </div>
   );
 }
@@ -148,9 +158,13 @@ function Faces({ members, onOpen }: { members: readonly TeamMember[]; onOpen: (i
   );
 }
 
-function LevelRow({ level, barbers, onEdit, onDelete, onOpen }: { level: Level; barbers: readonly TeamMember[]; onEdit: () => void; onDelete: () => void; onOpen: (id: string) => void }) {
+function LevelRow({ level, barbers, onEdit, onDelete, onOpen }: { level: Level; barbers: readonly TeamMember[]; onEdit?: () => void; onDelete?: () => void; onOpen: (id: string) => void }) {
   const t = useAppT();
   const count = barbers.length;
+  const rowActions = [
+    ...(onEdit ? [{ id: "edit", label: t("teamLevels.edit"), icon: <Pencil />, onSelect: onEdit }] : []),
+    ...(onDelete ? [{ id: "delete", label: t("teamLevels.delete"), icon: <Trash2 />, tone: "danger" as const, blockedReason: count > 0 ? t("teamLevels.deleteHint") : null, onSelect: onDelete }] : []),
+  ];
   return (
     <ListItem
       leading={<IconTile icon={<Layers />} tone={count > 0 ? "primary" : "neutral"} />}
@@ -162,15 +176,7 @@ function LevelRow({ level, barbers, onEdit, onDelete, onOpen }: { level: Level; 
           <Badge variant="neutral">{count}</Badge>
         </span>
       }
-      actions={
-        <RowActionsMenu
-          rowLabel={level.name}
-          actions={[
-            { id: "edit", label: t("teamLevels.edit"), icon: <Pencil />, onSelect: onEdit },
-            { id: "delete", label: t("teamLevels.delete"), icon: <Trash2 />, tone: "danger", blockedReason: count > 0 ? t("teamLevels.deleteHint") : null, onSelect: onDelete },
-          ]}
-        />
-      }
+      actions={rowActions.length > 0 ? <RowActionsMenu rowLabel={level.name} actions={rowActions} /> : undefined}
     />
   );
 }

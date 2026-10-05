@@ -18,9 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { STATUS_KEYS, appointmentStatusSchema } from "@/features/calendar/types";
+import { useAccess } from "@/features/access";
 import { maskPhone } from "@/features/customers/customersUtils";
 import { useBranchId } from "@/features/team/teamUtils";
 import { AccountDrawer } from "./AccountDrawer";
+import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
 import { useTransactionsQuery } from "./queries";
 import { countByStatus, describeLines, summarize, transactionCells, transactionColumns } from "./transactionsHome";
 import { AccountStatusBadge } from "./transactionsShared";
@@ -42,6 +44,11 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  * calendario—, así que no lleva barra de acciones. El periodo se mueve con
  * el mismo navegador que Métricas, los estados son fichas con su recuento y
  * el detalle de una cuenta se abre en un panel. Todo vive en la URL.
+ *
+ * Según el rol (docs/roles/02-metricas-caja-nomina.md): el barbero de renta
+ * ve solo sus cuentas (las que atendió; sin ventas de mostrador) y recepción
+ * ve las cuentas sin los totales del periodo. Devolver un pago o reasignar
+ * el crédito todavía no existen; cuando lleguen, van con `transactions`·edit.
  */
 export function TransactionsPage() {
   const t = useAppT();
@@ -50,6 +57,8 @@ export function TransactionsPage() {
   const branchId = useBranchId();
   const filters = useTransactionsFilters();
   const query = useTransactionsQuery({ branchId, from: filters.from, to: filters.to });
+  const access = useAccess();
+  const description = access.scope === "own" ? t("transactions.descriptionOwn") : showsPeriodTotals(access) ? t("transactions.description") : t("transactions.descriptionNoTotals");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -59,7 +68,7 @@ export function TransactionsPage() {
 
       <PageHeader
         title={t("transactions.title")}
-        description={t("transactions.description")}
+        description={description}
         actions={
           <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching} data-testid="transactions-refresh">
             {query.isFetching ? <Loader2 className="animate-spin" /> : <RefreshCw />} {t("transactions.refresh")}
@@ -113,7 +122,7 @@ export function TransactionsPage() {
           </div>
         }
       >
-        {(data) => <TransactionsHome accounts={data.items} filters={filters} fetching={query.isFetching} />}
+        {(data) => <TransactionsHome accounts={accountsFor(access, data.items)} showTotals={showsPeriodTotals(access)} filters={filters} fetching={query.isFetching} />}
       </QueryBoundary>
     </div>
   );
@@ -121,11 +130,13 @@ export function TransactionsPage() {
 
 interface TransactionsHomeProps {
   accounts: readonly Account[];
+  /** Las tarjetas de Facturado, Cobrado, Por cobrar y Propinas. */
+  showTotals: boolean;
   filters: ReturnType<typeof useTransactionsFilters>;
   fetching: boolean;
 }
 
-function TransactionsHome({ accounts, filters, fetching }: TransactionsHomeProps) {
+function TransactionsHome({ accounts, showTotals, filters, fetching }: TransactionsHomeProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   const formatMoney = useMoney();
@@ -145,39 +156,41 @@ function TransactionsHome({ accounts, filters, fetching }: TransactionsHomeProps
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", fetching && "opacity-80 transition-opacity motion-reduce:transition-none")}>
-      <section aria-label={t("transactions.summaryAria")} className="mb-section shrink-0">
-        <React.Suspense
-          fallback={
+      {showTotals && (
+        <section aria-label={t("transactions.summaryAria")} className="mb-section shrink-0">
+          <React.Suspense
+            fallback={
+              <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
+                {[0, 1, 2, 3].map((item) => (
+                  <Skeleton key={item} className="h-[140px] rounded-2xl" />
+                ))}
+              </div>
+            }
+          >
             <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
-              {[0, 1, 2, 3].map((item) => (
-                <Skeleton key={item} className="h-[140px] rounded-2xl" />
-              ))}
+              <MetricCard label={t("transactions.summary.billed")} value={formatMoney(summary.billed)} caption={t("transactions.summary.accounts", { count: summary.billedCount })} hint={t("transactions.summary.billedHint")} tone="brand" icon="chart" />
+              <MetricCard
+                label={t("transactions.summary.collected")}
+                value={formatMoney(summary.collected)}
+                caption={t("transactions.summary.collectedCaption", { rate: formatPercent(summary.collectedRate) })}
+                hint={t("transactions.summary.collectedHint")}
+                tone="positive"
+                icon="success"
+                chart={<MetricRing value={summary.collectedRate} color={ringColor} ariaLabel={`${t("transactions.summary.collected")}: ${formatPercent(summary.collectedRate)}`} />}
+              />
+              <MetricCard label={t("transactions.summary.receivable")} value={formatMoney(summary.receivable)} caption={t("transactions.summary.openAccounts", { count: summary.openCount })} hint={t("transactions.summary.receivableHint")} tone="warning" icon="clock" />
+              <MetricCard
+                label={t("transactions.summary.tips")}
+                value={formatMoney(summary.tips)}
+                caption={summary.refundedCount === 0 ? t("transactions.summary.noRefunds") : t("transactions.summary.refunded", { amount: formatMoney(summary.refunded), count: summary.refundedCount })}
+                hint={t("transactions.summary.tipsHint")}
+                tone="brand"
+                icon="award"
+              />
             </div>
-          }
-        >
-          <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label={t("transactions.summary.billed")} value={formatMoney(summary.billed)} caption={t("transactions.summary.accounts", { count: summary.billedCount })} hint={t("transactions.summary.billedHint")} tone="brand" icon="chart" />
-            <MetricCard
-              label={t("transactions.summary.collected")}
-              value={formatMoney(summary.collected)}
-              caption={t("transactions.summary.collectedCaption", { rate: formatPercent(summary.collectedRate) })}
-              hint={t("transactions.summary.collectedHint")}
-              tone="positive"
-              icon="success"
-              chart={<MetricRing value={summary.collectedRate} color={ringColor} ariaLabel={`${t("transactions.summary.collected")}: ${formatPercent(summary.collectedRate)}`} />}
-            />
-            <MetricCard label={t("transactions.summary.receivable")} value={formatMoney(summary.receivable)} caption={t("transactions.summary.openAccounts", { count: summary.openCount })} hint={t("transactions.summary.receivableHint")} tone="warning" icon="clock" />
-            <MetricCard
-              label={t("transactions.summary.tips")}
-              value={formatMoney(summary.tips)}
-              caption={summary.refundedCount === 0 ? t("transactions.summary.noRefunds") : t("transactions.summary.refunded", { amount: formatMoney(summary.refunded), count: summary.refundedCount })}
-              hint={t("transactions.summary.tipsHint")}
-              tone="brand"
-              icon="award"
-            />
-          </div>
-        </React.Suspense>
-      </section>
+          </React.Suspense>
+        </section>
+      )}
 
       <section aria-label={t("transactions.statusAria")} className="mb-section shrink-0">
         <div className="mb-stack flex items-baseline gap-2">

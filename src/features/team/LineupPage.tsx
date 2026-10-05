@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/utility";
 import { EmptyState } from "@/components/feedback";
 import { Sortable } from "@/components/data-display/Sortable";
 import { DataListActionRail } from "@/components/action-rail";
+import { useAccess } from "@/features/access";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/typography";
@@ -43,6 +44,8 @@ function buildLineup(members: readonly TeamMember[], branchId: string, entries: 
 
 export function LineupPage() {
   const t = useAppT();
+  // Sin «Póngase en fila · Editar» la fila se consulta, no se reordena ni se enciende.
+  const canEdit = useAccess().can("lineup", "edit");
   const navigate = useNavigate();
   const branchId = useBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,6 +117,7 @@ export function LineupPage() {
               getId={(item) => item.member.id}
               getLabel={(item) => memberName(item.member)}
               onReorder={setList}
+              disabled={!canEdit}
               handle
               className="space-y-2"
               data-testid="lineup-list"
@@ -127,7 +131,7 @@ export function LineupPage() {
                       <span className={cn("truncate text-sm font-semibold", item.enabled ? "text-text-primary" : "text-text-muted")}>{memberName(item.member)}</span>
                       <span className="text-xs text-text-muted">{item.enabled ? t("teamLineup.takes") : t("teamLineup.skipped")}</span>
                     </span>
-                    <Switch aria-label={memberName(item.member)} checked={item.enabled} onCheckedChange={(enabled) => setList(list.map((entry) => (entry.member.id === item.member.id ? { ...entry, enabled } : entry)))} />
+                    <Switch aria-label={memberName(item.member)} checked={item.enabled} disabled={!canEdit} onCheckedChange={(enabled) => setList(list.map((entry) => (entry.member.id === item.member.id ? { ...entry, enabled } : entry)))} />
                   </>
                 );
               }}
@@ -136,6 +140,7 @@ export function LineupPage() {
         }
       </QueryBoundary>
 
+      {canEdit && (
       <ShellRailSlot>
         <DataListActionRail
           actions={[
@@ -146,6 +151,7 @@ export function LineupPage() {
           onClearSelection={() => undefined}
         />
       </ShellRailSlot>
+      )}
     </div>
   );
 }

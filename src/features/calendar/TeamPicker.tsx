@@ -37,7 +37,7 @@ export function TeamPicker({ team, barbers, onTeamChange }: TeamPickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-[200px] justify-between" aria-label={t("calendar.team")} data-testid="calendar-team">
+        <Button variant="outline" className="w-44 justify-between" aria-label={t("calendar.team")} data-testid="calendar-team">
           <span className="flex min-w-0 items-center gap-2">
             <ThemaIcon name="users" size="sm" decorative />
             <span className="truncate">{label}</span>

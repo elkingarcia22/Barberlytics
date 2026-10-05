@@ -1,4 +1,5 @@
 import { SERVICES } from "../calendar/seed";
+import { SERVICE_PHOTOS } from "../media";
 
 /**
  * El catálogo de servicios del backend simulado. Parte de los mismos
@@ -39,6 +40,8 @@ export interface MockCatalogService {
   giftCards: boolean;
   /** Solo en combos: los servicios que agrupa. */
   includes: string[];
+  /** La foto del servicio; `null` si aún no tiene. */
+  imageUrl: string | null;
   createdAt: string;
 }
 
@@ -94,7 +97,7 @@ const DESCRIPTIONS: Readonly<Record<string, string>> = {
 
 const CREATED_AT = "2026-06-04T15:00:00.000Z";
 
-const blank = (): Pick<MockCatalogService, "taxRate" | "visibility" | "activeBranchIds" | "multiservice" | "prep" | "giftCards" | "includes" | "createdAt"> => ({
+const blank = (): Pick<MockCatalogService, "taxRate" | "visibility" | "activeBranchIds" | "multiservice" | "prep" | "giftCards" | "includes" | "imageUrl" | "createdAt"> => ({
   taxRate: null,
   visibility: "public",
   activeBranchIds: [...BRANCH_IDS],
@@ -102,6 +105,7 @@ const blank = (): Pick<MockCatalogService, "taxRate" | "visibility" | "activeBra
   prep: { enabled: false, minutes: 0, position: "start" },
   giftCards: true,
   includes: [],
+  imageUrl: null,
   createdAt: CREATED_AT,
 });
 
@@ -119,6 +123,7 @@ export function seedServices(): MockServicesState {
       cost: share === null ? null : Math.round(service.price * share),
       durationMin: service.durationMin,
       includes: COMBO_INCLUDES[service.id] ?? [],
+      imageUrl: SERVICE_PHOTOS[service.id] ?? null,
       multiservice: service.id === "svc_tratamiento",
       prep: service.id === "svc_afeitado" ? { enabled: true, minutes: 5, position: "start" } : { enabled: false, minutes: 0, position: "start" },
     };
@@ -126,7 +131,7 @@ export function seedServices(): MockServicesState {
   /* Dos que la agenda no conoce: uno que solo se vende en el local y otro que
      esta sucursal aún no activó. Así la lista enseña los dos estados. */
   const extras: MockCatalogService[] = [
-    { ...blank(), id: "svc_tinte", kind: "service", name: "Tinte de cabello", description: "Color completo o cubrimiento de canas.", categoryId: "cat_extras", price: 70, cost: 30, durationMin: 60, visibility: "private", taxRate: 8 },
+    { ...blank(), id: "svc_tinte", kind: "service", name: "Tinte de cabello", description: "Color completo o cubrimiento de canas.", categoryId: "cat_extras", price: 70, cost: 30, durationMin: 60, visibility: "private", taxRate: 8, imageUrl: SERVICE_PHOTOS.svc_tinte ?? null },
     { ...blank(), id: "svc_cera", kind: "service", name: "Depilación con cera", description: "", categoryId: UNCATEGORIZED_ID, price: 20, cost: null, durationMin: 20, activeBranchIds: ["nc", "ri"] },
   ];
   return { categories: [...CATEGORIES], items: [...fromAgenda, ...extras] };

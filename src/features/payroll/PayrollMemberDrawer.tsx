@@ -14,6 +14,11 @@ export interface PayrollMemberDrawerProps {
   member: PayrollMember | null;
   onClose: () => void;
   formatMoney: (value: number) => string;
+  /**
+   * El enlace a sus reglas en Equipo. Solo para quien gestiona los pagos del
+   * equipo (`barber-payments`); el barbero que mira su propio pago no lo tiene.
+   */
+  showRulesLink?: boolean;
 }
 
 const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" };
@@ -23,7 +28,7 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  * cuenta —lo que suma y lo que resta— y servicio por servicio qué regla se
  * aplicó. Las reglas se cambian en su ficha de Equipo, no aquí.
  */
-export function PayrollMemberDrawer({ member, onClose, formatMoney }: PayrollMemberDrawerProps) {
+export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true }: PayrollMemberDrawerProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
@@ -36,7 +41,8 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney }: PayrollMem
       title={member?.name}
       description={member ? t(PAYOUT_KEYS[member.payout]) : undefined}
       actions={
-        member && (
+        member &&
+        showRulesLink && (
           <Button variant="outline" onClick={() => navigate(`/usuarios/miembros/${member.memberId}?pestana=${member.payout === "rent" ? "pagos" : "compensacion"}`)}>
             <UserRound /> {t("payroll.detail.seeRules")}
           </Button>

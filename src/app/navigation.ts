@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  Wallet,
   BookOpen,
   CalendarDays,
   Gauge,
@@ -11,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import type { NavEntry } from "@/components/app-shell";
+import { canOpen, type Access, type AccessArea } from "@/features/access";
 import type { AppMessageKey } from "./i18n/types";
 
 /**
@@ -26,7 +28,7 @@ import type { AppMessageKey } from "./i18n/types";
  * español los dejaría fijos para siempre.
  */
 type NavTemplate =
-  | { kind: "item"; id: string; labelKey: AppMessageKey; icon: typeof Gauge; path: string }
+  | { kind: "item"; id: string; labelKey: AppMessageKey; icon: typeof Gauge; path: string; area?: AccessArea }
   | {
       kind: "item";
       id: string;
@@ -37,30 +39,38 @@ type NavTemplate =
   | { kind: "group"; labelKey: AppMessageKey };
 
 const NAV_TEMPLATE: readonly NavTemplate[] = [
-  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/metricas" },
-  { kind: "item", id: "calendario", labelKey: "nav.calendar", icon: CalendarDays, path: "/calendario" },
-  { kind: "item", id: "clientes", labelKey: "nav.clients", icon: Users, path: "/clientes" },
+  { kind: "item", id: "inicio", labelKey: "nav.home", icon: Gauge, path: "/metricas", area: "metrics" },
+  // El pago del propio barbero: «Lo que llevo» si cobra comisión, «Mi negocio» si paga renta.
+  { kind: "item", id: "mipago", labelKey: "nav.myEarnings", icon: Wallet, path: "/mi-pago", area: "myPay" },
+  { kind: "item", id: "calendario", labelKey: "nav.calendar", icon: CalendarDays, path: "/calendario", area: "calendar" },
+  { kind: "item", id: "clientes", labelKey: "nav.clients", icon: Users, path: "/clientes", area: "customers" },
   // Quién trabaja aquí y con qué rol entra. Estaba como «Permisos» dentro de
   // configuración, pero es una pantalla de todos los días —se da de alta a un
   // barbero, se le cambia el turno—, no algo que se ajuste una vez.
-  { kind: "item", id: "equipo", labelKey: "nav.team", icon: UserCog, path: "/usuarios" },
+  { kind: "item", id: "equipo", labelKey: "nav.team", icon: UserCog, path: "/usuarios", area: "team" },
   // Servicios y productos, cada uno por su lado: son dos catálogos distintos
   // —uno se agenda por tiempo, el otro se vende por unidades— y quien atiende
   // entra a uno o al otro, nunca a «los dos». Agruparlos solo añadía un clic.
-  { kind: "item", id: "servicios", labelKey: "nav.services", icon: Scissors, path: "/servicios" },
-  { kind: "item", id: "productos", labelKey: "nav.products", icon: Package, path: "/productos" },
-  { kind: "item", id: "gastos", labelKey: "nav.expenses", icon: Receipt, path: "/gastos" },
-  { kind: "item", id: "nomina", labelKey: "nav.payroll", icon: HandCoins, path: "/nomina" },
-  { kind: "item", id: "transacciones", labelKey: "nav.transactions", icon: ArrowLeftRight, path: "/transacciones" },
+  { kind: "item", id: "servicios", labelKey: "nav.services", icon: Scissors, path: "/servicios", area: "services" },
+  { kind: "item", id: "productos", labelKey: "nav.products", icon: Package, path: "/productos", area: "products" },
+  { kind: "item", id: "gastos", labelKey: "nav.expenses", icon: Receipt, path: "/gastos", area: "expenses" },
+  { kind: "item", id: "nomina", labelKey: "nav.payroll", icon: HandCoins, path: "/nomina", area: "payroll" },
+  { kind: "item", id: "transacciones", labelKey: "nav.transactions", icon: ArrowLeftRight, path: "/transacciones", area: "transactions" },
   { kind: "group", labelKey: "nav.resources" },
   // El centro de ayuda no va aquí: se llega desde el menú «Ayuda» de la
   // cabecera (preguntar, ir al centro de ayuda, que te guíen).
-  { kind: "item", id: "docs", labelKey: "nav.designSystem", icon: BookOpen, path: "/docs" },
+  { kind: "item", id: "docs", labelKey: "nav.designSystem", icon: BookOpen, path: "/docs", area: "designSystem" },
 ];
 
-/** El árbol con los rótulos ya traducidos. */
-export function buildAppNavigation(t: (key: AppMessageKey) => string): readonly NavEntry[] {
-  return NAV_TEMPLATE.map((entry) => {
+/**
+ * El árbol con los rótulos ya traducidos. Con `access`, solo lo que ese rol abre
+ * (producción: quitar «Ver» de una función la saca del menú); un grupo que se queda
+ * sin entradas debajo también se va.
+ */
+export function buildAppNavigation(t: (key: AppMessageKey) => string, access?: Access): readonly NavEntry[] {
+  const allowed = NAV_TEMPLATE.filter((entry) => entry.kind === "group" || !("area" in entry) || !entry.area || !access || canOpen(access, entry.area));
+  const visible = allowed.filter((entry, index) => entry.kind !== "group" || allowed.slice(index + 1).some((next) => next.kind === "item"));
+  return visible.map((entry) => {
     if (entry.kind === "group") return { kind: "group", label: t(entry.labelKey) };
     if ("children" in entry) {
       return {
@@ -71,7 +81,9 @@ export function buildAppNavigation(t: (key: AppMessageKey) => string): readonly 
         children: entry.children.map((child) => ({ id: child.id, label: t(child.labelKey), path: child.path })),
       };
     }
-    return { kind: "item", id: entry.id, label: t(entry.labelKey), icon: entry.icon, path: entry.path };
+    // El de renta lleva su silla como un negocio: su entrada se llama «Mi negocio».
+    const labelKey = entry.id === "mipago" && access?.role === "barbero-renta" ? "nav.myBusiness" : entry.labelKey;
+    return { kind: "item", id: entry.id, label: t(labelKey), icon: entry.icon, path: entry.path };
   });
 }
 
@@ -103,7 +115,7 @@ export function findActiveNavId(pathname: string): string | undefined {
  * el calendario tampoco: es una pantalla de trabajo que ocupa todo el alto.
  */
 const FOOTER_HOMES: ReadonlySet<string> = new Set(
-  ["/metricas", "/clientes", "/usuarios", "/servicios", "/productos", "/gastos", "/nomina", "/transacciones", "/configuracion"]
+  ["/metricas", "/mi-pago", "/clientes", "/usuarios", "/servicios", "/productos", "/gastos", "/nomina", "/transacciones", "/configuracion"]
 );
 
 export function showsLegalFooter(pathname: string): boolean {

@@ -46,13 +46,15 @@ export const clientSchema = z.object({
   preferredBarberId: z.string().nullable(),
   visitEveryDays: z.number().nullable(),
   notes: z.array(clientNoteSchema),
+  /** La foto del cliente; sin ella se pintan sus iniciales. */
+  avatarUrl: z.string().nullable().optional(),
 });
 export type Client = z.infer<typeof clientSchema>;
 
-export const serviceSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), durationMin: z.number(), price: z.number() });
+export const serviceSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), durationMin: z.number(), price: z.number(), imageUrl: z.string().nullable().optional() });
 export type Service = z.infer<typeof serviceSchema>;
 
-export const productSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), price: z.number() });
+export const productSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), price: z.number(), imageUrl: z.string().nullable().optional() });
 export type Product = z.infer<typeof productSchema>;
 
 export const catalogSchema = z.object({

@@ -24,11 +24,13 @@ export interface CalendarMonthViewProps {
   team: TeamFilter;
   barbers: readonly Barber[];
   onTeamChange: (team: TeamFilter) => void;
+  /** Elegir de quién es la ocupación. Un barbero solo ve la suya: sin selector. */
+  showTeam?: boolean;
   onSelectDay: (date: Date) => void;
   today?: Date;
 }
 
-export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange, onSelectDay, today }: CalendarMonthViewProps) {
+export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange, onSelectDay, today, showTeam = true }: CalendarMonthViewProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   // La ocupación del mes se pide de un barbero o de todo el equipo: con varios marcados, de todos.
@@ -39,23 +41,25 @@ export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange,
   return (
     <div className="space-y-4" data-testid="calendar-month">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Select value={barberId ?? "all"} onValueChange={(value) => onTeamChange(value === "all" ? "all" : value)}>
-          <SelectTrigger className="w-[240px]" aria-label={t("calendar.month.barber")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("calendar.team.all")}</SelectItem>
-            <SelectSeparator />
-            {barbers.map((barber) => (
-              <SelectItem key={barber.id} value={barber.id}>
-                <span className="flex items-center gap-2">
-                  <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />
-                  {barber.name}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {showTeam && (
+          <Select value={barberId ?? "all"} onValueChange={(value) => onTeamChange(value === "all" ? "all" : value)}>
+            <SelectTrigger className="w-[240px]" aria-label={t("calendar.month.barber")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("calendar.team.all")}</SelectItem>
+              <SelectSeparator />
+              {barbers.map((barber) => (
+                <SelectItem key={barber.id} value={barber.id}>
+                  <span className="flex items-center gap-2">
+                    <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />
+                    {barber.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Text variant="muted">{t("calendar.month.hint")}</Text>
       </div>
 

@@ -6,7 +6,7 @@ import type { TableColumnCells, TableColumnSpec } from "@/components/data-displa
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
 import { branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
-import { customerSegmentSchema, type Customer, type CustomerSegment } from "./types";
+import { SEGMENT_KEYS, customerSegmentSchema, type Customer, type CustomerSegment } from "./types";
 
 /**
  * Lo que la lista de clientes sabe hacer con sus filas, sin JSX de pantalla:
@@ -28,8 +28,21 @@ export const countBySegment = (rows: readonly Customer[]): Readonly<Record<Custo
 
 const EMPTY = "—";
 
-export function customerColumns(t: Translate): readonly TableColumnSpec[] {
-  return [
+/** Qué columnas existen según quién mira (ver `customerAccess.ts`). */
+export interface CustomerColumnOptions {
+  /** Valor de vida: fuera para recepción. */
+  showMoney: boolean;
+  /** Correo: fuera sin permiso de información del cliente. */
+  showContact: boolean;
+  /** Barbero preferido: fuera para el barbero, en su lista serían todos él. */
+  showBarber: boolean;
+}
+
+const ALL_COLUMNS: CustomerColumnOptions = { showMoney: true, showContact: true, showBarber: true };
+
+export function customerColumns(t: Translate, options: CustomerColumnOptions = ALL_COLUMNS): readonly TableColumnSpec[] {
+  const hidden: readonly string[] = [...(options.showMoney ? [] : ["ltv"]), ...(options.showContact ? [] : ["email"]), ...(options.showBarber ? [] : ["barber"])];
+  const columns: TableColumnSpec[] = [
     { id: "select", label: t("column.selection"), fixed: true },
     { id: "customer", label: t("customers.column.customer") },
     { id: "segment", label: t("customers.column.segment") },
@@ -42,6 +55,7 @@ export function customerColumns(t: Translate): readonly TableColumnSpec[] {
     { id: "email", label: t("customers.column.email"), hiddenByDefault: true },
     { id: "since", label: t("customers.column.since"), hiddenByDefault: true },
   ];
+  return columns.filter((column) => !hidden.includes(column.id));
 }
 
 export interface CustomerCellFormatters {
@@ -53,19 +67,19 @@ export interface CustomerCellFormatters {
 
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
 
-export function customerCells(t: Translate, { formatCount, formatMoney, formatDate, formatRelativeTime }: CustomerCellFormatters): TableColumnCells<Customer> {
+export function customerCells(t: Translate, { formatCount, formatMoney, formatDate, formatRelativeTime }: CustomerCellFormatters, { showContact = true }: { showContact?: boolean } = {}): TableColumnCells<Customer> {
   return {
     customer: {
       head: t("customers.column.customer"),
       cell: (row) => (
         <span className="flex items-center gap-3">
-          <CustomerAvatar name={row.name} />
+          <CustomerAvatar name={row.name} avatarUrl={row.avatarUrl} />
           <span className="flex min-w-0 flex-col">
             <span className="flex items-center gap-inline">
               <Link to={`/clientes/${row.id}`} className="truncate font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                 {row.name}
               </Link>
-              {row.medicalNotes > 0 && (
+              {showContact && row.medicalNotes > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="inline-flex text-status-warning" aria-label={t("customers.medicalFlag")}>
@@ -76,7 +90,7 @@ export function customerCells(t: Translate, { formatCount, formatMoney, formatDa
                 </Tooltip>
               )}
             </span>
-            <span className="text-xs tabular-nums text-text-muted">{maskPhone(row.phone)}</span>
+            {showContact && <span className="text-xs tabular-nums text-text-muted">{maskPhone(row.phone)}</span>}
           </span>
         </span>
       ),
@@ -112,6 +126,20 @@ export function customerCells(t: Translate, { formatCount, formatMoney, formatDa
     branch: { head: t("customers.column.branch"), cell: (row) => branchName(row.branchId), cellClassName: "text-text-secondary" },
     email: { head: t("customers.column.email"), cell: (row) => row.email, cellClassName: "text-text-secondary" },
     since: { head: t("customers.column.since"), cell: (row) => formatDate(new Date(row.createdAt), DATE_OPTIONS), cellClassName: "text-text-secondary tabular-nums" },
+  };
+}
+
+/* --------------------------------------------------------------- descarga */
+
+/**
+ * La lista tal como la ve quien descarga, en CSV: mismo recorte que la
+ * pantalla, nunca notas médicas, y contacto o cifras solo si los ve.
+ */
+export function customersCsvRows(t: Translate, rows: readonly Customer[], { showContact, showMoney }: Pick<CustomerColumnOptions, "showContact" | "showMoney">): { header: string[]; rows: (string | number)[][] } {
+  const header = [t("customers.column.customer"), ...(showContact ? [t("customers.form.phone"), t("customers.column.email")] : []), t("customers.column.segment"), t("customers.column.visits"), ...(showMoney ? [t("customers.column.ltv")] : []), t("customers.column.branch")];
+  return {
+    header,
+    rows: rows.map((row) => [row.name, ...(showContact ? [row.phone, row.email] : []), t(SEGMENT_KEYS[row.segment]), row.visits, ...(showMoney ? [row.ltv] : []), branchName(row.branchId)]),
   };
 }
 

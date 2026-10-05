@@ -86,11 +86,17 @@ describe("Premium preset", () => {
     expect(Number.parseFloat(sat)).toBeLessThanOrEqual(10);
   });
 
-  test("light mode is a warm ivory, not a saturated cream", () => {
+  test("light mode is a warm parchment, not a saturated cream", () => {
     const [hue, sat, lightness] = buildThemeTokens(premium, "light")["--background"].split(" ");
     expect(Number.parseFloat(hue)).toBe(40);
     expect(Number.parseFloat(sat)).toBeLessThan(100);
-    expect(Number.parseFloat(lightness)).toBeGreaterThanOrEqual(98);
+    expect(Number.parseFloat(lightness)).toBeGreaterThanOrEqual(95);
+  });
+
+  test("light mode cards sit above the parchment", () => {
+    const tokens = buildThemeTokens(premium, "light");
+    const lightnessOf = (value: string) => Number.parseFloat(value.split(" ")[2]);
+    expect(lightnessOf(tokens["--card"])).toBeGreaterThan(lightnessOf(tokens["--background"]) + 3);
   });
 
   test("champagne gold gets dark text on buttons, antique gold gets white", () => {

@@ -11,6 +11,12 @@ export type ExpenseFrequency = z.infer<typeof expenseFrequencySchema>;
 export const expenseSchema = z.object({
   id: z.string(),
   branchId: z.string(),
+  /**
+   * De quién es el gasto: `null` es de la sucursal (la barbería); con un id,
+   * es de ese barbero de renta (lo que compra para su silla). Los gastos
+   * guardados antes de este campo no lo traen: son de la sucursal.
+   */
+  ownerMemberId: z.string().nullable().default(null),
   kind: expenseKindSchema,
   name: z.string(),
   amount: z.number(),

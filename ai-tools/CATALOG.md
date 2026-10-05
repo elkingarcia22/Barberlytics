@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**200 componentes** en 21 familias · 94 iconos en el registro · 113 tokens.
+**201 componentes** en 21 familias · 94 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -157,13 +157,14 @@ Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flota
 - **FeedbackLauncher** [feedback-launcher] (beta) — El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). `@/components/feedback-loop`
 - **GuidedTour** [guided-tour] (beta) — Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por… `@/components/feedback-loop`
 
-## Datos · 11
+## Datos · 12
 
 Tablas configurables y badges de estado.
 
 - **Kanban** [kanban] — Tablero de columnas con tarjetas que cambian de etapa arrastrando: el pipeline de una vacante (Nuevos → En revisión → Entrevista → Oferta),… `@/components/data-display/Kanban`
 - **ListItem** [list-item] — Fila de lista con `leading` (avatar, icono o IconTile), título, descripción, `meta` a la derecha y acciones. `@/components/data-display/ListItem`
 - **RowActionsMenu** [row-actions-menu] — El botón de acciones de una fila: lo que se puede hacer con ese registro sin pasar por marcarlo. `@/components/data-display`
+- **RowContextMenu** [row-context-menu] — El clic derecho sobre un registro —una fila de tabla, una tarjeta de la agenda—: el mismo menú de acciones que el botón «⋯», sin tener que… `@/components/data-display`
 - **Sortable** [sortable] — Lista que se reordena arrastrando: las lecciones de un plan de formación, las preguntas de una encuesta, los pasos de un proceso. `@/components/data-display/Sortable`
 - **StatusBadge** [status-badge] — Un `Badge` con vocabulario de estado: cada valor trae su variante de color y su etiqueta en español por defecto. `@/components/data-display/StatusBadge`
 - **StatusBadge (animado)** [status-badge-animated] — La píldora de estado con transición: al cambiar `state`, el icono entra con un resorte y el texto se desliza, así el ojo ve que algo pasó y… `@/components/status-badge`
@@ -296,7 +297,7 @@ Carrusel, galerías y previsualizaciones.
 
 Encabezados de página y sección, tags.
 
-- **IconTile** [icon-tile] — Un icono sobre una baldosa tintada: fondo al 10 % del tono y glifo en el color pleno, en tres tamaños (28, 36 y 48px) y dos formas. `@/components/utility/IconTile`
+- **IconTile** [icon-tile] — Un icono sobre una baldosa tintada: fondo al 10 % del tono y glifo en el color pleno, en cuatro tamaños (28, 36, 48 y 64px) y dos formas. `@/components/utility/IconTile`
 - **PageHeader** [page-header] — El encabezado de nivel superior de una pantalla: breadcrumbs, título h1 con descripción, acciones primarias a la derecha y una fila de meta… `@/components/utility`
 - **SectionHeader** [section-header] — El encabezado de una sección interna de página: eyebrow, título en 18px, descripción y un slot de acciones alineado abajo a la derecha, cer… `@/components/utility`
 - **Tag** [tag] — Una etiqueta compacta para metadatos, filtros activos o categorías ligeras, con cinco tonos y una X opcional. `@/components/utility`

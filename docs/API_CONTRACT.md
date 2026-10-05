@@ -129,6 +129,10 @@ Las otras pestañas comparten los mismos parámetros (`granularity`, `date`, `ba
 | `GET /metrics/marketing` | `kpis: { onlineBookings, bestChannel: string \| null, campaignBookings }`, `channels: [{ id, name, bookings, visits }]`, `campaigns: [{ id, name, bookings, revenue }]`. Sin datos, listas vacías (nunca ceros inventados). |
 | `GET /metrics/insights` | Sin parámetros: diagnostica los últimos tres meses de la sucursal. `window: { from, to }`, `health: { score (0–100), completionRate, retentionRate, noShowRate, avgTicket }`, `risks: { churned, atRisk, overdue }`, `capacity: { hours: number[], rows: [{ day: 0–6 (lunes = 0), values: number[] (ocupación 0–100 por hora) }] }`, `suggestions: [{ id, group: clients \| growth \| operations, type: risk \| recommendation \| opportunity \| insight, tag, title, description, action, evidence? }]`. |
 
+`barberId` acepta el id de métricas (`b4`…) o el de equipo (`team-04`…): el barbero que mira sus cifras manda el suyo.
+En el simulador, `team-04`…`team-08` son las mismas personas que `b4`…`b8`; cualquier otro barbero del equipo
+(p. ej. `team-30`) se simula aparte y no suma a «todo el equipo» (`resolveMetricsBarber` en `src/mocks/metrics.ts`).
+
 ## Personas (`/users`)
 
 `user`: `{ id, name, email, area, role, status: "active" | "invited" | "inactive", createdAt, lastActiveAt: string | null, avatarUrl: string | null }`
@@ -265,12 +269,12 @@ Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, d
 
 Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuencia; uno **variable** pasó una vez.
 
-`expense`: `{ id, branchId, kind: "fixed" | "variable", name, amount, frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual" (\| null en los variables), description, createdAt }`. `amount` es lo que vale **cada vez que se paga**; en un variable, `createdAt` hace de fecha del gasto.
+`expense`: `{ id, branchId, ownerMemberId (\| null), kind: "fixed" | "variable", name, amount, frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual" (\| null en los variables), description, createdAt }`. `amount` es lo que vale **cada vez que se paga**; en un variable, `createdAt` hace de fecha del gasto.
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/expenses?branchId` | `{ items: expense[] }`, del más reciente al más antiguo. Sin paginar. |
-| POST | `/expenses` | `{ kind, name, amount, branchId, frequency? (obligatoria si es `fixed`), description? }`. `201 expense`. `422` con `fields`: nombre corto, valor que no es mayor que cero, fijo sin frecuencia. |
+| GET | `/expenses?branchId&ownerMemberId?` | `{ items: expense[] }`, del más reciente al más antiguo. Sin paginar. Sin `ownerMemberId`, los de la sucursal (`ownerMemberId: null`); con él, solo los de ese barbero de renta (lo que compra para su silla). Un gasto sin el campo cuenta como de la sucursal. |
+| POST | `/expenses` | `{ kind, name, amount, branchId, frequency? (obligatoria si es `fixed`), description?, ownerMemberId? }`. `201 expense`. `422` con `fields`: nombre corto, valor que no es mayor que cero, fijo sin frecuencia. |
 | PATCH | `/expenses/:id` | `{ name, amount, frequency?, description? }`. `kind` no cambia aunque se mande. `expense`. `422` · `404`. |
 | DELETE | `/expenses/:id` | `204`. `404`. |
 
@@ -287,7 +291,7 @@ Lo que se le paga a cada barbero en un periodo. Es de **solo lectura** y no se g
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, weeks, members: member[] }` con los barberos de la sucursal en su orden de calendario. `422` si el rango es inválido, va al revés o pasa de 62 días. |
+| GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD&memberId?` | `{ from, to, weeks, members: member[] }` con los barberos de la sucursal en su orden de calendario; con `memberId`, solo esa persona («Lo que llevo» / «Mi negocio» del barbero). `422` si el rango es inválido, va al revés o pasa de 62 días. |
 
 Los impuestos que muestra producción no se modelan: el mock no los cobra.
 

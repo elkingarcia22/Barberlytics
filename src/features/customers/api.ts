@@ -8,6 +8,8 @@ export const customersApi = {
   get: (id: string, signal?: AbortSignal) => api.get<CustomerDetail>(`/customers/${id}`, { schema: customerDetailSchema, signal }),
   create: (input: CustomerInput, branchId: string) => api.post<CustomerDetail>("/customers", { ...input, branchId }, { schema: customerDetailSchema }),
   update: (id: string, input: CustomerInput) => api.patch<CustomerDetail>(`/customers/${id}`, input, { schema: customerDetailSchema }),
+  /** Borrado lógico: sale del directorio; sus citas y cobros pasados se conservan. */
+  remove: (id: string) => api.delete<void>(`/customers/${id}`),
   setBlocked: (id: string, blocked: boolean) => api.patch<CustomerDetail>(`/customers/${id}`, { blocked }, { schema: customerDetailSchema }),
   /** La nota es del cliente de la agenda: mismo endpoint que usa la cita. */
   addNote: (id: string, input: NoteInput) => api.post<unknown>(`/clients/${id}/notes`, input),

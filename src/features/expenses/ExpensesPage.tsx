@@ -18,6 +18,7 @@ import { ConfirmDialog } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
@@ -39,12 +40,19 @@ const ringColor = getChartTheme().color[0];
  * mes» —una limpieza semanal y un seguro anual no se pueden sumar tal
  * cual—, lo variable del mes y el total que hay que cubrir. El filtro vive
  * en la URL.
+ *
+ * Por rol: el barbero de renta (alcance «own») ve y gestiona solo sus
+ * gastos —lo que compra para su silla—, nunca los de la barbería. Registrar,
+ * editar y borrar dependen de `expenses`·create/edit/delete.
  */
 export function ExpensesPage() {
   const t = useAppT();
   const navigate = useNavigate();
+  const access = useAccess();
   const branchId = useBranchId();
-  const query = useExpensesQuery(branchId);
+  /* «Lo suyo» sin ficha no existe: se piden los de un dueño que no hay y la lista sale vacía. */
+  const ownerMemberId = access.scope === "own" ? (access.member?.id ?? "none") : null;
+  const query = useExpensesQuery(branchId, ownerMemberId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -52,7 +60,7 @@ export function ExpensesPage() {
         <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("expenses.title")]} />
       </ShellHeaderSlot>
 
-      <PageHeader title={t("expenses.title")} description={t("expenses.description")} />
+      <PageHeader title={t("expenses.title")} description={t(ownerMemberId ? "expenses.ownDescription" : "expenses.description")} />
 
       <QueryBoundary
         query={query}
@@ -67,7 +75,7 @@ export function ExpensesPage() {
           </div>
         }
       >
-        {(data) => <ExpensesHome expenses={data.items} branchId={branchId} />}
+        {(data) => <ExpensesHome expenses={data.items} branchId={branchId} ownerMemberId={ownerMemberId} />}
       </QueryBoundary>
     </div>
   );
@@ -75,8 +83,12 @@ export function ExpensesPage() {
 
 type Drawer = { kind: "create"; of: ExpenseKind } | { kind: "edit"; expense: Expense };
 
-function ExpensesHome({ expenses, branchId }: { expenses: readonly Expense[]; branchId: string }) {
+function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonly Expense[]; branchId: string; ownerMemberId: string | null }) {
   const t = useAppT();
+  const access = useAccess();
+  const canCreate = access.can("expenses", "create");
+  const canEdit = access.can("expenses", "edit");
+  const canDelete = access.can("expenses", "delete");
   const { formatNumber, formatDate } = useLocale();
   const formatMoney = useMoney();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -108,23 +120,25 @@ function ExpensesHome({ expenses, branchId }: { expenses: readonly Expense[]; br
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
 
   const columns = React.useMemo(() => expenseColumns(t), [t]);
-  const cells = React.useMemo(() => expenseCells(t, { formatMoney, formatDate, onOpen: (expense) => setDrawer({ kind: "edit", expense }) }), [t, formatMoney, formatDate]);
+  /* Sin permiso de editar, abrir un gasto no lleva al formulario. */
+  const cells = React.useMemo(() => expenseCells(t, { formatMoney, formatDate, onOpen: (expense) => canEdit && setDrawer({ kind: "edit", expense }) }), [t, formatMoney, formatDate, canEdit]);
 
   const single = selected.size === 1 ? expenses.find((expense) => expense.id === [...selected][0]) : undefined;
   /* Al registrar, el tipo arranca en lo que se está mirando: en la pestaña de variables, un variable. */
   const createKind: ExpenseKind = kind === "variable" ? "variable" : "fixed";
 
+  /* Cada acción, solo si el rol tiene esa casilla de `expenses`. */
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () => [
-      { id: "create", label: t("expenses.action.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDrawer({ kind: "create", of: createKind }) },
-      { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && setDrawer({ kind: "edit", expense: single }) },
-      { id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: () => single && setRemoving(single) },
+      ...(canCreate ? [{ id: "create", label: t("expenses.action.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDrawer({ kind: "create", of: createKind }) } satisfies RailActionSpec] : []),
+      ...(canEdit ? [{ id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && setDrawer({ kind: "edit", expense: single }) } satisfies RailActionSpec] : []),
+      ...(canDelete ? [{ id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: () => single && setRemoving(single) } satisfies RailActionSpec] : []),
     ],
-    [createKind, single, t]
+    [canCreate, canEdit, canDelete, createKind, single, t]
   );
 
   const formDrawer = (
-    <ExpenseFormDrawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} expense={drawer?.kind === "edit" ? drawer.expense : null} kind={drawer?.kind === "create" ? drawer.of : "fixed"} branchId={branchId} />
+    <ExpenseFormDrawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} expense={drawer?.kind === "edit" ? drawer.expense : null} kind={drawer?.kind === "create" ? drawer.of : "fixed"} branchId={branchId} ownerMemberId={ownerMemberId} />
   );
 
   if (expenses.length === 0) {
@@ -135,9 +149,11 @@ function ExpensesHome({ expenses, branchId }: { expenses: readonly Expense[]; br
           title={t("expenses.emptyTitle")}
           description={t("expenses.emptyHint")}
           action={
-            <Button onClick={() => setDrawer({ kind: "create", of: "fixed" })}>
-              <Plus /> {t("expenses.action.create")}
-            </Button>
+            canCreate ? (
+              <Button onClick={() => setDrawer({ kind: "create", of: "fixed" })}>
+                <Plus /> {t("expenses.action.create")}
+              </Button>
+            ) : undefined
           }
         />
         {formDrawer}

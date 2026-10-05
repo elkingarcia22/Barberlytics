@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Text } from "@/components/typography";
 import { TimeSlotPicker, formatClock, formatClockRange, isWorkingAt, minutesOfDay } from "@/components/scheduling";
-import { PersonAvatar } from "./calendarShared";
+import { ClientAvatar, PersonAvatar, ServiceThumb } from "./calendarShared";
 import { useOpenKey } from "./calendarFormat";
 import { appointmentInputSchema, CLIENT_TYPE_KEYS, REPEAT_KEYS, repeatRuleSchema, type Appointment, type CalendarDay, type RepeatRule } from "./types";
 import { findBarber, placementProblem, placementReason, servicesMinutes, toLocalIso, workingHoursOn, type ModelContext } from "./calendarModel";
@@ -83,7 +83,9 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
   const [clientId, setClientId] = React.useState(initial?.clientId ?? "");
   const [serviceId, setServiceId] = React.useState(initial?.serviceIds?.[0] ?? initial?.serviceId ?? "");
   const [extraServiceIds, setExtraServiceIds] = React.useState<string[]>(initial?.serviceIds?.slice(1) ?? []);
-  const [barberId, setBarberId] = React.useState(initial?.barberId ?? "");
+  // Un barbero agenda en su columna: viene fijo en él, venga de donde venga el alta.
+  const fixedBarberId = ctx.access?.ownBarberId ?? null;
+  const [barberId, setBarberId] = React.useState(fixedBarberId ?? initial?.barberId ?? "");
   const [level, setLevel] = React.useState<LevelFilter>("all");
   const [start, setStart] = React.useState<Date | null>(initial?.start ?? null);
   const [walkIn, setWalkIn] = React.useState(initial?.walkIn ?? false);
@@ -207,7 +209,7 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
               onValueChange={setClientId}
               placeholder={t("calendar.create.pickClient")}
               searchPlaceholder={t("calendar.create.searchClients", { count: ctx.catalog.clients.length - 1 })}
-              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}` }))}
+              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, leading: <ClientAvatar client={client} size="sm" /> }))}
             />
           </Field>
         </DrawerSection>
@@ -226,7 +228,7 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
                 onValueChange={setServiceId}
                 placeholder={t("calendar.create.pickService")}
                 searchPlaceholder={t("calendar.create.searchServices")}
-                options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: `${item.category} · ${t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) })}` }))}
+                options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: `${item.category} · ${t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) })}`, leading: <ServiceThumb service={item} /> }))}
               />
             </Field>
             {service && (
@@ -236,7 +238,7 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
                   onValueChange={setExtraServiceIds}
                   placeholder={t("calendar.create.moreServicesHint")}
                   searchPlaceholder={t("calendar.create.searchServices")}
-                  options={ctx.catalog.services.filter((item) => item.id !== serviceId).map((item) => ({ value: item.id, label: `${item.name} · ${item.durationMin} min` }))}
+                  options={ctx.catalog.services.filter((item) => item.id !== serviceId).map((item) => ({ value: item.id, label: `${item.name} · ${item.durationMin} min`, leading: <ServiceThumb service={item} /> }))}
                 />
               </Field>
             )}
@@ -246,13 +248,15 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
         <DrawerSection icon={UserRound} tone="warning" title={t("calendar.field.barber")} hint={t("calendar.create.pickBarber")}>
           <div className="space-y-3">
             {/* Chips que se parten en varias líneas: una fila fija de niveles se salía del panel. */}
-            <div role="group" aria-label={t("calendar.create.allLevels")} className="flex flex-wrap gap-2">
-              {["all", ...levels].map((option) => (
-                <Chip key={option} size="sm" label={option === "all" ? t("calendar.create.allLevels") : option} selected={level === option} tone={level === option ? "primary" : "default"} onClick={() => setLevel(option)} />
-              ))}
-            </div>
+            {!fixedBarberId && (
+              <div role="group" aria-label={t("calendar.create.allLevels")} className="flex flex-wrap gap-2">
+                {["all", ...levels].map((option) => (
+                  <Chip key={option} size="sm" label={option === "all" ? t("calendar.create.allLevels") : option} selected={level === option} tone={level === option ? "primary" : "default"} onClick={() => setLevel(option)} />
+                ))}
+              </div>
+            )}
             <Field error={errors.barberId}>
-              <Select value={barberId} onValueChange={setBarberId}>
+              <Select value={barberId} onValueChange={setBarberId} disabled={Boolean(fixedBarberId)}>
                 <SelectTrigger data-testid="create-appointment-barber">
                   <SelectValue placeholder={t("calendar.create.pickBarber")} />
                 </SelectTrigger>

@@ -19,7 +19,7 @@ import {
   minutesOfDay,
   parseClock,
 } from "@/components/scheduling";
-import { PersonAvatar } from "../calendarShared";
+import { PersonAvatar, ServiceThumb } from "../calendarShared";
 import {
   appointmentStart,
   findBarber,
@@ -90,6 +90,7 @@ export function AppointmentEditForm({
           options={ctx.catalog.services.map((item) => ({
             value: item.id,
             label: item.name,
+            leading: <ServiceThumb service={item} />,
           }))}
         />
       </Field>
@@ -97,6 +98,8 @@ export function AppointmentEditForm({
         <Select
           value={appointment.barberId}
           onValueChange={(barberId) => onPatch(appointment, { barberId })}
+          // Un barbero no pasa sus citas a la columna de otro.
+          disabled={Boolean(ctx.access?.ownBarberId)}
         >
           <SelectTrigger
             aria-label={t("calendar.field.barber")}

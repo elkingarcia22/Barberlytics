@@ -9,8 +9,11 @@ import type { MetricsBarbers } from "../types";
  * Barberos: lo que ganó el equipo y cómo se reparte, con la ocupación, la
  * cancelación y las propinas de cada uno en una tabla. Producción solo tenía
  * el neto por barbero; aquí cada fila cuenta cómo trabaja esa persona.
+ *
+ * `own`: lo ve un barbero. Solo su fila y sus cifras, sin el neto del equipo
+ * ni las barras por barbero (no debe leer cuánto ganan los demás).
  */
-export function BarbersDashboard({ data }: { data: MetricsBarbers }) {
+export function BarbersDashboard({ data, own = false }: { data: MetricsBarbers; own?: boolean }) {
   const t = useAppT();
   const format = useMetricsFormatters();
   const net = format.delta(data.kpis.totalNet);
@@ -23,12 +26,12 @@ export function BarbersDashboard({ data }: { data: MetricsBarbers }) {
     <div className="flex flex-col space-y-section">
       <section aria-label={t("metrics.pulseAria")} className="grid gap-stack md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label={t("metrics.barbers.totalNet")}
+          label={t(own ? "metrics.barbers.ownNet" : "metrics.barbers.totalNet")}
           value={format.moneyRound(data.kpis.totalNet.value)}
           delta={net?.value}
           deltaLabel={net?.label}
-          caption={t("metrics.barbers.totalNetCaption", { count: data.barbers.length })}
-          hint={t("metrics.barbers.totalNetHint")}
+          caption={own ? `${format.count(active.reduce((sum, row) => sum + row.services, 0))} ${t("metrics.barbers.services")}` : t("metrics.barbers.totalNetCaption", { count: data.barbers.length })}
+          hint={t(own ? "metrics.barbers.ownNetHint" : "metrics.barbers.totalNetHint")}
           tone="positive"
           icon="analytics"
         />
@@ -43,7 +46,7 @@ export function BarbersDashboard({ data }: { data: MetricsBarbers }) {
           icon="award"
         />
         <MetricCard
-          label={t("metrics.barbers.occupancy")}
+          label={t(own ? "metrics.barbers.ownOccupancy" : "metrics.barbers.occupancy")}
           value={format.percent(data.kpis.avgOccupancy.value)}
           delta={occupancy?.value}
           deltaLabel={occupancy?.label}
@@ -63,26 +66,28 @@ export function BarbersDashboard({ data }: { data: MetricsBarbers }) {
         />
       </section>
 
-      <div className="grid gap-stack lg:grid-cols-2">
-        <BarList
-          title={t("metrics.barbers.netByBarber")}
-          count={format.moneyRound(data.kpis.totalNet.value)}
-          items={active.map((row) => ({ id: row.id, label: row.name, value: row.net, meta: `${format.count(row.services)} ${t("metrics.barbers.services")}` }))}
-          formatValue={format.money}
-          tone="positive"
-          emptyLabel={t("metrics.barbers.empty")}
-        />
-        <BarList
-          title={t("metrics.barbers.servicesByBarber")}
-          count={format.count(active.reduce((sum, row) => sum + row.services, 0))}
-          items={active.map((row) => ({ id: row.id, label: row.name, value: row.services, meta: format.percent(row.occupancy) }))}
-          formatValue={format.count}
-          tone="brand"
-          emptyLabel={t("metrics.barbers.empty")}
-        />
-      </div>
+      {!own && (
+        <div className="grid gap-stack lg:grid-cols-2">
+          <BarList
+            title={t("metrics.barbers.netByBarber")}
+            count={format.moneyRound(data.kpis.totalNet.value)}
+            items={active.map((row) => ({ id: row.id, label: row.name, value: row.net, meta: `${format.count(row.services)} ${t("metrics.barbers.services")}` }))}
+            formatValue={format.money}
+            tone="positive"
+            emptyLabel={t("metrics.barbers.empty")}
+          />
+          <BarList
+            title={t("metrics.barbers.servicesByBarber")}
+            count={format.count(active.reduce((sum, row) => sum + row.services, 0))}
+            items={active.map((row) => ({ id: row.id, label: row.name, value: row.services, meta: format.percent(row.occupancy) }))}
+            formatValue={format.count}
+            tone="brand"
+            emptyLabel={t("metrics.barbers.empty")}
+          />
+        </div>
+      )}
 
-      <TableShell title={t("metrics.barbers.table")} description={t("metrics.barbers.tableHint")}>
+      <TableShell title={t(own ? "metrics.barbers.ownTable" : "metrics.barbers.table")} description={t(own ? "metrics.barbers.ownTableHint" : "metrics.barbers.tableHint")}>
         <Table>
           <TableHeader>
             <TableRow>

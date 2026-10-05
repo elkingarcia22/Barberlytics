@@ -78,13 +78,20 @@ export interface CategoriesDrawerProps {
   onRemove: (id: string) => Promise<unknown>;
   /** Una insignia junto a cada categoría —si sale en línea, por ejemplo—. */
   renderBadge?: (category: CatalogCategory) => React.ReactNode;
+  /**
+   * Qué deja hacer el rol de quien mira (sus casillas de categorías en la matriz).
+   * Sin ninguna, el panel es de consulta: la lista con sus conteos y nada más.
+   */
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 const FORM_ID = "category-form";
 const EMPTY: CategoryDraft = { name: "", description: "", visibility: "public" };
 const MIN_NAME_LENGTH = 2;
 
-export function CategoriesDrawer({ open, onOpenChange, categories, countOf, fixedId, withVisibility = false, messages, saving, removing: removingBusy, onSave, onRemove, renderBadge }: CategoriesDrawerProps) {
+export function CategoriesDrawer({ open, onOpenChange, categories, countOf, fixedId, withVisibility = false, messages, saving, removing: removingBusy, onSave, onRemove, renderBadge, canCreate = true, canEdit = true, canDelete = true }: CategoriesDrawerProps) {
   /* `null` = la lista; `"new"` = alta; una categoría = edición. */
   const [editing, setEditing] = React.useState<CatalogCategory | "new" | null>(null);
   const [draft, setDraft] = React.useState<CategoryDraft>(EMPTY);
@@ -141,11 +148,11 @@ export function CategoriesDrawer({ open, onOpenChange, categories, countOf, fixe
                 {editing === "new" ? messages.create : messages.save}
               </Button>
             </>
-          ) : (
+          ) : canCreate ? (
             <Button onClick={() => startEdit("new")} data-testid="category-new">
               <Plus /> {messages.newLabel}
             </Button>
-          )
+          ) : undefined
         }
       >
         {isForm ? (
@@ -193,12 +200,16 @@ export function CategoriesDrawer({ open, onOpenChange, categories, countOf, fixe
                     fixed ? null : (
                       <>
                         {renderBadge?.(category)}
-                        <Button variant="ghost" size="icon-sm" aria-label={messages.editAria(category.name)} onClick={() => startEdit(category)}>
-                          <Pencil />
-                        </Button>
-                        <Button variant="ghost" size="icon-sm" aria-label={messages.removeAria(category.name)} onClick={() => setRemoving(category)}>
-                          <Trash2 />
-                        </Button>
+                        {canEdit && (
+                          <Button variant="ghost" size="icon-sm" aria-label={messages.editAria(category.name)} onClick={() => startEdit(category)}>
+                            <Pencil />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="icon-sm" aria-label={messages.removeAria(category.name)} onClick={() => setRemoving(category)}>
+                            <Trash2 />
+                          </Button>
+                        )}
                       </>
                     )
                   }

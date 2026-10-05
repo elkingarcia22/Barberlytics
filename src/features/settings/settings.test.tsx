@@ -3,8 +3,10 @@ import { Route, Routes } from "react-router";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test/render";
 import { db } from "@/mocks/db";
 import { appEs } from "@/app/i18n";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
 import { SettingsSectionPage } from "./SettingsSectionPage";
-import { buildSettingsGroups } from "./settingsCatalog";
+import { buildSettingsGroups, settingsLevel } from "./settingsCatalog";
 import { buildBookingUrl, renderPolicy, widgetSnippet } from "./sections/bookingUtils";
 import { ALL_EVENT_IDS, ALL_GROUP_IDS, AUDIENCES, NOTIFICATION_CATALOG, toggleKey } from "./sections/notificationCatalog";
 import { closureDays, taxTotal, tipLabel } from "./sections/settingsMath";
@@ -20,6 +22,74 @@ function renderSection(id: string, search = "") {
     { route: `/configuracion/${id}${search}`, token: TOKEN }
   );
 }
+
+/** Un ajuste abierto con un rol concreto; «Sin permiso» es una ruta más. */
+function renderSectionAs(role: TeamRole, id: string) {
+  db.sessions.set(TOKEN, "acc_admin");
+  return renderWithProviders(
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/configuracion/:seccion" element={<SettingsSectionPage />} />
+        <Route path="/403" element={<p>Sin permiso</p>} />
+      </Routes>
+    </AccessProvider>,
+    { route: `/configuracion/${id}`, token: TOKEN }
+  );
+}
+
+const idsFor = (role: TeamRole) => buildSettingsGroups((key) => key, buildAccess({ role })).flatMap((group) => group.items.map((item) => item.id));
+
+describe("configuración según el rol", () => {
+  beforeEach(() => {
+    db.reset();
+  });
+
+  test("los barberos solo ven sus preferencias y su usuario", () => {
+    expect(idsFor("barbero-comision")).toEqual(["preferencias", "eliminar-cuenta"]);
+    expect(idsFor("barbero-renta")).toEqual(["preferencias", "eliminar-cuenta"]);
+  });
+
+  test("recepción ve lo operativo para atender, sin dinero ni contrato", () => {
+    const ids = idsFor("recepcion");
+    expect(ids).toEqual(expect.arrayContaining(["negocio", "cierres", "agendamiento", "propinas", "dispositivos", "preferencias"]));
+    for (const id of ["impuestos", "precios", "pagos", "comisiones", "nomina", "facturacion", "empresa", "permisos"]) expect(ids, id).not.toContain(id);
+    expect(settingsLevel("agendamiento", buildAccess({ role: "recepcion" }))).toBe("view");
+  });
+
+  test("el admin ve todo menos la facturación; el dinero y el contrato, solo en lectura", () => {
+    const admin = buildAccess({ role: "admin" });
+    expect(idsFor("admin")).not.toContain("facturacion");
+    for (const id of ["impuestos", "precios", "pagos", "comisiones", "empresa", "sucursales"]) expect(settingsLevel(id, admin), id).toBe("view");
+    for (const id of ["negocio", "agendamiento", "cierres", "propinas"]) expect(settingsLevel(id, admin), id).toBe("edit");
+    expect(settingsLevel("permisos", admin)).toBe("view");
+  });
+
+  test("el dueño ve y edita todo, y el menú cambia «eliminar cuenta» por «mi usuario» a los demás", () => {
+    const owner = buildAccess({ role: "owner" });
+    expect(idsFor("owner")).toEqual(buildSettingsGroups((key) => key).flatMap((group) => group.items.map((item) => item.id)));
+    expect(settingsLevel("facturacion", owner)).toBe("edit");
+    const label = (role: TeamRole) => buildSettingsGroups((key) => key, buildAccess({ role })).flatMap((group) => group.items).find((item) => item.id === "eliminar-cuenta")?.label;
+    expect(label("owner")).toBe("settings.deleteAccount");
+    expect(label("barbero-comision")).toBe("settings.deleteUser");
+  });
+
+  test("un ajuste no permitido abierto por URL lleva a «Sin permiso»", async () => {
+    renderSectionAs("barbero-comision", "impuestos");
+    expect(await screen.findByText("Sin permiso")).toBeInTheDocument();
+  });
+
+  test("el admin abre los impuestos en solo lectura", async () => {
+    renderSectionAs("admin", "impuestos");
+    expect(await screen.findByTestId("settings-read-only")).toBeInTheDocument();
+    expect(await screen.findByTestId("taxGroups-add")).toBeDisabled();
+  });
+
+  test("el barbero ve «Eliminar mi usuario», nunca el borrado del negocio", async () => {
+    renderSectionAs("barbero-comision", "eliminar-cuenta");
+    expect(await screen.findByTestId("delete-user")).toBeInTheDocument();
+    expect(screen.queryByTestId("delete-account-open")).toBeNull();
+  });
+});
 
 describe("ayudas de configuración", () => {
   test("el enlace de reserva solo lleva los UTM que se escribieron", () => {

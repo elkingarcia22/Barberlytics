@@ -13,6 +13,7 @@ export const ProductProfilePage = React.lazy(() => import("@/features/products/P
 export const TransactionsPage = React.lazy(() => import("@/features/transactions/TransactionsPage").then((m) => ({ default: m.TransactionsPage })));
 export const ExpensesPage = React.lazy(() => import("@/features/expenses/ExpensesPage").then((m) => ({ default: m.ExpensesPage })));
 export const PayrollPage = React.lazy(() => import("@/features/payroll/PayrollPage").then((m) => ({ default: m.PayrollPage })));
+export const MyPayPage = React.lazy(() => import("@/features/payroll/MyPayPage").then((m) => ({ default: m.MyPayPage })));
 export const MemberProfilePage = React.lazy(() => import("@/features/team/MemberProfilePage").then((m) => ({ default: m.MemberProfilePage })));
 export const MemberWizardPage = React.lazy(() => import("@/features/team/MemberWizardPage").then((m) => ({ default: m.MemberWizardPage })));
 export const WorkHoursPage = React.lazy(() => import("@/features/team/WorkHoursPage").then((m) => ({ default: m.WorkHoursPage })));

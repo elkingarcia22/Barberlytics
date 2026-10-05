@@ -96,11 +96,12 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     id: "premium",
     name: "Premium",
     description: "Oro champán sobre carbón cálido; hairlines, brillo contenido y serif editorial.",
-    // Bronce dorado en claro (5.1:1 con texto blanco; un oro más amarillo
-    // que pase el contraste se vuelve oliva) y champán en oscuro (9:1 sobre
-    // el carbón, texto oscuro encima). Los neutros llevan el matiz del oro
-    // casi sin saturar: marfil de día, carbón cálido de noche.
-    primary: { light: "#98621B", dark: "#D9B36A" },
+    // Oro antiguo en claro (5.35:1 con texto blanco; el bronce anterior,
+    // #98621B, tiraba a óxido y se leía café; uno más amarillo que pase el
+    // contraste se vuelve oliva) y champán en oscuro (9:1 sobre el carbón,
+    // texto oscuro encima). Los neutros llevan el matiz del oro casi sin
+    // saturar: pergamino de día, carbón cálido de noche.
+    primary: { light: "#8A6420", dark: "#D9B36A" },
     neutral: "tinted",
     neutralHue: 40,
     lightNeutralSaturation: 45,
@@ -108,7 +109,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     depth: "deep",
     tier: "premium",
     brandGradient: {
-      light: ["#D2A45A", "#98621B", "#6B4312"],
+      light: ["#D9B46A", "#8A6420", "#5A3F12"],
       dark: ["#F3E1AE", "#D9B36A", "#A8823A"],
     },
     // "Forja": oro → cobre → turquesa → azul eléctrico. Metal caliente que se

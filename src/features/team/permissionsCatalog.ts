@@ -53,7 +53,7 @@ export const PERMISSION_BLOCKS: readonly PermissionBlockSpec[] = [
     rows: [
       { id: "team", labelKey: "teamMember.permissions.row.team", columns: ALL },
       { id: "managers", labelKey: "teamMember.permissions.row.managers", columns: ALL },
-      { id: "barber-payments", labelKey: "teamMember.permissions.row.barberPayments", columns: ["view", "create", "edit", "active"] },
+      { id: "barber-payments", labelKey: "teamMember.permissions.row.barberPayments", columns: ACTIVE },
       { id: "levels", labelKey: "teamMember.permissions.row.levels", columns: ALL },
       { id: "lineup", labelKey: "teamMember.permissions.row.lineup", columns: ALL },
       { id: "barber-order", labelKey: "teamMember.permissions.row.barberOrder", columns: ALL },
@@ -87,6 +87,8 @@ export const PERMISSION_BLOCKS: readonly PermissionBlockSpec[] = [
       { id: "permissions", labelKey: "teamMember.permissions.row.permissions", columns: ["view", "edit", "active"] },
       { id: "account-settings", labelKey: "teamMember.permissions.row.accountSettings", columns: ["view", "edit", "active"] },
       { id: "expenses", labelKey: "teamMember.permissions.row.expenses", columns: ALL },
+      // Ver las cuentas cobradas; editar es devolver un pago o reasignar a quién se le acredita.
+      { id: "transactions", labelKey: "teamMember.permissions.row.transactions", columns: ["view", "edit"] },
     ],
   },
 ];
@@ -100,15 +102,56 @@ const full = (id: string): Permissions => {
 const some = (id: string, columns: readonly PermissionColumn[]): Permissions => ({ [id]: Object.fromEntries(columns.map((column) => [column, true])) });
 const merge = (...parts: Permissions[]): Permissions => Object.assign({}, ...parts);
 
-const BOOKINGS_FULL = merge(full("calendar"), full("appointments"), full("block-calendar"), full("clients"), full("client-info"), full("import-clients"), full("export-clients"));
-
-/** Los permisos con los que nace cada rol; después se personalizan por persona. */
+/**
+ * Los permisos con los que nace cada rol; después se personalizan por persona.
+ *
+ * Es la matriz de fábrica de producción (centro de ayuda, «Tabla de permisos por rol»;
+ * docs/roles/05-configuracion.md §2) con tres decisiones encima (docs/ROLES_PLAN.md):
+ * - el barbero por comisión no ve los gastos de la sucursal (era la renta del local, entre otros);
+ * - recepción no ve Métricas: cobra y agenda, pero no lleva los números del negocio;
+ * - Transacciones tiene su fila: recepción las ve (las del día), el de renta las suyas.
+ * Lo que un barbero ve «suyo» (su columna, sus clientes, sus cifras) no sale de aquí sino del
+ * alcance de su rol (`features/access`).
+ */
 export const ROLE_DEFAULT_PERMISSIONS: Readonly<Record<TeamRole, Permissions>> = {
   owner: merge(...ALL_ROWS.map((row) => full(row.id))),
-  admin: merge(...ALL_ROWS.filter((row) => row.id !== "barber-payments" && row.id !== "barber-order").map((row) => full(row.id))),
-  recepcion: merge(BOOKINGS_FULL, full("kpis"), some("products", ["view", "active"]), some("product-categories", ["view", "active"]), some("services", ["view", "active"]), full("prices")),
-  "barbero-comision": merge(full("calendar"), full("appointments"), full("block-calendar"), some("clients", ["view", "create", "active"]), some("team", ["view"]), full("prices"), some("account-settings", ["view"]), full("expenses")),
-  "barbero-renta": merge(full("calendar"), full("appointments"), some("block-calendar", ["view"]), some("clients", ["view", "create", "active"]), full("prices"), some("account-settings", ["view"]), full("expenses")),
+  admin: merge(
+    ...ALL_ROWS.filter((row) => !["barber-payments", "barber-order", "export-clients"].includes(row.id)).map((row) => full(row.id))
+  ),
+  recepcion: merge(
+    full("calendar"),
+    full("appointments"),
+    full("block-calendar"),
+    some("clients", ["view", "create", "edit", "active"]),
+    full("client-info"),
+    full("import-clients"),
+    some("products", ["view"]),
+    some("product-categories", ["view"]),
+    full("prices"),
+    some("account-settings", ["view", "edit"]),
+    some("transactions", ["view"])
+  ),
+  "barbero-comision": merge(
+    full("calendar"),
+    full("appointments"),
+    some("block-calendar", ["view", "active"]),
+    some("clients", ["view", "create", "active"]),
+    some("team", ["view"]),
+    full("prices"),
+    some("account-settings", ["view"])
+  ),
+  "barbero-renta": merge(
+    full("calendar"),
+    full("appointments"),
+    full("block-calendar"),
+    full("clients"),
+    full("import-clients"),
+    full("export-clients"),
+    full("prices"),
+    some("account-settings", ["view"]),
+    full("expenses"),
+    some("transactions", ["view"])
+  ),
 };
 
 /** Cuántas casillas hay marcadas sobre cuántas existen. */

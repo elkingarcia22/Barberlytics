@@ -1,14 +1,13 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Ban, CalendarPlus, CheckCircle2, Eye, NotebookPen, ShieldCheck, TriangleAlert, UserPlus, Users } from "lucide-react";
+import { CheckCircle2, TriangleAlert, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
-import type { AppMessageKey } from "@/app/i18n/types";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
-import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
+import { DataListActionRail } from "@/components/action-rail";
 import { DataListBlock } from "@/components/blocks";
 import { MetricCard, MetricDial, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
@@ -24,10 +23,12 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
-import { ALL_SEGMENTS, BIRTHDAY_WINDOW_DAYS, CUSTOMER_ALERTS, UNRELIABLE_MISSES, countBySegment, customerCells, customerColumns, customerPulse, parseSegment, type CustomerAlertId } from "./customersHome";
+import { useCustomerPermissions } from "./customerAccess";
+import { customerListActions } from "./customerActions";
+import { ALL_SEGMENTS, BIRTHDAY_WINDOW_DAYS, CUSTOMER_ALERTS, UNRELIABLE_MISSES, countBySegment, customerCells, customerColumns, customersCsvRows, customerPulse, parseSegment, type CustomerAlertId } from "./customersHome";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
-import { SEGMENT_STYLE, branchName, formatAgo, maskPhone } from "./customersUtils";
-import { useCustomersQuery, useSetCustomerBlocked } from "./queries";
+import { SEGMENT_STYLE, branchName, downloadCsv, formatAgo, maskPhone } from "./customersUtils";
+import { useCustomersQuery, useDeleteCustomer, useSetCustomerBlocked } from "./queries";
 import { SEGMENT_HINT_KEYS, SEGMENT_KEYS, customerSegmentSchema, type Customer } from "./types";
 
 const PAGE_SIZE = 10;
@@ -44,6 +45,10 @@ const ALERT_IDS: readonly string[] = CUSTOMER_ALERTS.map((alert) => alert.id);
  * no escondido tras nueve pestañas—; después cómo va la base, quién necesita
  * algo hoy y la lista con todo. El segmento y el aviso viven en la URL: el
  * enlace reproduce la misma vista.
+ *
+ * Cambia según el rol (`customerAccess.ts`): el barbero ve solo sus
+ * clientes; sin «Información del cliente» no hay teléfono, correo ni notas
+ * médicas; recepción no ve cifras de dinero, y cada acción sale de la matriz.
  */
 export function CustomersPage() {
   const t = useAppT();
@@ -72,32 +77,24 @@ export function CustomersPage() {
           </div>
         }
       >
-        {(data) => <CustomersHome rows={data.items} />}
+        {(data) => <CustomersHome allRows={data.items} />}
       </QueryBoundary>
     </div>
   );
 }
 
-function railActions(t: (key: AppMessageKey) => string, on: { create: () => void; open: () => void; book: () => void; note: () => void; block: () => void }, blocked: boolean): readonly RailActionSpec[] {
-  return [
-    { id: "create", label: t("customers.action.create"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
-    { id: "open", label: t("customers.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.open },
-    { id: "book", label: t("customers.action.book"), icon: <CalendarPlus className="size-5" strokeWidth={2} />, scope: ["single"], blockedReason: blocked ? t("customers.action.bookBlocked") : null, onSelect: on.book },
-    { id: "note", label: t("customers.action.note"), icon: <NotebookPen className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.note },
-    blocked
-      ? { id: "unblock", label: t("customers.action.unblock"), icon: <ShieldCheck className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.block }
-      : { id: "block", label: t("customers.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: on.block },
-  ];
-}
-
-function CustomersHome({ rows }: { rows: readonly Customer[] }) {
+function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const t = useAppT();
+  const perms = useCustomerPermissions();
+  /* El barbero ve solo sus clientes: los segmentos, el pulso y los avisos se cuentan sobre ellos. */
+  const rows = React.useMemo(() => allRows.filter(perms.canSee), [allRows, perms]);
   const navigate = useNavigate();
   const branchId = useBranchId();
   const { formatNumber, formatDate, formatRelativeTime } = useLocale();
   const formatMoney = useMoney();
   const [searchParams, setSearchParams] = useSearchParams();
   const setBlocked = useSetCustomerBlocked();
+  const deleteCustomer = useDeleteCustomer();
 
   const segment = parseSegment(searchParams.get("tipo"));
   const alertParam = searchParams.get("aviso");
@@ -118,13 +115,15 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
   const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
   const [drawer, setDrawer] = React.useState<"create" | "note" | null>(null);
   const [confirmBlock, setConfirmBlock] = React.useState<Customer | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState<Customer | null>(null);
   const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
   const railOwnsActions = actionsPlacement === "rail";
 
   const formatCount = React.useCallback((value: number) => formatNumber(value), [formatNumber]);
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
-  const columns = React.useMemo(() => customerColumns(t), [t]);
-  const cells = React.useMemo(() => customerCells(t, { formatCount, formatMoney, formatDate, formatRelativeTime }), [t, formatCount, formatMoney, formatDate, formatRelativeTime]);
+  const { showContact, showMoney } = perms;
+  const columns = React.useMemo(() => customerColumns(t, { showMoney, showContact, showBarber: perms.scope === "all" }), [t, showMoney, showContact, perms.scope]);
+  const cells = React.useMemo(() => customerCells(t, { formatCount, formatMoney, formatDate, formatRelativeTime }, { showContact }), [t, formatCount, formatMoney, formatDate, formatRelativeTime, showContact]);
 
   const counts = React.useMemo(() => countBySegment(rows), [rows]);
   const pool = React.useMemo(() => (segment === ALL_SEGMENTS ? rows : rows.filter((row) => row.segment === segment)), [rows, segment]);
@@ -135,20 +134,30 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
   const calm = attention === 0;
 
   const single = selected.size === 1 ? rows.find((row) => row.id === [...selected][0]) : undefined;
+  /* Se descarga lo que se ve: el mismo recorte por rol y los mismos filtros de la pantalla. */
+  const exportList = React.useCallback(() => {
+    const csv = customersCsvRows(t, filtered, { showContact, showMoney });
+    downloadCsv(`clientes-${new Date().toISOString().slice(0, 10)}.csv`, csv.header, csv.rows);
+    toast.success(t("customers.export.done"), { description: t("customers.export.doneHint", { count: csv.rows.length }) });
+  }, [filtered, showContact, showMoney, t]);
   const actions = React.useMemo(
     () =>
-      railActions(
+      customerListActions(
         t,
         {
           create: () => setDrawer("create"),
+          exportList,
+          importList: () => toast.info(t("customers.import.soon")),
           open: () => single && navigate(`/clientes/${single.id}`),
           book: () => single && navigate(`/calendario?cliente=${single.id}`),
           note: () => single && setDrawer("note"),
           block: () => single && setConfirmBlock(single),
+          remove: () => single && setConfirmDelete(single),
         },
-        single?.blocked ?? false
+        single?.blocked ?? false,
+        perms
       ),
-    [navigate, single, t]
+    [exportList, navigate, perms, single, t]
   );
 
   /* Cambiar de segmento con un aviso puesto puede dejar la lista en blanco
@@ -170,9 +179,11 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
           title={t("customers.emptyTitle")}
           description={t("customers.emptyHint")}
           action={
-            <Button onClick={() => setDrawer("create")}>
-              <UserPlus /> {t("customers.action.create")}
-            </Button>
+            perms.canCreate ? (
+              <Button onClick={() => setDrawer("create")}>
+                <UserPlus /> {t("customers.action.create")}
+              </Button>
+            ) : undefined
           }
         />
         <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
@@ -207,7 +218,7 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
             </div>
           }
         >
-          <div className="grid gap-stack lg:grid-cols-3">
+          <div className={showMoney ? "grid gap-stack lg:grid-cols-3" : "grid gap-stack lg:grid-cols-2"} data-testid="customers-pulse">
             <MetricCard
               label={t("customers.pulse.returning")}
               value={formatPercent(pulse.returningRate)}
@@ -217,7 +228,7 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
               icon="users"
               chart={<MetricRing value={pulse.returningRate} color={ringColor} ariaLabel={`${t("customers.pulse.returning")}: ${formatPercent(pulse.returningRate)}`} />}
             />
-            <MetricCard label={t("customers.pulse.ltv")} value={formatMoney(pulse.avgLtv)} caption={t("customers.pulse.ltvCaption", { total: formatMoney(pulse.totalLtv) })} hint={t("customers.pulse.ltvHint")} tone="positive" icon="chart" />
+            {showMoney && <MetricCard label={t("customers.pulse.ltv")} value={formatMoney(pulse.avgLtv)} caption={t("customers.pulse.ltvCaption", { total: formatMoney(pulse.totalLtv) })} hint={t("customers.pulse.ltvHint")} tone="positive" icon="chart" />}
             <MetricCard
               label={t("customers.pulse.onTrack")}
               value={formatPercent(100 - pulse.driftingRate)}
@@ -256,7 +267,7 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
         cells={cells}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.name}
-        searchBy={(row) => `${row.name} ${row.email} ${row.phone.replace(/\D/g, "")} ${t(SEGMENT_KEYS[row.segment])} ${branchName(row.branchId)}`}
+        searchBy={(row) => `${row.name} ${showContact ? `${row.email} ${row.phone.replace(/\D/g, "")}` : ""} ${t(SEGMENT_KEYS[row.segment])} ${branchName(row.branchId)}`}
         searchPlaceholder={t("customers.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         selectable
@@ -279,12 +290,12 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
             leading={
               <span className="flex items-center gap-3">
                 {state.checkbox}
-                <CustomerAvatar name={row.name} />
+                <CustomerAvatar name={row.name} avatarUrl={row.avatarUrl} />
               </span>
             }
             title={row.name}
-            description={`${maskPhone(row.phone)} · ${row.lastVisitAt ? formatAgo(row.lastVisitAt, formatRelativeTime) : t("customers.neverVisited")}`}
-            meta={<span className="tabular-nums">{row.ltv === 0 ? "—" : formatMoney(row.ltv)}</span>}
+            description={[showContact ? maskPhone(row.phone) : null, row.lastVisitAt ? formatAgo(row.lastVisitAt, formatRelativeTime) : t("customers.neverVisited")].filter(Boolean).join(" · ")}
+            meta={showMoney ? <span className="tabular-nums">{row.ltv === 0 ? "—" : formatMoney(row.ltv)}</span> : undefined}
             actions={
               <>
                 <SegmentBadge segment={row.segment} />
@@ -298,7 +309,7 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={actions} gender="m" isBlocked={drawer !== null || confirmBlock !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={actions} gender="m" isBlocked={drawer !== null || confirmBlock !== null || confirmDelete !== null} />
         </ShellRailSlot>
       )}
 
@@ -327,6 +338,27 @@ function CustomersHome({ rows }: { rows: readonly Customer[] }) {
               onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
             }
           );
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        variant="destructive"
+        title={t("customers.delete.title", { name: confirmDelete?.name ?? "" })}
+        description={t("customers.delete.hint")}
+        confirmLabel={t("customers.action.delete")}
+        loading={deleteCustomer.isPending}
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          deleteCustomer.mutate(confirmDelete.id, {
+            onSuccess: () => {
+              toast.success(t("customers.delete.done"), { description: confirmDelete.name });
+              setConfirmDelete(null);
+              setSelected(new Set());
+            },
+            onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+          });
         }}
       />
     </>

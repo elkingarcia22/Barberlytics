@@ -24,6 +24,8 @@ export interface RowActionsMenuProps {
   actions: readonly RowAction[]
   /** Qué fila se está operando, para que el botón no sea un «⋯» anónimo. */
   rowLabel?: string
+  /** Se abre o se cierra; al abrir, quien lo usa suele marcar la fila para que la acción caiga sobre ella. */
+  onOpenChange?: (open: boolean) => void
   className?: string
 }
 
@@ -46,11 +48,11 @@ export interface RowActionsMenuProps {
  *   ]}
  * />
  */
-export function RowActionsMenu({ actions, rowLabel, className }: RowActionsMenuProps) {
+export function RowActionsMenu({ actions, rowLabel, onOpenChange, className }: RowActionsMenuProps) {
   if (actions.length === 0) return null
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"

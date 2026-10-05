@@ -2,6 +2,7 @@ import { Armchair, CalendarClock, CalendarX2, ConciergeBell, Crown, HandCoins, M
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { Progress } from "@/components/ui/progress";
+import { TeamPersonAvatar } from "./teamShared";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
 import type { TableColumnCells, TableColumnSpec } from "@/components/data-display/table-config";
 import { BRANCHES } from "@/features/branches";
@@ -210,8 +211,12 @@ type Translate = (key: AppMessageKey, params?: Readonly<Record<string, string | 
 /** Lo que no aplica a un rol se escribe una sola vez, y en un solo sitio. */
 const EMPTY = "—";
 
-export function teamColumns(t: Translate): readonly TableColumnSpec[] {
-  return [
+/**
+ * Las columnas de la lista. Lo generado y lo liquidado son el dinero de cada
+ * barbero: sin «Sección de pagos de barberos» no se ofrecen ni en el panel de columnas.
+ */
+export function teamColumns(t: Translate, { money = true }: { money?: boolean } = {}): readonly TableColumnSpec[] {
+  const columns: TableColumnSpec[] = [
     { id: "select", label: t("column.selection"), fixed: true },
     { id: "person", label: t("team.column.person") },
     { id: "role", label: t("team.column.role") },
@@ -224,24 +229,32 @@ export function teamColumns(t: Translate): readonly TableColumnSpec[] {
     { id: "status", label: t("team.column.status") },
     { id: "lastActive", label: t("team.column.lastActive"), hiddenByDefault: true },
   ];
+  return money ? columns : columns.filter((column) => column.id !== "revenue" && column.id !== "payout");
 }
 
 export interface TeamCellFormatters {
   intlLocale: string;
   formatCount: (value: number) => string;
   formatMoney: (value: number) => string;
+  /** La foto de cada persona, que llega con el equipo de la API; sin ella, sus iniciales. */
+  avatarOf?: (id: string) => string | null;
+  /** Si el correo de esa persona se enseña; entre colegas no (privacidad). Por defecto, siempre. */
+  showContact?: (row: TeamMember) => boolean;
 }
 
-export function teamCells(t: Translate, { intlLocale, formatCount, formatMoney }: TeamCellFormatters): TableColumnCells<TeamMember> {
+export function teamCells(t: Translate, { intlLocale, formatCount, formatMoney, avatarOf, showContact = () => true }: TeamCellFormatters): TableColumnCells<TeamMember> {
   return {
     person: {
       head: t("team.column.person"),
       cell: (row) => (
-        <span className="flex flex-col">
-          <Link to={`/usuarios/miembros/${row.id}`} className="font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-            {row.name}
-          </Link>
-          <span className="text-xs text-text-muted">{row.email}</span>
+        <span className="flex items-center gap-3">
+          <TeamPersonAvatar name={row.name} avatarUrl={avatarOf?.(row.id)} />
+          <span className="flex min-w-0 flex-col">
+            <Link to={`/usuarios/miembros/${row.id}`} className="font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+              {row.name}
+            </Link>
+            {showContact(row) && <span className="text-xs text-text-muted">{row.email}</span>}
+          </span>
         </span>
       ),
     },

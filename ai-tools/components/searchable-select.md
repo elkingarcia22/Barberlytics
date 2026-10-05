@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/forms"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `options` | `SearchableSelectOption[]` |  | Opciones con value, label, description opcional y disabled. |
+| `options` | `SearchableSelectOption[]` |  | Opciones con value, label, description, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label y description. |
 | `value` | `string` |  | Valor seleccionado (controlado). |
 | `onValueChange` | `(value: string) => void` |  | Se llama al elegir; el popover se cierra solo. |
 | `placeholder` | `string` | `"Selecciona una opción"` | Texto del trigger sin selección. |
@@ -35,7 +35,7 @@ Relacionados: single-select, multi-select, select, field, popover
 
 ### Controlado con filtro
 
-Abre el popover y escribe: la lista se filtra por el label de cada opción.
+Abre el popover y escribe: la lista se filtra por el label y la descripción de cada opción.
 
 ```tsx
 const [value, setValue] = React.useState<string>("co");
@@ -70,6 +70,28 @@ El error desaparece al elegir un responsable.
     emptyMessage="Ninguna persona coincide."
   />
 </Field>
+```
+
+### Con avatar o miniatura
+
+`leading` pinta la cara del cliente (o la miniatura de un servicio, con `IconTile src`) en cada opción y en el botón con la opción elegida. La búsqueda mira el label y la descripción, no el id.
+
+```tsx
+<SearchableSelect
+  options={clients.map((client) => ({
+    value: client.id,
+    label: client.name,
+    description: client.phone,
+    leading: (
+      <Avatar size="sm">
+        {client.avatarUrl && <AvatarImage src={client.avatarUrl} alt="" />}
+        <AvatarFallback>{initials(client.name)}</AvatarFallback>
+      </Avatar>
+    ),
+  }))}
+  value={clientId}
+  onValueChange={setClientId}
+/>
 ```
 
 ### Deshabilitado

@@ -22,6 +22,8 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/typography";
 import { PageHeader } from "@/components/utility";
 import { initialsOf } from "@/components/scheduling";
+import { useAccess } from "@/features/access";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { InfoCard, InfoRow } from "@/features/team/teamShared";
 import { useBranchId } from "@/features/team/teamUtils";
@@ -103,6 +105,7 @@ function ServiceProfile({ service, categories, items, branchId }: ServiceProfile
   const remove = useRemoveService();
   const [editing, setEditing] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
+  const can = catalogAccess(useAccess(), "services");
 
   const tabParam = searchParams.get("pestana");
   const tab: ProfileTab = TABS.find((item) => item === tabParam) ?? "resumen";
@@ -128,15 +131,18 @@ function ServiceProfile({ service, categories, items, branchId }: ServiceProfile
     );
   }, [service.active, service.id, setActive, t]);
 
+  const { canToggle, canDelete, canEdit } = can;
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () => [
-      service.active
-        ? { id: "deactivate", label: t("services.action.deactivate"), icon: <PowerOff className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: toggleActive }
-        : { id: "activate", label: t("services.action.activate"), icon: <Power className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: toggleActive },
-      { id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"], tone: "danger", overflow: true, onSelect: () => setConfirmRemove(true) },
-      { id: "edit", label: t("action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setEditing(true) },
+      ...(!canToggle
+        ? []
+        : service.active
+        ? [{ id: "deactivate", label: t("services.action.deactivate"), icon: <PowerOff className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: toggleActive }]
+        : [{ id: "activate", label: t("services.action.activate"), icon: <Power className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: toggleActive }]),
+      ...(canDelete ? [{ id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"] as const, tone: "danger" as const, overflow: true, onSelect: () => setConfirmRemove(true) }] : []),
+      ...(canEdit ? [{ id: "edit", label: t("action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => setEditing(true) }] : []),
     ],
-    [service.active, t, toggleActive]
+    [canDelete, canEdit, canToggle, service.active, t, toggleActive]
   );
 
   return (
@@ -144,7 +150,7 @@ function ServiceProfile({ service, categories, items, branchId }: ServiceProfile
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            <ServiceGlyph kind={service.kind} size="lg" />
+            <ServiceGlyph kind={service.kind} size="xl" imageUrl={service.imageUrl} />
             <span className="flex flex-wrap items-center gap-2">
               {service.name}
               <ActiveBadge active={service.active} />
@@ -162,7 +168,7 @@ function ServiceProfile({ service, categories, items, branchId }: ServiceProfile
 
       <ThemaTabs className="mb-4" variant="page" fitContent tabs={TABS.map((item) => ({ id: item, label: t(TAB_KEYS[item]), badge: item === "equipo" ? service.offeredBy : undefined }))} activeTabId={tab} onTabChange={(next) => setTab(next as ProfileTab)} />
 
-      {tab === "resumen" ? <ServiceOverview service={service} categories={categories} items={items} formatMoney={formatMoney} /> : <ServiceTeam key={service.id} service={service} branchId={branchId} formatMoney={formatMoney} />}
+      {tab === "resumen" ? <ServiceOverview service={service} categories={categories} items={items} formatMoney={formatMoney} showMoney={can.seesMoney} /> : <ServiceTeam key={service.id} service={service} branchId={branchId} formatMoney={formatMoney} canEdit={can.canEdit} />}
 
       <ShellRailSlot>
         <DataListActionRail actions={actions} selectedCount={0} onClearSelection={() => undefined} isBlocked={editing || confirmRemove} />
@@ -200,9 +206,11 @@ interface OverviewProps {
   categories: readonly ServiceCategory[];
   items: readonly CatalogService[];
   formatMoney: (value: number) => string;
+  /** Costo y margen: solo para quien gestiona el catálogo. */
+  showMoney: boolean;
 }
 
-function ServiceOverview({ service, categories, items, formatMoney }: OverviewProps) {
+function ServiceOverview({ service, categories, items, formatMoney, showMoney }: OverviewProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   const margin = marginOf(service);
@@ -213,7 +221,7 @@ function ServiceOverview({ service, categories, items, formatMoney }: OverviewPr
 
   return (
     <div className="space-y-section">
-      <section aria-label={t("services.overview.numbersAria")} className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label={t("services.overview.numbersAria")} className={showMoney ? "grid gap-stack sm:grid-cols-2 xl:grid-cols-4" : "grid gap-stack sm:grid-cols-2"}>
         <MetricCard label={t("services.column.price")} value={formatMoney(service.price)} caption={service.taxRate === null ? t("services.overview.noTax") : t("services.overview.plusTax", { rate: percent(service.taxRate) })} tone="brand" icon="chart" />
         <MetricCard
           label={t("services.column.duration")}
@@ -222,6 +230,8 @@ function ServiceOverview({ service, categories, items, formatMoney }: OverviewPr
           tone="positive"
           icon="clock"
         />
+        {showMoney && (
+          <>
         <MetricCard label={t("services.column.cost")} value={service.cost === null ? "—" : formatMoney(service.cost)} caption={service.cost === null ? t("services.overview.costMissing") : t("services.overview.costCaption")} hint={t("services.overview.costHint")} tone="warning" icon="file" />
         <MetricCard
           label={t("services.column.margin")}
@@ -231,6 +241,8 @@ function ServiceOverview({ service, categories, items, formatMoney }: OverviewPr
           tone="brand"
           icon="award"
         />
+          </>
+        )}
       </section>
 
       <div className="grid items-start gap-stack lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -243,7 +255,7 @@ function ServiceOverview({ service, categories, items, formatMoney }: OverviewPr
             <InfoCard title={t("services.overview.includes")} description={t("services.overview.includesHint")}>
               <div className="space-y-2" data-testid="service-includes">
                 {included.map((item) => (
-                  <ListItem key={item.id} size="sm" leading={<ServiceGlyph kind="service" size="sm" />} title={item.name} description={formatDuration(item.durationMin)} meta={<span className="tabular-nums">{formatMoney(item.price)}</span>} />
+                  <ListItem key={item.id} size="sm" leading={<ServiceGlyph kind="service" size="sm" imageUrl={item.imageUrl} />} title={item.name} description={formatDuration(item.durationMin)} meta={<span className="tabular-nums">{formatMoney(item.price)}</span>} />
                 ))}
               </div>
               <dl className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -295,6 +307,8 @@ interface TeamProps {
   service: ServiceDetail;
   branchId: string;
   formatMoney: (value: number) => string;
+  /** Sin «Servicios · Editar» la lista de quién lo ofrece es de consulta. */
+  canEdit: boolean;
 }
 
 /**
@@ -302,7 +316,7 @@ interface TeamProps {
  * los valores propios de cada barbero —su precio, su duración, su comisión—
  * se ajustan en su ficha, que es donde ya vive ese formulario.
  */
-function ServiceTeam({ service, branchId, formatMoney }: TeamProps) {
+function ServiceTeam({ service, branchId, formatMoney, canEdit }: TeamProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const save = useSetServiceTeam(branchId);
@@ -340,9 +354,11 @@ function ServiceTeam({ service, branchId, formatMoney }: TeamProps) {
         <p className="max-w-prose text-sm text-text-secondary">{t("services.team.hint")}</p>
         <div className="flex items-center gap-2">
           <Badge variant="neutral">{t("services.team.count", { count: offering.size, total: service.team.length })}</Badge>
-          <Button variant="outline" size="sm" onClick={() => setDraft(allOn ? new Set() : new Set(service.team.map((row) => row.memberId)))}>
-            {t(allOn ? "services.team.none" : "services.team.all")}
-          </Button>
+          {canEdit && (
+            <Button variant="outline" size="sm" onClick={() => setDraft(allOn ? new Set() : new Set(service.team.map((row) => row.memberId)))}>
+              {t(allOn ? "services.team.none" : "services.team.all")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -354,7 +370,7 @@ function ServiceTeam({ service, branchId, formatMoney }: TeamProps) {
               key={row.memberId}
               leading={
                 <span className="flex items-center gap-3">
-                  <Switch checked={offered} onCheckedChange={(checked) => toggle(row.memberId, checked)} aria-label={t("services.team.offersAria", { name: row.name })} />
+                  <Switch checked={offered} disabled={!canEdit} onCheckedChange={(checked) => toggle(row.memberId, checked)} aria-label={t("services.team.offersAria", { name: row.name })} />
                   <Avatar>
                     {row.avatarUrl && <AvatarImage src={row.avatarUrl} alt="" />}
                     <AvatarFallback>{initialsOf(row.name)}</AvatarFallback>
@@ -365,9 +381,11 @@ function ServiceTeam({ service, branchId, formatMoney }: TeamProps) {
               description={offered ? `${formatMoney(row.price)} · ${formatDuration(row.durationMin)}` : t("services.team.notOffered")}
               meta={offered ? <Badge variant={row.custom ? "default" : "neutral"}>{t(row.custom ? "services.team.custom" : "services.team.usesCatalog")}</Badge> : null}
               actions={
-                <Button variant="ghost" size="icon-sm" aria-label={t("services.team.adjustAria", { name: row.name })} disabled={!offered} onClick={() => navigate(`/usuarios/miembros/${row.memberId}?pestana=servicios&editar=1`)}>
-                  <SlidersHorizontal />
-                </Button>
+                canEdit ? (
+                  <Button variant="ghost" size="icon-sm" aria-label={t("services.team.adjustAria", { name: row.name })} disabled={!offered} onClick={() => navigate(`/usuarios/miembros/${row.memberId}?pestana=servicios&editar=1`)}>
+                    <SlidersHorizontal />
+                  </Button>
+                ) : undefined
               }
             />
           );

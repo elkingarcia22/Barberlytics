@@ -29,8 +29,12 @@ export const profitOf = (product: Pick<CatalogProduct, "price" | "cost">): numbe
 
 const EMPTY = "—";
 
-export function productColumns(t: Translate): readonly TableColumnSpec[] {
-  return [
+/**
+ * Precio de compra y margen son cifras de negocio: recepción vende al precio de
+ * venta y no ve lo que cuesta (sin `money` no se ofrecen ni en el panel de columnas).
+ */
+export function productColumns(t: Translate, { money = true }: { money?: boolean } = {}): readonly TableColumnSpec[] {
+  const columns: TableColumnSpec[] = [
     { id: "select", label: t("column.selection"), fixed: true },
     { id: "product", label: t("products.column.product") },
     { id: "category", label: t("products.column.category") },
@@ -43,6 +47,7 @@ export function productColumns(t: Translate): readonly TableColumnSpec[] {
     { id: "booking", label: t("products.column.booking"), hiddenByDefault: true },
     { id: "status", label: t("products.column.status") },
   ];
+  return money ? columns : columns.filter((column) => column.id !== "cost" && column.id !== "margin");
 }
 
 export interface ProductCellContext {
@@ -58,7 +63,7 @@ export function productCells(t: Translate, { categories, formatMoney, formatPerc
       head: t("products.column.product"),
       cell: (row) => (
         <span className="flex items-center gap-3">
-          <ProductGlyph />
+          <ProductGlyph imageUrl={row.imageUrl} />
           <span className="flex min-w-0 flex-col">
             <Link to={`/productos/${row.id}`} className="truncate font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
               {row.name}

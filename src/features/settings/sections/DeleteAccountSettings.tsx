@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { TriangleAlert } from "lucide-react";
+import { Info, TriangleAlert } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { describeError, isApiError } from "@/lib/api";
@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAccess } from "@/features/access";
 import { useAuth } from "@/features/auth";
 import { SettingsCard } from "../SettingsFormParts";
 import { settingsApi } from "../settingsApi";
@@ -24,8 +25,35 @@ const LOSSES: readonly AppMessageKey[] = ["cfg.delete.loss.clients", "cfg.delete
  * así que antes de pedir la confirmación dice qué se pierde, y la
  * confirmación obliga a escribir el nombre de la empresa: un clic de más no
  * borra un negocio.
+ *
+ * Borrar el negocio es solo del dueño. Para el resto la tarjeta es «Eliminar
+ * mi usuario»: quitar su acceso sin tocar el negocio (en producción el barbero
+ * veía una tarjeta que, por su texto, borraba la barbería entera).
  */
 export function DeleteAccountSettings() {
+  const { role } = useAccess();
+  return role === "owner" ? <DeleteBusiness /> : <DeleteMyUser />;
+}
+
+/**
+ * Quitar el propio acceso. Mientras el contrato no tenga `POST /me/delete`, la
+ * baja la hace quien administra el equipo inactivando el perfil (como dice la
+ * ayuda de producción); aquí se explica qué pasa y a quién pedírsela.
+ */
+function DeleteMyUser() {
+  const t = useAppT();
+  return (
+    <SettingsCard title={t("cfg.deleteUser.title")} description={t("cfg.deleteUser.hint")}>
+      <Alert data-testid="delete-user">
+        <Info />
+        <AlertTitle>{t("cfg.deleteUser.howTitle")}</AlertTitle>
+        <AlertDescription>{t("cfg.deleteUser.how")}</AlertDescription>
+      </Alert>
+    </SettingsCard>
+  );
+}
+
+function DeleteBusiness() {
   const t = useAppT();
   const company = useSettingsSection("company", companySchema);
   const { logout } = useAuth();

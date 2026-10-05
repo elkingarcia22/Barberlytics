@@ -7,7 +7,6 @@ import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, NumberField, SearchableSelect } from "@/components/forms";
 import { RadioCardGroup } from "@/components/selection";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
-import { IconTile } from "@/components/utility";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import { Chip } from "@/components/ai-interaction";
@@ -18,6 +17,7 @@ import { useSettingsSection } from "@/features/settings/settingsQueries";
 import { cardFeeSchema, tipsSchema } from "@/features/settings/settingsTypes";
 import { FALLBACK_TIPS, changeDue, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type Appointment, type PaymentMethod, type ProductLine } from "./types";
+import { ProductThumb, ServiceThumb } from "./calendarShared";
 
 /**
  * Cobrar una cita: los servicios y productos de la cuenta, la propina para
@@ -117,7 +117,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
                 <ListItem
                   key={`${service.id}-${index}`}
                   size="sm"
-                  leading={<IconTile icon={<Scissors />} size="sm" />}
+                  leading={<ServiceThumb service={service} />}
                   title={service.name}
                   description={t("calendar.field.minutes", { count: service.durationMin })}
                   meta={ctx.formatMoney(service.price)}
@@ -136,7 +136,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
               onValueChange={(id) => setServiceIds((current) => [...current, id])}
               placeholder={t("calendar.checkout.addService")}
               searchPlaceholder={t("calendar.create.searchServices")}
-              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }) }))}
+              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }), leading: <ServiceThumb service={item} /> }))}
             />
           </div>
         </DrawerSection>
@@ -149,7 +149,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
                   <ListItem
                     key={product.id}
                     size="sm"
-                    leading={<IconTile icon={<Package />} size="sm" tone="positive" />}
+                    leading={<ProductThumb product={product} />}
                     title={product.name}
                     description={`${line.qty} × ${ctx.formatMoney(product.price)}`}
                     meta={ctx.formatMoney(product.price * line.qty)}
@@ -166,7 +166,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
               value=""
               onValueChange={addProduct}
               placeholder={t("calendar.checkout.addProduct")}
-              options={ctx.catalog.products.map((item) => ({ value: item.id, label: item.name, description: `${item.category} · ${ctx.formatMoney(item.price)}` }))}
+              options={ctx.catalog.products.map((item) => ({ value: item.id, label: item.name, description: `${item.category} · ${ctx.formatMoney(item.price)}`, leading: <ProductThumb product={item} /> }))}
             />
           </div>
         </DrawerSection>

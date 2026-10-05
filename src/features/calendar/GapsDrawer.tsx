@@ -45,6 +45,7 @@ export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onBoo
     [open, day, ctx.catalog, ctx.now, date, waitlist, min]
   );
   const summary = gapsSummary(gaps);
+  const showTotals = ctx.access?.showTotals ?? true;
 
   const groups = React.useMemo(() => {
     if (groupBy === "time") return gaps.length > 0 ? [{ id: "all", label: null as string | null, items: gaps }] : [];
@@ -56,10 +57,11 @@ export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onBoo
   return (
     <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.gaps.title")} description={t("calendar.gaps.hint")}>
       <div className="space-y-4" data-testid="calendar-gaps">
-        <dl className="grid grid-cols-3 gap-3" data-testid="calendar-gaps-summary">
+        <dl className={`grid gap-3 ${showTotals ? "grid-cols-3" : "grid-cols-2"}`} data-testid="calendar-gaps-summary">
           <Stat label={t("calendar.gaps.stat.count")} value={String(summary.count)} />
           <Stat label={t("calendar.gaps.stat.free")} value={durationLabel(summary.minutes)} />
-          <Stat label={t("calendar.gaps.stat.potential")} value={ctx.formatMoney(summary.potential)} />
+          {/* «Por vender» es una cifra del negocio: recepción se queda con las horas libres. */}
+          {showTotals && <Stat label={t("calendar.gaps.stat.potential")} value={ctx.formatMoney(summary.potential)} />}
         </dl>
 
         <div className="flex flex-wrap items-center justify-between gap-2">

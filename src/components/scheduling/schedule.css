@@ -5,19 +5,39 @@
  * ni se confunde con los colores de estado. Cada clase solo fija el matiz
  * (`--schedule-color`); quien la usa decide la opacidad, y por eso vale igual
  * en claro y en oscuro.
+ *
+ * La saturación la escala el tema con `--schedule-chroma` (lo escribe
+ * `buildTokens`): 1 en los temas estándar y menos en los premium, para que la
+ * paleta acompañe al tema en vez de gritar sobre él.
  */
-.schedule-color-1 { --schedule-color: 217 85% 56%; }
-.schedule-color-2 { --schedule-color: 152 60% 40%; }
-.schedule-color-3 { --schedule-color: 32 92% 52%; }
-.schedule-color-4 { --schedule-color: 280 62% 58%; }
-.schedule-color-5 { --schedule-color: 188 78% 42%; }
-.schedule-color-6 { --schedule-color: 338 78% 58%; }
-.schedule-color-7 { --schedule-color: 48 90% 48%; }
-.schedule-color-8 { --schedule-color: 244 70% 64%; }
-.schedule-color-9 { --schedule-color: 96 52% 42%; }
-.schedule-color-10 { --schedule-color: 14 82% 56%; }
-.schedule-color-11 { --schedule-color: 168 64% 38%; }
-.schedule-color-12 { --schedule-color: 304 52% 54%; }
+.schedule-color-1 { --schedule-color: 217 calc(85% * var(--schedule-chroma, 1)) 56%; }
+.schedule-color-2 { --schedule-color: 152 calc(60% * var(--schedule-chroma, 1)) 40%; }
+.schedule-color-3 { --schedule-color: 32 calc(92% * var(--schedule-chroma, 1)) 52%; }
+.schedule-color-4 { --schedule-color: 280 calc(62% * var(--schedule-chroma, 1)) 58%; }
+.schedule-color-5 { --schedule-color: 188 calc(78% * var(--schedule-chroma, 1)) 42%; }
+.schedule-color-6 { --schedule-color: 338 calc(78% * var(--schedule-chroma, 1)) 58%; }
+.schedule-color-7 { --schedule-color: 48 calc(90% * var(--schedule-chroma, 1)) 48%; }
+.schedule-color-8 { --schedule-color: 244 calc(70% * var(--schedule-chroma, 1)) 64%; }
+.schedule-color-9 { --schedule-color: 96 calc(52% * var(--schedule-chroma, 1)) 42%; }
+.schedule-color-10 { --schedule-color: 14 calc(82% * var(--schedule-chroma, 1)) 56%; }
+.schedule-color-11 { --schedule-color: 168 calc(64% * var(--schedule-chroma, 1)) 38%; }
+.schedule-color-12 { --schedule-color: 304 calc(52% * var(--schedule-chroma, 1)) 54%; }
+
+/*
+ * Los tonos de estado como color de agenda: salen de los semánticos del tema
+ * (que en Oro claro son esmeralda, granate, terracota, zafiro…), así el
+ * pastel de una cita cobrada es el verde de ese tema y no uno fijo.
+ */
+.schedule-tone-primary { --schedule-fill: hsl(var(--primary)); }
+.schedule-tone-positive { --schedule-fill: hsl(var(--success)); }
+.schedule-tone-warning { --schedule-fill: hsl(var(--warning)); }
+.schedule-tone-negative { --schedule-fill: hsl(var(--destructive)); }
+.schedule-tone-info { --schedule-fill: hsl(var(--info)); }
+/* El neutro es gris cálido, como la etiqueta neutral (y como «Nuevo» en
+   Clientes). El acento es el sexto color sin significado de estado: el índigo
+   del sistema (`NEUTRAL_ACCENT` en lib/tone), ciruela en Oro. */
+.schedule-tone-neutral { --schedule-fill: hsl(var(--muted-foreground)); }
+.schedule-tone-accent { --schedule-fill: var(--color-indigo); }
 
 /*
  * El relleno de las tarjetas de cita, uno solo para todas y sin borde (a la manera de Google
@@ -26,8 +46,62 @@
  * transparenta.
  */
 .schedule-card-fill {
+  border-radius: 0;
   background-image: linear-gradient(hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.18));
 }
 .dark .schedule-card-fill {
   background-image: linear-gradient(hsl(var(--foreground) / 0.11), hsl(var(--foreground) / 0.11));
+}
+/* Sin borde ni al pasar: el hover aclara el relleno un paso. */
+.dark .schedule-card-fill:hover {
+  background-image: linear-gradient(hsl(var(--foreground) / 0.16), hsl(var(--foreground) / 0.16));
+}
+
+/*
+ * En claro, la vista neutral no tiñe: tarjeta de papel —la superficie del tema y una sombra corta,
+ * sin borde—. Así se distingue por forma de las vistas por servicio, estado o cliente, que son
+ * rellenos pastel y planos; un relleno de la marca se confundía con el pastel de «En silla».
+ */
+html:not(.dark) .schedule-card-fill {
+  background-image: none;
+  background-color: hsl(var(--card));
+  border-color: transparent;
+}
+/* Sin pisar la sombra de arrastre (`shadow-lg`). */
+html:not(.dark) .schedule-card-fill:not(.shadow-lg) {
+  box-shadow: 0 1px 2px rgba(var(--shadow-tint-rgb, 15, 23, 42), 0.06), 0 4px 10px -6px rgba(var(--shadow-tint-rgb, 15, 23, 42), 0.14);
+}
+/* Al pasar, la sombra crece en vez de dibujar un borde. */
+html:not(.dark) .schedule-card-fill:not(.shadow-lg):hover {
+  box-shadow: 0 1px 2px rgba(var(--shadow-tint-rgb, 15, 23, 42), 0.08), 0 8px 18px -8px rgba(var(--shadow-tint-rgb, 15, 23, 42), 0.22);
+}
+
+/*
+ * El relleno pastel: el color de la tarjeta (servicio o estado) mezclado con
+ * la superficie del tema. Mezclar con la card, y no bajar la opacidad, deja el
+ * pastel opaco y con el matiz del tema: marfil en Oro, blanco azulado en Azul,
+ * carbón en oscuro. Cuánto color entra lo decide el tema
+ * (`--schedule-pastel-strength`), poco en claro para que la agenda siga sobria.
+ */
+/* Teñidas (pastel o vivo) van con esquinas rectas: bloques de color que se apilan en la rejilla. */
+.schedule-pastel {
+  border-radius: 0;
+  background-color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) var(--schedule-pastel-strength, 16%), hsl(var(--card)));
+}
+.schedule-pastel:hover {
+  border-color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) 45%, hsl(var(--card)));
+}
+
+/*
+ * Estilo vivo (lo activa `.schedule-vivid` en un contenedor): más color en el
+ * relleno, una línea del tono pleno arriba y el texto escrito en el mismo
+ * tono, mezclado con el color del texto del tema para que se lea igual en
+ * claro (tono oscuro) y en oscuro (tono claro).
+ */
+.schedule-vivid .schedule-pastel {
+  background-color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) var(--schedule-vivid-strength, 32%), hsl(var(--card)));
+  box-shadow: inset 0 3px 0 var(--schedule-fill, hsl(var(--schedule-color)));
+}
+.schedule-vivid .schedule-pastel [data-card-ink] {
+  color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) 62%, hsl(var(--foreground)));
 }

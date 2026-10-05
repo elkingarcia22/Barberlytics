@@ -10,7 +10,7 @@ import { Field, SearchableSelect } from "@/components/forms";
 import { DatePicker } from "@/components/date";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PersonAvatar } from "./calendarShared";
+import { ClientAvatar, PersonAvatar, ServiceThumb } from "./calendarShared";
 import { atMinutes, formatClock, minutesOfDay } from "@/components/scheduling";
 import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
 import { nextFreeMinute, type ModelContext } from "./calendarModel";
@@ -116,7 +116,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCr
               value={clientId}
               onValueChange={setClientId}
               placeholder={t("calendar.create.pickClient")}
-              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}` }))}
+              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, leading: <ClientAvatar client={client} size="sm" /> }))}
             />
           </Field>
           <Field label={t("calendar.field.service")} required>
@@ -124,7 +124,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCr
               value={serviceId}
               onValueChange={setServiceId}
               placeholder={t("calendar.create.pickService")}
-              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }) }))}
+              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }), leading: <ServiceThumb service={item} /> }))}
             />
           </Field>
           <Field label={t("calendar.field.barber")} required>

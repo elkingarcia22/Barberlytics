@@ -33,6 +33,8 @@ export interface BlockDrawerProps {
   date: Date;
   /** La agenda del día que se mira: con ella se avisa de las citas que el bloqueo pisaría. */
   day?: CalendarDay;
+  /** Un barbero bloquea su propia agenda: el barbero viene fijo y no hay «cierre del negocio». */
+  ownOnly?: boolean;
 }
 
 const HOURS = halfHourOptions(6, 24);
@@ -41,7 +43,7 @@ export function BlockDrawer(props: BlockDrawerProps) {
   return <BlockPanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day }: BlockDrawerProps) {
+function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day, ownOnly = false }: BlockDrawerProps) {
   const t = useAppT();
   const { current } = useLocale();
   const create = useCreateBlock();
@@ -113,7 +115,7 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day }:
       <DrawerSection icon={Ban} tone="negative" title={t("calendar.block.title")} hint={t("calendar.block.hint")}>
         <div className="space-y-3" data-testid="block-drawer">
           <Field label={t("calendar.block.barber")} required error={errors.barberId}>
-            <Select value={barberId} onValueChange={setBarberId}>
+            <Select value={barberId} onValueChange={setBarberId} disabled={ownOnly}>
               <SelectTrigger>
                 <SelectValue placeholder={t("calendar.create.pickBarber")} />
               </SelectTrigger>
@@ -136,7 +138,7 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day }:
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {blockCategorySchema.options.map((option) => (
+                  {blockCategorySchema.options.filter((option) => !ownOnly || option !== "business").map((option) => (
                     <SelectItem key={option} value={option}>
                       {t(BLOCK_CATEGORY_KEYS[option])}
                     </SelectItem>

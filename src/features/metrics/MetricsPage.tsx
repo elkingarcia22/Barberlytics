@@ -8,7 +8,7 @@ import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { MetricsFilters } from "./MetricsFilters";
 import { useBarbersMetrics, useBusinessMetrics, useCustomersMetrics, useInsightsMetrics, useMarketingMetrics } from "./queries";
-import { METRICS_TABS, useMetricsFilters, type MetricsTab } from "./useMetricsFilters";
+import { useMetricsFilters, type MetricsTab } from "./useMetricsFilters";
 import { MetricsPulse } from "./sections/MetricsPulse";
 import { MetricsAlerts } from "./sections/MetricsAlerts";
 import { SalesSection } from "./sections/SalesSection";
@@ -93,12 +93,12 @@ function CustomersTab({ params }: { params: MetricsParams }) {
   );
 }
 
-function BarbersTab({ params }: { params: MetricsParams }) {
+function BarbersTab({ params, own }: { params: MetricsParams; own: boolean }) {
   const query = useBarbersMetrics(params);
   return (
     <Fading stale={query.isPlaceholderData}>
       <QueryBoundary query={query} loading={<MetricsLoading />}>
-        {(data) => <BarbersDashboard data={data} />}
+        {(data) => <BarbersDashboard data={data} own={own} />}
       </QueryBoundary>
     </Fading>
   );
@@ -133,6 +133,9 @@ function InsightsTab() {
  * la pone la cabecera. Cambiar de periodo deja el dato anterior en pantalla
  * hasta que llega el nuevo. La pestaña de IA diagnostica los últimos tres
  * meses, así que no lleva los filtros de periodo.
+ *
+ * Un barbero ve sus cifras: el barbero queda fijo en él, sin selector, y solo
+ * las pestañas de su rol (sin la IA, que son las alertas del dueño).
  */
 export function MetricsPage() {
   const t = useAppT();
@@ -141,7 +144,7 @@ export function MetricsPage() {
      consulta aquí para que el selector la tenga en todas las pestañas. */
   const business = useBusinessMetrics(filters.params);
   const barbers = business.data?.barbers ?? [];
-  const tabs = React.useMemo(() => METRICS_TABS.map((id) => ({ id, label: t(TAB_LABELS[id]) })), [t]);
+  const tabs = React.useMemo(() => filters.tabs.map((id) => ({ id, label: t(TAB_LABELS[id]) })), [t, filters.tabs]);
   const withPeriod = filters.tab !== "insights";
 
   return (
@@ -150,7 +153,7 @@ export function MetricsPage() {
         <Breadcrumbs items={[t("metrics.title")]} />
       </ShellHeaderSlot>
 
-      <PageHeader title={t("metrics.title")} description={t("metrics.description")} />
+      <PageHeader title={t("metrics.title")} description={t(filters.isOwn ? "metrics.ownDescription" : "metrics.description")} />
 
       <ThemaTabs
         className="mb-stack"
@@ -171,6 +174,7 @@ export function MetricsPage() {
             barberId={filters.barberId}
             onBarberChange={filters.setBarberId}
             barbers={barbers}
+            showBarber={!filters.isOwn}
           />
         ) : (
           <p className="text-sm text-text-secondary">{t("metrics.insights.window")}</p>
@@ -178,7 +182,7 @@ export function MetricsPage() {
 
         {filters.tab === "business" && <BusinessTab params={filters.params} />}
         {filters.tab === "customers" && <CustomersTab params={filters.params} />}
-        {filters.tab === "barbers" && <BarbersTab params={filters.params} />}
+        {filters.tab === "barbers" && <BarbersTab params={filters.params} own={filters.isOwn} />}
         {filters.tab === "marketing" && <MarketingTab params={filters.params} />}
         {filters.tab === "insights" && <InsightsTab />}
       </div>

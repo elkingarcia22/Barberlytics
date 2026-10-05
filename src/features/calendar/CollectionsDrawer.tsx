@@ -11,10 +11,11 @@ import { EmptyState } from "@/components/feedback";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import { QueryBoundary } from "@/lib/query";
-import { AppointmentStatusBadge, PersonAvatar } from "./calendarShared";
+import { AppointmentStatusBadge, ClientAvatar } from "./calendarShared";
 import { useOpenKey } from "./calendarFormat";
 import { appointmentRange, findBarber, findClient, isUnpaid, servicesOf, servicesPrice, type ModelContext } from "./calendarModel";
 import { useDayQuery } from "./queries";
+import { FULL_CALENDAR_ACCESS, scopeDay } from "./calendarAccess";
 import type { Appointment } from "./types";
 
 /**
@@ -45,6 +46,7 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
   const [date, setDate] = React.useState(initialDate);
   const [tab, setTab] = React.useState<"toCollect" | "paid">("toCollect");
   const query = useDayQuery(branchId, format(date, "yyyy-MM-dd"));
+  const access = ctx.access ?? FULL_CALENDAR_ACCESS;
 
   return (
     <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.collections.title")}>
@@ -60,7 +62,9 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
         </div>
 
         <QueryBoundary query={query}>
-          {(day) => {
+          {(fetched) => {
+            // Un barbero cobra y repasa lo suyo; la lista de la sucursal es de quien opera el día.
+            const day = scopeDay(fetched, access.ownBarberId);
             const unpaid = day.appointments.filter(isUnpaid);
             const paid = day.appointments.filter((item) => item.status === "paid");
             const items = tab === "toCollect" ? unpaid : paid;
@@ -90,7 +94,7 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
                         return (
                           <ListItem
                             key={appointment.id}
-                            leading={<PersonAvatar name={name} />}
+                            leading={<ClientAvatar client={client} name={name} />}
                             title={name}
                             description={`${appointmentRange(appointment, ctx.intl)} · ${services.map((service) => service.name).join(" + ")} · ${barber?.name ?? ""}`}
                             meta={
@@ -111,12 +115,14 @@ function CollectionsPanel({ open, onOpenChange, branchId, ctx, initialDate, onOp
                         );
                       })}
                     </ListItemGroup>
-                    <div className="flex items-center justify-between border-t border-border pt-3">
-                      <Text variant="muted">{t("calendar.collections.total")}</Text>
-                      <Text weight="semibold" size="lg" tabular>
-                        {ctx.formatMoney(total)}
-                      </Text>
-                    </div>
+                    {access.showTotals && (
+                      <div className="flex items-center justify-between border-t border-border pt-3" data-testid="collections-total">
+                        <Text variant="muted">{t("calendar.collections.total")}</Text>
+                        <Text weight="semibold" size="lg" tabular>
+                          {ctx.formatMoney(total)}
+                        </Text>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

@@ -3,6 +3,7 @@ import { Ban, Crown, Flame, Hourglass, Repeat, Sparkles, Undo2, UserX, type Luci
 import type { Badge } from "@/components/ui/badge";
 import type { StatusBadge } from "@/components/data-display/StatusBadge";
 import { BRANCHES } from "@/features/branches";
+import { toCsv } from "@/features/payroll/payrollUtils";
 import type { CustomerAppointmentStatus, CustomerSegment } from "./types";
 
 /** Las ayudas sin JSX del módulo de clientes: estilos por segmento, fechas y teléfono. */
@@ -62,4 +63,17 @@ export function formatAgo(iso: string, formatRelativeTime: RelativeFormatter, no
   if (days < 14) return formatRelativeTime(-days, "day");
   if (days < 60) return formatRelativeTime(-Math.round(days / 7), "week");
   return formatRelativeTime(-Math.round(days / 30), "month");
+}
+
+/** Marca de orden de bytes: sin ella Excel abre el CSV con las tildes rotas. */
+const BOM = String.fromCharCode(0xfeff);
+
+/** Baja un CSV al equipo de quien lo pide. */
+export function downloadCsv(filename: string, header: readonly string[], rows: readonly (readonly (string | number)[])[]): void {
+  const url = URL.createObjectURL(new Blob([`${BOM}${toCsv(header, rows)}`], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

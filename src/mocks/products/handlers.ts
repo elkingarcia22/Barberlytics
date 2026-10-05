@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { imageOrNull } from "../media";
 import { UNCATEGORIZED_PRODUCT_ID, type MockCatalogProduct, type MockProductCategory } from "./seed";
 
 /**
@@ -54,6 +55,7 @@ function validateProduct(input: Record<string, unknown>, currentId: string | nul
   if (cost !== null && cost < 0) fields.cost = ["El precio de compra no puede ser negativo."];
   if (taxRate !== null && (taxRate < 0 || taxRate > 100)) fields.taxRate = ["El impuesto va de 0 a 100 %."];
   if (!findCategory(categoryId)) fields.categoryId = ["Elige una categoría."];
+  if (typeof input.imageUrl === "string" && input.imageUrl.trim() !== "" && imageOrNull(input.imageUrl) === null) fields.imageUrl = ["La foto no es válida o pesa más de 1 MB."];
   if (sku !== null && db.products.items.some((item) => item.id !== currentId && item.sku?.toLowerCase() === sku.toLowerCase())) fields.sku = ["Ese SKU ya lo tiene otro producto."];
 
   return {
@@ -70,6 +72,7 @@ function validateProduct(input: Record<string, unknown>, currentId: string | nul
       distributor: textOrNull(input.distributor),
       visibility: input.visibility === "private" ? ("private" as const) : ("public" as const),
       sellable: input.sellable !== false,
+      imageUrl: imageOrNull(input.imageUrl),
     } satisfies Omit<MockCatalogProduct, "id" | "activeBranchIds" | "createdAt">,
   };
 }

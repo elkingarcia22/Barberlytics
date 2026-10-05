@@ -6,8 +6,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { ScheduleDrop, ScheduleDropValidator, ScheduleEvent, ScheduleResource, ScheduleResourceAction, ScheduleSlot, ScheduleTone } from "./scheduleTypes";
+import { RowContextMenu, type RowAction } from "@/components/data-display";
 import { ScheduleEventCard } from "./ScheduleEventCard";
 import { useScheduleDrag, type DragPreview } from "./useScheduleDrag";
+
+/**
+ * El aire entre dos citas, en los cuatro lados. Las tarjetas no llevan borde:
+ * sin este hueco, dos citas seguidas del mismo barbero se leían como un solo bloque.
+ */
+const EVENT_GAP_PX = 4;
 import {
   atMinutes,
   earliestWorkingMinute,
@@ -69,6 +76,11 @@ export interface ResourceDayGridProps {
   onDropRejected?: (event: ScheduleEvent, drop: ScheduleDrop, reason: string) => void;
   /** Lo que se puede hacer desde el nombre de un recurso (ver perfil, bloquear…). */
   resourceActions?: (resource: ScheduleResource) => readonly ScheduleResourceAction[];
+  /**
+   * El clic derecho sobre una tarjeta: sus acciones (abrir, el siguiente paso, cancelar…). Es un atajo
+   * de lo que ya ofrece la tarjeta al abrirla; sin acciones, el clic derecho es el del navegador.
+   */
+  eventActions?: (event: ScheduleEvent) => readonly RowAction[];
   /** Alto de la región con scroll. Por defecto, lo que queda de pantalla. */
   height?: string;
   /**
@@ -89,6 +101,11 @@ const GUTTER = "4.5rem";
 const COLUMN_MIN = "11rem";
 /** El rayado de las horas en que el recurso no trabaja: se nota sin gritar, en claro y en oscuro. */
 const OFF_HOURS_PATTERN = "repeating-linear-gradient(135deg, hsl(var(--foreground) / 0.07) 0 1px, transparent 1px 8px)";
+/**
+ * Las flechas para ver más barberos flotan sobre las cabeceras: necesitan fondo opaco. El `outline`
+ * del botón es translúcido en oscuro y dejaba ver el avatar de debajo a través de la flecha.
+ */
+const SCROLL_BUTTON = "bg-surface shadow-md dark:border-border-strong dark:bg-surface-muted dark:hover:bg-muted";
 /** Margen para decidir que el scroll llegó a un borde. */
 const EDGE_TOLERANCE_PX = 4;
 
@@ -99,6 +116,7 @@ const ALERT_TONE: Record<ScheduleTone, string> = {
   negative: "bg-destructive/10 text-destructive hover:bg-destructive/20",
   info: "bg-info/15 text-info hover:bg-info/25",
   neutral: "bg-muted text-text-secondary hover:bg-muted/80",
+  accent: "bg-[color-mix(in_srgb,var(--color-indigo)_15%,transparent)] text-[var(--color-indigo)] hover:bg-[color-mix(in_srgb,var(--color-indigo)_25%,transparent)]",
 };
 
 export function ResourceDayGrid({
@@ -117,6 +135,7 @@ export function ResourceDayGrid({
   validateDrop,
   onDropRejected,
   resourceActions,
+  eventActions,
   height = DEFAULT_HEIGHT,
   fill = false,
   className,
@@ -191,12 +210,12 @@ export function ResourceDayGrid({
     <section aria-label={t("schedule.grid")} className={cn("relative isolate overflow-hidden rounded-xl border border-border bg-surface", fill && "flex min-h-[24rem] flex-1 flex-col", className)}>
       {marker !== null && <p className="sr-only">{t("schedule.now", { time: formatClock(nowDate, intl) })}</p>}
       {edges.previous && (
-        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollPrevious")} onClick={() => scrollColumns(-1)} className="absolute top-3 z-overlay rounded-full bg-surface shadow-card" style={{ left: `calc(${GUTTER} + 0.375rem)` }} data-testid="schedule-scroll-previous">
+        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollPrevious")} onClick={() => scrollColumns(-1)} className={cn("absolute top-3 z-overlay rounded-full", SCROLL_BUTTON)} style={{ left: `calc(${GUTTER} + 0.375rem)` }} data-testid="schedule-scroll-previous">
           <ChevronLeft />
         </Button>
       )}
       {edges.next && (
-        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollNext")} onClick={() => scrollColumns(1)} className="absolute right-1.5 top-3 z-overlay rounded-full bg-surface shadow-card" data-testid="schedule-scroll-next">
+        <Button type="button" variant="outline" size="icon-sm" aria-label={t("schedule.scrollNext")} onClick={() => scrollColumns(1)} className={cn("absolute right-1.5 top-3 z-overlay rounded-full", SCROLL_BUTTON)} data-testid="schedule-scroll-next">
           <ChevronRight />
         </Button>
       )}
@@ -248,6 +267,7 @@ export function ResourceDayGrid({
                 canResize={Boolean(onEventResize)}
                 onSlotClick={onSlotClick}
                 onOpen={onEventClick ? openEvent : undefined}
+                eventActions={eventActions}
               />
             ))}
 
@@ -362,9 +382,10 @@ interface ResourceColumnProps {
   canResize: boolean;
   onSlotClick?: (slot: ScheduleSlot) => void;
   onOpen?: (event: ScheduleEvent) => void;
+  eventActions?: (event: ScheduleEvent) => readonly RowAction[];
 }
 
-function ResourceColumn({ date, resource, events, slots, slotHeight, step, dayStart, dayEnd, nowMarker, intl, preview, bind, canResize, onSlotClick, onOpen }: ResourceColumnProps) {
+function ResourceColumn({ date, resource, events, slots, slotHeight, step, dayStart, dayEnd, nowMarker, intl, preview, bind, canResize, onSlotClick, onOpen, eventActions }: ResourceColumnProps) {
   const t = useT();
   const placed = React.useMemo(() => layoutEvents(events, dayStart, dayEnd), [events, dayStart, dayEnd]);
   const total = dayEnd - dayStart;
@@ -412,7 +433,7 @@ function ResourceColumn({ date, resource, events, slots, slotHeight, step, daySt
           const shownHeight = dragged ? ((dragged.endMin - dragged.startMin) / total) * 100 : height;
           const isBlock = event.kind === "block";
           const moveHandlers = (onOpen || canResize) && !event.ghost ? bind(event, "move") : {};
-          return (
+          const card = (
             <ScheduleEventCard
               key={event.id}
               event={event}
@@ -426,13 +447,22 @@ function ResourceColumn({ date, resource, events, slots, slotHeight, step, daySt
               onResizeStart={canResize && !isBlock && !event.ghost ? bind(event, "resize").onPointerDown : undefined}
               className={cn("pointer-events-auto", isBlock && "z-base", dragged && dragged.resourceId !== resource.id && "opacity-30")}
               style={{
-                top: `${shownTop}%`,
-                height: `${shownHeight}%`,
-                left: `calc(${(column / columns) * 100}% + 2px)`,
-                width: `calc(${100 / columns}% - 4px)`,
+                top: `calc(${shownTop}% + ${EVENT_GAP_PX / 2}px)`,
+                height: `calc(${shownHeight}% - ${EVENT_GAP_PX}px)`,
+                left: `calc(${(column / columns) * 100}% + ${EVENT_GAP_PX / 2}px)`,
+                width: `calc(${100 / columns}% - ${EVENT_GAP_PX}px)`,
               }}
               {...moveHandlers}
             />
+          );
+          // Las propuestas no tienen menú: se aceptan tocándolas o se descartan desde su aviso.
+          const actions = !event.ghost && !dragged ? (eventActions?.(event) ?? []) : [];
+          return actions.length > 0 ? (
+            <RowContextMenu key={event.id} rowLabel={event.title} actions={actions}>
+              {card}
+            </RowContextMenu>
+          ) : (
+            card
           );
         })}
 

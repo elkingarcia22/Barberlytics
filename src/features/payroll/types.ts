@@ -68,6 +68,8 @@ export interface PayrollParams {
   branchId: string;
   from: string;
   to: string;
+  /** Solo la nómina de esta persona (el pago del propio barbero). */
+  memberId?: string;
 }
 
 export const PAYOUT_KEYS: Readonly<Record<Payout, AppMessageKey>> = { commission: "payroll.payout.commission", rent: "payroll.payout.rent", salary: "payroll.payout.salary" };

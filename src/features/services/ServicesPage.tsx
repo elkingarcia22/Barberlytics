@@ -19,6 +19,8 @@ import { OptionTile } from "@/components/selection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CategoriesDrawer } from "./CategoriesDrawer";
@@ -115,14 +117,17 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
   const clearSelection = () => setSelected(new Set());
 
   const formatPercent = React.useCallback((value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`, [formatNumber]);
-  const columns = React.useMemo(() => serviceColumns(t), [t]);
+  // Cada acción va por su casilla; borrar es del dueño (es para toda la barbería).
+  const access = useAccess();
+  const can = React.useMemo(() => catalogAccess(access, "services"), [access]);
+  const columns = React.useMemo(() => serviceColumns(t, { money: can.seesMoney }), [t, can.seesMoney]);
   const cells = React.useMemo(() => serviceCells(t, { categories, formatMoney, formatPercent }), [t, categories, formatMoney, formatPercent]);
 
   const pool = React.useMemo(() => items.filter((item) => (category === ALL || item.categoryId === category) && (kind === ALL || item.kind === kind)), [items, category, kind]);
   const pulse = React.useMemo(() => servicesPulse(pool), [pool]);
   const preset = SERVICE_ALERTS.find((item) => item.id === alert);
   const filtered = React.useMemo(() => pool.filter((item) => !preset || preset.matches(item)), [pool, preset]);
-  const attention = pool.filter((item) => SERVICE_ALERTS.some((spec) => spec.matches(item))).length;
+  const attention = pool.filter((item) => SERVICE_ALERTS.some((spec) => (can.seesMoney || spec.id !== "noCost") && spec.matches(item))).length;
   const calm = attention === 0;
 
   const marked = React.useMemo(() => items.filter((item) => selected.has(item.id)), [items, selected]);
@@ -145,7 +150,9 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
   }, [marked, setActive, t, turningOn]);
 
   const actions = React.useMemo<readonly RailActionSpec[]>(
-    () => [
+    () => {
+      const allowed: Readonly<Record<string, boolean>> = { order: can.canOrder, categories: can.categories.view, "create-combo": can.canCreate, create: can.canCreate, open: true, edit: can.canEdit, toggle: can.canToggle, delete: can.canDelete };
+      const all: readonly RailActionSpec[] = [
       { id: "order", label: t("services.action.order"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => navigate("/servicios/orden") },
       { id: "categories", label: t("services.action.categories"), icon: <FolderTree className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "categories" }) },
       { id: "create-combo", label: t("services.action.createCombo"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "create", of: "combo" }) },
@@ -161,8 +168,10 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
         onSelect: toggleActive,
       },
       { id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: () => single && setRemoving(single) },
-    ],
-    [navigate, single, t, toggleActive, turningOn]
+      ];
+      return all.filter((action) => allowed[action.id]);
+    },
+    [can, navigate, single, t, toggleActive, turningOn]
   );
 
   /* Cambiar de categoría o de tipo con un aviso puesto puede dejar la lista en blanco, así que lo suelta. */
@@ -194,7 +203,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
         defaultCategoryId={category === ALL ? undefined : category}
         onCreated={(service) => navigate(`/servicios/${service.id}?pestana=equipo`)}
       />
-      <CategoriesDrawer open={drawer?.kind === "categories"} onOpenChange={(open) => !open && setDrawer(null)} categories={categories} items={items} />
+      <CategoriesDrawer open={drawer?.kind === "categories"} onOpenChange={(open) => !open && setDrawer(null)} categories={categories} items={items} canCreate={can.categories.create} canEdit={can.categories.edit} canDelete={can.categories.delete} />
     </>
   );
 
@@ -206,9 +215,11 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
           title={t("services.emptyTitle")}
           description={t("services.emptyHint")}
           action={
-            <Button onClick={() => setDrawer({ kind: "create", of: "service" })}>
-              <Plus /> {t("services.action.create")}
-            </Button>
+            can.canCreate ? (
+              <Button onClick={() => setDrawer({ kind: "create", of: "service" })}>
+                <Plus /> {t("services.action.create")}
+              </Button>
+            ) : undefined
           }
         />
         {drawers}
@@ -257,6 +268,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
               chart={<MetricRing value={pulse.activeRate} color={ringColor} ariaLabel={`${t("services.pulse.active")}: ${formatPercent(pulse.activeRate)}`} />}
             />
             <MetricCard label={t("services.pulse.price")} value={formatMoney(pulse.avgPrice)} caption={t("services.pulse.priceCaption", { duration: formatDuration(pulse.avgDurationMin) })} hint={t("services.pulse.priceHint")} tone="positive" icon="chart" />
+            {can.seesMoney && (
             <MetricCard
               label={t("services.pulse.margin")}
               value={pulse.avgMargin === null ? "—" : formatPercent(pulse.avgMargin)}
@@ -267,6 +279,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
               /* Anillo y no medidor: el medidor pinta «bajo 50» como riesgo, y un margen del 48 % no lo es. */
               chart={pulse.avgMargin === null ? undefined : <MetricRing value={pulse.avgMargin} color={ringColor} ariaLabel={`${t("services.pulse.margin")}: ${formatPercent(pulse.avgMargin)}`} />}
             />
+            )}
           </div>
         </React.Suspense>
       </section>
@@ -279,7 +292,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
         title={calm ? t("services.alert.calmTitle") : t("services.alert.title", { count: attention })}
         detail={calm ? t("services.alert.calmDetail") : t("services.alert.detail")}
       >
-        {SERVICE_ALERTS.map((item) => {
+        {SERVICE_ALERTS.filter((item) => can.seesMoney || item.id !== "noCost").map((item) => {
           const count = pool.filter(item.matches).length;
           if (count === 0 && alert !== item.id) return null;
           return <AttentionAction key={item.id} icon={item.icon} label={t(item.labelKey)} hint={t(item.hintKey)} value={count} tone={item.tone} active={alert === item.id} onClick={() => pickAlert(item.id)} />;
@@ -334,7 +347,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
             leading={
               <span className="flex items-center gap-3">
                 {state.checkbox}
-                <ServiceGlyph kind={row.kind} />
+                <ServiceGlyph kind={row.kind} imageUrl={row.imageUrl} />
               </span>
             }
             title={row.name}

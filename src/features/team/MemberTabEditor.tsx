@@ -41,10 +41,12 @@ export interface MemberTabViewProps {
   levels: readonly Level[];
   services: readonly Service[];
   formatMoney: (value: number) => string;
+  /** Correo, teléfono y código; a un colega no se le enseñan (privacidad entre barberos). */
+  showPrivate?: boolean;
 }
 
-export function MemberTabView({ tab, member, levels, services, formatMoney }: MemberTabViewProps) {
-  if (tab === "profile") return <ProfileView member={member} levels={levels} />;
+export function MemberTabView({ tab, member, levels, services, formatMoney, showPrivate = true }: MemberTabViewProps) {
+  if (tab === "profile") return <ProfileView member={member} levels={levels} showPrivate={showPrivate} />;
   if (tab === "services") return <ServicesView services={services} value={member.services} formatMoney={formatMoney} />;
   if (tab === "compensation" && member.compensation) return <CompensationView value={member.compensation} formatMoney={formatMoney} />;
   if (tab === "payments" && member.payments) return <PaymentsView value={member.payments} formatMoney={formatMoney} />;

@@ -1,4 +1,4 @@
-import { seededRandom } from "./db";
+import { db, seededRandom } from "./db";
 import { fromIsoDate, periodRange, previousPeriodRange, toIsoDate, type PeriodGranularity, type PeriodRange } from "@/components/date/periodRange";
 import type { AppointmentStatus, BookingMethod, Daypart, IncomeLine, MetricsBusiness, PaymentMethod } from "@/features/metrics/types";
 
@@ -18,6 +18,27 @@ export const BARBERS = [
   { id: "b7", name: "Tomás Peña" },
   { id: "b8", name: "Daniela Osorio" },
 ] as const;
+
+/**
+ * Las métricas nacieron con ids propios (`b4`…`b8`) antes que el equipo
+ * (`team-04`…). Mientras el simulador no se rehaga sobre el seed del equipo,
+ * el barbero que pide «lo suyo» con su id de equipo se traduce aquí:
+ * - los cinco del tablero son las mismas personas con el mismo número en los
+ *   dos seeds (`team-04` ↔ `b4`…);
+ * - cualquier otro barbero del equipo (p. ej. Paola Zuluaga, `team-30`, de
+ *   renta) se simula aparte con su id de equipo y no suma a «todo el equipo».
+ */
+const TEAM_ALIASES: Readonly<Record<string, string>> = { "team-04": "b4", "team-05": "b5", "team-06": "b6", "team-07": "b7", "team-08": "b8" };
+
+/** El barbero que pide la consulta (id de métricas o de equipo), o `null` si no es nadie conocido. */
+export function resolveMetricsBarber(id: string | null | undefined): { id: string; name: string } | null {
+  if (!id) return null;
+  const alias = TEAM_ALIASES[id] ?? id;
+  const known = BARBERS.find((barber) => barber.id === alias);
+  if (known) return { ...known };
+  const member = db.team.members.find((item) => item.id === id && (item.role === "barbero-comision" || item.role === "barbero-renta" || item.isAlsoBarber));
+  return member ? { id: member.id, name: `${member.firstName} ${member.lastName}` } : null;
+}
 
 const SERVICES = [
   { id: "maintenance", name: "Corte de mantenimiento", price: 45, weight: 34 },
@@ -213,7 +234,7 @@ export interface SimulatedPeriod {
 export function simulatePeriod(query: MetricsQuery): SimulatedPeriod {
   const granularity: PeriodGranularity = query.granularity === "day" || query.granularity === "week" ? query.granularity : "month";
   const anchor = fromIsoDate(query.date) ?? new Date();
-  const barberId = BARBERS.some((barber) => barber.id === query.barberId) ? String(query.barberId) : "all";
+  const barberId = resolveMetricsBarber(query.barberId)?.id ?? "all";
   const range = periodRange(anchor, granularity);
   const previous = previousPeriodRange(anchor, granularity);
   return {

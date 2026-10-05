@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Text } from "@/components/typography";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { useSaveServiceOrder, useServicesQuery } from "./queries";
@@ -47,6 +49,8 @@ const ids = (list: readonly { id: string }[]) => list.map((item) => item.id).joi
 
 function OrderEditor({ catalog, branchId }: { catalog: ServicesCatalog; branchId: string }) {
   const t = useAppT();
+  // El orden de la reserva en línea va por «Servicios · Póngase en fila · Editar».
+  const canOrder = catalogAccess(useAccess(), "services").canOrder;
   const formatMoney = useMoney();
   const save = useSaveServiceOrder(branchId);
   const [tab, setTab] = React.useState<"categories" | "services">("categories");
@@ -102,6 +106,7 @@ function OrderEditor({ catalog, branchId }: { catalog: ServicesCatalog; branchId
           getId={(item) => item.id}
           getLabel={(item) => item.name}
           onReorder={setCategories}
+          disabled={!canOrder}
           handle
           className="space-y-2"
           data-testid="category-order"
@@ -138,13 +143,14 @@ function OrderEditor({ catalog, branchId }: { catalog: ServicesCatalog; branchId
             getId={(item) => item.id}
             getLabel={(item) => item.name}
             onReorder={reorderInCategory}
+            disabled={!canOrder}
             handle
             className="space-y-2"
             data-testid="service-order"
             renderItem={(item, state) => (
               <>
                 <span className="w-6 text-center text-sm font-semibold tabular-nums text-text-secondary">{state.index + 1}</span>
-                <ServiceGlyph kind={item.kind} size="sm" />
+                <ServiceGlyph kind={item.kind} size="sm" imageUrl={item.imageUrl} />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-semibold text-text-primary">{item.name}</span>
                   <span className="text-xs text-text-muted">
@@ -158,6 +164,7 @@ function OrderEditor({ catalog, branchId }: { catalog: ServicesCatalog; branchId
         </div>
       )}
 
+      {canOrder && (
       <ShellRailSlot>
         <DataListActionRail
           actions={[
@@ -168,6 +175,7 @@ function OrderEditor({ catalog, branchId }: { catalog: ServicesCatalog; branchId
           onClearSelection={() => undefined}
         />
       </ShellRailSlot>
+      )}
     </>
   );
 }

@@ -1,3 +1,5 @@
+import { galleryFor, TEAM_PHOTOS } from "../media";
+
 /**
  * El equipo del backend simulado: las personas de las cuatro sucursales con
  * todo lo que guarda su ficha (perfil, servicios, compensación o pagos,
@@ -140,7 +142,7 @@ export const PERMISSION_ROWS: readonly { id: string; block: string; columns: rea
   { id: "export-clients", block: "bookings", columns: ["active"] },
   { id: "team", block: "team", columns: ["view", "create", "edit", "delete", "active"] },
   { id: "managers", block: "team", columns: ["view", "create", "edit", "delete", "active"] },
-  { id: "barber-payments", block: "team", columns: ["view", "create", "edit", "active"] },
+  { id: "barber-payments", block: "team", columns: ["active"] },
   { id: "levels", block: "team", columns: ["view", "create", "edit", "delete", "active"] },
   { id: "lineup", block: "team", columns: ["view", "create", "edit", "delete", "active"] },
   { id: "barber-order", block: "team", columns: ["view", "create", "edit", "delete", "active"] },
@@ -156,6 +158,7 @@ export const PERMISSION_ROWS: readonly { id: string; block: string; columns: rea
   { id: "permissions", block: "business", columns: ["view", "edit", "active"] },
   { id: "account-settings", block: "business", columns: ["view", "edit", "active"] },
   { id: "expenses", block: "business", columns: ["view", "create", "edit", "delete", "active"] },
+  { id: "transactions", block: "business", columns: ["view", "edit"] },
 ];
 
 const full = (id: string): MockPermissions => {
@@ -165,31 +168,45 @@ const full = (id: string): MockPermissions => {
 const some = (id: string, columns: readonly MockPermissionColumn[]): MockPermissions => ({ [id]: Object.fromEntries(columns.map((column) => [column, true])) });
 const merge = (...parts: MockPermissions[]): MockPermissions => Object.assign({}, ...parts);
 
-const BOOKINGS_FULL = merge(full("calendar"), full("appointments"), full("block-calendar"), full("clients"), full("client-info"), full("import-clients"), full("export-clients"));
-
-/** Los permisos de fábrica de cada rol (help: tabla de permisos por rol). */
+/** Los permisos de fábrica de cada rol: los mismos que `ROLE_DEFAULT_PERMISSIONS` (features/team/permissionsCatalog.ts). */
 export const ROLE_PERMISSION_DEFAULTS: Readonly<Record<MockTeamRole, MockPermissions>> = {
   owner: merge(...PERMISSION_ROWS.map((row) => full(row.id))),
-  admin: merge(...PERMISSION_ROWS.filter((row) => row.id !== "barber-payments" && row.id !== "barber-order").map((row) => full(row.id))),
-  recepcion: merge(BOOKINGS_FULL, full("kpis"), some("products", ["view", "active"]), some("product-categories", ["view", "active"]), some("services", ["view", "active"]), full("prices")),
-  "barbero-comision": merge(
+  admin: merge(
+    ...PERMISSION_ROWS.filter((row) => !["barber-payments", "barber-order", "export-clients"].includes(row.id)).map((row) => full(row.id))
+  ),
+  recepcion: merge(
     full("calendar"),
     full("appointments"),
     full("block-calendar"),
+    some("clients", ["view", "create", "edit", "active"]),
+    full("client-info"),
+    full("import-clients"),
+    some("products", ["view"]),
+    some("product-categories", ["view"]),
+    full("prices"),
+    some("account-settings", ["view", "edit"]),
+    some("transactions", ["view"])
+  ),
+  "barbero-comision": merge(
+    full("calendar"),
+    full("appointments"),
+    some("block-calendar", ["view", "active"]),
     some("clients", ["view", "create", "active"]),
     some("team", ["view"]),
     full("prices"),
-    some("account-settings", ["view"]),
-    full("expenses")
+    some("account-settings", ["view"])
   ),
   "barbero-renta": merge(
     full("calendar"),
     full("appointments"),
-    some("block-calendar", ["view"]),
-    some("clients", ["view", "create", "active"]),
+    full("block-calendar"),
+    full("clients"),
+    full("import-clients"),
+    full("export-clients"),
     full("prices"),
     some("account-settings", ["view"]),
-    full("expenses")
+    full("expenses"),
+    some("transactions", ["view"])
   ),
 };
 
@@ -266,13 +283,13 @@ function person(index: number, firstName: string, lastName: string, role: MockTe
     homeBranchId: branchId,
     branchIds: draft.branchIds ?? (role === "owner" ? ["ma", "nc", "ri", "ut"] : [branchId]),
     status: draft.status ?? "active",
-    avatarUrl: null,
+    avatarUrl: TEAM_PHOTOS[id] ?? null,
     code: String(4000 + index * 7),
     description: draft.description ?? "",
     bookingVisible: draft.bookingVisible ?? true,
     levelId: isBarber ? (draft.levelId === undefined ? "lvl_senior" : draft.levelId) : null,
     skills: draft.skills ?? (isBarber ? ["Corte clásico", "Barba"] : []),
-    gallery: [],
+    gallery: isBarber && (draft.status ?? "active") === "active" ? galleryFor(index) : [],
     isAlsoBarber: draft.isAlsoBarber ?? false,
     services: [],
     compensation: role === "barbero-comision" ? { ...DEFAULT_COMMISSION, ...draft.compensation } : null,

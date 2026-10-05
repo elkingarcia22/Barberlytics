@@ -12,7 +12,7 @@ import { MultiSelect } from "@/components/forms"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `options` | `MultiSelectOption[]` |  | Lista de opciones: value, label, description opcional y disabled. |
+| `options` | `MultiSelectOption[]` |  | Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura) y disabled. Se filtra por label y description. |
 | `value` | `string[]` | `[]` | Valores seleccionados (controlado). |
 | `onValueChange` | `(value: string[]) => void` |  | Se llama con el arreglo completo al añadir o quitar una opción. |
 | `placeholder` | `string` | `"Seleccionar opciones"` | Texto del trigger cuando no hay selección. |

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Navigate, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/utility";
 import { ConfirmDialog } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
+import { useAccess } from "@/features/access";
 import { useCatalogQuery } from "@/features/calendar/queries";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { MemberTabForm } from "./MemberTabEditor";
@@ -17,6 +18,7 @@ import { draftFromRole, serverFieldErrors, validateTab } from "./memberDraft";
 import { useCreateMember, useLevelsQuery } from "./queries";
 import { MEMBER_TAB_KEYS, TEAM_ROLE_KEYS, teamRoleSchema, memberName, memberTabs, type MemberDraft, type TeamRole } from "./types";
 import { useBranchId } from "./teamUtils";
+import { creatableRoles, seesBarberMoney } from "./teamAccess";
 
 /**
  * Crear un miembro del equipo: el rol viene elegido en el panel anterior y
@@ -25,11 +27,21 @@ import { useBranchId } from "./teamUtils";
  */
 
 export function MemberWizardPage() {
+  const access = useAccess();
+  const allowed = creatableRoles(access);
+  // Sin «Equipo · Crear» no hay alta; con él, solo los roles que esa persona gestiona.
+  if (allowed.length === 0) return <Navigate to="/403" replace />;
+  return <MemberWizard allowed={allowed} withMoney={seesBarberMoney(access)} />;
+}
+
+function MemberWizard({ allowed, withMoney }: { allowed: readonly TeamRole[]; withMoney: boolean }) {
   const t = useAppT();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const roleParam = searchParams.get("rol");
-  const role: TeamRole = teamRoleSchema.safeParse(roleParam).success ? (roleParam as TeamRole) : "barbero-comision";
+  const parsed = teamRoleSchema.safeParse(roleParam);
+  const fallback: TeamRole = allowed.includes("barbero-comision") ? "barbero-comision" : allowed[0];
+  const role: TeamRole = parsed.success && allowed.includes(parsed.data) ? parsed.data : fallback;
   const branchId = useBranchId();
   const levels = useLevelsQuery();
   const catalog = useCatalogQuery(branchId);
@@ -39,7 +51,8 @@ export function MemberWizardPage() {
   const [step, setStep] = React.useState(0);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [leaving, setLeaving] = React.useState(false);
-  const steps = memberTabs(role, draft.profile.isAlsoBarber);
+  // Sin «Sección de pagos de barberos» el dinero nace con los valores de fábrica y lo fija el dueño.
+  const steps = memberTabs(role, draft.profile.isAlsoBarber).filter((item) => withMoney || (item !== "compensation" && item !== "payments"));
   const tab = steps[Math.min(step, steps.length - 1)];
   const isLast = step >= steps.length - 1;
 

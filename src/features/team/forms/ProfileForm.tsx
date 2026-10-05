@@ -202,7 +202,7 @@ export function ProfileForm({ role, value, onChange, levels, errors = {} }: Prof
 
 /* ------------------------------------------------------------------ view */
 
-export function ProfileView({ member, levels }: { member: TeamMember; levels: readonly Level[] }) {
+export function ProfileView({ member, levels, showPrivate = true }: { member: TeamMember; levels: readonly Level[]; showPrivate?: boolean }) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const isBarber = isBarberRole(member.role) || member.isAlsoBarber;
@@ -210,16 +210,21 @@ export function ProfileView({ member, levels }: { member: TeamMember; levels: re
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <InfoCard title={t("teamMember.profile.personal")} description={t("teamMember.profile.personalHint")}>
-        <InfoRow icon={<Phone />} label={t("teamMember.profile.phone")}>
-          {member.phone}
-        </InfoRow>
-        <InfoRow icon={<Mail />} label={t("teamMember.profile.email")}>
-          {member.email}
-        </InfoRow>
-        <InfoRow icon={<KeyRound />} label={t("teamMember.profile.code")}>
-          <span className="font-mono tracking-widest">{member.code}</span>
-          <Text variant="caption">{t("teamMember.profile.codeHint")}</Text>
-        </InfoRow>
+        {/* Entre colegas no viajan el contacto ni el código de acceso. */}
+        {showPrivate && (
+          <>
+            <InfoRow icon={<Phone />} label={t("teamMember.profile.phone")}>
+              {member.phone}
+            </InfoRow>
+            <InfoRow icon={<Mail />} label={t("teamMember.profile.email")}>
+              {member.email}
+            </InfoRow>
+            <InfoRow icon={<KeyRound />} label={t("teamMember.profile.code")}>
+              <span className="font-mono tracking-widest">{member.code}</span>
+              <Text variant="caption">{t("teamMember.profile.codeHint")}</Text>
+            </InfoRow>
+          </>
+        )}
         <InfoRow label={t("teamMember.profile.branches")}>{member.branchIds.map(branchName).join(" · ")}</InfoRow>
         <InfoRow label={t("teamMember.profile.memberSince")}>{formatDate(new Date(member.createdAt), { day: "numeric", month: "long", year: "numeric" })}</InfoRow>
       </InfoCard>

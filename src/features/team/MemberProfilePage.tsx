@@ -14,13 +14,15 @@ import { DataListActionRail, type RailActionSpec } from "@/components/action-rai
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAccess } from "@/features/access";
 import { useCatalogQuery } from "@/features/calendar/queries";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { MemberTabForm, MemberTabView } from "./MemberTabEditor";
+import { memberAccess } from "./teamAccess";
 import { draftFromMember, patchForTab, serverFieldErrors, validateTab } from "./memberDraft";
 import { useLevelsQuery, useMemberQuery, useRemoveMember, useUpdateMember } from "./queries";
 import { MemberAvatar, MemberStatusBadge } from "./teamShared";
-import { MEMBER_TAB_KEYS, TEAM_ROLE_KEYS, attendsChair, memberName, memberTabs, type Level, type MemberDraft, type MemberTab, type TeamMember } from "./types";
+import { MEMBER_TAB_KEYS, TEAM_ROLE_KEYS, attendsChair, memberName, type Level, type MemberDraft, type MemberTab, type TeamMember } from "./types";
 import { useBranchId, branchName } from "./teamUtils";
 
 /**
@@ -28,6 +30,10 @@ import { useBranchId, branchName } from "./teamUtils";
  * pestañas —Perfil, Servicios, Compensación o Pagos, Calendario, Permisos,
  * Opciones—. Cada pestaña se lee y, al editar, se guarda por separado. Un
  * gerente solo tiene Perfil y Permisos.
+ *
+ * Lo que se enseña depende de quién mira (`memberAccess`): a un colega, solo lo
+ * público; la propia ficha del barbero, en lectura; el dinero y los permisos,
+ * a quien tiene esas casillas.
  */
 
 const TAB_PARAM: Record<MemberTab, string> = { profile: "perfil", services: "servicios", compensation: "compensacion", payments: "pagos", schedule: "calendario", permissions: "permisos", options: "opciones" };
@@ -191,24 +197,30 @@ interface MemberProfileProps {
 function MemberProfile({ member, levels, services, formatMoney, editing, onEditingChange, tabParam, onTabChange, saving, onSave, onStatus, onDelete }: MemberProfileProps) {
   const t = useAppT();
   const navigate = useNavigate();
-  const tabs = memberTabs(member.role, member.isAlsoBarber);
+  const access = useAccess();
+  const viewer = React.useMemo(() => memberAccess(access, member), [access, member]);
+  const tabs = viewer.tabs;
   const tab = tabs.find((item) => TAB_PARAM[item] === tabParam) ?? tabs[0];
+  // `?editar=1` en la URL no abre la edición a quien no puede editar esa pestaña.
+  const editingTab = editing && viewer.canEdit(tab);
   const level = levels.find((item) => item.id === member.levelId);
   const subtitle = [t(TEAM_ROLE_KEYS[member.role]), attendsChair(member) ? (level?.name ?? t("teamMember.noLevel")) : null, member.branchIds.map(branchName).join(", ")].filter(Boolean).join(" · ");
 
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () =>
-      editing
+      editingTab
         ? []
         : [
-            ...(attendsChair(member) ? [{ id: "schedule", label: t("teamMember.action.schedule"), icon: <CalendarDays className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => navigate(`/calendario?equipo=${member.id}`) }] : []),
-            member.status === "inactive"
-              ? { id: "activate", label: t("teamMember.action.activate"), icon: <UserPlus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("active") }
-              : { id: "deactivate", label: t("teamMember.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("inactive") },
-            { id: "delete", label: t("teamMember.action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"] as const, tone: "danger" as const, overflow: true, blockedReason: member.role === "owner" ? t("teamMember.deactivate.hint") : null, onSelect: onDelete },
-            { id: "edit", label: t("teamMember.action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => onEditingChange(true) },
+            ...(attendsChair(member) && viewer.canSeeAgenda ? [{ id: "schedule", label: t("teamMember.action.schedule"), icon: <CalendarDays className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => navigate(`/calendario?equipo=${member.id}`) }] : []),
+            ...(!viewer.canChangeStatus
+              ? []
+              : member.status === "inactive"
+              ? [{ id: "activate", label: t("teamMember.action.activate"), icon: <UserPlus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("active") }]
+              : [{ id: "deactivate", label: t("teamMember.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("inactive") }]),
+            ...(viewer.canDelete ? [{ id: "delete", label: t("teamMember.action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"] as const, tone: "danger" as const, overflow: true, blockedReason: member.role === "owner" ? t("teamMember.deactivate.hint") : null, onSelect: onDelete }] : []),
+            ...(viewer.canEdit(tab) ? [{ id: "edit", label: t("teamMember.action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => onEditingChange(true) }] : []),
           ],
-    [editing, member, navigate, onDelete, onEditingChange, onStatus, t]
+    [editingTab, member, navigate, onDelete, onEditingChange, onStatus, t, tab, viewer]
   );
 
   return (
@@ -221,7 +233,7 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
               {memberName(member)}
               <MemberStatusBadge status={member.status} />
               {member.isAlsoBarber && <Badge variant="outline">{t("teamMember.alsoBarber")}</Badge>}
-              {editing && <Badge>{t("teamMember.editing")}</Badge>}
+              {editingTab && <Badge>{t("teamMember.editing")}</Badge>}
             </span>
           </span>
         }
@@ -235,13 +247,13 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
 
       <ThemaTabs className="mb-4" variant="page" fitContent tabs={tabs.map((item) => ({ id: item, label: t(MEMBER_TAB_KEYS[item]) }))} activeTabId={tab} onTabChange={(id) => onTabChange(id as MemberTab)} />
 
-      {editing ? (
+      {editingTab ? (
         <TabEditor key={`${member.id}-${tab}`} tab={tab} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
       ) : (
-        <MemberTabView tab={tab} member={member} levels={levels} services={services} formatMoney={formatMoney} />
+        <MemberTabView tab={tab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
       )}
 
-      {!editing && (
+      {!editingTab && (
         <ShellRailSlot>
           <DataListActionRail actions={actions} selectedCount={0} onClearSelection={() => undefined} />
         </ShellRailSlot>

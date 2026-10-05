@@ -9,10 +9,14 @@ export interface ProductCategoriesDrawerProps {
   onOpenChange: (open: boolean) => void;
   categories: readonly ProductCategory[];
   items: readonly CatalogProduct[];
+  /** Las casillas de categorías de quien mira; recepción solo las consulta. */
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 /** Las categorías de productos: el panel compartido del catálogo, con sus textos y sus mutaciones. */
-export function ProductCategoriesDrawer({ open, onOpenChange, categories, items }: ProductCategoriesDrawerProps) {
+export function ProductCategoriesDrawer({ open, onOpenChange, categories, items, canCreate, canEdit, canDelete }: ProductCategoriesDrawerProps) {
   const t = useAppT();
   const save = useSaveProductCategory();
   const remove = useRemoveProductCategory();
@@ -57,6 +61,9 @@ export function ProductCategoriesDrawer({ open, onOpenChange, categories, items 
       removing={remove.isPending}
       onSave={(id, input) => save.mutateAsync({ id, input: { name: input.name, description: input.description } })}
       onRemove={(id) => remove.mutateAsync(id)}
+      canCreate={canCreate}
+      canEdit={canEdit}
+      canDelete={canDelete}
     />
   );
 }

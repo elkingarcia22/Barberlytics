@@ -22,6 +22,8 @@ export const accountSchema = z.object({
   invoice: z.string().nullable(),
   client: z.object({ id: z.string(), name: z.string(), phone: z.string() }).nullable(),
   barber: z.string().nullable(),
+  /** La ficha de equipo de quien atendió; `null` en una venta de mostrador. Con ella se recorta «lo suyo». */
+  barberId: z.string().nullable().default(null),
   openedBy: z.string().nullable(),
   chargedBy: z.string().nullable(),
   status: accountStatusSchema,

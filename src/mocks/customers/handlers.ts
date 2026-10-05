@@ -2,13 +2,13 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { memberName } from "../team/seed";
-import { deriveProfile, historyOf, lifecycleOf, paymentsOf, productsOf, ticketOf, type MockCustomerProfile, type MockGuest } from "./seed";
+import { deriveProfile, historyOf, lifecycleOf, paymentsOf, productsOf, ticketOf, type MockCustomerAppointment, type MockCustomerProfile, type MockGuest } from "./seed";
 
 /**
  * Los endpoints de clientes del backend simulado. Reproducen
  * docs/API_CONTRACT.md (sección «Clientes»): el directorio con el segmento
  * de cada quien, la ficha completa con su historial, el alta, la edición
- * —bloqueo incluido— y los invitados.
+ * —bloqueo incluido—, el borrado y los invitados.
  */
 
 const BASE = "*/api";
@@ -30,23 +30,41 @@ function requireAuth(request: Request) {
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-const realClients = () => db.calendar.clients.filter((client) => client.id !== WALK_IN_CLIENT.id);
-const findClient = (id: string | readonly string[] | undefined) => realClients().find((client) => client.id === id);
 const profileOf = (client: MockClient): MockCustomerProfile => db.customers.profiles[client.id] ?? deriveProfile(client);
+/* Un cliente borrado sale del directorio, pero sigue en la agenda: sus citas y cobros pasados no se pierden. */
+const realClients = () => db.calendar.clients.filter((client) => client.id !== WALK_IN_CLIENT.id && !profileOf(client).deleted);
+const findClient = (id: string | readonly string[] | undefined) => realClients().find((client) => client.id === id);
+
+/** Cuánto hacia atrás cuenta una cita cobrada para que el cliente siga siendo «suyo» del barbero. */
+const OWN_WINDOW_MS = 365 * 86_400_000;
 
 function barberName(id: string | null): string | null {
   const member = db.team.members.find((item) => item.id === id);
   return member ? memberName(member) : null;
 }
 
+const barberIdsOfTeam = () => db.team.members.filter((member) => member.role === "barbero-comision" || member.role === "barbero-renta").map((member) => member.id);
+
+/**
+ * Con qué barberos tiene relación hoy: una cita por atender o una cobrada en
+ * los últimos 12 meses. Es la mitad de «cliente suyo» (la otra es el barbero
+ * preferido); ver `features/customers/customerAccess.ts`.
+ */
+function servedBy(history: readonly MockCustomerAppointment[], now = Date.now()): string[] {
+  const ids = history.filter((item) => item.barberId !== null && (item.status === "scheduled" || (item.status === "completed" && now - new Date(item.start).getTime() <= OWN_WINDOW_MS))).map((item) => item.barberId as string);
+  return [...new Set(ids)];
+}
+
 function summary(client: MockClient) {
   const profile = profileOf(client);
   const { segment, lastVisitAt } = lifecycleOf(client, profile.blocked);
+  const history = historyOf(client, lastVisitAt, segment, barberIdsOfTeam());
   const medicalNotes = client.notes.filter((note) => note.kind !== "note").length;
   return {
     id: client.id,
     name: client.name,
     phone: client.phone,
+    avatarUrl: client.avatarUrl ?? null,
     email: profile.email,
     branchId: profile.branchId,
     segment,
@@ -58,6 +76,8 @@ function summary(client: MockClient) {
     lastVisitAt,
     visitEveryDays: client.visitEveryDays,
     preferredBarber: barberName(client.preferredBarberId),
+    preferredBarberId: client.preferredBarberId,
+    barberIds: servedBy(history),
     birthDate: profile.birthDate,
     createdAt: profile.createdAt,
     medicalNotes,
@@ -67,8 +87,7 @@ function summary(client: MockClient) {
 function detail(client: MockClient) {
   const profile = profileOf(client);
   const base = summary(client);
-  const barberIds = db.team.members.filter((member) => member.role === "barbero-comision" || member.role === "barbero-renta").map((member) => member.id);
-  const history = historyOf(client, base.lastVisitAt, base.segment, barberIds);
+  const history = historyOf(client, base.lastVisitAt, base.segment, barberIdsOfTeam());
   const past = history.filter((item) => item.status !== "scheduled");
   const booked = Math.max(1, client.visits + client.cancellations + client.noShows);
   const share = (part: number) => Math.round((part / booked) * 1000) / 10;
@@ -92,7 +111,7 @@ function detail(client: MockClient) {
     },
     notes: client.notes,
     guests: profile.guests,
-    appointments: history.map((item) => ({ id: item.id, service: item.service, start: item.start, barber: barberName(item.barberId), source: item.source, requestedBarber: item.requestedBarber, status: item.status, total: item.total })),
+    appointments: history.map((item) => ({ id: item.id, service: item.service, start: item.start, barber: barberName(item.barberId), barberId: item.barberId, source: item.source, requestedBarber: item.requestedBarber, status: item.status, total: item.total })),
     lastAppointmentId: past[0]?.id ?? null,
     payments: paymentsOf(client.id, history),
     products: productsOf(client.id, base.lastVisitAt),
@@ -157,6 +176,7 @@ export const customersHandlers = [
       preferredBarberId: null,
       visitEveryDays: null,
       notes: [],
+      avatarUrl: null,
     };
     db.calendar.clients = [...db.calendar.clients, client];
     saveProfile(client.id, {
@@ -196,6 +216,16 @@ export const customersHandlers = [
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
     saveProfile(client.id, { ...profile, email: values.email, country: values.country, state: values.state, city: values.city, address: values.address, zipcode: values.zipcode, birthDate: values.birthDate, onlineOnly: values.onlineOnly });
     return HttpResponse.json(detail(updated));
+  }),
+
+  /* Borrar es lógico: el cliente sale del directorio y ya no se agenda, pero su historial queda. */
+  http.delete(`${BASE}/customers/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = findClient(params.id);
+    if (!client) return error(404, "not_found", "Ese cliente no existe.");
+    saveProfile(client.id, { ...profileOf(client), deleted: true });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post(`${BASE}/customers/:id/guests`, async ({ request, params }) => {

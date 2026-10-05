@@ -8,6 +8,9 @@ vi.mock("@/components/charts/EChart", () => ({
 }));
 import { renderWithProviders, screen, userEvent, within } from "@/test/render";
 import { db } from "@/mocks/db";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
+import { MyPayPage } from "./MyPayPage";
 import { PayrollPage } from "./PayrollPage";
 import { payrollApi } from "./api";
 import { columnIdsFor, columnValue } from "./payrollHome";
@@ -104,6 +107,13 @@ describe("contrato de nómina (mock)", () => {
     expect(salaried?.salary).toBe((salaried?.salaryBase ?? 0) * 2);
   });
 
+  test("con `memberId` solo llega la nómina de esa persona", async () => {
+    await withSession();
+    const { members } = await payrollApi.get({ branchId: "ma", from: PAST_FROM, to: PAST_TO, memberId: "team-30" });
+    expect(members.map((item) => item.memberId)).toEqual(["team-30"]);
+    expect(members[0].payout).toBe("rent");
+  });
+
   test("un rango al revés se rechaza", async () => {
     await withSession();
     await expect(payrollApi.get({ branchId: "ma", from: PAST_TO, to: PAST_FROM })).rejects.toMatchObject({ status: 422 });
@@ -142,5 +152,60 @@ describe("pantalla de nómina", () => {
     expect(within(detail).getByText("Cómo se le paga")).toBeInTheDocument();
     expect(within(detail).getByText(/Básica · 45%/)).toBeInTheDocument();
     expect(within(detail).getByText("Regla aplicada")).toBeInTheDocument();
+  });
+});
+
+function renderMyPay(role: TeamRole, route = `/mi-pago?fecha=${PAST_FROM}`) {
+  db.sessions.set(TOKEN, "acc_admin");
+  return renderWithProviders(
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/mi-pago" element={<MyPayPage />} />
+      </Routes>
+    </AccessProvider>,
+    { route, token: TOKEN }
+  );
+}
+
+describe("el pago del propio barbero", () => {
+  beforeAll(() => {
+    vi.stubGlobal("IntersectionObserver", InertObserver);
+  });
+  beforeEach(() => {
+    db.reset();
+    db.sessions.set(TOKEN, "acc_admin");
+  });
+
+  test("«Lo que llevo»: el de comisión ve lo ganado, sus comisiones y sus propinas, solo de él", async () => {
+    renderMyPay("barbero-comision");
+    expect(await screen.findByRole("heading", { name: "Lo que llevo" })).toBeInTheDocument();
+    const summary = await screen.findByRole("region", { name: "Resumen de tu pago" });
+    expect(within(summary).getByText("Lo que llevas")).toBeInTheDocument();
+    expect(within(summary).getByText("Comisión de servicios")).toBeInTheDocument();
+    expect(within(summary).getByText("Comisión de productos")).toBeInTheDocument();
+    expect(within(summary).getByText("Propinas")).toBeInTheDocument();
+    expect(screen.getByText("Tus servicios del periodo")).toBeInTheDocument();
+    expect(screen.queryByText("Valeria Marín")).toBeNull();
+  });
+
+  test("abrir la cuenta completa enseña sus reglas sin el enlace a Equipo", async () => {
+    renderMyPay("barbero-comision");
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId("my-pay-detail"));
+    const detail = await screen.findByTestId("payroll-detail");
+    expect(within(detail).getByText(/Básica · 45%/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver sus reglas en Equipo" })).toBeNull();
+  });
+
+  test("«Mi negocio»: el de renta ve ventas, renta y deducciones, y un neto negativo explicado", async () => {
+    renderMyPay("barbero-renta");
+    expect(await screen.findByRole("heading", { name: "Mi negocio" })).toBeInTheDocument();
+    const summary = await screen.findByRole("region", { name: "Resumen de tu pago" });
+    expect(within(summary).getByText("Tus ventas")).toBeInTheDocument();
+    expect(within(summary).getByText("Para la barbería")).toBeInTheDocument();
+    expect(within(summary).getByText(/^Debes /)).toBeInTheDocument();
+    expect(within(summary).getByText("Se lo debes a la barbería")).toBeInTheDocument();
+    expect(screen.getByTestId("my-pay-owes")).toHaveTextContent(/le debes .* a la barbería/i);
+    expect(screen.getByText("Tus cuentas del periodo")).toBeInTheDocument();
   });
 });

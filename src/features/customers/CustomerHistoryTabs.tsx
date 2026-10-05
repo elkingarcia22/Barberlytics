@@ -32,9 +32,17 @@ interface TabProps {
   formatMoney: (value: number) => string;
 }
 
-export function CustomerAppointmentsTab({ customer, formatMoney }: TabProps) {
+interface AppointmentsTabProps extends TabProps {
+  /** Sin cifras de dinero (recepción) no hay columna de importe. */
+  showMoney?: boolean;
+  /** Para un barbero: su ficha de equipo. Ve fecha, servicio y estado de todas, pero el importe solo de las suyas. */
+  ownAmountsOf?: string | null;
+}
+
+export function CustomerAppointmentsTab({ customer, formatMoney, showMoney = true, ownAmountsOf = null }: AppointmentsTabProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
+  const amountOf = (item: CustomerDetail["appointments"][number]) => (item.total > 0 && (ownAmountsOf === null || item.barberId === ownAmountsOf) ? formatMoney(item.total) : "—");
   if (customer.appointments.length === 0) return <EmptyState title={t("customers.appointments.emptyTitle")} description={t("customers.appointments.emptyHint")} />;
   return (
     <TableShell title={t("customers.appointments.title")} description={t("customers.appointments.hint")}>
@@ -46,7 +54,7 @@ export function CustomerAppointmentsTab({ customer, formatMoney }: TabProps) {
             <TableHead>{t("customers.appointments.barber")}</TableHead>
             <TableHead>{t("customers.appointments.source")}</TableHead>
             <TableHead>{t("customers.appointments.status")}</TableHead>
-            <TableHead className="text-right">{t("customers.appointments.total")}</TableHead>
+            {showMoney && <TableHead className="text-right">{t("customers.appointments.total")}</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -62,7 +70,7 @@ export function CustomerAppointmentsTab({ customer, formatMoney }: TabProps) {
               <TableCell>
                 <StatusBadge status={APPOINTMENT_STATUS_BADGE[item.status]} label={t(APPOINTMENT_STATUS_KEYS[item.status])} />
               </TableCell>
-              <TableCell className="text-right tabular-nums">{item.total > 0 ? formatMoney(item.total) : "—"}</TableCell>
+              {showMoney && <TableCell className="text-right tabular-nums">{amountOf(item)}</TableCell>}
             </TableRow>
           ))}
         </TableBody>
@@ -106,7 +114,7 @@ export function CustomerPaymentsTab({ customer, formatMoney }: TabProps) {
   );
 }
 
-export function CustomerProductsTab({ customer, formatMoney }: TabProps) {
+export function CustomerProductsTab({ customer, formatMoney, showMoney = true }: TabProps & { showMoney?: boolean }) {
   const t = useAppT();
   const { formatDate } = useLocale();
   if (customer.products.length === 0) return <EmptyState icon="templates" title={t("customers.products.emptyTitle")} description={t("customers.products.emptyHint")} />;
@@ -115,10 +123,10 @@ export function CustomerProductsTab({ customer, formatMoney }: TabProps) {
       {customer.products.map((item) => (
         <ListItem
           key={item.id}
-          leading={<IconTile icon={<Package />} tone="neutral" />}
+          leading={<IconTile icon={<Package />} tone="neutral" src={item.imageUrl} />}
           title={item.name}
           description={`${t("customers.products.units", { count: item.units })} · ${t("customers.products.lastBought", { date: formatDate(new Date(item.lastBoughtAt), DATE_OPTIONS) })}`}
-          meta={<span className="font-medium tabular-nums text-text-primary">{formatMoney(item.total)}</span>}
+          meta={showMoney ? <span className="font-medium tabular-nums text-text-primary">{formatMoney(item.total)}</span> : undefined}
         />
       ))}
     </div>

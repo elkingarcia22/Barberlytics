@@ -20,6 +20,8 @@ export type SearchableSelectOption = {
   value: string
   label: string
   description?: string
+  /** Avatar o miniatura a la izquierda (también en el botón, con la opción elegida). */
+  leading?: React.ReactNode
   disabled?: boolean
 }
 
@@ -45,6 +47,7 @@ export function SearchableSelect({
   className,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const selected = value ? options.find((option) => option.value === value) : undefined
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,10 +63,9 @@ export function SearchableSelect({
             className
           )}
         >
-          <span className="truncate">
-            {value
-              ? options.find((option) => option.value === value)?.label
-              : placeholder}
+          <span className="flex min-w-0 items-center gap-2">
+            {selected?.leading}
+            <span className="truncate">{selected ? selected.label : placeholder}</span>
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -78,24 +80,28 @@ export function SearchableSelect({
                 <CommandItem
                   key={option.value}
                   value={option.value}
+                  keywords={[option.label, option.description ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => {
                     onValueChange?.(option.value)
                     setOpen(false)
                   }}
-                  className="flex flex-col items-start"
+                  className="flex items-center gap-2.5"
                 >
-                  <div className="flex items-center w-full">
-                    <span className="flex-1 text-sm">{option.label}</span>
-                    {value === option.value && (
-                      <Check className={cn("ml-2 h-4 w-4")} />
+                  {option.leading}
+                  <div className="flex min-w-0 flex-1 flex-col items-start">
+                    <div className="flex items-center w-full">
+                      <span className="flex-1 text-sm">{option.label}</span>
+                      {value === option.value && (
+                        <Check className={cn("ml-2 h-4 w-4")} />
+                      )}
+                    </div>
+                    {option.description && (
+                      <span className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                        {option.description}
+                      </span>
                     )}
                   </div>
-                  {option.description && (
-                    <span className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                      {option.description}
-                    </span>
-                  )}
                 </CommandItem>
               ))}
             </CommandGroup>

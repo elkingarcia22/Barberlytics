@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { barbersOf, memberName, type MockServiceOverride, type MockTeamMember } from "../team/seed";
+import { imageOrNull } from "../media";
 import { UNCATEGORIZED_ID, type MockCatalogService, type MockServiceCategory } from "./seed";
 
 /**
@@ -92,6 +93,7 @@ function validateService(input: Record<string, unknown>, currentId: string | nul
   if (durationMin === null || durationMin < 5 || durationMin > MAX_DURATION_MIN) fields.durationMin = [`La duración va de 5 a ${MAX_DURATION_MIN} minutos.`];
   if (taxRate !== null && (taxRate < 0 || taxRate > 100)) fields.taxRate = ["El impuesto va de 0 a 100 %."];
   if (!findCategory(categoryId)) fields.categoryId = ["Elige una categoría."];
+  if (typeof input.imageUrl === "string" && input.imageUrl.trim() !== "" && imageOrNull(input.imageUrl) === null) fields.imageUrl = ["La foto no es válida o pesa más de 1 MB."];
   if (kind === "combo") {
     const valid = includes.filter((id) => db.services.items.some((item) => item.id === id && item.kind === "service"));
     if (valid.length < 2) fields.includes = ["Un combo agrupa al menos dos servicios."];
@@ -114,6 +116,7 @@ function validateService(input: Record<string, unknown>, currentId: string | nul
       prep: { enabled: prep.enabled === true, minutes: prep.enabled === true ? prepMinutes : 0, position: prep.position === "end" ? ("end" as const) : ("start" as const) },
       giftCards: input.giftCards !== false,
       includes: kind === "combo" ? includes : [],
+      imageUrl: imageOrNull(input.imageUrl),
     } satisfies Omit<MockCatalogService, "id" | "activeBranchIds" | "createdAt">,
   };
 }

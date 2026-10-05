@@ -19,6 +19,8 @@ import { OptionTile } from "@/components/selection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
+import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { ProductCategoriesDrawer } from "./ProductCategoriesDrawer";
@@ -113,7 +115,11 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
   const clearSelection = () => setSelected(new Set());
 
   const formatPercent = React.useCallback((value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`, [formatNumber]);
-  const columns = React.useMemo(() => productColumns(t), [t]);
+  /* Recepción consulta el catálogo para vender: sin acciones, sin costo ni
+     margen, sin el pulso ni los avisos de gestión. Borrar es del dueño. */
+  const access = useAccess();
+  const can = React.useMemo(() => catalogAccess(access, "products"), [access]);
+  const columns = React.useMemo(() => productColumns(t, { money: can.seesMoney }), [t, can.seesMoney]);
   const cells = React.useMemo(() => productCells(t, { categories, formatMoney, formatPercent }), [t, categories, formatMoney, formatPercent]);
 
   const pool = React.useMemo(() => items.filter((item) => category === ALL || item.categoryId === category), [items, category]);
@@ -143,7 +149,9 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
   }, [marked, setActive, t, turningOn]);
 
   const actions = React.useMemo<readonly RailActionSpec[]>(
-    () => [
+    () => {
+      const allowed: Readonly<Record<string, boolean>> = { categories: can.categories.view, create: can.canCreate, open: true, edit: can.canEdit, toggle: can.canToggle, delete: can.canDelete };
+      const all: readonly RailActionSpec[] = [
       { id: "categories", label: t("products.action.categories"), icon: <FolderTree className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "categories" }) },
       { id: "create", label: t("products.action.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDrawer({ kind: "create" }) },
       { id: "open", label: t("products.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && navigate(`/productos/${single.id}`) },
@@ -157,8 +165,10 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
         onSelect: toggleActive,
       },
       { id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: () => single && setRemoving(single) },
-    ],
-    [navigate, single, t, toggleActive, turningOn]
+      ];
+      return all.filter((action) => allowed[action.id]);
+    },
+    [can, navigate, single, t, toggleActive, turningOn]
   );
 
   /* Cambiar de categoría con un aviso puesto puede dejar la lista en blanco, así que lo suelta. */
@@ -182,7 +192,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
         branchId={branchId}
         defaultCategoryId={category === ALL ? undefined : category}
       />
-      <ProductCategoriesDrawer open={drawer?.kind === "categories"} onOpenChange={(open) => !open && setDrawer(null)} categories={categories} items={items} />
+      <ProductCategoriesDrawer open={drawer?.kind === "categories"} onOpenChange={(open) => !open && setDrawer(null)} categories={categories} items={items} canCreate={can.categories.create} canEdit={can.categories.edit} canDelete={can.categories.delete} />
     </>
   );
 
@@ -194,9 +204,11 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
           title={t("products.emptyTitle")}
           description={t("products.emptyHint")}
           action={
-            <Button onClick={() => setDrawer({ kind: "create" })}>
-              <Plus /> {t("products.action.create")}
-            </Button>
+            can.canCreate ? (
+              <Button onClick={() => setDrawer({ kind: "create" })}>
+                <Plus /> {t("products.action.create")}
+              </Button>
+            ) : undefined
           }
         />
         {drawers}
@@ -224,6 +236,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
         </div>
       </section>
 
+      {can.seesMoney && (
       <section aria-label={t("products.pulseAria")} className="mb-section shrink-0">
         <React.Suspense
           fallback={
@@ -258,7 +271,9 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
           </div>
         </React.Suspense>
       </section>
+      )}
 
+      {can.seesMoney && (
       <AttentionStrip
         className="mb-section shrink-0"
         label={t("products.alert.aria")}
@@ -273,6 +288,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
           return <AttentionAction key={item.id} icon={item.icon} label={t(item.labelKey)} hint={t(item.hintKey)} value={count} tone={item.tone} active={alert === item.id} onClick={() => pickAlert(item.id)} />;
         })}
       </AttentionStrip>
+      )}
 
       <DataListBlock
         tableId="productos-catalogo"
@@ -307,7 +323,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
             leading={
               <span className="flex items-center gap-3">
                 {state.checkbox}
-                <ProductGlyph />
+                <ProductGlyph imageUrl={row.imageUrl} />
               </span>
             }
             title={row.name}

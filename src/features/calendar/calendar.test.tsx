@@ -5,6 +5,8 @@ import { db } from "@/mocks/db";
 import { RequireAuth } from "@/features/auth";
 import { CalendarPage } from "./CalendarPage";
 import { weekCell, weekStartOf } from "./weekModel";
+import { DEFAULT_CARD_PREFS } from "./calendarCardPrefs";
+import { appointmentContextActions } from "./calendarContextActions";
 import { appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
 import { reflowPlan } from "./reflowModel";
@@ -16,17 +18,23 @@ import { dayBrief, waitlistMatch } from "./dayBrief";
 import { parseBookingText } from "./bookingText";
 import { appointmentPlaybook } from "./appointmentPlaybook";
 import { changeDue, surchargeAmount, tipAmount } from "./checkoutMath";
-import type { Appointment, Barber, CalendarCatalog } from "./types";
+import { calendarAccess, canRemoveBlock, scopeDay, waitlistInScope } from "./calendarAccess";
+import { blockContextActions } from "./calendarContextActions";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
+import type { Appointment, Barber, CalendarCatalog, TimeBlock } from "./types";
 
 /** Viernes 25 de septiembre de 2026, a media mañana. Fecha fija: la agenda no depende del reloj. */
 const NOW = new Date(2026, 8, 25, 10, 20);
 
-function mount(route = "/calendario") {
+/** Sin rol, el calendario se mira como el dueño (sin `AccessProvider`); con rol, como esa persona. */
+function mount(route = "/calendario", role?: TeamRole) {
   db.sessions.set("mock-acc_admin-test", "acc_admin");
+  const page = <CalendarPage now={NOW} />;
   return renderWithProviders(
     <Routes>
       <Route element={<RequireAuth />}>
-        <Route path="/calendario" element={<CalendarPage now={NOW} />} />
+        <Route path="/calendario" element={role ? <AccessProvider value={buildAccess({ role })}>{page}</AccessProvider> : page} />
       </Route>
     </Routes>,
     { route, token: "mock-acc_admin-test" }
@@ -95,6 +103,83 @@ describe("modelo del calendario", () => {
     expect(event.action?.label).toBe("calendar.step.checkIn");
     expect(event.end.getHours()).toBe(11);
     expect(toEvent({ ...APPOINTMENT, status: "cancelled" }, ctx).muted).toBe(true);
+  });
+
+  test("la vista decide de qué se tiñe la tarjeta: nada, su servicio o su estado", () => {
+    const neutral = toEvent(APPOINTMENT, ctx);
+    expect(neutral.fill).toBe("neutral");
+    expect(neutral.tone).toBe("neutral");
+
+    const byService = toEvent(APPOINTMENT, { ...ctx, colorBy: "service" });
+    expect(byService.fill).toBe("category");
+    expect(byService.color).toBe(neutral.color);
+
+    const late = toEvent(APPOINTMENT, { ...ctx, colorBy: "status", now: new Date(2026, 8, 25, 10, 42) });
+    expect(late.fill).toBe("tone");
+    expect(late.tone).toBe("negative");
+    expect(toEvent({ ...APPOINTMENT, status: "paid" }, { ...ctx, colorBy: "status" }).tone).toBe("positive");
+
+    const byClient = toEvent(APPOINTMENT, { ...ctx, colorBy: "client" });
+    expect(byClient.fill).toBe("tone");
+    expect(byClient.tone).toBe("primary");
+  });
+
+  test("los ajustes de la vista deciden qué cuenta la tarjeta y qué iconos lleva", () => {
+    const card = { ...DEFAULT_CARD_PREFS, price: false, time: false, clientType: false, nextStep: false };
+    const event = toEvent(APPOINTMENT, { ...ctx, card, onNextStep: () => undefined });
+    expect(event.subtitle).toBe("Corte clásico");
+    expect(event.hideTime).toBe(true);
+    expect(event.badge).toBeUndefined();
+    expect(event.action).toBeUndefined();
+
+    // Una nota en la ficha sale con su icono si está encendido; la alergia no cuenta, ya avisa sola.
+    const noted: CalendarCatalog = { ...CATALOG, clients: [{ ...CATALOG.clients[0], notes: [{ id: "n1", kind: "note", text: "Prefiere tijera", createdAt: "2026-01-01" }] }] };
+    expect(toEvent(APPOINTMENT, { ...ctx, catalog: noted, card: DEFAULT_CARD_PREFS }).markers?.map((marker) => marker.label)).toContain("calendar.marker.clientNote");
+    expect(toEvent(APPOINTMENT, { ...ctx, catalog: noted, card: { ...DEFAULT_CARD_PREFS, notes: false } }).markers?.some((marker) => marker.id === "note")).toBe(false);
+    // Sin ajustes (otras pantallas) la tarjeta no lleva iconos.
+    expect(toEvent(APPOINTMENT, { ...ctx, catalog: noted }).markers).toEqual([]);
+  });
+
+  test("los avisos que no pueden ser ciertos a la vez no salen juntos", () => {
+    const newcomer = { ...CATALOG.clients[0], type: "new" as const, visits: 1 };
+    const icons = (appointment: Appointment, client = CATALOG.clients[0]) => appointmentMarkers(appointment, client, ctx).map((marker) => marker.id);
+    // La primera visita de alguien no es una cita que se repite.
+    expect(icons({ ...APPOINTMENT, repeat: "weekly" }, newcomer)).toContain("new");
+    expect(icons({ ...APPOINTMENT, repeat: "weekly" }, newcomer)).not.toContain("repeat");
+    // Un nuevo con historia ya no es primera visita.
+    expect(icons(APPOINTMENT, { ...newcomer, visits: 2 })).not.toContain("new");
+    // Quien llega sin cita no reservó online ni tiene serie.
+    const walkIn = icons({ ...APPOINTMENT, walkIn: true, source: "online", repeat: "weekly" });
+    expect(walkIn).toContain("walkIn");
+    expect(walkIn).not.toContain("online");
+    expect(walkIn).not.toContain("repeat");
+    // Un cliente con historia que reservó sí puede repetir.
+    expect(icons({ ...APPOINTMENT, repeat: "weekly" })).toContain("repeat");
+  });
+
+  test("el clic derecho de una cita ofrece lo que toca según en qué va, con lo irreversible al final", () => {
+    const handlers = { open: vi.fn(), run: vi.fn(), openClient: vi.fn() };
+    const upcoming = appointmentContextActions(APPOINTMENT, { ...ctx, now: new Date(2026, 8, 25, 10, 0) }, handlers);
+    const ids = upcoming.map((action) => action.id);
+    expect(ids[0]).toBe("open");
+    expect(ids).toContain("checkIn");
+    expect(ids).toContain("client");
+    expect(ids).not.toContain("edit");
+    expect(upcoming.slice(-2).map((action) => action.tone)).toEqual(["danger", "danger"]);
+    upcoming.find((action) => action.id === "checkIn")?.onSelect?.();
+    expect(handlers.run).toHaveBeenCalledWith("checkIn", APPOINTMENT);
+
+    const seated = appointmentContextActions({ ...APPOINTMENT, status: "seated" }, { ...ctx, now: new Date(2026, 8, 25, 10, 40) }, handlers).map((action) => action.id);
+    expect(seated).toContain("pay");
+    expect(seated).not.toContain("checkIn");
+  });
+
+  test("el tipo de cliente filtra la agenda junto con estado y servicio", () => {
+    const at = new Date(2026, 8, 25, 10, 0);
+    expect(matchesFilters(APPOINTMENT, { stages: [], serviceIds: [], clientTypes: ["vip"] }, at, CATALOG)).toBe(true);
+    expect(matchesFilters(APPOINTMENT, { stages: [], serviceIds: [], clientTypes: ["new", "frequent"] }, at, CATALOG)).toBe(false);
+    // Sin catálogo el tipo no se puede saber y ese filtro no se aplica.
+    expect(matchesFilters(APPOINTMENT, { stages: [], serviceIds: [], clientTypes: ["new"] }, at)).toBe(true);
   });
 
   test("una cita sin ingresar va tarde a partir de cinco minutos, y solo el mismo día", () => {
@@ -252,7 +337,7 @@ describe("modelo del calendario", () => {
     expect(live({ ...APPOINTMENT, status: "seated" }, at(10, 40)).color).toBe(1);
     expect(live({ ...APPOINTMENT, serviceIds: ["s2"] }, at(10, 0)).color).toBe(2);
     expect(live({ ...APPOINTMENT, status: "cancelled" }, at(10, 0)).color).toBeUndefined();
-    // Un solo indicador: agendada y por cobrar no llevan píldora —su botón («Check-in», «Cobrar») ya lo dice—.
+    // Un solo indicador: agendada y por cobrar no llevan píldora —su botón («Ingresar», «Cobrar») ya lo dice—.
     expect(live(APPOINTMENT, at(10, 0)).status).toBeUndefined();
     expect(live(APPOINTMENT, at(10, 0)).action?.label).toBe("calendar.step.checkIn");
     expect(live({ ...APPOINTMENT, status: "seated" }, at(11, 10)).status).toBeUndefined();
@@ -270,19 +355,65 @@ describe("modelo del calendario", () => {
     expect(matchesFilters(APPOINTMENT, { stages: ["paid", "upcoming"], serviceIds: ["s1", "s2"] }, at(10, 0))).toBe(true);
     expect(matchesFilters(APPOINTMENT, { stages: ["paid"], serviceIds: [] }, at(10, 0))).toBe(false);
     expect(matchesFilters(APPOINTMENT, { stages: [], serviceIds: ["s2"] }, at(10, 0))).toBe(false);
-    // Quién es va en la etiqueta; los iconos de detalle ya no viajan en la tarjeta.
+    // Quién es va en la etiqueta; los iconos de detalle solo viajan si los ajustes de la vista los piden.
     expect(live(APPOINTMENT, at(10, 0)).badge?.label).toBe("calendar.clientType.vip");
-    expect(live(APPOINTMENT, at(10, 0)).markers).toBeUndefined();
+    expect(live(APPOINTMENT, at(10, 0)).markers).toEqual([]);
     expect(appointmentMarkers({ ...APPOINTMENT, source: "online", notes: "Trae foto" }, CATALOG.clients[0], ctx).map((marker) => marker.icon)).toEqual(["online", "requested", "note"]);
     expect(isFlexible({ ...APPOINTMENT, requestedBarberId: null })).toBe(true);
     expect(isFlexible({ ...APPOINTMENT, requestedBarberId: null, status: "arrived" })).toBe(false);
   });
 
-  test("solo el barbero de comisión agenda con reglas", () => {
-    expect(followsAgendaRules("barbero-comision")).toBe(true);
-    for (const role of ["owner", "admin", "recepcion", "barbero-renta"]) expect(followsAgendaRules(role)).toBe(false);
-    // Sin rol conocido (una pantalla sin marco) no se inventan restricciones.
-    expect(followsAgendaRules(undefined)).toBe(false);
+  test("los barberos (comisión y renta) agendan con reglas; dueño, administrador y recepción pueden forzar", () => {
+    for (const role of ["barbero-comision", "barbero-renta"] as const) {
+      expect(followsAgendaRules(buildAccess({ role }))).toBe(true);
+      expect(calendarAccess(buildAccess({ role })).canForce).toBe(false);
+    }
+    for (const role of ["owner", "admin", "recepcion"] as const) {
+      expect(followsAgendaRules(buildAccess({ role }))).toBe(false);
+      expect(calendarAccess(buildAccess({ role })).canForce).toBe(true);
+    }
+    // Sin marco (la doc, piezas sueltas) no se inventan restricciones.
+    expect(ctx.access).toBeUndefined();
+  });
+
+  test("cada rol ve lo suyo: columna, bloqueos, cifras y contacto del cliente", () => {
+    const comision = calendarAccess(buildAccess({ role: "barbero-comision" }));
+    const renta = calendarAccess(buildAccess({ role: "barbero-renta" }));
+    const recepcion = calendarAccess(buildAccess({ role: "recepcion" }));
+    const owner = calendarAccess(buildAccess({ role: "owner" }));
+    expect(comision.ownBarberId).toBe("team-04");
+    expect(renta.ownBarberId).toBe("team-30");
+    expect(recepcion.ownBarberId).toBeNull();
+    // El de comisión solo ve los bloqueos; el de renta bloquea su agenda y solo la suya.
+    expect(comision.canCreateBlock).toBe(false);
+    expect(renta.canCreateBlock).toBe(true);
+    const own: TimeBlock = { id: "blk", branchId: "ma", barberId: "team-30", category: "lunch", repeat: "none", startDate: "2026-09-25", endDate: "2026-09-25", startTime: "13:00", endTime: "14:00", description: null };
+    expect(canRemoveBlock(renta, own)).toBe(true);
+    expect(canRemoveBlock(renta, { ...own, barberId: "team-05" })).toBe(false);
+    expect(canRemoveBlock(comision, { ...own, barberId: "team-04" })).toBe(false);
+    expect(blockContextActions({ ...own, barberId: "team-04" }, { ...ctx, access: comision }, () => undefined)).toEqual([]);
+    expect(blockContextActions(own, { ...ctx, access: recepcion }, () => undefined)).toHaveLength(1);
+    // Recepción cobra pero sin cifras del día; los barberos ven las suyas.
+    expect(recepcion.showTotals).toBe(false);
+    expect(comision.showTotals && renta.showTotals && owner.showTotals).toBe(true);
+    // Sin «Información del cliente» no se ofrece llamar ni WhatsApp.
+    expect(comision.canContact).toBe(false);
+    expect(recepcion.canContact).toBe(true);
+    const late = { ...APPOINTMENT, start: "2026-09-25T09:30:00" };
+    const lateCtx = { ...ctx, now: NOW };
+    const ids = (access: typeof owner) => appointmentContextActions(late, { ...lateCtx, access }, { open: () => undefined, run: () => undefined, openClient: () => undefined }).map((action) => action.id);
+    expect(ids(recepcion)).toEqual(expect.arrayContaining(["call", "whatsapp"]));
+    expect(ids(comision)).not.toEqual(expect.arrayContaining(["call"]));
+    expect(ids(comision)).not.toContain("whatsapp");
+  });
+
+  test("con alcance propio el día y la lista de espera se recortan a lo suyo", () => {
+    const day = { date: "2026-09-25", appointments: [APPOINTMENT, { ...APPOINTMENT, id: "a2", barberId: "b2" }], blocks: [] };
+    expect(scopeDay(day, "b1").appointments.map((item) => item.id)).toEqual(["a1"]);
+    expect(scopeDay(day, null)).toBe(day);
+    expect(waitlistInScope({ barberId: null }, "b1")).toBe(true);
+    expect(waitlistInScope({ barberId: "b2" }, "b1")).toBe(false);
+    expect(waitlistInScope({ barberId: "b2" }, null)).toBe(true);
   });
 
   test("los huecos del día dicen qué cabe, cuánto suman y a quién de la lista de espera ofrecerlos", () => {
@@ -386,7 +517,8 @@ describe("Calendario", () => {
     expect(within(agenda).getAllByRole("listitem").length).toBeGreaterThan(3);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("radio", { name: "Mes" }));
+    await user.click(screen.getByTestId("calendar-view"));
+    await user.click(await screen.findByRole("menuitemradio", { name: /Mes/ }));
     const month = await screen.findByRole("grid", { name: "Ocupación del mes" });
     await waitFor(() => expect(within(month).getAllByRole("button", { name: /Ocupación \d+%/ }).length).toBeGreaterThan(10));
   });
@@ -519,8 +651,8 @@ describe("Calendario", () => {
     mount();
     const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
     const cards = await within(grid).findAllByRole("button", { name: /^Abrir / });
-    // Una cita todavía pendiente: su tarjeta ofrece «Check-in».
-    const pending = cards.find((card) => within(card.parentElement as HTMLElement).queryByRole("button", { name: "Check-in" }));
+    // Una cita todavía pendiente: su tarjeta ofrece «Ingresar».
+    const pending = cards.find((card) => within(card.parentElement as HTMLElement).queryByRole("button", { name: "Ingresar" }));
     await user.click(pending as HTMLElement);
 
     const drawer = await screen.findByTestId("appointment-drawer");
@@ -530,10 +662,10 @@ describe("Calendario", () => {
     expect(within(drawer).queryByTestId("appointment-edit")).toBeNull();
     await user.click(within(drawer).getByTestId("appointment-edit-toggle"));
     expect(within(drawer).getByTestId("appointment-edit")).toBeInTheDocument();
-    expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Check-in");
+    expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Ingresar");
 
     await user.click(screen.getByTestId("appointment-next-step"));
-    await waitFor(() => expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Sentado"));
+    await waitFor(() => expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Sentar"));
 
     await user.click(screen.getByTestId("appointment-pay"));
     expect(await screen.findByTestId("checkout-drawer")).toBeInTheDocument();
@@ -586,9 +718,46 @@ describe("Calendario", () => {
     const user = userEvent.setup();
     mount();
     const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
-    const checkIns = await within(grid).findAllByRole("button", { name: "Check-in" });
+    const checkIns = await within(grid).findAllByRole("button", { name: "Ingresar" });
     expect(checkIns.length).toBeGreaterThan(0);
     await user.click(checkIns[0]);
-    await waitFor(() => expect(within(grid).getAllByRole("button", { name: "Check-in" }).length).toBe(checkIns.length - 1));
+    await waitFor(() => expect(within(grid).getAllByRole("button", { name: "Ingresar" }).length).toBe(checkIns.length - 1));
+  });
+  test("el barbero de comisión ve solo su columna, sin elegir equipo ni crear bloqueos", async () => {
+    const user = userEvent.setup();
+    // Aunque el enlace pida a todo el equipo, el barbero ve su agenda.
+    mount("/calendario?equipo=all", "barbero-comision");
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    expect(grid.querySelectorAll("[data-resource-id]")).toHaveLength(1);
+    expect(within(grid).getByText("Andrés Beltrán")).toBeInTheDocument();
+    expect(within(grid).queryByText("Lorena Lemos")).toBeNull();
+    expect(screen.queryByTestId("calendar-team")).toBeNull();
+    // Ve lo que lleva cobrado él, no la sucursal.
+    expect(screen.getByTestId("calendar-pulse-collected")).toBeInTheDocument();
+    // Su menú de columna no ofrece bloquear (comisión solo ve los bloqueos).
+    await user.click(within(grid).getByRole("button", { name: "Opciones de Andrés Beltrán" }));
+    expect(await screen.findByRole("menuitem", { name: "Reacomodar retrasos" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Crear bloque de tiempo" })).toBeNull();
+  });
+
+  test("al crear cita el barbero viene fijo en él y agenda sin forzar", async () => {
+    const user = userEvent.setup();
+    mount(undefined, "barbero-comision");
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    await user.click(within(grid).getByRole("button", { name: "Crear a las 3:00 p. m. con Andrés Beltrán" }));
+    const drawer = await screen.findByTestId("create-appointment");
+    const barber = within(drawer).getByTestId("create-appointment-barber");
+    expect(barber).toHaveTextContent("Andrés Beltrán");
+    expect(barber).toBeDisabled();
+  });
+
+  test("recepción opera el día sin ver las cifras", async () => {
+    mount(undefined, "recepcion");
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    // Ve a todo el equipo que trabaja...
+    expect(grid.querySelectorAll("[data-resource-id]")).toHaveLength(10);
+    expect(screen.getByTestId("calendar-team")).toBeInTheDocument();
+    // ...pero no «cobrados de» del día.
+    expect(screen.queryByTestId("calendar-pulse-collected")).toBeNull();
   });
 });

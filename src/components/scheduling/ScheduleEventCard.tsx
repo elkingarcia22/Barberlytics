@@ -17,6 +17,8 @@ import "./schedule.css";
  * silla», «Cobrada») y **qué se hace ahora** (el botón del siguiente
  * paso). Con `color` todas las tarjetas van sin borde y con el mismo relleno sólido
  * (tono suave de la marca en claro, gris en oscuro); el servicio se identifica por un círculo de color junto al nombre.
+ * Con `fill: "category"` o `fill: "tone"` la tarjeta se tiñe del pastel de su color o de su tono,
+ * mezclado con la superficie del tema (`.schedule-pastel` en schedule.css).
  *
  * Cuánto cuenta depende de su alto: en una línea, el nombre y el estado; con
  * dos, también el siguiente paso; con más sitio, el servicio y la hora. Lo
@@ -38,6 +40,7 @@ const TONE_CARD: Record<ScheduleTone, string> = {
   negative: "border-destructive/35 bg-destructive/10",
   info: "border-info/35 bg-info/10",
   neutral: "border-border bg-surface-muted",
+  accent: "border-[color-mix(in_srgb,var(--color-indigo)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-indigo)_10%,transparent)]",
 };
 
 const TONE_BADGE: Record<ScheduleTone, string> = {
@@ -47,6 +50,7 @@ const TONE_BADGE: Record<ScheduleTone, string> = {
   negative: "bg-destructive/10 text-destructive",
   info: "bg-info/15 text-info",
   neutral: "bg-muted text-text-secondary",
+  accent: "bg-[color-mix(in_srgb,var(--color-indigo)_15%,transparent)] text-[var(--color-indigo)]",
 };
 
 /** El punto de la píldora de estado. */
@@ -57,6 +61,7 @@ const TONE_DOT: Record<ScheduleTone, string> = {
   negative: "bg-destructive",
   info: "bg-info",
   neutral: "bg-text-muted",
+  accent: "bg-[var(--color-indigo)]",
 };
 
 const MARKER_ICON: Record<ScheduleMarkerIcon, LucideIcon> = {
@@ -109,7 +114,17 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
     // Con color de la paleta categórica la tarjeta va sobria —superficie y borde neutros— y el color
     // vive solo en un círculo junto al nombre: se identifica el servicio sin teñir la agenda entera.
     const palette = event.color !== undefined && !isGhost && !isBlock;
-    const dot = palette ? <ScheduleColorDot color={event.color ?? 1} className="size-2.5" /> : null;
+    // Con `fill` la tarjeta se tiñe del pastel de su servicio o de su estado (lo pide la vista).
+    const pastelClass =
+      isGhost || isBlock || event.muted
+        ? null
+        : event.fill === "category" && event.color !== undefined
+          ? scheduleColorClass(event.color)
+          : event.fill === "tone"
+            ? `schedule-tone-${tone}`
+            : null;
+    // Teñida por servicio, el punto sobra: la tarjeta entera ya es el color.
+    const dot = palette && event.fill !== "category" ? <ScheduleColorDot color={event.color ?? 1} className="size-2.5" /> : null;
     const markers = event.markers ?? [];
     const status = event.urgent ? { label: event.urgent, tone: "negative" as const } : event.status;
 
@@ -167,11 +182,18 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         style={style}
         title={[event.title, event.badge?.label, status?.label, timeLabel, event.subtitle, event.note, event.warning, ...markers.map((marker) => marker.label)].filter(Boolean).join(" · ")}
         className={cn(
-          "group/event absolute overflow-hidden rounded-lg border text-left",
+          // Las tarjetas de la agenda (neutral, pastel o vivo) van con esquinas rectas: bloques que se
+          // apilan en la rejilla. Solo las de tono semántico conservan el radio.
+          "group/event absolute overflow-hidden border text-left",
+          pastelClass || palette ? "rounded-none" : "rounded-lg",
           "transition-[box-shadow,opacity] duration-fast ease-out-expo motion-reduce:transition-none",
           // Sin borde: el relleno sólido separa la tarjeta del fondo (`.schedule-card-fill` en schedule.css:
-          // tono de la marca en claro, gris en oscuro). Al pasar el ratón, un filo sutil.
-          palette ? "schedule-card-fill border-transparent bg-surface hover:border-foreground/20" : TONE_CARD[tone],
+          // papel con sombra en claro, gris en oscuro). Al pasar el ratón cambia la sombra o el relleno, nunca un borde.
+          pastelClass
+            ? cn("schedule-pastel border-transparent", pastelClass)
+            : palette
+              ? "schedule-card-fill border-transparent bg-surface"
+              : TONE_CARD[tone],
           event.flexible && !isGhost && "border-dashed",
           isGhost && "z-raised border-dashed border-primary/70 bg-primary/5 opacity-85",
           event.muted && "opacity-60",
@@ -206,7 +228,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
           <div className="pointer-events-none relative flex h-full min-w-0 items-center gap-1.5 px-2">
             {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
             {dot}
-            <span className={cn("min-w-[2.5rem] flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+            <span data-card-ink className={cn("min-w-[2.5rem] flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
             {warning}
             {statusPill ?? (isGhost && event.badge && <CardBadge badge={event.badge} tone={tone} />)}
           </div>
@@ -215,15 +237,15 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
             <div className="flex min-w-0 items-center gap-1.5">
               {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
               {dot}
-              <span className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+              <span data-card-ink className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+              {markers.length > 0 && <MarkerRow markers={markers} />}
               {event.badge && <CardBadge badge={event.badge} tone={palette ? "neutral" : tone} sober={palette} />}
             </div>
 
             {event.note && <span className="truncate text-xs italic text-text-secondary">{event.note}</span>}
-            {height >= SERVICE_FROM_PX && event.subtitle && <span className="truncate text-xs text-text-secondary">{event.subtitle}</span>}
-            {height >= TIME_FROM_PX && <span className="truncate text-xs tabular-nums text-text-muted">{timeLabel}</span>}
+            {height >= SERVICE_FROM_PX && event.subtitle && <span data-card-ink className="truncate text-xs text-text-secondary">{event.subtitle}</span>}
+            {height >= TIME_FROM_PX && !event.hideTime && <span className="truncate text-xs tabular-nums text-text-muted">{timeLabel}</span>}
             {height >= DETAIL_FROM_PX && event.detail && <span className="truncate text-xs text-text-muted">{event.detail}</span>}
-            {height >= DETAIL_FROM_PX && markers.length > 0 && <MarkerRow markers={markers} />}
 
             {(statusPill || warning || action) && (
               <div className="mt-auto flex min-w-0 items-center gap-1">
@@ -274,7 +296,7 @@ function CardBadge({ badge, tone, sober = false }: { badge: NonNullable<Schedule
   return <span className={cn("shrink-0 rounded-sm px-1 text-[10px] font-semibold uppercase leading-4 tracking-wide", sober ? TONE_BADGE.neutral : TONE_BADGE[badge.tone ?? tone])}>{badge.label}</span>;
 }
 
-/** Los iconos de detalle, solo en tarjetas altas: cada uno con su significado para el lector de pantalla. */
+/** Los iconos de detalle junto al nombre (desde dos líneas de alto): cada uno con su significado para el lector de pantalla. */
 function MarkerRow({ markers }: { markers: readonly NonNullable<ScheduleEvent["markers"]>[number][] }) {
   return (
     <span className="flex shrink-0 items-center gap-1 text-text-muted" role="list">

@@ -8,7 +8,10 @@ vi.mock("@/components/charts/EChart", () => ({
 }));
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test/render";
 import { db } from "@/mocks/db";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
 import { TransactionsPage } from "./TransactionsPage";
+import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
 import { transactionsApi } from "./api";
 import { countByStatus, summarize } from "./transactionsHome";
 import type { Account } from "./types";
@@ -18,7 +21,7 @@ const TOKEN = "mock-acc_admin-test";
 const PAST_DAY = "2026-09-22";
 
 function account(draft: Partial<Account> = {}): Account {
-  return { id: "a1", kind: "appointment", date: "2026-09-22T10:00:00", invoice: "00000001", client: { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567" }, barber: "Andrés Beltrán", openedBy: "Lucía Bernal", chargedBy: "Andrés Beltrán", status: "paid", appointmentStatus: "paid", source: "internal", lines: [{ kind: "service", name: "Fade", qty: 1, amount: 45 }], subtotal: 45, tax: 0, tip: 5, total: 45, collected: 45, refunded: 0, balance: 0, method: "card", paidAt: "2026-09-22T15:45:00.000Z", reference: "ref", appointmentId: "a1", durationMin: 45, ...draft };
+  return { id: "a1", kind: "appointment", date: "2026-09-22T10:00:00", invoice: "00000001", client: { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567" }, barber: "Andrés Beltrán", barberId: "team-04", openedBy: "Lucía Bernal", chargedBy: "Andrés Beltrán", status: "paid", appointmentStatus: "paid", source: "internal", lines: [{ kind: "service", name: "Fade", qty: 1, amount: 45 }], subtotal: 45, tax: 0, tip: 5, total: 45, collected: 45, refunded: 0, balance: 0, method: "card", paidAt: "2026-09-22T15:45:00.000Z", reference: "ref", appointmentId: "a1", durationMin: 45, ...draft };
 }
 
 function renderApp(route: string) {
@@ -27,6 +30,18 @@ function renderApp(route: string) {
     <Routes>
       <Route path="/transacciones" element={<TransactionsPage />} />
     </Routes>,
+    { route, token: TOKEN }
+  );
+}
+
+function renderAs(role: TeamRole, route: string) {
+  db.sessions.set(TOKEN, "acc_admin");
+  return renderWithProviders(
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/transacciones" element={<TransactionsPage />} />
+      </Routes>
+    </AccessProvider>,
     { route, token: TOKEN }
   );
 }
@@ -151,5 +166,51 @@ describe("contrato de transacciones (mock)", () => {
     await withSession();
     await expect(transactionsApi.list({ branchId: "ma", from: "2026-09-10", to: "2026-09-01" })).rejects.toMatchObject({ status: 422 });
     await expect(transactionsApi.list({ branchId: "ma", from: "2026-01-01", to: "2026-09-01" })).rejects.toMatchObject({ status: 422 });
+  });
+});
+
+describe("transacciones según el rol", () => {
+  beforeAll(() => {
+    vi.stubGlobal("IntersectionObserver", InertObserver);
+  });
+  beforeEach(() => {
+    db.reset();
+  });
+
+  test("el barbero se queda con las cuentas que atendió; las ventas de mostrador no son suyas", () => {
+    const accounts = [account(), account({ id: "a2", barberId: "team-30" }), account({ id: "s1", kind: "sale", barber: null, barberId: null })];
+    expect(accountsFor(buildAccess({ role: "barbero-renta" }), accounts).map((item) => item.id)).toEqual(["a2"]);
+    expect(accountsFor(buildAccess({ role: "barbero-renta", member: null }), accounts)).toEqual([]);
+    expect(accountsFor(buildAccess({ role: "recepcion" }), accounts)).toHaveLength(3);
+  });
+
+  test("los totales del periodo son de quien lleva los números: recepción no los ve", () => {
+    expect(showsPeriodTotals(buildAccess({ role: "owner" }))).toBe(true);
+    expect(showsPeriodTotals(buildAccess({ role: "admin" }))).toBe(true);
+    expect(showsPeriodTotals(buildAccess({ role: "barbero-renta" }))).toBe(true);
+    expect(showsPeriodTotals(buildAccess({ role: "recepcion" }))).toBe(false);
+  });
+
+  test("el barbero de renta solo ve sus cuentas del día", async () => {
+    renderAs("barbero-renta", `/transacciones?fecha=${PAST_DAY}`);
+    const statuses = await screen.findByRole("radiogroup", { name: /filtrar las cuentas por estado/i });
+    const { items } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const own = items.filter((item) => item.barberId === "team-30");
+    expect(own.length).toBeGreaterThan(0);
+    expect(own.length).toBeLessThan(items.length);
+    expect(within(statuses).getByRole("button", { name: /todas/i })).toHaveTextContent(new RegExp(`Todas\\D*${own.length}$`));
+    expect(screen.getByText(/tus cuentas del periodo/i)).toBeInTheDocument();
+  });
+
+  test("recepción ve las cuentas pero no los totales del periodo", async () => {
+    renderAs("recepcion", `/transacciones?fecha=${PAST_DAY}`);
+    expect(await screen.findByRole("radiogroup", { name: /filtrar las cuentas por estado/i })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Resumen del periodo" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Facturado")).not.toBeInTheDocument();
+  });
+
+  test("el dueño sí ve los totales", async () => {
+    renderAs("owner", `/transacciones?fecha=${PAST_DAY}`);
+    expect(await screen.findByRole("region", { name: "Resumen del periodo" })).toBeInTheDocument();
   });
 });

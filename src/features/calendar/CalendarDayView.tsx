@@ -16,6 +16,7 @@ import {
   type ScheduleSlot,
 } from "@/components/scheduling";
 import { minutesOfDay, parseClock } from "@/components/scheduling";
+import type { RowAction } from "@/components/data-display";
 import { appointmentStart, blockToEvent, isActive, matchesFilters, toEvent, toResource, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
 import type { Appointment, Barber, CalendarDay, TeamFilter, TimeBlock } from "./types";
 
@@ -55,14 +56,20 @@ export interface CalendarDayViewProps {
   onOpenAppointment: (appointment: Appointment) => void;
   /** Tocar un bloqueo: desde ahí se quita. */
   onOpenBlock?: (block: TimeBlock) => void;
+  /** El clic derecho sobre una cita o un bloqueo: sus acciones. */
+  appointmentActions?: (appointment: Appointment) => readonly RowAction[];
+  blockActions?: (block: TimeBlock) => readonly RowAction[];
   /** Tocar una propuesta: aceptarla. */
   onAcceptProposal?: (event: ScheduleEvent) => void;
   onMove: (appointment: Appointment, drop: ScheduleDrop) => void;
   onResize: (appointment: Appointment, drop: ScheduleDrop) => void;
-  onSeeAll: () => void;
-  onConfigureHours: () => void;
-  onViewBarber: (barber: Barber) => void;
-  onBlockBarber: (barber: Barber) => void;
+  /** Sin él (un barbero solo ve su columna) no se ofrece ver a todo el equipo. */
+  onSeeAll?: () => void;
+  /** Sin él (sin permiso sobre Equipo) no se ofrece ir a los horarios. */
+  onConfigureHours?: () => void;
+  /** Las opciones de la columna que el rol permite: sin la función, la opción no sale. */
+  onViewBarber?: (barber: Barber) => void;
+  onBlockBarber?: (barber: Barber) => void;
   /** Pedir un plan para la cola de un barbero que va con retraso. */
   onReflowBarber?: (barber: Barber) => void;
   /** En pantalla estrecha, la tira de barberos cambia el filtro de equipo. */
@@ -92,6 +99,8 @@ export function CalendarDayView({
   onSlotClick,
   onOpenAppointment,
   onOpenBlock,
+  appointmentActions,
+  blockActions,
   onAcceptProposal,
   onMove,
   onResize,
@@ -114,7 +123,7 @@ export function CalendarDayView({
   );
   const events = React.useMemo<ScheduleEvent[]>(
     () => [
-      ...day.appointments.filter(isActive).map((appointment) => toEvent(appointment, ctx, { faded: !matchesFilters(appointment, filters, ctx.now) || fadedIds?.has(appointment.id) })),
+      ...day.appointments.filter(isActive).map((appointment) => toEvent(appointment, ctx, { faded: !matchesFilters(appointment, filters, ctx.now, ctx.catalog) || fadedIds?.has(appointment.id) })),
       ...day.blocks.map((block) => blockToEvent(block, date, ctx)),
       ...extraEvents,
     ],
@@ -142,12 +151,16 @@ export function CalendarDayView({
         description={t("calendar.nobody.hint", { date: capitalize(format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: calendarLocale(locale) })) })}
         action={
           <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={onSeeAll} data-testid="calendar-see-all">
-              <Users /> {t("calendar.nobody.seeAll")}
-            </Button>
-            <Button variant="outline" onClick={onConfigureHours}>
-              <Clock /> {t("calendar.nobody.configure")}
-            </Button>
+            {onSeeAll && (
+              <Button onClick={onSeeAll} data-testid="calendar-see-all">
+                <Users /> {t("calendar.nobody.seeAll")}
+              </Button>
+            )}
+            {onConfigureHours && (
+              <Button variant="outline" onClick={onConfigureHours}>
+                <Clock /> {t("calendar.nobody.configure")}
+              </Button>
+            )}
           </div>
         }
         data-testid="calendar-nobody"
@@ -167,6 +180,8 @@ export function CalendarDayView({
         </div>
       )}
       <ResourceDayGrid
+        // El estilo vivo de las tarjetas teñidas es un ajuste de la vista: lo activa una clase en la rejilla.
+        className={ctx.card?.vivid ? "schedule-vivid" : undefined}
         date={date}
         resources={resources}
         events={events}
@@ -186,6 +201,12 @@ export function CalendarDayView({
           const block = day.blocks.find((item) => item.id === event.id);
           if (block) onOpenBlock?.(block);
         }}
+        eventActions={(event) => {
+          const appointment = byId.get(event.id);
+          if (appointment) return appointmentActions?.(appointment) ?? [];
+          const block = day.blocks.find((item) => item.id === event.id);
+          return block ? (blockActions?.(block) ?? []) : [];
+        }}
         validateDrop={validateDrop}
         onDropRejected={onDropRejected}
         onEventMove={(event, drop) => {
@@ -200,9 +221,9 @@ export function CalendarDayView({
           const barber = ctx.catalog.barbers.find((item) => item.id === resource.id);
           if (!barber) return [];
           return [
-            { id: "view", label: t("calendar.barberMenu.view"), icon: <UserRound className="size-4" />, onSelect: () => onViewBarber(barber) },
+            ...(onViewBarber ? [{ id: "view", label: t("calendar.barberMenu.view"), icon: <UserRound className="size-4" />, onSelect: () => onViewBarber(barber) }] : []),
             ...(onReflowBarber ? [{ id: "reflow", label: t("calendar.reflow.menu"), icon: <Shuffle className="size-4" />, onSelect: () => onReflowBarber(barber) }] : []),
-            { id: "block", label: t("calendar.barberMenu.block"), icon: <Ban className="size-4" />, onSelect: () => onBlockBarber(barber) },
+            ...(onBlockBarber ? [{ id: "block", label: t("calendar.barberMenu.block"), icon: <Ban className="size-4" />, onSelect: () => onBlockBarber(barber) }] : []),
           ];
         }}
       />

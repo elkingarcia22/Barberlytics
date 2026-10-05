@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Ban, CalendarPlus, NotebookPen, Pencil, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Ban, CalendarPlus, NotebookPen, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -16,13 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
+import { useCustomerPermissions } from "./customerAccess";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerAppointmentsTab, CustomerGuestsTab, CustomerPaymentsTab, CustomerProductsTab } from "./CustomerHistoryTabs";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { CustomerOverview } from "./CustomerOverview";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
-import { maskPhone } from "./customersUtils";
-import { useCustomerQuery, useSetCustomerBlocked } from "./queries";
+import { branchName, maskPhone } from "./customersUtils";
+import { useCustomerQuery, useDeleteCustomer, useSetCustomerBlocked } from "./queries";
 import type { CustomerDetail } from "./types";
 
 /**
@@ -30,9 +31,16 @@ import type { CustomerDetail } from "./types";
  * el resumen junta lo que antes estaba repartido entre «Información general»
  * y «Perfil», y el historial —citas, pagos, invitados, productos— va en sus
  * pestañas. La pestaña vive en la URL.
+ *
+ * Según el rol (`customerAccess.ts`): un barbero solo abre la ficha de sus
+ * clientes; sin «Información del cliente» no hay contacto ni notas médicas;
+ * recepción no ve cifras de dinero (ni la pestaña de pagos), y editar,
+ * bloquear y borrar salen de la matriz.
  */
 
 const TABS = ["resumen", "citas", "pagos", "invitados", "productos"] as const;
+/** Sin cifras de dinero, los pagos del cliente no tienen nada que enseñar. */
+const MONEY_TABS: readonly string[] = ["pagos"];
 type ProfileTab = (typeof TABS)[number];
 
 const TAB_KEYS: Readonly<Record<ProfileTab, AppMessageKey>> = {
@@ -79,23 +87,54 @@ export function CustomerProfilePage() {
           />
         )}
       >
-        {(data) => <CustomerProfile customer={data} />}
+        {(data) => <CustomerProfileGate customer={data} />}
       </QueryBoundary>
     </div>
   );
+}
+
+/**
+ * Un barbero que abre por enlace la ficha de un cliente que no es suyo ve
+ * «sin permiso», no la ficha. El recorte de verdad es del servidor (el
+ * contrato aún no recibe el rol); aquí se respeta el mismo criterio.
+ */
+function CustomerProfileGate({ customer }: { customer: CustomerDetail }) {
+  const t = useAppT();
+  const navigate = useNavigate();
+  const perms = useCustomerPermissions();
+  if (!perms.canSee(customer)) {
+    return (
+      <EmptyState
+        icon="lock"
+        title={t("customers.profile.forbiddenTitle")}
+        description={t("customers.profile.forbiddenHint")}
+        data-testid="customer-forbidden"
+        action={
+          <Button variant="outline" onClick={() => navigate("/clientes")}>
+            <ArrowLeft /> {t("customers.profile.back")}
+          </Button>
+        }
+      />
+    );
+  }
+  return <CustomerProfile customer={customer} />;
 }
 
 function CustomerProfile({ customer }: { customer: CustomerDetail }) {
   const t = useAppT();
   const navigate = useNavigate();
   const formatMoney = useMoney();
+  const perms = useCustomerPermissions();
+  const deleteCustomer = useDeleteCustomer();
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const setBlocked = useSetCustomerBlocked();
   const [drawer, setDrawer] = React.useState<"edit" | "note" | null>(null);
   const [confirmBlock, setConfirmBlock] = React.useState(false);
 
   const tabParam = searchParams.get("pestana");
-  const tab: ProfileTab = TABS.find((item) => item === tabParam) ?? "resumen";
+  const visibleTabs = TABS.filter((item) => perms.showMoney || !MONEY_TABS.includes(item));
+  const tab: ProfileTab = visibleTabs.find((item) => item === tabParam) ?? "resumen";
   const setTab = (next: ProfileTab) =>
     setSearchParams(
       (current) => {
@@ -107,19 +146,21 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
       { replace: true }
     );
 
-  const actions = React.useMemo<readonly RailActionSpec[]>(
-    () => [
+  const actions = React.useMemo<readonly RailActionSpec[]>(() => {
+    const list: (RailActionSpec | false)[] = [
       { id: "note", label: t("customers.action.note"), icon: <NotebookPen className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("note") },
-      { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("edit") },
-      customer.blocked
-        ? { id: "unblock", label: t("customers.action.unblock"), icon: <ShieldCheck className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setConfirmBlock(true) }
-        : { id: "block", label: t("customers.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["screen"], tone: "danger", overflow: true, onSelect: () => setConfirmBlock(true) },
+      perms.canEdit && { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("edit") },
+      perms.canEdit &&
+        (customer.blocked
+          ? { id: "unblock", label: t("customers.action.unblock"), icon: <ShieldCheck className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setConfirmBlock(true) }
+          : { id: "block", label: t("customers.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["screen"], tone: "danger", overflow: true, onSelect: () => setConfirmBlock(true) }),
+      perms.canDelete && { id: "delete", label: t("customers.action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"], tone: "danger", overflow: true, onSelect: () => setConfirmDelete(true) },
       { id: "book", label: t("customers.action.book"), icon: <CalendarPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, blockedReason: customer.blocked ? t("customers.action.bookBlocked") : null, onSelect: () => navigate(`/calendario?cliente=${customer.id}`) },
-    ],
-    [customer.blocked, customer.id, navigate, t]
-  );
+    ];
+    return list.filter((action): action is RailActionSpec => action !== false);
+  }, [customer.blocked, customer.id, navigate, perms.canDelete, perms.canEdit, t]);
 
-  const tabs = TABS.map((item) => ({
+  const tabs = visibleTabs.map((item) => ({
     id: item,
     label: t(TAB_KEYS[item]),
     badge: item === "citas" ? customer.appointments.length : item === "invitados" ? customer.guests.length : undefined,
@@ -130,14 +171,14 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            <CustomerAvatar name={customer.name} size="lg" />
+            <CustomerAvatar name={customer.name} avatarUrl={customer.avatarUrl} size="lg" />
             <span className="flex flex-wrap items-center gap-2">
               {customer.name}
               <SegmentBadge segment={customer.segment} />
             </span>
           </span>
         }
-        description={`${maskPhone(customer.phone)} · ${customer.email}`}
+        description={perms.showContact ? `${maskPhone(customer.phone)} · ${customer.email}` : branchName(customer.branchId)}
         actions={
           <Button variant="ghost" size="sm" onClick={() => navigate("/clientes")}>
             <ArrowLeft /> {t("customers.profile.back")}
@@ -155,17 +196,17 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
 
       <ThemaTabs className="mb-4" variant="page" fitContent tabs={tabs} activeTabId={tab} onTabChange={(next) => setTab(next as ProfileTab)} />
 
-      {tab === "resumen" && <CustomerOverview customer={customer} formatMoney={formatMoney} onAddNote={() => setDrawer("note")} onEdit={() => setDrawer("edit")} onSeeAppointments={() => setTab("citas")} />}
-      {tab === "citas" && <CustomerAppointmentsTab customer={customer} formatMoney={formatMoney} />}
+      {tab === "resumen" && <CustomerOverview customer={customer} formatMoney={formatMoney} onAddNote={() => setDrawer("note")} onEdit={perms.canEdit ? () => setDrawer("edit") : undefined} onSeeAppointments={() => setTab("citas")} showContact={perms.showContact} showMoney={perms.showMoney} />}
+      {tab === "citas" && <CustomerAppointmentsTab customer={customer} formatMoney={formatMoney} showMoney={perms.showMoney} ownAmountsOf={perms.scope === "own" ? perms.memberId : null} />}
       {tab === "pagos" && <CustomerPaymentsTab customer={customer} formatMoney={formatMoney} />}
       {tab === "invitados" && <CustomerGuestsTab customer={customer} />}
-      {tab === "productos" && <CustomerProductsTab customer={customer} formatMoney={formatMoney} />}
+      {tab === "productos" && <CustomerProductsTab customer={customer} formatMoney={formatMoney} showMoney={perms.showMoney} />}
 
       <ShellRailSlot>
-        <DataListActionRail actions={actions} selectedCount={0} onClearSelection={() => undefined} isBlocked={drawer !== null || confirmBlock} />
+        <DataListActionRail actions={actions} selectedCount={0} onClearSelection={() => undefined} isBlocked={drawer !== null || confirmBlock || confirmDelete} />
       </ShellRailSlot>
 
-      <CustomerFormDrawer open={drawer === "edit"} onOpenChange={(open) => !open && setDrawer(null)} customer={customer} branchId={customer.branchId} />
+      {perms.canEdit && <CustomerFormDrawer open={drawer === "edit"} onOpenChange={(open) => !open && setDrawer(null)} customer={customer} branchId={customer.branchId} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={customer.id} customerName={customer.name} />
 
       <ConfirmDialog
@@ -189,6 +230,25 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
             }
           );
         }}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        variant="destructive"
+        title={t("customers.delete.title", { name: customer.name })}
+        description={t("customers.delete.hint")}
+        confirmLabel={t("customers.action.delete")}
+        loading={deleteCustomer.isPending}
+        onConfirm={() =>
+          deleteCustomer.mutate(customer.id, {
+            onSuccess: () => {
+              toast.success(t("customers.delete.done"), { description: customer.name });
+              navigate("/clientes");
+            },
+            onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+          })
+        }
       />
     </>
   );

@@ -8,7 +8,7 @@ import { describeError } from "@/lib/api";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot, useShellConfig } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/navigation";
-import { PageHeader } from "@/components/utility";
+import { usePageHeaderExtras } from "@/components/utility";
 import { Text } from "@/components/typography";
 import { ConfirmDialog } from "@/components/overlays";
 import { DataListActionRail, ScreenHeaderActions, useActionsPlacement } from "@/components/action-rail";
@@ -16,13 +16,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ScheduleDrop, ScheduleEvent, ScheduleResourceAlert, ScheduleSlot } from "@/components/scheduling";
 import { atMinutes, formatClock, formatClockRange, minutesOfDay } from "@/components/scheduling";
 import { DEFAULT_BRANCH_ID } from "@/features/branches";
+import { useAccess } from "@/features/access";
 import { CalendarToolbar } from "./CalendarToolbar";
 import { CalendarDayView } from "./CalendarDayView";
 import { CalendarAgendaView } from "./CalendarAgendaView";
 import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
-import { CalendarFilters, type ServiceFilterOption } from "./CalendarFilters";
+import { CalendarFilters, type ClientTypeFilterOption, type ServiceFilterOption } from "./CalendarFilters";
+import { CalendarViewOptions } from "./CalendarViewOptions";
+import { useCalendarCardPrefs } from "./calendarCardPrefs";
+import { appointmentContextActions, blockContextActions } from "./calendarContextActions";
+import type { AppointmentActionId } from "./appointmentPlaybook";
 import { GapsDrawer } from "./GapsDrawer";
 import { dayGaps } from "./gapsModel";
 import { dayPulse } from "./pulseModel";
@@ -36,6 +41,7 @@ import { QuickSaleDrawer } from "./QuickSaleDrawer";
 import { WalkInSaleDrawer } from "./WalkInSaleDrawer";
 import { ReflowBanner } from "./ReflowBanner";
 import { calendarRailActions } from "./calendarRailActions";
+import { calendarAccess, canRemoveBlock, scopeCatalog, scopeDay, waitlistInScope } from "./calendarAccess";
 import { clockLabel, useMoney } from "./calendarFormat";
 import { useCalendarDensity } from "./calendarDensity";
 import { useCalendarShortcuts } from "./useCalendarShortcuts";
@@ -49,9 +55,10 @@ import {
   appointmentEnd,
   appointmentStart,
   applyDayHours,
+  appointmentClientType,
+  CLIENT_TYPE_ORDER,
   durationLabel,
   visibleBarbers,
-  followsAgendaRules,
   isActive,
   serviceCategories,
   serviceColor,
@@ -67,7 +74,7 @@ import {
   type AgendaFilters,
   type ModelContext,
 } from "./calendarModel";
-import { STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
+import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
 
 /**
  * El calendario de la barbería: el día por barbero, la agenda como lista y
@@ -137,9 +144,13 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const navigate = useNavigate();
   const { current } = useLocale();
   const formatMoney = useMoney();
-  const { activeCompanyId, activeRoleId } = useShellConfig();
-  // Solo el barbero de comisión agenda con reglas; los demás roles pueden pisar citas y horarios.
-  const enforceRules = followsAgendaRules(activeRoleId);
+  const { activeCompanyId } = useShellConfig();
+  // Lo que el rol deja ver y hacer aquí. Los barberos ven solo su columna y agendan con las
+  // reglas de la casa; dueño, administrador y recepción pueden pisar citas y horarios.
+  const access = useAccess();
+  const can = React.useMemo(() => calendarAccess(access), [access]);
+  const ownBarberId = can.ownBarberId;
+  const enforceRules = !can.canForce;
   const branchId = activeCompanyId ?? DEFAULT_BRANCH_ID;
   const nowDate = React.useMemo(() => now ?? new Date(), [now]);
   // «Hoy» con identidad estable: de él cuelgan la fecha, el catálogo del día y
@@ -147,12 +158,20 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const today = React.useMemo(() => startOfDay(nowDate), [nowDate]);
   const state = useCalendarState(today);
   const catalog = useCatalogQuery(branchId);
-  const day = useDayQuery(branchId, state.dateKey);
-  const waitlist = useWaitlistQuery(branchId, null);
+  const dayQuery = useDayQuery(branchId, state.dateKey);
+  const waitlistQuery = useWaitlistQuery(branchId, null);
+  // Con alcance propio, el día y la lista de espera llegan ya recortados a lo suyo: de ahí
+  // salen la rejilla, el pulso, los contadores, la Agenda, los huecos y el asistente.
+  const scopedDayData = React.useMemo(() => (dayQuery.data ? scopeDay(dayQuery.data, ownBarberId) : undefined), [dayQuery.data, ownBarberId]);
+  const day = React.useMemo(() => ({ ...dayQuery, data: scopedDayData }) as typeof dayQuery, [dayQuery, scopedDayData]);
+  const waitlistItems = React.useMemo(() => (waitlistQuery.data?.items ?? []).filter((entry) => waitlistInScope(entry, ownBarberId)), [waitlistQuery.data, ownBarberId]);
+  // El filtro de equipo de la URL no aplica a un barbero: su columna y nada más.
+  const team = ownBarberId ?? state.team;
   const update = useUpdateAppointment();
   const removeBlock = useRemoveBlock();
   const [searchParams] = useSearchParams();
   const [density, setDensity, slotHeight] = useCalendarDensity();
+  const [cardPrefs, setCardPref, resetCardPrefs] = useCalendarCardPrefs();
   /* Llegar desde la ficha de un cliente («Crear cita») abre el alta con él ya elegido. */
   const [panel, setPanel] = React.useState<Panel | null>(() => {
     const clientId = searchParams.get("cliente");
@@ -232,8 +251,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Las franjas del día (con las excepciones de la semana) pisan el horario
   // fijo del catálogo: así el calendario enseña lo que de verdad se trabaja.
   const dayCatalog = React.useMemo(
-    () => (catalog.data ? { ...catalog.data, barbers: applyDayHours(catalog.data.barbers, state.date, day.data?.hours) } : null),
-    [catalog.data, day.data?.hours, state.date]
+    () => (catalog.data ? scopeCatalog({ ...catalog.data, barbers: applyDayHours(catalog.data.barbers, state.date, day.data?.hours) }, ownBarberId) : null),
+    [catalog.data, day.data?.hours, state.date, ownBarberId]
   );
   const ctx = React.useMemo<ModelContext | null>(
     () =>
@@ -244,13 +263,16 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
             formatMoney,
             catalog: dayCatalog,
             now: nowDate,
+            colorBy: state.colorBy,
+            card: cardPrefs,
+            access: can,
             onNextStep: (appointment) => {
               const step = nextStep(appointment.status);
               if (step) changeStatus(appointment, step.status);
             },
           }
         : null,
-    [dayCatalog, changeStatus, current.intl, formatMoney, nowDate, t]
+    [dayCatalog, changeStatus, current.intl, formatMoney, nowDate, state.colorBy, cardPrefs, can, t]
   );
 
   const barbers = React.useMemo(() => dayCatalog?.barbers ?? [], [dayCatalog]);
@@ -266,13 +288,26 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name))
       .map((service) => ({ id: service.id, name: service.name, color: serviceColor(dayCatalog, service.id) ?? 1, count: active.filter((item) => item.serviceIds.includes(service.id)).length }));
   }, [dayCatalog, day.data]);
-  const filters = React.useMemo<AgendaFilters>(() => ({ stages: state.focuses, serviceIds: state.serviceIds }), [state.focuses, state.serviceIds]);
+  // Los tipos de cliente, en el orden de la escalera y con cuántas citas vivas tiene cada uno hoy.
+  const clientTypeOptions = React.useMemo<ClientTypeFilterOption[]>(() => {
+    if (!dayCatalog) return [];
+    const active = (day.data?.appointments ?? []).filter(isActive);
+    return CLIENT_TYPE_ORDER.map((type) => ({ id: type, label: t(CLIENT_TYPE_KEYS[type]), count: active.filter((item) => appointmentClientType(dayCatalog, item) === type).length }));
+  }, [dayCatalog, day.data, t]);
+  const filters = React.useMemo<AgendaFilters>(
+    () => ({ stages: state.focuses, serviceIds: state.serviceIds, clientTypes: state.clientTypes }),
+    [state.focuses, state.serviceIds, state.clientTypes]
+  );
 
   // Barra flotante o cabecera: lo decide la persona en «Personalización».
   const [actionsPlacement] = useActionsPlacement();
   const railOwnsActions = actionsPlacement === "rail";
+  // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
+  const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
 
+  // Lo que el rol no puede hacer no se ofrece: bloquear sin permiso, ir a los horarios sin ver Equipo.
+  const hiddenRailActions = React.useMemo(() => new Set([...(can.canCreateBlock ? [] : ["block"]), ...(can.canViewTeam ? [] : ["work-hours"])]), [can.canCreateBlock, can.canViewTeam]);
   const railActions = React.useMemo(
     () =>
       calendarRailActions(t, {
@@ -281,12 +316,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInSale: () => openPanel({ kind: "walkInSale" }),
         collections: () => openPanel({ kind: "collections" }),
         waitlist: () => openPanel({ kind: "waitlist" }),
-        block: () => openPanel({ kind: "block", barberId: null }),
+        block: () => openPanel({ kind: "block", barberId: ownBarberId }),
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
-      }),
-    [navigate, openPanel, t]
+      }).filter((action) => !hiddenRailActions.has(action.id)),
+    [hiddenRailActions, navigate, openPanel, ownBarberId, t]
   );
 
   useCalendarShortcuts({
@@ -310,6 +345,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   /** Si una tarjeta cabe donde se quiere soltar. Alargarla sobre citas que se pueden correr sí vale: se ofrece reacomodar. */
   const validateDrop = React.useCallback(
     (event: ScheduleEvent, drop: ScheduleDrop): string | null => {
+      // Un barbero no pasa citas a la columna de otro, ni aunque la viera.
+      if (ownBarberId && drop.resourceId !== ownBarberId) return t("calendar.clash.otherBarber");
       if (!enforceRules || !ctx || !day.data) return null;
       const barber = findBarber(ctx.catalog, drop.resourceId);
       if (!barber) return null;
@@ -325,7 +362,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       }
       return placementReason(problem, ctx, barber);
     },
-    [ctx, day.data, enforceRules, state.date]
+    [ctx, day.data, enforceRules, ownBarberId, state.date, t]
   );
 
   /** Sin reglas el cambio entra igual, pero se avisa de sobre qué quedó. */
@@ -475,7 +512,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // «Solo huecos disponibles»: los ratos libres de quien se ve, como bloques que se tocan para agendar.
   const freeGhosts = React.useMemo<ScheduleEvent[]>(() => {
     if (!ctx || !day.data || !state.freeOnly || state.view !== "day") return [];
-    return dayGaps({ day: day.data, catalog: ctx.catalog, barbers: visibleBarbers(ctx.catalog.barbers, state.team, state.date), date: state.date, now: nowDate, minMinutes: FREE_SLOT_MIN_MINUTES }).map((gap) => ({
+    return dayGaps({ day: day.data, catalog: ctx.catalog, barbers: visibleBarbers(ctx.catalog.barbers, team, state.date), date: state.date, now: nowDate, minMinutes: FREE_SLOT_MIN_MINUTES }).map((gap) => ({
       id: `free-${gap.id}`,
       resourceId: gap.barber.id,
       start: gap.start,
@@ -487,7 +524,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       ghost: true,
       locked: true,
     }));
-  }, [ctx, day.data, nowDate, state.date, state.freeOnly, state.team, state.view, t]);
+  }, [ctx, day.data, nowDate, state.date, state.freeOnly, team, state.view, t]);
 
   const fadedIds = React.useMemo(
     () =>
@@ -529,7 +566,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     const start = appointmentStart(appointment);
     const end = appointmentEnd(appointment);
     const barber = findBarber(ctx.catalog, appointment.barberId);
-    const matches = (waitlist.data?.items ?? []).filter((entry) => {
+    const matches = waitlistItems.filter((entry) => {
       const minutes = ctx.catalog.services.find((service) => service.id === entry.serviceId)?.durationMin ?? 30;
       const barberOk = entry.barberId === null || entry.barberId === appointment.barberId;
       const dayOk = entry.slots.some((slot) => slot.date === state.dateKey);
@@ -561,6 +598,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
 
   /* ------------------------------------------------------------ resto */
 
+  // Lo mismo que hacen los botones del panel de la cita, para el clic derecho sobre la tarjeta.
+  const runAppointmentAction = (action: AppointmentActionId, appointment: Appointment) => {
+    if (action === "checkIn") changeStatus(appointment, "arrived");
+    if (action === "seat") changeStatus(appointment, "seated");
+    if (action === "pay") openPanel({ kind: "checkout", appointment });
+    if (action === "ready") onBarberReady(appointment);
+    if (action === "rebook") openPanel({ kind: "create", initial: { clientId: appointment.clientId, serviceId: appointment.serviceIds[0], barberId: appointment.barberId } });
+    if (action === "noShow") openPanel({ kind: "confirm", action: "noShow", appointment });
+    if (action === "cancel") openPanel({ kind: "confirm", action: "cancel", appointment });
+  };
+  const contextHandlers = { open: openAppointment, run: runAppointmentAction, openClient: (clientId: string) => navigate(`/clientes/${clientId}`) };
+
   const onBarberReady = (appointment: Appointment) =>
     patch(appointment, { barberReady: true }, (updated) => {
       const client = ctx ? findClient(ctx.catalog, updated.clientId) : undefined;
@@ -579,6 +628,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const sidePanelOpen = panel !== null && panel.kind !== "confirm" && panel.kind !== "removeBlock";
   const confirm = panel?.kind === "confirm" ? panel : null;
   const confirmClient = confirm && ctx ? (findClient(ctx.catalog, confirm.appointment.clientId)?.name ?? "") : "";
+  const revenue = pulse ? { collected: formatMoney(pulse.collected), total: formatMoney(pulse.expected) } : null;
   const showReflow = reflow !== null && ctx !== null && state.view === "day" && isSameDay(reflow.plan.date, state.date);
 
   return (
@@ -589,30 +639,41 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, t("calendar.title")]} />
       </ShellHeaderSlot>
 
-      <PageHeader
-        className="pb-0"
-        title={
-          <span className="flex flex-wrap items-baseline gap-x-3">
-            {t("calendar.title")}
-            {pulse && isDayView && (
-              <Text as="span" variant="muted" weight="normal" className="tabular-nums" data-testid="calendar-pulse-collected">
-                {t("calendar.pulse.revenueLine", { collected: formatMoney(pulse.collected), total: formatMoney(pulse.expected) })}
-              </Text>
-            )}
-          </span>
-        }
-        actions={railOwnsActions ? undefined : <ScreenHeaderActions actions={railActions} moreLabel={t("action.more")} />}
-      />
+      {/* Sin cabecera de página: el título solo para lectores de pantalla y lo
+          demás —cobrado, acciones, agente— entra en la fila de la barra. */}
+      <h1 className="sr-only">{t("calendar.title")}</h1>
 
       <CalendarToolbar
         date={state.date}
         isToday={state.isToday}
         view={state.view}
-        team={state.team}
+        team={team}
         barbers={barbers}
         onDateChange={state.setDate}
         onViewChange={state.setView}
         onTeamChange={state.setTeam}
+        showTeam={!ownBarberId}
+        summary={
+          revenue && isDayView && can.showTotals ? (
+            <Text
+              as="span"
+              variant="muted"
+              className="whitespace-nowrap tabular-nums max-lg:hidden"
+              title={t("calendar.pulse.revenueLine", revenue)}
+              data-testid="calendar-pulse-collected"
+            >
+              {/* Corto a la vista para que la fila quepa; completo para lectores de pantalla y en el title. */}
+              <span aria-hidden="true">{t("calendar.pulse.revenueShort", revenue)}</span>
+              <span className="sr-only">{t("calendar.pulse.revenueLine", revenue)}</span>
+            </Text>
+          ) : undefined
+        }
+        actions={
+          <>
+            {!railOwnsActions && <ScreenHeaderActions actions={railActions} moreLabel={t("action.more")} compact />}
+            {headerExtras}
+          </>
+        }
         status={
           pulse && isDayView ? (
             <CalendarFilters
@@ -620,9 +681,24 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               focuses={state.focuses}
               services={serviceOptions}
               serviceIds={state.serviceIds}
+              clientTypeOptions={clientTypeOptions}
+              clientTypes={state.clientTypes}
               onChange={state.setFilters}
               freeOnly={state.view === "day" ? state.freeOnly : undefined}
               onFreeOnlyChange={state.view === "day" ? state.setFreeOnly : undefined}
+            />
+          ) : undefined
+        }
+        viewSettings={
+          ctx && isDayView ? (
+            <CalendarViewOptions
+              colorBy={state.colorBy}
+              onColorByChange={state.setColorBy}
+              services={serviceOptions}
+              clientTypes={clientTypeOptions}
+              card={cardPrefs}
+              onCardChange={setCardPref}
+              onCardReset={resetCardPrefs}
               density={state.view === "day" ? density : undefined}
               onDensityChange={setDensity}
             />
@@ -640,9 +716,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 <CalendarMonthView
                   branchId={branchId}
                   date={state.date}
-                  team={state.team}
+                  team={team}
                   barbers={barbers}
                   onTeamChange={state.setTeam}
+                  showTeam={!ownBarberId}
                   today={nowDate}
                   onSelectDay={(date) => {
                     state.setDate(date);
@@ -650,25 +727,26 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   }}
                 />
               ) : state.view === "week" ? (
-                <CalendarWeekView branchId={branchId} date={state.date} team={state.team} ctx={ctx} today={nowDate} onSelectDay={(date, barberId) => state.openDay(date, barberId)} />
+                <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} onSelectDay={(date, barberId) => state.openDay(date, ownBarberId ? null : barberId)} />
               ) : (
                 <QueryBoundary query={day} loading={<GridSkeleton />}>
                   {(data: CalendarDay) =>
                     state.view === "agenda" ? (
                       <CalendarAgendaView
                         date={state.date}
-                        team={state.team}
+                        team={team}
                         day={data}
                         ctx={ctx}
                         filters={filters}
                         onClearFocus={() => state.setFilters({ focuses: [], serviceIds: [] })}
                         onOpenAppointment={openAppointment}
                         onNextStep={(appointment) => ctx.onNextStep?.(appointment)}
+                        appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
                       />
                     ) : (
                       <CalendarDayView
                         date={state.date}
-                        team={state.team}
+                        team={team}
                         day={data}
                         ctx={ctx}
                         now={nowDate}
@@ -681,16 +759,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onDropRejected={onDropRejected}
                         onSlotClick={onSlotClick}
                         onOpenAppointment={openAppointment}
-                        onOpenBlock={(block) => setPanel({ kind: "removeBlock", block })}
+                        onOpenBlock={(block) => canRemoveBlock(can, block) && setPanel({ kind: "removeBlock", block })}
+                        appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
+                        blockActions={(block) => blockContextActions(block, ctx, (target) => setPanel({ kind: "removeBlock", block: target }))}
                         onAcceptProposal={acceptProposal}
                         onMove={onMove}
                         onResize={onResize}
-                        onSeeAll={() => state.setTeam("all")}
-                        onConfigureHours={() => navigate("/usuarios")}
-                        onViewBarber={(barber: Barber) => navigate(`/usuarios/lista?search=${encodeURIComponent(barber.name)}`)}
-                        onBlockBarber={(barber: Barber) => openPanel({ kind: "block", barberId: barber.id })}
+                        onSeeAll={ownBarberId ? undefined : () => state.setTeam("all")}
+                        onConfigureHours={can.canViewTeam ? () => navigate("/usuarios") : undefined}
+                        onViewBarber={can.canViewTeam ? (barber: Barber) => navigate(`/usuarios/lista?search=${encodeURIComponent(barber.name)}`) : undefined}
+                        onBlockBarber={can.canCreateBlock ? (barber: Barber) => openPanel({ kind: "block", barberId: barber.id }) : undefined}
                         onReflowBarber={planForBarber}
-                        onTeamChange={state.setTeam}
+                        onTeamChange={ownBarberId ? undefined : state.setTeam}
                       />
                     )
                   }
@@ -774,7 +854,15 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 }}
               />
 
-              <BlockDrawer open={panel?.kind === "block"} onOpenChange={(open) => !open && closePanel()} barbers={barbers} initialBarberId={panel?.kind === "block" ? panel.barberId : null} date={state.date} day={day.data} />
+              <BlockDrawer
+                open={panel?.kind === "block"}
+                onOpenChange={(open) => !open && closePanel()}
+                barbers={barbers}
+                initialBarberId={panel?.kind === "block" ? panel.barberId : null}
+                date={state.date}
+                day={day.data}
+                ownOnly={Boolean(ownBarberId)}
+              />
 
               <CollectionsDrawer
                 open={panel?.kind === "collections"}
@@ -798,7 +886,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 ctx={ctx}
                 date={state.date}
                 day={day.data}
-                waitlist={waitlist.data?.items ?? []}
+                waitlist={waitlistItems}
                 onBook={(gap) => openPanel({ kind: "create", initial: { barberId: gap.barber.id, start: gap.start } })}
                 onOffer={(gap, entry) => openPanel({ kind: "create", initial: { clientId: entry.clientId, serviceId: entry.serviceId, barberId: gap.barber.id, start: gap.start } })}
               />

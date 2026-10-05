@@ -58,7 +58,9 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
   const serviceDot = services[0] ? serviceColor(ctx.catalog, services[0].id) : undefined;
   const price = appointment.payment?.total ?? servicesPrice(services);
   const critical = client?.notes.filter((note) => note.kind !== "note") ?? [];
-  const phone = known?.phone ? digits(known.phone) : "";
+  // Sin «Información del cliente» ni se enseña el teléfono ni se ofrece llamar o escribir.
+  const canContact = ctx.access?.canContact ?? true;
+  const phone = known?.phone && canContact ? digits(known.phone) : "";
   const playbook = appointmentPlaybook(appointment, ctx.now, { hasPhone: phone !== "" });
   const trackIndex = TRACK.indexOf(appointment.status);
 
@@ -181,7 +183,7 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
                 <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
                   <ClientTypeBadge type={known.type} />
                   {appointment.walkIn && <Badge variant="neutral">{t("calendar.card.walkIn")}</Badge>}
-                  {known.phone && <span className="whitespace-nowrap text-text-secondary">{known.phone}</span>}
+                  {known.phone && canContact && <span className="whitespace-nowrap text-text-secondary">{known.phone}</span>}
                   {contactInline.map((action) => {
                     const Icon = ACTION_ICON[action];
                     return (

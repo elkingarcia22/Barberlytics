@@ -180,6 +180,26 @@ function neutralScale(preset: ThemePreset, mode: ResolvedMode) {
     tinted ? Math.round(tintedValue * lightScale) : grayValue;
   const at = (s: number, l: number) => ({ h: hue, s, l });
 
+  if (mode === "light" && preset.id === "premium") {
+    // Oro en claro (solo este preset; Jade y Platino siguen con la escala general): papel sobre lino. El fondo baja a un pergamino y la
+    // card queda en un blanco cálido, así se separan por tono y no solo por
+    // sombra; el borde deja el gris y pasa a un filo champán del matiz del tema.
+    return {
+      bgApp: at(sat(100, 20), 96),
+      surface: at(sat(70, 0), 99.6),
+      surfaceMuted: at(sat(100, 18), 96.5),
+      surfaceSubtle: at(sat(100, 20), 98.5),
+      tabTrack: at(sat(58, 14), 93.5),
+      accent: at(sat(66, 10), 91),
+      border: at(sat(42, 3), 85),
+      borderStrong: at(sat(36, 4), 66),
+      // Tinta espresso en vez de gris: el texto lleva el matiz del oro, como
+      // la impresión en sepia de una carta de restaurante.
+      textPrimary: at(sat(60, 10), 14),
+      textSecondary: at(sat(40, 6), 36),
+      textMuted: at(sat(29, 4), 54),
+    };
+  }
   if (mode === "light") {
     return {
       bgApp: at(sat(100, 20), 98.5),
@@ -315,11 +335,13 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
 
   const ai = buildAiTokens(preset, mode);
   const gradient = buildBrandGradientTokens(preset, mode);
+  const schedule = buildScheduleTokens(preset, mode);
   if (mode === "light") {
     return {
       ...common,
       ...gradient,
       ...ai,
+      ...schedule,
       "--popover": hslChannels(n.surface),
       "--muted": hslChannels(n.surfaceMuted),
     };
@@ -328,8 +350,30 @@ export function buildThemeTokens(preset: ThemePreset, mode: ResolvedMode): Theme
     ...common,
     ...gradient,
     ...ai,
+    ...schedule,
     "--popover": hslChannels(n.popover ?? n.surface),
     "--muted": hslChannels(n.surfaceSubtle),
+  };
+}
+
+/**
+ * Los pasteles de la agenda. Las tarjetas teñidas por servicio o por estado
+ * mezclan su color con la card del tema (`.schedule-pastel`), así el pastel
+ * hereda el matiz de cada tema; aquí se fija cuánto color entra y cuánta
+ * saturación lleva la paleta de servicios. En claro poco, para que la agenda
+ * siga sobria; en oscuro algo más, porque sobre carbón un tinte leve no se
+ * lee. Los premium van un punto por debajo y con la paleta apagada: un
+ * pastel chillón rompe el acabado.
+ */
+function buildScheduleTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
+  const premium = preset.tier === "premium";
+  const strength = mode === "light" ? (premium ? 18 : 20) : premium ? 24 : 28;
+  // El estilo «vivo»: más color en el relleno; la barra y el texto ya van en el tono pleno.
+  const vivid = mode === "light" ? (premium ? 30 : 34) : premium ? 36 : 42;
+  return {
+    "--schedule-pastel-strength": `${strength}%`,
+    "--schedule-vivid-strength": `${vivid}%`,
+    "--schedule-chroma": premium ? "0.62" : "1",
   };
 }
 

@@ -7,4 +7,5 @@ export * from "./ListItem"
 export * from "./Tree"
 export * from "./Sortable"
 export * from "./Kanban"
-export * from "./RowActionsMenu";
+export * from "./RowActionsMenu"
+export * from "./RowContextMenu";

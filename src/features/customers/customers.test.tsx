@@ -8,16 +8,21 @@ vi.mock("@/components/charts/EChart", () => ({
 }));
 import { renderWithProviders, screen, userEvent, within } from "@/test/render";
 import { db } from "@/mocks/db";
+import { AccessProvider, buildAccess } from "@/features/access";
+import type { TeamRole } from "@/features/team/types";
+import { customersApi } from "./api";
+import { customerPermissions, isOwnCustomer } from "./customerAccess";
+import { customerListActions } from "./customerActions";
 import { CustomerProfilePage } from "./CustomerProfilePage";
 import { CustomersPage } from "./CustomersPage";
-import { CUSTOMER_ALERTS, countBySegment, customerPulse, parseSegment } from "./customersHome";
+import { CUSTOMER_ALERTS, countBySegment, customerColumns, customersCsvRows, customerPulse, parseSegment } from "./customersHome";
 import { daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
 import { customerInputSchema, splitName, type Customer } from "./types";
 
 const TOKEN = "mock-acc_admin-test";
 
 function customer(draft: Partial<Customer> = {}): Customer {
-  return { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567", email: "marcela@correo.com", branchId: "ma", segment: "frequent", blocked: false, ltv: 400, visits: 8, cancellations: 0, noShows: 0, lastVisitAt: "2026-09-20T10:00:00.000Z", visitEveryDays: 14, preferredBarber: null, birthDate: null, createdAt: "2026-01-01T10:00:00.000Z", medicalNotes: 0, ...draft };
+  return { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567", email: "marcela@correo.com", branchId: "ma", segment: "frequent", blocked: false, ltv: 400, visits: 8, cancellations: 0, noShows: 0, lastVisitAt: "2026-09-20T10:00:00.000Z", visitEveryDays: 14, preferredBarber: null, preferredBarberId: null, barberIds: [], birthDate: null, createdAt: "2026-01-01T10:00:00.000Z", medicalNotes: 0, ...draft };
 }
 
 function renderApp(route: string) {
@@ -27,6 +32,19 @@ function renderApp(route: string) {
       <Route path="/clientes" element={<CustomersPage />} />
       <Route path="/clientes/:id" element={<CustomerProfilePage />} />
     </Routes>,
+    { route, token: TOKEN }
+  );
+}
+
+function renderAs(role: TeamRole, route: string) {
+  db.sessions.set(TOKEN, "acc_admin");
+  return renderWithProviders(
+    <AccessProvider value={buildAccess({ role })}>
+      <Routes>
+        <Route path="/clientes" element={<CustomersPage />} />
+        <Route path="/clientes/:id" element={<CustomerProfilePage />} />
+      </Routes>
+    </AccessProvider>,
     { route, token: TOKEN }
   );
 }
@@ -138,5 +156,81 @@ describe("pantallas de clientes", () => {
     renderApp("/clientes/no-existe");
     expect(await screen.findByText("No encontramos a este cliente")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /volver a clientes/i })).toBeInTheDocument();
+  });
+});
+
+describe("clientes según el rol", () => {
+  const ANDRES = "team-04";
+  const noop = () => undefined;
+  const handlers = { create: noop, exportList: noop, importList: noop, open: noop, book: noop, note: noop, block: noop, remove: noop };
+  const actionIds = (role: TeamRole) => customerListActions((key) => key, handlers, false, customerPermissions(buildAccess({ role }))).map((action) => action.id);
+  const t = ((key: string) => key) as Parameters<typeof customerColumns>[0];
+
+  beforeAll(() => {
+    vi.stubGlobal("IntersectionObserver", InertObserver);
+  });
+
+  test("un cliente es suyo si lo prefiere o tiene cita con él en el último año", () => {
+    expect(isOwnCustomer(customer({ preferredBarberId: ANDRES }), ANDRES)).toBe(true);
+    expect(isOwnCustomer(customer({ barberIds: ["team-05", ANDRES] }), ANDRES)).toBe(true);
+    expect(isOwnCustomer(customer({ preferredBarberId: "team-05", barberIds: ["team-05"] }), ANDRES)).toBe(false);
+  });
+
+  test("cada acción sale de la matriz: el barbero por comisión crea, pero no descarga, bloquea ni borra", () => {
+    expect(actionIds("barbero-comision")).toEqual(["create", "open", "book", "note"]);
+    expect(actionIds("recepcion")).toEqual(["create", "import", "open", "book", "note", "block"]);
+    expect(actionIds("barbero-renta")).toEqual(expect.arrayContaining(["import", "export", "block", "delete"]));
+    expect(actionIds("owner")).toEqual(["create", "import", "export", "open", "book", "note", "block", "delete"]);
+    expect(actionIds("admin")).not.toContain("export");
+  });
+
+  test("sin información del cliente no hay contacto; recepción no ve cifras", () => {
+    const barber = customerPermissions(buildAccess({ role: "barbero-comision" }));
+    const desk = customerPermissions(buildAccess({ role: "recepcion" }));
+    expect(barber).toMatchObject({ scope: "own", showContact: false, showMoney: true, canExport: false });
+    expect(desk).toMatchObject({ scope: "all", showContact: true, showMoney: false, canDelete: false });
+    expect(customerColumns(t, { showMoney: false, showContact: true, showBarber: true }).map((column) => column.id)).not.toContain("ltv");
+    const barberColumns = customerColumns(t, { showMoney: true, showContact: false, showBarber: false }).map((column) => column.id);
+    expect(barberColumns).not.toContain("email");
+    expect(barberColumns).not.toContain("barber");
+    const csv = customersCsvRows(t, [customer()], { showContact: false, showMoney: false });
+    expect(csv.rows[0]).not.toContain("+57 3001234567");
+    expect(csv.rows[0]).not.toContain(400);
+  });
+
+  test("el barbero ve solo sus clientes y sin teléfonos", async () => {
+    renderAs("barbero-comision", "/clientes");
+    const segments = await screen.findByRole("radiogroup", { name: /filtrar los clientes por segmento/i });
+    const { items } = await customersApi.list();
+    const own = items.filter((item) => isOwnCustomer(item, ANDRES));
+    expect(own.length).toBeGreaterThan(0);
+    expect(own.length).toBeLessThan(items.length);
+    expect(within(segments).getByRole("button", { name: /^todos/i })).toHaveTextContent(new RegExp(`Todos\\D*${own.length}$`));
+    expect(screen.queryByText(/•••/)).not.toBeInTheDocument();
+  });
+
+  test("recepción ve la lista sin el valor de vida", async () => {
+    renderAs("recepcion", "/clientes");
+    expect(await screen.findByTestId("customers-pulse")).toBeInTheDocument();
+    expect(screen.queryByText("Valor de vida promedio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Valor de vida")).not.toBeInTheDocument();
+  });
+
+  test("un barbero no abre la ficha de un cliente que no es suyo", async () => {
+    const other = db.calendar.clients.find((client) => client.preferredBarberId !== null && client.preferredBarberId !== ANDRES);
+    expect(other).toBeDefined();
+    renderAs("barbero-comision", `/clientes/${other?.id}`);
+    expect(await screen.findByText("Este cliente no es tuyo")).toBeInTheDocument();
+    expect(screen.queryByText("Datos del cliente")).not.toBeInTheDocument();
+  });
+
+  test("su propio cliente sí, pero sin contacto ni notas médicas", async () => {
+    const mine = db.calendar.clients.find((client) => client.preferredBarberId === ANDRES && client.notes.some((note) => note.kind !== "note"));
+    expect(mine).toBeDefined();
+    renderAs("barbero-comision", `/clientes/${mine?.id}`);
+    expect(await screen.findByText("Datos del cliente")).toBeInTheDocument();
+    expect(screen.queryByTestId("customer-medical")).not.toBeInTheDocument();
+    expect(screen.queryByText(/•••/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("customer-edit-contact")).not.toBeInTheDocument();
   });
 });

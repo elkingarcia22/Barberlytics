@@ -10,6 +10,8 @@ export type MockExpenseFrequency = "weekly" | "biweekly" | "monthly" | "quarterl
 export interface MockExpense {
   id: string;
   branchId: string;
+  /** De quién es: `null` es de la sucursal; un id de equipo, de ese barbero de renta. */
+  ownerMemberId: string | null;
   kind: MockExpenseKind;
   name: string;
   amount: number;
@@ -24,6 +26,7 @@ const MID_MONTH = 15;
 
 interface Draft {
   branchId?: string;
+  ownerMemberId?: string;
   kind: MockExpenseKind;
   name: string;
   amount: number;
@@ -48,6 +51,10 @@ const DRAFTS: readonly Draft[] = [
   { kind: "variable", name: "Publicidad en redes", amount: 150, description: "Campaña de reapertura.", daysAgo: 0 },
   { kind: "variable", name: "Afilado de tijeras", amount: 90, monthsAgo: 1 },
   { kind: "variable", name: "Pintura de la fachada", amount: 460, monthsAgo: 1 },
+  /* Lo que Paola Zuluaga (renta, team-30) compra para su silla: no es gasto de la barbería. */
+  { ownerMemberId: "team-30", kind: "fixed", name: "Cuchillas y navajas", amount: 35, frequency: "monthly", description: "Repuesto de cuchillas para su navaja.", daysAgo: 90 },
+  { ownerMemberId: "team-30", kind: "variable", name: "Máquina de corte inalámbrica", amount: 160, daysAgo: 0 },
+  { ownerMemberId: "team-30", kind: "variable", name: "Pomadas para su silla", amount: 48, monthsAgo: 1 },
   { branchId: "nc", kind: "fixed", name: "Renta del local", amount: 2400, frequency: "monthly", daysAgo: 190 },
   { branchId: "nc", kind: "variable", name: "Letrero nuevo", amount: 320, daysAgo: 0 },
 ];
@@ -56,6 +63,7 @@ export function seedExpenses(now = new Date()): MockExpense[] {
   return DRAFTS.map((draft, index) => ({
     id: `exp_${String(index + 1).padStart(3, "0")}`,
     branchId: draft.branchId ?? "ma",
+    ownerMemberId: draft.ownerMemberId ?? null,
     kind: draft.kind,
     name: draft.name,
     amount: draft.amount,

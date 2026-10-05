@@ -1,4 +1,5 @@
 import { seededRandom } from "../db";
+import { clientPhoto } from "../media";
 
 /**
  * Los datos del calendario del backend simulado: el equipo con su horario,
@@ -52,6 +53,8 @@ export interface MockClient {
   /** Cada cuántos días suele volver; `null` si no hay ritmo aún. */
   visitEveryDays: number | null;
   notes: MockClientNote[];
+  /** La foto que subió el cliente, o `null` (se pintan sus iniciales). */
+  avatarUrl: string | null;
 }
 
 export interface MockService {
@@ -60,6 +63,7 @@ export interface MockService {
   category: string;
   durationMin: number;
   price: number;
+  imageUrl?: string | null;
 }
 
 export interface MockProduct {
@@ -67,6 +71,7 @@ export interface MockProduct {
   name: string;
   category: string;
   price: number;
+  imageUrl?: string | null;
 }
 
 export type MockAppointmentStatus = "scheduled" | "arrived" | "seated" | "paid" | "no_show" | "cancelled";
@@ -201,17 +206,34 @@ export const WALK_IN_CLIENT: MockClient = {
   preferredBarberId: null,
   visitEveryDays: null,
   notes: [],
+  avatarUrl: null,
 };
+
+/**
+ * Dos clientes no se llaman igual: si el nombre ya salió, se cambia el
+ * apellido por el siguiente libre. No consume el dado, así el resto de la
+ * semilla no se mueve.
+ */
+function uniqueName(name: string, taken: Set<string>): string {
+  const [first, last] = name.split(" ");
+  let candidate = name;
+  for (let step = 1; taken.has(candidate) && step <= CLIENT_LAST.length; step += 1) {
+    candidate = `${first} ${CLIENT_LAST[(CLIENT_LAST.indexOf(last ?? "") + step) % CLIENT_LAST.length]}`;
+  }
+  taken.add(candidate);
+  return candidate;
+}
 
 export function seedClients(count = 44, seed = 11): MockClient[] {
   const rand = seededRandom(seed);
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
   const base = Date.UTC(2026, 8, 1);
+  const taken = new Set<string>();
   const clients = Array.from({ length: count }, (_, index) => {
     const type = index === 0 ? "vip" : index === 1 ? "new" : pick(TYPES);
     const visits = type === "new" ? 1 + Math.floor(rand() * 2) : type === "retained" ? 3 + Math.floor(rand() * 5) : type === "frequent" ? 8 + Math.floor(rand() * 10) : 18 + Math.floor(rand() * 25);
     const notes: MockClientNote[] = rand() < 0.4 ? [pick(NOTE_SAMPLES)].map(([kind, text], noteIndex) => ({ id: `note_${index}_${noteIndex}`, kind, text, createdAt: new Date(base - Math.floor(rand() * 90) * 86_400_000).toISOString() })) : [];
-    const name = index === 0 ? "Marcela Gómez" : `${pick(CLIENT_FIRST)} ${pick(CLIENT_LAST)}`;
+    const name = uniqueName(index === 0 ? "Marcela Gómez" : `${pick(CLIENT_FIRST)} ${pick(CLIENT_LAST)}`, taken);
     const barbers = MA_BARBER_IDS;
     return {
       id: `cli_${String(index + 1).padStart(3, "0")}`,
@@ -225,6 +247,7 @@ export function seedClients(count = 44, seed = 11): MockClient[] {
       preferredBarberId: rand() < 0.7 ? pick(barbers) : null,
       visitEveryDays: type === "new" ? null : 7 * (1 + Math.floor(rand() * 4)),
       notes,
+      avatarUrl: clientPhoto(index + 1, name),
     } satisfies MockClient;
   });
   return [WALK_IN_CLIENT, ...clients];
@@ -257,6 +280,15 @@ function hashKey(value: string): number {
 /** Cada cuántas citas, de media, se vende además un producto. */
 const PRODUCT_SALE_EVERY = 5;
 
+/** Cada cuántas citas, de media, una se repite y una trae nota (del hash del id). */
+const REPEAT_EVERY = 5;
+const NOTE_EVERY = 7;
+const SEED_NOTES = ["Quiere el mismo corte de la última vez", "Trae foto de referencia", "Llega con el tiempo justo", "Prefiere máquina 2 a los lados"] as const;
+
+/** Antes de esta hora (10:00) la agenda de hoy se siembra como a las 12:30, para que la demo muestre todos los estados. */
+const DEMO_EARLY_BEFORE_MINUTES = 10 * 60;
+const DEMO_TODAY_AT_MINUTES = 12 * 60 + 30;
+
 export interface SeedDayOptions {
   branchId: string;
   day: string;
@@ -282,7 +314,11 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
   const weekday = date.getDay();
   const isPast = dateKey(now) > day;
   const isToday = dateKey(now) === day;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  // Abriendo la app antes de las 10 casi nada habría pasado y el día saldría entero en «Agendada».
+  // Entonces hoy se siembra como a mediodía: la demo trae citas cobradas, en silla, en espera y por
+  // venir. Desde las 10 manda la hora real.
+  const realMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowMinutes = isToday && realMinutes < DEMO_EARLY_BEFORE_MINUTES ? DEMO_TODAY_AT_MINUTES : realMinutes;
   const realClients = clients.filter((client) => client.id !== WALK_IN_CLIENT.id);
   const appointments: MockAppointment[] = [];
   let counter = 0;
@@ -319,6 +355,13 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
         const product = productRoll % PRODUCT_SALE_EVERY === 0 ? PRODUCTS[productRoll % PRODUCTS.length] : null;
         const sold = product ? [{ productId: product.id, qty: 1 + (productRoll % 2) }] : [];
         const soldTotal = product ? product.price * sold[0].qty : 0;
+        // Algunas citas se repiten y otras traen nota. Sale del id, no del dado, para no mover la agenda
+        // sembrada. Solo repite quien ya tiene historia (retenido en adelante) y reservó: la primera visita
+        // de alguien o un cliente de paso no pueden ser una serie.
+        const extraRoll = hashKey(`${id}:extra`);
+        const canRepeat = !walkIn && (client.type === "retained" || client.type === "frequent" || client.type === "vip");
+        const repeat = canRepeat && extraRoll % REPEAT_EVERY === 0 ? (extraRoll % 2 === 0 ? "weekly" : "biweekly") : "none";
+        const notes = extraRoll % NOTE_EVERY === 1 ? SEED_NOTES[extraRoll % SEED_NOTES.length] : null;
         appointments.push({
           id,
           branchId,
@@ -333,9 +376,9 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
           barberReady: status !== "scheduled",
           walkIn,
           source: walkIn ? "walkin" : rand() < 0.4 ? "online" : "internal",
-          repeat: "none",
-          seriesId: null,
-          notes: null,
+          repeat,
+          seriesId: repeat === "none" ? null : `ser_${client.id}_${barber.id.replace("team-", "")}`,
+          notes,
           createdAt,
           createdBy: walkIn ? barber.name : rand() < 0.5 ? "Lucía Bernal" : "Reserva online",
           history: [{ id: `${id}_h0`, at: createdAt, actor: walkIn ? barber.name : "Lucía Bernal", event: walkIn ? "walkin" : "created" }],

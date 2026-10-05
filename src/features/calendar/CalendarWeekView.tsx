@@ -15,6 +15,7 @@ import { calendarKeys } from "./queries";
 import { PersonAvatar } from "./calendarShared";
 import { isActive, servicesOf, servicesPrice, type ModelContext, teamIds } from "./calendarModel";
 import { FULL_LOAD } from "./dayBrief";
+import { FULL_CALENDAR_ACCESS, scopeDay } from "./calendarAccess";
 import { WEEK_DAYS, weekCell, weekStartOf } from "./weekModel";
 import type { CalendarDay, TeamFilter } from "./types";
 
@@ -48,7 +49,9 @@ export function CalendarWeekView({ branchId, date, team, ctx, today, onSelectDay
   const failed = results.find((result) => result.isError);
   if (failed) return <ErrorState error={failed.error} onRetry={() => results.forEach((result) => void result.refetch())} />;
   if (results.some((result) => !result.data)) return <Skeleton className="h-[28rem] w-full" role="status" aria-busy="true" />;
-  const week = results.map((result) => result.data as CalendarDay);
+  // Un barbero ve la semana suya: sus citas y lo que suman, no las del local.
+  const access = ctx.access ?? FULL_CALENDAR_ACCESS;
+  const week = results.map((result) => scopeDay(result.data as CalendarDay, access.ownBarberId));
 
   const picked = teamIds(team);
   const barbers = ctx.catalog.barbers.filter((barber) => {
@@ -75,7 +78,8 @@ export function CalendarWeekView({ branchId, date, team, ctx, today, onSelectDay
                         {formatDate(day, { weekday: "short", day: "numeric" })}
                       </Text>
                       <Text as="span" variant="caption" className="tabular-nums">
-                        {t("calendar.meta.appointments", { count: active.length })} · {ctx.formatMoney(expected)}
+                        {t("calendar.meta.appointments", { count: active.length })}
+                        {access.showTotals && ` · ${ctx.formatMoney(expected)}`}
                       </Text>
                     </Button>
                   </TableHead>

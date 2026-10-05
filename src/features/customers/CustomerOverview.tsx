@@ -21,21 +21,27 @@ export interface CustomerOverviewProps {
   customer: CustomerDetail;
   formatMoney: (value: number) => string;
   onAddNote: () => void;
-  onEdit: () => void;
+  /** Sin permiso de edición no llega y el botón no aparece. */
+  onEdit?: () => void;
   onSeeAppointments: () => void;
+  /** Teléfono, correo, dirección y notas médicas (`client-info`·active). */
+  showContact?: boolean;
+  /** Valor de vida, ticket e importes: recepción no los ve. */
+  showMoney?: boolean;
 }
 
 /**
  * El resumen de un cliente: lo que hay que saber antes de atenderle arriba
  * —alergias y medicamentos—, cuánto vale y cómo se porta con sus citas, qué
  * viene ahora, sus notas y sus datos. Todo en una pantalla: el perfil ya no
- * es una pestaña aparte.
+ * es una pestaña aparte. Lo reservado (contacto, notas médicas, dinero) se
+ * omite según el rol de quien mira.
  */
-export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onSeeAppointments }: CustomerOverviewProps) {
+export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onSeeAppointments, showContact = true, showMoney = true }: CustomerOverviewProps) {
   const t = useAppT();
   const { formatNumber, formatDate, formatRelativeTime } = useLocale();
   const percent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
-  const medical = customer.notes.filter((note) => note.kind !== "note");
+  const medical = showContact ? customer.notes.filter((note) => note.kind !== "note") : [];
   const next = customer.appointments.find((item) => item.status === "scheduled");
   const last = customer.appointments.find((item) => item.id === customer.lastAppointmentId);
   const birthdayIn = daysToBirthday(customer.birthDate);
@@ -59,9 +65,13 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
         </Alert>
       )}
 
-      <section aria-label={t("customers.overview.valueAria")} className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label={t("customers.overview.ltv")} value={formatMoney(customer.ltv)} caption={t("customers.overview.ltvCaption", { count: customer.stats.transactions })} hint={t("customers.overview.ltvHint")} tone="brand" icon="chart" />
-        <MetricCard label={t("customers.overview.avgTicket")} value={customer.stats.avgTicket === 0 ? "—" : formatMoney(customer.stats.avgTicket)} caption={t("customers.overview.avgTicketCaption")} tone="positive" icon="file" />
+      <section aria-label={t("customers.overview.valueAria")} className={showMoney ? "grid gap-stack sm:grid-cols-2 xl:grid-cols-4" : "grid gap-stack sm:grid-cols-2"} data-testid="customer-value">
+        {showMoney && (
+          <>
+            <MetricCard label={t("customers.overview.ltv")} value={formatMoney(customer.ltv)} caption={t("customers.overview.ltvCaption", { count: customer.stats.transactions })} hint={t("customers.overview.ltvHint")} tone="brand" icon="chart" />
+            <MetricCard label={t("customers.overview.avgTicket")} value={customer.stats.avgTicket === 0 ? "—" : formatMoney(customer.stats.avgTicket)} caption={t("customers.overview.avgTicketCaption")} tone="positive" icon="file" />
+          </>
+        )}
         <MetricCard label={t("customers.overview.visits")} value={formatNumber(customer.visits)} caption={customer.lastVisitAt ? t("customers.overview.lastVisit", { when: formatAgo(customer.lastVisitAt, formatRelativeTime) }) : t("customers.neverVisited")} tone="brand" icon="calendar" />
         <MetricCard
           label={t("customers.overview.frequency")}
@@ -84,7 +94,7 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
             </div>
           </InfoCard>
 
-          <CustomerNotes customer={customer} onAddNote={onAddNote} />
+          <CustomerNotes customer={customer} onAddNote={onAddNote} showMedical={showContact} />
         </div>
 
         <div className="space-y-stack">
@@ -96,32 +106,41 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
               </Button>
             }
           >
-            {next || last ? <AppointmentSummary appointment={(next ?? last) as CustomerAppointment} formatMoney={formatMoney} /> : <Text variant="muted">{t("customers.overview.noAppointments")}</Text>}
+            {next || last ? <AppointmentSummary appointment={(next ?? last) as CustomerAppointment} formatMoney={showMoney ? formatMoney : null} /> : <Text variant="muted">{t("customers.overview.noAppointments")}</Text>}
           </InfoCard>
 
           <InfoCard
             title={t("customers.overview.contact")}
+            description={showContact ? undefined : t("customers.profile.contactHidden")}
             actions={
-              <Button size="xs" variant="outline" onClick={onEdit} data-testid="customer-edit-contact">
-                <Pencil /> {t("action.edit")}
-              </Button>
+              onEdit && (
+                <Button size="xs" variant="outline" onClick={onEdit} data-testid="customer-edit-contact">
+                  <Pencil /> {t("action.edit")}
+                </Button>
+              )
             }
           >
-            <InfoRow icon={<Phone />} label={t("customers.form.phone")}>
-              <span className="tabular-nums">{maskPhone(customer.phone)}</span>
-            </InfoRow>
-            <InfoRow icon={<Mail />} label={t("customers.form.email")}>
-              <span className="break-all">{customer.email}</span>
-            </InfoRow>
+            {showContact && (
+              <>
+                <InfoRow icon={<Phone />} label={t("customers.form.phone")}>
+                  <span className="tabular-nums">{maskPhone(customer.phone)}</span>
+                </InfoRow>
+                <InfoRow icon={<Mail />} label={t("customers.form.email")}>
+                  <span className="break-all">{customer.email}</span>
+                </InfoRow>
+              </>
+            )}
             <InfoRow icon={<Store />} label={t("customers.column.branch")}>
               {branchName(customer.branchId)}
             </InfoRow>
             <InfoRow icon={<Cake />} label={t("customers.overview.birthday")}>
               {customer.birthDate === null ? t("customers.overview.notSet") : `${formatDate(new Date(`${customer.birthDate}T12:00:00`), BIRTHDAY)}${birthdayIn !== null && birthdayIn <= 30 ? ` · ${birthdayIn === 0 ? t("customers.overview.birthdayToday") : t("customers.overview.birthdayIn", { count: birthdayIn })}` : ""}`}
             </InfoRow>
-            <InfoRow icon={<MapPin />} label={t("customers.form.address")}>
-              {place || t("customers.overview.notSet")}
-            </InfoRow>
+            {showContact && (
+              <InfoRow icon={<MapPin />} label={t("customers.form.address")}>
+                {place || t("customers.overview.notSet")}
+              </InfoRow>
+            )}
             <InfoRow icon={<CreditCard />} label={t("customers.form.onlineOnly")}>
               {customer.onlineOnly ? t("customers.overview.onlineOnlyOn") : t("customers.overview.onlineOnlyOff")}
             </InfoRow>
@@ -170,7 +189,7 @@ function ReliabilityBar({ completed, cancelled, noShow, format }: ReliabilityBar
   );
 }
 
-function AppointmentSummary({ appointment, formatMoney }: { appointment: CustomerAppointment; formatMoney: (value: number) => string }) {
+function AppointmentSummary({ appointment, formatMoney }: { appointment: CustomerAppointment; formatMoney: ((value: number) => string) | null }) {
   const t = useAppT();
   const { formatDate } = useLocale();
   return (
@@ -185,16 +204,18 @@ function AppointmentSummary({ appointment, formatMoney }: { appointment: Custome
       </p>
       <Text variant="muted">
         {appointment.barber ?? t("customers.noPreference")}
-        {appointment.total > 0 ? ` · ${formatMoney(appointment.total)}` : ""}
+        {formatMoney && appointment.total > 0 ? ` · ${formatMoney(appointment.total)}` : ""}
       </Text>
     </div>
   );
 }
 
-function CustomerNotes({ customer, onAddNote }: { customer: CustomerDetail; onAddNote: () => void }) {
+/** Las notas del cliente; sin permiso de información, solo las generales (no alergias ni medicamentos). */
+function CustomerNotes({ customer, onAddNote, showMedical }: { customer: CustomerDetail; onAddNote: () => void; showMedical: boolean }) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const [kind, setKind] = React.useState<NoteKind>("note");
+  const kinds = showMedical ? noteKindSchema.options : (["note"] as const);
   const notes = customer.notes.filter((note) => note.kind === kind);
   const count = (of: NoteKind) => customer.notes.filter((note) => note.kind === of).length;
 
@@ -208,7 +229,7 @@ function CustomerNotes({ customer, onAddNote }: { customer: CustomerDetail; onAd
         </Button>
       }
     >
-      <ThemaTabs className="mb-3" fitContent tabs={noteKindSchema.options.map((option) => ({ id: option, label: t(NOTE_KIND_KEYS[option]), badge: count(option) }))} activeTabId={kind} onTabChange={(id) => setKind(id as NoteKind)} />
+      <ThemaTabs className="mb-3" fitContent tabs={kinds.map((option) => ({ id: option, label: t(NOTE_KIND_KEYS[option]), badge: count(option) }))} activeTabId={kind} onTabChange={(id) => setKind(id as NoteKind)} />
       {notes.length === 0 ? (
         <Text variant="muted">{t("calendar.notes.empty")}</Text>
       ) : (

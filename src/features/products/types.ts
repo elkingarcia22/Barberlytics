@@ -26,6 +26,8 @@ export const catalogProductSchema = z.object({
   sellable: z.boolean(),
   /** Si se vende en la sucursal activa. */
   active: z.boolean(),
+  /** La foto del producto; sin ella se pinta el icono. */
+  imageUrl: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 export type CatalogProduct = z.infer<typeof catalogProductSchema>;
@@ -49,13 +51,15 @@ export const productInputSchema = z.object({
   distributor: z.string().trim(),
   visibility: productVisibilitySchema,
   sellable: z.boolean(),
+  /** Enlace o imagen subida (data URL); `null` = sin foto. */
+  imageUrl: z.string().nullable(),
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 
-export const emptyProductInput = (categoryId: string): ProductInput => ({ name: "", description: "", categoryId, price: Number.NaN, cost: null, taxRate: null, sku: "", brand: "", distributor: "", visibility: "public", sellable: true });
+export const emptyProductInput = (categoryId: string): ProductInput => ({ name: "", description: "", categoryId, price: Number.NaN, cost: null, taxRate: null, sku: "", brand: "", distributor: "", visibility: "public", sellable: true, imageUrl: null });
 
 export function inputFromProduct(product: CatalogProduct): ProductInput {
-  return { name: product.name, description: product.description, categoryId: product.categoryId, price: product.price, cost: product.cost, taxRate: product.taxRate, sku: product.sku ?? "", brand: product.brand ?? "", distributor: product.distributor ?? "", visibility: product.visibility, sellable: product.sellable };
+  return { name: product.name, description: product.description, categoryId: product.categoryId, price: product.price, cost: product.cost, taxRate: product.taxRate, sku: product.sku ?? "", brand: product.brand ?? "", distributor: product.distributor ?? "", visibility: product.visibility, sellable: product.sellable, imageUrl: product.imageUrl ?? null };
 }
 
 export interface ProductCategoryInput {

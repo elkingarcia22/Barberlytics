@@ -3,6 +3,8 @@ import type { AppMessageKey } from "@/app/i18n/types";
 import type { MessageParams } from "@/i18n";
 import type { ScheduleEvent, ScheduleMarker, ScheduleResource, ScheduleTone, ScheduleWorkingHours } from "@/components/scheduling";
 import { atMinutes, formatClock, formatClockRange, minutesOfDay, parseClock, rangesOverlap, workingMinutes } from "@/components/scheduling";
+import { DEFAULT_CARD_PREFS, type CalendarCardPref, type CalendarCardPrefs } from "./calendarCardPrefs";
+import type { CalendarAccess } from "./calendarAccess";
 import {
   BLOCK_CATEGORY_KEYS,
   CLIENT_TYPE_KEYS,
@@ -36,7 +38,17 @@ export interface ModelContext {
   now?: Date;
   /** Qué hacer cuando la tarjeta ofrece su siguiente paso. */
   onNextStep?: (appointment: Appointment) => void;
+  /** De qué se tiñen las tarjetas: nada (neutral, por defecto), su servicio o su estado. */
+  colorBy?: CalendarColorBy;
+  /** Qué cuenta cada tarjeta; sin él, todo lo de siempre y ningún icono. */
+  card?: CalendarCardPrefs;
+  /** Lo que el rol deja ver y hacer; sin él, todo (como el dueño). */
+  access?: CalendarAccess;
 }
+
+/** Cómo se pintan las tarjetas de la agenda; es una opción de la vista, no un filtro. */
+export type CalendarColorBy = "neutral" | "service" | "status" | "client";
+export const CALENDAR_COLOR_BY: readonly CalendarColorBy[] = ["neutral", "service", "status", "client"];
 
 /** ISO local («2026-09-25T10:30:00») a Date de la sucursal. */
 export function parseLocal(value: string): Date {
@@ -97,15 +109,24 @@ const STATUS_TONE: Record<AppointmentStatus, ScheduleTone> = {
 
 export const statusTone = (status: AppointmentStatus): ScheduleTone => STATUS_TONE[status];
 
+/**
+ * El color de cada tipo de cliente, el mismo que en el módulo de Clientes
+ * (`SEGMENT_STYLE`): nuevo gris, retenido azul, frecuente verde y VIP con la
+ * marca. El de paso no es un segmento de Clientes; lleva el acento para no
+ * confundirse con el nuevo.
+ */
 const CLIENT_TYPE_TONE: Record<ClientType, ScheduleTone> = {
-  walkin: "neutral",
-  new: "info",
-  retained: "primary",
+  walkin: "accent",
+  new: "neutral",
+  retained: "info",
   frequent: "positive",
-  vip: "warning",
+  vip: "primary",
 };
 
 export const clientTypeTone = (type: ClientType): ScheduleTone => CLIENT_TYPE_TONE[type];
+
+/** Los tipos de cliente como se listan en filtros y leyendas: de paso y luego la escalera. */
+export const CLIENT_TYPE_ORDER: readonly ClientType[] = ["walkin", "new", "retained", "frequent", "vip"];
 
 /** El orden de la escalera Nuevo → Retenido → Frecuente → VIP. */
 export const JOURNEY: readonly ClientType[] = ["new", "retained", "frequent", "vip"];
@@ -286,13 +307,25 @@ const STAGE_KEY: Record<AppointmentStage, AppMessageKey> = {
   paid: "calendar.live.paid",
 };
 
-const STAGE_TONE: Record<AppointmentStage, ScheduleTone> = {
+export const STAGE_TONE: Record<AppointmentStage, ScheduleTone> = {
   late: "negative",
   toCollect: "warning",
   waiting: "info",
   seated: "primary",
   upcoming: "neutral",
   paid: "positive",
+};
+
+/**
+ * El color de la tarjeta al teñir por estado. Casi igual que la píldora, pero
+ * lo agendado —lo más común del día— no puede quedar gris: va en azul calmo,
+ * y la espera, que pide atención sin ser un problema, en el violeta del
+ * acento. Así los seis momentos se distinguen de un vistazo.
+ */
+export const STAGE_FILL: Record<AppointmentStage, ScheduleTone> = {
+  ...STAGE_TONE,
+  upcoming: "info",
+  waiting: "accent",
 };
 
 /** El estado que se lee en la tarjeta: «Ya ingresó», «En silla», «Por cobrar», «12 min tarde»… */
@@ -309,18 +342,29 @@ export function stageBadge(appointment: Appointment, ctx: ModelContext): { label
 export interface AgendaFilters {
   stages: readonly AppointmentStage[];
   serviceIds: readonly string[];
+  /** Los tipos de cliente que se miran; vacío o sin él, todos. */
+  clientTypes?: readonly ClientType[];
 }
 
-/** Si una cita pasa los filtros: su momento está entre los marcados y lleva alguno de los servicios marcados. Sin marcas, pasa todo. */
-export function matchesFilters(appointment: Appointment, filters: AgendaFilters, now: Date | undefined): boolean {
+/** El tipo de cliente de una cita; sin ficha (o de paso) cuenta como «de paso». */
+export const appointmentClientType = (catalog: CalendarCatalog, appointment: Pick<Appointment, "clientId">): ClientType => findClient(catalog, appointment.clientId)?.type ?? "walkin";
+
+/**
+ * Si una cita pasa los filtros: su momento está entre los marcados, lleva alguno de los servicios
+ * marcados y su cliente es de alguno de los tipos marcados. Sin marcas, pasa todo. El tipo de cliente
+ * necesita el catálogo; sin él, ese filtro no se aplica.
+ */
+export function matchesFilters(appointment: Appointment, filters: AgendaFilters, now: Date | undefined, catalog?: CalendarCatalog): boolean {
   if (filters.stages.length > 0) {
     const stage = appointmentStage(appointment, now);
     if (!stage || !filters.stages.includes(stage)) return false;
   }
+  const types = filters.clientTypes ?? [];
+  if (types.length > 0 && catalog && !types.includes(appointmentClientType(catalog, appointment))) return false;
   return filters.serviceIds.length === 0 || appointment.serviceIds.some((id) => filters.serviceIds.includes(id));
 }
 
-export const hasFilters = (filters: AgendaFilters): boolean => filters.stages.length + filters.serviceIds.length > 0;
+export const hasFilters = (filters: AgendaFilters): boolean => filters.stages.length + filters.serviceIds.length + (filters.clientTypes?.length ?? 0) > 0;
 
 /** Cuántos productos lleva la cuenta de una cita. */
 export const productCount = (appointment: Pick<Appointment, "products">): number => appointment.products.reduce((sum, line) => sum + line.qty, 0);
@@ -355,29 +399,58 @@ export function serviceColor(catalog: CalendarCatalog, serviceId: string | undef
 /** La categoría que da color a una cita: la de su primer servicio. */
 export const appointmentCategory = (catalog: CalendarCatalog, appointment: Pick<Appointment, "serviceIds">): string | undefined => servicesOf(catalog, appointment)[0]?.category;
 
-/**
- * Quién agenda con reglas. Dueño, administrador, recepción y el barbero de
- * renta —que lleva su propia silla— hacen lo que necesiten: pisar una cita,
- * agendar fuera de horario. El barbero de comisión trabaja con las reglas de
- * la casa: nada se pisa y nada cae fuera de la jornada.
- */
-export const RULE_BOUND_ROLES: readonly string[] = ["barbero-comision"];
-export const followsAgendaRules = (roleId: string | undefined): boolean => roleId !== undefined && RULE_BOUND_ROLES.includes(roleId);
+/** Quién agenda con reglas: sale del acceso (`calendarAccess.ts`), no del rol a mano. */
+export { followsAgendaRules } from "./calendarAccess";
+
+/** Hasta cuántas visitas en la ficha la cita cuenta como la primera (la de hoy puede venir ya sumada). */
+export const FIRST_VISIT_MAX_VISITS = 1;
+
+/** Si es la primera vez que viene: cliente nuevo con a lo sumo una visita. Un cliente de paso no se sabe. */
+export const isFirstVisit = (client: Client | undefined): boolean => client?.type === "new" && client.visits <= FIRST_VISIT_MAX_VISITS;
 
 /**
- * Los iconos de la esquina de la tarjeta: de dónde vino la cita y qué tiene
- * de particular. Se leen de un vistazo y el tooltip los explica.
+ * Los iconos de la tarjeta: de dónde vino la cita y qué tiene de particular.
+ * Se leen de un vistazo y el tooltip los explica. Algunos se excluyen entre
+ * sí porque a la vez no pueden ser ciertos:
+ * - llegó sin cita o reservó online: es uno u otro, nunca los dos;
+ * - una cita que se repite es de alguien con historia y que reservó, así que
+ *   no convive con la primera visita ni con una llegada sin cita (si el dato
+ *   viniera así, gana lo que se sabe de la persona y la serie no se pinta).
  */
 export function appointmentMarkers(appointment: Appointment, client: Client | undefined, ctx: ModelContext): ScheduleMarker[] {
   const markers: ScheduleMarker[] = [];
-  if (appointment.source === "online") markers.push({ id: "online", icon: "online", label: ctx.t("calendar.marker.online") });
+  const firstVisit = isFirstVisit(client);
   if (appointment.walkIn) markers.push({ id: "walkIn", icon: "walkIn", label: ctx.t("calendar.marker.walkIn") });
-  if (client?.type === "new") markers.push({ id: "new", icon: "new", label: ctx.t("calendar.marker.new") });
+  else if (appointment.source === "online") markers.push({ id: "online", icon: "online", label: ctx.t("calendar.marker.online") });
+  if (firstVisit) markers.push({ id: "new", icon: "new", label: ctx.t("calendar.marker.new") });
   if (appointment.requestedBarberId && appointment.requestedBarberId === appointment.barberId) markers.push({ id: "requested", icon: "requested", label: ctx.t("calendar.marker.requested") });
-  if (appointment.repeat !== "none") markers.push({ id: "repeat", icon: "repeat", label: ctx.t("calendar.marker.repeat") });
+  if (appointment.repeat !== "none" && !firstVisit && !appointment.walkIn) markers.push({ id: "repeat", icon: "repeat", label: ctx.t("calendar.marker.repeat") });
   if (appointment.notes) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.note") });
+  // Las notas de la ficha (preferencias, medicación); la alergia ya avisa aparte con su alerta.
+  else if (client?.notes.some((note) => note.kind !== "allergy")) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.clientNote") });
   if (appointment.status === "paid") markers.push({ id: "paid", icon: "paid", label: ctx.t("calendar.marker.paid") });
   return markers;
+}
+
+/** Qué preferencia enciende cada icono de la tarjeta; lo cobrado ya lo dice su píldora. */
+const MARKER_PREF: Record<string, CalendarCardPref | null> = {
+  online: "origin",
+  walkIn: "origin",
+  new: "firstVisit",
+  requested: "requested",
+  repeat: "repeat",
+  note: "notes",
+  paid: null,
+};
+
+/** Los iconos que la persona quiere ver en esta cita. */
+export function cardMarkers(appointment: Appointment, client: Client | undefined, ctx: ModelContext): ScheduleMarker[] {
+  const card = ctx.card;
+  if (!card) return [];
+  return appointmentMarkers(appointment, client, ctx).filter((marker) => {
+    const pref = MARKER_PREF[marker.id];
+    return pref ? card[pref] : false;
+  });
 }
 
 /**
@@ -393,6 +466,14 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
   const step = nextStep(appointment.status);
   const sold = productCount(appointment);
   const details = [options.showBarber ? barber?.name : null, appointment.walkIn ? ctx.t("calendar.card.walkIn") : null].filter(Boolean);
+  const card = ctx.card ?? DEFAULT_CARD_PREFS;
+  const stage = ctx.colorBy === "status" ? appointmentStage(appointment, ctx.now) : null;
+  const subtitle = [
+    card.service ? services.map((service) => service.name).join(" + ") || "—" : null,
+    card.service && sold > 0 ? ctx.t("calendar.card.products", { count: sold }) : null,
+    card.price ? ctx.formatMoney(appointmentTotal(ctx.catalog, appointment)) : null,
+  ].filter(Boolean);
+  const fillTone: ScheduleTone = stage ? STAGE_FILL[stage] : ctx.colorBy === "client" ? clientTypeTone(client?.type ?? "walkin") : "neutral";
   return {
     id: appointment.id,
     resourceId: appointment.barberId,
@@ -400,14 +481,18 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     end: appointmentEnd(appointment),
     kind: "appointment",
     title: client?.name ?? ctx.t("calendar.clientType.walkin"),
-    subtitle: [services.map((service) => service.name).join(" + ") || "—", sold > 0 ? ctx.t("calendar.card.products", { count: sold }) : null, ctx.formatMoney(appointmentTotal(ctx.catalog, appointment))].filter(Boolean).join(" · "),
+    subtitle: subtitle.length > 0 ? subtitle.join(" · ") : undefined,
+    hideTime: !card.time,
+    markers: cardMarkers(appointment, client, ctx),
     detail: details.length > 0 ? details.join(" · ") : undefined,
-    // El color es del servicio —uno distinto por servicio—; el estado se lee en su píldora.
-    tone: "neutral",
+    // El color es del servicio —uno distinto por servicio—; el estado se lee en su píldora. La vista
+    // decide si la tarjeta entera se tiñe del servicio o del estado.
+    tone: fillTone,
     color: isActive(appointment) ? serviceColor(ctx.catalog, services[0]?.id) : undefined,
-    badge: client && client.type !== "walkin" ? { label: ctx.t(CLIENT_TYPE_KEYS[client.type]), tone: clientTypeTone(client.type) } : undefined,
-    status: stageBadge(appointment, ctx),
-    action: step && ctx.onNextStep ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
+    fill: ctx.colorBy === "service" ? "category" : ctx.colorBy === "status" || ctx.colorBy === "client" ? "tone" : "neutral",
+    badge: card.clientType && client && client.type !== "walkin" ? { label: ctx.t(CLIENT_TYPE_KEYS[client.type]), tone: clientTypeTone(client.type) } : undefined,
+    status: card.status ? stageBadge(appointment, ctx) : undefined,
+    action: card.nextStep && step && ctx.onNextStep ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
     warning: isActive(appointment) ? appointmentWarning(appointment, ctx) : undefined,
     flexible: isFlexible(appointment),
     faded: options.faded,

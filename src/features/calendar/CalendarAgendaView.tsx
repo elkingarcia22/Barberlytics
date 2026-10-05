@@ -4,9 +4,10 @@ import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/feedback";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
+import { RowContextMenu, type RowAction } from "@/components/data-display";
 import { Text } from "@/components/typography";
 import { minutesOfDay } from "@/components/scheduling";
-import { AppointmentStatusBadge, ClientTypeBadge, PersonAvatar } from "./calendarShared";
+import { AppointmentStatusBadge, ClientAvatar, ClientTypeBadge } from "./calendarShared";
 import { appointmentRange, appointmentStart, hasFilters, matchesFilters, findBarber, findClient, nextStep, servicesOf, servicesPrice, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
 
 const NO_FILTERS: AgendaFilters = { stages: [], serviceIds: [] };
@@ -28,21 +29,23 @@ export interface CalendarAgendaViewProps {
   onClearFocus?: () => void;
   onOpenAppointment: (appointment: Appointment) => void;
   onNextStep: (appointment: Appointment) => void;
+  /** El clic derecho sobre una cita: sus acciones. */
+  appointmentActions?: (appointment: Appointment) => readonly RowAction[];
 }
 
 const AFTERNOON_FROM = 12 * 60;
 const EVENING_FROM = 18 * 60;
 
-export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS, onClearFocus, onOpenAppointment, onNextStep }: CalendarAgendaViewProps) {
+export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS, onClearFocus, onOpenAppointment, onNextStep, appointmentActions }: CalendarAgendaViewProps) {
   const t = useAppT();
   const systemT = useT();
   const barberIds = React.useMemo(() => new Set(visibleBarbers(ctx.catalog.barbers, team, date).map((barber) => barber.id)), [ctx.catalog.barbers, team, date]);
   const appointments = React.useMemo(
     () =>
       day.appointments
-        .filter((item) => barberIds.has(item.barberId) && matchesFilters(item, filters, ctx.now))
+        .filter((item) => barberIds.has(item.barberId) && matchesFilters(item, filters, ctx.now, ctx.catalog))
         .sort((a, b) => a.start.localeCompare(b.start)),
-    [day.appointments, barberIds, filters, ctx.now]
+    [day.appointments, barberIds, filters, ctx.now, ctx.catalog]
   );
 
   if (appointments.length === 0 && hasFilters(filters)) {
@@ -82,26 +85,29 @@ export function CalendarAgendaView({ date, team, day, ctx, filters = NO_FILTERS,
               const step = nextStep(appointment.status);
               const clientName = client?.name ?? t("calendar.clientType.walkin");
               return (
-                <ListItem
-                  key={appointment.id}
-                  leading={<PersonAvatar name={clientName} />}
-                  title={
-                    <span className="flex items-center gap-2">
-                      {clientName}
-                      {client && client.type !== "walkin" && <ClientTypeBadge type={client.type} />}
-                    </span>
-                  }
-                  description={`${appointmentRange(appointment, ctx.intl)} · ${services.map((service) => service.name).join(" + ")} · ${ctx.formatMoney(servicesPrice(services))} · ${barber?.name ?? ""}`}
-                  meta={<AppointmentStatusBadge status={appointment.status} />}
-                  actions={
-                    step ? (
-                      <Button size="sm" variant="outline" onClick={() => onNextStep(appointment)} aria-label={`${t(step.labelKey)}: ${clientName}`}>
-                        {t(step.labelKey)}
-                      </Button>
-                    ) : undefined
-                  }
-                  onClick={() => onOpenAppointment(appointment)}
-                />
+                <RowContextMenu key={appointment.id} rowLabel={clientName} actions={appointmentActions?.(appointment) ?? []}>
+                  <div className="contents">
+                    <ListItem
+                      leading={<ClientAvatar client={client} name={clientName} />}
+                      title={
+                        <span className="flex items-center gap-2">
+                          {clientName}
+                          {client && client.type !== "walkin" && <ClientTypeBadge type={client.type} />}
+                        </span>
+                      }
+                      description={`${appointmentRange(appointment, ctx.intl)} · ${services.map((service) => service.name).join(" + ")} · ${ctx.formatMoney(servicesPrice(services))} · ${barber?.name ?? ""}`}
+                      meta={<AppointmentStatusBadge status={appointment.status} />}
+                      actions={
+                        step ? (
+                          <Button size="sm" variant="outline" onClick={() => onNextStep(appointment)} aria-label={`${t(step.labelKey)}: ${clientName}`}>
+                            {t(step.labelKey)}
+                          </Button>
+                        ) : undefined
+                      }
+                      onClick={() => onOpenAppointment(appointment)}
+                    />
+                  </div>
+                </RowContextMenu>
               );
             })}
           </ListItemGroup>

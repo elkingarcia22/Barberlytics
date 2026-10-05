@@ -23,6 +23,16 @@ export function MemberAvatar({ member, size = "default" }: { member: Pick<TeamMe
   );
 }
 
+/** Lo mismo con el nombre ya armado («Andrés Beltrán»), para las listas que no traen nombre y apellido por separado. */
+export function TeamPersonAvatar({ name, avatarUrl, size = "default" }: { name: string; avatarUrl: string | null | undefined; size?: "sm" | "default" | "lg" }) {
+  return (
+    <Avatar size={size}>
+      {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
+      <AvatarFallback>{initialsOf(name)}</AvatarFallback>
+    </Avatar>
+  );
+}
+
 const STATUS_BADGE: Record<MemberStatus, React.ComponentProps<typeof StatusBadge>["status"]> = { active: "active", invited: "pending", inactive: "inactive" };
 
 export function MemberStatusBadge({ status }: { status: MemberStatus }) {

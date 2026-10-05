@@ -14,6 +14,7 @@ import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
+import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { PayrollMemberDrawer } from "./PayrollMemberDrawer";
@@ -41,6 +42,10 @@ const PAYOUT_ICONS: Readonly<Record<Payout, React.ReactNode>> = {
  * porque se liquidan distinto —cada una con sus columnas—, pero el resumen
  * de arriba las junta. El detalle de un barbero se abre en un panel y la
  * pestaña visible se descarga en CSV. Todo vive en la URL.
+ *
+ * Solo la abren dueño y administrador (la ruta lo guarda); el enlace a las
+ * reglas de cada barbero, solo quien gestiona sus pagos (`barber-payments`).
+ * No hay «marcar pagado» todavía: cuando exista irá con `payroll`·edit.
  */
 export function PayrollPage() {
   const t = useAppT();
@@ -107,6 +112,7 @@ function PayrollHome({ data, filters, fetching }: PayrollHomeProps) {
   const { formatNumber } = useLocale();
   const formatMoney = useMoney();
   const { payout, memberId, openMember } = filters;
+  const access = useAccess();
 
   const summary = React.useMemo(() => summarizePayroll(data.members), [data.members]);
   const counts = React.useMemo(() => countByPayout(data.members), [data.members]);
@@ -183,7 +189,7 @@ function PayrollHome({ data, filters, fetching }: PayrollHomeProps) {
         )}
       />
 
-      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} />
+      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} showRulesLink={access.can("barber-payments")} />
     </div>
   );
 }

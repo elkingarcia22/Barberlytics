@@ -1,5 +1,7 @@
 import * as React from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Layers, Loader2, Scissors } from "lucide-react";
+import { CatalogPhotoField } from "@/features/catalog/CatalogPhotoField";
+import { ServiceGlyph } from "./servicesShared";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -179,10 +181,12 @@ function ServiceFormBody({ service, kind, categories, items, branchId, defaultCa
         <Input value={draft.name} onChange={(event) => set("name", event.target.value)} autoComplete="off" aria-invalid={!!errors.name} data-testid="service-form-name" />
       </Field>
 
+      <CatalogPhotoField value={draft.imageUrl} onChange={(value) => set("imageUrl", value)} icon={isCombo ? <Layers /> : <Scissors />} error={message(errors.imageUrl)} testId="service-form-photo" />
+
       {isCombo && (
         <Field label={t("services.form.includes")} required error={message(errors.includes)} description={draft.includes.length > 0 ? t("services.form.includesSum", { price: formatMoney(totals.price), duration: formatDuration(totals.durationMin) }) : t("services.form.includesHint")}>
           <MultiSelect
-            options={single.map((item) => ({ value: item.id, label: `${item.name} · ${formatMoney(item.price)}` }))}
+            options={single.map((item) => ({ value: item.id, label: `${item.name} · ${formatMoney(item.price)}`, leading: <ServiceGlyph kind="service" size="sm" imageUrl={item.imageUrl} /> }))}
             value={draft.includes}
             onValueChange={pickIncludes}
             placeholder={t("services.form.includesPlaceholder")}

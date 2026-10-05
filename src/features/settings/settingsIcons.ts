@@ -14,6 +14,8 @@ import {
   Smartphone,
   Stamp,
   Store,
+  ShieldCheck,
+  SlidersHorizontal,
   Tag,
   Trash2,
   type LucideIcon,
@@ -47,6 +49,8 @@ export const SETTINGS_ICONS: Record<string, LucideIcon> = {
   precios: Tag,
   pagos: Plug,
   "centro-notificaciones": Bell,
+  preferencias: SlidersHorizontal,
+  permisos: ShieldCheck,
   "eliminar-cuenta": Trash2,
 };
 

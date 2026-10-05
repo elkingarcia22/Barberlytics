@@ -4,11 +4,12 @@ import type { ExpenseInput } from "./types";
 
 export const expenseKeys = {
   all: ["expenses"] as const,
-  list: (branchId: string) => [...expenseKeys.all, "list", branchId] as const,
+  list: (branchId: string, ownerMemberId: string | null) => [...expenseKeys.all, "list", branchId, ownerMemberId] as const,
 };
 
-export function useExpensesQuery(branchId: string) {
-  return useQuery({ queryKey: expenseKeys.list(branchId), queryFn: ({ signal }) => expensesApi.list(branchId, signal) });
+/** `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. */
+export function useExpensesQuery(branchId: string, ownerMemberId: string | null = null) {
+  return useQuery({ queryKey: expenseKeys.list(branchId, ownerMemberId), queryFn: ({ signal }) => expensesApi.list(branchId, ownerMemberId, signal) });
 }
 
 function useInvalidateExpenses() {
@@ -16,9 +17,9 @@ function useInvalidateExpenses() {
   return () => void queryClient.invalidateQueries({ queryKey: expenseKeys.all });
 }
 
-export function useCreateExpense(branchId: string) {
+export function useCreateExpense(branchId: string, ownerMemberId: string | null = null) {
   const invalidate = useInvalidateExpenses();
-  return useMutation({ mutationFn: (input: ExpenseInput) => expensesApi.create(input, branchId), onSuccess: invalidate });
+  return useMutation({ mutationFn: (input: ExpenseInput) => expensesApi.create(input, branchId, ownerMemberId), onSuccess: invalidate });
 }
 
 export function useUpdateExpense() {

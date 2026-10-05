@@ -22,7 +22,11 @@ import { TableShell } from "@/components/data-display/TableShell";
 import { useLocale } from "@/i18n";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
+import { useAccess } from "@/features/access";
 import { useBranchId } from "./teamUtils";
+import { creatableRoles, seesBarberMoney, seesManagers } from "./teamAccess";
+import { useMembersQuery } from "./queries";
+import { TeamPersonAvatar } from "./teamShared";
 import {
   ALL_ROLES,
   IDLE_OCCUPANCY,
@@ -72,8 +76,11 @@ interface TeamHomeHandlers {
   schedule: () => void;
 }
 
-function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers): readonly RailActionSpec[] {
-  return [
+/** Qué casilla de la matriz abre cada acción; las que no salen aquí no se ofrecen. */
+type TeamActionId = "sort-barbers" | "create-level" | "walk-in-order" | "enable-in-branch" | "bulk-import" | "create-member" | "edit" | "schedule" | "remind" | "deactivate";
+
+function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers, allowed: (id: TeamActionId) => boolean): readonly RailActionSpec[] {
+  const all: readonly (RailActionSpec & { id: TeamActionId })[] = [
     { id: "sort-barbers", label: t("team.action.sortBarbers"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.sortBarbers },
     { id: "create-level", label: t("team.action.createLevel"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.createLevel },
     { id: "walk-in-order", label: t("team.action.walkInOrder"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.walkInOrder },
@@ -85,6 +92,7 @@ function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers): r
     { id: "remind", label: t("team.action.remind"), icon: <BellRing className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true },
     { id: "deactivate", label: t("team.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], tone: "danger", countInLabel: true },
   ];
+  return all.filter((action) => allowed(action.id));
 }
 
 /** Un tono y un icono por métrica, en el orden del pulso. */
@@ -131,6 +139,37 @@ export function TeamHomePage() {
   );
 
   const branchId = useBranchId();
+  /* Quien mira decide qué se ofrece: el barbero por comisión ve al equipo en
+     lectura —sin acciones, sin gerentes, sin dinero ni contactos de colegas—;
+     el administrador no ve al dueño ni el dinero de los barberos. */
+  const access = useAccess();
+  const manages = access.can("team", "edit");
+  const money = seesBarberMoney(access);
+  const visibleRoles = React.useMemo(
+    () => TEAM_ROLES.filter((spec) => (seesManagers(access) || spec.scope === "chair") && (access.role === "owner" || spec.id !== "owner")),
+    [access]
+  );
+  const allowAction = React.useCallback(
+    (id: TeamActionId): boolean => {
+      switch (id) {
+        case "sort-barbers":
+          return access.can("barber-order", "edit");
+        case "create-level":
+          return access.can("levels", "create");
+        case "walk-in-order":
+          return access.can("lineup", "edit");
+        case "bulk-import":
+        case "create-member":
+          return creatableRoles(access).length > 0;
+        case "deactivate":
+          return access.can("team", "delete");
+        default:
+          return access.can("team", "edit");
+      }
+    },
+    [access]
+  );
+  const showContact = React.useCallback((row: { id: string }) => manages || row.id === access.member?.id, [manages, access.member]);
   const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
   const [drawer, setDrawer] = React.useState<"create" | "activate" | null>(null);
   /* Las acciones de la barra llevan a las pantallas del módulo: la ficha, el
@@ -145,12 +184,20 @@ export function TeamHomePage() {
       createMember: () => setDrawer("create"),
       edit: () => single && navigate(`/usuarios/miembros/${single}?editar=1`),
       schedule: () => single && navigate(`/calendario?equipo=${single}`),
-    });
-  }, [navigate, selected, t]);
-  const columns = React.useMemo(() => teamColumns(t), [t]);
+    }, allowAction);
+  }, [allowAction, navigate, selected, t]);
+  const selectable = actions.some((action) => action.scope.includes("single") || action.scope.includes("bulk"));
+  const columns = React.useMemo(() => teamColumns(t, { money }), [t, money]);
+  /* Las fotos vienen con el equipo de la API (todas las sucursales); mientras
+     llega, o si falla, cada fila enseña las iniciales. */
+  const membersQuery = useMembersQuery(branchId, true);
+  const avatarOf = React.useMemo(() => {
+    const byId = new Map((membersQuery.data?.items ?? []).map((item) => [item.id, item.avatarUrl] as const));
+    return (id: string) => byId.get(id) ?? null;
+  }, [membersQuery.data]);
   const cells = React.useMemo(
-    () => teamCells(t, { intlLocale: current.intl, formatCount, formatMoney }),
-    [t, current.intl, formatCount, formatMoney]
+    () => teamCells(t, { intlLocale: current.intl, formatCount, formatMoney, avatarOf, showContact }),
+    [t, current.intl, formatCount, formatMoney, avatarOf, showContact]
   );
 
   const [tab, setTab] = React.useState("equipo");
@@ -167,7 +214,9 @@ export function TeamHomePage() {
      no corta enseñarle «ocupación de sillas» sería enseñarle un cero —lo
      suyo es cómo va su equipo—, y los avisos porque cada rol solo puede
      resolver los que le tocan. */
-  const pool = React.useMemo(() => membersOfRole(role), [role]);
+  const visibleIds = React.useMemo(() => new Set<string>(visibleRoles.map((spec) => spec.id)), [visibleRoles]);
+  const everyone = React.useMemo(() => TEAM_MEMBERS.filter((member) => visibleIds.has(member.role)), [visibleIds]);
+  const pool = React.useMemo(() => membersOfRole(role, everyone), [role, everyone]);
   const metrics = React.useMemo(() => teamMetrics(role), [role]);
   const alerts = React.useMemo(() => alertsForRole(role), [role]);
 
@@ -238,13 +287,13 @@ export function TeamHomePage() {
             option={{
               value: ALL_ROLES,
               label: t("team.allRoles"),
-              badge: formatCount(TEAM_MEMBERS.length),
+              badge: formatCount(everyone.length),
               icon: Users,
             }}
             selected={role === ALL_ROLES}
             onSelect={pickRole}
           />
-          {TEAM_ROLES.map((spec) => (
+          {visibleRoles.map((spec) => (
             <OptionTile
               key={spec.id}
               compact
@@ -262,6 +311,9 @@ export function TeamHomePage() {
         </div>
       </section>
 
+      {/* El pulso y los avisos son para quien gestiona al equipo: un colega no
+          tiene nada que resolver en la agenda de los demás. */}
+      {manages && (
       <section aria-label={t("team.metricsAria")} className="mb-section shrink-0">
         <React.Suspense
           fallback={
@@ -307,10 +359,12 @@ export function TeamHomePage() {
           </div>
         </React.Suspense>
       </section>
+      )}
 
       {/* Un aviso por cosa que alguien tiene que resolver hoy, y cada uno dice
           a qué roles le pasa. Al pulsarlo filtra la lista, así que también
           trae adelante su pestaña si se estaba en la otra. */}
+      {manages && (
       <AttentionStrip
         className="mb-section shrink-0"
         label={t("team.alert.aria")}
@@ -338,6 +392,7 @@ export function TeamHomePage() {
           );
         })}
       </AttentionStrip>
+      )}
 
       <div className="shrink-0">
         <ThemaTabs
@@ -346,14 +401,14 @@ export function TeamHomePage() {
           fitContent
           tabs={[
             { id: "equipo", label: t("team.tab.people"), icon: <Users className="size-4" /> },
-            { id: "turnos", label: t("team.tab.shifts"), icon: <CalendarCheck className="size-4" /> },
+            ...(manages ? [{ id: "turnos", label: t("team.tab.shifts"), icon: <CalendarCheck className="size-4" /> }] : []),
           ]}
           activeTabId={tab}
           onTabChange={setTab}
         />
       </div>
 
-      {tab === "equipo" ? (
+      {tab === "equipo" || !manages ? (
         <DataListBlock
           tableId="equipo-personas"
           title={t("team.listTitle")}
@@ -364,9 +419,9 @@ export function TeamHomePage() {
           cells={cells}
           getRowId={(row) => row.id}
           getRowLabel={(row) => row.name}
-          searchBy={(row) => `${row.name} ${row.email} ${t(ROLE_BY_ID[row.role].labelKey)} ${branchName(row.branchId)}`}
+          searchBy={(row) => `${row.name} ${showContact(row) ? row.email : ""} ${t(ROLE_BY_ID[row.role].labelKey)} ${branchName(row.branchId)}`}
           pageSize={PAGE_SIZE}
-          selectable
+          selectable={selectable}
           selected={selected}
           onSelectedChange={setSelected}
           onActionsPlacementChange={setActionsPlacement}
@@ -381,7 +436,12 @@ export function TeamHomePage() {
              que se busca cuando las columnas sobran. */
           renderListItem={(row, state) => (
             <ListItem
-              leading={state.checkbox}
+              leading={
+                <span className="flex items-center gap-3">
+                  {state.checkbox}
+                  <TeamPersonAvatar name={row.name} avatarUrl={avatarOf(row.id)} />
+                </span>
+              }
               title={row.name}
               description={`${t(ROLE_BY_ID[row.role].labelKey)} · ${branchName(row.branchId)}${
                 row.lastActiveOffset === null ? "" : ` · ${formatRowDate(row.lastActiveOffset, current.intl)}`

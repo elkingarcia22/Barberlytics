@@ -37,10 +37,10 @@ const DOCS: HelpSearchDoc[] = [
     text: "El SMS suele tardar menos de un minuto. Toca Reenviar código. Revisa la señal del celular.",
   }),
   doc({
-    id: "acceso-y-cuenta/entrar-con-google-o-outlook",
-    title: "Entrar con Google o con Outlook",
-    keywords: ["google", "outlook", "gmail"],
-    text: "Debajo del campo del celular están los botones Google y Outlook.",
+    id: "acceso-y-cuenta/cambiar-de-rol",
+    title: "Cambiar de rol",
+    keywords: ["rol", "perfil", "dueño", "barbero"],
+    text: "Desde el menú de tu foto eliges con qué perfil trabajas: dueño o barbero.",
   }),
   doc({
     id: "nomina/comision-por-tipo-de-cliente",
@@ -91,8 +91,8 @@ describe("searchHelp", () => {
   });
 
   test("mientras se escribe, la última palabra vale como prefijo", () => {
-    expect(searchHelp(DOCS, "goo", { typing: true })[0]?.id).toBe("acceso-y-cuenta/entrar-con-google-o-outlook");
-    expect(searchHelp(DOCS, "entrar con outl", { typing: true })[0]?.id).toBe("acceso-y-cuenta/entrar-con-google-o-outlook");
+    expect(searchHelp(DOCS, "perf", { typing: true })[0]?.id).toBe("acceso-y-cuenta/cambiar-de-rol");
+    expect(searchHelp(DOCS, "cambiar de ro", { typing: true })[0]?.id).toBe("acceso-y-cuenta/cambiar-de-rol");
   });
 
   test("una pregunta frecuente cuenta: «contraseña» da con el artículo que la responde", () => {
@@ -100,7 +100,7 @@ describe("searchHelp", () => {
   });
 
   test("la frase entera en el título gana a las palabras sueltas", () => {
-    expect(searchHelp(DOCS, "entrar con google")[0]?.id).toBe("acceso-y-cuenta/entrar-con-google-o-outlook");
+    expect(searchHelp(DOCS, "cambiar de rol")[0]?.id).toBe("acceso-y-cuenta/cambiar-de-rol");
   });
 
   test("no devuelve nada si ninguna palabra coincide", () => {

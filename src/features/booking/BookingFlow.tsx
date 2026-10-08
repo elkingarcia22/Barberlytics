@@ -169,7 +169,7 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
         {(state.step !== "phone" || headerTrailing) && <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />}
         <div className="flex min-h-0 flex-1">
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className={cn("mx-auto flex min-h-full w-full flex-col", layout === "wide" ? "max-w-3xl" : "max-w-xl")}>
+            <div className="flex min-h-full w-full flex-col">
               <StepSwitch state={state} onFinish={onFinish} />
             </div>
           </div>

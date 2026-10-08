@@ -290,8 +290,9 @@ function person(index: number, firstName: string, lastName: string, role: MockTe
     avatarUrl: TEAM_PHOTOS[id] ?? null,
     code: String(4000 + index * 7),
     description: draft.description ?? "",
-    instagram: draft.instagram ?? "",
-    facebook: draft.facebook ?? "",
+    // Demo: los barberos traen sus redes para que el perfil de reserva las muestre (Facebook, solo en la mitad).
+    instagram: draft.instagram ?? (isBarber ? `https://instagram.com/${slug(`${firstName} ${lastName}`).replace(/-/g, ".")}` : ""),
+    facebook: draft.facebook ?? (isBarber && index % 2 === 0 ? `https://facebook.com/${slug(`${firstName} ${lastName}`).replace(/-/g, ".")}` : ""),
     bookingVisible: draft.bookingVisible ?? true,
     levelId: isBarber ? (draft.levelId === undefined ? "lvl_senior" : draft.levelId) : null,
     skills: draft.skills ?? (isBarber ? ["Corte clásico", "Barba"] : []),

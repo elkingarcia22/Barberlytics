@@ -30,7 +30,7 @@ import {
   tipOptions,
   visitSuggestion,
 } from "./logic";
-import { alternatives, joinWaitlist, type WaitlistWindow } from "./alternatives";
+import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alternatives";
 import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
@@ -223,6 +223,16 @@ export const bookingHandlers = [
     if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
     if (serviceIds.length === 0) return error(422, "validation", "Elige al menos un servicio.");
     return HttpResponse.json({ date, items: alternatives(branchId, date, serviceIds, barberId) });
+  }),
+
+  http.get(`${BASE}/earliest`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const url = new URL(request.url);
+    const branchId = url.searchParams.get("branchId") ?? "";
+    const serviceIds = (url.searchParams.get("serviceIds") ?? "").split(",").filter(Boolean);
+    const barberId = url.searchParams.get("barberId") || null;
+    if (serviceIds.length === 0) return error(422, "validation", "Elige al menos un servicio.");
+    return HttpResponse.json({ slot: earliest(branchId, serviceIds, barberId) });
   }),
 
   http.post(`${BASE}/waitlist`, async ({ request }) => {

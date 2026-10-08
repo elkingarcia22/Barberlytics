@@ -9,6 +9,7 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { clockMinutes, dayKeyOf, firstBookableDay, initialsOf, isSameDayAs, isTodayOver, parseStart, toStart } from "../bookingFormat";
 import { AlternativeBarbers } from "../flow/AlternativeBarbers";
+import { EarliestSlot } from "../flow/EarliestSlot";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
 import { WaitlistCard } from "../flow/WaitlistCard";
@@ -72,6 +73,8 @@ export function TimeStep() {
           {t("booking.time.change")}
         </Button>
       </div>
+
+      <EarliestSlot />
 
       <TimeSlotPicker
         value={draft.start ? parseStart(draft.start) : null}

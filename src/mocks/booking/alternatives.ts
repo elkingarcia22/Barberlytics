@@ -85,6 +85,23 @@ export function alternatives(branchId: string, day: string, serviceIds: readonly
   return ranked.slice(0, MAX_ALTERNATIVES).map((item) => ({ barberId: item.barberId, skills: item.skills, date: item.found.date, times: item.found.times }));
 }
 
+/** Hasta cuántos días adelante se busca el primer hueco de «Lo antes posible». */
+const EARLIEST_DAYS = 14;
+
+/**
+ * El primer hueco libre desde hoy: con el barbero elegido o, sin preferencia, con cualquiera
+ * que haga todo lo pedido (el primero libre de esa hora). `null` si no hay en dos semanas.
+ */
+export function earliest(branchId: string, serviceIds: readonly string[], barberId: string | null, now = new Date()): { date: string; time: string; barberId: string } | null {
+  const today = dateKey(now);
+  for (let offset = 0; offset < EARLIEST_DAYS; offset += 1) {
+    const date = plusDays(today, offset);
+    const slot = availability(branchId, date, serviceIds, barberId)[0];
+    if (slot) return { date, time: slot.time, barberId: barberId ?? slot.barberIds[0] };
+  }
+  return null;
+}
+
 export type WaitlistWindow = "morning" | "afternoon" | "evening" | "any";
 const NOON = 12 * 60;
 /** Desde aquí es noche: la misma frontera que las franjas del selector de horas. */

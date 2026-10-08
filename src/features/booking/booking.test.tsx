@@ -331,6 +331,18 @@ describe("backend de la reserva", () => {
     await expect(bookingApi.suggestion(token)).resolves.toMatchObject({ suggestion: null });
   });
 
+  test("«Lo antes posible» da el primer hueco desde hoy, con el barbero elegido o con quien esté libre", async () => {
+    const any = await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null });
+    expect(any.slot).not.toBeNull();
+    expect(any.slot?.date >= "2026-10-08").toBe(true);
+    // Ese hueco existe de verdad en la disponibilidad de ese día y con ese barbero.
+    const day = await bookingApi.availability({ branchId: "ma", date: any.slot?.date ?? "", serviceIds: ["svc_corte"], barberId: any.slot?.barberId ?? null });
+    expect(day.slots.some((slot) => slot.time === any.slot?.time)).toBe(true);
+    // Valeria está de vacaciones hasta el 9: su primer hueco es después.
+    const valeria = await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: "team-06" });
+    expect(valeria.slot === null || valeria.slot.date > "2026-10-09").toBe(true);
+  });
+
   test("si el barbero no tiene horas, propone otros que hacen lo mismo, con lo que saben y sus horas", async () => {
     // Valeria (team-06) está de vacaciones hasta el 9 de octubre.
     const { items } = await bookingApi.alternatives({ branchId: "ma", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: "team-06" });

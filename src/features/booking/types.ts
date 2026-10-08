@@ -193,6 +193,10 @@ export type Alternative = z.infer<typeof alternativeSchema>;
 export const alternativesSchema = z.object({ date: z.string(), items: z.array(alternativeSchema) });
 export type Alternatives = z.infer<typeof alternativesSchema>;
 
+/** El primer hueco libre desde hoy («Lo antes posible»), o nada en dos semanas. */
+export const earliestSchema = z.object({ slot: z.object({ date: z.string(), time: z.string(), barberId: z.string() }).nullable() });
+export type Earliest = z.infer<typeof earliestSchema>;
+
 export const waitlistWindowSchema = z.enum(["morning", "afternoon", "evening", "any"]);
 export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
 export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });

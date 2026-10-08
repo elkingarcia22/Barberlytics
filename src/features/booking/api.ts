@@ -2,6 +2,7 @@ import { z } from "zod";
 import { api } from "@/lib/api";
 import {
   alternativesSchema,
+  earliestSchema,
   availabilitySchema,
   bookedAppointmentSchema,
   bookingCatalogSchema,
@@ -16,6 +17,7 @@ import {
   suggestionResponseSchema,
   reservationSchema,
   type Alternatives,
+  type Earliest,
   type Availability,
   type BookedAppointment,
   type BookingCatalog,
@@ -59,6 +61,8 @@ export const bookingApi = {
       schema: alternativesSchema,
       signal,
     }),
+  earliest: (params: { branchId: string; serviceIds: readonly string[]; barberId: string | null }, signal?: AbortSignal) =>
+    api.get<Earliest>("/booking/earliest", { query: { branchId: params.branchId, serviceIds: params.serviceIds.join(","), barberId: params.barberId }, schema: earliestSchema, signal }),
   joinWaitlist: (token: string, input: WaitlistInput) => api.post<WaitlistJoined>("/booking/waitlist", input, { headers: session(token), schema: waitlistJoinedSchema }),
   leaveWaitlist: (token: string, id: string) => api.delete<void>(`/booking/waitlist/${id}`, { headers: session(token) }),
   suggestion: (token: string, signal?: AbortSignal) =>

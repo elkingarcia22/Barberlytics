@@ -76,6 +76,16 @@ const needsSession = (token: string | null): string => {
   return token;
 };
 
+/** «Lo antes posible»: el primer hueco desde hoy para lo que se está armando. */
+export function useEarliestQuery(params: { branchId: string | null; serviceIds: readonly string[]; barberId: string | null }) {
+  return useQuery({
+    queryKey: [...bookingKeys.availabilities(), "earliest", params.branchId ?? "", params.serviceIds.join(","), params.barberId] as const,
+    queryFn: ({ signal }) => bookingApi.earliest({ ...params, branchId: params.branchId as string }, signal),
+    enabled: params.branchId !== null && params.serviceIds.length > 0,
+    staleTime: 30_000,
+  });
+}
+
 export function useJoinWaitlistMutation(token: string | null) {
   return useMutation({ mutationFn: (input: WaitlistInput) => bookingApi.joinWaitlist(needsSession(token), input) });
 }

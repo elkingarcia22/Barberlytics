@@ -215,6 +215,9 @@ describe("backend de la reserva", () => {
     await expect(bookingApi.leaveWaitlist(joined.id, "cli_002")).rejects.toMatchObject({ status: 404 });
     await bookingApi.leaveWaitlist(joined.id, "cli_001");
     expect(db.calendar.waitlist.some((item) => item.id === joined.id)).toBe(false);
+    // La noche va desde las 18 hasta que cierra la sede; la tarde se queda en 12–18.
+    const night = await bookingApi.joinWaitlist({ branchId: "ma", customerId: "cli_001", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "evening" });
+    expect(db.calendar.waitlist.find((item) => item.id === night.id)?.slots.every((slot) => slot.time >= "18:00")).toBe(true);
     await expect(bookingApi.joinWaitlist({ branchId: "ma", customerId: "nadie", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "any" })).rejects.toMatchObject({ status: 422 });
   });
 

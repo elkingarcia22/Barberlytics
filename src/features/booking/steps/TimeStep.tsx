@@ -26,7 +26,8 @@ const clockOf = (date: Date): string => `${String(date.getHours()).padStart(2, "
  * Cuándo: el día en una tira y solo las horas libres de ese día, para el
  * barbero elegido o para cualquiera. La disponibilidad se pide al servidor
  * por día, así lo que se ve es lo que se puede reservar. Un día sin horas no
- * es un callejón: propone otros barberos que hacen lo mismo y la lista de espera.
+ * es un callejón: propone otros barberos que hacen lo mismo. La lista de espera está
+ * siempre, haya horas o no.
  */
 export function TimeStep() {
   const t = useAppT();
@@ -99,15 +100,17 @@ export function TimeStep() {
         size={touch}
       />
 
-      {!isWaiting && free.size === 0 && (
-        <div className="flex flex-col gap-6">
-          <AlternativeBarbers day={day} />
-          <WaitlistCard
-            day={day}
-            joined={waitlist[waitlistKey] ?? null}
-            onJoinedChange={(joined) => setWaitlist((current) => (joined ? { ...current, [waitlistKey]: joined } : Object.fromEntries(Object.entries(current).filter(([key]) => key !== waitlistKey))))}
-          />
-        </div>
+      {!isWaiting && free.size === 0 && <AlternativeBarbers day={day} />}
+
+      {/* Siempre: aunque haya horas, puede que ninguna le sirva. */}
+      {!isWaiting && (
+        <WaitlistCard
+          key={waitlistKey}
+          day={day}
+          hasSlots={free.size > 0}
+          joined={waitlist[waitlistKey] ?? null}
+          onJoinedChange={(joined) => setWaitlist((current) => (joined ? { ...current, [waitlistKey]: joined } : Object.fromEntries(Object.entries(current).filter(([key]) => key !== waitlistKey))))}
+        />
       )}
     </StepLayout>
   );

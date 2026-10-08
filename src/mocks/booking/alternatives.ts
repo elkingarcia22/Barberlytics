@@ -85,8 +85,10 @@ export function alternatives(branchId: string, day: string, serviceIds: readonly
   return ranked.slice(0, MAX_ALTERNATIVES).map((item) => ({ barberId: item.barberId, skills: item.skills, date: item.found.date, times: item.found.times }));
 }
 
-export type WaitlistWindow = "morning" | "afternoon" | "any";
+export type WaitlistWindow = "morning" | "afternoon" | "evening" | "any";
 const NOON = 12 * 60;
+/** Desde aquí es noche: la misma frontera que las franjas del selector de horas. */
+const EVENING = 18 * 60;
 const HOUR = 60;
 
 /**
@@ -98,8 +100,8 @@ export function joinWaitlist(input: { branchId: string; clientId: string; date: 
   const { opensAt } = branchHoursToday(input.branchId);
   const open = parseClock(opensAt);
   const close = parseClock(branchHoursToday(input.branchId).closesAt);
-  const from = input.window === "afternoon" ? Math.max(open, NOON) : open;
-  const to = input.window === "morning" ? Math.min(close, NOON) : close;
+  const from = input.window === "afternoon" ? Math.max(open, NOON) : input.window === "evening" ? Math.max(open, EVENING) : open;
+  const to = input.window === "morning" ? Math.min(close, NOON) : input.window === "afternoon" ? Math.min(close, EVENING) : close;
   const slots: { date: string; time: string }[] = [];
   for (let minute = Math.ceil(from / HOUR) * HOUR; minute < to; minute += HOUR) {
     slots.push({ date: input.date, time: `${String(Math.floor(minute / HOUR)).padStart(2, "0")}:00` });

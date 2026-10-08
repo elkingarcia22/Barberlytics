@@ -7,14 +7,18 @@ import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
-import { dayKeyOf } from "../bookingFormat";
+import { clockMinutes, dayKeyOf } from "../bookingFormat";
 import { useJoinWaitlistMutation, useLeaveWaitlistMutation } from "../queries";
 import type { WaitlistJoined, WaitlistWindow } from "../types";
 import { useBookingFlow } from "./BookingContext";
 
+/** Desde esta hora es noche (la misma frontera que el selector de horas). */
+const EVENING_FROM_MINUTES = 18 * 60;
+
 const WINDOW_KEYS: Record<WaitlistWindow, AppMessageKey> = {
   morning: "booking.waitlist.morning",
   afternoon: "booking.waitlist.afternoon",
+  evening: "booking.waitlist.evening",
   any: "booking.waitlist.any",
 };
 
@@ -23,17 +27,23 @@ interface WaitlistCardProps {
   /** Dónde ya se apuntó, por día: vive en el paso para no perderlo al cambiar de día y volver. */
   joined: WaitlistJoined | null;
   onJoinedChange: (joined: WaitlistJoined | null) => void;
+  /**
+   * El día sí tiene horas: la lista de espera queda como una línea discreta bajo
+   * ellas («¿Ninguna te sirve?») y se abre al tocarla, para no competir con las horas.
+   */
+  hasSlots?: boolean;
 }
 
 /**
- * La lista de espera: si prefiere a su barbero (o ese día) aunque no haya
- * hora, se apunta con la franja que le sirve. La entrada cae en la misma lista
+ * La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las
+ * libres le sirva—. Se apunta con la franja que le sirve. La entrada cae en la misma lista
  * de espera que ve la barbería en el Calendario, que le escribe si alguien cancela.
  */
-export function WaitlistCard({ day, joined, onJoinedChange }: WaitlistCardProps) {
+export function WaitlistCard({ day, joined, onJoinedChange, hasSlots = false }: WaitlistCardProps) {
   const t = useAppT();
-  const { state, catalog, fmt } = useBookingFlow();
+  const { state, shop, catalog, fmt } = useBookingFlow();
   const [window, setWindow] = React.useState<WaitlistWindow>("any");
+  const [isOpen, setIsOpen] = React.useState(false);
   const join = useJoinWaitlistMutation();
   const leave = useLeaveWaitlistMutation();
   const draft = state.draft;
@@ -41,6 +51,10 @@ export function WaitlistCard({ day, joined, onJoinedChange }: WaitlistCardProps)
   const barber = catalog?.barbers.find((item) => item.id === draft?.barberId);
   if (!draft || !customer || !state.branchId) return null;
   const dayLabel = fmt.dayLong(day);
+  // «Noche» solo si la sede trabaja de noche.
+  const branch = shop.branches.find((item) => item.id === state.branchId);
+  const worksEvenings = branch ? clockMinutes(branch.closesAt) > EVENING_FROM_MINUTES : false;
+  const windows = (Object.keys(WINDOW_KEYS) as WaitlistWindow[]).filter((value) => value !== "evening" || worksEvenings);
 
   if (joined) {
     return (
@@ -73,16 +87,38 @@ export function WaitlistCard({ day, joined, onJoinedChange }: WaitlistCardProps)
     );
   }
 
+  if (hasSlots && !isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        aria-expanded={false}
+        className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border p-3 text-left transition-colors duration-fast ease-out-expo hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
+      >
+        <IconTile size="md" shape="circle" icon={<ThemaIcon name="notification" />} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <Text as="span" size="sm" weight="medium">
+            {t("booking.waitlist.prompt")}
+          </Text>
+          <Text as="span" size="xs" tone="secondary">
+            {t("booking.waitlist.promptHint")}
+          </Text>
+        </span>
+        <ThemaIcon name="chevronRight" size="sm" tone="muted" />
+      </button>
+    );
+  }
+
   return (
     <section aria-labelledby="waitlist-title" className="flex flex-col gap-3 rounded-2xl border border-dashed border-border p-4">
       <div className="flex items-start gap-3">
         <IconTile size="md" shape="circle" icon={<ThemaIcon name="notification" />} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <Heading level={6} id="waitlist-title">
-            {barber ? t("booking.waitlist.titleWith", { name: barber.name.split(" ")[0] }) : t("booking.waitlist.title")}
+            {barber && !hasSlots ? t("booking.waitlist.titleWith", { name: barber.name.split(" ")[0] }) : t("booking.waitlist.title")}
           </Heading>
           <Text size="sm" tone="secondary">
-            {t("booking.waitlist.lead", { day: dayLabel })}
+            {t(hasSlots ? "booking.waitlist.leadOther" : "booking.waitlist.lead", { day: dayLabel })}
           </Text>
         </div>
       </div>
@@ -95,7 +131,7 @@ export function WaitlistCard({ day, joined, onJoinedChange }: WaitlistCardProps)
           fullWidth
           value={window}
           onChange={(value) => setWindow(value as WaitlistWindow)}
-          options={(Object.keys(WINDOW_KEYS) as WaitlistWindow[]).map((value) => ({ value, label: t(WINDOW_KEYS[value]) }))}
+          options={windows.map((value) => ({ value, label: t(WINDOW_KEYS[value]) }))}
         />
       </div>
       <Button

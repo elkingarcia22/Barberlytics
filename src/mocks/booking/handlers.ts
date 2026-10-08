@@ -193,12 +193,12 @@ export const bookingHandlers = [
     const date = text(input.date);
     const serviceIds = strings(input.serviceIds);
     const barberId = text(input.barberId) || null;
-    const window = (["morning", "afternoon", "any"] as const).find((item) => item === input.window);
+    const window = (["morning", "afternoon", "evening", "any"] as const).find((item) => item === input.window);
     if (!findClient(customerId)) return error(422, "validation", "Escribe tu celular para avisarte.");
     if (!(db.settings.lists.branches as unknown as { id: string }[]).some((branch) => branch.id === branchId)) return error(422, "validation", "Elige una sede.");
     if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
     if (serviceIds.length === 0 || !serviceIds.every((id) => db.services.items.some((item) => item.id === id))) return error(422, "validation", "Elige al menos un servicio.");
-    if (!window) return error(422, "validation", "Elige mañana, tarde o cualquier hora.");
+    if (!window) return error(422, "validation", "Elige mañana, tarde, noche o cualquier hora.");
     const entry = joinWaitlist({ branchId, clientId: customerId, date, serviceIds, barberId, window: window as WaitlistWindow });
     return HttpResponse.json({ id: entry.id, date, window }, { status: 201 });
   }),

@@ -273,7 +273,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **SendReceiptDialog.tsx** — Reenviar el recibo a un correo o a un celular; trae los del cliente ya puestos. · `SendReceiptDialog` · piezas: Button, Field, Input, PhoneInput, SegmentedControl, Spinner · usa: @/app/i18n, @/lib/api, @/lib/useResetOnChange
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
-- **WaitlistCard.tsx** — La lista de espera: si prefiere a su barbero (o ese día) aunque no haya hora, se apunta con la franja que le… · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
+- **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardValues`, `cardErrors`, `isCardComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`
 

@@ -170,7 +170,7 @@ export type Alternative = z.infer<typeof alternativeSchema>;
 export const alternativesSchema = z.object({ date: z.string(), items: z.array(alternativeSchema) });
 export type Alternatives = z.infer<typeof alternativesSchema>;
 
-export const waitlistWindowSchema = z.enum(["morning", "afternoon", "any"]);
+export const waitlistWindowSchema = z.enum(["morning", "afternoon", "evening", "any"]);
 export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
 export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });
 export type WaitlistJoined = z.infer<typeof waitlistJoinedSchema>;

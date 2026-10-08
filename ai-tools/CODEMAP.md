@@ -254,7 +254,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **BookingSheet.tsx** — Las decisiones cortas de la reserva (cambiar de sede, para quién es, cancelar, enviar el recibo): en celular,… · `BookingSheet` · piezas: DrawerShell
 - **BookingSummaryAside.tsx** — En monitor, la reserva que se va armando queda a la derecha todo el tiempo: la sede, cada cita y el total. · `BookingSummaryAside` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons
 - **BranchChange.tsx** — La sede de la reserva, en el resumen: dónde será y un botón para cambiarla. · `BranchChange` · piezas: Alert, AlertDescription, Button, IconTile, OptionTile, Text · usa: @/app/i18n, @/icons
-- **BranchProfileSheet.tsx** — El perfil de una sede, para decidir dónde reservar: fotos, si está abierta ahora, cómo llegar, el horario de… · `BranchProfileSheet` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, DrawerShell, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **BranchProfileSheet.tsx** — El perfil de una sede, para decidir dónde reservar: fotos, si está abierta ahora, cómo llegar, el horario de… · `BranchProfileSheet` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Badge, Button, DrawerShell, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **CancelDialog.tsx** — Cancelar, con las cuentas a la vista antes de confirmar: si todavía es gratis, hasta cuándo; si no, cuánto se… · `CancelDialog` · piezas: Alert, AlertDescription, Button, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **CardBrandMark.tsx** — La marca de la red como se reconoce de un vistazo: el nombre en su estilo o, en Mastercard, los dos círculos. · `CardBrandMark` · usa: @/lib/utils
 - **CardForm.tsx** — Una tarjeta nueva: la tarjeta dibujada arriba refleja lo que se escribe y marca dónde va cada dato (el CVC la… · `CardForm` · piezas: Checkbox, Field, Input, Text · usa: @/app/i18n, @/lib/utils
@@ -279,6 +279,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `cardErrors`, `isCardComplete`, `isCvcComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`
+- **stepWidth.ts** — El ancho de lectura de un paso: la columna del contenido, no la de la barra del pie, que va de lado a lado. · `STEP_WIDTH`
 
 ### booking/preview
 
@@ -288,10 +289,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/steps
 
-- **BarberStep.tsx** — El barbero: «Sin preferencia» primero —es el que más horas abre— y luego cada uno con su foto, su nivel, lo q… · `BarberStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **BarberStep.tsx** — El barbero: «Sin preferencia» primero —es el que más horas abre— y luego cada uno con su foto, su nivel, lo q… · `BarberStep` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Button, IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **BlockedStep.tsx** — El número está bloqueado por la barbería: no se explica por qué, se ofrece el teléfono. · `BlockedStep` · piezas: Button, EmptyState · usa: @/app/i18n, @/icons
 - **BranchStep.tsx** — La sede, con foto: se reconoce el local antes que la dirección. · `BranchStep` · piezas: Alert, AlertDescription, Button, IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **ConfirmedStep.tsx** — Hecho. · `ConfirmedStep` · piezas: Badge, Button, Heading, Text · usa: @/app/i18n, @/icons
+- **ConfirmedStep.tsx** — Hecho. · `ConfirmedStep` · piezas: Badge, Button, Heading, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ManageStep.tsx** — «Mis citas»: lo que viene (cambiar la hora o cancelar, con la política a la vista), lo que ya pasó (volver a… · `ManageStep` · piezas: Badge, Button, EmptyState, IconTile, ListItem, ListItemGroup, Skeleton, Text, ThemaTabs · usa: @/app/i18n, @/icons
 - **PaymentStep.tsx** — Pagar: la propina para el barbero, un cupón y cómo se paga. · `PaymentStep` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, OptionTile, SegmentedControl, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **PhoneStep.tsx** — La puerta: el celular. · `PhoneStep` · piezas: Button, Field, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api

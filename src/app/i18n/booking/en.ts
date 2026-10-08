@@ -42,6 +42,10 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.step.barber": "Barber",
   "booking.step.time": "Date & time",
   "booking.step.review": "Summary",
+  "booking.summary.inProgress": "Appointment in progress",
+  "booking.summary.pendingServices": "Choose your services",
+  "booking.summary.pendingBarber": "Choose your barber",
+  "booking.summary.pendingTime": "Choose a day and time",
   "booking.step.payment": "Payment",
 
   "booking.phone.title": "Book your appointment",

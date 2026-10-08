@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";
@@ -34,14 +35,14 @@ export function BarberStep() {
   return (
     <StepLayout title={t("booking.barber.title")} lead={t("booking.barber.lead")}>
       {able.length === 0 ? (
-        <Text tone="warning" className="flex items-start gap-2">
-          <ThemaIcon name="warning" size="sm" tone="warning" />
-          {t("booking.barber.none")}
-        </Text>
+        <Alert variant="warning">
+          <ThemaIcon name="warning" />
+          <AlertDescription>{t("booking.barber.none")}</AlertDescription>
+        </Alert>
       ) : (
         <div role="radiogroup" aria-label={t("booking.barber.title")} className={cn("grid grid-cols-1 gap-3", layout === "wide" && "lg:grid-cols-2")}>
           {able.length > 1 && (
-            <MagicCard role="radio" aria-label={t("booking.barber.any")} aria-checked={false} isSelected={false} onClick={() => choose(null)} contentClassName="items-center gap-3 text-left">
+            <MagicCard role="radio" aria-label={t("booking.barber.any")} aria-checked={false} isSelected={false} onClick={() => choose(null)} className="w-full" contentClassName="items-center gap-3 text-left">
               <IconTile size="lg" shape="circle" icon={<ThemaIcon name="users" />} />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <Text weight="semibold">{t("booking.barber.any")}</Text>
@@ -56,7 +57,7 @@ export function BarberStep() {
           )}
           {able.map((barber) => (
             <div key={barber.id} className="relative">
-              <MagicCard role="radio" aria-label={barber.name} aria-checked={state.draft?.barberId === barber.id} isSelected={state.draft?.barberId === barber.id} onClick={() => choose(barber.id)} contentClassName="items-center gap-3 pr-32 text-left">
+              <MagicCard role="radio" aria-label={barber.name} aria-checked={state.draft?.barberId === barber.id} isSelected={state.draft?.barberId === barber.id} onClick={() => choose(barber.id)} className="w-full" contentClassName="items-center gap-3 pr-32 text-left">
                 <Avatar size="lg">
                   {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
                   <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>

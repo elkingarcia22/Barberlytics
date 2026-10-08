@@ -47,6 +47,10 @@ export const bookingEs = {
   "booking.step.barber": "Barbero",
   "booking.step.time": "Fecha y hora",
   "booking.step.review": "Resumen",
+  "booking.summary.inProgress": "Cita en curso",
+  "booking.summary.pendingServices": "Elige los servicios",
+  "booking.summary.pendingBarber": "Elige tu barbero",
+  "booking.summary.pendingTime": "Elige día y hora",
   "booking.step.payment": "Pago",
 
   // ── Celular ──

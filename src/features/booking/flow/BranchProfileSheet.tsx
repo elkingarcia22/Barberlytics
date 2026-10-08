@@ -2,6 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { DrawerShell } from "@/components/overlays";
 import { Heading, Text } from "@/components/typography";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -195,12 +196,14 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
               })}
             </ul>
             {detail.closures.map((closure) => (
-              <Text key={closure.startDate} size="xs" tone="warning" className="flex items-start gap-1.5">
-                <ThemaIcon name="warning" size="xs" tone="warning" />
-                {closure.startDate === closure.endDate
-                  ? t("booking.branchProfile.closureOne", { name: closure.description, date: fmt.day(parseStart(`${closure.startDate}T00:00`)) })
-                  : t("booking.branchProfile.closureRange", { name: closure.description, from: fmt.day(parseStart(`${closure.startDate}T00:00`)), to: fmt.day(parseStart(`${closure.endDate}T00:00`)) })}
-              </Text>
+              <Alert key={closure.startDate} variant="warning">
+                <ThemaIcon name="warning" />
+                <AlertDescription>
+                  {closure.startDate === closure.endDate
+                    ? t("booking.branchProfile.closureOne", { name: closure.description, date: fmt.day(parseStart(`${closure.startDate}T00:00`)) })
+                    : t("booking.branchProfile.closureRange", { name: closure.description, from: fmt.day(parseStart(`${closure.startDate}T00:00`)), to: fmt.day(parseStart(`${closure.endDate}T00:00`)) })}
+                </AlertDescription>
+              </Alert>
             ))}
           </section>
 

@@ -2,6 +2,7 @@ import * as React from "react";
 import { Heading, Text } from "@/components/typography";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "./BookingContext";
+import { STEP_WIDTH } from "./stepWidth";
 
 interface StepLayoutProps {
   title: string;
@@ -28,7 +29,7 @@ export function StepLayout({ title, lead, aside, footer, children }: StepLayoutP
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className={cn("flex flex-1 flex-col gap-6 px-5 pb-6 pt-6", layout === "wide" && "px-8 pt-8")}>
+      <div className={cn("mx-auto flex w-full flex-1 flex-col gap-6 px-5 pb-6 pt-6", STEP_WIDTH[layout], layout === "wide" && "px-8 pt-8")}>
         <header className="flex items-start justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
           <div ref={headingRef} tabIndex={-1} className="flex min-w-0 flex-col gap-1.5 outline-none">
             <Heading level={layout === "wide" ? 2 : 3}>{title}</Heading>
@@ -39,8 +40,9 @@ export function StepLayout({ title, lead, aside, footer, children }: StepLayoutP
         <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">{children}</div>
       </div>
       {footer && (
+        // La barra va de lado a lado; lo de dentro se alinea con el contenido del paso.
         <div className="sticky bottom-0 z-sticky border-t border-border bg-surface px-5 py-3 shadow-[0_-8px_16px_-12px_hsl(var(--foreground)/0.25)]">
-          {footer}
+          <div className={cn("mx-auto w-full", STEP_WIDTH[layout], layout === "wide" && "px-3")}>{footer}</div>
         </div>
       )}
     </div>

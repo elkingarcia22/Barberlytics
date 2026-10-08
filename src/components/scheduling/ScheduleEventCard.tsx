@@ -33,6 +33,11 @@ import "./schedule.css";
  * borde y el radio, así el contorno envuelve la visita entera y la costura
  * entre servicios queda como una línea tenue.
  *
+ * Una cita con varios servicios (`segments`) es una sola tarjeta en un solo
+ * hueco: una línea punteada marca por dentro dónde empieza cada servicio y
+ * cada tramo lleva su nombre. Donde un tramo no da para su línea, el nombre
+ * queda en el tooltip.
+ *
  * Para no anidar un botón dentro de otro, abrirla es un botón estirado
  * detrás del contenido y la acción es otro botón por encima: el lector de
  * pantalla encuentra los dos y el ratón también.
@@ -87,6 +92,9 @@ const TWO_LINES_FROM_PX = 46;
 const SERVICE_FROM_PX = 76;
 const TIME_FROM_PX = 100;
 const DETAIL_FROM_PX = 124;
+/** Desde cuántos píxeles de alto un tramo de servicio lleva su nombre (y uno con la fila de estado debajo). */
+const SEGMENT_LABEL_FROM_PX = 18;
+const SEGMENT_WITH_FOOTER_FROM_PX = 40;
 /** Píxeles por minuto con la densidad normal, para cuando solo se conocen los minutos. */
 const DEFAULT_PX_PER_MINUTE = 56 / 30;
 
@@ -188,6 +196,10 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
       </Button>
     );
 
+    const segments = !oneLine && event.segments && event.segments.length > 1 ? event.segments : null;
+    // El total cede ante el estado y el siguiente paso: con los dos, la fila de abajo ya va llena.
+    const meta = segments && event.meta && !(statusPill && action) ? event.meta : null;
+
     return (
       <div
         ref={ref}
@@ -198,7 +210,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         data-flexible={event.flexible || undefined}
         data-group={group?.id}
         style={style}
-        title={[event.title, group && group.size > 1 ? t("schedule.group", { index: group.index, total: group.size }) : null, event.badge?.label, status?.label, timeLabel, event.subtitle, event.note, event.warning, ...markers.map((marker) => marker.label)].filter(Boolean).join(" · ")}
+        title={[event.title, group && group.size > 1 ? t("schedule.group", { index: group.index, total: group.size }) : null, event.badge?.label, status?.label, timeLabel, event.segments && event.segments.length > 1 ? event.segments.map((segment) => segment.label).join(" · ") : event.subtitle, event.meta, event.note, event.warning, ...markers.map((marker) => marker.label)].filter(Boolean).join(" · ")}
         className={cn(
           // Las tarjetas de la agenda (neutral, pastel o vivo) van con esquinas rectas: bloques que se
           // apilan en la rejilla. Solo las de tono semántico conservan el radio.
@@ -270,15 +282,22 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               {event.badge && <CardBadge badge={event.badge} tone={palette ? "neutral" : tone} sober={palette} />}
             </div>
 
-            {event.note && <span className="truncate text-xs italic text-text-secondary">{event.note}</span>}
-            {height >= SERVICE_FROM_PX && event.subtitle && <span data-card-ink className="truncate text-xs text-text-secondary">{event.subtitle}</span>}
-            {height >= TIME_FROM_PX && !event.hideTime && <span className="truncate text-xs tabular-nums text-text-muted">{timeLabel}</span>}
-            {height >= DETAIL_FROM_PX && event.detail && <span className="truncate text-xs text-text-muted">{event.detail}</span>}
+            {segments ? (
+              <SegmentLines segments={segments} heightPx={height} hasFooter={Boolean(statusPill || warning || action || meta)} />
+            ) : (
+              <>
+                {event.note && <span className="truncate text-xs italic text-text-secondary">{event.note}</span>}
+                {height >= SERVICE_FROM_PX && event.subtitle && <span data-card-ink className="truncate text-xs text-text-secondary">{event.subtitle}</span>}
+                {height >= TIME_FROM_PX && !event.hideTime && <span className="truncate text-xs tabular-nums text-text-muted">{timeLabel}</span>}
+                {height >= DETAIL_FROM_PX && event.detail && <span className="truncate text-xs text-text-muted">{event.detail}</span>}
+              </>
+            )}
 
-            {(statusPill || warning || action) && (
+            {(statusPill || warning || action || meta) && (
               <div className="mt-auto flex min-w-0 items-center gap-1">
                 {statusPill}
                 {warning}
+                {meta && <span className={cn("shrink-0 text-xs font-semibold tabular-nums text-text-primary", !action && "ml-auto")}>{meta}</span>}
                 {action}
               </div>
             )}
@@ -317,6 +336,39 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
     );
   }
 );
+
+/**
+ * Los tramos de una cita de varios servicios: el primero va bajo el nombre y
+ * los demás arrancan en su línea punteada, a la altura del minuto en que
+ * empiezan. Un tramo sin alto para su nombre deja solo la línea.
+ */
+function SegmentLines({ segments, heightPx, hasFooter }: { segments: readonly NonNullable<ScheduleEvent["segments"]>[number][]; heightPx: number; hasFooter: boolean }) {
+  const total = segments.reduce((sum, segment) => sum + segment.minutes, 0) || 1;
+  // Cuántos minutos van antes de cada tramo: ahí arranca su línea.
+  const starts = segments.map((_, index) => segments.slice(0, index).reduce((sum, segment) => sum + segment.minutes, 0));
+  return (
+    <>
+      {segments.map((segment, index) => {
+        const top = starts[index] / total;
+        const segmentPx = (segment.minutes / total) * heightPx;
+        const isLast = index === segments.length - 1;
+        const fits = segmentPx >= (isLast && hasFooter ? SEGMENT_WITH_FOOTER_FROM_PX : SEGMENT_LABEL_FROM_PX);
+        const label = fits && (
+          <span data-card-ink data-segment-label className="block truncate text-xs text-text-secondary">
+            {segment.label}
+          </span>
+        );
+        // El primer tramo sigue el flujo bajo el nombre; los demás se cuelgan de su línea.
+        if (index === 0) return <React.Fragment key={segment.id}>{label}</React.Fragment>;
+        return (
+          <span key={segment.id} data-segment className="absolute inset-x-0 border-t border-dashed border-foreground/20 px-2 pt-0.5" style={{ top: `${top * 100}%` }}>
+            {label}
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
 /** La etiqueta junto al nombre: el tipo de cliente. */
 function CardBadge({ badge, tone, sober = false }: { badge: NonNullable<ScheduleEvent["badge"]>; tone: ScheduleTone; sober?: boolean }) {

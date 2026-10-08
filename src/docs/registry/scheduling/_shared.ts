@@ -44,6 +44,26 @@ export const RESOURCES_WITH_ALERT: readonly ScheduleResource[] = RESOURCES.map((
 );
 
 /** Una visita de varios servicios (corte, barba y cejas seguidos con Andrés) y la hija de la clienta a la vez con Nicolás. */
+/** Una sola cita con dos servicios, al lado de dos citas aparte del mismo cliente: los dos casos juntos. */
+export const SEGMENTED_EVENTS: readonly ScheduleEvent[] = [
+  {
+    id: "s1",
+    resourceId: "andres",
+    start: at(25, 10),
+    end: at(25, 11),
+    title: "Mariana Rodríguez",
+    tone: "primary",
+    segments: [
+      { id: "corte", label: "Corte clásico · 30 min", minutes: 30 },
+      { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30 },
+    ],
+    meta: "US$ 65",
+    action: { label: "Ingresar", onClick: noop },
+  },
+  { id: "s2", resourceId: "nicolas", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Fade · US$ 45", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 2 } },
+  { id: "s3", resourceId: "nicolas", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 2 } },
+];
+
 export const GROUPED_EVENTS: readonly ScheduleEvent[] = [
   { id: "g1", resourceId: "andres", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Corte clásico · US$ 35", tone: "primary", action: { label: "Ingresar", onClick: noop }, status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 4, joinBottom: true } },
   { id: "g2", resourceId: "andres", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 4, joinTop: true, joinBottom: true } },

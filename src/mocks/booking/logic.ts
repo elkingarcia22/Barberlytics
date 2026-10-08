@@ -287,6 +287,24 @@ export function saveCard(clientId: string, card: Omit<MockSavedCard, "id">): Moc
   return saved;
 }
 
+/** Cambia el titular o el vencimiento de una tarjeta guardada; el número es de la pasarela y no se toca. */
+export function updateCard(clientId: string, cardId: string, changes: Pick<MockSavedCard, "holder" | "expMonth" | "expYear">): MockSavedCard | null {
+  const current = cardsOf(clientId);
+  const card = current.find((item) => item.id === cardId);
+  if (!card) return null;
+  const updated = { ...card, ...changes };
+  db.booking.cards = { ...(db.booking.cards ?? {}), [clientId]: current.map((item) => (item.id === cardId ? updated : item)) };
+  return updated;
+}
+
+/** Quita una tarjeta guardada; devuelve si existía. */
+export function removeCard(clientId: string, cardId: string): boolean {
+  const current = cardsOf(clientId);
+  if (!current.some((item) => item.id === cardId)) return false;
+  db.booking.cards = { ...(db.booking.cards ?? {}), [clientId]: current.filter((item) => item.id !== cardId) };
+  return true;
+}
+
 /** Una cita de la agenda como la ve el cliente. */
 export function bookedOf(item: MockAppointment) {
   const link = reservationOf(item.id);

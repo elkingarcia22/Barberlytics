@@ -94,6 +94,8 @@ export type BookingAction =
   | { type: "bookAgain" }
   | { type: "openManage" }
   | { type: "signedIn"; customer: BookingCustomer; token: string }
+  /** El perfil cambió sin moverse de pantalla (p. ej. editó o quitó una tarjeta). */
+  | { type: "customerUpdated"; customer: BookingCustomer }
   | { type: "restart" };
 
 let keySeed = 0;
@@ -219,6 +221,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "signedIn":
       // Entró a «Mis citas» con su código: ya se sabe quién es, sin moverlo de pantalla.
       return { ...state, customer: action.customer, token: action.token, phone: action.customer.phone.replace(/[^\d+]/g, "") || state.phone };
+    case "customerUpdated":
+      return { ...state, customer: action.customer };
     case "restart":
       return initialBookingState(state.tipId);
   }

@@ -45,6 +45,7 @@ import {
   type RescheduleInput,
   type Reservation,
   type ReservationInput,
+  type SavedCardInput,
   type VisitSuggestion,
   type WaitlistInput,
   type WaitlistJoined,
@@ -80,6 +81,9 @@ export const bookingApi = {
   suggestion: (token: string, signal?: AbortSignal) =>
     api.get<{ suggestion: VisitSuggestion | null }>("/booking/me/suggestion", { headers: session(token), schema: suggestionResponseSchema, signal }),
   createCustomer: (token: string, input: NewCustomerInput) => api.post<BookingCustomer>("/booking/customers", input, { headers: session(token), schema: bookingCustomerSchema }),
+  /** Cambia titular o vencimiento de una tarjeta guardada; devuelve el perfil con sus tarjetas al día. */
+  updateCard: (token: string, id: string, input: SavedCardInput) => api.patch<BookingCustomer>(`/booking/me/cards/${id}`, input, { headers: session(token), schema: bookingCustomerSchema }),
+  removeCard: (token: string, id: string) => api.delete<BookingCustomer>(`/booking/me/cards/${id}`, { headers: session(token), schema: bookingCustomerSchema }),
   checkPromo: (token: string | null, input: { code: string; appointments: number }) =>
     api.post<Promo>("/booking/promo", input, { headers: token ? session(token) : undefined, schema: promoSchema }),
   reserve: (token: string, input: ReservationInput) => api.post<Reservation>("/booking/reservations", input, { headers: session(token), schema: reservationSchema, timeoutMs: 30_000 }),

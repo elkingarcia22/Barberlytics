@@ -140,6 +140,13 @@ export const savedCardSchema = z.object({
 });
 export type SavedCard = z.infer<typeof savedCardSchema>;
 
+/** Lo que se puede cambiar de una tarjeta guardada: el número queda en la pasarela. */
+export interface SavedCardInput {
+  holder: string;
+  expMonth: number;
+  expYear: number;
+}
+
 export const bookingCustomerSchema = z.object({
   id: z.string(),
   firstName: z.string(),

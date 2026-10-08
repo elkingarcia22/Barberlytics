@@ -912,6 +912,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.detail.medication": "Medication",
   "calendar.detail.updated": "Appointment updated",
   "calendar.detail.edit.title": "The appointment",
+  "calendar.detail.services": "{count} services in this appointment",
   "calendar.visit.title": "The visit · {count} appointments",
   "calendar.visit.total": "Visit total",
   "calendar.visit.separate": "Separate appointments",

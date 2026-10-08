@@ -12,13 +12,14 @@ import { personName } from "../bookingState";
 import { depositOf, feeLabel } from "../pricing";
 import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
-import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
+import { brandFromName, firstUsableCard, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { OrderSummary } from "../flow/OrderSummary";
 import { GiftCardField } from "../flow/GiftCardField";
 import { PromoField } from "../flow/PromoField";
 import { BookingSheet } from "../flow/BookingSheet";
 import { NewCardSheet } from "../flow/NewCardSheet";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
+import { useSavedCardManager } from "../flow/useSavedCardManager";
 import { StepLayout } from "../flow/StepLayout";
 import { useReserveMutation } from "../queries";
 import type { PayMethod } from "../types";
@@ -46,7 +47,7 @@ export function PaymentStep() {
   const credit = customer?.credit ?? 0;
   // Con tarjetas guardadas abre en la primera que no esté vencida; si no, en «tarjeta nueva».
   const savedCards = customer?.cards ?? [];
-  const [cardChoice, setCardChoice] = React.useState<string>(() => savedCards.find((card) => new Date(card.expYear, card.expMonth, 1).getTime() > Date.now())?.id ?? NEW_CARD);
+  const [cardChoice, setCardChoice] = React.useState<string>(() => firstUsableCard(savedCards, NEW_CARD));
   const [savedCvc, setSavedCvc] = React.useState("");
   // Guardar la tarjeta es una decisión del cliente: empieza sin marcar.
   const [saveCard, setSaveCard] = React.useState(false);
@@ -132,6 +133,23 @@ export function PaymentStep() {
     );
   };
 
+  const chooseCard = (value: string) => {
+    setCardChoice(value);
+    setSavedCvc("");
+    setShowCardErrors(false);
+    if (reserve.isError) reserve.reset();
+  };
+  const cardManager = useSavedCardManager({
+    choice: cardChoice,
+    newCard: NEW_CARD,
+    hasPending: card !== null,
+    choose: chooseCard,
+    clearPending: () => {
+      setCard(null);
+      setSaveCard(false);
+    },
+  });
+
   const lines = draftOrderLines(state, catalog, (item) => {
     const barber = catalog?.barbers.find((entry) => entry.id === item.barberId)?.name ?? t("booking.review.noPreference");
     return `${personName(item.person, customer)} · ${barber}${item.start ? ` · ${fmt.when(parseStart(item.start))}` : ""}`;
@@ -214,15 +232,13 @@ export function PaymentStep() {
           <SavedCardPicker
             cards={savedCards}
             value={cardChoice}
-            onChange={(value) => {
-              setCardChoice(value);
-              setSavedCvc("");
-              setShowCardErrors(false);
-              if (reserve.isError) reserve.reset();
-            }}
+            onChange={chooseCard}
             pending={card}
             onAddNew={() => setSheet({ open: true, prefill: false })}
             onEditPending={() => setSheet({ open: true, prefill: true })}
+            onRemovePending={cardManager.onRemovePending}
+            onEditCard={cardManager.onEditCard}
+            onRemoveCard={cardManager.onRemoveCard}
             cvc={savedCvc}
             onCvcChange={setSavedCvc}
             showErrors={showCardErrors}
@@ -304,6 +320,7 @@ export function PaymentStep() {
           <Text tone="secondary">{t("booking.payment.shopMulti.bye")}</Text>
         </div>
       </BookingSheet>
+      {cardManager.sheets}
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
         open={sheet.open}

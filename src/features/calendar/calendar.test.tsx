@@ -8,7 +8,7 @@ import { CheckoutDrawer } from "./CheckoutDrawer";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
-import { appointmentGroups, visitOf, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
+import { appointmentGroups, serviceSlots, visitOf, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
 import { reflowPlan } from "./reflowModel";
 import { dayGaps, gapsSummary } from "./gapsModel";
@@ -102,6 +102,25 @@ describe("modelo del calendario", () => {
     expect(groups.has("a3")).toBe(false);
     expect(groups.has("a4")).toBe(false);
     expect(toEvent(second, ctx, { group: groups.get("a2") }).group?.size).toBe(2);
+  });
+
+  test("una cita con varios servicios se parte en tramos por dentro, sin ser un grupo", () => {
+    const catalog: CalendarCatalog = { ...CATALOG, services: [...CATALOG.services, { id: "s2", name: "Arreglo de barba", category: "Barba", durationMin: 30, price: 30 }] };
+    const combo = { ...APPOINTMENT, serviceIds: ["s1", "s2"], durationMin: 60 };
+    const slots = serviceSlots(catalog, combo);
+    expect(slots.map((slot) => [slot.service.id, slot.minutes, slot.start.getHours(), slot.start.getMinutes()])).toEqual([
+      ["s1", 30, 10, 30],
+      ["s2", 30, 11, 0],
+    ]);
+    // Estirada a mano a 90 minutos, cada tramo crece en proporción.
+    expect(serviceSlots(catalog, { ...combo, durationMin: 90 }).map((slot) => slot.minutes)).toEqual([45, 45]);
+    const event = toEvent(combo, { ...ctx, catalog });
+    expect(event.segments?.map((segment) => segment.minutes)).toEqual([30, 30]);
+    expect(event.meta).toBe("$65");
+    expect(event.group).toBeUndefined();
+    // Con un solo servicio no hay tramos.
+    expect(toEvent(APPOINTMENT, ctx).segments).toBeUndefined();
+    expect(appointmentGroups([combo], catalog).size).toBe(0);
   });
 
   test("una cita separada a mano va suelta y la visita trae sus citas en orden", () => {

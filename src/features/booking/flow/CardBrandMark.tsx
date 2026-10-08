@@ -30,3 +30,12 @@ export function CardBrandMark({ brand, className }: { brand: CardBrand; classNam
   }
   return <span aria-hidden className={cn("inline-flex h-6 w-9 shrink-0 rounded-sm border border-current opacity-60", className)} />;
 }
+
+/** El logo de la red en su cuadro, como en la billetera del celular. */
+export function CardBrandTile({ brand }: { brand: CardBrand }) {
+  return (
+    <span className="flex h-9 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-text-primary">
+      <CardBrandMark brand={brand} className={brand === "visa" ? "text-sm" : undefined} />
+    </span>
+  );
+}

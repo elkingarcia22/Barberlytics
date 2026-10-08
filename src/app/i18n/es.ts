@@ -948,6 +948,7 @@ export const appEs = {
   "calendar.detail.medication": "Medicamento",
   "calendar.detail.updated": "Cita actualizada",
   "calendar.detail.edit.title": "La cita",
+  "calendar.detail.services": "{count} servicios en esta cita",
   "calendar.visit.title": "La visita · {count} citas",
   "calendar.visit.total": "Total de la visita",
   "calendar.visit.separate": "Separar citas",

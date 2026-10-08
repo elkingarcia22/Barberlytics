@@ -15,7 +15,9 @@ import {
   cardFeeRule,
   depositAmount,
   cardsOf,
+  removeCard,
   saveCard,
+  updateCard,
   catalog,
   clientByPhone,
   customerOf,
@@ -296,6 +298,32 @@ export const bookingHandlers = [
     db.calendar.waitlist = db.calendar.waitlist.filter((item) => item.id !== entry.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Sus tarjetas guardadas: cambia titular o vencimiento, o la quita. Devuelve el perfil con la lista al día.
+  http.patch(`${BASE}/me/cards/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    const input = asRecord(await request.json().catch(() => ({})));
+    const holder = text(input.holder);
+    const expMonth = Number(input.expMonth);
+    const expYear = Number(input.expYear);
+    if (holder.length < 3) return error(422, "validation", "Escribe el nombre como aparece en la tarjeta.", { fields: { holder: ["Escribe el nombre como aparece en la tarjeta."] } });
+    const validMonth = Number.isInteger(expMonth) && expMonth >= 1 && expMonth <= 12 && Number.isInteger(expYear);
+    if (!validMonth || new Date(expYear, expMonth, 1).getTime() <= Date.now()) return error(422, "validation", "Esa fecha de vencimiento ya pasó.", { fields: { expiry: ["Esa fecha de vencimiento ya pasó."] } });
+    if (!updateCard(client.id, String(params.id), { holder, expMonth, expYear })) return error(404, "not_found", "Esa tarjeta ya no está guardada.");
+    db.persist();
+    return HttpResponse.json(customerOf(client));
+  }),
+
+  http.delete(`${BASE}/me/cards/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    if (!removeCard(client.id, String(params.id))) return error(404, "not_found", "Esa tarjeta ya no está guardada.");
+    db.persist();
+    return HttpResponse.json(customerOf(client));
   }),
 
   http.get(`${BASE}/me/suggestion`, async ({ request }) => {

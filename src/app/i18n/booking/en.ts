@@ -108,6 +108,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
 
   "booking.branch.title": "Which location?",
   "booking.branch.lead": "Each location has its own team and hours.",
+  "booking.branch.viewProfile": "View profile",
   "booking.branch.barbers": "{count} barber",
   "booking.branch.barbers_plural": "{count} barbers",
   "booking.branch.hours": "Today {from} – {to}",

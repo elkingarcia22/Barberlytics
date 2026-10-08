@@ -79,9 +79,17 @@ export function BarberStep() {
                   </Text>
                 </span>
               </MagicCard>
-              {/* El perfil es otro botón, fuera de la tarjeta: un botón no va dentro de otro. */}
-              <Button type="button" variant="ghost" size="xs" className="absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setProfile(barber)}>
+              {/* El perfil es otro botón, fuera de la tarjeta (un botón no va dentro de otro). Ocupa todo el
+                  alto del lado derecho: se acierta con el dedo sin elegir al barbero por error. */}
+              <Button
+                type="button"
+                variant="ghost"
+                className="absolute inset-y-[1.5px] right-[1.5px] h-auto w-24 rounded-l-none rounded-r-[11px] border-l border-border"
+                onClick={() => setProfile(barber)}
+                aria-label={`${t("booking.barber.profile")}: ${barber.name}`}
+              >
                 {t("booking.barber.profile")}
+                <ThemaIcon name="chevronRight" data-icon="inline-end" />
               </Button>
             </div>
           ))}

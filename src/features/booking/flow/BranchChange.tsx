@@ -52,7 +52,7 @@ export function BranchChange() {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <Button type="button" variant="ghost" size="sm" onClick={() => setIsViewing(true)}>
-          <ThemaIcon name="info" />
+          <ThemaIcon name="building" />
           {t("booking.branchProfile.view")}
         </Button>
         {canChange && (

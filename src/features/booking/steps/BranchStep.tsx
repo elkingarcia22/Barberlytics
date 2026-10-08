@@ -35,7 +35,7 @@ export function BranchStep() {
             aria-label={`${branch.name}, ${branch.address}`}
             isSelected={branch.id === state.branchId}
             onClick={() => dispatch({ type: "chooseBranch", branchId: branch.id })}
-            contentClassName="items-center gap-4 pr-10 text-left"
+            contentClassName="items-start gap-4 pb-9 text-left"
           >
             <IconTile size="xl" src={branch.imageUrl} icon={<ThemaIcon name="building" />} />
             <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -58,9 +58,18 @@ export function BranchStep() {
               </Text>
             </span>
           </MagicCard>
-          {/* El perfil es otro botón, fuera de la tarjeta: un botón no va dentro de otro. */}
-          <Button type="button" variant="ghost" size="icon-sm" className="absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setViewing(branch.id)} aria-label={`${t("booking.branchProfile.view")}: ${branch.name}`}>
-            <ThemaIcon name="info" />
+          {/* El perfil es otro botón, fuera de la tarjeta (un botón no va dentro de otro), puesto bajo la
+              cantidad de barberos: alineado con el texto (borde + relleno + foto + hueco). */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute bottom-3 left-[calc(6rem+1.5px)] -translate-x-2.5 text-primary hover:text-primary"
+            onClick={() => setViewing(branch.id)}
+            aria-label={`${t("booking.branch.viewProfile")}: ${branch.name}`}
+          >
+            {t("booking.branch.viewProfile")}
+            <ThemaIcon name="chevronRight" data-icon="inline-end" />
           </Button>
           </div>
         ))}

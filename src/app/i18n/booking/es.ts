@@ -119,6 +119,7 @@ export const bookingEs = {
   // ── Sede ──
   "booking.branch.title": "¿A qué sede vas?",
   "booking.branch.lead": "Cada sede tiene su equipo y sus horarios.",
+  "booking.branch.viewProfile": "Ver perfil",
   "booking.branch.barbers": "{count} barbero",
   "booking.branch.barbers_plural": "{count} barberos",
   "booking.branch.hours": "Hoy {from} – {to}",

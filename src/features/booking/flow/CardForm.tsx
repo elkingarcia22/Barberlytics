@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { useAppT } from "@/app/i18n";
 import { Field } from "@/components/forms";
 import { Text } from "@/components/typography";
@@ -17,6 +18,8 @@ interface CardFormProps {
   /** Guardarla tokenizada para la próxima; sin `onSaveChange` no se ofrece (p. ej. sin perfil). */
   save?: boolean;
   onSaveChange?: (save: boolean) => void;
+  /** Sin caja propia: dentro de una hoja, que ya es el contenedor. */
+  bare?: boolean;
 }
 
 /**
@@ -26,7 +29,7 @@ interface CardFormProps {
  * opción de guardarla. En la demo no sale nada de aquí: la pasarela simulada
  * solo mira que el número sea válido.
  */
-export function CardForm({ values, onChange, showErrors, serverError, save = false, onSaveChange }: CardFormProps) {
+export function CardForm({ values, onChange, showErrors, serverError, save = false, onSaveChange, bare = false }: CardFormProps) {
   const t = useAppT();
   const [focused, setFocused] = React.useState<CardField | null>(null);
   const errors = cardErrors(values);
@@ -40,7 +43,7 @@ export function CardForm({ values, onChange, showErrors, serverError, save = fal
   });
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4">
+    <div className={cn("flex flex-col", bare ? "gap-5" : "gap-4 rounded-2xl border border-border bg-surface p-4")}>
       <CardPreview values={values} focused={focused} />
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("booking.payment.cardNumber")} className="col-span-2" error={serverError ?? (showErrors && errors.number ? message : undefined)}>

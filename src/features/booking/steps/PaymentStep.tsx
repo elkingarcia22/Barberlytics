@@ -12,10 +12,10 @@ import { personName } from "../bookingState";
 import { feeLabel } from "../pricing";
 import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
-import { CardForm } from "../flow/CardForm";
 import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { OrderSummary } from "../flow/OrderSummary";
 import { PromoField } from "../flow/PromoField";
+import { NewCardSheet } from "../flow/NewCardSheet";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
 import { StepLayout } from "../flow/StepLayout";
 import { useReserveMutation } from "../queries";
@@ -23,7 +23,6 @@ import type { PayMethod } from "../types";
 import { draftOrderLines } from "../useBookingTotals";
 
 const NO_TIP = "none";
-const EMPTY_CARD: CardValues = { number: "", expiry: "", cvc: "", name: "" };
 
 /**
  * Pagar: la propina para el barbero, un cupón y cómo se paga. Si la barbería
@@ -34,7 +33,9 @@ export function PaymentStep() {
   const t = useAppT();
   const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
   const reserve = useReserveMutation();
-  const [card, setCard] = React.useState<CardValues>(EMPTY_CARD);
+  // La tarjeta nueva, ya escrita y revisada en su hoja (null mientras no se agrega).
+  const [card, setCard] = React.useState<CardValues | null>(null);
+  const [sheet, setSheet] = React.useState<{ open: boolean; prefill: boolean }>({ open: false, prefill: false });
   const [showCardErrors, setShowCardErrors] = React.useState(false);
   const customer = state.customer;
   const credit = customer?.credit ?? 0;
@@ -79,7 +80,11 @@ export function PaymentStep() {
 
   const pay = () => {
     if (!customer || !state.branchId || !method) return;
-    if (method === "card" && (chosenSaved ? !isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) : !isCardComplete(card))) {
+    if (method === "card" && !chosenSaved && !card) {
+      setSheet({ open: true, prefill: false });
+      return;
+    }
+    if (method === "card" && (chosenSaved ? !isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) : !card || !isCardComplete(card))) {
       setShowCardErrors(true);
       return;
     }
@@ -100,7 +105,7 @@ export function PaymentStep() {
         promoCode: state.promo?.code ?? null,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
-        card: method === "card" && !chosenSaved ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
+        card: method === "card" && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
         savedCardId: method === "card" && chosenSaved ? chosenSaved.id : undefined,
         notes: state.notes.trim() || undefined,
       },
@@ -146,7 +151,7 @@ export function PaymentStep() {
             <OptionTile key={option.value} option={option} selected={method === option.value} onSelect={(value) => dispatch({ type: "setMethod", method: value as PayMethod })} />
           ))}
         </div>
-        {method === "card" && savedCards.length > 0 && (
+        {method === "card" && (
           <SavedCardPicker
             cards={savedCards}
             value={cardChoice}
@@ -156,26 +161,15 @@ export function PaymentStep() {
               setShowCardErrors(false);
               if (reserve.isError) reserve.reset();
             }}
+            pending={card}
+            onAddNew={() => setSheet({ open: true, prefill: false })}
+            onEditPending={() => setSheet({ open: true, prefill: true })}
             cvc={savedCvc}
             onCvcChange={setSavedCvc}
             showErrors={showCardErrors}
           />
         )}
-        {method === "card" && !chosenSaved && (
-          <CardForm
-            values={card}
-            onChange={(values) => {
-              setCard(values);
-              // Lo que dijo la pasarela ya no vale para la tarjeta corregida.
-              if (reserve.isError) reserve.reset();
-            }}
-            showErrors={showCardErrors}
-            serverError={serverCardError}
-            save={saveCard}
-            onSaveChange={customer ? setSaveCard : undefined}
-          />
-        )}
-        {method === "card" && chosenSaved && serverCardError && (
+        {method === "card" && serverCardError && (
           <Text size="sm" tone="negative">
             {serverCardError}
           </Text>
@@ -199,6 +193,22 @@ export function PaymentStep() {
         <Heading level={6}>{t("booking.payment.order")}</Heading>
         <OrderSummary totals={totals} money={fmt.money} lines={lines} promoCode={state.promo?.code} />
       </section>
+      <NewCardSheet
+        key={`${sheet.open}-${sheet.prefill}`}
+        open={sheet.open}
+        onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+        initial={sheet.prefill ? card : null}
+        initialSave={saveCard}
+        canSave={Boolean(customer)}
+        onConfirm={(values, save) => {
+          setCard(values);
+          setSaveCard(save);
+          setCardChoice(NEW_CARD);
+          setShowCardErrors(false);
+          // Lo que dijo la pasarela ya no vale para la tarjeta corregida.
+          if (reserve.isError) reserve.reset();
+        }}
+      />
     </StepLayout>
   );
 }

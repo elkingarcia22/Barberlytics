@@ -1,7 +1,7 @@
 import { addMinutes, differenceInMinutes, format, isSameDay, isValid, parseISO } from "date-fns";
 import type { AppMessageKey } from "@/app/i18n/types";
 import type { MessageParams } from "@/i18n";
-import type { ScheduleEvent, ScheduleMarker, ScheduleResource, ScheduleTone, ScheduleWorkingHours } from "@/components/scheduling";
+import type { ScheduleEvent, ScheduleEventGroup, ScheduleMarker, ScheduleResource, ScheduleTone, ScheduleWorkingHours } from "@/components/scheduling";
 import { atMinutes, formatClock, formatClockRange, minutesOfDay, parseClock, rangesOverlap, workingMinutes } from "@/components/scheduling";
 import { DEFAULT_CARD_PREFS, type CalendarCardPref, type CalendarCardPrefs } from "./calendarCardPrefs";
 import type { CalendarAccess } from "./calendarAccess";
@@ -459,7 +459,57 @@ export function cardMarkers(appointment: Appointment, client: Client | undefined
  */
 export const isFlexible = (appointment: Appointment): boolean => appointment.status === "scheduled" && appointment.requestedBarberId === null && appointment.source !== "online";
 
-export function toEvent(appointment: Appointment, ctx: ModelContext, options: { showBarber?: boolean; faded?: boolean } = {}): ScheduleEvent {
+/**
+ * Las citas del día que vienen juntas: del mismo cliente y seguidas (una
+ * empieza cuando acaba la otra, o se solapan —su familia a la misma hora con
+ * otro barbero—). Son los varios servicios de una visita o una reserva para
+ * varias personas. Devuelve, por id de cita, su sitio en el grupo; las sueltas
+ * no aparecen. Con el mismo barbero y sin hueco, se pegan (`joinTop`/`joinBottom`).
+ * Los clientes de paso (sin ficha) no se agrupan: dos de paso no son la misma persona.
+ */
+export function appointmentGroups(appointments: readonly Appointment[], catalog: CalendarCatalog): Map<string, ScheduleEventGroup> {
+  const byClient = new Map<string, Appointment[]>();
+  for (const item of appointments) {
+    if (!isActive(item)) continue;
+    const client = findClient(catalog, item.clientId);
+    if (!client || client.type === "walkin") continue;
+    byClient.set(item.clientId, [...(byClient.get(item.clientId) ?? []), item]);
+  }
+  const groups = new Map<string, ScheduleEventGroup>();
+  for (const [clientId, items] of byClient) {
+    if (items.length < 2) continue;
+    const sorted = [...items].sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime());
+    const clusters: Appointment[][] = [];
+    let clusterEnd = -Infinity;
+    for (const item of sorted) {
+      const end = appointmentEnd(item).getTime();
+      if (clusters.length > 0 && appointmentStart(item).getTime() <= clusterEnd) {
+        clusters[clusters.length - 1].push(item);
+        clusterEnd = Math.max(clusterEnd, end);
+      } else {
+        clusters.push([item]);
+        clusterEnd = end;
+      }
+    }
+    for (const cluster of clusters) {
+      if (cluster.length < 2) continue;
+      const id = `${clientId}:${cluster[0].id}`;
+      cluster.forEach((item, position) => {
+        const touches = (other: Appointment, edgeA: Date, edgeB: Date) => other.id !== item.id && other.barberId === item.barberId && edgeA.getTime() === edgeB.getTime();
+        groups.set(item.id, {
+          id,
+          index: position + 1,
+          size: cluster.length,
+          joinTop: cluster.some((other) => touches(other, appointmentEnd(other), appointmentStart(item))) || undefined,
+          joinBottom: cluster.some((other) => touches(other, appointmentStart(other), appointmentEnd(item))) || undefined,
+        });
+      });
+    }
+  }
+  return groups;
+}
+
+export function toEvent(appointment: Appointment, ctx: ModelContext, options: { showBarber?: boolean; faded?: boolean; group?: ScheduleEventGroup } = {}): ScheduleEvent {
   const client = findClient(ctx.catalog, appointment.clientId);
   const barber = findBarber(ctx.catalog, appointment.barberId);
   const services = servicesOf(ctx.catalog, appointment);
@@ -492,10 +542,12 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     fill: ctx.colorBy === "service" ? "category" : ctx.colorBy === "status" || ctx.colorBy === "client" ? "tone" : "neutral",
     badge: card.clientType && client && client.type !== "walkin" ? { label: ctx.t(CLIENT_TYPE_KEYS[client.type]), tone: clientTypeTone(client.type) } : undefined,
     status: card.status ? stageBadge(appointment, ctx) : undefined,
-    action: card.nextStep && step && ctx.onNextStep ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
+    // En una visita de varios servicios el siguiente paso va en la primera: el cliente ingresa una vez.
+    action: card.nextStep && step && ctx.onNextStep && !options.group?.joinTop ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
     warning: isActive(appointment) ? appointmentWarning(appointment, ctx) : undefined,
     flexible: isFlexible(appointment),
     faded: options.faded,
+    group: options.group,
     muted: !isActive(appointment),
     locked: !isUnpaid(appointment),
   };

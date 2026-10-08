@@ -117,6 +117,21 @@ export interface ScheduleEvent {
   ghost?: boolean;
   /** Por qué se propone («Sin dejar hueco entre citas»): una línea bajo el título. */
   note?: string;
+  /**
+   * Es parte de un grupo: varias citas del mismo cliente —los servicios de una
+   * misma visita, seguidos, o su familia a la misma hora—. `index`/`size` dicen
+   * cuál es («2 de 3»); `joinTop`/`joinBottom` la pegan a la de arriba o abajo
+   * de la misma columna, para que se lean como un solo bloque.
+   */
+  group?: ScheduleEventGroup;
+}
+
+export interface ScheduleEventGroup {
+  id: string;
+  index: number;
+  size: number;
+  joinTop?: boolean;
+  joinBottom?: boolean;
 }
 
 /** Dónde soltó alguien una tarjeta: la columna y la hora nuevas. */

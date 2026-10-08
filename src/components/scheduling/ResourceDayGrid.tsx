@@ -10,11 +10,6 @@ import { RowContextMenu, type RowAction } from "@/components/data-display";
 import { ScheduleEventCard } from "./ScheduleEventCard";
 import { useScheduleDrag, type DragPreview } from "./useScheduleDrag";
 
-/**
- * El aire entre dos citas, en los cuatro lados. Las tarjetas no llevan borde:
- * sin este hueco, dos citas seguidas del mismo barbero se leían como un solo bloque.
- */
-const EVENT_GAP_PX = 4;
 import {
   atMinutes,
   earliestWorkingMinute,
@@ -30,6 +25,15 @@ import {
   SLOT_HEIGHT_PX,
   slotMinutes,
 } from "./scheduleUtils";
+
+/**
+ * El aire entre dos citas, en los cuatro lados. Las tarjetas no llevan borde:
+ * sin este hueco, dos citas seguidas del mismo barbero se leían como un solo bloque (salvo las de un grupo, que se pegan a propósito).
+ */
+const EVENT_GAP_PX = 4;
+/** El aire de arriba y de abajo de una tarjeta: nada donde se pega a otra de su grupo (salvo mientras se arrastra). */
+const gapTop = (event: ScheduleEvent, dragging: unknown): number => (event.group?.joinTop && !dragging ? 0 : EVENT_GAP_PX / 2);
+const gapBottom = (event: ScheduleEvent, dragging: unknown): number => (event.group?.joinBottom && !dragging ? 0 : EVENT_GAP_PX / 2);
 
 /**
  * RESOURCE DAY GRID
@@ -447,8 +451,9 @@ function ResourceColumn({ date, resource, events, slots, slotHeight, step, daySt
               onResizeStart={canResize && !isBlock && !event.ghost ? bind(event, "resize").onPointerDown : undefined}
               className={cn("pointer-events-auto", isBlock && "z-base", dragged && dragged.resourceId !== resource.id && "opacity-30")}
               style={{
-                top: `calc(${shownTop}% + ${EVENT_GAP_PX / 2}px)`,
-                height: `calc(${shownHeight}% - ${EVENT_GAP_PX}px)`,
+                // Las citas de un mismo grupo pegadas en la columna no dejan aire entre ellas: se leen como un bloque.
+                top: `calc(${shownTop}% + ${gapTop(event, dragged)}px)`,
+                height: `calc(${shownHeight}% - ${gapTop(event, dragged) + gapBottom(event, dragged)}px)`,
                 left: `calc(${(column / columns) * 100}% + ${EVENT_GAP_PX / 2}px)`,
                 width: `calc(${100 / columns}% - ${EVENT_GAP_PX}px)`,
               }}

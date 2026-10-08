@@ -28,9 +28,10 @@ import "./schedule.css";
  * hueco sugerido o a dónde iría una cita si se reacomoda. Tocarla es aceptar.
  *
  * Las citas de un grupo (`group`: varios servicios de un mismo cliente, o su
- * familia) llevan un filete de la marca a la izquierda y la píldora «2/3»;
- * las que se pegan a otra de su columna pierden el radio de ese lado y la
- * costura se marca con una línea punteada: se leen como un solo bloque.
+ * familia) van rodeadas por un borde discontinuo de la marca y llevan la
+ * píldora «2/3»; las que se pegan a otra de su columna pierden ese lado del
+ * borde y el radio, así el contorno envuelve la visita entera y la costura
+ * entre servicios queda como una línea tenue.
  *
  * Para no anidar un botón dentro de otro, abrirla es un botón estirado
  * detrás del contenido y la acción es otro botón por encima: el lector de
@@ -212,9 +213,12 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               ? "schedule-card-fill border-transparent bg-surface"
               : TONE_CARD[tone],
           event.flexible && !isGhost && "border-dashed",
-          // Pegada a otra del grupo: ese lado sin radio, para que las dos formen un solo bloque.
-          group?.joinTop && "rounded-t-none",
-          group?.joinBottom && "rounded-b-none",
+          // Un grupo se rodea con un borde discontinuo de la marca; donde se pega a otra de su grupo pierde
+          // ese lado del borde y el radio, y entre todas dibujan un solo contorno alrededor de la visita.
+          // El color del borde lo pone schedule.css: el papel y el pastel lo vuelven transparente.
+          group && !isGhost && "border-dashed",
+          group?.joinTop && "rounded-t-none border-t-0",
+          group?.joinBottom && "rounded-b-none border-b-0",
           isGhost && "z-raised border-dashed border-primary/70 bg-primary/5 opacity-85",
           event.muted && "opacity-60",
           event.faded && "opacity-30 saturate-50",
@@ -234,12 +238,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
           />
         )}
 
-        {group && (
-          <>
-            <span aria-hidden="true" data-group-rail className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-primary" />
-            {group.joinTop && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-foreground/20" />}
-          </>
-        )}
+        {group?.joinTop && <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 border-t border-foreground/10" />}
 
         {onOpen && (
           <button

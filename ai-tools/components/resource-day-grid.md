@@ -88,7 +88,7 @@ Un recurso sin franjas ese día se pinta entero sombreado con el aviso. La panta
 
 ### Citas agrupadas de un mismo cliente
 
-Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede traer a la familia en otra silla a la misma hora. Con `group` ({ id, index, size, joinTop, joinBottom }) cada tarjeta lleva el filete de la marca y la píldora «2/4»; las que se pegan en la misma columna (`joinTop`/`joinBottom`) pierden el aire y el radio de ese lado y se leen como un solo bloque. El siguiente paso va solo en la primera: el cliente ingresa una vez.
+Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede traer a la familia en otra silla a la misma hora. Con `group` ({ id, index, size, joinTop, joinBottom }) cada tarjeta va rodeada por un borde discontinuo de la marca y lleva la píldora «2/4»; las que se pegan en la misma columna (`joinTop`/`joinBottom`) pierden el aire, el borde y el radio de ese lado: un solo contorno envuelve la visita. El siguiente paso va solo en la primera: el cliente ingresa una vez.
 
 ```tsx
 <ResourceDayGrid

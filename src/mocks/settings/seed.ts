@@ -49,6 +49,8 @@ export function seedSettings(): MockSettingsState {
         paymentMethods: { card: true, payAtShop: true },
         // A quien paga en la barbería se le pide un anticipo si es nuevo o ya faltó una vez.
         deposit: { enabled: true, percent: 30, newClients: true, afterNoShows: 1 },
+        // Cada 10 visitas, un corte clásico de cortesía.
+        loyalty: { enabled: true, every: 10, rewardServiceId: "svc_corte" },
         cancelHours: 3,
         lateFeePercent: 10,
         maxCancellations: 5,

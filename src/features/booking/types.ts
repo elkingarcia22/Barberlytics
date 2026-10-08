@@ -165,6 +165,8 @@ export const bookingCustomerSchema = z.object({
   cards: z.array(savedCardSchema).default([]),
   /** Para pagar en la barbería debe dejar anticipo (cliente nuevo o con inasistencias). */
   depositRequired: z.boolean().default(false),
+  /** Su tarjeta de cliente frecuente: avance hacia la próxima cortesía y cuántas tiene por usar. */
+  loyalty: z.object({ every: z.number(), progress: z.number(), available: z.number(), rewardServiceId: z.string(), rewardName: z.string().default(""), rewardValue: z.number() }).nullable().default(null),
 });
 export type BookingCustomer = z.infer<typeof bookingCustomerSchema>;
 
@@ -293,6 +295,7 @@ export const totalsSchema = z.object({
   fee: z.number().default(0),
   feeName: z.string().nullable().default(null),
   gift: z.number().default(0),
+  reward: z.number().default(0),
   total: z.number(),
 });
 
@@ -375,6 +378,8 @@ export interface ReservationInput {
   savedCardId?: string;
   /** Tarjeta de regalo: paga primero; lo que sobra queda en ella. */
   giftCode?: string;
+  /** Usar una cortesía de cliente frecuente (descuenta el servicio de cortesía). */
+  useReward?: boolean;
   /** De dónde vino (UTM del enlace), para saber qué canal trae reservas. */
   utm?: { source: string; medium: string; campaign: string };
   /** Foto del corte que quiere (data URL JPEG/PNG/WebP, ≤ ~1,5 MB): la ve el barbero en la cita. */

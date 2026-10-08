@@ -33,13 +33,14 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   upcoming: 0,
   cards: [],
   depositRequired: false,
+  loyalty: null,
   ...draft,
 });
 
 describe("cuentas de la reserva", () => {
   test("el impuesto va sobre lo comprado con el descuento y la propina va aparte", () => {
     const totals = computeTotals({ services: 90, products: 10, discount: 15, taxPercent: 6.25, tip: 18 });
-    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, gift: 0, total: 108.31 });
+    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, gift: 0, reward: 0, total: 108.31 });
   });
 
   test("el recargo por tarjeta sale del subtotal, suma al total y solo lo llevan tarjeta y billetera", () => {
@@ -405,6 +406,19 @@ describe("backend de la reserva", () => {
     await bookingApi.cancel(marcela.token, booked.appointments[0].id, "credit");
     const offer = (db.booking.outbox ?? []).find((message) => message.kind === "slotFreed" && message.appointmentId === booked.appointments[0].id);
     expect(offer).toMatchObject({ clientId: "cli_003", channel: "whatsapp", offer: { barberId: slot.barberId } });
+  });
+
+  test("la cortesía de cliente frecuente se descuenta al pagar y queda una menos por usar", async () => {
+    const { token, customer } = await signIn();
+    // Marcela tiene muchas visitas: arranca con una cortesía por usar.
+    expect(customer?.loyalty).toMatchObject({ every: 10, available: 1, rewardServiceId: "svc_corte" });
+    const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    if (!slot) throw new Error("debería haber hueco");
+    const booked = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop", useReward: true });
+    expect(booked.totals.reward).toBeGreaterThan(0);
+    expect(booked.totals.subtotal).toBe(0);
+    const { customer: after } = await signIn();
+    expect(after?.loyalty?.available).toBe(0);
   });
 
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {

@@ -14,6 +14,7 @@ import {
   bookingRules,
   cardFeeRule,
   depositAmount,
+  redeemLoyalty,
   cardsOf,
   removeCard,
   saveCard,
@@ -397,11 +398,14 @@ export const bookingHandlers = [
     const promo = promoResult && "promo" in promoResult ? promoResult.promo : null;
     const tip = tipOptions().options.find((option) => option.id === text(input.tipId)) ?? null;
     const method = text(input.method) as MockReservation["payment"]["method"];
+    // Cortesía de cliente frecuente: si la pide y tiene una por usar, se descuenta el servicio de cortesía.
+    const loyalty = input.useReward === true ? customer.loyalty : null;
+    const rewardValue = loyalty && loyalty.available > 0 ? loyalty.rewardValue : 0;
     // Tarjeta de regalo: paga primero; lo que sobra queda en ella.
     const giftCode = text(input.giftCode);
     const giftCard = giftCode ? findGiftCard(giftCode) : undefined;
     if (giftCode && (!giftCard || giftCard.balance <= 0)) return error(422, "gift_invalid", "Esa tarjeta de regalo no existe o ya no tiene saldo.");
-    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0 });
+    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0, reward: rewardValue });
 
     const rules = bookingRules();
     let payment: MockReservation["payment"];
@@ -433,6 +437,7 @@ export const bookingHandlers = [
       return error(422, "validation", "Elige cómo vas a pagar.");
     }
 
+    if (totals.reward > 0) redeemLoyalty(client);
     // Lo pagado con la tarjeta de regalo cuenta como pagado (si se cancela, vuelve como saldo a favor).
     if (giftCard && totals.gift > 0) {
       spendGiftCard(giftCard.code, totals.gift);

@@ -31,6 +31,7 @@ const booking = () => db.settings.sections.booking as {
   paymentMethods: { card: boolean; payAtShop: boolean };
   /** Anticipo para pagar en la barbería: a clientes nuevos y/o tras N inasistencias (0 = nunca). */
   deposit: { enabled: boolean; percent: number; newClients: boolean; afterNoShows: number };
+  loyalty: { enabled: boolean; every: number; rewardServiceId: string };
   cancelHours: number;
   lateFeePercent: number;
   maxCancellations: number;
@@ -256,6 +257,7 @@ export function customerOf(client: MockClient) {
     upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && new Date(item.start).getTime() >= now).length,
     cards: cardsOf(client.id),
     depositRequired: needsDeposit(client, client.visits === 0 && !last),
+    loyalty: loyaltyOf(client),
   };
 }
 
@@ -272,6 +274,27 @@ function needsDeposit(client: MockClient, isNew: boolean): boolean {
 /** El anticipo: el porcentaje configurado de lo comprado con impuesto (sin propina ni recargo). */
 export function depositAmount(totals: { subtotal: number; tax: number }): number {
   return depositOf(totals, bookingRules().deposit.percent);
+}
+
+/**
+ * La tarjeta de cliente frecuente: cada `every` visitas gana una cortesía. Las ganadas salen de sus
+ * visitas; las usadas se cuentan aparte. Un cliente de la demo arranca con a lo más una por usar.
+ */
+export function loyaltyOf(client: MockClient): { every: number; progress: number; available: number; rewardServiceId: string; rewardName: string; rewardValue: number } | null {
+  const { loyalty } = bookingRules();
+  if (!loyalty.enabled || loyalty.every < 2) return null;
+  const earned = Math.floor(client.visits / loyalty.every);
+  const used = db.booking.loyaltyUsed?.[client.id] ?? Math.max(0, earned - 1);
+  const service = db.services.items.find((item) => item.id === loyalty.rewardServiceId);
+  return { every: loyalty.every, progress: client.visits % loyalty.every, available: Math.max(0, earned - used), rewardServiceId: loyalty.rewardServiceId, rewardName: service?.name ?? "", rewardValue: service?.price ?? 0 };
+}
+
+/** Usa una cortesía: queda una menos por usar. */
+export function redeemLoyalty(client: MockClient): void {
+  const current = loyaltyOf(client);
+  if (!current || current.available === 0) return;
+  const earned = Math.floor(client.visits / current.every);
+  db.booking.loyaltyUsed = { ...(db.booking.loyaltyUsed ?? {}), [client.id]: earned - current.available + 1 };
 }
 
 /** Las tarjetas tokenizadas de un cliente. */

@@ -52,6 +52,7 @@ export function BookingSettings() {
     if (draft.surge.enabled && !(draft.surge.occupancy >= 1 && draft.surge.occupancy <= 100)) errors.surge = t("cfg.booking.error.surge");
     if (!draft.paymentMethods.card && !draft.paymentMethods.payAtShop) errors.paymentMethods = t("cfg.booking.error.paymentMethods");
     if (draft.deposit.enabled && !(draft.deposit.percent >= 1 && draft.deposit.percent <= 100)) errors.deposit = t("cfg.booking.error.deposit");
+    if (draft.loyalty.enabled && !(draft.loyalty.every >= 2 && draft.loyalty.every <= 50)) errors.loyalty = t("cfg.booking.error.loyalty");
     return errors;
   };
 
@@ -182,6 +183,18 @@ function Rules({ draft, set, errors }: RulesProps) {
             {errors.paymentMethods}
           </p>
         )}
+      </SettingsCard>
+
+      <SettingsCard title={t("cfg.booking.loyalty")} description={t("cfg.booking.loyaltyHint")}>
+        <SwitchRow label={t("cfg.booking.loyaltyEnable")} hint={t("cfg.booking.loyaltyEnableHint")} checked={draft.loyalty.enabled} onCheckedChange={(checked) => set("loyalty", { ...draft.loyalty, enabled: checked })} testId="booking-loyalty">
+          {draft.loyalty.enabled && (
+            <div className="mt-3 max-w-xs">
+              <Field label={t("cfg.booking.loyaltyEvery")} error={errors.loyalty}>
+                <NumberField size="sm" value={number(draft.loyalty.every)} onValueChange={(value) => set("loyalty", { ...draft.loyalty, every: value ?? Number.NaN })} min={2} max={50} suffix={t("cfg.booking.loyaltyVisits")} />
+              </Field>
+            </div>
+          )}
+        </SwitchRow>
       </SettingsCard>
 
       <SettingsCard title={t("cfg.booking.surge")} description={t("cfg.booking.surgeHint")}>

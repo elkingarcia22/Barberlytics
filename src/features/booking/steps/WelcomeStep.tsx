@@ -10,6 +10,7 @@ import { ThemaIcon } from "@/icons";
 import { defaultBranchId } from "../bookingState";
 import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
+import { LoyaltyCard } from "../flow/LoyaltyCard";
 import { StepLayout } from "../flow/StepLayout";
 import { NextVisitSuggestion } from "../flow/NextVisitSuggestion";
 import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../queries";
@@ -126,6 +127,8 @@ export function WelcomeStep() {
           </div>
         </section>
       )}
+
+      <LoyaltyCard />
 
       <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => dispatch({ type: "startFresh", onlyBranchId })}>
         <ThemaIcon name="plus" />

@@ -52,6 +52,8 @@ export interface BookingState {
   promo: Promo | null;
   /** La tarjeta de regalo que se usa en esta reserva y su saldo. */
   gift: { code: string; balance: number } | null;
+  /** Usar la cortesía de cliente frecuente en esta reserva (si tiene una). Por defecto, sí. */
+  useReward: boolean;
   method: PayMethod | null;
   notes: string;
   /** Foto del corte que quiere (data URL ya reducida), para el barbero. */
@@ -86,6 +88,7 @@ export type BookingAction =
   | { type: "setTip"; tipId: string | null }
   | { type: "setPromo"; promo: Promo | null }
   | { type: "setGift"; gift: { code: string; balance: number } | null }
+  | { type: "setUseReward"; useReward: boolean }
   | { type: "setMethod"; method: PayMethod }
   | { type: "setNotes"; notes: string }
   | { type: "setReferencePhoto"; photo: string | null }
@@ -107,7 +110,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, method: null, notes: "", referencePhoto: null, reservation: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, method: null, notes: "", referencePhoto: null, reservation: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -203,6 +206,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, promo: action.promo };
     case "setGift":
       return { ...state, gift: action.gift };
+    case "setUseReward":
+      return { ...state, useReward: action.useReward };
     case "setMethod":
       return { ...state, method: action.method };
     case "setNotes":

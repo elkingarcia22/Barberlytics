@@ -79,6 +79,8 @@ export interface TotalsInput {
   cardFee?: CardFeeRule | null;
   /** El saldo de una tarjeta de regalo que se usa en esta reserva. */
   giftBalance?: number;
+  /** La cortesía de cliente frecuente que se usa: se descuenta de los servicios. */
+  reward?: number;
 }
 
 export interface Totals {
@@ -92,6 +94,8 @@ export interface Totals {
   feeName: string | null;
   /** Lo que paga la tarjeta de regalo. */
   gift: number;
+  /** La cortesía de cliente frecuente descontada. */
+  reward: number;
   /** Lo que queda por pagar, ya restada la tarjeta de regalo. */
   total: number;
 }
@@ -105,14 +109,16 @@ export const chargesCardFee = (method: string | null): boolean => method === "ca
  * parte del subtotal que queda por pagar con tarjeta, como en el cobro de la agenda.
  */
 export function computeTotals(input: TotalsInput): Totals {
-  const subtotal = round2(Math.max(0, input.services + input.products - input.discount));
+  // La cortesía no puede valer más que los servicios (no se regala un producto).
+  const reward = round2(Math.min(Math.max(0, input.reward ?? 0), Math.max(0, input.services - input.discount)));
+  const subtotal = round2(Math.max(0, input.services + input.products - input.discount - reward));
   const tax = round2((subtotal * input.taxPercent) / 100);
   const tip = round2(Math.max(0, input.tip));
   const gift = round2(Math.min(Math.max(0, input.giftBalance ?? 0), subtotal + tax + tip));
   const feeBase = Math.max(0, subtotal - gift);
   const rule = input.cardFee ?? null;
   const fee = rule && feeBase > 0 ? round2(rule.type === "percent" ? (feeBase * rule.rate) / 100 : rule.rate) : 0;
-  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, gift, total: round2(subtotal + tax + tip + fee - gift) };
+  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, gift, reward, total: round2(subtotal + tax + tip + fee - gift) };
 }
 
 /** El anticipo para pagar en la barbería: el porcentaje de lo comprado con impuesto (sin propina ni recargo). */

@@ -36,8 +36,9 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
       tip: tipAmount(tip, services),
       cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
       giftBalance: state.gift?.balance ?? 0,
+      reward: state.useReward && (state.customer?.loyalty?.available ?? 0) > 0 ? (state.customer?.loyalty?.rewardValue ?? 0) : 0,
     });
-  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift]);
+  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.customer]);
 }
 
 export interface DraftOrderLine {

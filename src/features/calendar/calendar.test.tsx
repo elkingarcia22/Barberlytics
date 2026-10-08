@@ -90,10 +90,14 @@ describe("modelo del calendario", () => {
     const otherBarber = { ...APPOINTMENT, id: "a3", barberId: "b2", start: "2026-09-25T10:45:00" };
     const later = { ...APPOINTMENT, id: "a4", start: "2026-09-25T15:00:00" };
     const groups = appointmentGroups([APPOINTMENT, second, otherBarber, later], CATALOG);
-    expect(groups.get("a1")).toMatchObject({ index: 1, size: 2, joinBottom: true });
-    expect(groups.get("a1")?.joinTop).toBeUndefined();
-    expect(groups.get("a2")).toMatchObject({ index: 2, size: 2, joinTop: true });
-    expect(groups.get("a2")?.joinBottom).toBeUndefined();
+    // Cada una conserva su hueco: van atadas por el grupo, no pegadas en un solo bloque.
+    expect(groups.get("a1")).toEqual({ id: "c1:a1", index: 1, size: 2 });
+    expect(groups.get("a2")).toEqual({ id: "c1:a1", index: 2, size: 2 });
+    // La segunda no ofrece «Ingresar»: el cliente se ingresa una vez, en la primera.
+    const stepCtx = { ...ctx, onNextStep: () => {} };
+    expect(toEvent(APPOINTMENT, stepCtx, { group: groups.get("a1") }).action).toBeDefined();
+    expect(toEvent(second, stepCtx, { group: groups.get("a2") }).action).toBeUndefined();
+    expect(toEvent({ ...second, status: "seated" }, stepCtx, { group: groups.get("a2") }).action).toBeDefined();
     // Con otro barbero a la misma hora, o con un hueco por medio, son citas normales.
     expect(groups.has("a3")).toBe(false);
     expect(groups.has("a4")).toBe(false);

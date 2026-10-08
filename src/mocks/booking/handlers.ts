@@ -31,6 +31,7 @@ import {
   visitSuggestion,
 } from "./logic";
 import { alternatives, joinWaitlist, type WaitlistWindow } from "./alternatives";
+import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -417,6 +418,7 @@ export const bookingHandlers = [
     };
     db.calendar.appointments = [...created, ...db.calendar.appointments];
     db.booking.reservations = [reservation, ...db.booking.reservations];
+    for (const appointment of created) scheduleMessages(appointment, client.phone);
     rememberGuests(client, plan.planned);
     db.persist();
     return HttpResponse.json(reservationView(reservation), { status: 201 });
@@ -485,6 +487,7 @@ export const bookingHandlers = [
     if (!chosen) return error(409, "conflict", "Ese horario ya no está disponible. Por favor elige otro.");
     const updated: MockAppointment = { ...existing, start: localIso(day, start.slice(11, 16)), barberId: chosen.id, history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: `moved:${start}` }] };
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
+    rescheduleMessages(updated, client.phone);
     db.persist();
     return HttpResponse.json(bookedOf(updated));
   }),
@@ -510,6 +513,7 @@ export const bookingHandlers = [
       const reservation = { ...link.reservation, lines: link.reservation.lines.map((line) => (line.appointmentId === existing.id ? { ...line, paid: 0 } : line)) };
       db.booking.reservations = db.booking.reservations.map((item) => (item.id === reservation.id ? reservation : item));
     }
+    cancelMessages(existing.id);
     const updated: MockAppointment = { ...existing, status: "cancelled", history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
     db.persist();

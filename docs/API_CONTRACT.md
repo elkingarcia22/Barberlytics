@@ -357,6 +357,13 @@ citas») toma al cliente de ese token, nunca de un id del cuerpo. Sin token vál
 booking_session` (nunca `401`, que cerraría la sesión de quien esté dentro de la app en el mismo
 navegador). Límites: 5 códigos por celular cada 10 minutos y 5 intentos fallidos por código (`429`).
 
+**Mensajes al cliente.** Al reservar, el servidor programa por cada cita la confirmación (WhatsApp,
+con «Confirmo» / «Reprogramar») y los recordatorios 24 h y 2 h antes, solo los que aún estén en el
+futuro. Reprogramar los mueve (y avisa del cambio); cancelar anula los pendientes. En el mock quedan
+en `db.booking.outbox` (`{ appointmentId, to, channel, kind: confirmation|rescheduled|reminder24h|reminder2h, sendAt, status }`);
+el backend real los entrega con su proveedor (WhatsApp Business / SMS). El `.ics` de la confirmación
+trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
+
 | Método | Ruta | Qué hace |
 |---|---|---|
 | `GET` | `/booking/shop` | La barbería: nombre, logo, moneda, impuesto, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago, `cardFee` (el recargo por tarjeta encendido en Configuración, o `null`), `deposit` (`{ percent }` si la barbería pide anticipo para pagar en el local, o `null`) y sedes con su horario de hoy. Sale de Configuración. |

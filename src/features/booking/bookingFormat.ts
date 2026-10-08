@@ -73,6 +73,9 @@ const icsDate = (date: Date): string => `${date.getFullYear()}${pad(date.getMont
 const icsText = (value: string): string => value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 
 /** Las citas de una reserva como un archivo de calendario (.ics), una por evento. */
+/** Un día y dos horas antes. */
+const ICS_ALARMS = ["-P1D", "-PT2H"] as const;
+
 export function buildIcs(appointments: readonly BookedAppointment[], shopName: string): string {
   const events = appointments.map((item) => {
     const start = parseStart(item.start);
@@ -86,6 +89,8 @@ export function buildIcs(appointments: readonly BookedAppointment[], shopName: s
       `SUMMARY:${icsText(`${shopName} — ${item.serviceNames.join(" + ")}`)}`,
       `LOCATION:${icsText(item.branchName)}`,
       `DESCRIPTION:${icsText(`${item.personName}\nBarbero: ${item.barberName}`)}`,
+      // Avisos del propio calendario: el día antes y dos horas antes, como los recordatorios por WhatsApp.
+      ...ICS_ALARMS.flatMap((trigger) => ["BEGIN:VALARM", "ACTION:DISPLAY", `TRIGGER:${trigger}`, `DESCRIPTION:${icsText(`${shopName}: ${item.serviceNames.join(" + ")}`)}`, "END:VALARM"]),
       "END:VEVENT",
     ].join("\r\n");
   });

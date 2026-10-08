@@ -386,7 +386,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.payment.policyAccept": "By booking you accept the shop's cancellation policy.",
 
   "booking.confirmed.title": "All set, {name}!",
-  "booking.confirmed.lead": "Your booking is confirmed. We've texted you the details.",
+  "booking.confirmed.lead": "Your booking is confirmed. We'll message you on WhatsApp and remind you the day before and 2 hours before.",
   "booking.confirmed.number": "Booking {number}",
   "booking.confirmed.paid": "Paid with {method}",
   "booking.confirmed.payAtShop": "You pay {amount} when you arrive",

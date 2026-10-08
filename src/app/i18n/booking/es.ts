@@ -407,7 +407,7 @@ export const bookingEs = {
 
   // ── Confirmada ──
   "booking.confirmed.title": "¡Listo, {name}!",
-  "booking.confirmed.lead": "Tu reserva está confirmada. Te mandamos los detalles por SMS.",
+  "booking.confirmed.lead": "Tu reserva está confirmada. Te escribimos por WhatsApp y te recordamos el día antes y 2 horas antes.",
   "booking.confirmed.number": "Reserva {number}",
   "booking.confirmed.paid": "Pagado con {method}",
   "booking.confirmed.payAtShop": "Pagas {amount} al llegar",

@@ -37,12 +37,26 @@ export interface MockSavedCard {
   holder: string;
 }
 
+/** Un mensaje programado al cliente (WhatsApp por defecto): lo envía el backend real a su hora. */
+export interface MockOutboxMessage {
+  id: string;
+  appointmentId: string;
+  clientId: string;
+  to: string;
+  channel: "whatsapp" | "sms";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h";
+  sendAt: string;
+  status: "scheduled" | "sent" | "cancelled";
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** Confirmaciones y recordatorios programados por cada reserva (ver reminders.ts). */
+  outbox?: MockOutboxMessage[];
   /** id de cliente → sus tarjetas tokenizadas. Sin entrada, la clienta de la demo trae las suyas (`DEMO_CARDS`). */
   cards?: Record<string, MockSavedCard[]>;
   /** Ya se le pusieron a la clienta de la demo sus personas guardadas (una sola vez). */

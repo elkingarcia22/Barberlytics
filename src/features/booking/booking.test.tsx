@@ -108,6 +108,10 @@ describe("formatos de la reserva", () => {
     expect(ics).toContain("DTSTART:20261009T103000");
     expect(ics).toContain("DTEND:20261009T111500");
     expect(ics).toContain("SUMMARY:Barbería — Corte clásico + Barba");
+    // El calendario avisa el día antes y dos horas antes.
+    expect(ics.match(/BEGIN:VALARM/g)).toHaveLength(2);
+    expect(ics).toContain("TRIGGER:-P1D");
+    expect(ics).toContain("TRIGGER:-PT2H");
   });
 });
 
@@ -298,6 +302,24 @@ describe("backend de la reserva", () => {
     expect(held.payment).toMatchObject({ method: "shop", status: "pending", last4: "4242" });
     expect(held.payment.paid).toBeCloseTo(depositOf(held.totals, 30), 2);
     expect(held.payment.paid).toBeLessThan(held.totals.total);
+  });
+
+  test("reservar programa la confirmación y los recordatorios; mover la cita los mueve y cancelarla los anula", async () => {
+    const { token } = await signIn();
+    const start = new Date(2026, 9, 10, 15, 0);
+    const reservation = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(start) }], products: [], tipId: null, promoCode: null, method: "shop" });
+    const id = reservation.appointments[0].id;
+    const pending = () => (db.booking.outbox ?? []).filter((message) => message.appointmentId === id && message.status === "scheduled");
+    expect(pending().map((message) => message.kind).sort()).toEqual(["confirmation", "reminder24h", "reminder2h"]);
+    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(start.getTime() - 2 * 3_600_000).toISOString());
+
+    const later = new Date(2026, 9, 10, 17, 0);
+    await bookingApi.reschedule(token, id, { start: toStart(later), barberId: null });
+    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(later.getTime() - 2 * 3_600_000).toISOString());
+    expect(pending().some((message) => message.kind === "rescheduled")).toBe(true);
+
+    await bookingApi.cancel(token, id, "credit");
+    expect(pending()).toHaveLength(0);
   });
 
   test("el perfil nuevo usa el celular verificado y guarda el permiso de promociones con fecha", async () => {

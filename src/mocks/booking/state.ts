@@ -48,9 +48,11 @@ export interface MockOutboxMessage {
   clientId: string;
   to: string;
   channel: "whatsapp" | "sms";
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "slotFreed";
   sendAt: string;
   status: "scheduled" | "sent" | "cancelled";
+  /** «Se liberó una hora»: cuál, para reservarla en un toque. */
+  offer?: { start: string; barberId: string; branchId: string };
 }
 
 /** Una reseña de un barbero: de una cita que ocurrió (o sembrada para la demo, sin cita). */

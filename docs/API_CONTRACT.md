@@ -359,7 +359,7 @@ navegador). Límites: 5 códigos por celular cada 10 minutos y 5 intentos fallid
 
 **Mensajes al cliente.** Al reservar, el servidor programa por cada cita la confirmación (WhatsApp,
 con «Confirmo» / «Reprogramar») y los recordatorios 24 h y 2 h antes, solo los que aún estén en el
-futuro. Reprogramar los mueve (y avisa del cambio); cancelar anula los pendientes. En el mock quedan
+futuro. Reprogramar los mueve (y avisa del cambio); cancelar anula los pendientes. Al cancelar, la hora se ofrece a la lista de espera: hasta 3 clientes de ese día cuya franja la incluye (mismo barbero si lo pidieron y servicio que quepa) reciben `kind: slotFreed` con `offer: { start, barberId, branchId }`; el primero que reserva se la queda. En el mock quedan
 en `db.booking.outbox` (`{ appointmentId, to, channel, kind: confirmation|rescheduled|reminder24h|reminder2h, sendAt, status }`);
 el backend real los entrega con su proveedor (WhatsApp Business / SMS). El `.ics` de la confirmación
 trae sus propias alarmas (`VALARM` el día antes y 2 h antes).

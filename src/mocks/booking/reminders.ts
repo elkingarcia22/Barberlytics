@@ -43,3 +43,37 @@ export function rescheduleMessages(appointment: MockAppointment, phone: string, 
   // El aviso del cambio sale ya; los recordatorios quedan para la hora nueva.
   db.booking.outbox = outbox().map((message) => (message.appointmentId === appointment.id && message.kind === "confirmation" && message.status === "scheduled" ? { ...message, kind: "rescheduled" } : message));
 }
+
+/** A cuántos de la lista de espera se avisa por cada hueco que se libera (gana el primero que reserva). */
+const REFILL_NOTIFY = 3;
+const durationOfService = (serviceId: string): number => db.services.items.find((item) => item.id === serviceId)?.durationMin ?? 30;
+
+/**
+ * Se liberó una hora (alguien canceló): avisa por WhatsApp a los primeros de la lista de espera de
+ * ese día cuya franja la incluye, cuyo barbero (si pidieron uno) es el mismo y cuyo servicio cabe.
+ * El primero que la reserve se la queda. Devuelve a quién se avisó.
+ */
+export function offerFreedSlot(freed: MockAppointment, now = new Date()): string[] {
+  const day = freed.start.slice(0, 10);
+  const hour = `${freed.start.slice(11, 13)}:00`;
+  const matches = db.calendar.waitlist
+    .filter((entry) => entry.branchId === freed.branchId && entry.clientId !== freed.clientId)
+    .filter((entry) => entry.slots.some((slot) => slot.date === day && slot.time === hour))
+    .filter((entry) => entry.barberId === null || entry.barberId === freed.barberId)
+    .filter((entry) => durationOfService(entry.serviceId) <= freed.durationMin)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .slice(0, REFILL_NOTIFY);
+  const messages: MockOutboxMessage[] = matches.map((entry) => ({
+    id: nextId(),
+    appointmentId: freed.id,
+    clientId: entry.clientId,
+    to: db.calendar.clients.find((client) => client.id === entry.clientId)?.phone ?? "",
+    channel: "whatsapp",
+    kind: "slotFreed",
+    sendAt: now.toISOString(),
+    status: "scheduled",
+    offer: { start: freed.start, barberId: freed.barberId, branchId: freed.branchId },
+  }));
+  db.booking.outbox = [...outbox(), ...messages];
+  return matches.map((entry) => entry.clientId);
+}

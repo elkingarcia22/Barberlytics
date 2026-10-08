@@ -394,6 +394,19 @@ describe("backend de la reserva", () => {
     expect(inAgenda?.notes).toContain("foto de referencia");
   });
 
+  test("cuando alguien cancela, la hora se ofrece por WhatsApp a quien espera esa franja", async () => {
+    const marcela = await signIn();
+    const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    if (!slot) throw new Error("debería haber hueco");
+    const booked = await bookingApi.reserve(marcela.token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop" });
+    // Otra clienta espera ese día, a cualquier hora y con cualquier barbero.
+    const other = await signIn("+573005550102");
+    await bookingApi.joinWaitlist(other.token, { branchId: "ma", date: slot.date, serviceIds: ["svc_corte"], barberId: null, window: "any" });
+    await bookingApi.cancel(marcela.token, booked.appointments[0].id, "credit");
+    const offer = (db.booking.outbox ?? []).find((message) => message.kind === "slotFreed" && message.appointmentId === booked.appointments[0].id);
+    expect(offer).toMatchObject({ clientId: "cli_003", channel: "whatsapp", offer: { barberId: slot.barberId } });
+  });
+
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {
     const { token } = await signIn();
     const start = new Date(2026, 9, 12, 10, 0);

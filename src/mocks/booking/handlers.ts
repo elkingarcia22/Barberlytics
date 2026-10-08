@@ -33,7 +33,7 @@ import {
   visitSuggestion,
 } from "./logic";
 import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alternatives";
-import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
+import { cancelMessages, offerFreedSlot, rescheduleMessages, scheduleMessages } from "./reminders";
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
 import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
@@ -679,6 +679,8 @@ export const bookingHandlers = [
     cancelMessages(existing.id);
     const updated: MockAppointment = { ...existing, status: "cancelled", history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
+    // El hueco no se pierde: se ofrece a la lista de espera de esa hora.
+    offerFreedSlot(existing);
     db.persist();
     return HttpResponse.json({ appointment: bookedOf(updated), fee: terms.fee, refund: terms.refund, refundTo });
   }),

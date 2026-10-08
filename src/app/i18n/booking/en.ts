@@ -79,7 +79,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.blocked.other": "Use another number",
 
   "booking.welcome.title": "Welcome back, {name}",
-  "booking.welcome.lead": "We have your last visit handy. Repeat it or build something new.",
+  "booking.welcome.lead": "Repeat your last visit or build something new.",
   "booking.welcome.repeatTitle": "Repeat your last visit",
   "booking.welcome.repeatLead": "{date} at {branch}",
   "booking.welcome.repeat": "Pick a time",

@@ -88,7 +88,7 @@ export const bookingEs = {
 
   // ── Bienvenida ──
   "booking.welcome.title": "Hola de nuevo, {name}",
-  "booking.welcome.lead": "Tenemos tu última visita a mano. Repítela o arma algo distinto.",
+  "booking.welcome.lead": "Repite tu última visita o arma algo nuevo.",
   "booking.welcome.repeatTitle": "Repetir tu última visita",
   "booking.welcome.repeatLead": "{date} en {branch}",
   "booking.welcome.repeat": "Elegir hora",

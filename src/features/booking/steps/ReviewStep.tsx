@@ -34,8 +34,8 @@ export function ReviewStep() {
   const { state, dispatch, catalog, shop, fmt, totals, layout } = useBookingFlow();
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const products = catalog?.products ?? [];
-  // Lo elegido va primero en el carrusel: se ve sin tener que buscarlo.
-  const ordered = [...products].sort((a, b) => Number((state.products[b.id] ?? 0) > 0) - Number((state.products[a.id] ?? 0) > 0));
+  // Lo que ya va en el pedido sale del carrusel: se ve y se ajusta en «En tu pedido», no dos veces.
+  const remaining = products.filter((product) => (state.products[product.id] ?? 0) === 0);
   const pickedCount = Object.values(state.products).reduce((sum, qty) => sum + qty, 0);
 
   const remove = (index: number) => {
@@ -145,13 +145,17 @@ export function ReviewStep() {
                 </Text>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <CarouselPrevious className="static translate-y-0" aria-label={t("booking.review.carouselPrev")} />
-                <CarouselNext className="static translate-y-0" aria-label={t("booking.review.carouselNext")} />
+                {remaining.length > 0 && (
+                  <>
+                    <CarouselPrevious className="static translate-y-0" aria-label={t("booking.review.carouselPrev")} />
+                    <CarouselNext className="static translate-y-0" aria-label={t("booking.review.carouselNext")} />
+                  </>
+                )}
               </div>
             </div>
             <PickedProducts products={products} />
-            <CarouselContent className={cn("-ml-3", pickedCount > 0 && "mt-3")}>
-              {ordered.map((product) => (
+            <CarouselContent className={cn("-ml-3", pickedCount > 0 && remaining.length > 0 && "mt-3")}>
+              {remaining.map((product) => (
                 <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3")}>
                   <ProductCard product={product} />
                 </CarouselItem>

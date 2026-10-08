@@ -14,6 +14,7 @@ import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { OrderSummary } from "../flow/OrderSummary";
+import { GiftCardField } from "../flow/GiftCardField";
 import { PromoField } from "../flow/PromoField";
 import { BookingSheet } from "../flow/BookingSheet";
 import { NewCardSheet } from "../flow/NewCardSheet";
@@ -78,7 +79,9 @@ export function PaymentStep() {
     ...(credit >= totals.total && totals.total > 0 ? [{ value: "credit", label: t("booking.payment.credit"), description: t("booking.payment.creditHint", { amount: fmt.money(credit) }), icon: Wallet }] : []),
   ];
   const available = methods.filter((option) => !option.disabled);
-  const method = state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
+  // Si la tarjeta de regalo cubre todo, no hay nada más que cobrar.
+  const coveredByGift = totals.total === 0 && totals.gift > 0;
+  const method: PayMethod | null = coveredByGift ? "gift" : state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
   const deposit = method === "shop" && depositPercent !== null ? depositOf(totals, depositPercent) : 0;
   /** Pide tarjeta: el pago con tarjeta o el anticipo de quien paga en la barbería. */
   const usesCard = method === "card" || deposit > 0;
@@ -90,7 +93,7 @@ export function PaymentStep() {
 
   const serverCardError = isApiError(reserve.error) ? reserve.error.fieldErrors?.card?.[0] : undefined;
   const payLabel =
-    deposit > 0 ? t("booking.payment.payDeposit", { amount: fmt.money(deposit) }) : method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
+    coveredByGift ? t("booking.gift.payCovered") : deposit > 0 ? t("booking.payment.payDeposit", { amount: fmt.money(deposit) }) : method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
 
   const pay = () => {
     if (!customer || !state.branchId || !method) return;
@@ -116,6 +119,7 @@ export function PaymentStep() {
         products: Object.entries(state.products).map(([productId, qty]) => ({ productId, qty })),
         tipId: state.tipId,
         promoCode: state.promo?.code ?? null,
+        giftCode: state.gift?.code,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
         card: usesCard && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
@@ -174,9 +178,19 @@ export function PaymentStep() {
         </Text>
       </section>
 
-      <PromoField />
+      <div className="flex flex-col gap-2">
+        <PromoField />
+        <GiftCardField />
+      </div>
 
-      <section className="flex flex-col gap-3">
+      {coveredByGift && (
+        <Alert variant="success">
+          <ThemaIcon name="ticket" />
+          <AlertTitle>{t("booking.gift.coveredTitle")}</AlertTitle>
+          <AlertDescription>{t("booking.gift.coveredBody")}</AlertDescription>
+        </Alert>
+      )}
+      <section className={coveredByGift ? "hidden" : "flex flex-col gap-3"}>
         <Heading level={6}>{t("booking.payment.method")}</Heading>
         <div role="radiogroup" aria-label={t("booking.payment.method")} className="flex flex-col gap-2">
           {methods.map((option) => (

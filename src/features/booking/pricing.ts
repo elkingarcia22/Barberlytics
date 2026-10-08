@@ -77,6 +77,8 @@ export interface TotalsInput {
   tip: number;
   /** El recargo por tarjeta, solo si se paga con tarjeta o billetera. */
   cardFee?: CardFeeRule | null;
+  /** El saldo de una tarjeta de regalo que se usa en esta reserva. */
+  giftBalance?: number;
 }
 
 export interface Totals {
@@ -88,6 +90,9 @@ export interface Totals {
   tip: number;
   fee: number;
   feeName: string | null;
+  /** Lo que paga la tarjeta de regalo. */
+  gift: number;
+  /** Lo que queda por pagar, ya restada la tarjeta de regalo. */
   total: number;
 }
 
@@ -96,19 +101,26 @@ export const chargesCardFee = (method: string | null): boolean => method === "ca
 
 /**
  * El impuesto va sobre lo comprado ya con el descuento; la propina va aparte, sin
- * impuesto. El recargo por tarjeta sale del subtotal, como en el cobro de la agenda.
+ * impuesto. La tarjeta de regalo paga primero; el recargo por tarjeta sale de la
+ * parte del subtotal que queda por pagar con tarjeta, como en el cobro de la agenda.
  */
 export function computeTotals(input: TotalsInput): Totals {
   const subtotal = round2(Math.max(0, input.services + input.products - input.discount));
   const tax = round2((subtotal * input.taxPercent) / 100);
   const tip = round2(Math.max(0, input.tip));
+  const gift = round2(Math.min(Math.max(0, input.giftBalance ?? 0), subtotal + tax + tip));
+  const feeBase = Math.max(0, subtotal - gift);
   const rule = input.cardFee ?? null;
-  const fee = rule && subtotal > 0 ? round2(rule.type === "percent" ? (subtotal * rule.rate) / 100 : rule.rate) : 0;
-  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, total: round2(subtotal + tax + tip + fee) };
+  const fee = rule && feeBase > 0 ? round2(rule.type === "percent" ? (feeBase * rule.rate) / 100 : rule.rate) : 0;
+  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, gift, total: round2(subtotal + tax + tip + fee - gift) };
 }
 
 /** El anticipo para pagar en la barbería: el porcentaje de lo comprado con impuesto (sin propina ni recargo). */
-export const depositOf = (totals: Pick<Totals, "subtotal" | "tax">, percent: number): number => round2(((totals.subtotal + totals.tax) * percent) / 100);
+export const depositOf = (totals: Pick<Totals, "subtotal" | "tax"> & { total?: number }, percent: number): number => {
+  const amount = round2(((totals.subtotal + totals.tax) * percent) / 100);
+  // Con tarjeta de regalo puede quedar menos por pagar que el anticipo.
+  return totals.total === undefined ? amount : Math.min(amount, totals.total);
+};
 
 /** Cuánto es el recargo: «3 %» o «US$ 2». */
 export const feeLabel = (rule: CardFeeRule, money: (value: number) => string): string => (rule.type === "percent" ? `${rule.rate} %` : money(rule.rate));

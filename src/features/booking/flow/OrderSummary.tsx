@@ -63,6 +63,7 @@ export function OrderSummary({ totals, money, lines, promoCode }: OrderSummaryPr
       {row(t("booking.payment.tax"), totals.tax)}
       {totals.tip > 0 && row(t("booking.payment.tipLine"), totals.tip)}
       {totals.fee > 0 && row(totals.feeName ?? t("booking.payment.fee"), totals.fee)}
+      {totals.gift > 0 && row(t("booking.gift.line"), totals.gift, "positive")}
       <Separator className="my-1" />
       <div className="flex items-center justify-between gap-3">
         <Text weight="semibold">{t("booking.payment.total")}</Text>

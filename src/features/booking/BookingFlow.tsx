@@ -19,6 +19,7 @@ import { ManageStep } from "./steps/ManageStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { PhoneStep } from "./steps/PhoneStep";
 import { VerifyStep } from "./steps/VerifyStep";
+import { GiftStep } from "./steps/GiftStep";
 import { ProfileStep } from "./steps/ProfileStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { ServicesStep } from "./steps/ServicesStep";
@@ -43,6 +44,8 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
   switch (state.step) {
     case "verify":
       return { type: "goTo", step: "phone" };
+    case "gift":
+      return { type: "goTo", step: "welcome" };
     case "profile":
     case "welcome":
     case "blocked":
@@ -78,6 +81,8 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
       return <PhoneStep />;
     case "verify":
       return <VerifyStep />;
+    case "gift":
+      return <GiftStep />;
     case "profile":
       return <ProfileStep />;
     case "welcome":

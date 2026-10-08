@@ -24,8 +24,10 @@ export interface MockReservation {
   lines: MockBookingLine[];
   products: { productId: string; name: string; qty: number; price: number }[];
   promoCode: string | null;
-  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; total: number };
-  payment: { method: "card" | "wallet" | "shop" | "credit"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
+  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; gift: number; total: number };
+  /** La tarjeta de regalo usada (su código), si la hubo. */
+  giftCode?: string | null;
+  payment: { method: "card" | "wallet" | "shop" | "credit" | "gift"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
 }
 
 export interface MockSavedCard {
@@ -62,12 +64,26 @@ export interface MockReview {
   createdAt: string;
 }
 
+/** Una tarjeta de regalo: se compra para alguien y se gasta en reservas hasta agotar el saldo. */
+export interface MockGiftCard {
+  code: string;
+  initial: number;
+  balance: number;
+  buyerId: string | null;
+  recipientName: string;
+  recipientContact: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** Tarjetas de regalo compradas (la de prueba de la demo se suma sola, ver giftCards.ts). */
+  giftCards?: MockGiftCard[];
   /** Reseñas que dejaron los clientes tras su cita (las de la demo se derivan, ver reviews.ts). */
   reviews?: MockReview[];
   /** Confirmaciones y recordatorios programados por cada reserva (ver reminders.ts). */

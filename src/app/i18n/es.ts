@@ -887,6 +887,7 @@ export const appEs = {
   "calendar.pulse.revenueShort": "{collected} / {total}",
   "calendar.brief.toCollect": "{count} cita lista para cobrar",
   "calendar.brief.toCollect_plural": "{count} citas listas para cobrar",
+  "calendar.detail.referencePhoto": "Foto de referencia del cliente",
   "calendar.detail.edit.done": "Listo",
   "calendar.assistant.title": "Asistente del día",
   "calendar.assistant.hint": "Lo que la agenda pide mirar y una forma rápida de agendar.",

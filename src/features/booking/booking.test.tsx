@@ -7,6 +7,7 @@ import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation";
+import { fitWithin } from "./flow/referencePhoto";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, parseStart, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, chargesCardFee, computeTotals, depositOf, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
@@ -92,6 +93,14 @@ describe("tarjetas", () => {
     expect(isCvcComplete("123", "visa")).toBe(true);
     expect(isCvcComplete("123", "amex")).toBe(false);
     expect(brandFromName("Mastercard")).toBe("mastercard");
+  });
+});
+
+describe("foto de referencia", () => {
+  test("se reduce a 1024 px por el lado largo sin deformarla; si ya es chica no se agranda", () => {
+    expect(fitWithin(4032, 3024)).toEqual({ width: 1024, height: 768 });
+    expect(fitWithin(1080, 1920)).toEqual({ width: 576, height: 1024 });
+    expect(fitWithin(800, 600)).toEqual({ width: 800, height: 600 });
   });
 });
 
@@ -348,6 +357,19 @@ describe("backend de la reserva", () => {
     const bought = await bookingApi.buyGift(token, { amount: 60, recipientName: "Laura", recipientContact: "+573004441122", message: "Feliz cumple", savedCardId: "card_demo_visa" });
     expect(bought).toMatchObject({ amount: 60, sentTo: "•••• 1122", paidWith: "Visa •••• 4242" });
     await expect(bookingApi.checkGift(bought.code)).resolves.toEqual({ code: bought.code, balance: 60 });
+  });
+
+  test("la foto de referencia llega a la cita de la agenda; una que no es imagen se rechaza", async () => {
+    const { token } = await signIn();
+    const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    if (!slot) throw new Error("debería haber hueco");
+    const base = { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop" as const };
+    await expect(bookingApi.reserve(token, { ...base, referencePhoto: "data:text/html;base64,PHNjcmlwdD4=" })).rejects.toMatchObject({ status: 422 });
+    const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
+    const booked = await bookingApi.reserve(token, { ...base, referencePhoto: photo });
+    const inAgenda = db.calendar.appointments.find((item) => item.id === booked.appointments[0].id);
+    expect(inAgenda?.referencePhoto).toBe(photo);
+    expect(inAgenda?.notes).toContain("foto de referencia");
   });
 
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {

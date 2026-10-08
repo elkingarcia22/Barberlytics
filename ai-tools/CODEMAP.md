@@ -280,6 +280,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ProductCatalogDrawer.tsx** — Toda la tienda de la sede, ordenada como en el módulo de Productos: por categoría (Styling, Barba, Cuidado…),… · `ProductCatalogDrawer` · piezas: Button, Chip, DrawerShell, EmptyState, Heading, Input, Text · usa: @/app/i18n, @/icons
 - **PromoField.tsx** — El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar, con lo que ahorra. · `PromoField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
 - **ReceiptView.tsx** — El recibo de una reserva: número, lo cobrado por cita y producto, y con qué se pagó. · `ReceiptView` · piezas: Badge, Heading, Text · usa: @/app/i18n
+- **ReferencePhotoField.tsx** — «Agregar foto del corte que quieres»: una imagen de referencia que le llega al barbero con la cita (la ve en… · `ReferencePhotoField` · piezas: Button, Text · usa: @/app/i18n, @/icons
 - **RepeatOffer.tsx** — «¿La dejamos fija?»: tras reservar, las próximas con el mismo barbero y a la misma hora, cada tantas semanas. · `RepeatOffer` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RescheduleDrawer.tsx** — Cambiar la hora sin llamar: las horas libres para el mismo barbero (o para cualquiera, si lo prefiere) y un b… · `RescheduleDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Label, Spinner, Switch, Text, TimeSlotPicker · usa: @/app/i18n, @/icons, @/lib/api, @/lib/useResetOnChange
 - **ReviewSheet.tsx** — Calificar una cita que ya pasó: las estrellas (obligatorias) y un comentario opcional. · `ReviewSheet` · piezas: Button, Field, Rating, Textarea · usa: @/app/i18n, @/lib/api
@@ -290,6 +291,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `cardErrors`, `isCardComplete`, `isCvcComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`
+- **referencePhoto.ts** — La foto de referencia del corte, preparada en el celular antes de subirla: se reduce a 1024 px por el lado la… · `MAX_PHOTO_SIDE`, `MAX_PHOTO_CHARS`, `PHOTO_PATTERN`, `fitWithin`, `prepareReferencePhoto`
 - **stepWidth.ts** — El ancho de lectura de un paso: la columna del contenido, no la de la barra del pie, que va de lado a lado. · `STEP_WIDTH`
 
 ### booking/preview

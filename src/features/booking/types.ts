@@ -356,6 +356,8 @@ export interface ReservationInput {
   savedCardId?: string;
   /** Tarjeta de regalo: paga primero; lo que sobra queda en ella. */
   giftCode?: string;
+  /** Foto del corte que quiere (data URL JPEG/PNG/WebP, ≤ ~1,5 MB): la ve el barbero en la cita. */
+  referencePhoto?: string;
   notes?: string;
 }
 

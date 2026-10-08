@@ -851,6 +851,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.pulse.revenueShort": "{collected} / {total}",
   "calendar.brief.toCollect": "{count} appointment ready to charge",
   "calendar.brief.toCollect_plural": "{count} appointments ready to charge",
+  "calendar.detail.referencePhoto": "Client's reference photo",
   "calendar.detail.edit.done": "Done",
   "calendar.assistant.title": "Today's assistant",
   "calendar.assistant.hint": "What the schedule needs you to look at, and a quick way to book.",

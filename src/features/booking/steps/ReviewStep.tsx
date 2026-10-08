@@ -21,6 +21,7 @@ import { BranchChange } from "../flow/BranchChange";
 import { ProductCard } from "../flow/ProductCard";
 import { PickedProducts } from "../flow/PickedProducts";
 import { ProductCatalogDrawer } from "../flow/ProductCatalogDrawer";
+import { ReferencePhotoField } from "../flow/ReferencePhotoField";
 import { StepLayout } from "../flow/StepLayout";
 import { itemDuration, itemPrice } from "../useBookingTotals";
 
@@ -173,6 +174,7 @@ export function ReviewStep() {
       <Field label={t("booking.review.notes")}>
         <Textarea value={state.notes} onChange={(event) => dispatch({ type: "setNotes", notes: event.target.value })} placeholder={t("booking.review.notesPlaceholder")} rows={2} />
       </Field>
+      <ReferencePhotoField />
 
       <Collapsible className="rounded-2xl border border-border bg-surface-subtle">
         <CollapsibleTrigger asChild>

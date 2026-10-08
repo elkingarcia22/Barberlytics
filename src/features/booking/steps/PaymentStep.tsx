@@ -120,6 +120,7 @@ export function PaymentStep() {
         tipId: state.tipId,
         promoCode: state.promo?.code ?? null,
         giftCode: state.gift?.code,
+        referencePhoto: state.referencePhoto ?? undefined,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
         card: usesCard && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,

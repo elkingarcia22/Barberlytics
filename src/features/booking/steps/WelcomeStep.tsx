@@ -3,15 +3,16 @@ import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
-import { initialsOf, parseStart } from "../bookingFormat";
+import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
 import { NextVisitSuggestion } from "../flow/NextVisitSuggestion";
 import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../queries";
-import { itemDuration, itemPrice } from "../useBookingTotals";
+import { itemPrice } from "../useBookingTotals";
 
 /**
  * El cliente que vuelve: lo más probable es que quiera lo mismo de la última
@@ -59,7 +60,7 @@ export function WelcomeStep() {
       {last && (
         <section aria-labelledby="repeat-title" className="relative overflow-hidden rounded-2xl border border-primary/30 bg-surface shadow-sm">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent" aria-hidden />
-          <div className="relative flex flex-col gap-4 p-5">
+          <div className="relative flex flex-col gap-5 p-5">
             <div className="flex items-center gap-2">
               <ThemaIcon name="refresh" size="sm" tone="primary" />
               <Heading level={5} id="repeat-title">
@@ -85,6 +86,10 @@ export function WelcomeStep() {
                           {t("booking.services.minutes", { count: service.durationMin })}
                         </Text>
                       </div>
+                      {/* El precio junto a lo que se paga: con su barbero de la última vez. */}
+                      <Text size="lg" weight="semibold" tabular className="shrink-0">
+                        {fmt.money(itemPrice({ serviceIds: [service.id], barberId: last.barberId }, catalog))}
+                      </Text>
                     </div>
                   ))}
                   {barber && (
@@ -105,18 +110,7 @@ export function WelcomeStep() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-end justify-between gap-3 border-t border-border pt-4">
-                  <Text size="xs" tone="muted">
-                    {branch ? t("booking.welcome.repeatLead", { date: fmt.day(parseStart(last.at)), branch: branch.name }) : ""}
-                  </Text>
-                  <Text size="lg" weight="semibold" tabular className="shrink-0">
-                    {fmt.money(itemPrice({ serviceIds: last.serviceIds, barberId: last.barberId }, catalog))}
-                    <Text as="span" size="sm" tone="muted" weight="normal">
-                      {" · "}
-                      {t("booking.review.minutes", { count: itemDuration(last.serviceIds, catalog) })}
-                    </Text>
-                  </Text>
-                </div>
+                <Separator />
                 {suggestion ? (
                   <NextVisitSuggestion suggestion={suggestion} catalog={catalog} onPickOther={repeat} />
                 ) : (

@@ -278,7 +278,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Field, Heading, IconTile, MagicCard, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/utils
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
-- **WelcomeStep.tsx** — El cliente que vuelve: lo más probable es que quiera lo mismo de la última vez, así que eso va primero y a un… · `WelcomeStep` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons
+- **WelcomeStep.tsx** — El cliente que vuelve: lo más probable es que quiera lo mismo de la última vez, así que eso va primero y a un… · `WelcomeStep` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Separator, Skeleton, Text · usa: @/app/i18n, @/icons
 
 ### branches
 

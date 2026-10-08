@@ -45,7 +45,9 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
     case "blocked":
       return { type: "restart" };
     case "branch":
-      return state.items.length > 0 ? { type: "goTo", step: "review" } : identity;
+      // La sede es el paso 1: antes de ella solo está el inicio. Cambiar de sede desde el resumen
+      // va por su propia hoja, así que aquí nunca se vuelve al resumen (era el salto del paso 1 al 5).
+      return identity;
     case "services":
       // Vino del resumen a sumar o cambiar una cita: «Atrás» la descarta y vuelve allí.
       if (state.fromReview) return { type: "discardDraft" };

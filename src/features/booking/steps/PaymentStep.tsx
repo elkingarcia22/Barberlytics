@@ -5,7 +5,7 @@ import { Spinner } from "@/components/feedback/Spinner";
 import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { OptionTile, SegmentedControl, type SelectionOption } from "@/components/selection";
+import { OptionTile, type SelectionOption } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { personName } from "../bookingState";
@@ -149,7 +149,26 @@ export function PaymentStep() {
     >
       <section className="flex flex-col gap-2">
         <Heading level={6}>{t("booking.payment.tip")}</Heading>
-        <SegmentedControl options={tipOptions} value={state.tipId ?? NO_TIP} onChange={(value) => dispatch({ type: "setTip", tipId: value === NO_TIP ? null : value })} fullWidth ariaLabel={t("booking.payment.tip")} />
+        {/* Pastillas que bajan de línea si no caben: en un segmentado de 5, «Sin propina» y «US$ 5» se salían. */}
+        <div role="radiogroup" aria-label={t("booking.payment.tip")} className="flex flex-wrap gap-2">
+          {tipOptions.map((option) => {
+            const selected = (state.tipId ?? NO_TIP) === option.value;
+            return (
+              <Button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                size="sm"
+                variant={selected ? "default" : "outline"}
+                className="min-w-[4.5rem] rounded-full tabular-nums"
+                onClick={() => dispatch({ type: "setTip", tipId: option.value === NO_TIP ? null : option.value })}
+              >
+                {option.label}
+              </Button>
+            );
+          })}
+        </div>
         <Text size="xs" tone="muted">
           {t("booking.payment.tipHint")}
         </Text>

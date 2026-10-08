@@ -79,11 +79,12 @@ export function PhoneStep() {
           <PhoneInput value={phone} onValueChange={setPhone} defaultCountry="CO" autoFocus autoComplete="tel-national" />
         </Field>
 
-        <ul className="grid grid-cols-3 gap-2">
+        {/* Garantías, no acciones: un solo bloque tenue partido por líneas finas, sin fichas con borde que parezcan botones. */}
+        <ul className="grid grid-cols-3 divide-x divide-border/70 rounded-xl border border-border/70">
           {TRUST.map((item) => (
-            <li key={item.key} className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-surface-subtle px-2 py-3 text-center">
-              <ThemaIcon name={item.icon} size="sm" tone="primary" />
-              <Text size="xs" tone="secondary">
+            <li key={item.key} className="flex flex-col items-center gap-1.5 px-2 py-3 text-center">
+              <ThemaIcon name={item.icon} size="sm" tone="muted" />
+              <Text size="xs" tone="muted">
                 {t(item.key)}
               </Text>
             </li>

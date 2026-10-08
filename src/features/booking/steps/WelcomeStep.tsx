@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
+import { defaultBranchId } from "../bookingState";
 import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
@@ -29,7 +30,8 @@ export function WelcomeStep() {
   const barber = catalog?.barbers.find((item) => item.id === last?.barberId);
   const services = (last?.serviceIds ?? []).map((id) => catalog?.services.find((item) => item.id === id)).filter((item) => item !== undefined);
   const canRepeat = last !== null && branch !== undefined && services.length > 0;
-  const onlyBranchId = shop.branches.length === 1 ? shop.branches[0].id : null;
+  // Quien ya viene no vuelve a elegir sede: la de su última visita; se ajusta en el resumen.
+  const onlyBranchId = defaultBranchId(customer, shop.branches.map((item) => item.id));
   // Con su frecuencia de visita se le propone ya el día y la hora que le tocan.
   const { data: suggestionData, isLoading: isSuggesting } = useVisitSuggestionQuery(customer?.id ?? null);
   const suggestion = suggestionData?.suggestion ?? null;

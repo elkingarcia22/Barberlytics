@@ -73,7 +73,9 @@ import {
   toLocalIso,
   type AgendaFilters,
   type ModelContext,
-  visitOf,
+  appointmentGroups,
+  linkedOf,
+  newLinkId,
   isUnpaid,
 } from "./calendarModel";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
@@ -205,19 +207,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     [state]
   );
   const currentAppointment = React.useMemo(() => day.data?.appointments.find((item) => item.id === state.appointmentId) ?? null, [day.data, state.appointmentId]);
-  // Al cobrar una cita de una visita, las otras sin cobrar de esa visita se ofrecen juntas.
+  // Al cobrar una cita enlazada, las otras sin cobrar de su grupo se ofrecen juntas.
   const checkoutAppointment = panel?.kind === "checkout" ? panel.appointment : null;
   const checkoutCompanions = React.useMemo(
-    () =>
-      checkoutAppointment && day.data && catalog.data
-        ? visitOf(day.data.appointments, catalog.data, checkoutAppointment).filter((item) => item.id !== checkoutAppointment.id && isUnpaid(item))
-        : [],
-    [checkoutAppointment, day.data, catalog.data]
+    () => (checkoutAppointment && day.data ? linkedOf(day.data.appointments, checkoutAppointment).filter((item) => item.id !== checkoutAppointment.id && isUnpaid(item)) : []),
+    [checkoutAppointment, day.data]
   );
-  // Si la cita es parte de una visita con servicios añadidos, el panel enseña todas sus citas.
-  const currentVisit = React.useMemo(
-    () => (currentAppointment && day.data && catalog.data ? visitOf(day.data.appointments, catalog.data, currentAppointment) : []),
-    [currentAppointment, day.data, catalog.data]
+  // Si la cita está enlazada, el panel enseña todas las de su grupo.
+  const currentLinked = React.useMemo(() => (currentAppointment && day.data ? linkedOf(day.data.appointments, currentAppointment) : []), [currentAppointment, day.data]);
+  // Con qué se puede enlazar: las demás citas vivas del día que no van ya con ella.
+  const linkCandidates = React.useMemo(
+    () => (currentAppointment && day.data ? day.data.appointments.filter((item) => isActive(item) && item.id !== currentAppointment.id && !(currentAppointment.linkId && item.linkId === currentAppointment.linkId)) : []),
+    [currentAppointment, day.data]
   );
 
   const patch = React.useCallback(
@@ -248,19 +249,48 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     [patch, t]
   );
 
-  /** Separar una visita con servicios añadidos en citas independientes; se puede deshacer. */
-  const separateVisit = React.useCallback(
-    (visit: readonly Appointment[]) => {
-      visit.forEach((item) => patch(item, { standalone: true }));
+  /** Cambia el enlace de varias citas de una vez; el aviso y la tecla Z lo deshacen. */
+  const relink = React.useCallback(
+    (changes: readonly { item: Appointment; linkId: string | null }[], title: string, description: string) => {
+      const real = changes.filter(({ item, linkId }) => (item.linkId ?? null) !== linkId);
+      if (real.length === 0) return;
+      real.forEach(({ item, linkId }) => patch(item, { linkId }));
       const undo = () => {
         undoRef.current = null;
-        visit.forEach((item) => patch(item, { standalone: false }));
+        real.forEach(({ item }) => patch(item, { linkId: item.linkId ?? null }));
         toast.success(t("calendar.undone"));
       };
       undoRef.current = undo;
-      toast.success(t("calendar.visit.separated"), { description: t("calendar.visit.separatedHint", { count: visit.length }), action: { label: t("calendar.undo"), onClick: undo } });
+      toast.success(title, { description, action: { label: t("calendar.undo"), onClick: undo } });
     },
     [patch, t]
+  );
+
+  /** Sacar una cita de su grupo. Si solo quedaba otra, esa también queda suelta. */
+  const unlinkAppointment = React.useCallback(
+    (appointment: Appointment) => {
+      const linked = day.data ? linkedOf(day.data.appointments, appointment) : [];
+      const rest = linked.filter((item) => item.id !== appointment.id);
+      const changes = [{ item: appointment, linkId: null }, ...(rest.length === 1 ? [{ item: rest[0], linkId: null }] : [])];
+      relink(changes, t("calendar.link.unlinked"), t("calendar.link.unlinkedHint"));
+    },
+    [day.data, relink, t]
+  );
+
+  /** Enlazar una cita con otra: si alguna ya tenía grupo, los dos grupos quedan en uno. */
+  const linkAppointments = React.useCallback(
+    (appointment: Appointment, target: Appointment) => {
+      const all = day.data?.appointments ?? [];
+      const linkId = appointment.linkId ?? target.linkId ?? newLinkId(appointment);
+      const members = [appointment, target, ...all.filter((item) => isActive(item) && item.linkId && (item.linkId === appointment.linkId || item.linkId === target.linkId))];
+      const unique = [...new Map(members.map((item) => [item.id, item])).values()];
+      relink(
+        unique.map((item) => ({ item, linkId })),
+        t("calendar.link.linked"),
+        t("calendar.link.linkedHint", { count: unique.length })
+      );
+    },
+    [day.data, relink, t]
   );
 
   const changeStatus = React.useCallback(
@@ -557,14 +587,17 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     }));
   }, [ctx, day.data, nowDate, state.date, state.freeOnly, team, state.view, t]);
 
+  const linkGroups = React.useMemo(() => appointmentGroups(day.data?.appointments ?? []), [day.data]);
   const fadedIds = React.useMemo(
     () =>
       new Set([
         ...(reflow && isSameDay(reflow.plan.date, state.date) ? [...reflow.plan.moves.map((move) => move.appointment.id), ...(reflow.anchorPatch ? [reflow.plan.anchor.id] : [])] : []),
         // Mirando solo los huecos, todas las citas se apagan.
         ...(state.freeOnly ? (day.data?.appointments ?? []).map((item) => item.id) : []),
+        // Mirando las enlazadas, las sueltas se apagan.
+        ...(state.showLinked ? (day.data?.appointments ?? []).filter((item) => !linkGroups.has(item.id)).map((item) => item.id) : []),
       ]),
-    [reflow, state.date, state.freeOnly, day.data]
+    [reflow, state.date, state.freeOnly, state.showLinked, day.data, linkGroups]
   );
 
   const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts], [freeGhosts, reflowGhosts, suggestionGhosts]);
@@ -717,6 +750,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               onChange={state.setFilters}
               freeOnly={state.view === "day" ? state.freeOnly : undefined}
               onFreeOnlyChange={state.view === "day" ? state.setFreeOnly : undefined}
+              showLinked={state.view === "day" ? state.showLinked : undefined}
+              onShowLinkedChange={state.view === "day" ? state.setShowLinked : undefined}
             />
           ) : undefined
         }
@@ -785,6 +820,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         slotHeight={slotHeight}
                         extraEvents={extraEvents}
                         fadedIds={fadedIds}
+                        highlightLinks={state.showLinked}
                         alerts={resourceAlerts}
                         validateDrop={validateDrop}
                         onDropRejected={onDropRejected}
@@ -834,9 +870,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onCancel={(appointment) => setPanel({ kind: "confirm", action: "cancel", appointment })}
                 onNoShow={(appointment) => setPanel({ kind: "confirm", action: "noShow", appointment })}
                 onOpenClient={(clientId) => navigate(`/clientes/${clientId}`)}
-                visit={currentVisit}
+                linked={currentLinked}
+                linkCandidates={linkCandidates}
                 onSelectAppointment={(appointment) => state.openAppointment(appointment.id)}
-                onSeparateVisit={separateVisit}
+                onUnlink={unlinkAppointment}
+                onLink={linkAppointments}
+                onShowLinked={() => state.setShowLinked(true)}
               />
 
               <CreateAppointmentDrawer

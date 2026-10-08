@@ -349,9 +349,12 @@ export const calendarHandlers = [
       else next = { ...next, serviceIds, durationMin: serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.durationMin ?? 0), 0) };
     }
     if (input.notes !== undefined) next = { ...next, notes: text(input.notes) || null };
-    if (typeof input.standalone === "boolean" && input.standalone !== Boolean(existing.standalone)) {
-      next = { ...next, standalone: input.standalone };
-      history.push(entry(actor, input.standalone ? "split" : "joined"));
+    if (input.linkId !== undefined) {
+      const linkId = typeof input.linkId === "string" && input.linkId.trim() !== "" ? input.linkId.trim() : null;
+      if ((existing.linkId ?? null) !== linkId) {
+        next = { ...next, linkId };
+        history.push(entry(actor, linkId ? "linked" : "unlinked"));
+      }
     }
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     // Si cambió de sitio, de barbero o de duración, no puede pisar a nadie.

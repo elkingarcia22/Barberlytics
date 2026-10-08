@@ -453,8 +453,11 @@ export const bookingHandlers = [
     const notes = text(input.notes) || null;
     const referencePhoto = text(input.referencePhoto) || null;
     if (referencePhoto && !(PHOTO_PATTERN.test(referencePhoto) && referencePhoto.length <= MAX_PHOTO_CHARS)) return error(422, "validation", "La foto no se pudo subir. Prueba con otra.", { fields: { referencePhoto: ["La foto no se pudo subir. Prueba con otra."] } });
+    // Varias citas en un solo agendamiento quedan enlazadas en la agenda.
+    const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     const created: MockAppointment[] = plan.planned.map((item, index) => ({
       id: `apt_web_${Date.now().toString(36)}_${index}`,
+      linkId,
       branchId,
       clientId: client.id,
       barberId: item.barberId,

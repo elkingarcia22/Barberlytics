@@ -105,12 +105,3 @@ html:not(.dark) .schedule-card-fill:not(.shadow-lg):hover {
 .schedule-vivid .schedule-pastel [data-card-ink] {
   color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) 62%, hsl(var(--foreground)));
 }
-
-/*
- * Las citas de un mismo cliente (`group`) van rodeadas por un borde discontinuo de la marca, también
- * sobre el papel sin borde y el pastel: entre todas dibujan un solo contorno alrededor de la visita.
- */
-html [data-schedule-event][data-group],
-html [data-schedule-event][data-group]:hover {
-  border-color: hsl(var(--primary) / 0.6);
-}

@@ -118,7 +118,7 @@ export interface MockAppointment {
   createdBy: string;
   history: MockHistoryEntry[];
   payment: MockPayment | null;
-  standalone?: boolean;
+  linkId?: string | null;
 }
 
 export type MockBlockCategory = "sick" | "vacation" | "holiday" | "lunch" | "meeting" | "business" | "personal";
@@ -418,9 +418,9 @@ function splitCombos(appointments: readonly MockAppointment[]): MockAppointment[
 }
 
 /**
- * Un cliente que pide corte y después barba ocupa dos citas seguidas con el mismo barbero:
- * algunas citas pegadas a la anterior pasan a ser del mismo cliente, para que la agenda
- * enseñe esas visitas de varios servicios. Sale del id, no del dado: el resto no se mueve.
+ * Un cliente que agenda dos citas de una vez (corte y después barba) ocupa dos citas seguidas
+ * con el mismo barbero, enlazadas: algunas citas pegadas a la anterior pasan a ser del mismo
+ * cliente y comparten `linkId`. Sale del id, no del dado: el resto no se mueve.
  */
 function chainVisits(appointments: readonly MockAppointment[]): MockAppointment[] {
   const result: MockAppointment[] = [];
@@ -432,7 +432,14 @@ function chainVisits(appointments: readonly MockAppointment[]): MockAppointment[
       !previous.walkIn &&
       new Date(previous.start).getTime() + previous.durationMin * 60_000 === new Date(item.start).getTime() &&
       hashKey(`${item.id}:visit`) % SAME_VISIT_EVERY === 0;
-    result.push(glued ? { ...item, clientId: previous.clientId, walkIn: false, source: previous.source, requestedBarberId: previous.requestedBarberId, repeat: "none", seriesId: null } : item);
+    if (!glued) {
+      result.push(item);
+      continue;
+    }
+    // Salieron del mismo agendamiento: quedan enlazadas (la primera también).
+    const linkId = previous.linkId ?? `lnk_${previous.id}`;
+    result[result.length - 1] = { ...previous, linkId };
+    result.push({ ...item, clientId: previous.clientId, walkIn: false, source: previous.source, requestedBarberId: previous.requestedBarberId, repeat: "none", seriesId: null, linkId });
   }
   return result;
 }

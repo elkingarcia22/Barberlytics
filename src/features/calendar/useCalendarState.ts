@@ -77,6 +77,9 @@ export function useCalendarState(today: Date = new Date()) {
     /** Ver solo los huecos disponibles: las citas se apagan y lo libre se marca. */
     freeOnly: searchParams.get("huecos") === "1",
     setFreeOnly: (next: boolean) => set({ huecos: next ? "1" : undefined }),
+    /** Resaltar las citas enlazadas: cada grupo con su color, las demás apagadas. */
+    showLinked: searchParams.get("enlazadas") === "1",
+    setShowLinked: (next: boolean) => set({ enlazadas: next ? "1" : undefined }),
     /** De qué se tiñen las tarjetas: es de la vista, no un filtro, y no apaga ninguna cita. */
     colorBy,
     setColorBy: (next: CalendarColorBy) => set({ color: next === "neutral" ? undefined : COLOR_PARAM[next] }),

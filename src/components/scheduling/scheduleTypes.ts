@@ -127,10 +127,11 @@ export interface ScheduleEvent {
   /** Un dato corto en la fila de abajo, junto al estado (el total de una cita de varios servicios). */
   meta?: string;
   /**
-   * Es parte de un grupo: varias citas del mismo cliente —los servicios de una
-   * misma visita, seguidos, o su familia a la misma hora—. `index`/`size` dicen
-   * cuál es («2 de 3»); `joinTop`/`joinBottom` la pegan a la de arriba o abajo
-   * de la misma columna, para que se lean como un solo bloque.
+   * Es parte de un grupo de citas enlazadas (salieron de un mismo
+   * agendamiento o se enlazaron a mano). La tarjeta lleva un icono de enlace
+   * con «1/2» en el color del grupo; con `highlight`, además un borde
+   * discontinuo de ese color. `joinTop`/`joinBottom` la pegan a la de arriba
+   * o abajo de la misma columna, para que se lean como un solo bloque.
    */
   group?: ScheduleEventGroup;
 }
@@ -140,12 +141,18 @@ export interface ScheduleEventSegment {
   label: string;
   /** Cuánto dura: el tramo ocupa esa parte del alto de la tarjeta. */
   minutes: number;
+  /** El color de su servicio (paleta categórica): un círculo junto a su nombre. */
+  color?: number;
 }
 
 export interface ScheduleEventGroup {
   id: string;
   index: number;
   size: number;
+  /** El color del grupo (paleta categórica): tiñe el icono de enlace y, resaltado, el borde. */
+  color?: number;
+  /** Resaltar el grupo: borde discontinuo de su color alrededor de cada una de sus tarjetas. */
+  highlight?: boolean;
   joinTop?: boolean;
   joinBottom?: boolean;
 }

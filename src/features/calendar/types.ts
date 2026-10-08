@@ -108,8 +108,12 @@ export const appointmentSchema = z.object({
   createdBy: z.string(),
   history: z.array(historyEntrySchema),
   payment: paymentSchema.nullable(),
-  /** Se separó de su visita: aunque vaya pegada a otra del mismo cliente y barbero, se ve suelta. */
-  standalone: z.boolean().optional(),
+  /**
+   * Las citas enlazadas comparten este id: las que salieron de un mismo
+   * agendamiento (varias personas o varias citas de una vez) o las que se
+   * enlazaron a mano. `null` o sin él, va suelta.
+   */
+  linkId: z.string().nullable().optional(),
 });
 export type Appointment = z.infer<typeof appointmentSchema>;
 
@@ -192,8 +196,8 @@ export interface AppointmentPatch {
   durationMin?: number;
   serviceIds?: string[];
   notes?: string | null;
-  /** Separarla de su visita (`true`) o devolverla (`false`). */
-  standalone?: boolean;
+  /** Enlazarla con otras citas (su id de enlace) o desenlazarla (`null`). */
+  linkId?: string | null;
   /** Por qué se hace el cambio («movida 15 min porque la anterior se alargó»): queda en el historial. */
   reason?: string;
   /** Saltarse la regla de no pisar: solo quien agenda sin reglas. */

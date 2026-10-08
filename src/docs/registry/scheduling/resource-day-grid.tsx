@@ -211,18 +211,19 @@ export const resourceDayGridEntry = defineEntry({
     },
     {
       id: "grouped",
-      title: "Citas agrupadas de un mismo cliente",
+      title: "Citas enlazadas",
       description:
-        "Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede traer a la familia en otra silla a la misma hora. Con `group` ({ id, index, size, joinTop, joinBottom }) cada tarjeta va rodeada por un borde discontinuo de la marca y lleva la píldora «2/4»; las que se pegan en la misma columna (`joinTop`/`joinBottom`) pierden el aire, el borde y el radio de ese lado: un solo contorno envuelve la visita. El siguiente paso va solo en la primera: el cliente ingresa una vez.",
+        "Las citas que salieron de un mismo agendamiento (varias personas o varias citas de una vez) o que se enlazaron a mano. Cada una va en su hueco, como cita aparte, con `group` ({ id, index, size, color, highlight }): un icono de enlace con «1/2» en el `color` del grupo (paleta categórica), para distinguir un grupo de otro. Con `highlight` cada tarjeta se rodea además de un borde discontinuo de ese color: así se ve qué va con qué (la pantalla apaga las sueltas). `joinTop`/`joinBottom` siguen pegando dos de la misma columna si la pantalla lo quiere.",
       layout: "stretch",
       frameClassName: "min-h-[24rem] items-start",
       code: `<ResourceDayGrid
   date={hoy}
   resources={barberos}
   events={[
-    { id: "g1", resourceId: "andres", start, end, title: "Laura Rincón", subtitle: "Corte clásico", group: { id: "laura", index: 1, size: 3, joinBottom: true } },
-    { id: "g2", resourceId: "andres", start, end, title: "Laura Rincón", subtitle: "Barba", group: { id: "laura", index: 2, size: 3, joinTop: true } },
-    { id: "g3", resourceId: "nicolas", start, end, title: "Sofía Rincón (hija)", group: { id: "laura", index: 3, size: 3 } },
+    { id: "g1", resourceId: "andres", start, end, title: "Laura Rincón", group: { id: "laura", index: 1, size: 3, color: 1, highlight: true } },
+    { id: "g2", resourceId: "andres", start, end, title: "Laura Rincón", group: { id: "laura", index: 2, size: 3, color: 1, highlight: true } },
+    { id: "g3", resourceId: "nicolas", start, end, title: "Sofía Rincón (hija)", group: { id: "laura", index: 3, size: 3, color: 1, highlight: true } },
+    { id: "g4", resourceId: "nicolas", start, end, title: "Pedro Gil", group: { id: "pedro", index: 1, size: 2, color: 2, highlight: true } },
   ]}
 />`,
       render: () => <GroupedDemo />,
@@ -231,7 +232,7 @@ export const resourceDayGridEntry = defineEntry({
       id: "segments",
       title: "Una cita con varios servicios",
       description:
-        "No es lo mismo que un grupo. Una sola cita con varios servicios ocupa un solo hueco: con `segments` ({ id, label, minutes }[]) una línea punteada marca por dentro dónde empieza cada servicio, a la altura de su minuto, y cada tramo lleva su nombre; `meta` pone el total en la fila de abajo (cede si ya van estado y acción). Un grupo, en cambio, son citas aparte del mismo cliente: cada una en su hueco, con borde discontinuo y píldora «1/2».",
+        "No es lo mismo que un grupo. Una sola cita con varios servicios ocupa un solo hueco: con `segments` ({ id, label, minutes, color }[]) una línea punteada marca por dentro dónde empieza cada servicio, a la altura de su minuto, y cada tramo lleva su nombre; `meta` pone el total en la fila de abajo (cede si ya van estado y acción). Cada tramo lleva el círculo del color de su servicio y el nombre del cliente ninguno. Un grupo, en cambio, son citas aparte enlazadas: cada una en su hueco, con su icono de enlace «1/2».",
       layout: "stretch",
       frameClassName: "min-h-[22rem] items-start",
       code: `<ResourceDayGrid
@@ -241,13 +242,13 @@ export const resourceDayGridEntry = defineEntry({
     {
       id: "s1", resourceId: "andres", start, end, title: "Mariana Rodríguez",
       segments: [
-        { id: "corte", label: "Corte clásico · 30 min", minutes: 30 },
-        { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30 },
+        { id: "corte", label: "Corte clásico · 30 min", minutes: 30, color: 1 },
+        { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30, color: 2 },
       ],
       meta: "US$ 65",
     },
-    { id: "s2", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 1, size: 2 } },
-    { id: "s3", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 2, size: 2 } },
+    { id: "s2", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 1, size: 2, color: 3 } },
+    { id: "s3", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 2, size: 2, color: 3 } },
   ]}
 />`,
       render: () => <SegmentedDemo />,
@@ -295,7 +296,7 @@ export const resourceDayGridEntry = defineEntry({
   props: [
     { name: "date", type: "Date", description: "El día que se muestra." },
     { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo." },
-    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, joinTop, joinBottom }) marca las citas de un mismo cliente y pega las seguidas en un solo bloque; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema." },
+    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, color, highlight, joinTop, joinBottom }) marca las citas enlazadas con un icono de su color y, resaltadas, un borde discontinuo de ese color; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema." },
     { name: "startHour / endHour", type: "number", default: "6 / 24", description: "Primera y última hora visibles (la última exclusiva)." },
     { name: "slotMinutes", type: "number", default: "30", description: "Minutos por franja; también el paso al arrastrar." },
     { name: "slotHeight", type: "number", default: "56", description: "Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae compact, normal y wide." },

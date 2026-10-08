@@ -35,6 +35,8 @@ export interface BookingFormatters {
   day: (date: Date) => string;
   /** «jueves, 9 de octubre». */
   dayLong: (date: Date) => string;
+  /** «mié 28»: para chips donde no cabe el mes. */
+  dayShort: (date: Date) => string;
   /** «10:30 a. m.». */
   time: (date: Date) => string;
   /** «jue 9 oct · 10:30 a. m.». */
@@ -52,6 +54,7 @@ export function useBookingFormat(currency = "USD"): BookingFormatters {
       money: (value: number) => formatNumber(value, { style: "currency", currency, minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }),
       day,
       dayLong: (date: Date) => formatDate(date, { weekday: "long", day: "numeric", month: "long" }),
+      dayShort: (date: Date) => formatDate(date, { weekday: "short", day: "numeric" }).replace(",", ""),
       time,
       when: (date: Date) => `${day(date)} · ${time(date)}`,
       clock: (clock: string) => {

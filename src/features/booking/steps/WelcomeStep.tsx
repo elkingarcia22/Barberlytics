@@ -39,15 +39,15 @@ export function WelcomeStep() {
   return (
     <StepLayout title={t("booking.welcome.title", { name: customer.firstName })} lead={t("booking.welcome.lead")}>
       {customer.upcoming > 0 && (
-        <Alert variant="info">
-          <ThemaIcon name="calendar" />
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            <span>{t("booking.welcome.upcoming", { count: customer.upcoming })}</span>
-            <Button type="button" variant="link" size="sm" onClick={() => dispatch({ type: "openManage" })}>
-              {t("booking.welcome.upcomingAction")}
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-subtle px-3 py-2">
+          <Text size="sm" tone="secondary" className="flex items-center gap-2">
+            <ThemaIcon name="calendar" size="sm" tone="info" />
+            {t("booking.welcome.upcoming", { count: customer.upcoming })}
+          </Text>
+          <Button type="button" variant="link" size="sm" onClick={() => dispatch({ type: "openManage" })}>
+            {t("booking.welcome.upcomingAction")}
+          </Button>
+        </div>
       )}
       {customer.credit > 0 && (
         <Alert variant="success">
@@ -59,7 +59,7 @@ export function WelcomeStep() {
       {last && (
         <section aria-labelledby="repeat-title" className="relative overflow-hidden rounded-2xl border border-primary/30 bg-surface shadow-sm">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent" aria-hidden />
-          <div className="relative flex flex-col gap-4 p-5">
+          <div className="relative flex flex-col gap-4 p-4">
             <div className="flex items-center gap-2">
               <ThemaIcon name="refresh" size="sm" tone="primary" />
               <Heading level={5} id="repeat-title">
@@ -73,50 +73,37 @@ export function WelcomeStep() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-3">
-                  {services.map((service) => (
-                    <div key={service.id} className="flex items-center gap-3">
-                      <IconTile size="lg" src={service.imageUrl} icon={<ThemaIcon name="scissors" />} />
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <Text weight="semibold" truncate>
-                          {service.name}
-                        </Text>
-                        <Text size="xs" tone="muted">
-                          {t("booking.services.minutes", { count: service.durationMin })}
-                        </Text>
-                      </div>
-                    </div>
-                  ))}
-                  {barber && (
-                    <div className="flex items-center gap-3 rounded-xl bg-surface-subtle p-3">
-                      <Avatar>
-                        {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
-                        <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <Text size="xs" tone="muted">
-                          {t("booking.barber.lastTime")}
-                        </Text>
-                        <Text size="sm" weight="medium" truncate>
-                          {barber.name}
-                          {barber.level ? ` · ${barber.level}` : ""}
-                        </Text>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-                  <Text size="xs" tone="muted">
-                    {branch ? t("booking.welcome.repeatLead", { date: fmt.day(parseStart(last.at)), branch: branch.name }) : ""}
-                  </Text>
-                  <Text size="lg" weight="semibold" tabular className="shrink-0">
-                    {fmt.money(itemPrice({ serviceIds: last.serviceIds, barberId: last.barberId }, catalog))}
-                    <Text as="span" size="sm" tone="muted" weight="normal">
-                      {" · "}
+                {/* Qué, con quién y cuánto, en una sola fila: la decisión (la hora) va justo debajo. */}
+                <div className="flex items-center gap-3">
+                  <IconTile size="lg" src={services[0]?.imageUrl} icon={<ThemaIcon name="scissors" />} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <Text weight="semibold" truncate>
+                      {services.map((service) => service.name).join(" + ")}
+                    </Text>
+                    {barber && (
+                      <Text size="xs" tone="secondary" className="flex items-center gap-1.5" as="span">
+                        <Avatar size="sm">
+                          {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
+                          <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate">{barber.name}</span>
+                      </Text>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end">
+                    <Text weight="semibold" tabular>
+                      {fmt.money(itemPrice({ serviceIds: last.serviceIds, barberId: last.barberId }, catalog))}
+                    </Text>
+                    <Text size="xs" tone="muted" tabular>
                       {t("booking.review.minutes", { count: itemDuration(last.serviceIds, catalog) })}
                     </Text>
-                  </Text>
+                  </div>
                 </div>
+                {!suggestion && branch && (
+                  <Text size="xs" tone="muted">
+                    {t("booking.welcome.repeatLead", { date: fmt.day(parseStart(last.at)), branch: branch.name })}
+                  </Text>
+                )}
                 {suggestion ? (
                   <NextVisitSuggestion suggestion={suggestion} catalog={catalog} onPickOther={repeat} />
                 ) : (

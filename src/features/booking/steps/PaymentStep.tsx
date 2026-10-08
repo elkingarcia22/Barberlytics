@@ -2,8 +2,9 @@ import * as React from "react";
 import { CreditCard, Smartphone, Store, Wallet } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { Spinner } from "@/components/feedback/Spinner";
+import { ModalShell } from "@/components/overlays";
 import { Heading, Text } from "@/components/typography";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { OptionTile, SegmentedControl, type SelectionOption } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
@@ -37,6 +38,9 @@ export function PaymentStep() {
   const [card, setCard] = React.useState<CardValues | null>(null);
   const [sheet, setSheet] = React.useState<{ open: boolean; prefill: boolean }>({ open: false, prefill: false });
   const [showCardErrors, setShowCardErrors] = React.useState(false);
+  // Varias citas pagadas en el local: se explica cómo se cobra antes de que lleguen.
+  const [shopNoticeOpen, setShopNoticeOpen] = React.useState(false);
+  const hasSeveralAppointments = state.items.length > 1;
   const customer = state.customer;
   const credit = customer?.credit ?? 0;
   // Con tarjetas guardadas abre en la primera que no esté vencida; si no, en «tarjeta nueva».
@@ -148,7 +152,11 @@ export function PaymentStep() {
         <Heading level={6}>{t("booking.payment.method")}</Heading>
         <div role="radiogroup" aria-label={t("booking.payment.method")} className="flex flex-col gap-2">
           {methods.map((option) => (
-            <OptionTile key={option.value} option={option} selected={method === option.value} onSelect={(value) => dispatch({ type: "setMethod", method: value as PayMethod })} />
+            <OptionTile key={option.value} option={option} selected={method === option.value} onSelect={(value) => {
+                dispatch({ type: "setMethod", method: value as PayMethod });
+                if (value === "shop" && hasSeveralAppointments && method !== "shop") setShopNoticeOpen(true);
+              }}
+            />
           ))}
         </div>
         {method === "card" && (
@@ -174,6 +182,18 @@ export function PaymentStep() {
             {serverCardError}
           </Text>
         )}
+        {method === "shop" && hasSeveralAppointments && (
+          <Alert variant="info">
+            <ThemaIcon name="info" />
+            <AlertTitle>{t("booking.payment.shopMulti.title", { count: state.items.length })}</AlertTitle>
+            <AlertDescription>
+              {t("booking.payment.shopMulti.short")}{" "}
+              <button type="button" className="font-medium underline underline-offset-2" onClick={() => setShopNoticeOpen(true)}>
+                {t("booking.payment.shopMulti.more")}
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
         {method !== "shop" && (
           <Text size="xs" tone="muted" className="flex items-center gap-1.5">
             <ThemaIcon name="securityLock" size="xs" />
@@ -193,6 +213,27 @@ export function PaymentStep() {
         <Heading level={6}>{t("booking.payment.order")}</Heading>
         <OrderSummary totals={totals} money={fmt.money} lines={lines} promoCode={state.promo?.code} />
       </section>
+      <ModalShell
+        open={shopNoticeOpen}
+        onOpenChange={setShopNoticeOpen}
+        size="sm"
+        title={t("booking.payment.shopMulti.modalTitle")}
+        actions={
+          <Button type="button" size="lg" className="w-full" onClick={() => setShopNoticeOpen(false)}>
+            {t("booking.payment.shopMulti.ok")}
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Text tone="secondary">{t("booking.payment.shopMulti.intro", { count: state.items.length })}</Text>
+          <ol className="flex list-decimal flex-col gap-2 pl-5 marker:text-text-muted">
+            <li><Text as="span" tone="secondary">{t("booking.payment.shopMulti.one")}</Text></li>
+            <li><Text as="span" tone="secondary">{t("booking.payment.shopMulti.two")}</Text></li>
+            <li><Text as="span" tone="secondary">{t("booking.payment.shopMulti.three")}</Text></li>
+          </ol>
+          <Text tone="secondary">{t("booking.payment.shopMulti.bye")}</Text>
+        </div>
+      </ModalShell>
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
         open={sheet.open}

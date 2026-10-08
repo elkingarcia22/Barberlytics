@@ -80,11 +80,11 @@ export function BarberStep() {
                 </span>
               </MagicCard>
               {/* El perfil es otro botón, fuera de la tarjeta (un botón no va dentro de otro). Ocupa todo el
-                  alto del lado derecho: se acierta con el dedo sin elegir al barbero por error. */}
+                  alto del lado derecho, sin línea ni caja: se acierta con el dedo sin elegir al barbero por error. */}
               <Button
                 type="button"
                 variant="ghost"
-                className="absolute inset-y-[1.5px] right-[1.5px] h-auto w-24 rounded-l-none rounded-r-[11px] border-l border-border"
+                className="absolute inset-y-[1.5px] right-[1.5px] h-auto rounded-l-none rounded-r-[11px] px-4 text-primary hover:bg-primary/5 hover:text-primary"
                 onClick={() => setProfile(barber)}
                 aria-label={`${t("booking.barber.profile")}: ${barber.name}`}
               >

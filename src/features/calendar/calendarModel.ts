@@ -460,48 +460,42 @@ export function cardMarkers(appointment: Appointment, client: Client | undefined
 export const isFlexible = (appointment: Appointment): boolean => appointment.status === "scheduled" && appointment.requestedBarberId === null && appointment.source !== "online";
 
 /**
- * Las citas del día que vienen juntas: del mismo cliente y seguidas (una
- * empieza cuando acaba la otra, o se solapan —su familia a la misma hora con
- * otro barbero—). Son los varios servicios de una visita o una reserva para
- * varias personas. Devuelve, por id de cita, su sitio en el grupo; las sueltas
- * no aparecen. Con el mismo barbero y sin hueco, se pegan (`joinTop`/`joinBottom`).
- * Los clientes de paso (sin ficha) no se agrupan: dos de paso no son la misma persona.
+ * Las citas del día que son una misma visita con servicios añadidos: del mismo
+ * cliente, con el mismo barbero y pegadas (una empieza justo cuando acaba la
+ * otra). Devuelve, por id de cita, su sitio en el grupo; las sueltas no
+ * aparecen. Dos citas del mismo cliente con otro barbero, o con un hueco entre
+ * ellas, son citas normales y no se agrupan. Los clientes de paso (sin ficha)
+ * tampoco: dos de paso no son la misma persona.
  */
 export function appointmentGroups(appointments: readonly Appointment[], catalog: CalendarCatalog): Map<string, ScheduleEventGroup> {
-  const byClient = new Map<string, Appointment[]>();
+  const byVisit = new Map<string, Appointment[]>();
   for (const item of appointments) {
-    if (!isActive(item)) continue;
+    if (!isActive(item) || item.barberId === null) continue;
     const client = findClient(catalog, item.clientId);
     if (!client || client.type === "walkin") continue;
-    byClient.set(item.clientId, [...(byClient.get(item.clientId) ?? []), item]);
+    const key = `${item.clientId}|${item.barberId}`;
+    byVisit.set(key, [...(byVisit.get(key) ?? []), item]);
   }
   const groups = new Map<string, ScheduleEventGroup>();
-  for (const [clientId, items] of byClient) {
+  for (const items of byVisit.values()) {
     if (items.length < 2) continue;
     const sorted = [...items].sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime());
-    const clusters: Appointment[][] = [];
-    let clusterEnd = -Infinity;
-    for (const item of sorted) {
-      const end = appointmentEnd(item).getTime();
-      if (clusters.length > 0 && appointmentStart(item).getTime() <= clusterEnd) {
-        clusters[clusters.length - 1].push(item);
-        clusterEnd = Math.max(clusterEnd, end);
-      } else {
-        clusters.push([item]);
-        clusterEnd = end;
-      }
-    }
-    for (const cluster of clusters) {
-      if (cluster.length < 2) continue;
-      const id = `${clientId}:${cluster[0].id}`;
-      cluster.forEach((item, position) => {
-        const touches = (other: Appointment, edgeA: Date, edgeB: Date) => other.id !== item.id && other.barberId === item.barberId && edgeA.getTime() === edgeB.getTime();
+    const chains = sorted.reduce<Appointment[][]>((acc, item) => {
+      const last = acc.at(-1)?.at(-1);
+      return last && appointmentEnd(last).getTime() === appointmentStart(item).getTime()
+        ? [...acc.slice(0, -1), [...acc[acc.length - 1], item]]
+        : [...acc, [item]];
+    }, []);
+    for (const chain of chains) {
+      if (chain.length < 2) continue;
+      const id = `${chain[0].clientId}:${chain[0].id}`;
+      chain.forEach((item, position) => {
         groups.set(item.id, {
           id,
           index: position + 1,
-          size: cluster.length,
-          joinTop: cluster.some((other) => touches(other, appointmentEnd(other), appointmentStart(item))) || undefined,
-          joinBottom: cluster.some((other) => touches(other, appointmentStart(other), appointmentEnd(item))) || undefined,
+          size: chain.length,
+          joinTop: position > 0 || undefined,
+          joinBottom: position < chain.length - 1 || undefined,
         });
       });
     }

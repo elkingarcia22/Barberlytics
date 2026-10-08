@@ -253,6 +253,7 @@ export const bookingEs = {
   "booking.card.branch": "Sede",
 
   // ── Tienda ──
+  "booking.review.pickedTitle": "En tu pedido",
   "booking.review.seeAll": "Ver todos ({count})",
   "booking.review.carouselPrev": "Productos anteriores",
   "booking.review.carouselNext": "Más productos",

@@ -19,6 +19,7 @@ import { AppointmentCard } from "../flow/AppointmentCard";
 import { useBookingFlow } from "../flow/BookingContext";
 import { BranchChange } from "../flow/BranchChange";
 import { ProductCard } from "../flow/ProductCard";
+import { PickedProducts } from "../flow/PickedProducts";
 import { ProductCatalogDrawer } from "../flow/ProductCatalogDrawer";
 import { StepLayout } from "../flow/StepLayout";
 import { itemDuration, itemPrice } from "../useBookingTotals";
@@ -33,6 +34,9 @@ export function ReviewStep() {
   const { state, dispatch, catalog, shop, fmt, totals, layout } = useBookingFlow();
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const products = catalog?.products ?? [];
+  // Lo elegido va primero en el carrusel: se ve sin tener que buscarlo.
+  const ordered = [...products].sort((a, b) => Number((state.products[b.id] ?? 0) > 0) - Number((state.products[a.id] ?? 0) > 0));
+  const pickedCount = Object.values(state.products).reduce((sum, qty) => sum + qty, 0);
 
   const remove = (index: number) => {
     const item = state.items[index];
@@ -145,8 +149,9 @@ export function ReviewStep() {
                 <CarouselNext className="static translate-y-0" aria-label={t("booking.review.carouselNext")} />
               </div>
             </div>
-            <CarouselContent className="-ml-3">
-              {products.map((product) => (
+            <PickedProducts products={products} />
+            <CarouselContent className={cn("-ml-3", pickedCount > 0 && "mt-3")}>
+              {ordered.map((product) => (
                 <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3")}>
                   <ProductCard product={product} />
                 </CarouselItem>

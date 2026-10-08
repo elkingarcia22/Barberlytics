@@ -120,3 +120,9 @@ export function firstBookableDay(closesAt: string, minNoticeMinutes: number, now
 }
 
 export const isSameDayAs = (a: Date, b: Date): boolean => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+/** «+16175550100» → «+1 617 555 0100»; lo que no reconoce, tal cual. */
+export function formatPhone(value: string): string {
+  const match = /^\+(\d{1,3})(\d{3})(\d{3})(\d{4})$/.exec(value.replace(/[\s()-]/g, ""));
+  return match ? `+${match[1]} ${match[2]} ${match[3]} ${match[4]}` : value;
+}

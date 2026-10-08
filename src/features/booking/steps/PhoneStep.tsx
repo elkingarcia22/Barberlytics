@@ -10,6 +10,7 @@ import { describeError } from "@/lib/api";
 import { useBookingFlow } from "../flow/BookingContext";
 import { ShopBrand } from "../flow/ShopBrand";
 import { StepLayout } from "../flow/StepLayout";
+import { formatPhone } from "../bookingFormat";
 import { useLookupMutation } from "../queries";
 
 /** Dígitos mínimos de un celular nacional (Colombia y EE. UU. tienen 10). */
@@ -34,7 +35,9 @@ export function PhoneStep() {
   const [phone, setPhone] = React.useState(state.phone);
   const [touched, setTouched] = React.useState(false);
   const isValid = nationalDigits(phone) >= MIN_DIGITS;
-  const onlyBranch = shop.branches.length === 1 ? shop.branches[0] : null;
+  // Con varias sedes, desde que abre la primera hasta que cierra la última.
+  const opensAt = shop.branches.map((branch) => branch.opensAt).sort()[0] ?? "09:00";
+  const closesAt = shop.branches.map((branch) => branch.closesAt).sort().at(-1) ?? "19:00";
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -87,21 +90,35 @@ export function PhoneStep() {
           ))}
         </ul>
 
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-          <ShopBrand shop={shop} tagline={undefined} iconOnly />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <Text weight="semibold" truncate>
-              {shop.name}
-            </Text>
-            <Text size="xs" tone="muted">
-              {onlyBranch ? t("booking.phone.openToday", { from: fmt.clock(onlyBranch.opensAt), to: fmt.clock(onlyBranch.closesAt) }) : t("booking.phone.branches", { count: shop.branches.length })}
-            </Text>
+        {/* La barbería: quién es, cuántas sedes, cuándo abre hoy y a dónde llamar. */}
+        <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
+          <div className="flex items-center gap-3">
+            <ShopBrand shop={shop} iconOnly />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Text weight="semibold" truncate>
+                {shop.name}
+              </Text>
+              <Text size="xs" tone="muted">
+                {t("booking.phone.branches", { count: shop.branches.length })}
+              </Text>
+            </div>
           </div>
-          <Button asChild variant="outline" size="icon-sm" aria-label={t("booking.header.call")}>
-            <a href={`tel:${shop.phone}`}>
-              <ThemaIcon name="phone" />
-            </a>
-          </Button>
+          <dl className="flex flex-col gap-2 border-t border-border pt-3">
+            <div className="flex items-center gap-2.5">
+              <ThemaIcon name="clock" size="sm" tone="muted" />
+              <Text size="sm" tone="secondary" as="dd">
+                {t("booking.phone.openToday", { from: fmt.clock(opensAt), to: fmt.clock(closesAt) })}
+              </Text>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <ThemaIcon name="phone" size="sm" tone="muted" />
+              <Text size="sm" as="dd">
+                <a href={`tel:${shop.phone}`} className="font-medium text-text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                  {formatPhone(shop.phone)}
+                </a>
+              </Text>
+            </div>
+          </dl>
         </div>
 
         <div className="flex items-center justify-center gap-1">

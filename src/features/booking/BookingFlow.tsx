@@ -160,7 +160,8 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
       <section ref={setPortalRoot} aria-label={t("booking.phone.title")} className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground [transform:translateZ(0)]", className)}>
         <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
         <Grain scope="container" />
-        <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />
+        {/* El inicio no lleva cabecera: la marca ya está en su tarjeta. El widget la conserva por su botón de cerrar. */}
+        {(state.step !== "phone" || headerTrailing) && <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />}
         <div className="flex min-h-0 flex-1">
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className={cn("mx-auto flex min-h-full w-full flex-col", layout === "wide" ? "max-w-3xl" : "max-w-xl")}>

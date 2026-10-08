@@ -225,7 +225,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking
 
-- **BookingFlow.tsx** — La reserva en línea entera, lista para montarse donde haga falta: a pantalla completa en una tablet del local… · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, Skeleton · usa: @/app/i18n, @/lib/query, @/lib/utils
+- **BookingFlow.tsx** — La reserva en línea entera, lista para montarse donde haga falta: a pantalla completa en una tablet del local… · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, PortalContainerProvider, Skeleton · usa: @/app/i18n, @/lib/query, @/lib/utils
 - **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
 - **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/catalog, GET /booking/availability, POST /booking/lookup, POST /booking/customers, POST /booking/promo, POST /booking/reservations, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
 - **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs` · usa: @/i18n
@@ -255,6 +255,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **SendReceiptDialog.tsx** — Reenviar el recibo a un correo o a un celular; trae los del cliente ya puestos. · `SendReceiptDialog` · piezas: Button, Field, Input, ModalShell, PhoneInput, SegmentedControl, Spinner · usa: @/app/i18n, @/lib/api, @/lib/useResetOnChange
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardValues`, `cardErrors`, `isCardComplete`
+- **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`
 
 ### booking/preview
 

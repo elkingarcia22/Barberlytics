@@ -19,7 +19,7 @@ const MIN_NAME = 2;
 /** Quien reserva por primera vez: lo justo para crear su ficha en la barbería. */
 export function ProfileStep() {
   const t = useAppT();
-  const { state, dispatch, shop } = useBookingFlow();
+  const { state, dispatch, shop, layout } = useBookingFlow();
   const create = useCreateCustomerMutation();
   const [values, setValues] = React.useState({ firstName: "", lastName: "", email: "", marketing: true });
   const [touched, setTouched] = React.useState(false);
@@ -55,7 +55,7 @@ export function ProfileStep() {
           </Button>
         }
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className={layout === "wide" ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}>
           <Field label={t("booking.profile.firstName")} required error={touched ? errors.firstName : undefined}>
             <Input value={values.firstName} onChange={set("firstName")} autoComplete="given-name" autoFocus />
           </Field>

@@ -184,7 +184,7 @@ const [draft, setDraft] = React.useState(name);
     { name: "className", type: "string", description: "Clases para el contenido del diálogo." },
   ],
   guidelines: {
-    do: ["Úsalo para tareas de uno o dos campos; si crece, pásate a `DrawerShell`.", "Pon `autoFocus` en el primer campo cuando el modal es de edición.", "Siempre un título: es lo que anuncia el lector de pantalla."],
+    do: ["Úsalo para tareas de uno o dos campos; si crece, pásate a `DrawerShell`.", "Pon `autoFocus` en el primer campo cuando el modal es de edición.", "Siempre un título: es lo que anuncia el lector de pantalla.", "Dentro de un `PortalContainerProvider` el modal se centra en ese contenedor, no en la ventana (ver `DrawerShell`)."],
     dont: ["No lo uses para confirmar acciones destructivas: para eso está `ConfirmDialog`.", "No apiles modales; abre un `ConfirmDialog` encima si hace falta, nunca otro `ModalShell`."],
   },
   related: ["dialog", "drawer-shell", "confirm-dialog", "button"],

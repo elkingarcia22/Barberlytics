@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { initialsOf } from "../bookingFormat";
 import type { BookingBarber } from "../types";
 import { useBookingFlow } from "./BookingContext";
+import { DRAWER_FIT_STYLE } from "./drawerFit";
 
 interface BarberProfileDrawerProps {
   barber: BookingBarber | null;
@@ -25,6 +26,7 @@ export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose
       open={barber !== null}
       onOpenChange={onOpenChange}
       side={layout === "wide" ? "right" : "bottom"}
+      contentStyle={DRAWER_FIT_STYLE}
       title={barber?.name ?? ""}
       description={barber?.level ?? undefined}
       leading={

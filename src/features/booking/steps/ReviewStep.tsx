@@ -144,7 +144,7 @@ export function ReviewStep() {
             </div>
             <CarouselContent className="-ml-3">
               {products.map((product) => (
-                <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3 xl:basis-1/4")}>
+                <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3")}>
                   <ProductCard product={product} />
                 </CarouselItem>
               ))}

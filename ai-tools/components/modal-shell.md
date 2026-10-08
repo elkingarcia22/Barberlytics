@@ -27,6 +27,7 @@ import { ModalShell } from "@/components/overlays"
 - Sí: Úsalo para tareas de uno o dos campos; si crece, pásate a `DrawerShell`.
 - Sí: Pon `autoFocus` en el primer campo cuando el modal es de edición.
 - Sí: Siempre un título: es lo que anuncia el lector de pantalla.
+- Sí: Dentro de un `PortalContainerProvider` el modal se centra en ese contenedor, no en la ventana (ver `DrawerShell`).
 - No: No lo uses para confirmar acciones destructivas: para eso está `ConfirmDialog`.
 - No: No apiles modales; abre un `ConfirmDialog` encima si hace falta, nunca otro `ModalShell`.
 

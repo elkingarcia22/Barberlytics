@@ -210,7 +210,7 @@ export const drawerShellEntry = defineEntry({
     { name: "onInteractOutside", type: "(e: Event) => void", description: "Intercepta el clic fuera; llama a `e.preventDefault()` para no cerrar." },
   ],
   guidelines: {
-    do: ["Compón el cuerpo con `DrawerSection` para que todos los paneles se lean igual.", "Una acción primaria en el pie y la secundaria como `outline`.", "Usa `lg` o más solo para vistas de detalle con varias columnas."],
+    do: ["Compón el cuerpo con `DrawerSection` para que todos los paneles se lean igual.", "Una acción primaria en el pie y la secundaria como `outline`.", "Usa `lg` o más solo para vistas de detalle con varias columnas.", "Si la pantalla vive dentro de otra (un marco de celular, el panel de un widget), envuélvela en `PortalContainerProvider` de `@/components/ui/portal-container` con un contenedor que tenga `[transform:translateZ(0)]`: el drawer se abre dentro y no en la ventana."],
     dont: ["No apagues `modal` salvo para convivir con un panel fuera del portal.", "No pongas la confirmación de borrado dentro del drawer: abre un `ConfirmDialog` encima."],
   },
   related: ["sheet", "drawer-section", "modal-shell", "confirm-dialog"],

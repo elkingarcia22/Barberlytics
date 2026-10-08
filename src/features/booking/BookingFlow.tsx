@@ -2,6 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Grain, Halo } from "@/components/atmosphere";
 import { ErrorState } from "@/lib/query";
+import { PortalContainerProvider } from "@/components/ui/portal-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { bookingReducer, initialBookingState, type BookingAction, type BookingState } from "./bookingState";
@@ -108,6 +109,9 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
   const totals = useBookingTotals(state, catalogQuery.data, shop);
   const fmt = useBookingFormat(shop?.currency);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  // Las ventanas (drawers, modales) se abren dentro de la reserva, no en la
+  // ventana: en el marco del celular o en el panel del widget no se salen.
+  const [portalRoot, setPortalRoot] = React.useState<HTMLElement | null>(null);
 
   // La propina por defecto de la barbería, una vez que se sabe cuál es.
   const defaultTip = shop?.defaultTipId ?? null;
@@ -151,7 +155,9 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
 
   return (
     <BookingFlowProvider value={value}>
-      <section aria-label={t("booking.phone.title")} className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground", className)}>
+      <PortalContainerProvider value={portalRoot}>
+      {/* `translateZ(0)` hace de esta sección el bloque contenedor de lo `fixed`: las ventanas se miden contra ella. */}
+      <section ref={setPortalRoot} aria-label={t("booking.phone.title")} className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground [transform:translateZ(0)]", className)}>
         <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
         <Grain scope="container" />
         <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />
@@ -168,6 +174,7 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
           )}
         </div>
       </section>
+      </PortalContainerProvider>
     </BookingFlowProvider>
   );
 }

@@ -33,6 +33,7 @@ import { DrawerShell } from "@/components/overlays"
 - Sí: Compón el cuerpo con `DrawerSection` para que todos los paneles se lean igual.
 - Sí: Una acción primaria en el pie y la secundaria como `outline`.
 - Sí: Usa `lg` o más solo para vistas de detalle con varias columnas.
+- Sí: Si la pantalla vive dentro de otra (un marco de celular, el panel de un widget), envuélvela en `PortalContainerProvider` de `@/components/ui/portal-container` con un contenedor que tenga `[transform:translateZ(0)]`: el drawer se abre dentro y no en la ventana.
 - No: No apagues `modal` salvo para convivir con un panel fuera del portal.
 - No: No pongas la confirmación de borrado dentro del drawer: abre un `ConfirmDialog` encima.
 

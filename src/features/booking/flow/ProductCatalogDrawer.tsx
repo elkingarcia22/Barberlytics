@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "./BookingContext";
+import { DRAWER_FIT_STYLE } from "./drawerFit";
 import { ProductCard } from "./ProductCard";
 
 const ALL = "__all__";
@@ -47,6 +48,7 @@ export function ProductCatalogDrawer({ open, onOpenChange }: ProductCatalogDrawe
       open={open}
       onOpenChange={onOpenChange}
       side={layout === "wide" ? "right" : "bottom"}
+      contentStyle={DRAWER_FIT_STYLE}
       size="lg"
       title={t("booking.products.title")}
       description={t("booking.products.lead", { count: products.length })}
@@ -89,7 +91,7 @@ export function ProductCatalogDrawer({ open, onOpenChange }: ProductCatalogDrawe
                   {group.items.length}
                 </Text>
               </Heading>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className={layout === "wide" ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
                 {group.items.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

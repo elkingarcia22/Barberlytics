@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTile } from "@/components/utility/IconTile";
+import { useDragScroll } from "@/hooks/useDragScroll";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
@@ -36,6 +37,8 @@ export function ServicesStep() {
   const { state, dispatch, catalog, catalogLoading, fmt, layout } = useBookingFlow();
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState(ALL);
+  // Con ratón no hay barra que agarrar: la tira se arrastra y trae a la vista lo elegido.
+  const categoryRow = useDragScroll<HTMLDivElement>({ follow: category });
   const selected = state.draft?.serviceIds ?? [];
   const services = catalog?.services ?? [];
   const categories = [...new Set(services.map((service) => service.category).filter(Boolean))];
@@ -80,11 +83,10 @@ export function ServicesStep() {
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("booking.services.search")} aria-label={t("booking.services.search")} className="pl-9" />
         </div>
         {categories.length > 1 && (
-          // En varias líneas y no en una tira que se desliza: con ratón no hay cómo moverla de lado.
-          <div className="flex flex-wrap gap-2">
-            <Chip label={t("booking.services.all")} selected={category === ALL} onClick={() => setCategory(ALL)} />
+          <div ref={categoryRow} className="-mx-5 -my-1.5 flex gap-2 overflow-x-auto px-5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip label={t("booking.services.all")} selected={category === ALL} onClick={() => setCategory(ALL)} className="shrink-0" />
             {categories.map((item) => (
-              <Chip key={item} label={item} selected={category === item} onClick={() => setCategory(item)} />
+              <Chip key={item} label={item} selected={category === item} onClick={() => setCategory(item)} className="shrink-0" />
             ))}
           </div>
         )}

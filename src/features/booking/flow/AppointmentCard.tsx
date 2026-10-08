@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,10 @@ export interface AppointmentCardData {
   services: readonly string[];
   barberName: string | null;
   barberAvatarUrl?: string | null;
-  /** Ya formateado: «jue 9 oct · 10:30 a. m.». */
-  when: string;
+  /** El día ya formateado: «vie, 9 de oct». */
+  day: string;
+  /** La hora ya formateada: «9:00 a. m.». */
+  time: string;
   duration: string;
   price: string;
   branchName?: string;
@@ -29,58 +32,78 @@ interface AppointmentCardProps {
   muted?: boolean;
 }
 
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[5.5rem_1fr] items-center gap-3">
+      <Text size="xs" tone="muted" as="dt">
+        {label}
+      </Text>
+      <dd className="flex min-w-0 items-center gap-2">{children}</dd>
+    </div>
+  );
+}
+
 /**
  * Una cita como la lee el cliente, la misma en el resumen, en la confirmación
- * y en «Mis citas»: cuándo primero —es lo que se busca—, luego para quién,
- * qué y con quién.
+ * y en «Mis citas». Cuándo arriba y grande —es lo que se busca—; debajo, en
+ * filas con su etiqueta, qué se hace, para quién y con quién; abajo el precio
+ * y lo que se puede hacer con ella.
  */
 export function AppointmentCard({ data, status, actions, muted = false }: AppointmentCardProps) {
+  const t = useAppT();
   return (
-    <article className={cn("flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xs", muted && "opacity-60")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <IconTile size="md" icon={<ThemaIcon name="calendar" />} />
-          <div className="flex min-w-0 flex-col">
-            <Text weight="semibold" className="first-letter:uppercase" truncate>
-              {data.when}
-            </Text>
-            <Text size="xs" tone="muted" truncate>
-              {data.duration}
-              {data.branchName ? ` · ${data.branchName}` : ""}
-            </Text>
-          </div>
+    <article className={cn("flex flex-col rounded-2xl border border-border bg-surface shadow-xs", muted && "opacity-60")}>
+      <header className="flex items-center gap-3 p-4">
+        <IconTile size="lg" icon={<ThemaIcon name="calendar" />} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Text weight="semibold" className="first-letter:uppercase" truncate>
+            {data.day}
+          </Text>
+          <Text size="sm" tone="secondary" tabular truncate>
+            {data.time} · {data.duration}
+          </Text>
         </div>
         {status}
-      </div>
-      <div className="flex flex-col gap-1">
-        <Text size="sm" weight="medium">
-          {data.services.join(" + ")}
-        </Text>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Text size="xs" tone="secondary" className="flex items-center gap-1.5" as="span">
-            <ThemaIcon name="users" size="xs" />
-            {data.personName}
-            {data.relation && <Badge variant="outline">{data.relation}</Badge>}
+      </header>
+
+      <dl className="flex flex-col gap-2.5 border-t border-border px-4 py-3">
+        <DetailRow label={t("booking.card.services")}>
+          <Text size="sm" weight="medium">
+            {data.services.join(" + ")}
           </Text>
-          <Text size="xs" tone="secondary" className="flex items-center gap-1.5" as="span">
-            {data.barberName ? (
-              <Avatar size="sm">
-                {data.barberAvatarUrl && <AvatarImage src={data.barberAvatarUrl} alt="" />}
-                <AvatarFallback>{initialsOf(data.barberName)}</AvatarFallback>
-              </Avatar>
-            ) : (
-              <ThemaIcon name="scissors" size="xs" />
-            )}
+        </DetailRow>
+        <DetailRow label={t("booking.card.for")}>
+          <Text size="sm" truncate>
+            {data.personName}
+          </Text>
+          {data.relation && <Badge variant="outline">{data.relation}</Badge>}
+        </DetailRow>
+        <DetailRow label={t("booking.card.barber")}>
+          {data.barberAvatarUrl || data.barberName ? (
+            <Avatar size="sm">
+              {data.barberAvatarUrl && <AvatarImage src={data.barberAvatarUrl} alt="" />}
+              <AvatarFallback>{initialsOf(data.barberName ?? "")}</AvatarFallback>
+            </Avatar>
+          ) : null}
+          <Text size="sm" truncate>
             {data.barberName}
           </Text>
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+        </DetailRow>
+        {data.branchName && (
+          <DetailRow label={t("booking.card.branch")}>
+            <Text size="sm" truncate>
+              {data.branchName}
+            </Text>
+          </DetailRow>
+        )}
+      </dl>
+
+      <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
         <Text weight="semibold" tabular>
           {data.price}
         </Text>
-        {actions && <div className="flex items-center gap-1">{actions}</div>}
-      </div>
+        {actions && <div className="-mr-2 flex items-center gap-1">{actions}</div>}
+      </footer>
     </article>
   );
 }

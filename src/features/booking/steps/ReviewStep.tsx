@@ -1,10 +1,12 @@
+import * as React from "react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { EmptyState } from "@/components/feedback/EmptyState";
-import { Field, NumberField } from "@/components/forms";
+import { Field } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility/IconTile";
@@ -15,10 +17,10 @@ import { parseStart } from "../bookingFormat";
 import { renderPolicy } from "../pricing";
 import { AppointmentCard } from "../flow/AppointmentCard";
 import { useBookingFlow } from "../flow/BookingContext";
+import { ProductCard } from "../flow/ProductCard";
+import { ProductCatalogDrawer } from "../flow/ProductCatalogDrawer";
 import { StepLayout } from "../flow/StepLayout";
 import { itemDuration, itemPrice } from "../useBookingTotals";
-
-const MAX_QTY = 9;
 
 /**
  * El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra
@@ -28,6 +30,7 @@ const MAX_QTY = 9;
 export function ReviewStep() {
   const t = useAppT();
   const { state, dispatch, catalog, shop, fmt, totals, layout } = useBookingFlow();
+  const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const products = catalog?.products ?? [];
 
   const remove = (index: number) => {
@@ -88,7 +91,8 @@ export function ReviewStep() {
                 services: item.serviceIds.map((id) => catalog?.services.find((service) => service.id === id)?.name ?? id),
                 barberName: barber?.name ?? t("booking.review.noPreference"),
                 barberAvatarUrl: barber?.avatarUrl,
-                when: item.start ? fmt.when(parseStart(item.start)) : "",
+                day: item.start ? fmt.day(parseStart(item.start)) : "",
+                time: item.start ? fmt.time(parseStart(item.start)) : "",
                 duration: t("booking.review.minutes", { count: itemDuration(item.serviceIds, catalog) }),
                 price: fmt.money(itemPrice(item, catalog)),
               }}
@@ -122,40 +126,35 @@ export function ReviewStep() {
 
       {products.length > 0 && (
         <section aria-labelledby="products-title" className="flex flex-col gap-3">
-          <div className="flex flex-col gap-0.5">
-            <Heading level={5} id="products-title">
-              {t("booking.review.productsTitle")}
-            </Heading>
-            <Text size="sm" tone="secondary">
-              {t("booking.review.productsLead")}
-            </Text>
-          </div>
-          <div className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none]">
-            {products.map((product) => {
-              const qty = state.products[product.id] ?? 0;
-              return (
-                <div key={product.id} className={cn("flex w-40 shrink-0 snap-start flex-col gap-2 rounded-2xl border bg-surface p-3 transition-colors duration-fast", qty > 0 ? "border-primary" : "border-border")}>
-                  <IconTile size="xl" src={product.imageUrl} icon={<ThemaIcon name="layers" />} />
-                  <div className="flex min-h-10 flex-col">
-                    <Text size="sm" weight="medium" className="line-clamp-2">
-                      {product.name}
-                    </Text>
-                    <Text size="sm" tone="secondary" tabular>
-                      {fmt.money(product.price)}
-                    </Text>
-                  </div>
-                  {qty === 0 ? (
-                    <Button type="button" variant="outline" size="sm" onClick={() => dispatch({ type: "setProduct", productId: product.id, qty: 1 })}>
-                      <ThemaIcon name="plus" />
-                      {t("booking.review.add")}
-                    </Button>
-                  ) : (
-                    <NumberField size="sm" stepper="sides" min={0} max={MAX_QTY} value={qty} onValueChange={(value) => dispatch({ type: "setProduct", productId: product.id, qty: value ?? 0 })} aria-label={product.name} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {/* Todo va dentro del carrusel para que las flechas, arriba junto al título, lo muevan. */}
+          <Carousel opts={{ align: "start", dragFree: true }}>
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <Heading level={5} id="products-title">
+                  {t("booking.review.productsTitle")}
+                </Heading>
+                <Text size="sm" tone="secondary">
+                  {t("booking.review.productsLead")}
+                </Text>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <CarouselPrevious className="static translate-y-0" aria-label={t("booking.review.carouselPrev")} />
+                <CarouselNext className="static translate-y-0" aria-label={t("booking.review.carouselNext")} />
+              </div>
+            </div>
+            <CarouselContent className="-ml-3">
+              {products.map((product) => (
+                <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3 xl:basis-1/4")}>
+                  <ProductCard product={product} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setIsCatalogOpen(true)}>
+            <ThemaIcon name="layers" />
+            {t("booking.review.seeAll", { count: products.length })}
+          </Button>
+          <ProductCatalogDrawer open={isCatalogOpen} onOpenChange={setIsCatalogOpen} />
         </section>
       )}
 

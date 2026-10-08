@@ -188,6 +188,27 @@ export const bookingEs = {
   "booking.review.continue": "Ir a pagar",
   "booking.review.minutes": "{count} min",
 
+  // ── Tarjeta de una cita ──
+  "booking.card.services": "Servicios",
+  "booking.card.for": "Para",
+  "booking.card.barber": "Barbero",
+  "booking.card.branch": "Sede",
+
+  // ── Tienda ──
+  "booking.review.seeAll": "Ver todos ({count})",
+  "booking.review.carouselPrev": "Productos anteriores",
+  "booking.review.carouselNext": "Más productos",
+  "booking.products.title": "Productos de la barbería",
+  "booking.products.lead": "{count} producto para llevar, por categoría.",
+  "booking.products.lead_plural": "{count} productos para llevar, por categoría.",
+  "booking.products.search": "Buscar un producto",
+  "booking.products.empty": "No hay productos con ese nombre.",
+  "booking.products.other": "Otros",
+  "booking.products.selected": "{count} producto · {amount}",
+  "booking.products.selected_plural": "{count} productos · {amount}",
+  "booking.products.none": "Aún no agregas productos.",
+  "booking.products.done": "Listo",
+
   // ── Pago ──
   "booking.payment.title": "Pago",
   "booking.payment.lead": "Asegura tu hora. Te mandamos el recibo al instante.",

@@ -210,6 +210,21 @@ export type BarberReview = z.infer<typeof barberReviewSchema>;
 export const barberReviewsSchema = z.object({ items: z.array(barberReviewSchema), total: z.number() });
 export const reviewSavedSchema = z.object({ id: z.string(), rating: z.number() });
 
+/** Una tarjeta de regalo válida y su saldo. */
+export const giftCheckSchema = z.object({ code: z.string(), balance: z.number() });
+export type GiftCheck = z.infer<typeof giftCheckSchema>;
+/** La tarjeta de regalo comprada: su código, a dónde se mandó y con qué se pagó. */
+export const giftPurchasedSchema = z.object({ code: z.string(), amount: z.number(), sentTo: z.string(), paidWith: z.string() });
+export type GiftPurchased = z.infer<typeof giftPurchasedSchema>;
+export interface GiftPurchaseInput {
+  amount: number;
+  recipientName: string;
+  recipientContact: string;
+  message: string;
+  card?: { number: string; name: string; expiry: string; save: boolean };
+  savedCardId?: string;
+}
+
 export const waitlistWindowSchema = z.enum(["morning", "afternoon", "evening", "any"]);
 export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
 export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });
@@ -265,10 +280,12 @@ export const totalsSchema = z.object({
   /** El recargo por pagar con tarjeta (0 si se paga en la barbería o no hay recargo). */
   fee: z.number().default(0),
   feeName: z.string().nullable().default(null),
+  gift: z.number().default(0),
   total: z.number(),
 });
 
-export const payMethodSchema = z.enum(["card", "wallet", "shop", "credit"]);
+/** `gift`: la tarjeta de regalo cubre todo y no hay nada más que cobrar. */
+export const payMethodSchema = z.enum(["card", "wallet", "shop", "credit", "gift"]);
 export type PayMethod = z.infer<typeof payMethodSchema>;
 
 export const reservationSchema = z.object({
@@ -344,6 +361,8 @@ export interface ReservationInput {
   card?: { number: string; name: string; expiry: string; save: boolean };
   /** O una tarjeta guardada; se le pide el CVC otra vez en el celular, que tampoco viaja aquí. */
   savedCardId?: string;
+  /** Tarjeta de regalo: paga primero; lo que sobra queda en ella. */
+  giftCode?: string;
   notes?: string;
 }
 

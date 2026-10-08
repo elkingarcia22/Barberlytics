@@ -36,6 +36,11 @@ import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alt
 import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
+import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
+
+/** Lo que se puede regalar en una tarjeta. */
+const GIFT_MIN = 10;
+const GIFT_MAX = 500;
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -112,6 +117,30 @@ function validCard(number: string): boolean {
 }
 
 const brandOf = (number: string): string => (number.startsWith("4") ? "Visa" : number.startsWith("5") ? "Mastercard" : number.startsWith("3") ? "Amex" : "Tarjeta");
+
+/**
+ * Cobra con tarjeta (guardada por su token, nueva o la billetera): una reserva, un anticipo o una
+ * tarjeta de regalo. Devuelve la marca y los últimos 4, o la respuesta de error de la pasarela.
+ */
+function chargeCard(client: MockClient, input: Record<string, unknown>, via: "card" | "wallet"): { last4: string; brand: string } | Response {
+  const savedCardId = text(input.savedCardId);
+  if (via === "card" && savedCardId) {
+    // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
+    const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
+    if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
+    return { last4: saved.last4, brand: saved.brand };
+  }
+  const card = asRecord(input.card as DefaultBodyType);
+  const number = via === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
+  if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
+  if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
+  const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
+  if (via === "card" && card.save === true && expMonth && expYear) {
+    saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
+  }
+  return { last4: number.slice(-4), brand: via === "wallet" ? "Wallet" : brandOf(number) };
+}
+
 
 interface PlannedItem {
   guestName: string | null;
@@ -366,40 +395,24 @@ export const bookingHandlers = [
     const promo = promoResult && "promo" in promoResult ? promoResult.promo : null;
     const tip = tipOptions().options.find((option) => option.id === text(input.tipId)) ?? null;
     const method = text(input.method) as MockReservation["payment"]["method"];
-    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null });
+    // Tarjeta de regalo: paga primero; lo que sobra queda en ella.
+    const giftCode = text(input.giftCode);
+    const giftCard = giftCode ? findGiftCard(giftCode) : undefined;
+    if (giftCode && (!giftCard || giftCard.balance <= 0)) return error(422, "gift_invalid", "Esa tarjeta de regalo no existe o ya no tiene saldo.");
+    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0 });
 
     const rules = bookingRules();
-    /**
-     * Cobra con tarjeta (guardada por su token, nueva o la billetera): el pago completo o el
-     * anticipo. Devuelve la marca y los últimos 4, o la respuesta de error de la pasarela.
-     */
-    const chargeCard = (via: "card" | "wallet"): { last4: string; brand: string } | Response => {
-      const savedCardId = text(input.savedCardId);
-      if (via === "card" && savedCardId) {
-        // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
-        const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
-        if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
-        return { last4: saved.last4, brand: saved.brand };
-      }
-      const card = asRecord(input.card as DefaultBodyType);
-      const number = via === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
-      if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
-      if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
-      const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
-      if (via === "card" && card.save === true && expMonth && expYear) {
-        saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
-      }
-      return { last4: number.slice(-4), brand: via === "wallet" ? "Wallet" : brandOf(number) };
-    };
-
     let payment: MockReservation["payment"];
-    if (method === "shop") {
+    if (totals.total === 0 && totals.gift > 0) {
+      // La tarjeta de regalo cubre todo: no hay nada más que cobrar.
+      payment = { method: "gift", status: "paid", last4: null, brand: null, paid: 0 };
+    } else if (method === "shop") {
       if (!rules.paymentMethods.payAtShop || customer.onlineOnly) return error(422, "validation", "Esta reserva se paga en línea.");
       // Cliente nuevo o con inasistencias: para pagar en la barbería deja un anticipo con tarjeta.
-      const deposit = customer.depositRequired ? depositAmount(totals) : 0;
+      const deposit = customer.depositRequired ? Math.min(depositAmount(totals), totals.total) : 0;
       if (deposit > 0) {
         if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige una tarjeta para el anticipo.", { fields: { card: ["Elige una tarjeta para el anticipo."] } });
-        const charged = chargeCard("card");
+        const charged = chargeCard(client, input, "card");
         if (charged instanceof Response) return charged;
         payment = { method, status: "pending", last4: charged.last4, brand: charged.brand, paid: deposit };
       } else {
@@ -411,11 +424,17 @@ export const bookingHandlers = [
       payment = { method, status: "paid", last4: null, brand: null, paid: totals.total };
     } else if (method === "card" || method === "wallet") {
       if (!rules.paymentMethods.card) return error(422, "validation", "Esta barbería no cobra en línea.");
-      const charged = chargeCard(method);
+      const charged = chargeCard(client, input, method);
       if (charged instanceof Response) return charged;
       payment = { method, status: "paid", last4: charged.last4, brand: charged.brand, paid: totals.total };
     } else {
       return error(422, "validation", "Elige cómo vas a pagar.");
+    }
+
+    // Lo pagado con la tarjeta de regalo cuenta como pagado (si se cancela, vuelve como saldo a favor).
+    if (giftCard && totals.gift > 0) {
+      spendGiftCard(giftCard.code, totals.gift);
+      payment = { ...payment, paid: Math.round((payment.paid + totals.gift) * 100) / 100 };
     }
 
     const reservationId = `rsv_${Date.now().toString(36)}`;
@@ -453,6 +472,7 @@ export const bookingHandlers = [
       lines,
       products: productLines,
       promoCode: promo?.code ?? null,
+      giftCode: giftCard?.code ?? null,
       totals,
       payment,
     };
@@ -530,6 +550,36 @@ export const bookingHandlers = [
     rescheduleMessages(updated, client.phone);
     db.persist();
     return HttpResponse.json(bookedOf(updated));
+  }),
+
+  http.post(`${BASE}/gift-cards/check`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const code = text(asRecord(await request.json().catch(() => ({}))).code);
+    const card = code ? findGiftCard(code) : undefined;
+    if (!card) return error(404, "gift_invalid", "No encontramos esa tarjeta de regalo. Revisa el código.");
+    if (card.balance <= 0) return error(422, "gift_empty", "Esa tarjeta de regalo ya no tiene saldo.");
+    return HttpResponse.json({ code: card.code, balance: card.balance });
+  }),
+
+  http.post(`${BASE}/gift-cards`, async ({ request }) => {
+    await delay(PAY_LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    const input = asRecord(await request.json().catch(() => ({})));
+    const amount = Math.round(Number(input.amount) * 100) / 100;
+    const recipientName = text(input.recipientName);
+    const recipientContact = text(input.recipientContact);
+    const fields: Record<string, string[]> = {};
+    if (!(amount >= GIFT_MIN && amount <= GIFT_MAX)) fields.amount = [`Entre ${GIFT_MIN} y ${GIFT_MAX}.`];
+    if (recipientName.length < 2) fields.recipientName = ["¿Para quién es?"];
+    if (recipientContact.replace(/\D/g, "").length < 8) fields.recipientContact = ["Escribe su celular para mandarle el código."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige con qué tarjeta pagas.", { fields: { card: ["Elige con qué tarjeta pagas."] } });
+    const charged = chargeCard(client, input, "card");
+    if (charged instanceof Response) return charged;
+    const card = createGiftCard({ initial: amount, buyerId: client.id, recipientName, recipientContact, message: text(input.message).slice(0, 200) });
+    db.persist();
+    return HttpResponse.json({ code: card.code, amount: card.initial, sentTo: `•••• ${recipientContact.replace(/\D/g, "").slice(-4)}`, paidWith: `${charged.brand} •••• ${charged.last4}` }, { status: 201 });
   }),
 
   http.get(`${BASE}/barbers/:id/reviews`, async ({ request, params }) => {

@@ -2,6 +2,8 @@ import { z } from "zod";
 import { api } from "@/lib/api";
 import {
   alternativesSchema,
+  giftCheckSchema,
+  giftPurchasedSchema,
   barberReviewsSchema,
   reviewSavedSchema,
   earliestSchema,
@@ -20,6 +22,9 @@ import {
   suggestionResponseSchema,
   reservationSchema,
   type Alternatives,
+  type GiftCheck,
+  type GiftPurchaseInput,
+  type GiftPurchased,
   type BarberReview,
   type Earliest,
   type Availability,
@@ -87,6 +92,8 @@ export const bookingApi = {
   barberReviews: (barberId: string, signal?: AbortSignal) => api.get<{ items: BarberReview[]; total: number }>(`/booking/barbers/${barberId}/reviews`, { query: { limit: 3 }, schema: barberReviewsSchema, signal }),
   review: (token: string, id: string, input: { rating: number; comment: string }) =>
     api.post<{ id: string; rating: number }>(`/booking/appointments/${id}/review`, input, { headers: session(token), schema: reviewSavedSchema }),
+  checkGift: (code: string) => api.post<GiftCheck>("/booking/gift-cards/check", { code }, { schema: giftCheckSchema }),
+  buyGift: (token: string, input: GiftPurchaseInput) => api.post<GiftPurchased>("/booking/gift-cards", input, { headers: session(token), schema: giftPurchasedSchema, timeoutMs: 30_000 }),
   repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>
     api.post<RepeatResult>(`/booking/appointments/${id}/repeat`, input, { headers: session(token), schema: repeatResultSchema }),
   cancel: (token: string, id: string, refundTo: "card" | "credit") => api.post<CancelResult>(`/booking/appointments/${id}/cancel`, { refundTo }, { headers: session(token), schema: cancelResultSchema }),

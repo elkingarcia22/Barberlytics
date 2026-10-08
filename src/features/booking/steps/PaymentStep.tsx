@@ -18,12 +18,16 @@ import { PromoField } from "../flow/PromoField";
 import { BookingSheet } from "../flow/BookingSheet";
 import { NewCardSheet } from "../flow/NewCardSheet";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
+import { EditSavedCardSheet, RemoveSavedCardSheet } from "../flow/SavedCardSheets";
 import { StepLayout } from "../flow/StepLayout";
 import { useReserveMutation } from "../queries";
-import type { PayMethod } from "../types";
+import type { BookingCustomer, PayMethod, SavedCard } from "../types";
 import { draftOrderLines } from "../useBookingTotals";
 
 const NO_TIP = "none";
+
+/** La primera tarjeta guardada que se puede usar (no vencida), o «tarjeta nueva». */
+const firstUsableCard = (cards: readonly SavedCard[]): string => cards.find((card) => new Date(card.expYear, card.expMonth, 1).getTime() > Date.now())?.id ?? NEW_CARD;
 
 /**
  * Pagar: la propina para el barbero, un cupón y cómo se paga. Si la barbería
@@ -45,7 +49,9 @@ export function PaymentStep() {
   const credit = customer?.credit ?? 0;
   // Con tarjetas guardadas abre en la primera que no esté vencida; si no, en «tarjeta nueva».
   const savedCards = customer?.cards ?? [];
-  const [cardChoice, setCardChoice] = React.useState<string>(() => savedCards.find((card) => new Date(card.expYear, card.expMonth, 1).getTime() > Date.now())?.id ?? NEW_CARD);
+  const [cardChoice, setCardChoice] = React.useState<string>(() => firstUsableCard(savedCards));
+  // Editar o quitar una guardada: la tarjeta se conserva al cerrar para que la hoja no se vacíe mientras sale.
+  const [cardSheet, setCardSheet] = React.useState<{ kind: "edit" | "remove"; card: SavedCard; open: boolean; openedAt: number } | null>(null);
   const [savedCvc, setSavedCvc] = React.useState("");
   // Guardar la tarjeta es una decisión del cliente: empieza sin marcar.
   const [saveCard, setSaveCard] = React.useState(false);
@@ -126,6 +132,21 @@ export function PaymentStep() {
     );
   };
 
+  const chooseCard = (value: string) => {
+    setCardChoice(value);
+    setSavedCvc("");
+    setShowCardErrors(false);
+    if (reserve.isError) reserve.reset();
+  };
+  const closeCardSheet = () => setCardSheet((current) => (current ? { ...current, open: false } : current));
+  // Tras quitar la elegida, pasa a otra que sirva; tras renovar una vencida sin otra elegida, queda esa.
+  const afterCardChange = (updated: BookingCustomer) => {
+    if (!cardSheet) return;
+    const { kind, card: changed } = cardSheet;
+    if (kind === "remove" && cardChoice === changed.id) chooseCard(card ? NEW_CARD : firstUsableCard(updated.cards));
+    if (kind === "edit" && cardChoice === NEW_CARD && !card) chooseCard(firstUsableCard(updated.cards));
+  };
+
   const lines = draftOrderLines(state, catalog, (item) => {
     const barber = catalog?.barbers.find((entry) => entry.id === item.barberId)?.name ?? t("booking.review.noPreference");
     return `${personName(item.person, customer)} · ${barber}${item.start ? ` · ${fmt.when(parseStart(item.start))}` : ""}`;
@@ -198,15 +219,17 @@ export function PaymentStep() {
           <SavedCardPicker
             cards={savedCards}
             value={cardChoice}
-            onChange={(value) => {
-              setCardChoice(value);
-              setSavedCvc("");
-              setShowCardErrors(false);
-              if (reserve.isError) reserve.reset();
-            }}
+            onChange={chooseCard}
             pending={card}
             onAddNew={() => setSheet({ open: true, prefill: false })}
             onEditPending={() => setSheet({ open: true, prefill: true })}
+            onRemovePending={() => {
+              setCard(null);
+              setSaveCard(false);
+              if (cardChoice === NEW_CARD) chooseCard(firstUsableCard(savedCards));
+            }}
+            onEditCard={(saved) => setCardSheet({ kind: "edit", card: saved, open: true, openedAt: Date.now() })}
+            onRemoveCard={(saved) => setCardSheet({ kind: "remove", card: saved, open: true, openedAt: Date.now() })}
             cvc={savedCvc}
             onCvcChange={setSavedCvc}
             showErrors={showCardErrors}
@@ -288,6 +311,8 @@ export function PaymentStep() {
           <Text tone="secondary">{t("booking.payment.shopMulti.bye")}</Text>
         </div>
       </BookingSheet>
+      <EditSavedCardSheet key={cardSheet?.kind === "edit" ? cardSheet.openedAt : "edit"} card={cardSheet?.kind === "edit" ? cardSheet.card : null} open={cardSheet?.kind === "edit" && cardSheet.open} onClose={closeCardSheet} onDone={afterCardChange} />
+      <RemoveSavedCardSheet card={cardSheet?.kind === "remove" ? cardSheet.card : null} open={cardSheet?.kind === "remove" && cardSheet.open} onClose={closeCardSheet} onDone={afterCardChange} />
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
         open={sheet.open}

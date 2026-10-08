@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingApi } from "./api";
-import type { NewCustomerInput, RescheduleInput, ReservationInput, WaitlistInput } from "./types";
+import type { NewCustomerInput, RescheduleInput, ReservationInput, SavedCardInput, WaitlistInput } from "./types";
 
 /** Claves jerárquicas: reservar o cancelar invalida la disponibilidad y «Mis citas» sin tocar el catálogo. */
 export const bookingKeys = {
@@ -114,6 +114,14 @@ export function useVerifyCodeMutation() {
 
 export function useCreateCustomerMutation(token: string | null) {
   return useMutation({ mutationFn: (input: NewCustomerInput) => bookingApi.createCustomer(needsSession(token), input) });
+}
+
+export function useUpdateCardMutation(token: string | null) {
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: SavedCardInput }) => bookingApi.updateCard(needsSession(token), id, input) });
+}
+
+export function useRemoveCardMutation(token: string | null) {
+  return useMutation({ mutationFn: (id: string) => bookingApi.removeCard(needsSession(token), id) });
 }
 
 export function useReserveMutation(token: string | null) {

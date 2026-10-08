@@ -470,6 +470,23 @@ describe("backend de la reserva", () => {
     expect(JSON.stringify(after.cards)).not.toContain("5105105105105100");
   });
 
+  test("una tarjeta guardada se edita (titular y vencimiento) y se elimina", async () => {
+    const { token } = await signIn();
+    const edited = await bookingApi.updateCard(token, "card_demo_mc", { holder: "Marcela G. Ruiz", expMonth: 3, expYear: 2031 });
+    expect(edited.cards.find((card) => card.id === "card_demo_mc")).toMatchObject({ holder: "Marcela G. Ruiz", expMonth: 3, expYear: 2031, last4: "4444" });
+    await expect(bookingApi.updateCard(token, "card_demo_mc", { holder: "Marcela", expMonth: 1, expYear: 2020 })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.updateCard(token, "card_demo_mc", { holder: "M", expMonth: 3, expYear: 2031 })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.updateCard(token, "card_que_no_existe", { holder: "Marcela", expMonth: 3, expYear: 2031 })).rejects.toMatchObject({ status: 404 });
+
+    const removed = await bookingApi.removeCard(token, "card_demo_visa");
+    expect(removed.cards.map((card) => card.id)).toEqual(["card_demo_mc"]);
+    // Ya no se puede pagar con la que se quitó.
+    const item = [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 10, 0)) }];
+    await expect(bookingApi.reserve(token, { branchId: "ma", items: item, products: [], tipId: null, promoCode: null, method: "card", savedCardId: "card_demo_visa" })).rejects.toMatchObject({ status: 422 });
+    const { customer } = await signIn();
+    expect(customer?.cards.map((card) => card.id)).toEqual(["card_demo_mc"]);
+  });
+
   test("con el código se ven las citas, se mueven y se cancelan con reembolso a saldo a favor", async () => {
     const session = await signIn();
     const reservation = await bookingApi.reserve(session.token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M", expiry: "12/30", save: false } });

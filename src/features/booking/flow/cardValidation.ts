@@ -42,7 +42,11 @@ export interface CardValues {
 const MIN_CARD = 13;
 const MIN_NAME = 3;
 
-function expiryOk(expiry: string, now = new Date()): boolean {
+/** El vencimiento de una tarjeta guardada como se escribe: «09/27». */
+export const savedCardExpiry = (card: { expMonth: number; expYear: number }): string => `${String(card.expMonth).padStart(2, "0")}/${String(card.expYear).slice(-2)}`;
+
+/** «MM/AA» bien escrito y todavía vigente. */
+export function expiryOk(expiry: string, now = new Date()): boolean {
   const [month, year] = expiry.split("/").map(Number);
   if (!month || year === undefined || Number.isNaN(year) || month < 1 || month > 12) return false;
   const end = new Date(2000 + year, month, 1);

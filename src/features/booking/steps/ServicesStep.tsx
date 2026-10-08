@@ -80,10 +80,11 @@ export function ServicesStep() {
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("booking.services.search")} aria-label={t("booking.services.search")} className="pl-9" />
         </div>
         {categories.length > 1 && (
-          <div className="-mx-5 -my-1.5 flex gap-2 overflow-x-auto px-5 py-1.5 [scrollbar-width:none]">
-            <Chip label={t("booking.services.all")} selected={category === ALL} onClick={() => setCategory(ALL)} className="shrink-0" />
+          // En varias líneas y no en una tira que se desliza: con ratón no hay cómo moverla de lado.
+          <div className="flex flex-wrap gap-2">
+            <Chip label={t("booking.services.all")} selected={category === ALL} onClick={() => setCategory(ALL)} />
             {categories.map((item) => (
-              <Chip key={item} label={item} selected={category === item} onClick={() => setCategory(item)} className="shrink-0" />
+              <Chip key={item} label={item} selected={category === item} onClick={() => setCategory(item)} />
             ))}
           </div>
         )}

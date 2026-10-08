@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";
 import { IconTile } from "@/components/utility/IconTile";
@@ -21,10 +22,10 @@ export function BranchStep() {
   return (
     <StepLayout title={t("booking.branch.title")} lead={t("booking.branch.lead")}>
       {state.items.length > 0 && (
-        <Text size="sm" tone="warning" className="flex items-center gap-2">
-          <ThemaIcon name="warning" size="sm" tone="warning" />
-          {t("booking.branch.changeWarning")}
-        </Text>
+        <Alert variant="warning">
+          <ThemaIcon name="warning" />
+          <AlertDescription>{t("booking.branch.changeWarning")}</AlertDescription>
+        </Alert>
       )}
       <div role="radiogroup" aria-label={t("booking.branch.title")} className={cn("grid grid-cols-1 gap-3", layout === "wide" && "sm:grid-cols-2")}>
         {shop.branches.map((branch) => (

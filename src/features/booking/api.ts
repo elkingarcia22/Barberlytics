@@ -4,6 +4,7 @@ import {
   availabilitySchema,
   bookedAppointmentSchema,
   bookingCatalogSchema,
+  branchDetailSchema,
   bookingCustomerSchema,
   bookingShopSchema,
   cancelResultSchema,
@@ -18,6 +19,7 @@ import {
   type BookingCatalog,
   type BookingCustomer,
   type BookingShop,
+  type BranchDetail,
   type CancelResult,
   type LookupResult,
   type MyAppointments,
@@ -39,6 +41,7 @@ const session = (token: string) => ({ "x-booking-token": token });
 /** Contrato de la reserva en línea; ver docs/API_CONTRACT.md. */
 export const bookingApi = {
   shop: (signal?: AbortSignal) => api.get<BookingShop>("/booking/shop", { schema: bookingShopSchema, signal }),
+  branch: (branchId: string, signal?: AbortSignal) => api.get<BranchDetail>(`/booking/branches/${branchId}`, { schema: branchDetailSchema, signal }),
   catalog: (branchId: string, signal?: AbortSignal) => api.get<BookingCatalog>("/booking/catalog", { query: { branchId }, schema: bookingCatalogSchema, signal }),
   availability: (params: { branchId: string; date: string; serviceIds: readonly string[]; barberId: string | null; exclude?: string }, signal?: AbortSignal) =>
     api.get<Availability>("/booking/availability", {

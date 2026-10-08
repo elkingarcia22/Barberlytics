@@ -1,10 +1,13 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
+import { BranchProfileSheet } from "../flow/BranchProfileSheet";
 import { StepLayout } from "../flow/StepLayout";
 
 /**
@@ -14,6 +17,7 @@ import { StepLayout } from "../flow/StepLayout";
 export function BranchStep() {
   const t = useAppT();
   const { shop, state, dispatch, fmt, layout } = useBookingFlow();
+  const [viewing, setViewing] = React.useState<string | null>(null);
   return (
     <StepLayout title={t("booking.branch.title")} lead={t("booking.branch.lead")}>
       {state.items.length > 0 && (
@@ -24,14 +28,14 @@ export function BranchStep() {
       )}
       <div role="radiogroup" aria-label={t("booking.branch.title")} className={cn("grid grid-cols-1 gap-3", layout === "wide" && "sm:grid-cols-2")}>
         {shop.branches.map((branch) => (
+          <div key={branch.id} className="relative">
           <MagicCard
-            key={branch.id}
             role="radio"
             aria-checked={branch.id === state.branchId}
             aria-label={`${branch.name}, ${branch.address}`}
             isSelected={branch.id === state.branchId}
             onClick={() => dispatch({ type: "chooseBranch", branchId: branch.id })}
-            contentClassName="items-center gap-4 text-left"
+            contentClassName="items-center gap-4 pr-9 text-left"
           >
             <IconTile size="xl" src={branch.imageUrl} icon={<ThemaIcon name="building" />} />
             <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -53,10 +57,22 @@ export function BranchStep() {
                 {t("booking.branch.barbers", { count: branch.barbers })}
               </Text>
             </span>
-            <ThemaIcon name="chevronRight" size="sm" tone="muted" />
           </MagicCard>
+          {/* El perfil es otro botón, fuera de la tarjeta: un botón no va dentro de otro. */}
+          <Button type="button" variant="ghost" size="icon-sm" className="absolute right-2 top-2" onClick={() => setViewing(branch.id)} aria-label={`${t("booking.branchProfile.view")}: ${branch.name}`}>
+            <ThemaIcon name="info" />
+          </Button>
+          </div>
         ))}
       </div>
+      <BranchProfileSheet
+        branchId={viewing}
+        onOpenChange={(open) => !open && setViewing(null)}
+        onChoose={(branchId) => {
+          setViewing(null);
+          dispatch({ type: "chooseBranch", branchId });
+        }}
+      />
     </StepLayout>
   );
 }

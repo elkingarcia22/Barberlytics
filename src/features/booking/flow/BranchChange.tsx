@@ -8,6 +8,7 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "./BookingContext";
 import { BookingSheet } from "./BookingSheet";
+import { BranchProfileSheet } from "./BranchProfileSheet";
 
 /**
  * La sede de la reserva, en el resumen: dónde será y un botón para cambiarla.
@@ -19,6 +20,7 @@ export function BranchChange() {
   const t = useAppT();
   const { shop, state, dispatch } = useBookingFlow();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isViewing, setIsViewing] = React.useState(false);
   const [picked, setPicked] = React.useState<string | null>(null);
   const current = shop.branches.find((branch) => branch.id === state.branchId);
   if (!current) return null;
@@ -48,12 +50,19 @@ export function BranchChange() {
           {current.address}, {current.city}
         </Text>
       </div>
-      {canChange && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => open(true)}>
-          <ThemaIcon name="edit" />
-          {t("booking.review.edit")}
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setIsViewing(true)}>
+          <ThemaIcon name="info" />
+          {t("booking.branchProfile.view")}
         </Button>
-      )}
+        {canChange && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => open(true)}>
+            <ThemaIcon name="edit" />
+            {t("booking.review.edit")}
+          </Button>
+        )}
+      </div>
+      <BranchProfileSheet branchId={isViewing ? current.id : null} onOpenChange={(openState) => !openState && setIsViewing(false)} />
 
       <BookingSheet
         open={isOpen}

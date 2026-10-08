@@ -4,7 +4,7 @@ import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
-import { buildIcs, firstBookableDay, isTodayOver, toStart } from "./bookingFormat";
+import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, type BookingState } from "./bookingState";
 import { cancellationTerms, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
@@ -81,6 +81,29 @@ describe("formatos de la reserva", () => {
     expect(ics).toContain("DTSTART:20261009T103000");
     expect(ics).toContain("DTEND:20261009T111500");
     expect(ics).toContain("SUMMARY:Barbería — Corte clásico + Barba");
+  });
+});
+
+describe("perfil de la sede", () => {
+  const hours = [0, 1, 2, 3, 4, 5, 6].map((day) => (day === 0 ? { day, opensAt: null, closesAt: null } : { day, opensAt: "09:00", closesAt: "19:00" }));
+
+  test("abierta, antes de abrir, tras cerrar y en un día sin horario", () => {
+    expect(openStateOf(hours, new Date(2026, 9, 8, 12, 0))).toEqual({ kind: "open", closesAt: "19:00" });
+    expect(openStateOf(hours, new Date(2026, 9, 8, 8, 0))).toEqual({ kind: "opensLater", opensAt: "09:00" });
+    expect(openStateOf(hours, new Date(2026, 9, 8, 19, 30))).toEqual({ kind: "closed" });
+    expect(openStateOf(hours, new Date(2026, 9, 11, 12, 0))).toEqual({ kind: "closed" });
+  });
+
+  test("el servidor arma el perfil con la descripción, el mapa y el horario de cada día", async () => {
+    const detail = await bookingApi.branch("ma");
+    expect(detail.name).toBe("Massachusetts");
+    expect(detail.mapsUrl).toContain("google.com/maps");
+    expect(detail.mapsUrl).toContain(encodeURIComponent("88 Newbury St"));
+    expect(detail.hours).toHaveLength(7);
+    expect(detail.hours.some((entry) => entry.opensAt === null)).toBe(true);
+    expect(detail.gallery.length).toBeGreaterThan(1);
+    expect(detail.description.length).toBeGreaterThan(20);
+    await expect(bookingApi.branch("zz")).rejects.toMatchObject({ status: 404 });
   });
 });
 

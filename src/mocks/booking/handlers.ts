@@ -7,6 +7,7 @@ import { cancellationTerms, computeTotals, findPromo, promoDiscount, tipAmount }
 import {
   availability,
   barberFree,
+  branchDetail,
   barberPrice,
   bookableBarbers,
   bookedOf,
@@ -143,6 +144,12 @@ export const bookingHandlers = [
   http.get(`${BASE}/shop`, async () => {
     await delay(LATENCY_MS);
     return HttpResponse.json(shop());
+  }),
+
+  http.get(`${BASE}/branches/:id`, async ({ params }) => {
+    await delay(LATENCY_MS);
+    const detail = branchDetail(String(params.id));
+    return detail ? HttpResponse.json(detail) : error(404, "not_found", "Esa sede no existe.");
   }),
 
   http.get(`${BASE}/catalog`, async ({ request }) => {

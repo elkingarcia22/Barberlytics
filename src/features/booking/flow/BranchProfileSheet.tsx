@@ -1,0 +1,264 @@
+import * as React from "react";
+import { useAppT } from "@/app/i18n";
+import { DrawerShell } from "@/components/overlays";
+import { Heading, Text } from "@/components/typography";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { IconTile } from "@/components/utility/IconTile";
+import { ThemaIcon } from "@/icons";
+import { cn } from "@/lib/utils";
+import { WEEK_ORDER, formatPhone, initialsOf, openStateOf, parseStart } from "../bookingFormat";
+import { useBookingCatalogQuery, useBranchDetailQuery } from "../queries";
+import { useBookingFlow } from "./BookingContext";
+import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { GalleryViewer } from "./GalleryViewer";
+
+const MAX_SERVICES = 6;
+const MAX_BARBERS = 8;
+
+interface BranchProfileSheetProps {
+  /** La sede que se mira; `null` lo mantiene cerrado. */
+  branchId: string | null;
+  onOpenChange: (open: boolean) => void;
+  /** Si se pasa, el pie ofrece elegir esta sede. */
+  onChoose?: (branchId: string) => void;
+}
+
+/**
+ * El perfil de una sede, para decidir dónde reservar: fotos, si está abierta
+ * ahora, cómo llegar, el horario de la semana, lo que se hace y quién atiende.
+ * La descripción, la dirección y el teléfono son los de Configuración ›
+ * Sucursales; los servicios y el equipo, los reservables en esa sede.
+ */
+export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchProfileSheetProps) {
+  const t = useAppT();
+  const { layout, fmt, state } = useBookingFlow();
+  const [viewing, setViewing] = React.useState<number | null>(null);
+  const [showAllServices, setShowAllServices] = React.useState(false);
+  const { data: detail, isLoading } = useBranchDetailQuery(branchId);
+  const { data: catalog } = useBookingCatalogQuery(branchId);
+  const [now] = React.useState(() => new Date());
+  const openState = detail ? openStateOf(detail.hours, now) : null;
+  const today = now.getDay();
+  const services = catalog?.services ?? [];
+  const barbers = catalog?.barbers ?? [];
+  const priceFrom = (serviceId: string, fallback: number) => {
+    const prices = barbers.map((barber) => barber.prices[serviceId]).filter((value): value is number => value !== undefined);
+    return prices.length > 0 ? Math.min(...prices) : fallback;
+  };
+  const shownServices = showAllServices ? services : services.slice(0, MAX_SERVICES);
+
+  return (
+    <DrawerShell
+      open={branchId !== null}
+      onOpenChange={onOpenChange}
+      side={layout === "wide" ? "right" : "bottom"}
+      size="lg"
+      contentStyle={DRAWER_FIT_STYLE}
+      title={detail?.name ?? ""}
+      description={detail ? `${detail.address}, ${detail.city}` : undefined}
+      leading={<IconTile size="lg" icon={<ThemaIcon name="building" />} src={detail?.gallery[0]} />}
+      actions={
+        detail && onChoose && detail.id !== state.branchId ? (
+          <Button type="button" size="lg" className="w-full" onClick={() => onChoose(detail.id)}>
+            {t("booking.branchProfile.choose", { name: detail.name })}
+          </Button>
+        ) : detail && onChoose ? (
+          <Button type="button" size="lg" variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
+            {t("booking.branchProfile.current")}
+          </Button>
+        ) : undefined
+      }
+    >
+      {isLoading || !detail ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {openState && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={openState.kind === "open" ? "secondary" : "outline"}>
+                {openState.kind === "open"
+                  ? t("booking.branchProfile.open")
+                  : openState.kind === "opensLater"
+                    ? t("booking.branchProfile.closedNow")
+                    : t("booking.branchProfile.closedToday")}
+              </Badge>
+              <Text size="sm" tone="secondary">
+                {openState.kind === "open"
+                  ? t("booking.branchProfile.closesAt", { time: fmt.clock(openState.closesAt) })
+                  : openState.kind === "opensLater"
+                    ? t("booking.branchProfile.opensAt", { time: fmt.clock(openState.opensAt) })
+                    : null}
+              </Text>
+              <Text size="sm" tone="muted" tabular>
+                {t("booking.branch.barbers", { count: detail.barbers })}
+              </Text>
+            </div>
+          )}
+
+          {detail.gallery.length > 0 && (
+            <section aria-label={t("booking.branchProfile.photos")} className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none]">
+              {detail.gallery.map((src, position) => (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setViewing(position)}
+                  aria-label={t("booking.barber.openPhoto", { current: position + 1, total: detail.gallery.length })}
+                  className={cn("group relative h-40 shrink-0 snap-start overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50", position === 0 ? "w-64" : "w-40")}
+                >
+                  <img src={src} alt="" loading={position === 0 ? "eager" : "lazy"} className="size-full object-cover transition-transform duration-slow ease-out-expo group-hover:scale-105 motion-reduce:transition-none" />
+                  <span className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white" aria-hidden>
+                    <ThemaIcon name="expand" size="xs" tone="inverse" />
+                  </span>
+                </button>
+              ))}
+            </section>
+          )}
+
+          <section className="flex flex-col gap-1.5">
+            <Heading level={6}>{t("booking.branchProfile.about")}</Heading>
+            <Text tone="secondary">{detail.description}</Text>
+          </section>
+
+          <section className="flex flex-col gap-3" aria-labelledby="branch-contact">
+            <Heading level={6} id="branch-contact">
+              {t("booking.branchProfile.contact")}
+            </Heading>
+            <div className="flex flex-col divide-y divide-border rounded-xl border border-border">
+              <div className="flex items-center gap-3 p-3">
+                <ThemaIcon name="compass" size="sm" tone="muted" />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Text size="sm" weight="medium">
+                    {detail.address}
+                  </Text>
+                  <Text size="xs" tone="muted">
+                    {detail.city}, {detail.state} {detail.zipcode}
+                  </Text>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <a href={detail.mapsUrl} target="_blank" rel="noreferrer">
+                    {t("booking.branchProfile.directions")}
+                  </a>
+                </Button>
+              </div>
+              <div className="flex items-center gap-3 p-3">
+                <ThemaIcon name="phone" size="sm" tone="muted" />
+                <Text size="sm" weight="medium" className="flex-1" tabular>
+                  {formatPhone(detail.phone)}
+                </Text>
+                <Button asChild variant="outline" size="sm">
+                  <a href={`tel:${detail.phone}`}>{t("booking.branchProfile.call")}</a>
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2" aria-labelledby="branch-hours">
+            <Heading level={6} id="branch-hours">
+              {t("booking.branchProfile.hours")}
+            </Heading>
+            <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
+              {WEEK_ORDER.map((day) => {
+                const entry = detail.hours.find((item) => item.day === day);
+                const isToday = day === today;
+                return (
+                  <li key={day} className={cn("flex items-center justify-between gap-3 px-3 py-2", isToday && "bg-primary/5")}>
+                    <Text size="sm" weight={isToday ? "semibold" : "normal"} className="capitalize">
+                      {fmt.weekday(day)}
+                      {isToday && (
+                        <Text as="span" size="xs" tone="primary" weight="medium">
+                          {" · "}
+                          {t("booking.branchProfile.today")}
+                        </Text>
+                      )}
+                    </Text>
+                    <Text size="sm" tone={entry?.opensAt ? "default" : "muted"} tabular>
+                      {entry?.opensAt && entry.closesAt ? `${fmt.clock(entry.opensAt)} – ${fmt.clock(entry.closesAt)}` : t("booking.branchProfile.closed")}
+                    </Text>
+                  </li>
+                );
+              })}
+            </ul>
+            {detail.closures.map((closure) => (
+              <Text key={closure.startDate} size="xs" tone="warning" className="flex items-start gap-1.5">
+                <ThemaIcon name="warning" size="xs" tone="warning" />
+                {closure.startDate === closure.endDate
+                  ? t("booking.branchProfile.closureOne", { name: closure.description, date: fmt.day(parseStart(`${closure.startDate}T00:00`)) })
+                  : t("booking.branchProfile.closureRange", { name: closure.description, from: fmt.day(parseStart(`${closure.startDate}T00:00`)), to: fmt.day(parseStart(`${closure.endDate}T00:00`)) })}
+              </Text>
+            ))}
+          </section>
+
+          {services.length > 0 && (
+            <section className="flex flex-col gap-2" aria-labelledby="branch-services">
+              <Heading level={6} id="branch-services">
+                {t("booking.branchProfile.services")}
+              </Heading>
+              <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
+                {shownServices.map((service) => (
+                  <li key={service.id} className="flex items-center gap-3 px-3 py-2.5">
+                    <IconTile size="sm" src={service.imageUrl} icon={<ThemaIcon name="scissors" />} />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <Text size="sm" weight="medium" truncate>
+                        {service.name}
+                      </Text>
+                      <Text size="xs" tone="muted">
+                        {t("booking.services.minutes", { count: service.durationMin })}
+                      </Text>
+                    </div>
+                    <Text size="sm" tabular tone="secondary">
+                      {t("booking.services.from", { price: fmt.money(priceFrom(service.id, service.price)) })}
+                    </Text>
+                  </li>
+                ))}
+              </ul>
+              {services.length > MAX_SERVICES && (
+                <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setShowAllServices((current) => !current)}>
+                  {showAllServices ? t("booking.branchProfile.showLess") : t("booking.branchProfile.showAll", { count: services.length })}
+                </Button>
+              )}
+            </section>
+          )}
+
+          {barbers.length > 0 && (
+            <section className="flex flex-col gap-2" aria-labelledby="branch-team">
+              <Heading level={6} id="branch-team">
+                {t("booking.branchProfile.team")}
+              </Heading>
+              <ul className="grid grid-cols-4 gap-3">
+                {barbers.slice(0, MAX_BARBERS).map((barber) => (
+                  <li key={barber.id} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+                    <Avatar size="lg">
+                      {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
+                      <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
+                    </Avatar>
+                    <Text size="xs" weight="medium" truncate className="w-full">
+                      {barber.name.split(" ")[0]}
+                    </Text>
+                    {barber.level && (
+                      <Text size="xs" tone="muted" truncate className="w-full">
+                        {barber.level}
+                      </Text>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {barbers.length > MAX_BARBERS && (
+                <Text size="xs" tone="muted">
+                  {t("booking.branchProfile.moreBarbers", { count: barbers.length - MAX_BARBERS })}
+                </Text>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+      <GalleryViewer photos={detail?.gallery ?? []} index={viewing} title={detail?.name ?? ""} onClose={() => setViewing(null)} />
+    </DrawerShell>
+  );
+}

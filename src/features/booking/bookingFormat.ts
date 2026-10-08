@@ -37,6 +37,8 @@ export interface BookingFormatters {
   dayLong: (date: Date) => string;
   /** «mié 28»: para chips donde no cabe el mes. */
   dayShort: (date: Date) => string;
+  /** «lunes» a partir de su número (0 = domingo). */
+  weekday: (day: number) => string;
   /** «10:30 a. m.». */
   time: (date: Date) => string;
   /** «jue 9 oct · 10:30 a. m.». */
@@ -54,6 +56,7 @@ export function useBookingFormat(currency = "USD"): BookingFormatters {
       money: (value: number) => formatNumber(value, { style: "currency", currency, minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }),
       day,
       dayLong: (date: Date) => formatDate(date, { weekday: "long", day: "numeric", month: "long" }),
+      weekday: (day: number) => formatDate(new Date(2026, 0, 4 + day), { weekday: "long" }),
       dayShort: (date: Date) => formatDate(date, { weekday: "short", day: "numeric" }).replace(",", ""),
       time,
       when: (date: Date) => `${day(date)} · ${time(date)}`,
@@ -126,3 +129,24 @@ export function formatPhone(value: string): string {
   const match = /^\+(\d{1,3})(\d{3})(\d{3})(\d{4})$/.exec(value.replace(/[\s()-]/g, ""));
   return match ? `+${match[1]} ${match[2]} ${match[3]} ${match[4]}` : value;
 }
+
+export interface DayHours {
+  day: number;
+  opensAt: string | null;
+  closesAt: string | null;
+}
+
+export type OpenState = { kind: "open"; closesAt: string } | { kind: "opensLater"; opensAt: string } | { kind: "closed" };
+
+/** ¿Está abierta la sede ahora? Si cierra o abre hoy, a qué hora; si no, cerrada. */
+export function openStateOf(hours: readonly DayHours[], now = new Date()): OpenState {
+  const today = hours.find((item) => item.day === now.getDay());
+  if (!today?.opensAt || !today.closesAt) return { kind: "closed" };
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  if (minutes < clockMinutes(today.opensAt)) return { kind: "opensLater", opensAt: today.opensAt };
+  if (minutes < clockMinutes(today.closesAt)) return { kind: "open", closesAt: today.closesAt };
+  return { kind: "closed" };
+}
+
+/** Los días de la semana empezando en lunes, como se lee un horario. */
+export const WEEK_ORDER: readonly number[] = [1, 2, 3, 4, 5, 6, 0];

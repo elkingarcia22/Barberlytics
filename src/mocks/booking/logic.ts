@@ -369,3 +369,55 @@ export function visitSuggestion(client: MockClient) {
     options,
   };
 }
+
+const GALLERY_EXTRA = [
+  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&h=800&fit=crop&auto=format&q=70",
+  "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1200&h=800&fit=crop&auto=format&q=70",
+  "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&h=800&fit=crop&auto=format&q=70",
+  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1200&h=800&fit=crop&auto=format&q=70",
+  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=1200&h=800&fit=crop&auto=format&q=70",
+];
+const DAYS_IN_WEEK = 7;
+
+/**
+ * El perfil de una sede: lo que se mira antes de elegirla. La descripción, la
+ * dirección y el teléfono son los de Configuración › Sucursales; el horario de
+ * cada día sale del que trabaja el equipo ese día (desde que entra el primero
+ * hasta que sale el último), y un día sin nadie es un día cerrado.
+ */
+export function branchDetail(branchId: string) {
+  const branch = (db.settings.lists.branches as unknown as { id: string; name: string; address: string; city: string; state: string; zipcode: string; phone: string; description: string; status: string }[]).find(
+    (item) => item.id === branchId && item.status === "active"
+  );
+  if (!branch) return null;
+  const members = bookableBarbers(branchId).map((barber) => memberOf(barber.id)).filter((member) => member !== undefined);
+  const hours = Array.from({ length: DAYS_IN_WEEK }, (_, day) => {
+    const ranges = members.flatMap((member) => {
+      const range = member.schedule[String(day)];
+      return range ? [range] : [];
+    });
+    if (ranges.length === 0) return { day, opensAt: null, closesAt: null };
+    return { day, opensAt: clockOf(Math.min(...ranges.map((range) => parseClock(range.start)))), closesAt: clockOf(Math.max(...ranges.map((range) => parseClock(range.end)))) };
+  });
+  const own = BRANCH_PHOTOS[branchId];
+  const fullAddress = `${branch.address}, ${branch.city}, ${branch.state} ${branch.zipcode}`;
+  return {
+    id: branch.id,
+    name: branch.name,
+    description:
+      branch.description.trim() ||
+      `Nuestra sede de ${branch.city}: ${members.length} barberos, de corte clásico a diseño y barba a navaja. Reserva con tu barbero de siempre o con quien tenga el primer hueco.`,
+    address: branch.address,
+    city: branch.city,
+    state: branch.state,
+    zipcode: branch.zipcode,
+    phone: branch.phone,
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
+    gallery: [own, ...GALLERY_EXTRA].filter((src): src is string => Boolean(src)).filter((src, index, all) => all.indexOf(src) === index).map((src) => src.replace("w=640&h=400", "w=1200&h=800")).slice(0, 5),
+    hours,
+    barbers: members.length,
+    closures: (db.settings.lists.closures as unknown as { startDate: string; endDate: string; branchIds: string[]; description: string }[])
+      .filter((closure) => closure.branchIds.includes(branchId) && closure.endDate >= dateKey(new Date()))
+      .map((closure) => ({ startDate: closure.startDate, endDate: closure.endDate, description: closure.description })),
+  };
+}

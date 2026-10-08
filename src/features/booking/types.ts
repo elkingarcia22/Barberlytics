@@ -45,6 +45,26 @@ export const bookingShopSchema = z.object({
 });
 export type BookingShop = z.infer<typeof bookingShopSchema>;
 
+export const branchDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  address: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zipcode: z.string(),
+  phone: z.string(),
+  /** Abre la dirección en el mapa del dispositivo. */
+  mapsUrl: z.string(),
+  gallery: z.array(z.string()),
+  /** Una entrada por día de la semana (0 = domingo); sin horas es un día cerrado. */
+  hours: z.array(z.object({ day: z.number(), opensAt: z.string().nullable(), closesAt: z.string().nullable() })),
+  barbers: z.number(),
+  /** Cierres que vienen (festivos, vacaciones). */
+  closures: z.array(z.object({ startDate: z.string(), endDate: z.string(), description: z.string() })),
+});
+export type BranchDetail = z.infer<typeof branchDetailSchema>;
+
 export const bookingServiceSchema = z.object({
   id: z.string(),
   name: z.string(),

@@ -6,6 +6,7 @@ import type { NewCustomerInput, RescheduleInput, ReservationInput } from "./type
 export const bookingKeys = {
   all: ["booking"] as const,
   shop: () => [...bookingKeys.all, "shop"] as const,
+  branch: (branchId: string) => [...bookingKeys.all, "branch", branchId] as const,
   catalog: (branchId: string) => [...bookingKeys.all, "catalog", branchId] as const,
   availabilities: () => [...bookingKeys.all, "availability"] as const,
   availability: (branchId: string, date: string, serviceIds: readonly string[], barberId: string | null, exclude?: string) =>
@@ -16,6 +17,15 @@ export const bookingKeys = {
 
 export function useBookingShopQuery() {
   return useQuery({ queryKey: bookingKeys.shop(), queryFn: ({ signal }) => bookingApi.shop(signal), staleTime: 10 * 60_000 });
+}
+
+export function useBranchDetailQuery(branchId: string | null) {
+  return useQuery({
+    queryKey: bookingKeys.branch(branchId ?? ""),
+    queryFn: ({ signal }) => bookingApi.branch(branchId as string, signal),
+    enabled: branchId !== null,
+    staleTime: 10 * 60_000,
+  });
 }
 
 export function useBookingCatalogQuery(branchId: string | null) {

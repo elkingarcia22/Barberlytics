@@ -235,6 +235,11 @@ export const bookedAppointmentSchema = z.object({
 });
 export type BookedAppointment = z.infer<typeof bookedAppointmentSchema>;
 
+/** Dejar una cita fija: las que se agendaron y los días que no hubo hueco. */
+export const repeatResultSchema = z.object({ created: z.array(bookedAppointmentSchema), skipped: z.array(z.string()) });
+export type RepeatResult = z.infer<typeof repeatResultSchema>;
+
+
 export const totalsSchema = z.object({
   services: z.number(),
   products: z.number(),

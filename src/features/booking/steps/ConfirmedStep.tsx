@@ -9,6 +9,7 @@ import { buildIcs, downloadIcs, parseStart } from "../bookingFormat";
 import { AppointmentCard } from "../flow/AppointmentCard";
 import { useBookingFlow } from "../flow/BookingContext";
 import { ReceiptView } from "../flow/ReceiptView";
+import { RepeatOffer } from "../flow/RepeatOffer";
 import { SendReceiptDialog } from "../flow/SendReceiptDialog";
 import { STEP_WIDTH } from "../flow/stepWidth";
 import type { Reservation } from "../types";
@@ -72,6 +73,8 @@ export function ConfirmedStep({ onFinish }: { onFinish?: () => void }) {
           {t("booking.confirmed.receipt")}
         </Button>
       </div>
+
+      <RepeatOffer reservation={reservation} />
 
       <section className="rounded-2xl border border-border bg-surface-subtle p-4">
         <ReceiptView reservation={reservation} fmt={fmt} />

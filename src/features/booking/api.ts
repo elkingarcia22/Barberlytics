@@ -14,6 +14,7 @@ import {
   otpSentSchema,
   otpVerifySchema,
   receiptSentSchema,
+  repeatResultSchema,
   suggestionResponseSchema,
   reservationSchema,
   type Alternatives,
@@ -30,6 +31,7 @@ import {
   type OtpSent,
   type OtpVerify,
   type ReceiptSent,
+  type RepeatResult,
   type RescheduleInput,
   type Reservation,
   type ReservationInput,
@@ -75,6 +77,8 @@ export const bookingApi = {
   verifyOtp: (phone: string, code: string) => api.post<OtpVerify>("/booking/otp/verify", { phone, code }, { schema: otpVerifySchema }),
   myAppointments: (token: string, signal?: AbortSignal) => api.get<MyAppointments>("/booking/me/appointments", { headers: session(token), schema: myAppointmentsSchema, signal }),
   reschedule: (token: string, id: string, input: RescheduleInput) => api.patch<BookedAppointment>(`/booking/appointments/${id}`, input, { headers: session(token), schema: bookedAppointmentSchema }),
+  repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>
+    api.post<RepeatResult>(`/booking/appointments/${id}/repeat`, input, { headers: session(token), schema: repeatResultSchema }),
   cancel: (token: string, id: string, refundTo: "card" | "credit") => api.post<CancelResult>(`/booking/appointments/${id}/cancel`, { refundTo }, { headers: session(token), schema: cancelResultSchema }),
   sendReceipt: (reservationId: string, input: { channel: "email" | "sms"; to: string }) => api.post<ReceiptSent>(`/booking/reservations/${reservationId}/receipt`, input, { schema: receiptSentSchema }),
 };

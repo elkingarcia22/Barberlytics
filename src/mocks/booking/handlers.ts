@@ -32,6 +32,7 @@ import {
 } from "./logic";
 import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alternatives";
 import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
+import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -500,6 +501,22 @@ export const bookingHandlers = [
     rescheduleMessages(updated, client.phone);
     db.persist();
     return HttpResponse.json(bookedOf(updated));
+  }),
+
+  http.post(`${BASE}/appointments/:id/repeat`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    const original = db.calendar.appointments.find((item) => item.id === params.id && item.clientId === client.id);
+    if (!original || original.status === "cancelled") return error(404, "not_found", "Esa cita no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const everyWeeks = REPEAT_WEEKS.find((weeks) => weeks === Number(input.everyWeeks));
+    const count = Math.floor(Number(input.count));
+    if (!everyWeeks) return error(422, "validation", "Elige cada cuántas semanas.");
+    if (!(count >= 1 && count <= MAX_REPEATS)) return error(422, "validation", `Entre 1 y ${MAX_REPEATS} citas.`);
+    const { created, skipped } = repeatAppointment(original, everyWeeks as RepeatWeeks, count, client.phone);
+    db.persist();
+    return HttpResponse.json({ created: created.map(bookedOf), skipped }, { status: 201 });
   }),
 
   http.post(`${BASE}/appointments/:id/cancel`, async ({ request, params }) => {

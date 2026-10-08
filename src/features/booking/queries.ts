@@ -124,6 +124,18 @@ export function useReserveMutation(token: string | null) {
   });
 }
 
+/** Deja fijas las citas de una reserva: una petición por cita, todas a la vez. */
+export function useRepeatMutation(token: string | null) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, everyWeeks, count }: { ids: readonly string[]; everyWeeks: number; count: number }) => {
+      const results = await Promise.all(ids.map((id) => bookingApi.repeat(needsSession(token), id, { everyWeeks, count })));
+      return { created: results.flatMap((result) => result.created), skipped: [...new Set(results.flatMap((result) => result.skipped))] };
+    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: bookingKeys.availabilities() }),
+  });
+}
+
 export function useMyAppointmentsQuery(token: string | null) {
   return useQuery({
     queryKey: bookingKeys.mine(token ?? ""),

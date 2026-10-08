@@ -7,7 +7,7 @@ import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation";
-import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
+import { buildIcs, firstBookableDay, isTodayOver, openStateOf, parseStart, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, chargesCardFee, computeTotals, depositOf, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
@@ -304,6 +304,26 @@ describe("backend de la reserva", () => {
     expect(held.payment.paid).toBeLessThan(held.totals.total);
   });
 
+  test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {
+    const { token } = await signIn();
+    const start = new Date(2026, 9, 12, 10, 0);
+    const reservation = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: "team-04", start: toStart(start) }], products: [], tipId: null, promoCode: null, method: "shop" });
+    const original = reservation.appointments[0];
+    const result = await bookingApi.repeat(token, original.id, { everyWeeks: 3, count: 3 });
+    expect(result.created.length + result.skipped.length).toBe(3);
+    for (const item of result.created) {
+      expect(item.barberId).toBe("team-04");
+      // Cada una cae 3, 6 y 9 semanas después (a la misma hora, o la más cercana ese día).
+      const weeksAfter = Math.round((parseStart(item.start).getTime() - start.getTime()) / (7 * 86_400_000));
+      expect([3, 6, 9]).toContain(weeksAfter);
+    }
+    const series = db.calendar.appointments.filter((item) => item.seriesId === `ser_web_${original.id}`);
+    expect(series.length).toBe(result.created.length + 1);
+    expect(series.every((item) => item.repeat === "triweekly")).toBe(true);
+    await expect(bookingApi.repeat(token, original.id, { everyWeeks: 5, count: 3 })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.repeat("bk_inventado", original.id, { everyWeeks: 3, count: 1 })).rejects.toMatchObject({ status: 403 });
+  });
+
   test("reservar programa la confirmación y los recordatorios; mover la cita los mueve y cancelarla los anula", async () => {
     const { token } = await signIn();
     const start = new Date(2026, 9, 10, 15, 0);
@@ -334,7 +354,7 @@ describe("backend de la reserva", () => {
   test("«Lo antes posible» da el primer hueco desde hoy, con el barbero elegido o con quien esté libre", async () => {
     const any = await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null });
     expect(any.slot).not.toBeNull();
-    expect(any.slot?.date >= "2026-10-08").toBe(true);
+    expect((any.slot?.date ?? "") >= "2026-10-08").toBe(true);
     // Ese hueco existe de verdad en la disponibilidad de ese día y con ese barbero.
     const day = await bookingApi.availability({ branchId: "ma", date: any.slot?.date ?? "", serviceIds: ["svc_corte"], barberId: any.slot?.barberId ?? null });
     expect(day.slots.some((slot) => slot.time === any.slot?.time)).toBe(true);

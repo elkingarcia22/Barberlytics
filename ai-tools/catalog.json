@@ -1,5 +1,5 @@
 {
-  "sourceHash": "82b027c321a43810",
+  "sourceHash": "9db3ece6f43ebeee",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -13762,7 +13762,7 @@
         {
           "id": "grouped",
           "title": "Citas agrupadas de un mismo cliente",
-          "description": "Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede traer a la familia en otra silla a la misma hora. Con `group` ({ id, index, size, joinTop, joinBottom }) cada tarjeta lleva el filete de la marca y la píldora «2/4»; las que se pegan en la misma columna (`joinTop`/`joinBottom`) pierden el aire y el radio de ese lado y se leen como un solo bloque. El siguiente paso va solo en la primera: el cliente ingresa una vez.",
+          "description": "Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede traer a la familia en otra silla a la misma hora. Con `group` ({ id, index, size, joinTop, joinBottom }) cada tarjeta va rodeada por un borde discontinuo de la marca y lleva la píldora «2/4»; las que se pegan en la misma columna (`joinTop`/`joinBottom`) pierden el aire, el borde y el radio de ese lado: un solo contorno envuelve la visita. El siguiente paso va solo en la primera: el cliente ingresa una vez.",
           "code": "<ResourceDayGrid\n  date={hoy}\n  resources={barberos}\n  events={[\n    { id: \"g1\", resourceId: \"andres\", start, end, title: \"Laura Rincón\", subtitle: \"Corte clásico\", group: { id: \"laura\", index: 1, size: 3, joinBottom: true } },\n    { id: \"g2\", resourceId: \"andres\", start, end, title: \"Laura Rincón\", subtitle: \"Barba\", group: { id: \"laura\", index: 2, size: 3, joinTop: true } },\n    { id: \"g3\", resourceId: \"nicolas\", start, end, title: \"Sofía Rincón (hija)\", group: { id: \"laura\", index: 3, size: 3 } },\n  ]}\n/>"
         },
         {

@@ -5,7 +5,8 @@ import { AdminShell, type ShellConfigOverrides } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { ThemeModeToggle, useTheme } from "@/themes";
 import { useAppT } from "@/app/i18n";
-import { helpPath, useHelpIndex } from "./content";
+import { LanguageSelector } from "@/i18n";
+import { HELP_LOCALES, helpPath, useHelpIndex } from "./content";
 import { buildHelpNavigation, helpNavIdFromPath } from "./helpNavigation";
 
 /**
@@ -76,6 +77,8 @@ export function HelpShell({ children }: { children: React.ReactNode }) {
       },
       headerActions: (
         <>
+          {/* Solo los idiomas en que está escrito el contenido: en otro, la ayuda saldría a medias. */}
+          <LanguageSelector compact only={HELP_LOCALES} />
           <ThemeModeToggle />
           <Button asChild className="gap-inline">
             <Link to="/metricas">

@@ -50,6 +50,14 @@ describe("answerFromArticle", () => {
     expect(answer.body).toBeNull();
   });
 
+  test("entiende los artículos traducidos al inglés", () => {
+    const answer = answerFromArticle(`# Create an appointment\n\n**In short:** tap **Actions › Create appointment**.\n\n## Steps\n\n1. Tap **Create**.\n\n## Frequently asked questions\n\n**Can I?**\nYes.\n`);
+
+    expect(answer.summary).toBe("Tap **Actions › Create appointment**.");
+    expect(answer.heading).toBe("Steps");
+    expect(answer.body).toBe("1. Tap **Create**.");
+  });
+
   test("corta las listas largas para que la respuesta quepa en el chat", () => {
     const steps = Array.from({ length: 14 }, (_, i) => `${i + 1}. Paso ${i + 1}.`).join("\n");
     const answer = answerFromArticle(`# Largo\n\n## Pasos\n\n${steps}\n`);

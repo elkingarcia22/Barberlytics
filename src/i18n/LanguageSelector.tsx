@@ -5,11 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SegmentedGroup } from "@/components/ui/segmented-group";
 import { useLocale } from "./localeContext";
+import type { LocaleId } from "./locales";
 
 export interface LanguageSelectorProps {
   className?: string;
   /** Solo el icono, para cabeceras apretadas. Por defecto muestra el idioma. */
   compact?: boolean;
+  /**
+   * Los idiomas que se ofrecen, si no son todos los del sistema: una
+   * superficie cuyo contenido solo existe en algunos idiomas (el centro de
+   * ayuda) no ofrece uno en el que se vería a medias.
+   */
+  only?: readonly LocaleId[];
 }
 
 /**
@@ -20,8 +27,9 @@ export interface LanguageSelectorProps {
  * no "Francés"— porque quien lo busca lo reconoce así, no traducido al que
  * no entiende.
  */
-function LocaleRadioList() {
-  const { locale, setLocale, locales, t } = useLocale();
+function LocaleRadioList({ only }: { only?: readonly LocaleId[] }) {
+  const { locale, setLocale, locales: all, t } = useLocale();
+  const locales = only ? all.filter((option) => only.includes(option.id)) : all;
 
   return (
     <div role="radiogroup" aria-label={t("language.label")} className="flex flex-col">
@@ -77,7 +85,7 @@ export function LanguagePickerPanel({ className }: { className?: string }) {
  * El interruptor de idioma del sistema, hermano de `ThemeSelector`: se monta
  * una vez en la cabecera y toda la interfaz lo sigue.
  */
-export function LanguageSelector({ className, compact = false }: LanguageSelectorProps) {
+export function LanguageSelector({ className, compact = false, only }: LanguageSelectorProps) {
   const { current, t } = useLocale();
   const [open, setOpen] = React.useState(false);
 
@@ -100,7 +108,7 @@ export function LanguageSelector({ className, compact = false }: LanguageSelecto
           <p className="text-sm font-semibold text-text-primary">{t("language.label")}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{t("language.description")}</p>
         </div>
-        <LocaleRadioList />
+        <LocaleRadioList only={only} />
       </PopoverContent>
     </Popover>
   );

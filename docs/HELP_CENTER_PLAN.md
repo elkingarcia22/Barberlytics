@@ -53,7 +53,8 @@ pero está apagado y sin `onClick` (vive en `src/components/app-shell/`, carpeta
 ```
 help/                                  ← fuera de src: contenido, no código
 ├── content/
-│   └── es/                            ← inglés después, misma estructura
+│   ├── es/                            ← la fuente
+│   └── en/                            ← traducción, mismos archivos (ver §3.3.1)
 │       ├── empezar/
 │       │   ├── _section.md            ← título, descripción, orden, icono de la sección
 │       │   ├── que-es-barberlytics.md
@@ -174,6 +175,28 @@ Se ejecuta en `npm run help` y dentro de `npm run verify`.
 - **⌘K**: los artículos entran como `objects` en `GlobalSearch` con scope propio («Ayuda»),
   sin tocar el shell.
 - **Preguntar** (fase 4): «Pregúntale a Barberlytics» sobre la base, con citas al artículo.
+
+### 3.3.1 Idiomas (2026-10-08)
+
+El centro de ayuda está en **español e inglés**. La cabecera lleva el selector de idioma del
+sistema (`LanguageSelector only={HELP_LOCALES}`) al lado del de modo claro/oscuro, y ofrece solo
+los idiomas en que hay contenido: el francés del resto de la app no aparece aquí porque la ayuda
+saldría a medias.
+
+- **Contenido**: el repo `centro-de-ayuda` tiene `content/es/` (fuente) y `content/en/`, con los
+  mismos archivos e `id`; las reglas están en su `TRANSLATING.md`. El build publica el español en
+  la raíz de `dist/` (como siempre) y cada traducción en `dist/<idioma>/`. Las capturas son
+  compartidas (`/assets/es/…`).
+- **App**: `src/help/content.ts` elige la base por idioma (`useHelpLocale`, `toHelpLocale`: lo que
+  no es español cae al inglés), la caché de react-query lleva el idioma en la clave y, si una
+  traducción aún no está publicada (404), lee el español. Cambiar de idioma no cambia la ruta:
+  `/ayuda/<id>` es la misma en los dos.
+- **Artículo sin traducir**: sale en español dentro del índice inglés con `locale: "es"` y la
+  página lo avisa (`help.untranslatedNotice`).
+- **Búsqueda y chat**: sinónimos, palabras vacías y raíces en los dos idiomas (`src/lib/help`);
+  el chat busca y responde en el idioma activo, y `answerFromArticle` reconoce «In short» y
+  «Steps» además de «En resumen» y «Pasos».
+- **Guías paso a paso** (`guides.ts`): cada texto es `Localized` (`{ es, en }`).
 
 ### 3.4 Puntos de entrada y qué toca carpetas protegidas
 

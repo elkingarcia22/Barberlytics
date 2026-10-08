@@ -41,6 +41,7 @@ export const appEn: AppMessageCatalog = {
   "help.status.draft": "Draft",
   "help.status.review": "In review",
   "help.draftNotice": "This article is a draft and may change.",
+  "help.untranslatedNotice": "This article hasn't been translated yet, so it's shown in Spanish.",
   "help.onThisPage": "In this article",
   "help.related": "Related",
   "help.wasHelpful": "Was this article helpful?",

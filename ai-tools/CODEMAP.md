@@ -164,7 +164,7 @@ Router, providers, layout, navegación y páginas de error.
 
 ### chat
 
-- **index.ts** — El chat de la app: un solo almacén de conversaciones para el panel, la pantalla completa y el modo voz, y qui… · `chatStore`, `AppChatLabels`, `createAppChatBackend` · usa: @/help/chat, @/lib/chat
+- **index.ts** — El chat de la app: un solo almacén de conversaciones para el panel, la pantalla completa y el modo voz, y qui… · `chatStore`, `AppChatLabels`, `createAppChatBackend` · usa: @/help/chat, @/help/content, @/lib/chat
 
 ### components
 

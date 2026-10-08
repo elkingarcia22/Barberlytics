@@ -13,7 +13,7 @@ import { ListItemGroup } from "@/components/data-display/ListItem";
 import { QueryBoundary } from "@/lib/query";
 import { useAppT } from "@/app/i18n";
 import type { HelpArticleMeta, HelpIndex } from "@/lib/help";
-import { helpPath, useHelpArticle, useHelpIndex } from "../content";
+import { helpPath, useHelpArticle, useHelpIndex, useHelpLocale } from "../content";
 import { HelpMarkdown } from "../markdown/HelpMarkdown";
 import { prepareBody } from "../markdown/prepareBody";
 import { ArticleRow, RoleTags, StatusTag } from "../HelpBits";
@@ -85,6 +85,9 @@ function ArticleView({ index, article }: { index: HelpIndex; article: HelpArticl
   const t = useAppT();
   const navigate = useNavigate();
   const formatUpdated = useFormatUpdated();
+  const helpLocale = useHelpLocale();
+  // En el índice de una traducción, lo que aún no se traduce sale en español: se avisa.
+  const isUntranslated = Boolean(article.locale && article.locale !== helpLocale);
   const body = useHelpArticle(article.id);
   const section = index.sections.find((item) => item.id === article.section);
   const related = article.related.map((id) => index.articles[id]).filter(Boolean);
@@ -134,6 +137,12 @@ function ArticleView({ index, article }: { index: HelpIndex; article: HelpArticl
               <span>{t("help.updated", { date: formatUpdated(article.updated) })}</span>
             </div>
           </header>
+
+          {isUntranslated && (
+            <Alert variant="info" className="mt-6" data-testid="help-untranslated">
+              <AlertDescription>{t("help.untranslatedNotice")}</AlertDescription>
+            </Alert>
+          )}
 
           {article.status === "draft" && (
             <Alert variant="warning" className="mt-6">

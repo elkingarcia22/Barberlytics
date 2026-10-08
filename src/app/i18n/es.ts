@@ -52,6 +52,7 @@ export const appEs = {
   "help.status.draft": "Borrador",
   "help.status.review": "En revisión",
   "help.draftNotice": "Este artículo está en borrador y puede cambiar.",
+  "help.untranslatedNotice": "Este artículo todavía no está traducido: lo ves en su idioma original.",
   "help.onThisPage": "En este artículo",
   "help.related": "Relacionado",
   "help.wasHelpful": "¿Te sirvió este artículo?",

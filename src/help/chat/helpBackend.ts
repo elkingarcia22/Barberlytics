@@ -1,12 +1,14 @@
 import { answerFromArticle, isConfidentAnswer, searchHelp, type HelpArticleMeta, type HelpIndex } from "@/lib/help";
 import type { ChatBackend, ChatReply } from "@/lib/chat";
-import { helpPath, loadHelpArticle, loadHelpIndex, loadHelpSearchDocs } from "../content";
+import { helpPath, loadHelpArticle, loadHelpIndex, loadHelpSearchDocs, type HelpLocale } from "../content";
 import { prepareBody } from "../markdown/prepareBody";
 
 /** La respuesta y dos artículos más que también podrían servir. */
 const HITS = 3;
 
 export interface HelpBackendOptions {
+  /** El idioma en que se busca y se responde. */
+  locale: HelpLocale;
   /** Cuando ningún artículo cubre la pregunta. Sin esto, se responde que no se encontró. */
   fallback?: ChatBackend;
   /** Textos de la respuesta, ya traducidos. */
@@ -31,7 +33,7 @@ function sourceOf(article: HelpArticleMeta | undefined, index: HelpIndex): { lab
  * un toque y los relacionados como sugerencias. Si nada cubre la pregunta
  * se la pasa a `fallback` (las respuestas de ejemplo), o dice que no.
  */
-export function createHelpBackend({ fallback, labels }: HelpBackendOptions): ChatBackend {
+export function createHelpBackend({ locale, fallback, labels }: HelpBackendOptions): ChatBackend {
   return {
     async reply(question, history, signal): Promise<ChatReply> {
       // A media conversación con quien responde de respaldo —contestando su
@@ -41,14 +43,14 @@ export function createHelpBackend({ fallback, labels }: HelpBackendOptions): Cha
       if (fallback && last?.via && last.via !== "help" && (last.question || last.followups?.includes(question))) {
         return fallback.reply(question, history, signal);
       }
-      const docs = await loadHelpSearchDocs();
+      const docs = await loadHelpSearchDocs(locale);
       const hits = searchHelp(docs, question, { limit: HITS });
       const top = hits[0];
       if (!top || !isConfidentAnswer(top, question)) {
         if (fallback) return fallback.reply(question, history, signal);
         return { text: labels.notFound };
       }
-      const [index, markdown] = await Promise.all([loadHelpIndex(), loadHelpArticle(top.id)]);
+      const [index, markdown] = await Promise.all([loadHelpIndex(locale), loadHelpArticle(locale, top.id)]);
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
       const article = index.articles[top.id];
       const answer = answerFromArticle(prepareBody(markdown, index));

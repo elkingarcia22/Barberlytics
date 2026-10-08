@@ -4,34 +4,35 @@ import type { HelpRole, HelpSearchDoc } from "./types";
 /**
  * Sinónimos de barbería: quien escribe «teléfono» tiene que encontrar
  * «celular», y «login» tiene que dar con «entrar». Cada grupo es una sola
- * idea; la búsqueda expande la palabra escrita a todo su grupo.
+ * idea, en los dos idiomas del contenido; la búsqueda expande la palabra
+ * escrita a todo su grupo.
  */
 const SYNONYM_GROUPS: readonly (readonly string[])[] = [
-  ["celular", "numero", "telefono", "movil", "whatsapp", "linea"],
-  ["codigo", "sms", "otp", "clave", "pin", "verificacion", "mensaje", "texto"],
-  ["entrar", "ingresar", "login", "acceder", "acceso", "iniciar", "sesion", "loguear", "logear"],
+  ["celular", "numero", "telefono", "movil", "whatsapp", "linea", "phone", "cell", "mobile", "number"],
+  ["codigo", "sms", "otp", "clave", "pin", "verificacion", "mensaje", "texto", "code", "verification", "message", "text"],
+  ["entrar", "ingresar", "login", "acceder", "acceso", "iniciar", "sesion", "loguear", "logear", "sign", "signin", "log", "access", "enter"],
   ["contrasena", "password", "codigo"],
   ["correo", "email", "mail", "gmail", "outlook", "hotmail", "microsoft"],
-  ["bloqueado", "bloqueo", "bloquear", "bloquearon", "intentos", "bloqueada"],
-  ["cita", "citas", "reserva", "reservas", "agenda", "turno", "booking", "agendar"],
-  ["barbero", "barbera", "barberos", "estilista", "peluquero"],
-  ["cliente", "clienta", "clientes", "clientela"],
-  ["sucursal", "sucursales", "local", "sede", "tienda", "barberia"],
+  ["bloqueado", "bloqueo", "bloquear", "bloquearon", "intentos", "bloqueada", "locked", "attempts"],
+  ["cita", "citas", "reserva", "reservas", "agenda", "turno", "booking", "agendar", "appointment", "appointments", "book", "bookings", "schedule"],
+  ["barbero", "barbera", "barberos", "estilista", "peluquero", "barber", "barbers", "stylist", "hairdresser"],
+  ["cliente", "clienta", "clientes", "clientela", "client", "clients", "customer", "customers"],
+  ["sucursal", "sucursales", "local", "sede", "tienda", "barberia", "location", "locations", "branch", "store", "shop", "barbershop"],
   // Sin «pago»: también es lo que paga un cliente, y arrastraba sus artículos a las preguntas de nómina.
-  ["nomina", "liquidacion", "comision", "comisiones", "sueldo", "salario"],
-  ["renta", "arriendo", "alquiler", "silla"],
-  ["equipo", "personal", "staff", "usuarios", "empleados"],
-  ["soporte", "ayuda", "ticket", "contacto", "contactar", "escribir"],
-  ["salir", "cerrar", "logout", "desconectar"],
-  ["ocupacion", "llena", "disponibilidad", "capacidad"],
-  ["retencion", "churn", "perdidos", "regresan", "vuelven", "fidelidad"],
-  ["precio", "precios", "tarifa", "cobrar", "cobro", "valor"],
-  ["registrarse", "registro", "crear", "cuenta", "nueva", "empezar", "agregar", "anadir", "sumar"],
-  ["recuperar", "olvide", "olvido", "perdi", "recordar"],
-  ["vencio", "vencido", "expiro", "expirado", "caduco", "caducado"],
-  ["error", "falla", "fallo", "problema", "incorrecto", "invalido"],
-  ["rol", "roles", "perfil", "perfiles", "cargo"],
-  ["permiso", "permisos", "permitir", "autorizar", "restringir"],
+  ["nomina", "liquidacion", "comision", "comisiones", "sueldo", "salario", "payroll", "commission", "commissions", "salary", "wage", "wages"],
+  ["renta", "arriendo", "alquiler", "silla", "rent", "rental", "chair", "booth"],
+  ["equipo", "personal", "staff", "usuarios", "empleados", "team", "users", "employees"],
+  ["soporte", "ayuda", "ticket", "contacto", "contactar", "escribir", "support", "help", "contact"],
+  ["salir", "cerrar", "logout", "desconectar", "signout"],
+  ["ocupacion", "llena", "disponibilidad", "capacidad", "occupancy", "availability", "capacity", "full"],
+  ["retencion", "churn", "perdidos", "regresan", "vuelven", "fidelidad", "retention", "lost", "returning", "loyalty"],
+  ["precio", "precios", "tarifa", "cobrar", "cobro", "valor", "price", "prices", "rate", "charge", "cost"],
+  ["registrarse", "registro", "crear", "cuenta", "nueva", "empezar", "agregar", "anadir", "sumar", "register", "signup", "create", "add", "new"],
+  ["recuperar", "olvide", "olvido", "perdi", "recordar", "recover", "forgot", "forget", "remember"],
+  ["vencio", "vencido", "expiro", "expirado", "caduco", "caducado", "expired", "expire", "expires"],
+  ["error", "falla", "fallo", "problema", "incorrecto", "invalido", "problem", "wrong", "invalid", "fail", "failed", "broken"],
+  ["rol", "roles", "perfil", "perfiles", "cargo", "role", "profile", "profiles"],
+  ["permiso", "permisos", "permitir", "autorizar", "restringir", "permission", "permissions", "allow", "restrict"],
 ];
 
 const SYNONYMS: ReadonlyMap<string, readonly string[]> = new Map(

@@ -31,6 +31,12 @@ const STOP_WORDS: ReadonlySet<string> = new Set([
   "necesito", "saber", "sobre", "algo", "alguien",
   // Los verbos de «¿cómo…?» que no dicen qué se busca: «dónde veo las comisiones» pesa por «comisiones».
   "veo", "ver", "puedo", "hago", "hacer", "pongo", "poner", "este", "esta", "esto", "ese", "esa", "eso", "le", "les",
+  // Lo mismo en inglés, para el contenido traducido: «how do I see my commissions» pesa por «commissions».
+  // «no», «not» y «my» se quedan por la misma razón que en español.
+  "an", "is", "are", "was", "be", "it", "its", "for", "with", "at", "by", "from", "as", "or", "this", "that", "these", "those",
+  "how", "what", "where", "when", "who", "which", "why", "do", "does", "did", "can", "could", "should", "would", "will",
+  "have", "has", "there", "want", "need", "know", "about", "some", "someone", "something", "see", "get", "make", "put",
+  "you", "your", "they", "them", "their", "we", "our", "us",
 ]);
 
 /** Palabras de búsqueda: sin tildes, sin signos, sin las vacías ni las de una letra. */
@@ -60,5 +66,8 @@ export function stems(token: string): string[] {
     const root = token.slice(0, -1);
     forms.push(`${root}ar`, `${root}er`, `${root}ir`);
   }
+  // En inglés, el gerundio y el pasado: «booking» → «book», «blocked» → «block», «created» → «create».
+  if (token.length > 5 && token.endsWith("ing")) forms.push(token.slice(0, -3), `${token.slice(0, -3)}e`);
+  if (token.length > 4 && token.endsWith("ed")) forms.push(token.slice(0, -2), token.slice(0, -1));
   return forms;
 }

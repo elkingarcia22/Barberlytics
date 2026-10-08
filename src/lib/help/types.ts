@@ -34,6 +34,11 @@ export interface HelpArticleMeta {
   readingMinutes: number;
   /** Ruta del cuerpo relativa a la base publicada: `articles/<id>.md`. */
   path: string;
+  /**
+   * El idioma en que está escrito de verdad. En el índice de una traducción,
+   * un artículo que aún no se traduce sale en español con `locale: "es"`.
+   */
+  locale?: string;
 }
 
 export interface HelpSection {
@@ -49,6 +54,8 @@ export interface HelpSection {
 
 export interface HelpIndex {
   locale: string;
+  /** Los idiomas que publica el repo de contenido. */
+  locales?: readonly string[];
   generatedAt: string;
   siteUrl: string;
   sections: readonly HelpSection[];

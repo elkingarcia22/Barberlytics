@@ -20,13 +20,23 @@ export interface HelpAnswer {
   truncated: boolean;
 }
 
-/** Las secciones que dicen cómo hacer algo, en orden de preferencia. */
-const HOW_TO_HEADINGS = ["Pasos", "Cómo llegar", "Dónde está", "Qué muestra", "Para qué te sirve"] as const;
+/**
+ * Las secciones que dicen cómo hacer algo, en orden de preferencia. Van en
+ * los dos idiomas del contenido: los títulos fijos de cada traducción están
+ * en `TRANSLATING.md` del repo de contenido.
+ */
+const HOW_TO_HEADINGS = [
+  ["Pasos", "Steps"],
+  ["Cómo llegar", "How to get there"],
+  ["Dónde está", "Where it is"],
+  ["Qué muestra", "What it shows"],
+  ["Para qué te sirve", "What it's for"],
+] as const;
 
 /** Lo que cabe en una burbuja sin volverse la página entera. */
 const MAX_LINES = 8;
 
-const SUMMARY = /^\*\*En resumen:\*\*\s*(.+)$/m;
+const SUMMARY = /^\*\*(?:En resumen|In short):\*\*\s*(.+)$/m;
 
 function stripFrontmatterAndTitle(markdown: string): string {
   return markdown.replace(/^---\n[\s\S]*?\n---\n/, "").replace(/^\s*#\s+.+\n+/, "");
@@ -64,7 +74,7 @@ export function answerFromArticle(markdown: string): HelpAnswer {
   const body = stripFrontmatterAndTitle(markdown);
   const summaryMatch = SUMMARY.exec(body);
   const bySection = sections(body);
-  const heading = HOW_TO_HEADINGS.find((title) => bySection.has(title)) ?? null;
+  const heading = HOW_TO_HEADINGS.flat().find((title) => bySection.has(title)) ?? null;
   const section = heading ? tidy(bySection.get(heading) ?? "") : null;
 
   // Tras «En resumen:» el artículo sigue en minúscula; suelto en el chat abre la frase.

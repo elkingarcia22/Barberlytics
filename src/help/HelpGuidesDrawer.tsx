@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { IconTile } from "@/components/utility";
 import { Text } from "@/components/typography";
 import { useAppT } from "@/app/i18n";
+import { useLocalizer } from "@/i18n";
 import { helpPath } from "./content";
 import { HELP_GUIDES, type HelpGuide } from "./guides";
 
@@ -40,6 +41,7 @@ function writeProgress(progress: GuideProgress) {
 
 function GuideCard({ guide, done, onOpen }: { guide: HelpGuide; done: number; onOpen: () => void }) {
   const t = useAppT();
+  const localize = useLocalizer();
   const Icon = guide.icon;
   const total = guide.steps.length;
   const complete = done === total;
@@ -53,10 +55,10 @@ function GuideCard({ guide, done, onOpen }: { guide: HelpGuide; done: number; on
       <IconTile size="sm" tone={complete ? "positive" : "neutral"} icon={complete ? <Check /> : <Icon />} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <Text size="sm" weight="medium" className="leading-snug">
-          {guide.title}
+          {localize(guide.title)}
         </Text>
         <Text size="xs" tone="muted" className="line-clamp-2">
-          {guide.description}
+          {localize(guide.description)}
         </Text>
         <span className="flex items-center gap-3 text-xs text-text-muted">
           <span className="inline-flex items-center gap-1">
@@ -83,6 +85,7 @@ function GuideSteps({
   onReset: () => void;
 }) {
   const t = useAppT();
+  const localize = useLocalizer();
   const total = guide.steps.length;
   // El paso que toca es el primero sin marcar: se destaca para que se vea por dónde vas.
   const current = guide.steps.findIndex((_, index) => !done.includes(index));
@@ -109,7 +112,7 @@ function GuideSteps({
           const id = `guide-${guide.id}-${index}`;
           return (
             <li
-              key={step.title}
+              key={index}
               className={cn(
                 "flex items-start gap-3 rounded-xl border p-3 transition-colors",
                 index === current ? "border-primary/50 bg-primary/5" : "border-border/60 bg-surface",
@@ -120,9 +123,9 @@ function GuideSteps({
               <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5">
                 <span className={cn("text-sm font-medium text-text-primary", checked && "line-through decoration-text-muted")}>
                   <span className="mr-1.5 text-text-muted">{index + 1}.</span>
-                  {step.title}
+                  {localize(step.title)}
                 </span>
-                {step.detail && <span className="text-xs leading-snug text-text-muted">{step.detail}</span>}
+                {step.detail && <span className="text-xs leading-snug text-text-muted">{localize(step.detail)}</span>}
               </label>
             </li>
           );
@@ -142,6 +145,7 @@ function GuideSteps({
  */
 export function HelpGuidesDrawer({ open, onOpenChange }: HelpGuidesDrawerProps) {
   const t = useAppT();
+  const localize = useLocalizer();
   const navigate = useNavigate();
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<GuideProgress>(readProgress);
@@ -170,8 +174,8 @@ export function HelpGuidesDrawer({ open, onOpenChange }: HelpGuidesDrawerProps) 
       open={open}
       onOpenChange={handleOpenChange}
       size="md"
-      title={active ? active.title : t("help.guidesTitle")}
-      description={active ? active.description : t("help.guidesDescription")}
+      title={active ? localize(active.title) : t("help.guidesTitle")}
+      description={active ? localize(active.description) : t("help.guidesDescription")}
       footer={
         active ? (
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-between">

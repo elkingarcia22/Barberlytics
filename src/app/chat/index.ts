@@ -1,5 +1,6 @@
 import { createChatStore, createDemoBackend, type ChatBackend } from "@/lib/chat";
 import { createHelpBackend } from "@/help/chat/helpBackend";
+import type { HelpLocale } from "@/help/content";
 
 /**
  * El chat de la app: un solo almacén de conversaciones para el panel, la
@@ -19,6 +20,6 @@ export interface AppChatLabels {
   seeMore: string;
 }
 
-export function createAppChatBackend(labels: AppChatLabels): ChatBackend {
-  return createHelpBackend({ labels, fallback: createDemoBackend() });
+export function createAppChatBackend(labels: AppChatLabels, locale: HelpLocale): ChatBackend {
+  return createHelpBackend({ labels, locale, fallback: createDemoBackend() });
 }

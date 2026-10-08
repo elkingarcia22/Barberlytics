@@ -22,7 +22,7 @@ import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsC
 import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
 import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
-import { helpPath, useHelpIndex } from "@/help/content";
+import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
 import { chatStore, createAppChatBackend } from "../chat";
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
@@ -127,8 +127,8 @@ export function AppLayout() {
         notFound: t("help.chatNotFound"),
         openArticle: t("help.chatOpenArticle"),
         seeMore: t("help.chatSeeMore"),
-      }),
-    [t]
+      }, toHelpLocale(locale)),
+    [t, locale]
   );
   const openHelp = React.useCallback(() => {
     setChatFrom("help");

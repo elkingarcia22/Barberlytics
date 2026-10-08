@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:main": "node scripts/dev-main.mjs",
     "build": "vite build",
     "type-check": "tsc -b",
     "lint": "eslint .",

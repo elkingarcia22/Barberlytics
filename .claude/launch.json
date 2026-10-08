@@ -8,7 +8,7 @@
         "--prefix",
         "/Users/ub-col-pro-lf4/Documents/Thema Shadcn",
         "run",
-        "dev",
+        "dev:main",
         "--",
         "--port",
         "5195",

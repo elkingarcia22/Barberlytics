@@ -9,6 +9,7 @@ un trabajo.
 ```bash
 npm ci --legacy-peer-deps   # instalar (react 19 + radix-ui único; sin el flag falla)
 npm run dev                 # app + doc en http://localhost:5173 (login: celular 3001234567, código 246810)
+npm run dev:main            # lo mismo, pero trae `main` de GitHub cada 30 s (es el que usa el 5195)
 npm run check               # reglas del sistema de diseño (scripts/check-design-system.mjs)
 npm run verify              # lint + type-check + test + build
 npm run catalog             # regenera el catálogo de componentes en ai-tools/ desde el registry
@@ -18,7 +19,11 @@ npm run estado              # qué copias (worktrees) tienen trabajo que main no
 ```
 
 En la app de escritorio el dev server se levanta con `.claude/launch.json`. **`thema-dev` (5195) sirve
-siempre `main` desde la carpeta principal del repo**, no la copia de la sesión: es «lo último». Para ver
+siempre `main` desde la carpeta principal del repo**, no la copia de la sesión: es «lo último».
+Corre con `npm run dev:main` (`scripts/dev-main.mjs`): cada 30 s trae `main` de GitHub y Vite recarga
+solo, así lo que otra sesión sube se ve sin hacer `git pull`. Solo avanza hacia adelante: si la carpeta
+está en otra rama, tiene commits sin subir o cambios sin guardar que chocarían, no toca nada y lo
+avisa en la consola. Para ver
 tu copia antes de fusionar usa `thema-dev-2` (5196).
 Para el centro de ayuda en local: `ayuda-contenido` (sirve el `dist/` del repo vecino en 8787) y
 `thema-help` (la app en 5198 apuntando a él); `thema-shots` (5197) es el que usan las capturas.

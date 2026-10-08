@@ -7,7 +7,7 @@ import { CalendarPage } from "./CalendarPage";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
-import { appointmentGroups, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
+import { appointmentGroups, visitOf, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
 import { reflowPlan } from "./reflowModel";
 import { dayGaps, gapsSummary } from "./gapsModel";
@@ -97,6 +97,18 @@ describe("modelo del calendario", () => {
     expect(groups.has("a3")).toBe(false);
     expect(groups.has("a4")).toBe(false);
     expect(toEvent(second, ctx, { group: groups.get("a2") }).group?.size).toBe(2);
+  });
+
+  test("una cita separada a mano va suelta y la visita trae sus citas en orden", () => {
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00" };
+    const third = { ...APPOINTMENT, id: "a3", start: "2026-09-25T11:30:00" };
+    expect(visitOf([third, APPOINTMENT, second], CATALOG, second).map((item) => item.id)).toEqual(["a1", "a2", "a3"]);
+    // Separadas todas, ya no hay visita.
+    const split = [APPOINTMENT, second, third].map((item) => ({ ...item, standalone: true }));
+    expect(appointmentGroups(split, CATALOG).size).toBe(0);
+    expect(visitOf(split, CATALOG, split[0])).toEqual([]);
+    // Separada solo la del medio, las otras dos dejan de estar pegadas.
+    expect(appointmentGroups([APPOINTMENT, { ...second, standalone: true }, third], CATALOG).size).toBe(0);
   });
 
   test("los clientes de paso y las citas canceladas no se agrupan", () => {

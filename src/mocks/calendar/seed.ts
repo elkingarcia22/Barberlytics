@@ -116,6 +116,7 @@ export interface MockAppointment {
   createdBy: string;
   history: MockHistoryEntry[];
   payment: MockPayment | null;
+  standalone?: boolean;
 }
 
 export type MockBlockCategory = "sick" | "vacation" | "holiday" | "lunch" | "meeting" | "business" | "personal";

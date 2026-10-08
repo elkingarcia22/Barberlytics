@@ -465,12 +465,13 @@ export const isFlexible = (appointment: Appointment): boolean => appointment.sta
  * otra). Devuelve, por id de cita, su sitio en el grupo; las sueltas no
  * aparecen. Dos citas del mismo cliente con otro barbero, o con un hueco entre
  * ellas, son citas normales y no se agrupan. Los clientes de paso (sin ficha)
- * tampoco: dos de paso no son la misma persona.
+ * tampoco: dos de paso no son la misma persona. Una cita separada a mano
+ * (`standalone`) va siempre suelta.
  */
 export function appointmentGroups(appointments: readonly Appointment[], catalog: CalendarCatalog): Map<string, ScheduleEventGroup> {
   const byVisit = new Map<string, Appointment[]>();
   for (const item of appointments) {
-    if (!isActive(item) || item.barberId === null) continue;
+    if (!isActive(item) || item.barberId === null || item.standalone) continue;
     const client = findClient(catalog, item.clientId);
     if (!client || client.type === "walkin") continue;
     const key = `${item.clientId}|${item.barberId}`;
@@ -501,6 +502,14 @@ export function appointmentGroups(appointments: readonly Appointment[], catalog:
     }
   }
   return groups;
+}
+
+/** Las citas de la visita a la que pertenece una, en orden; vacío si va suelta. */
+export function visitOf(appointments: readonly Appointment[], catalog: CalendarCatalog, appointment: Appointment): Appointment[] {
+  const groups = appointmentGroups(appointments, catalog);
+  const groupId = groups.get(appointment.id)?.id;
+  if (!groupId) return [];
+  return appointments.filter((item) => groups.get(item.id)?.id === groupId).sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime());
 }
 
 export function toEvent(appointment: Appointment, ctx: ModelContext, options: { showBarber?: boolean; faded?: boolean; group?: ScheduleEventGroup } = {}): ScheduleEvent {
@@ -590,6 +599,8 @@ export function historyLabel(event: string, ctx: ModelContext): string {
     barber: "calendar.history.barber",
     duration: "calendar.history.duration",
     paid: "calendar.history.paidWith",
+    split: "calendar.history.split",
+    joined: "calendar.history.joined",
   };
   const key = map[kind] ?? "calendar.history.created";
   return ctx.t(key, { value: kind === "moved" ? value.replace("T", " ") : value });

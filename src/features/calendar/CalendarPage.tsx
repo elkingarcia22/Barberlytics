@@ -73,6 +73,7 @@ import {
   toLocalIso,
   type AgendaFilters,
   type ModelContext,
+  visitOf,
 } from "./calendarModel";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
 
@@ -203,6 +204,11 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     [state]
   );
   const currentAppointment = React.useMemo(() => day.data?.appointments.find((item) => item.id === state.appointmentId) ?? null, [day.data, state.appointmentId]);
+  // Si la cita es parte de una visita con servicios añadidos, el panel enseña todas sus citas.
+  const currentVisit = React.useMemo(
+    () => (currentAppointment && day.data && catalog.data ? visitOf(day.data.appointments, catalog.data, currentAppointment) : []),
+    [currentAppointment, day.data, catalog.data]
+  );
 
   const patch = React.useCallback(
     (appointment: Appointment, changes: AppointmentPatch, done?: (updated: Appointment) => void) => {
@@ -228,6 +234,21 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         undoRef.current = undo;
         toast.success(title, { description, action: { label: t("calendar.undo"), onClick: undo } });
       });
+    },
+    [patch, t]
+  );
+
+  /** Separar una visita con servicios añadidos en citas independientes; se puede deshacer. */
+  const separateVisit = React.useCallback(
+    (visit: readonly Appointment[]) => {
+      visit.forEach((item) => patch(item, { standalone: true }));
+      const undo = () => {
+        undoRef.current = null;
+        visit.forEach((item) => patch(item, { standalone: false }));
+        toast.success(t("calendar.undone"));
+      };
+      undoRef.current = undo;
+      toast.success(t("calendar.visit.separated"), { description: t("calendar.visit.separatedHint", { count: visit.length }), action: { label: t("calendar.undo"), onClick: undo } });
     },
     [patch, t]
   );
@@ -803,6 +824,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onCancel={(appointment) => setPanel({ kind: "confirm", action: "cancel", appointment })}
                 onNoShow={(appointment) => setPanel({ kind: "confirm", action: "noShow", appointment })}
                 onOpenClient={(clientId) => navigate(`/clientes/${clientId}`)}
+                visit={currentVisit}
+                onSelectAppointment={(appointment) => state.openAppointment(appointment.id)}
+                onSeparateVisit={separateVisit}
               />
 
               <CreateAppointmentDrawer

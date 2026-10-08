@@ -349,6 +349,10 @@ export const calendarHandlers = [
       else next = { ...next, serviceIds, durationMin: serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.durationMin ?? 0), 0) };
     }
     if (input.notes !== undefined) next = { ...next, notes: text(input.notes) || null };
+    if (typeof input.standalone === "boolean" && input.standalone !== Boolean(existing.standalone)) {
+      next = { ...next, standalone: input.standalone };
+      history.push(entry(actor, input.standalone ? "split" : "joined"));
+    }
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     // Si cambió de sitio, de barbero o de duración, no puede pisar a nadie.
     const moved = next.start !== existing.start || next.barberId !== existing.barberId || next.durationMin !== existing.durationMin;

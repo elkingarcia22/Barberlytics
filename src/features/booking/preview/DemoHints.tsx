@@ -7,7 +7,7 @@ import { PROMOS } from "../pricing";
 
 /**
  * Los datos para probar la demo: qué celular es un cliente que vuelve, cuál
- * está bloqueado, la tarjeta que se rechaza y el código de «Mis citas». Solo
+ * está bloqueado, la tarjeta que se rechaza y el código que llega al celular. Solo
  * en la vista previa; el cliente real nunca lo ve.
  */
 export function DemoHints() {

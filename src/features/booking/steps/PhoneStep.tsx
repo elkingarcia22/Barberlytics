@@ -11,7 +11,7 @@ import { useBookingFlow } from "../flow/BookingContext";
 import { ShopBrand } from "../flow/ShopBrand";
 import { StepLayout } from "../flow/StepLayout";
 import { formatPhone } from "../bookingFormat";
-import { useLookupMutation } from "../queries";
+import { useRequestCodeMutation } from "../queries";
 
 /** Dígitos mínimos de un celular nacional (Colombia y EE. UU. tienen 10). */
 const MIN_DIGITS = 10;
@@ -24,14 +24,14 @@ const TRUST: readonly { icon: IconName; key: "booking.phone.trust.secure" | "boo
 ];
 
 /**
- * La puerta: el celular. Con él se sabe si es alguien que vuelve (y se le
- * ahorra todo), alguien nuevo (se le pide nombre y correo) o un número que la
- * barbería bloqueó.
+ * La puerta: el celular. Se le manda un código —a cualquier número, para que
+ * escribir un celular ajeno no revele si es cliente ni sus datos— y solo al
+ * verificarlo se sabe si es alguien que vuelve, alguien nuevo o un número bloqueado.
  */
 export function PhoneStep() {
   const t = useAppT();
   const { state, dispatch, shop, fmt } = useBookingFlow();
-  const lookup = useLookupMutation();
+  const lookup = useRequestCodeMutation();
   const [phone, setPhone] = React.useState(state.phone);
   const [touched, setTouched] = React.useState(false);
   const isValid = nationalDigits(phone) >= MIN_DIGITS;
@@ -43,14 +43,7 @@ export function PhoneStep() {
     event.preventDefault();
     setTouched(true);
     if (!isValid) return;
-    dispatch({ type: "phoneEntered", phone });
-    lookup.mutate(phone, {
-      onSuccess: (result) => {
-        if (result.status === "known") dispatch({ type: "customerFound", customer: result.customer });
-        else if (result.status === "blocked") dispatch({ type: "customerBlocked" });
-        else dispatch({ type: "customerIsNew" });
-      },
-    });
+    lookup.mutate(phone, { onSuccess: (sent) => dispatch({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel }) });
   };
 
   return (

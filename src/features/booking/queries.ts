@@ -11,7 +11,7 @@ export const bookingKeys = {
   availabilities: () => [...bookingKeys.all, "availability"] as const,
   availability: (branchId: string, date: string, serviceIds: readonly string[], barberId: string | null, exclude?: string) =>
     [...bookingKeys.availabilities(), branchId, date, serviceIds.join(","), barberId, exclude ?? null] as const,
-  suggestion: (customerId: string) => [...bookingKeys.all, "suggestion", customerId] as const,
+  suggestion: (token: string) => [...bookingKeys.all, "suggestion", token] as const,
   mine: (token: string) => [...bookingKeys.all, "mine", token] as const,
 };
 
@@ -67,36 +67,49 @@ export function useAlternativesQuery(params: Omit<AvailabilityParams, "exclude">
   });
 }
 
-export function useJoinWaitlistMutation() {
-  return useMutation({ mutationFn: (input: WaitlistInput) => bookingApi.joinWaitlist(input) });
+/*
+ * Lo que actúa en nombre del cliente lleva su sesión verificada (el token del código); sin ella,
+ * el servidor responde 403.
+ */
+const needsSession = (token: string | null): string => {
+  if (!token) throw new Error("booking_session");
+  return token;
+};
+
+export function useJoinWaitlistMutation(token: string | null) {
+  return useMutation({ mutationFn: (input: WaitlistInput) => bookingApi.joinWaitlist(needsSession(token), input) });
 }
 
-export function useLeaveWaitlistMutation() {
-  return useMutation({ mutationFn: ({ id, customerId }: { id: string; customerId: string }) => bookingApi.leaveWaitlist(id, customerId) });
+export function useLeaveWaitlistMutation(token: string | null) {
+  return useMutation({ mutationFn: (id: string) => bookingApi.leaveWaitlist(needsSession(token), id) });
 }
 
 /** La próxima visita que le toca según su frecuencia, con horas libres propuestas. */
-export function useVisitSuggestionQuery(customerId: string | null) {
+export function useVisitSuggestionQuery(token: string | null) {
   return useQuery({
-    queryKey: bookingKeys.suggestion(customerId ?? ""),
-    queryFn: ({ signal }) => bookingApi.suggestion(customerId as string, signal),
-    enabled: customerId !== null,
+    queryKey: bookingKeys.suggestion(token ?? ""),
+    queryFn: ({ signal }) => bookingApi.suggestion(token as string, signal),
+    enabled: token !== null,
     staleTime: 60_000,
   });
 }
 
-export function useLookupMutation() {
-  return useMutation({ mutationFn: (phone: string) => bookingApi.lookup(phone) });
+export function useRequestCodeMutation() {
+  return useMutation({ mutationFn: (phone: string) => bookingApi.requestOtp(phone) });
 }
 
-export function useCreateCustomerMutation() {
-  return useMutation({ mutationFn: (input: NewCustomerInput) => bookingApi.createCustomer(input) });
+export function useVerifyCodeMutation() {
+  return useMutation({ mutationFn: ({ phone, code }: { phone: string; code: string }) => bookingApi.verifyOtp(phone, code) });
 }
 
-export function useReserveMutation() {
+export function useCreateCustomerMutation(token: string | null) {
+  return useMutation({ mutationFn: (input: NewCustomerInput) => bookingApi.createCustomer(needsSession(token), input) });
+}
+
+export function useReserveMutation(token: string | null) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: ReservationInput) => bookingApi.reserve(input),
+    mutationFn: (input: ReservationInput) => bookingApi.reserve(needsSession(token), input),
     onSuccess: () => client.invalidateQueries({ queryKey: bookingKeys.availabilities() }),
   });
 }

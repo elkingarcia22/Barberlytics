@@ -33,7 +33,7 @@ export function WelcomeStep() {
   // Quien ya viene no vuelve a elegir sede: la de su última visita; se ajusta en el resumen.
   const onlyBranchId = defaultBranchId(customer, shop.branches.map((item) => item.id));
   // Con su frecuencia de visita se le propone ya el día y la hora que le tocan.
-  const { data: suggestionData, isLoading: isSuggesting } = useVisitSuggestionQuery(customer?.id ?? null);
+  const { data: suggestionData, isLoading: isSuggesting } = useVisitSuggestionQuery(state.token);
   const suggestion = suggestionData?.suggestion ?? null;
   const repeat = () => last && dispatch({ type: "repeatLastVisit", lastVisit: { ...last, serviceIds: services.map((item) => item.id), barberId: barber ? barber.id : null } });
 

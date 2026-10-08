@@ -44,8 +44,8 @@ export function WaitlistCard({ day, joined, onJoinedChange, hasSlots = false }: 
   const { state, shop, catalog, fmt } = useBookingFlow();
   const [window, setWindow] = React.useState<WaitlistWindow>("any");
   const [isOpen, setIsOpen] = React.useState(false);
-  const join = useJoinWaitlistMutation();
-  const leave = useLeaveWaitlistMutation();
+  const join = useJoinWaitlistMutation(state.token);
+  const leave = useLeaveWaitlistMutation(state.token);
   const draft = state.draft;
   const customer = state.customer;
   const barber = catalog?.barbers.find((item) => item.id === draft?.barberId);
@@ -75,7 +75,7 @@ export function WaitlistCard({ day, joined, onJoinedChange, hasSlots = false }: 
             disabled={leave.isPending}
             onClick={() =>
               leave.mutate(
-                { id: joined.id, customerId: customer.id },
+                joined.id,
                 { onSuccess: () => (onJoinedChange(null), toast(t("booking.waitlist.left"))), onError: () => toast.error(t("booking.waitlist.error")) }
               )
             }
@@ -140,7 +140,7 @@ export function WaitlistCard({ day, joined, onJoinedChange, hasSlots = false }: 
         disabled={join.isPending}
         onClick={() =>
           join.mutate(
-            { branchId: state.branchId as string, customerId: customer.id, date: dayKeyOf(day), serviceIds: draft.serviceIds, barberId: draft.barberId, window },
+            { branchId: state.branchId as string, date: dayKeyOf(day), serviceIds: draft.serviceIds, barberId: draft.barberId, window },
             { onSuccess: onJoinedChange, onError: () => toast.error(t("booking.waitlist.error")) }
           )
         }

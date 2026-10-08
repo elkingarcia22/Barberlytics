@@ -21,8 +21,9 @@ const MIN_NAME = 2;
 export function ProfileStep() {
   const t = useAppT();
   const { state, dispatch, shop, layout } = useBookingFlow();
-  const create = useCreateCustomerMutation();
-  const [values, setValues] = React.useState({ firstName: "", lastName: "", email: "", marketing: true });
+  const create = useCreateCustomerMutation(state.token);
+  // El permiso para promociones lo da el cliente: empieza sin marcar (Ley 1581).
+  const [values, setValues] = React.useState({ firstName: "", lastName: "", email: "", marketing: false });
   const [touched, setTouched] = React.useState(false);
   const serverFields = isApiError(create.error) ? create.error.fieldErrors : undefined;
   const errors = {
@@ -38,7 +39,7 @@ export function ProfileStep() {
     setTouched(true);
     if (!isValid) return;
     create.mutate(
-      { phone: state.phone, firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing },
+      { firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing },
       { onSuccess: (customer) => dispatch({ type: "profileSaved", customer, onlyBranchId: defaultBranchId(customer, shop.branches.map((item) => item.id)) }) }
     );
   };

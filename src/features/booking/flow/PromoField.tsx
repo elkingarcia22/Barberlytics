@@ -28,7 +28,7 @@ export function PromoField() {
   const t = useAppT();
   const { state, dispatch, totals, fmt } = useBookingFlow();
   const [code, setCode] = React.useState("");
-  const check = useMutation({ mutationFn: () => bookingApi.checkPromo({ code, customerId: state.customer?.id ?? null, appointments: state.items.length }) });
+  const check = useMutation({ mutationFn: () => bookingApi.checkPromo(state.token, { code, appointments: state.items.length }) });
 
   if (state.promo) {
     return (

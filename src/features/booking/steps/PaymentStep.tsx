@@ -33,7 +33,7 @@ const NO_TIP = "none";
 export function PaymentStep() {
   const t = useAppT();
   const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
-  const reserve = useReserveMutation();
+  const reserve = useReserveMutation(state.token);
   // La tarjeta nueva, ya escrita y revisada en su hoja (null mientras no se agrega).
   const [card, setCard] = React.useState<CardValues | null>(null);
   const [sheet, setSheet] = React.useState<{ open: boolean; prefill: boolean }>({ open: false, prefill: false });
@@ -94,7 +94,6 @@ export function PaymentStep() {
     }
     reserve.mutate(
       {
-        customerId: customer.id,
         branchId: state.branchId,
         items: state.items.map((item) => ({
           guestId: item.person.kind === "guest" ? item.person.guestId : null,

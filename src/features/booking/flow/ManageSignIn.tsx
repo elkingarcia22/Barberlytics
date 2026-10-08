@@ -18,7 +18,8 @@ const MIN_PHONE_DIGITS = 12;
  */
 export function ManageSignIn() {
   const t = useAppT();
-  const { state, dispatch, setToken } = useBookingFlow();
+  const { state, dispatch } = useBookingFlow();
+  const [notFound, setNotFound] = React.useState(false);
   const [phone, setPhone] = React.useState(state.phone);
   const [code, setCode] = React.useState("");
   const request = useMutation({ mutationFn: () => bookingApi.requestOtp(phone) });
@@ -27,8 +28,13 @@ export function ManageSignIn() {
   const check = (value: string) =>
     verify.mutate(value, {
       onSuccess: (result) => {
-        dispatch({ type: "signedIn", customer: result.customer });
-        setToken(result.token);
+        // Un número sin perfil (o bloqueado) no tiene citas que ver: se dice después del código, no antes.
+        if (result.status !== "known") {
+          setNotFound(true);
+          setCode("");
+          return;
+        }
+        dispatch({ type: "signedIn", customer: result.customer, token: result.token });
       },
       onError: () => setCode(""),
     });
@@ -61,7 +67,7 @@ export function ManageSignIn() {
           {t("booking.manage.codeLead", { phone: request.data.sentTo })}
         </Text>
       </div>
-      <Field label={t("booking.manage.code")} error={verify.isError ? t("booking.manage.codeError") : undefined}>
+      <Field label={t("booking.manage.code")} error={notFound ? t("booking.manage.notFound") : verify.isError ? describeError(verify.error).description : undefined}>
         <InputOtp length={CODE_LENGTH} value={code} onChange={setCode} onComplete={check} groups={[3, 3]} autoFocus disabled={verify.isPending} />
       </Field>
       <Button type="button" variant="link" size="sm" className="self-start" onClick={() => request.mutate()} disabled={request.isPending}>

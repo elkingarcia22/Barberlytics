@@ -9,8 +9,8 @@ import {
   bookingCustomerSchema,
   bookingShopSchema,
   cancelResultSchema,
-  lookupSchema,
   myAppointmentsSchema,
+  otpSentSchema,
   otpVerifySchema,
   receiptSentSchema,
   suggestionResponseSchema,
@@ -23,9 +23,9 @@ import {
   type BookingShop,
   type BranchDetail,
   type CancelResult,
-  type LookupResult,
   type MyAppointments,
   type NewCustomerInput,
+  type OtpSent,
   type OtpVerify,
   type ReceiptSent,
   type RescheduleInput,
@@ -39,7 +39,6 @@ import {
 import type { Promo } from "./pricing";
 
 const promoSchema = z.object({ code: z.string(), type: z.enum(["percent", "amount"]), value: z.number(), firstVisitOnly: z.boolean().optional(), minAppointments: z.number().optional() });
-const otpSentSchema = z.object({ sentTo: z.string() });
 
 const session = (token: string) => ({ "x-booking-token": token });
 
@@ -60,15 +59,15 @@ export const bookingApi = {
       schema: alternativesSchema,
       signal,
     }),
-  joinWaitlist: (input: WaitlistInput) => api.post<WaitlistJoined>("/booking/waitlist", input, { schema: waitlistJoinedSchema }),
-  leaveWaitlist: (id: string, customerId: string) => api.delete<void>(`/booking/waitlist/${id}`, { query: { customerId } }),
-  lookup: (phone: string) => api.post<LookupResult>("/booking/lookup", { phone }, { schema: lookupSchema }),
-  suggestion: (customerId: string, signal?: AbortSignal) =>
-    api.get<{ suggestion: VisitSuggestion | null }>(`/booking/customers/${customerId}/suggestion`, { schema: suggestionResponseSchema, signal }),
-  createCustomer: (input: NewCustomerInput) => api.post<BookingCustomer>("/booking/customers", input, { schema: bookingCustomerSchema }),
-  checkPromo: (input: { code: string; customerId: string | null; appointments: number }) => api.post<Promo>("/booking/promo", input, { schema: promoSchema }),
-  reserve: (input: ReservationInput) => api.post<Reservation>("/booking/reservations", input, { schema: reservationSchema, timeoutMs: 30_000 }),
-  requestOtp: (phone: string) => api.post<{ sentTo: string }>("/booking/otp/request", { phone }, { schema: otpSentSchema }),
+  joinWaitlist: (token: string, input: WaitlistInput) => api.post<WaitlistJoined>("/booking/waitlist", input, { headers: session(token), schema: waitlistJoinedSchema }),
+  leaveWaitlist: (token: string, id: string) => api.delete<void>(`/booking/waitlist/${id}`, { headers: session(token) }),
+  suggestion: (token: string, signal?: AbortSignal) =>
+    api.get<{ suggestion: VisitSuggestion | null }>("/booking/me/suggestion", { headers: session(token), schema: suggestionResponseSchema, signal }),
+  createCustomer: (token: string, input: NewCustomerInput) => api.post<BookingCustomer>("/booking/customers", input, { headers: session(token), schema: bookingCustomerSchema }),
+  checkPromo: (token: string | null, input: { code: string; appointments: number }) =>
+    api.post<Promo>("/booking/promo", input, { headers: token ? session(token) : undefined, schema: promoSchema }),
+  reserve: (token: string, input: ReservationInput) => api.post<Reservation>("/booking/reservations", input, { headers: session(token), schema: reservationSchema, timeoutMs: 30_000 }),
+  requestOtp: (phone: string) => api.post<OtpSent>("/booking/otp/request", { phone }, { schema: otpSentSchema }),
   verifyOtp: (phone: string, code: string) => api.post<OtpVerify>("/booking/otp/verify", { phone, code }, { schema: otpVerifySchema }),
   myAppointments: (token: string, signal?: AbortSignal) => api.get<MyAppointments>("/booking/me/appointments", { headers: session(token), schema: myAppointmentsSchema, signal }),
   reschedule: (token: string, id: string, input: RescheduleInput) => api.patch<BookedAppointment>(`/booking/appointments/${id}`, input, { headers: session(token), schema: bookedAppointmentSchema }),

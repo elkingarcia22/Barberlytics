@@ -12,7 +12,7 @@ import type { BookingCustomer, LastVisit, PayMethod, Reservation } from "./types
  * preferencia) y una hora.
  */
 
-export type BookingStep = "phone" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "manage";
+export type BookingStep = "phone" | "verify" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "manage";
 
 export type BookingPerson = { kind: "self" } | { kind: "guest"; guestId: string; name: string; relation: string } | { kind: "new"; name: string; relation: string };
 
@@ -29,6 +29,13 @@ export interface DraftItem {
 export interface BookingState {
   step: BookingStep;
   phone: string;
+  /** A dónde se mandó el código («+57 •••• 2738» por WhatsApp), mientras se verifica. */
+  codeSentTo: { sentTo: string; channel: "whatsapp" | "sms" } | null;
+  /**
+   * La sesión verificada con el código: todo lo que actúa en nombre del cliente (perfil, reserva,
+   * tarjeta guardada, lista de espera, «Mis citas») la lleva. Empezar de nuevo la borra.
+   */
+  token: string | null;
   customer: BookingCustomer | null;
   branchId: string | null;
   items: DraftItem[];
@@ -50,8 +57,10 @@ export interface BookingState {
 
 export type BookingAction =
   | { type: "phoneEntered"; phone: string }
-  | { type: "customerFound"; customer: BookingCustomer }
-  | { type: "customerIsNew" }
+  | { type: "codeSent"; phone: string; sentTo: string; channel: "whatsapp" | "sms" }
+  | { type: "setToken"; token: string | null }
+  | { type: "customerFound"; customer: BookingCustomer; token: string }
+  | { type: "customerIsNew"; token: string }
   | { type: "customerBlocked" }
   | { type: "profileSaved"; customer: BookingCustomer; onlyBranchId: string | null }
   | { type: "startFresh"; onlyBranchId: string | null }
@@ -78,7 +87,7 @@ export type BookingAction =
   | { type: "reserved"; reservation: Reservation }
   | { type: "bookAgain" }
   | { type: "openManage" }
-  | { type: "signedIn"; customer: BookingCustomer }
+  | { type: "signedIn"; customer: BookingCustomer; token: string }
   | { type: "restart" };
 
 let keySeed = 0;
@@ -90,7 +99,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, method: null, notes: "", reservation: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, method: null, notes: "", reservation: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -107,12 +116,16 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
   switch (action.type) {
     case "phoneEntered":
       return { ...state, phone: action.phone };
+    case "codeSent":
+      return { ...state, phone: action.phone, codeSentTo: { sentTo: action.sentTo, channel: action.channel }, step: "verify" };
+    case "setToken":
+      return { ...state, token: action.token };
     case "customerFound":
-      return { ...state, customer: action.customer, step: "welcome" };
+      return { ...state, customer: action.customer, token: action.token, codeSentTo: null, step: "welcome" };
     case "customerIsNew":
-      return { ...state, customer: null, step: "profile" };
+      return { ...state, customer: null, token: action.token, codeSentTo: null, step: "profile" };
     case "customerBlocked":
-      return { ...state, customer: null, step: "blocked" };
+      return { ...state, customer: null, token: null, codeSentTo: null, step: "blocked" };
     case "profileSaved":
       return afterIdentity({ ...state, customer: action.customer }, action.onlyBranchId);
     case "startFresh":
@@ -190,12 +203,12 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, reservation: action.reservation, step: "confirmed" };
     case "bookAgain":
       // Otra reserva para la misma persona: se queda quién es y en qué sede, lo demás vuelve a empezar.
-      return { ...initialBookingState(state.tipId), phone: state.phone, customer: state.customer, branchId: state.branchId, draft: emptyDraft(), step: state.branchId ? "services" : "branch" };
+      return { ...initialBookingState(state.tipId), phone: state.phone, token: state.token, customer: state.customer, branchId: state.branchId, draft: emptyDraft(), step: state.branchId ? "services" : "branch" };
     case "openManage":
       return { ...state, step: "manage" };
     case "signedIn":
       // Entró a «Mis citas» con su código: ya se sabe quién es, sin moverlo de pantalla.
-      return { ...state, customer: action.customer, phone: action.customer.phone.replace(/[^\d+]/g, "") || state.phone };
+      return { ...state, customer: action.customer, token: action.token, phone: action.customer.phone.replace(/[^\d+]/g, "") || state.phone };
     case "restart":
       return initialBookingState(state.tipId);
   }

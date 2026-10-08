@@ -174,12 +174,9 @@ export const visitSuggestionSchema = z.object({
 export type VisitSuggestion = z.infer<typeof visitSuggestionSchema>;
 export const suggestionResponseSchema = z.object({ suggestion: visitSuggestionSchema.nullable() });
 
-export const lookupSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("known"), customer: bookingCustomerSchema }),
-  z.object({ status: z.literal("new") }),
-  z.object({ status: z.literal("blocked") }),
-]);
-export type LookupResult = z.infer<typeof lookupSchema>;
+/** El código se manda a cualquier número: la respuesta no dice si es cliente. */
+export const otpSentSchema = z.object({ sentTo: z.string(), channel: z.enum(["whatsapp", "sms"]) });
+export type OtpSent = z.infer<typeof otpSentSchema>;
 
 export const slotSchema = z.object({ time: z.string(), barberIds: z.array(z.string()) });
 export type Slot = z.infer<typeof slotSchema>;
@@ -198,7 +195,6 @@ export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(),
 export type WaitlistJoined = z.infer<typeof waitlistJoinedSchema>;
 export interface WaitlistInput {
   branchId: string;
-  customerId: string;
   date: string;
   serviceIds: readonly string[];
   barberId: string | null;
@@ -266,7 +262,15 @@ export type Reservation = z.infer<typeof reservationSchema>;
 export const myAppointmentsSchema = z.object({ upcoming: z.array(bookedAppointmentSchema), past: z.array(bookedAppointmentSchema), reservations: z.array(reservationSchema) });
 export type MyAppointments = z.infer<typeof myAppointmentsSchema>;
 
-export const otpVerifySchema = z.object({ token: z.string(), customer: bookingCustomerSchema });
+/**
+ * El código verificado dice quién es: alguien que vuelve (con su perfil), un número nuevo (con una
+ * sesión para crear el perfil) o un número bloqueado (sin sesión).
+ */
+export const otpVerifySchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("known"), token: z.string(), customer: bookingCustomerSchema }),
+  z.object({ status: z.literal("new"), token: z.string(), customer: z.null() }),
+  z.object({ status: z.literal("blocked"), token: z.null(), customer: z.null() }),
+]);
 export type OtpVerify = z.infer<typeof otpVerifySchema>;
 
 export const cancelResultSchema = z.object({ appointment: bookedAppointmentSchema, fee: z.number(), refund: z.number(), refundTo: z.enum(["card", "credit", "none"]) });
@@ -277,8 +281,8 @@ export type ReceiptSent = z.infer<typeof receiptSentSchema>;
 
 /* ------------------------------------------------------------- entradas */
 
+/** El celular no va: es el verificado con el código (la sesión). */
 export interface NewCustomerInput {
-  phone: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -297,8 +301,8 @@ export interface ReservationItemInput {
   start: string;
 }
 
+/** Quien reserva es el de la sesión (`x-booking-token`), no un id del navegador. */
 export interface ReservationInput {
-  customerId: string;
   branchId: string;
   items: ReservationItemInput[];
   products: { productId: string; qty: number }[];

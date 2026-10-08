@@ -349,9 +349,13 @@ Los permisos por rol no están aquí: viven en Equipo.
 
 La cara pública de la barbería: la abre el cliente desde el enlace, la tablet del local o el widget
 del sitio (`/reservar` en la app). **No lleva la sesión de la app.** El cliente se identifica con
-su celular; para ver o cambiar sus citas confirma un código por SMS y recibe un token propio que
-viaja en `x-booking-token`. Sin token válido responde `403 booking_session` (nunca `401`, que
-cerraría la sesión de quien esté dentro de la app en el mismo navegador).
+su celular y un código (WhatsApp o SMS). El código se manda a cualquier número y la respuesta no
+dice si es cliente: el perfil (correo, personas, tarjetas, saldo) solo sale al verificarlo. Al
+verificar recibe un token propio que viaja en `x-booking-token`; todo lo que actúa en su nombre
+(crear el perfil, la propuesta, reservar, cobrar una tarjeta guardada, la lista de espera, «Mis
+citas») toma al cliente de ese token, nunca de un id del cuerpo. Sin token válido responde `403
+booking_session` (nunca `401`, que cerraría la sesión de quien esté dentro de la app en el mismo
+navegador). Límites: 5 códigos por celular cada 10 minutos y 5 intentos fallidos por código (`429`).
 
 | Método | Ruta | Qué hace |
 |---|---|---|
@@ -360,15 +364,14 @@ cerraría la sesión de quien esté dentro de la app en el mismo navegador).
 | `GET` | `/booking/catalog?branchId` | Lo reservable en la sede: servicios públicos y activos, barberos visibles con lo que cobra cada uno por servicio (`prices`), galería y valoración, y productos visibles y vendibles. |
 | `GET` | `/booking/availability?branchId&date&serviceIds&barberId&exclude` | Las horas libres del día, `{ time, barberIds }`. Sin `barberId`, cualquier barbero que haga todos los servicios. `exclude` es la cita que se está moviendo. Respeta horario, citas, bloqueos, cierres y anticipación mínima. |
 | `GET` | `/booking/alternatives?branchId&date&serviceIds&barberId` | Cuando el barbero no tiene horas: hasta 3 barberos que hacen todos los servicios, `{ barberId, skills, date, times }`. Se ordenan por quién tiene hora ese día, luego por parecido (habilidades que cubren lo pedido ×3, las compartidas con el elegido ×2, menos la distancia de nivel). Si no tienen ese día, traen su próximo día libre (hasta 7). Las habilidades del equipo se leen en servicios (`SKILL_SERVICES`). |
-| `POST` | `/booking/waitlist` | `{ branchId, customerId, date, serviceIds, barberId, window: morning\|afternoon\|evening\|any }` → `201 { id, date, window }`. Se apunta en la lista de espera del Calendario: una entrada con una hora en punto por cada hora de la franja (mañana hasta las 12, tarde 12–18, noche desde las 18; «noche» solo si la sede cierra después de las 18). |
-| `DELETE` | `/booking/waitlist/:id?customerId` | Salir de la lista. `404` si la entrada no existe o es de otro cliente. |
-| `POST` | `/booking/lookup` | `{ phone }` → `{ status: "known", customer }`, `{ status: "new" }` o `{ status: "blocked" }`. |
-| `GET` | `/booking/customers/:id/suggestion` | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
-| `POST` | `/booking/customers` | Crea el cliente nuevo `{ phone, firstName, lastName, email, marketing }`. `201`. |
-| `POST` | `/booking/promo` | `{ code, customerId, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
-| `POST` | `/booking/reservations` | Reserva y cobra. Cuerpo: `customerId`, `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start`), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card` (`number`, `name`, `expiry`, `save`) o `savedCardId` (una tarjeta guardada). El CVC nunca viaja a este servidor (va a la pasarela); `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. |
-| `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo }` (enmascarado). `404` si no hay cliente con ese celular. |
-| `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ token, customer }`. `422 otp_invalid` si el código no es. |
+| `POST` | `/booking/waitlist` | Con token. `{ branchId, date, serviceIds, barberId, window: morning\|afternoon\|evening\|any }` → `201 { id, date, window }`. Se apunta en la lista de espera del Calendario: una entrada con una hora en punto por cada hora de la franja (mañana hasta las 12, tarde 12–18, noche desde las 18; «noche» solo si la sede cierra después de las 18). |
+| `DELETE` | `/booking/waitlist/:id` | Con token. Salir de la lista. `404` si la entrada no existe o es de otro cliente. |
+| `GET` | `/booking/me/suggestion` | Con token. | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
+| `POST` | `/booking/customers` | Con el token de un celular nuevo. Crea el cliente `{ firstName, lastName, email, marketing }`; el celular es el verificado. Guarda el permiso de promociones con fecha (`marketingConsent`). La misma sesión pasa a ser la del cliente. `201`. |
+| `POST` | `/booking/promo` | Token opcional (para saber si es su primera visita). `{ code, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
+| `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start`), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card` (`number`, `name`, `expiry`, `save`) o `savedCardId` (una tarjeta guardada). El CVC nunca viaja a este servidor (va a la pasarela); `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. |
+| `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo, channel }` (enmascarado), igual para cualquier número. `429 rate_limited` tras 5 en 10 minutos. |
+| `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ status: "known", token, customer }`, `{ status: "new", token, customer: null }` o `{ status: "blocked", token: null, customer: null }`. `422 otp_invalid` con `attemptsLeft`; `429 otp_locked` tras 5 fallos (hay que pedir otro). |
 | `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |
 | `PATCH` | `/booking/appointments/:id` | Con token: `{ start, barberId }`. `409 too_late` dentro del plazo de cambio; `409 conflict` si la hora ya no está. |
 | `POST` | `/booking/appointments/:id/cancel` | Con token: `{ refundTo: "card" \| "credit" }` → `{ appointment, fee, refund, refundTo }`. `409 limit` al llegar a `maxCancellations`. |

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
+import { resetBookingLimits } from "@/mocks/booking/handlers";
+import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation";
@@ -137,7 +139,7 @@ describe("perfil de la sede", () => {
 });
 
 describe("recorrido de la reserva", () => {
-  const known = (): BookingState => bookingReducer(initialBookingState(), { type: "customerFound", customer: customer() });
+  const known = (): BookingState => bookingReducer(initialBookingState(), { type: "customerFound", customer: customer(), token: "bk_test" });
 
   test("repetir la última visita salta directo a la hora con el mismo servicio y barbero", () => {
     const state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
@@ -231,17 +233,57 @@ describe("recorrido de la reserva", () => {
   });
 });
 
+/** Entra con el código de la demo y devuelve la sesión (y el perfil, si ya es cliente). */
+async function signIn(phone = KNOWN_PHONE): Promise<{ token: string; customer: BookingCustomer | null }> {
+  await bookingApi.requestOtp(phone);
+  const result = await bookingApi.verifyOtp(phone, DEMO_CODE);
+  if (!result.token) throw new Error(`sin sesión para ${phone}`);
+  return { token: result.token, customer: result.customer };
+}
+
 describe("backend de la reserva", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
+    resetBookingLimits();
   });
   afterEach(() => vi.useRealTimers());
 
-  test("el celular dice si es alguien que vuelve, alguien nuevo o un número bloqueado", async () => {
-    await expect(bookingApi.lookup(KNOWN_PHONE)).resolves.toMatchObject({ status: "known", customer: { firstName: "Marcela" } });
-    await expect(bookingApi.lookup("+573001112233")).resolves.toEqual({ status: "new" });
-    await expect(bookingApi.lookup("+573009999999")).resolves.toEqual({ status: "blocked" });
+  test("el código dice si es alguien que vuelve, alguien nuevo o un número bloqueado; el celular solo no revela nada", async () => {
+    // Pedir el código responde igual para cualquier número: no dice si es cliente ni da datos.
+    await expect(bookingApi.requestOtp(KNOWN_PHONE)).resolves.toEqual({ sentTo: expect.stringContaining("2738"), channel: "whatsapp" });
+    await expect(bookingApi.requestOtp("+573001112233")).resolves.toEqual({ sentTo: expect.stringContaining("2233"), channel: "whatsapp" });
+    await expect(bookingApi.verifyOtp(KNOWN_PHONE, DEMO_CODE)).resolves.toMatchObject({ status: "known", customer: { firstName: "Marcela" } });
+    await expect(bookingApi.verifyOtp("+573001112233", DEMO_CODE)).resolves.toMatchObject({ status: "new", customer: null });
+    await expect(bookingApi.verifyOtp("+573009999999", DEMO_CODE)).resolves.toEqual({ status: "blocked", token: null, customer: null });
+  });
+
+  test("sin la sesión del código no se reserva, ni se cobra una tarjeta guardada, ni se ve la propuesta", async () => {
+    const items = [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 10, 0)) }];
+    const input = { branchId: "ma", items, products: [], tipId: null, promoCode: null, method: "card" as const, savedCardId: "card_demo_visa" };
+    await expect(bookingApi.reserve("bk_inventado", input)).rejects.toMatchObject({ status: 403 });
+    await expect(bookingApi.suggestion("bk_inventado")).rejects.toMatchObject({ status: 403 });
+    await expect(bookingApi.joinWaitlist("bk_inventado", { branchId: "ma", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "any" })).rejects.toMatchObject({ status: 403 });
+    await expect(bookingApi.createCustomer("bk_inventado", { firstName: "Ana", lastName: "Ruiz", email: "ana@correo.com", marketing: false })).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("los códigos tienen límite: 5 pedidos cada 10 minutos y 5 intentos fallidos", async () => {
+    for (let index = 0; index < 5; index += 1) await bookingApi.requestOtp("+573004445566");
+    await expect(bookingApi.requestOtp("+573004445566")).rejects.toMatchObject({ status: 429 });
+    resetBookingLimits();
+    await bookingApi.requestOtp("+573004445566");
+    for (let index = 0; index < 5; index += 1) await expect(bookingApi.verifyOtp("+573004445566", "000000")).rejects.toMatchObject({ status: 422 });
+    // Ni el código bueno entra hasta pedir uno nuevo.
+    await expect(bookingApi.verifyOtp("+573004445566", DEMO_CODE)).rejects.toMatchObject({ status: 429 });
+  });
+
+  test("el perfil nuevo usa el celular verificado y guarda el permiso de promociones con fecha", async () => {
+    const { token } = await signIn("+573007778899");
+    const created = await bookingApi.createCustomer(token, { firstName: "Ana", lastName: "Ruiz", email: "ana@correo.com", marketing: false });
+    expect(created.phone).toBe("+573007778899");
+    expect(db.customers.profiles[created.id]?.marketingConsent).toMatchObject({ accepted: false, source: "booking" });
+    // La misma sesión ya es la del cliente: puede reservar.
+    await expect(bookingApi.suggestion(token)).resolves.toMatchObject({ suggestion: null });
   });
 
   test("si el barbero no tiene horas, propone otros que hacen lo mismo, con lo que saben y sus horas", async () => {
@@ -260,23 +302,24 @@ describe("backend de la reserva", () => {
   });
 
   test("la lista de espera cae en la del Calendario y solo quien se apuntó puede salir", async () => {
-    const joined = await bookingApi.joinWaitlist({ branchId: "ma", customerId: "cli_001", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: "team-06", window: "afternoon" });
+    const { token } = await signIn();
+    const joined = await bookingApi.joinWaitlist(token, { branchId: "ma", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: "team-06", window: "afternoon" });
     const entry = db.calendar.waitlist.find((item) => item.id === joined.id);
     expect(entry).toMatchObject({ clientId: "cli_001", serviceId: "svc_corte", barberId: "team-06" });
     expect(entry?.slots.every((slot) => slot.date === "2026-10-09" && slot.time >= "12:00")).toBe(true);
-    await expect(bookingApi.leaveWaitlist(joined.id, "cli_002")).rejects.toMatchObject({ status: 404 });
-    await bookingApi.leaveWaitlist(joined.id, "cli_001");
+    const other = await signIn("+573005550102");
+    await expect(bookingApi.leaveWaitlist(other.token, joined.id)).rejects.toMatchObject({ status: 404 });
+    await bookingApi.leaveWaitlist(token, joined.id);
     expect(db.calendar.waitlist.some((item) => item.id === joined.id)).toBe(false);
     // La noche va desde las 18 hasta que cierra la sede; la tarde se queda en 12–18.
-    const night = await bookingApi.joinWaitlist({ branchId: "ma", customerId: "cli_001", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "evening" });
+    const night = await bookingApi.joinWaitlist(token, { branchId: "ma", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "evening" });
     expect(db.calendar.waitlist.find((item) => item.id === night.id)?.slots.every((slot) => slot.time >= "18:00")).toBe(true);
-    await expect(bookingApi.joinWaitlist({ branchId: "ma", customerId: "nadie", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "any" })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.joinWaitlist(token, { branchId: "ma", date: "2026-10-09", serviceIds: [], barberId: null, window: "any" })).rejects.toMatchObject({ status: 422 });
   });
 
   test("dos citas a la misma hora sin preferencia quedan con barberos distintos y salen en la agenda", async () => {
     const day = toStart(new Date(2026, 9, 9, 11, 0));
-    const reservation = await bookingApi.reserve({
-      customerId: "cli_001",
+    const reservation = await bookingApi.reserve((await signIn()).token, {
       branchId: "ma",
       items: [
         { guestId: null, serviceIds: ["svc_corte"], barberId: null, start: day },
@@ -300,7 +343,7 @@ describe("backend de la reserva", () => {
     // Al pedir la hora se generan las citas de ese día de la agenda: solo cuentan las de la reserva en línea.
     const fromBooking = () => db.calendar.appointments.filter((item) => item.createdBy === "Reserva en línea").length;
     const error = await bookingApi
-      .reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4000000000000002", name: "M", expiry: "12/30", save: false } })
+      .reserve((await signIn()).token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4000000000000002", name: "M", expiry: "12/30", save: false } })
       .catch((caught: unknown) => caught);
     expect(isApiError(error) && error.status).toBe(402);
     expect(fromBooking()).toBe(0);
@@ -309,26 +352,29 @@ describe("backend de la reserva", () => {
 
   test("se paga con una tarjeta guardada (solo su token) y una nueva se guarda sin número completo", async () => {
     const item = (hour: number) => [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, hour, 0)) }];
-    const base = { customerId: "cli_001", branchId: "ma", products: [], tipId: null, promoCode: null, method: "card" as const };
-    const { customer: before } = (await bookingApi.lookup(KNOWN_PHONE)) as { customer: BookingCustomer };
+    const base = { branchId: "ma", products: [], tipId: null, promoCode: null, method: "card" as const };
+    const { token, customer: before } = await signIn();
+    if (!before) throw new Error("Marcela debería ser cliente");
     expect(before.cards.map((card) => `${card.brand} ${card.last4}`)).toEqual(["Visa 4242", "Mastercard 4444"]);
 
-    const withSaved = await bookingApi.reserve({ ...base, items: item(10), savedCardId: "card_demo_mc" });
+    const withSaved = await bookingApi.reserve(token, { ...base, items: item(10), savedCardId: "card_demo_mc" });
     expect(withSaved.payment).toMatchObject({ status: "paid", brand: "Mastercard", last4: "4444" });
-    await expect(bookingApi.reserve({ ...base, items: item(11), savedCardId: "card_que_no_existe" })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.reserve(token, { ...base, items: item(11), savedCardId: "card_que_no_existe" })).rejects.toMatchObject({ status: 422 });
 
-    await bookingApi.reserve({ ...base, items: item(12), card: { number: "5105 1051 0510 5100", name: "Marcela Gómez", expiry: "08/29", save: true } });
-    const { customer: after } = (await bookingApi.lookup(KNOWN_PHONE)) as { customer: BookingCustomer };
+    await bookingApi.reserve(token, { ...base, items: item(12), card: { number: "5105 1051 0510 5100", name: "Marcela Gómez", expiry: "08/29", save: true } });
+    const { customer: after } = await signIn();
+    if (!after) throw new Error("Marcela debería ser cliente");
     expect(after.cards.at(-1)).toMatchObject({ brand: "Mastercard", last4: "5100", expMonth: 8, expYear: 2029 });
     // Lo guardado no lleva el número completo.
     expect(JSON.stringify(after.cards)).not.toContain("5105105105105100");
   });
 
   test("con el código se ven las citas, se mueven y se cancelan con reembolso a saldo a favor", async () => {
-    const reservation = await bookingApi.reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M", expiry: "12/30", save: false } });
+    const session = await signIn();
+    const reservation = await bookingApi.reserve(session.token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M", expiry: "12/30", save: false } });
     const appointment = reservation.appointments[0];
     await expect(bookingApi.verifyOtp(KNOWN_PHONE, "000000")).rejects.toMatchObject({ status: 422 });
-    const { token } = await bookingApi.verifyOtp(KNOWN_PHONE, "246810");
+    const { token } = await signIn();
     const mine = await bookingApi.myAppointments(token);
     expect(mine.upcoming.some((item) => item.id === appointment.id)).toBe(true);
 
@@ -342,7 +388,7 @@ describe("backend de la reserva", () => {
   });
 
   test("con su frecuencia de visita se propone el día que le toca y horas libres", async () => {
-    const { suggestion } = await bookingApi.suggestion("cli_001");
+    const { suggestion } = await bookingApi.suggestion((await signIn()).token);
     expect(suggestion).not.toBeNull();
     const client = db.calendar.clients.find((item) => item.id === "cli_001")!;
     expect(suggestion!.everyDays).toBe(client.visitEveryDays);
@@ -359,9 +405,17 @@ describe("backend de la reserva", () => {
   });
 });
 
+/** Escribe el código de la demo en las casillas (como al pegarlo desde el mensaje). */
+async function typeCode(user: ReturnType<typeof userEvent.setup>) {
+  const cells = await screen.findAllByRole("textbox");
+  await user.click(cells[0]);
+  await user.paste(DEMO_CODE);
+}
+
 describe("pantalla de la reserva", () => {
   // Embla (el carrusel de productos) lo pide al montar; jsdom no lo trae.
   beforeEach(() => {
+    resetBookingLimits();
     vi.stubGlobal(
       "IntersectionObserver",
       class {
@@ -382,6 +436,10 @@ describe("pantalla de la reserva", () => {
     const phone = await screen.findByRole("textbox", { name: /celular/i });
     await user.type(phone, "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
+    // Antes del código no se ve nada de su perfil.
+    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
+    expect(screen.queryByText(/Marcela/)).toBeNull();
+    await typeCode(user);
     expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
     // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
     expect(await screen.findByText("Tu próxima visita")).toBeInTheDocument();
@@ -395,6 +453,8 @@ describe("pantalla de la reserva", () => {
     renderWithProviders(<BookingFlow />);
     await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3001112233");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
+    await typeCode(user);
     expect(await screen.findByText("Conozcámonos")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /crear perfil/i }));
     expect(screen.getByText("Escribe tu nombre.")).toBeInTheDocument();

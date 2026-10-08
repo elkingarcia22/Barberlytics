@@ -31,6 +31,11 @@ export interface MockCustomerProfile {
   blocked: boolean;
   createdAt: string;
   guests: MockGuest[];
+  /**
+   * Aceptó recibir promociones: cuándo y desde dónde. Sin esto, no se le escribe más que lo de sus
+   * citas (Ley 1581: consentimiento previo, expreso e informado, y que se pueda probar).
+   */
+  marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" };
   /** Borrado del directorio; la agenda conserva sus citas. */
   deleted?: boolean;
 }

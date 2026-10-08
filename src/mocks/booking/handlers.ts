@@ -34,9 +34,13 @@ import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBook
 
 /**
  * La reserva en línea del backend simulado (docs/API_CONTRACT.md, «Reserva en
- * línea»). Pública: no pide la sesión de la app. «Mis citas» pide un código
- * por SMS y responde con un token propio en `x-booking-token`; sin él, 403
- * (no 401: un 401 cerraría la sesión de quien esté dentro de la app).
+ * línea»). Pública: no pide la sesión de la app, sino la suya. El celular
+ * recibe un código (a cualquier número, para no revelar quién es cliente) y al
+ * verificarlo se entrega un token en `x-booking-token`. Todo lo que actúa en
+ * nombre de alguien —crear el perfil, reservar, cobrar una tarjeta guardada, la
+ * lista de espera, «Mis citas»— toma al cliente de ese token, nunca de un id que
+ * mande el navegador. Sin token, 403 (no 401: un 401 cerraría la sesión de quien
+ * esté dentro de la app).
  */
 
 const BASE = "*/api/booking";
@@ -51,10 +55,41 @@ const text = (value: unknown): string => (typeof value === "string" ? value.trim
 const strings = (value: unknown): string[] => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
 const findClient = (id: string) => db.calendar.clients.find((client) => client.id === id);
 
-function sessionClient(request: Request): MockClient | null {
+/** Una sesión verificada es de un cliente (su id) o de un celular nuevo aún sin perfil (`phone:+57…`). */
+const PHONE_SESSION = "phone:";
+const sessionValue = (request: Request): string | undefined => {
   const token = request.headers.get("x-booking-token");
-  const clientId = token ? db.bookingSessions.get(token) : undefined;
-  return clientId ? findClient(clientId) ?? null : null;
+  return token ? db.bookingSessions.get(token) : undefined;
+};
+
+function sessionClient(request: Request): MockClient | null {
+  const value = sessionValue(request);
+  return value && !value.startsWith(PHONE_SESSION) ? findClient(value) ?? null : null;
+}
+
+/** El celular verificado de una sesión que todavía no tiene perfil. */
+const sessionPhone = (request: Request): string | null => {
+  const value = sessionValue(request);
+  return value?.startsWith(PHONE_SESSION) ? value.slice(PHONE_SESSION.length) : null;
+};
+
+const NO_SESSION = () => error(403, "booking_session", "Tu sesión venció. Escribe tu celular y el código otra vez.");
+
+/**
+ * Límites contra quien prueba números o códigos a ciegas: 5 códigos por celular
+ * cada 10 minutos y 5 intentos fallidos por código. En memoria, como haría un
+ * almacén rápido en el servidor real.
+ */
+const CODE_LIMIT = 5;
+const CODE_WINDOW_MS = 10 * 60_000;
+const ATTEMPT_LIMIT = 5;
+const codeRequests = new Map<string, number[]>();
+const codeFailures = new Map<string, number>();
+const phoneKey = (phone: string) => phone.replace(/\D/g, "");
+/** Para las pruebas: cada prueba empieza sin intentos acumulados. */
+export function resetBookingLimits(): void {
+  codeRequests.clear();
+  codeFailures.clear();
 }
 
 /** Luhn: la misma comprobación que hace la pasarela antes de hablar con el banco. */
@@ -191,46 +226,37 @@ export const bookingHandlers = [
   http.post(`${BASE}/waitlist`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const customerId = text(input.customerId);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
     const branchId = text(input.branchId);
     const date = text(input.date);
     const serviceIds = strings(input.serviceIds);
     const barberId = text(input.barberId) || null;
     const window = (["morning", "afternoon", "evening", "any"] as const).find((item) => item === input.window);
-    if (!findClient(customerId)) return error(422, "validation", "Escribe tu celular para avisarte.");
     if (!(db.settings.lists.branches as unknown as { id: string }[]).some((branch) => branch.id === branchId)) return error(422, "validation", "Elige una sede.");
     if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
     if (serviceIds.length === 0 || !serviceIds.every((id) => db.services.items.some((item) => item.id === id))) return error(422, "validation", "Elige al menos un servicio.");
     if (!window) return error(422, "validation", "Elige mañana, tarde, noche o cualquier hora.");
-    const entry = joinWaitlist({ branchId, clientId: customerId, date, serviceIds, barberId, window: window as WaitlistWindow });
+    const entry = joinWaitlist({ branchId, clientId: client.id, date, serviceIds, barberId, window: window as WaitlistWindow });
     return HttpResponse.json({ id: entry.id, date, window }, { status: 201 });
   }),
 
   http.delete(`${BASE}/waitlist/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
-    const customerId = new URL(request.url).searchParams.get("customerId") ?? "";
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
     const entry = db.calendar.waitlist.find((item) => item.id === params.id);
     // Solo quien se apuntó puede salir de la lista.
-    if (!entry || entry.clientId !== customerId) return error(404, "not_found", "Esa entrada no existe.");
+    if (!entry || entry.clientId !== client.id) return error(404, "not_found", "Esa entrada no existe.");
     db.calendar.waitlist = db.calendar.waitlist.filter((item) => item.id !== entry.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.post(`${BASE}/lookup`, async ({ request }) => {
+  http.get(`${BASE}/me/suggestion`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const phone = text(asRecord(await request.json().catch(() => ({}))).phone);
-    if (phone.replace(/\D/g, "").length < 8) return error(422, "validation", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
-    const client = clientByPhone(phone);
-    if (isBlockedPhone(phone, client)) return HttpResponse.json({ status: "blocked" });
-    seedDemoGuests(client);
-    return HttpResponse.json(client ? { status: "known", customer: customerOf(client) } : { status: "new" });
-  }),
-
-  http.get(`${BASE}/customers/:id/suggestion`, async ({ params }) => {
-    await delay(LATENCY_MS);
-    const client = findClient(String(params.id));
-    if (!client) return error(404, "not_found", "Ese cliente no existe.");
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
     // Sin ritmo de visitas todavía (cliente nuevo) no hay nada que proponer.
     return HttpResponse.json({ suggestion: visitSuggestion(client) });
   }),
@@ -238,7 +264,11 @@ export const bookingHandlers = [
   http.post(`${BASE}/customers`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const phone = text(input.phone);
+    // El celular es el verificado con el código, no el que diga el formulario.
+    const already = sessionClient(request);
+    if (already) return HttpResponse.json(customerOf(already));
+    const phone = sessionPhone(request);
+    if (!phone) return NO_SESSION();
     const firstName = text(input.firstName);
     const lastName = text(input.lastName);
     const email = text(input.email);
@@ -246,20 +276,26 @@ export const bookingHandlers = [
     if (firstName.length < 2) fields.firstName = ["Escribe tu nombre."];
     if (lastName.length < 2) fields.lastName = ["Escribe tu apellido."];
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = ["Revisa el correo."];
-    if (phone.replace(/\D/g, "").length < 8) fields.phone = ["Escribe un celular válido."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const token = request.headers.get("x-booking-token") ?? "";
     const existing = clientByPhone(phone);
-    if (existing) return HttpResponse.json(customerOf(existing));
+    if (existing) {
+      db.bookingSessions.set(token, existing.id);
+      return HttpResponse.json(customerOf(existing));
+    }
     const client: MockClient = { id: `cli_web_${Date.now().toString(36)}`, name: `${firstName} ${lastName}`, phone, type: "new", visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null, preferredBarberId: null, visitEveryDays: null, notes: [], avatarUrl: null };
     db.calendar.clients = [...db.calendar.clients, client];
-    saveProfile(client.id, { ...profileOf(client), email, onlineOnly: false, blocked: false, guests: [], createdAt: new Date().toISOString() });
+    const now = new Date().toISOString();
+    saveProfile(client.id, { ...profileOf(client), email, onlineOnly: false, blocked: false, guests: [], createdAt: now, marketingConsent: { accepted: input.marketing === true, at: now, source: "booking" } });
+    // La sesión del celular pasa a ser la del cliente recién creado.
+    db.bookingSessions.set(token, client.id);
     return HttpResponse.json(customerOf(client), { status: 201 });
   }),
 
   http.post(`${BASE}/promo`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const client = findClient(text(input.customerId));
+    const client = sessionClient(request);
     const result = findPromo(text(input.code), { isNewClient: client ? customerOf(client).isNew : true, appointments: Number(input.appointments) || 1 });
     if ("problem" in result) return error(422, "promo_invalid", "Ese cupón no aplica.", { problem: result.problem });
     return HttpResponse.json(result.promo);
@@ -268,8 +304,9 @@ export const bookingHandlers = [
   http.post(`${BASE}/reservations`, async ({ request }) => {
     await delay(PAY_LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const client = findClient(text(input.customerId));
-    if (!client) return error(404, "not_found", "No encontramos tu perfil. Empieza de nuevo.");
+    // Quien reserva (y a quien se cobra una tarjeta guardada) es el de la sesión verificada.
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
     const branchId = text(input.branchId);
     const items = Array.isArray(input.items) ? input.items : [];
     if (items.length === 0) return error(422, "validation", "Aún no hay citas.");
@@ -369,20 +406,37 @@ export const bookingHandlers = [
   http.post(`${BASE}/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
     const phone = text(asRecord(await request.json().catch(() => ({}))).phone);
-    const client = clientByPhone(phone);
-    if (!client) return error(404, "not_found", "No encontramos citas con ese celular.");
-    return HttpResponse.json({ sentTo: client.phone.replace(/\d(?=\d{4})/g, "•") });
+    if (phoneKey(phone).length < 8) return error(422, "validation", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    const now = Date.now();
+    const recent = (codeRequests.get(phoneKey(phone)) ?? []).filter((at) => now - at < CODE_WINDOW_MS);
+    if (recent.length >= CODE_LIMIT) return error(429, "rate_limited", "Pediste muchos códigos. Espera unos minutos e inténtalo otra vez.");
+    codeRequests.set(phoneKey(phone), [...recent, now]);
+    codeFailures.delete(phoneKey(phone));
+    // Responde igual sea o no cliente: el número no revela nada hasta verificar el código.
+    return HttpResponse.json({ sentTo: `•••• ${phoneKey(phone).slice(-4)}`, channel: "whatsapp" });
   }),
 
   http.post(`${BASE}/otp/verify`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const client = clientByPhone(text(input.phone));
-    if (!client) return error(404, "not_found", "No encontramos citas con ese celular.");
-    if (text(input.code) !== DEMO_OTP) return error(422, "otp_invalid", "Ese código no es. Revisa el SMS e inténtalo otra vez.", { fields: { code: ["Código incorrecto."] } });
-    const token = `bk_${Math.random().toString(36).slice(2)}`;
+    const phone = text(input.phone);
+    const failures = codeFailures.get(phoneKey(phone)) ?? 0;
+    if (failures >= ATTEMPT_LIMIT) return error(429, "otp_locked", "Demasiados intentos. Pide un código nuevo.");
+    if (text(input.code) !== DEMO_OTP) {
+      codeFailures.set(phoneKey(phone), failures + 1);
+      return error(422, "otp_invalid", "Ese código no es. Revisa el mensaje e inténtalo otra vez.", { attemptsLeft: ATTEMPT_LIMIT - failures - 1, fields: { code: ["Código incorrecto."] } });
+    }
+    codeFailures.delete(phoneKey(phone));
+    const client = clientByPhone(phone);
+    if (isBlockedPhone(phone, client)) return HttpResponse.json({ token: null, status: "blocked", customer: null });
+    const token = `bk_${crypto.randomUUID()}`;
+    if (!client) {
+      db.bookingSessions.set(token, `${PHONE_SESSION}${phone}`);
+      return HttpResponse.json({ token, status: "new", customer: null });
+    }
+    seedDemoGuests(client);
     db.bookingSessions.set(token, client.id);
-    return HttpResponse.json({ token, customer: customerOf(client) });
+    return HttpResponse.json({ token, status: "known", customer: customerOf(client) });
   }),
 
   http.get(`${BASE}/me/appointments`, async ({ request }) => {

@@ -18,6 +18,7 @@ import { ConfirmedStep } from "./steps/ConfirmedStep";
 import { ManageStep } from "./steps/ManageStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { PhoneStep } from "./steps/PhoneStep";
+import { VerifyStep } from "./steps/VerifyStep";
 import { ProfileStep } from "./steps/ProfileStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { ServicesStep } from "./steps/ServicesStep";
@@ -40,6 +41,8 @@ export interface BookingFlowProps {
 function backAction(state: BookingState, shop: BookingShop): BookingAction | null {
   const identity: BookingAction = state.customer && !state.customer.isNew ? { type: "goTo", step: "welcome" } : { type: "restart" };
   switch (state.step) {
+    case "verify":
+      return { type: "goTo", step: "phone" };
     case "profile":
     case "welcome":
     case "blocked":
@@ -73,6 +76,8 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
   switch (state.step) {
     case "phone":
       return <PhoneStep />;
+    case "verify":
+      return <VerifyStep />;
     case "profile":
       return <ProfileStep />;
     case "welcome":
@@ -108,7 +113,6 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
   const t = useAppT();
   const shopQuery = useBookingShopQuery();
   const [state, dispatch] = React.useReducer(bookingReducer, undefined, () => initialBookingState());
-  const [token, setToken] = React.useState<string | null>(null);
   const shop = shopQuery.data;
   const catalogQuery = useBookingCatalogQuery(state.branchId);
   const totals = useBookingTotals(state, catalogQuery.data, shop);
@@ -132,9 +136,11 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [state.step]);
 
+  // La sesión vive en el estado de la reserva: empezar de nuevo («¿No eres tú?») la borra sola.
+  const setToken = React.useCallback((token: string | null) => dispatch({ type: "setToken", token }), []);
   const value = React.useMemo<BookingFlowValue | null>(
-    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token, setToken } : null),
-    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, token]
+    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token: state.token, setToken } : null),
+    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, setToken]
   );
 
   if (shopQuery.isError) {

@@ -30,7 +30,7 @@ function requireAuth(request: Request) {
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-const profileOf = (client: MockClient): MockCustomerProfile => db.customers.profiles[client.id] ?? deriveProfile(client);
+export const profileOf = (client: MockClient): MockCustomerProfile => db.customers.profiles[client.id] ?? deriveProfile(client);
 /* Un cliente borrado sale del directorio, pero sigue en la agenda: sus citas y cobros pasados no se pierden. */
 const realClients = () => db.calendar.clients.filter((client) => client.id !== WALK_IN_CLIENT.id && !profileOf(client).deleted);
 const findClient = (id: string | readonly string[] | undefined) => realClients().find((client) => client.id === id);
@@ -118,7 +118,7 @@ function detail(client: MockClient) {
   };
 }
 
-function saveProfile(clientId: string, profile: MockCustomerProfile) {
+export function saveProfile(clientId: string, profile: MockCustomerProfile) {
   db.customers.profiles = { ...db.customers.profiles, [clientId]: profile };
   db.persist();
 }

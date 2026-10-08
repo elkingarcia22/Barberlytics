@@ -1,4 +1,5 @@
 import type { AppMessageCatalog } from "./types";
+import { bookingEn } from "./booking/en";
 
 /** Inglés de la aplicación. Traducción completa del diccionario fuente. */
 export const appEn: AppMessageCatalog = {
@@ -629,6 +630,8 @@ export const appEn: AppMessageCatalog = {
   "settings.identityHint": "Your logo and name in the menu, for the whole company.",
   "settings.billing": "Plan and billing",
   "settings.billingHint": "Your plan, your invoices and your billing details.",
+  "settings.onlineBooking": "Online booking",
+  "settings.onlineBookingHint": "How your clients book: tablet, monitor or the widget on your site.",
   "settings.booking": "Online booking",
   "settings.bookingHint": "How clients book and manage their appointments.",
   "settings.closures": "Hours and closures",
@@ -2900,4 +2903,5 @@ export const appEn: AppMessageCatalog = {
   "feedback.upload.progress": "{done} of {total} uploaded",
   "feedback.upload.done": "{total} sent with your comment",
   "feedback.upload.failed": "They could not be uploaded. Your comment is still in the form.",
+  ...bookingEn,
 };

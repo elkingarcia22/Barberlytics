@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { atMinutes, formatClock, minutesOfDay, slotMinutes } from "./scheduleUtils";
 
 /**
@@ -32,9 +33,22 @@ export interface TimeSlotPickerProps {
   endHour?: number;
   slotMinutes?: number;
   isSlotDisabled?: (date: Date) => boolean;
+  /** Día marcado en la tira, controlado desde fuera (para pedir la disponibilidad de ese día). */
+  day?: Date;
+  onDayChange?: (day: Date) => void;
+  /** Días que no se pueden elegir (cerrado, sin barberos). */
+  isDayDisabled?: (day: Date) => boolean;
+  /** Solo las horas libres, sin las tachadas: lo que ve un cliente, no recepción. */
+  hideUnavailable?: boolean;
+  /** Mientras llegan las horas del día, chips de carga. */
+  loading?: boolean;
+  /** `lg` agranda días y horas para el dedo: tablet o kiosco. */
+  size?: "default" | "lg";
   locale?: Locale;
   className?: string;
 }
+
+const LOADING_CHIPS = 8;
 
 const DEFAULT_DAYS = 28;
 const VISIBLE_DAYS = 7;
@@ -56,6 +70,12 @@ export function TimeSlotPicker({
   endHour = DEFAULT_END_HOUR,
   slotMinutes: step = DEFAULT_STEP,
   isSlotDisabled,
+  day: controlledDay,
+  onDayChange,
+  isDayDisabled,
+  hideUnavailable = false,
+  loading = false,
+  size = "default",
   locale,
   className,
 }: TimeSlotPickerProps) {
@@ -64,7 +84,13 @@ export function TimeSlotPicker({
   const dateLocale = locale ?? calendarLocale(activeLocale);
   const first = React.useMemo(() => startOfDay(startDate ?? new Date()), [startDate]);
   const days = React.useMemo(() => Array.from({ length: daysCount }, (_, index) => addDays(first, index)), [first, daysCount]);
-  const [day, setDay] = React.useState<Date>(() => (value ? startOfDay(value) : first));
+  const [ownDay, setOwnDay] = React.useState<Date>(() => (value ? startOfDay(value) : first));
+  const day = controlledDay ? startOfDay(controlledDay) : ownDay;
+  const setDay = (next: Date) => {
+    setOwnDay(next);
+    onDayChange?.(next);
+  };
+  const isLarge = size === "lg";
   const [page, setPage] = React.useState(() => Math.floor(Math.max(0, days.findIndex((item) => isSameDay(item, day))) / VISIBLE_DAYS));
   const pages = Math.ceil(days.length / VISIBLE_DAYS);
   const visible = days.slice(page * VISIBLE_DAYS, page * VISIBLE_DAYS + VISIBLE_DAYS);
@@ -100,33 +126,45 @@ export function TimeSlotPicker({
         <div role="radiogroup" aria-label={t("schedule.pickDay")} className="grid grid-cols-7 gap-1.5">
           {visible.map((item) => {
             const active = isSameDay(item, day);
+            const dayDisabled = Boolean(isDayDisabled?.(item));
             return (
               <button
                 key={item.toISOString()}
                 type="button"
                 role="radio"
                 aria-checked={active}
+                disabled={dayDisabled}
                 aria-label={capitalize(format(item, "EEEE d 'de' MMMM", { locale: dateLocale }))}
                 onClick={() => setDay(item)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-lg border px-1 py-2",
+                  "flex flex-col items-center gap-0.5 rounded-lg border px-1",
+                  isLarge ? "py-3" : "py-2",
                   "transition-colors duration-fast ease-out-expo motion-reduce:transition-none",
                   active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface text-text-secondary hover:bg-surface-subtle",
+                  dayDisabled && "cursor-not-allowed opacity-40 hover:bg-surface",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 )}
               >
                 <span className="text-xs">{format(item, "EEE", { locale: dateLocale })}</span>
-                <span className="text-sm font-semibold tabular-nums">{format(item, "d")}</span>
+                <span className={cn("font-semibold tabular-nums", isLarge ? "text-base" : "text-sm")}>{format(item, "d")}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div role="radiogroup" aria-label={t("schedule.pickTime")} className="flex flex-col gap-3">
-        {groups.map((group) => {
-          const options = group.slots.map((minute) => ({ minute, date: atMinutes(day, minute) }));
-          const enabled = options.filter((option) => !isSlotDisabled?.(option.date));
+      <div role="radiogroup" aria-label={t("schedule.pickTime")} aria-busy={loading} className="flex flex-col gap-3">
+        {loading && (
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: LOADING_CHIPS }, (_, index) => (
+              <Skeleton key={index} className={cn("rounded-full", isLarge ? "h-10 w-20" : "h-7 w-16")} />
+            ))}
+          </div>
+        )}
+        {!loading && groups.map((group) => {
+          const all = group.slots.map((minute) => ({ minute, date: atMinutes(day, minute) }));
+          const enabled = all.filter((option) => !isSlotDisabled?.(option.date));
+          const options = hideUnavailable ? enabled : all;
           return (
             <div key={group.id} className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">{group.label}</span>
@@ -146,7 +184,8 @@ export function TimeSlotPicker({
                         disabled={disabled}
                         onClick={() => onChange(date)}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-xs tabular-nums",
+                          "rounded-full border tabular-nums",
+                          isLarge ? "px-4 py-2 text-sm" : "px-2.5 py-1 text-xs",
                           "transition-colors duration-fast ease-out-expo motion-reduce:transition-none",
                           active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface text-text-primary hover:bg-surface-subtle",
                           disabled && "cursor-not-allowed opacity-40 line-through hover:bg-surface",

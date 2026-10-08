@@ -78,7 +78,7 @@ function fixedHours(member: MockTeamMember): MockBarber["workingHours"] {
 }
 
 /** Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. */
-function hoursOn(member: MockTeamMember, day: string): { start: string; end: string }[] {
+export function hoursOn(member: MockTeamMember, day: string): { start: string; end: string }[] {
   const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === day);
   if (override) return override.range ? [override.range] : [];
   const range = member.schedule[String(new Date(`${day}T00:00:00`).getDay())];
@@ -86,7 +86,7 @@ function hoursOn(member: MockTeamMember, day: string): { start: string; end: str
 }
 
 /** Los barberos activos de la sucursal, en su orden de calendario, como los ve la agenda. */
-function barbersIn(branchId: string): MockBarber[] {
+export function barbersIn(branchId: string): MockBarber[] {
   const order = db.team.orders.find((item) => item.branchId === branchId);
   return barbersOf(db.team.members, db.team.orders, branchId).map((member) => ({
     id: member.id,
@@ -118,7 +118,7 @@ export function appointmentsOn(branchId: string, day: string): MockAppointment[]
   return db.calendar.appointments.filter((item) => item.branchId === branchId && item.start.startsWith(day));
 }
 
-const blocksOn = (branchId: string, day: string): MockTimeBlock[] =>
+export const blocksOn = (branchId: string, day: string): MockTimeBlock[] =>
   db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day));
 
 const findAppointment = (id: string | readonly string[] | undefined) => db.calendar.appointments.find((item) => item.id === id);
@@ -136,7 +136,7 @@ const actorOf = (accountName: string, input: Record<string, unknown>): string =>
  * un bloqueo en el mismo tramo. La misma regla que aplica la agenda antes de
  * soltar; aquí es la última puerta, por si llega por otro camino.
  */
-function clashMessage(branchId: string, barberId: string, day: string, startMinute: number, durationMin: number, excludeId?: string): string | null {
+export function clashMessage(branchId: string, barberId: string, day: string, startMinute: number, durationMin: number, excludeId?: string): string | null {
   const end = startMinute + durationMin;
   const clash = appointmentsOn(branchId, day).find((item) => {
     if (item.id === excludeId || item.barberId !== barberId || item.status === "cancelled" || item.status === "no_show") return false;
@@ -195,7 +195,7 @@ function validateAppointmentInput(body: DefaultBodyType) {
  * luego se desactive—; el catálogo que se ofrece solo trae los activos.
  */
 const toAgenda = (item: MockCatalogService): MockService => ({ id: item.id, name: item.name, category: db.services.categories.find((category) => category.id === item.categoryId)?.name ?? "", durationMin: item.durationMin, price: item.price, imageUrl: item.imageUrl });
-const catalogServices = (): MockService[] => db.services.items.map(toAgenda);
+export const catalogServices = (): MockService[] => db.services.items.map(toAgenda);
 
 /* Lo mismo con los productos (`mocks/products`): para cobrar vale cualquiera
    que exista; el catálogo que se ofrece solo trae los activos y vendibles. */

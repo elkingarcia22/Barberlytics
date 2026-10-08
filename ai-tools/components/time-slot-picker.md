@@ -19,6 +19,11 @@ import { TimeSlotPicker } from "@/components/scheduling"
 | `startHour / endHour` | `number` | `8 / 24` | Primera y última hora ofrecidas (la última exclusiva). |
 | `slotMinutes` | `number` | `30` | Minutos entre una hora y la siguiente. |
 | `isSlotDisabled` | `(date: Date) => boolean` |  | Qué horas se apagan (fuera de horario, ocupadas, pasadas). |
+| `day / onDayChange` | `Date / (day: Date) => void` |  | El día marcado en la tira, controlado desde fuera: sirve para pedir la disponibilidad de ese día. |
+| `isDayDisabled` | `(day: Date) => boolean` |  | Días que no se pueden elegir (cerrado, sin barberos). |
+| `hideUnavailable` | `boolean` | `false` | Solo las horas libres, sin las tachadas. Para el cliente; recepción sí quiere ver lo ocupado. |
+| `loading` | `boolean` | `false` | Chips de carga en lugar de las horas mientras llegan las del día. |
+| `size` | `"default" \| "lg"` | `"default"` | `lg` agranda días y horas para el dedo: tablet, kiosco. |
 | `locale` | `Locale` |  | Locale de date-fns; sin él, el idioma de la aplicación. |
 
 ## Guías
@@ -26,6 +31,7 @@ import { TimeSlotPicker } from "@/components/scheduling"
 - Sí: Apaga las horas pasadas de hoy y las que caen fuera del horario de quien atiende.
 - Sí: Envuélvelo en un `Field` con `error` cuando el formulario exija la fecha.
 - Sí: Deja que el paso siga al catálogo: si los servicios se agendan cada 15 minutos, `slotMinutes={15}`.
+- Sí: Cara al cliente: `hideUnavailable` y `size="lg"`; en recepción, deja lo ocupado tachado para que se vea por qué no hay hora.
 - No: No lo uses para rangos ni para fechas sin hora: para eso están `DateRangePicker` y `DatePicker`.
 - No: No ofrezcas 24 horas si la barbería abre 12: la tira de chips se hace larga sin motivo.
 
@@ -52,5 +58,23 @@ const [value, setValue] = React.useState<Date | null>(null);
   value={value}
   onChange={setValue}
   isSlotDisabled={(fecha) => !isWorkingAt(horario, minutesOfDay(fecha)) || ocupadas.includes(fecha.getTime())}
+/>
+```
+
+### Lo que ve el cliente al reservar
+
+En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size="lg"` agranda todo para el dedo en una tablet.
+
+```tsx
+<TimeSlotPicker
+  value={value}
+  onChange={setValue}
+  day={dia}
+  onDayChange={setDia}
+  loading={disponibilidad.isFetching}
+  hideUnavailable
+  size="lg"
+  isDayDisabled={(fecha) => cerrados.includes(fecha.getDay())}
+  isSlotDisabled={(fecha) => !libres.has(formatoHora(fecha))}
 />
 ```

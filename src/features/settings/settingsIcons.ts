@@ -1,6 +1,7 @@
 import {
   Bell,
   Building2,
+  CalendarCheck,
   CalendarClock,
   CalendarOff,
   CalendarRange,
@@ -37,6 +38,7 @@ export const SETTINGS_ICONS: Record<string, LucideIcon> = {
   identidad: Stamp,
   facturacion: FileText,
   agendamiento: CalendarClock,
+  "agendamiento-online": CalendarCheck,
   cierres: CalendarOff,
   dispositivos: Smartphone,
   sucursales: Building2,

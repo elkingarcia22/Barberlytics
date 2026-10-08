@@ -338,6 +338,50 @@ Reglas que el cliente da por hechas:
 
 Los permisos por rol no están aquí: viven en Equipo.
 
+## Reserva en línea (`/booking`)
+
+La cara pública de la barbería: la abre el cliente desde el enlace, la tablet del local o el widget
+del sitio (`/reservar` en la app). **No lleva la sesión de la app.** El cliente se identifica con
+su celular; para ver o cambiar sus citas confirma un código por SMS y recibe un token propio que
+viaja en `x-booking-token`. Sin token válido responde `403 booking_session` (nunca `401`, que
+cerraría la sesión de quien esté dentro de la app en el mismo navegador).
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/booking/shop` | La barbería: nombre, logo, moneda, impuesto, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago y sedes con su horario de hoy. Sale de Configuración. |
+| `GET` | `/booking/catalog?branchId` | Lo reservable en la sede: servicios públicos y activos, barberos visibles con lo que cobra cada uno por servicio (`prices`), galería y valoración, y productos visibles y vendibles. |
+| `GET` | `/booking/availability?branchId&date&serviceIds&barberId&exclude` | Las horas libres del día, `{ time, barberIds }`. Sin `barberId`, cualquier barbero que haga todos los servicios. `exclude` es la cita que se está moviendo. Respeta horario, citas, bloqueos, cierres y anticipación mínima. |
+| `POST` | `/booking/lookup` | `{ phone }` → `{ status: "known", customer }`, `{ status: "new" }` o `{ status: "blocked" }`. |
+| `POST` | `/booking/customers` | Crea el cliente nuevo `{ phone, firstName, lastName, email, marketing }`. `201`. |
+| `POST` | `/booking/promo` | `{ code, customerId, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
+| `POST` | `/booking/reservations` | Reserva y cobra. Cuerpo: `customerId`, `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start`), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card`. `201` con el recibo. |
+| `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo }` (enmascarado). `404` si no hay cliente con ese celular. |
+| `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ token, customer }`. `422 otp_invalid` si el código no es. |
+| `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |
+| `PATCH` | `/booking/appointments/:id` | Con token: `{ start, barberId }`. `409 too_late` dentro del plazo de cambio; `409 conflict` si la hora ya no está. |
+| `POST` | `/booking/appointments/:id/cancel` | Con token: `{ refundTo: "card" \| "credit" }` → `{ appointment, fee, refund, refundTo }`. `409 limit` al llegar a `maxCancellations`. |
+| `POST` | `/booking/reservations/:id/receipt` | `{ channel: "email" \| "sms", to }` → `{ channel, to }`. |
+
+Reglas que el cliente da por hechas:
+
+- Las citas se crean en la agenda con `source: "online"` y `createdBy: "Reserva en línea"`: aparecen
+  en el Calendario. Una cita para un invitado va a nombre de quien reserva con la nota «Para Santi
+  (Hijo)», y el invitado nuevo queda guardado en la ficha del cliente.
+- Sin preferencia, el servidor asigna el primer barbero libre en el orden del calendario; dos citas
+  de la misma reserva a la misma hora nunca caen en el mismo barbero.
+- El total lo calcula el servidor con `src/features/booking/pricing.ts` (el mismo módulo que usa la
+  pantalla): descuento sobre servicios y productos, impuesto sobre lo comprado ya descontado y
+  propina aparte, sobre los servicios.
+- `shop` no se ofrece si la barbería lo apaga o si el cliente es «solo en línea» (`onlineOnly`).
+  `credit` solo si el saldo a favor cubre el total. `402 card_declined` si el banco rechaza.
+- Cancelar dentro del plazo (`cancelHours` antes) es gratis y devuelve todo lo pagado; después se
+  descuenta `lateFeePercent` del precio de la cita. `refundTo: "credit"` deja el reembolso como
+  saldo a favor al instante.
+- Errores al reservar: «Ese horario acaba de ser tomado…», «El barbero no está disponible a esa
+  hora…» (`409 conflict`) y «Esa hora ya no se puede reservar» si quedó dentro de la anticipación.
+- En la demo: `+57 320 217 2738` es un cliente que vuelve, `+57 300 999 9999` está bloqueado, el
+  código es `246810` y la tarjeta `4000 0000 0000 0002` se rechaza.
+
 ## Feedback de campañas (`/feedback`)
 
 `POST /feedback` → `200 { "ok": true }`. Guarda el comentario en la hoja de la campaña activa.

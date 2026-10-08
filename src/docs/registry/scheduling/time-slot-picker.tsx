@@ -54,6 +54,37 @@ function AvailabilityDemo() {
   );
 }
 
+function ClientDemo() {
+  const [value, setValue] = React.useState<Date | null>(null);
+  const [day, setDay] = React.useState<Date>(DAY);
+  const [loading, setLoading] = React.useState(false);
+  // Simula pedir las horas del día al servidor cada vez que cambia.
+  const changeDay = (next: Date) => {
+    setDay(next);
+    setLoading(true);
+    window.setTimeout(() => setLoading(false), 500);
+  };
+  return (
+    <div className="w-full max-w-lg space-y-3">
+      <TimeSlotPicker
+        value={value}
+        onChange={setValue}
+        startDate={DAY}
+        startHour={9}
+        endHour={19}
+        day={day}
+        onDayChange={changeDay}
+        loading={loading}
+        hideUnavailable
+        size="lg"
+        isDayDisabled={(date) => date.getDay() === 0}
+        isSlotDisabled={(date) => !isWorkingAt(WORKING, minutesOfDay(date)) || TAKEN.some((taken) => taken.getTime() === date.getTime())}
+      />
+      <ValueReadout label="Elegido" value={label(value)} />
+    </div>
+  );
+}
+
 export const timeSlotPickerEntry = defineEntry({
   id: "time-slot-picker",
   name: "TimeSlotPicker",
@@ -105,6 +136,25 @@ export const timeSlotPickerEntry = defineEntry({
 />`,
       render: () => <AvailabilityDemo />,
     },
+    {
+      id: "client",
+      title: "Lo que ve el cliente al reservar",
+      description:
+        "En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size=\"lg\"` agranda todo para el dedo en una tablet.",
+      layout: "start",
+      code: `<TimeSlotPicker
+  value={value}
+  onChange={setValue}
+  day={dia}
+  onDayChange={setDia}
+  loading={disponibilidad.isFetching}
+  hideUnavailable
+  size="lg"
+  isDayDisabled={(fecha) => cerrados.includes(fecha.getDay())}
+  isSlotDisabled={(fecha) => !libres.has(formatoHora(fecha))}
+/>`,
+      render: () => <ClientDemo />,
+    },
   ],
   props: [
     { name: "value", type: "Date | null", description: "La fecha y hora elegidas." },
@@ -114,6 +164,11 @@ export const timeSlotPickerEntry = defineEntry({
     { name: "startHour / endHour", type: "number", default: "8 / 24", description: "Primera y última hora ofrecidas (la última exclusiva)." },
     { name: "slotMinutes", type: "number", default: "30", description: "Minutos entre una hora y la siguiente." },
     { name: "isSlotDisabled", type: "(date: Date) => boolean", description: "Qué horas se apagan (fuera de horario, ocupadas, pasadas)." },
+    { name: "day / onDayChange", type: "Date / (day: Date) => void", description: "El día marcado en la tira, controlado desde fuera: sirve para pedir la disponibilidad de ese día." },
+    { name: "isDayDisabled", type: "(day: Date) => boolean", description: "Días que no se pueden elegir (cerrado, sin barberos)." },
+    { name: "hideUnavailable", type: "boolean", default: "false", description: "Solo las horas libres, sin las tachadas. Para el cliente; recepción sí quiere ver lo ocupado." },
+    { name: "loading", type: "boolean", default: "false", description: "Chips de carga en lugar de las horas mientras llegan las del día." },
+    { name: "size", type: '"default" | "lg"', default: '"default"', description: "`lg` agranda días y horas para el dedo: tablet, kiosco." },
     { name: "locale", type: "Locale", description: "Locale de date-fns; sin él, el idioma de la aplicación." },
   ],
   guidelines: {
@@ -121,6 +176,7 @@ export const timeSlotPickerEntry = defineEntry({
       "Apaga las horas pasadas de hoy y las que caen fuera del horario de quien atiende.",
       "Envuélvelo en un `Field` con `error` cuando el formulario exija la fecha.",
       "Deja que el paso siga al catálogo: si los servicios se agendan cada 15 minutos, `slotMinutes={15}`.",
+      "Cara al cliente: `hideUnavailable` y `size=\"lg\"`; en recepción, deja lo ocupado tachado para que se vea por qué no hay hora.",
     ],
     dont: [
       "No lo uses para rangos ni para fechas sin hora: para eso están `DateRangePicker` y `DatePicker`.",

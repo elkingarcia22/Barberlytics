@@ -9,6 +9,7 @@ import { transactionsHandlers } from "./transactions/handlers";
 import { expensesHandlers } from "./expenses/handlers";
 import { payrollHandlers } from "./payroll/handlers";
 import { settingsHandlers } from "./settings/handlers";
+import { bookingHandlers } from "./booking/handlers";
 import { buildBusinessMetrics } from "./metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
 
@@ -432,4 +433,6 @@ export const handlers = [
 
   // ---------- Configuración ----------
   ...settingsHandlers,
+  // La reserva en línea: la cara pública de la barbería, sin sesión de la app.
+  ...bookingHandlers,
 ];

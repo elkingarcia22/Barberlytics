@@ -1,0 +1,119 @@
+import * as React from "react";
+import { useLocale } from "@/i18n";
+import type { BookedAppointment } from "./types";
+
+/**
+ * Fechas, horas y dinero de la reserva. Las horas viajan como ISO local de la
+ * sucursal sin zona («2026-10-09T10:30»): la cita es a las 10:30 en la
+ * barbería, esté donde esté quien reserva.
+ */
+
+const pad = (value: number): string => String(value).padStart(2, "0");
+
+export const dayKeyOf = (date: Date): string => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+/** Una fecha como «AAAA-MM-DDTHH:mm». */
+export const toStart = (date: Date): string => `${dayKeyOf(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+/** «AAAA-MM-DDTHH:mm» (o con segundos) como fecha local. */
+export const parseStart = (value: string): Date => {
+  const [day, time = "00:00"] = value.split("T");
+  const [year, month, date] = day.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+  return new Date(year, (month ?? 1) - 1, date ?? 1, hours ?? 0, minutes ?? 0);
+};
+
+/** «09:30» como minutos del día. */
+export const clockMinutes = (clock: string): number => {
+  const [hours, minutes] = clock.split(":").map(Number);
+  return (hours ?? 0) * 60 + (minutes ?? 0);
+};
+
+export interface BookingFormatters {
+  money: (value: number) => string;
+  /** «jue 9 oct». */
+  day: (date: Date) => string;
+  /** «jueves, 9 de octubre». */
+  dayLong: (date: Date) => string;
+  /** «10:30 a. m.». */
+  time: (date: Date) => string;
+  /** «jue 9 oct · 10:30 a. m.». */
+  when: (date: Date) => string;
+  /** «10:30» del reloj de la barbería a la hora local legible. */
+  clock: (clock: string) => string;
+}
+
+export function useBookingFormat(currency = "USD"): BookingFormatters {
+  const { formatNumber, formatDate } = useLocale();
+  return React.useMemo(() => {
+    const day = (date: Date) => formatDate(date, { weekday: "short", day: "numeric", month: "short" });
+    const time = (date: Date) => formatDate(date, { hour: "numeric", minute: "2-digit" });
+    return {
+      money: (value: number) => formatNumber(value, { style: "currency", currency, minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }),
+      day,
+      dayLong: (date: Date) => formatDate(date, { weekday: "long", day: "numeric", month: "long" }),
+      time,
+      when: (date: Date) => `${day(date)} · ${time(date)}`,
+      clock: (clock: string) => {
+        const minutes = clockMinutes(clock);
+        const date = new Date(2026, 0, 1, Math.floor(minutes / 60), minutes % 60);
+        return time(date);
+      },
+    };
+  }, [currency, formatDate, formatNumber]);
+}
+
+const icsDate = (date: Date): string => `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+const icsText = (value: string): string => value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+
+/** Las citas de una reserva como un archivo de calendario (.ics), una por evento. */
+export function buildIcs(appointments: readonly BookedAppointment[], shopName: string): string {
+  const events = appointments.map((item) => {
+    const start = parseStart(item.start);
+    const end = new Date(start.getTime() + item.durationMin * 60_000);
+    return [
+      "BEGIN:VEVENT",
+      `UID:${item.id}@barberlytics`,
+      `DTSTAMP:${icsDate(new Date())}`,
+      `DTSTART:${icsDate(start)}`,
+      `DTEND:${icsDate(end)}`,
+      `SUMMARY:${icsText(`${shopName} — ${item.serviceNames.join(" + ")}`)}`,
+      `LOCATION:${icsText(item.branchName)}`,
+      `DESCRIPTION:${icsText(`${item.personName}\nBarbero: ${item.barberName}`)}`,
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Barberlytics//Reserva//ES", ...events, "END:VCALENDAR"].join("\r\n");
+}
+
+/** Descarga el .ics: en iPhone lo abre el calendario directamente. */
+export function downloadIcs(content: string, fileName = "cita.ics"): void {
+  const url = URL.createObjectURL(new Blob([content], { type: "text/calendar;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Las iniciales de un nombre, para el avatar de quien no tiene foto. */
+export const initialsOf = (name: string): string =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
+/** ¿Hoy todavía se puede reservar algo? No si ya pasó el cierre (menos la anticipación mínima). */
+export function isTodayOver(closesAt: string, minNoticeMinutes: number, now = new Date()): boolean {
+  return now.getHours() * 60 + now.getMinutes() + minNoticeMinutes >= clockMinutes(closesAt);
+}
+
+/** El primer día que tiene sentido enseñar: hoy, o mañana si hoy ya cerró. */
+export function firstBookableDay(closesAt: string, minNoticeMinutes: number, now = new Date()): Date {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return isTodayOver(closesAt, minNoticeMinutes, now) ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) : today;
+}
+
+export const isSameDayAs = (a: Date, b: Date): boolean => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();

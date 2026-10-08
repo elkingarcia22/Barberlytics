@@ -10,6 +10,7 @@ import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
 import { seedExpenses, type MockExpense } from "./expenses/seed";
 import { seedSettings, type MockSettingsState } from "./settings/seed";
+import { emptyBooking, type MockBookingState } from "./booking/state";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember } from "./team/seed";
 
@@ -157,6 +158,10 @@ export interface MockDb {
   expenses: MockExpense[];
   /** La configuración: un documento por ajuste y las listas (sucursales, cierres, impuestos, datáfonos). */
   settings: MockSettingsState;
+  /** La reserva en línea: recibos, saldo a favor y cancelaciones de cada cliente. */
+  booking: MockBookingState;
+  /** token de «Mis citas» → id de cliente. Solo en memoria. */
+  bookingSessions: Map<string, string>;
   /** token → id de cuenta */
   sessions: Map<string, string>;
   /** celular → intentos fallidos seguidos al verificar el código. Solo en memoria. */
@@ -168,7 +173,7 @@ export interface MockDb {
 
 const STORAGE_KEY = "thema.mock.db";
 /** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 interface PersistedDb {
   version?: number;
@@ -182,6 +187,7 @@ interface PersistedDb {
   products?: MockProductsState;
   expenses?: MockExpense[];
   settings?: MockSettingsState;
+  booking?: MockBookingState;
 }
 
 function storage(): Storage | null {
@@ -219,6 +225,8 @@ export function createDb(): MockDb {
     products: saved?.products ?? seedProducts(),
     expenses: saved?.expenses ?? seedExpenses(),
     settings: saved?.settings ?? seedSettings(),
+    booking: saved?.booking ?? emptyBooking(),
+    bookingSessions: new Map(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
     feedback: [],
@@ -227,7 +235,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -243,6 +251,8 @@ export function createDb(): MockDb {
       db.products = seedProducts();
       db.expenses = seedExpenses();
       db.settings = seedSettings();
+      db.booking = emptyBooking();
+      db.bookingSessions.clear();
       db.sessions.clear();
       db.loginFailures.clear();
       db.feedback = [];

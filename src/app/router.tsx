@@ -13,6 +13,7 @@ import type { AppMessageKey } from "./i18n";
 
 import {
   BarberOrderPage,
+  BookingPage,
   CalendarPage,
   CustomerProfilePage,
   CustomersPage,
@@ -120,6 +121,10 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  // La reserva en línea es pública: la abre el cliente desde el enlace, la
+  // tablet del local o el widget. Quien administra llega desde Cuenta ›
+  // «Agendamiento online» y la ve en sus pantallas (vista previa).
+  { path: "/reservar", element: lazy(<BookingPage />), errorElement: <RouteError /> },
   // El centro de ayuda es público: hace falta antes de entrar (el login tiene
   // sus propios artículos) y trae su propio shell, como la doc.
   { path: "/ayuda/*", element: lazy(<HelpApp />), errorElement: <RouteError /> },

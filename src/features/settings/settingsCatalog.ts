@@ -125,6 +125,9 @@ const SETTINGS_TEMPLATE: readonly SettingsGroupTemplate[] = [
     icon: CircleUser,
     items: [
       { id: "preferencias", labelKey: "settings.preferences", hintKey: "settings.preferencesHint", rule: RULES.personal },
+      // La reserva tal como la ve el cliente, en sus tres pantallas: no es un
+      // ajuste sino la vitrina, así que abre su propia página fuera del panel.
+      { id: "agendamiento-online", labelKey: "settings.onlineBooking", hintKey: "settings.onlineBookingHint", rule: RULES.operativeShared, path: "/reservar" },
       { id: "permisos", labelKey: "settings.permissions", hintKey: "settings.permissionsHint", rule: RULES.permissions },
       { id: "facturacion", labelKey: "settings.billing", hintKey: "settings.billingHint", rule: RULES.ownerOnly },
       {

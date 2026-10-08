@@ -1,0 +1,56 @@
+import * as React from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useAppT, type AppMessageKey } from "@/app/i18n";
+import { Chip } from "@/components/ai-interaction";
+import { Field } from "@/components/forms";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { isApiError } from "@/lib/api";
+import { bookingApi } from "../api";
+import type { PromoProblem } from "../pricing";
+import { useBookingFlow } from "./BookingContext";
+
+const PROBLEM_KEYS: Record<PromoProblem, AppMessageKey> = {
+  unknown: "booking.payment.promo.unknown",
+  firstVisitOnly: "booking.payment.promo.firstVisitOnly",
+  minAppointments: "booking.payment.promo.minAppointments",
+};
+
+const problemOf = (error: unknown): PromoProblem => {
+  const details = isApiError(error) ? error.details : undefined;
+  const problem = details && typeof details === "object" && "problem" in details ? (details as { problem?: unknown }).problem : undefined;
+  return problem === "firstVisitOnly" || problem === "minAppointments" ? problem : "unknown";
+};
+
+/** El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar. */
+export function PromoField() {
+  const t = useAppT();
+  const { state, dispatch } = useBookingFlow();
+  const [code, setCode] = React.useState("");
+  const check = useMutation({ mutationFn: () => bookingApi.checkPromo({ code, customerId: state.customer?.id ?? null, appointments: state.items.length }) });
+
+  if (state.promo) {
+    return (
+      <div className="flex items-center gap-2">
+        <Chip label={t("booking.payment.promoApplied", { code: state.promo.code })} tone="positive" icon="ticket" removable onRemove={() => dispatch({ type: "setPromo", promo: null })} />
+      </div>
+    );
+  }
+
+  const apply = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (!code.trim()) return;
+    check.mutate(undefined, { onSuccess: (promo) => dispatch({ type: "setPromo", promo }) });
+  };
+
+  return (
+    <Field label={t("booking.payment.promo")} error={check.isError ? t(PROBLEM_KEYS[problemOf(check.error)]) : undefined}>
+      <div className="flex gap-2">
+        <Input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder={t("booking.payment.promoPlaceholder")} onKeyDown={(event) => event.key === "Enter" && apply(event)} autoCapitalize="characters" />
+        <Button type="button" variant="outline" onClick={() => apply()} disabled={!code.trim() || check.isPending}>
+          {t("booking.payment.promoApply")}
+        </Button>
+      </div>
+    </Field>
+  );
+}

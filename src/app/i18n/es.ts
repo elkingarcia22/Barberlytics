@@ -1,3 +1,4 @@
+import { bookingEs } from "./booking/es";
 /**
  * El diccionario **de la aplicación**, no el del sistema de diseño.
  *
@@ -659,6 +660,8 @@ export const appEs = {
   "settings.identityHint": "Tu logo y tu nombre en el menú de toda la empresa.",
   "settings.billing": "Plan y facturación",
   "settings.billingHint": "Tu plan, tus facturas y los datos de cobro.",
+  "settings.onlineBooking": "Agendamiento online",
+  "settings.onlineBookingHint": "Cómo reservan tus clientes: tablet, monitor o el widget de tu sitio.",
   "settings.booking": "Reservas online",
   "settings.bookingHint": "Cómo reservan y gestionan sus citas los clientes.",
   "settings.closures": "Horarios y cierres",
@@ -2936,4 +2939,6 @@ export const appEs = {
   "feedback.upload.progress": "{done} de {total} subidos",
   "feedback.upload.done": "{total} enviados con tu comentario",
   "feedback.upload.failed": "No se pudieron subir. Tu comentario sigue en el formulario.",
+  // La reserva en línea, en su propio archivo (src/app/i18n/booking).
+  ...bookingEs,
 } as const;

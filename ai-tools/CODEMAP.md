@@ -34,6 +34,7 @@ De `src/app/router.tsx`.
 - `/configuracion` → SettingsPage
 - `/configuracion/:seccion` → SettingsSectionPage
 - `/403` → ForbiddenPage
+- `/reservar` → BookingPage
 - `/ayuda/*` → HelpApp
 - `/docs/*` → DocsApp
 - `*` → NotFoundPage
@@ -42,6 +43,19 @@ De `src/app/router.tsx`.
 
 Lo que responde MSW hoy.
 
+- `GET /shop` · src/mocks/booking/handlers.ts
+- `GET /catalog` · src/mocks/booking/handlers.ts
+- `GET /availability` · src/mocks/booking/handlers.ts
+- `POST /lookup` · src/mocks/booking/handlers.ts
+- `POST /customers` · src/mocks/booking/handlers.ts
+- `POST /promo` · src/mocks/booking/handlers.ts
+- `POST /reservations` · src/mocks/booking/handlers.ts
+- `POST /otp/request` · src/mocks/booking/handlers.ts
+- `POST /otp/verify` · src/mocks/booking/handlers.ts
+- `GET /me/appointments` · src/mocks/booking/handlers.ts
+- `PATCH /appointments/:id` · src/mocks/booking/handlers.ts
+- `POST /appointments/:id/cancel` · src/mocks/booking/handlers.ts
+- `POST /reservations/:id/receipt` · src/mocks/booking/handlers.ts
 - `GET /calendar/catalog` · src/mocks/calendar/handlers.ts
 - `GET /calendar/day` · src/mocks/calendar/handlers.ts
 - `GET /calendar/month` · src/mocks/calendar/handlers.ts
@@ -148,6 +162,11 @@ Router, providers, layout, navegación y páginas de error.
 - **PageLoader.tsx** — Loader de página completa: para rutas perezosas y la resolución de sesión. · `PageLoader`
 - **RouteError.tsx** — Límite de error de las rutas: atrapa lo que reviente al renderizar una página (o al cargarla en diferido) y l… · `RouteError` · piezas: Button · usa: @/lib/api, @/lib/query
 
+### i18n/booking
+
+- **en.ts** — Online booking in English. · `bookingEn`
+- **es.ts** — La reserva en línea: lo que lee el cliente de la barbería, no quien la administra. · `bookingEs`
+
 ### i18n
 
 - **en.ts** — Inglés de la aplicación. · `appEn`
@@ -161,7 +180,7 @@ Router, providers, layout, navegación y páginas de error.
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
 - **router.tsx** · `router` · usa: @/features/access, @/features/auth, @/features/sections
@@ -203,6 +222,58 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **tokenStorage.ts** — Dónde vive el token de acceso en el navegador. · `TokenStorage`, `sessionTokenStorage`, `createMemoryTokenStorage`
 - **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
 - **useAuth.ts** — El usuario autenticado; lanza si se usa fuera de una ruta protegida. · `useAuth`, `useCurrentUser`
+
+### booking
+
+- **BookingFlow.tsx** — La reserva en línea entera, lista para montarse donde haga falta: a pantalla completa en una tablet del local… · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, Skeleton · usa: @/app/i18n, @/lib/query, @/lib/utils
+- **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
+- **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/catalog, GET /booking/availability, POST /booking/lookup, POST /booking/customers, POST /booking/promo, POST /booking/reservations, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
+- **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs` · usa: @/i18n
+- **bookingState.ts** — El recorrido de la reserva como datos: en qué paso está, quién reserva, la cita que se está armando y las que… · `BookingStep`, `BookingPerson`, `DraftItem`, `BookingState`, `BookingAction`, `initialBookingState`, `bookingReducer`, `PROGRESS_STEPS`, `ProgressStep`, `progressIndex`, `personName`
+- **pricing.ts** — Las cuentas de una reserva en línea, sin interfaz: cuánto suman las citas y los productos, qué descuenta un c… · `TipKind`, `TipOption`, `Promo`, `PROMOS`, `PromoProblem`, `PromoContext`, `findPromo`, `promoDiscount`, `tipAmount`, `TotalsInput`, `Totals`, `computeTotals`, `CancellationInput`, `CancellationTerms`, `cancellationTerms`, `renderPolicy`
+- **queries.ts** — Claves jerárquicas: reservar o cancelar invalida la disponibilidad y «Mis citas» sin tocar el catálogo. · `bookingKeys`, `useBookingShopQuery`, `useBookingCatalogQuery`, `AvailabilityParams`, `useAvailabilityQuery`, `useLookupMutation`, `useCreateCustomerMutation`, `useReserveMutation`, `useMyAppointmentsQuery`, `useRescheduleMutation`, `useCancelMutation`, `useSendReceiptMutation`
+- **types.ts** — El contrato de la reserva en línea (docs/API_CONTRACT.md, «Reserva en línea»). · `tipOptionSchema`, `bookingBranchSchema`, `BookingBranch`, `bookingShopSchema`, `BookingShop`, `bookingServiceSchema`, `BookingService`, `bookingBarberSchema`, `BookingBarber`, `bookingProductSchema`, `BookingProduct`, `bookingCatalogSchema`, `BookingCatalog`, `bookingGuestSchema`, `BookingGuest`, `lastVisitSchema`, `LastVisit`, `bookingCustomerSchema`, `BookingCustomer`, `lookupSchema`, `LookupResult`, `slotSchema`, `Slot`, `availabilitySchema`, `Availability`, `bookedStatusSchema`, `BookedStatus`, `bookedAppointmentSchema`, `BookedAppointment`, `totalsSchema`, `payMethodSchema`, `PayMethod`, `reservationSchema`, `Reservation`, `myAppointmentsSchema`, `MyAppointments`, `otpVerifySchema`, `OtpVerify`, `cancelResultSchema`, `CancelResult`, `receiptSentSchema`, `ReceiptSent`, `NewCustomerInput`, `ReservationItemInput`, `ReservationInput`, `RescheduleInput`
+- **useBookingTotals.ts** — Lo que vale una cita: con barbero elegido, su precio; sin preferencia, el más bajo de quienes la pueden hacer… · `itemPrice`, `itemDuration`, `useBookingTotals`, `DraftOrderLine`, `draftOrderLines`
+
+### booking/flow
+
+- **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas»: cuándo primero… · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/icons, @/lib/utils
+- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, DrawerShell, Heading, Text · usa: @/app/i18n
+- **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
+- **BookingHeader.tsx** — La cabecera de la reserva: quién es la barbería (y en qué sede), volver y cuánto falta. · `BookingHeader` · piezas: Button, IconTile, Progress, Stepper, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **BookingSummaryAside.tsx** — En monitor, la reserva que se va armando queda a la derecha todo el tiempo: la sede, cada cita y el total. · `BookingSummaryAside` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons
+- **CancelDialog.tsx** — Cancelar, con las cuentas a la vista antes de confirmar: si todavía es gratis, hasta cuándo; si no, cuánto se… · `CancelDialog` · piezas: Alert, AlertDescription, Button, ModalShell, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **CardForm.tsx** — La tarjeta, en cuatro campos con el teclado numérico del celular y el autocompletado del navegador. · `CardForm` · piezas: Field, Input · usa: @/app/i18n
+- **ManageSignIn.tsx** — Entrar a «Mis citas»: el celular y un código por SMS. · `ManageSignIn` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/lib/api
+- **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina y el total, como un ticket. · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
+- **PersonPicker.tsx** — «¿Para quién es la cita?»: quien reserva, la gente que ya trajo antes (su hijo, su pareja) o alguien nuevo. · `PersonPicker` · piezas: Button, Chip, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n
+- **PromoField.tsx** — El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar. · `PromoField` · piezas: Button, Chip, Field, Input · usa: @/app/i18n, @/lib/api
+- **ReceiptView.tsx** — El recibo de una reserva: número, lo cobrado por cita y producto, y con qué se pagó. · `ReceiptView` · piezas: Badge, Heading, Text · usa: @/app/i18n
+- **RescheduleDrawer.tsx** — Cambiar la hora sin llamar: las horas libres para el mismo barbero (o para cualquiera, si lo prefiere) y un b… · `RescheduleDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Label, Spinner, Switch, Text, TimeSlotPicker · usa: @/app/i18n, @/icons, @/lib/api, @/lib/useResetOnChange
+- **SendReceiptDialog.tsx** — Reenviar el recibo a un correo o a un celular; trae los del cliente ya puestos. · `SendReceiptDialog` · piezas: Button, Field, Input, ModalShell, PhoneInput, SegmentedControl, Spinner · usa: @/app/i18n, @/lib/api, @/lib/useResetOnChange
+- **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
+- **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardValues`, `cardErrors`, `isCardComplete`
+
+### booking/preview
+
+- **DemoHints.tsx** — Los datos para probar la demo: qué celular es un cliente que vuelve, cuál está bloqueado, la tarjeta que se r… · `DemoHints` · piezas: Button, Popover, PopoverContent, PopoverTrigger, Text · usa: @/app/i18n, @/icons
+- **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **DeviceFrame.tsx** — La silueta de la pantalla donde el cliente ve la reserva: un celular, la tablet del local o un monitor con su… · `PreviewDevice`, `DeviceFrame` · piezas: Text · usa: @/icons, @/lib/utils
+
+### booking/steps
+
+- **BarberStep.tsx** — El barbero: «Sin preferencia» primero —es el que más horas abre— y luego cada uno con su foto, su nivel, lo q… · `BarberStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **BlockedStep.tsx** — El número está bloqueado por la barbería: no se explica por qué, se ofrece el teléfono. · `BlockedStep` · piezas: Button, EmptyState · usa: @/app/i18n, @/icons
+- **BranchStep.tsx** — La sede, con foto: se reconoce el local antes que la dirección. · `BranchStep` · piezas: IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **ConfirmedStep.tsx** — Hecho. · `ConfirmedStep` · piezas: Badge, Button, Heading, Text · usa: @/app/i18n, @/icons
+- **ManageStep.tsx** — «Mis citas»: lo que viene (cambiar la hora o cancelar, con la política a la vista), lo que ya pasó (volver a… · `ManageStep` · piezas: Badge, Button, EmptyState, IconTile, ListItem, ListItemGroup, ModalShell, Skeleton, Text, ThemaTabs · usa: @/app/i18n, @/icons
+- **PaymentStep.tsx** — Pagar: la propina para el barbero, un cupón y cómo se paga. · `PaymentStep` · piezas: Alert, AlertDescription, Button, Heading, OptionTile, SegmentedControl, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **PhoneStep.tsx** — La puerta: el celular. · `PhoneStep` · piezas: Button, Field, IconTile, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para crear su ficha en la barbería. · `ProfileStep` · piezas: Button, Checkbox, Field, Input, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Field, Heading, IconTile, MagicCard, NumberField, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/utils
+- **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
+- **WelcomeStep.tsx** — El cliente que vuelve: lo más probable es que quiera lo mismo de la última vez, así que eso va primero y a un… · `WelcomeStep` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons
 
 ### branches
 
@@ -567,6 +638,12 @@ Configuración de la aplicación.
 
 MSW: implementa docs/API_CONTRACT.md.
 
+### booking
+
+- **handlers.ts** — Para las pruebas: el nombre de un servicio tal como sale en el recibo. · `bookingHandlers`, `bookingServiceName` · usa: @/features/booking
+- **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `taxPercent`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `shop`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`
+- **state.ts** — Lo que la reserva en línea guarda además de las citas (que viven en la agenda, `db.calendar.appointments`, co… · `MockBookingLine`, `MockReservation`, `MockBookingState`, `emptyBooking`, `DEMO_PHONES`, `BLOCKED_PHONE`, `DEMO_OTP`, `DECLINED_CARD`
+
 - **browser.ts** — Service worker para el navegador; se arranca desde `main.tsx` cuando `env.useMocks`. · `worker`
 - **db.ts** — Identidad de la empresa: su logo para fondos claros y, opcional, para oscuros. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockDb`, `createDb`, `db`
 - **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers`
@@ -578,12 +655,12 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### calendar
 
-- **handlers.ts** — Las citas de un día de una sucursal, generándolas la primera vez que se piden. · `appointmentsOn`, `calendarHandlers`, `workingClock`
+- **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `blocksOn`, `clashMessage`, `catalogServices`, `calendarHandlers`, `workingClock`
 - **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
 
 ### customers
 
-- **handlers.ts** · `customersHandlers`
+- **handlers.ts** · `profileOf`, `saveProfile`, `customersHandlers`
 - **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf`
 
 ### expenses

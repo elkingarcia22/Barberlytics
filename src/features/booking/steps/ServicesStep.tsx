@@ -80,7 +80,7 @@ export function ServicesStep() {
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("booking.services.search")} aria-label={t("booking.services.search")} className="pl-9" />
         </div>
         {categories.length > 1 && (
-          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+          <div className="-mx-5 -my-1.5 flex gap-2 overflow-x-auto px-5 py-1.5 [scrollbar-width:none]">
             <Chip label={t("booking.services.all")} selected={category === ALL} onClick={() => setCategory(ALL)} className="shrink-0" />
             {categories.map((item) => (
               <Chip key={item} label={item} selected={category === item} onClick={() => setCategory(item)} className="shrink-0" />

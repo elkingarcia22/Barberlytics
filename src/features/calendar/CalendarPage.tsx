@@ -74,6 +74,7 @@ import {
   type AgendaFilters,
   type ModelContext,
   visitOf,
+  isUnpaid,
 } from "./calendarModel";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
 
@@ -204,6 +205,15 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     [state]
   );
   const currentAppointment = React.useMemo(() => day.data?.appointments.find((item) => item.id === state.appointmentId) ?? null, [day.data, state.appointmentId]);
+  // Al cobrar una cita de una visita, las otras sin cobrar de esa visita se ofrecen juntas.
+  const checkoutAppointment = panel?.kind === "checkout" ? panel.appointment : null;
+  const checkoutCompanions = React.useMemo(
+    () =>
+      checkoutAppointment && day.data && catalog.data
+        ? visitOf(day.data.appointments, catalog.data, checkoutAppointment).filter((item) => item.id !== checkoutAppointment.id && isUnpaid(item))
+        : [],
+    [checkoutAppointment, day.data, catalog.data]
+  );
   // Si la cita es parte de una visita con servicios añadidos, el panel enseña todas sus citas.
   const currentVisit = React.useMemo(
     () => (currentAppointment && day.data && catalog.data ? visitOf(day.data.appointments, catalog.data, currentAppointment) : []),
@@ -860,6 +870,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
 
               <CheckoutDrawer
                 appointment={panel?.kind === "checkout" ? panel.appointment : null}
+                companions={checkoutCompanions}
                 open={panel?.kind === "checkout"}
                 onOpenChange={(open) => !open && closePanel()}
                 ctx={ctx}

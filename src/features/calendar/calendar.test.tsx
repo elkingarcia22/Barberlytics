@@ -4,6 +4,7 @@ import { renderWithProviders, screen, waitFor, within, userEvent } from "@/test/
 import { db } from "@/mocks/db";
 import { RequireAuth } from "@/features/auth";
 import { CalendarPage } from "./CalendarPage";
+import { CheckoutDrawer } from "./CheckoutDrawer";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
@@ -89,10 +90,14 @@ describe("modelo del calendario", () => {
     const otherBarber = { ...APPOINTMENT, id: "a3", barberId: "b2", start: "2026-09-25T10:45:00" };
     const later = { ...APPOINTMENT, id: "a4", start: "2026-09-25T15:00:00" };
     const groups = appointmentGroups([APPOINTMENT, second, otherBarber, later], CATALOG);
-    expect(groups.get("a1")).toMatchObject({ index: 1, size: 2, joinBottom: true });
-    expect(groups.get("a1")?.joinTop).toBeUndefined();
-    expect(groups.get("a2")).toMatchObject({ index: 2, size: 2, joinTop: true });
-    expect(groups.get("a2")?.joinBottom).toBeUndefined();
+    // Cada una conserva su hueco: van atadas por el grupo, no pegadas en un solo bloque.
+    expect(groups.get("a1")).toEqual({ id: "c1:a1", index: 1, size: 2 });
+    expect(groups.get("a2")).toEqual({ id: "c1:a1", index: 2, size: 2 });
+    // La segunda no ofrece «Ingresar»: el cliente se ingresa una vez, en la primera.
+    const stepCtx = { ...ctx, onNextStep: () => {} };
+    expect(toEvent(APPOINTMENT, stepCtx, { group: groups.get("a1") }).action).toBeDefined();
+    expect(toEvent(second, stepCtx, { group: groups.get("a2") }).action).toBeUndefined();
+    expect(toEvent({ ...second, status: "seated" }, stepCtx, { group: groups.get("a2") }).action).toBeDefined();
     // Con otro barbero a la misma hora, o con un hueco por medio, son citas normales.
     expect(groups.has("a3")).toBe(false);
     expect(groups.has("a4")).toBe(false);
@@ -759,6 +764,20 @@ describe("Calendario", () => {
     // Las propinas son las de Configuración, no una lista fija.
     expect(await within(screen.getByTestId("checkout-drawer")).findByRole("button", { name: /^25%/ })).toBeInTheDocument();
     expect(screen.getByTestId("checkout-pay")).toHaveTextContent(/Cobrar US\$/);
+  });
+
+  test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {
+    const user = userEvent.setup();
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "seated" as const };
+    renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} companions={[second]} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
+    const visit = await screen.findByTestId("checkout-visit");
+    const items = within(visit).getAllByTestId("checkout-visit-item");
+    expect(items).toHaveLength(2);
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
+    await user.click(within(items[1]).getByRole("button"));
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$35");
+    await user.click(within(items[1]).getByRole("button"));
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
   });
 
   test("la vista Semana cruza barberos y días, y una celda abre ese día con ese barbero", async () => {

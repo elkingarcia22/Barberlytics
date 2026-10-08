@@ -490,15 +490,9 @@ export function appointmentGroups(appointments: readonly Appointment[], catalog:
     for (const chain of chains) {
       if (chain.length < 2) continue;
       const id = `${chain[0].clientId}:${chain[0].id}`;
-      chain.forEach((item, position) => {
-        groups.set(item.id, {
-          id,
-          index: position + 1,
-          size: chain.length,
-          joinTop: position > 0 || undefined,
-          joinBottom: position < chain.length - 1 || undefined,
-        });
-      });
+      // Cada cita conserva su hueco en la agenda (sin pegarse a la vecina): son citas aparte que
+      // el borde de grupo y la píldora «1/2» atan al mismo cliente.
+      chain.forEach((item, position) => groups.set(item.id, { id, index: position + 1, size: chain.length }));
     }
   }
   return groups;
@@ -546,7 +540,7 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     badge: card.clientType && client && client.type !== "walkin" ? { label: ctx.t(CLIENT_TYPE_KEYS[client.type]), tone: clientTypeTone(client.type) } : undefined,
     status: card.status ? stageBadge(appointment, ctx) : undefined,
     // En una visita de varios servicios el siguiente paso va en la primera: el cliente ingresa una vez.
-    action: card.nextStep && step && ctx.onNextStep && !options.group?.joinTop ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
+    action: card.nextStep && step && ctx.onNextStep && !(options.group && options.group.index > 1 && appointment.status === "scheduled") ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
     warning: isActive(appointment) ? appointmentWarning(appointment, ctx) : undefined,
     flexible: isFlexible(appointment),
     faded: options.faded,

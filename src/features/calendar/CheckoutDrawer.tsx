@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Banknote, CreditCard, HandCoins, Link2, Package, Scissors, Split, Trash2 } from "lucide-react";
+import { Banknote, CalendarCheck, CreditCard, HandCoins, Link2, Package, Scissors, Split, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -10,7 +10,7 @@ import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import { Chip } from "@/components/ai-interaction";
-import { findBarber, findClient, type ModelContext } from "./calendarModel";
+import { appointmentRange, appointmentTotal, findBarber, findClient, servicesOf, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
 import { useCheckoutAppointment } from "./queries";
 import { useSettingsSection } from "@/features/settings/settingsQueries";
@@ -23,6 +23,11 @@ import { ProductThumb, ServiceThumb } from "./calendarShared";
  * Cobrar una cita: los servicios y productos de la cuenta, la propina para
  * el barbero, cómo paga el cliente y el pedido total. «Pagar cita» cierra
  * la cita como cobrada.
+ *
+ * Si la cita es parte de una visita con servicios añadidos, las otras citas
+ * pendientes de esa visita salen arriba ya marcadas: se cobran todas de una
+ * vez. Productos, propina y recargo van en la cita que se abrió (el barbero
+ * es el mismo); las demás se cierran con lo suyo y el mismo método.
  */
 
 export interface CheckoutDrawerProps {
@@ -31,6 +36,8 @@ export interface CheckoutDrawerProps {
   onOpenChange: (open: boolean) => void;
   ctx: ModelContext;
   onPaid: (appointment: Appointment) => void;
+  /** Las otras citas sin cobrar de su visita: salen marcadas para cobrarlas juntas. */
+  companions?: readonly Appointment[];
 }
 
 const METHOD_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, mixed: Split };
@@ -39,7 +46,9 @@ export function CheckoutDrawer(props: CheckoutDrawerProps) {
   return <CheckoutPanel key={`${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`} {...props} />;
 }
 
-function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: CheckoutDrawerProps) {
+const NO_COMPANIONS: readonly Appointment[] = [];
+
+function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companions = NO_COMPANIONS }: CheckoutDrawerProps) {
   const t = useAppT();
   const checkout = useCheckoutAppointment();
   const [serviceIds, setServiceIds] = React.useState<string[]>(appointment?.serviceIds ?? []);
@@ -52,6 +61,8 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
   const [received, setReceived] = React.useState<number | null>(null);
   const [customTip, setCustomTip] = React.useState<number | null>(null);
   const [method, setMethod] = React.useState<PaymentMethod>("cash");
+  // Las demás citas de la visita vienen marcadas: lo normal es cobrar la visita entera.
+  const [companionIds, setCompanionIds] = React.useState<readonly string[]>(() => companions.map((item) => item.id));
 
   if (!appointment) return null;
 
@@ -59,7 +70,9 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
   const barber = findBarber(ctx.catalog, appointment.barberId);
   const services = serviceIds.map((id) => ctx.catalog.services.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   const lines = products.map((line) => ({ line, product: ctx.catalog.products.find((item) => item.id === line.productId) })).filter((item): item is { line: ProductLine; product: NonNullable<typeof item.product> } => Boolean(item.product));
-  const subtotal = services.reduce((sum, item) => sum + item.price, 0) + lines.reduce((sum, { line, product }) => sum + product.price * line.qty, 0);
+  const chosenCompanions = companions.filter((item) => companionIds.includes(item.id));
+  const companionsTotal = chosenCompanions.reduce((sum, item) => sum + appointmentTotal(ctx.catalog, item), 0);
+  const subtotal = services.reduce((sum, item) => sum + item.price, 0) + lines.reduce((sum, { line, product }) => sum + product.price * line.qty, 0) + companionsTotal;
   const chosenTip = tipOptions.find((option) => option.id === tipChoice);
   const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, subtotal) : 0;
   const surcharge = surchargeAmount(cardFee.data, method, subtotal);
@@ -73,18 +86,23 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
     });
   };
 
-  const pay = () => {
-    checkout.mutate(
-      { id: appointment.id, input: { serviceIds, products, tip, method, surcharge } },
-      {
-        onSuccess: (paid) => {
-          toast.success(t("calendar.checkout.paid"), { description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(paid.payment?.total ?? total), method: t(PAYMENT_METHOD_KEYS[method]) }) });
-          onOpenChange(false);
-          onPaid(paid);
-        },
-        onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
-      }
-    );
+  const toggleCompanion = (id: string) => setCompanionIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+
+  const pay = async () => {
+    try {
+      const [paid, ...others] = await Promise.all([
+        checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge } }),
+        ...chosenCompanions.map((item) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, method, surcharge: 0 } })),
+      ]);
+      const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0), 0);
+      toast.success(others.length > 0 ? t("calendar.checkout.paidVisit", { count: others.length + 1 }) : t("calendar.checkout.paid"), {
+        description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(charged || total), method: t(PAYMENT_METHOD_KEYS[method]) }),
+      });
+      onOpenChange(false);
+      onPaid(paid);
+    } catch (error) {
+      toast.error(describeError(error).title, { description: describeError(error).description });
+    }
   };
 
   return (
@@ -92,7 +110,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
       open={open}
       onOpenChange={onOpenChange}
       size="lg"
-      title={t("calendar.checkout.title")}
+      title={companions.length > 0 ? t("calendar.checkout.titleVisit") : t("calendar.checkout.title")}
       description={client ? `${client.name} · ${barber?.name ?? ""}` : undefined}
       footer={
         <div className="space-y-3 border-t border-border px-5 py-4">
@@ -110,6 +128,30 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid }: Checkou
       }
     >
       <div className="space-y-3" data-testid="checkout-drawer">
+        {companions.length > 0 && (
+          <DrawerSection icon={CalendarCheck} tone="brand" title={t("calendar.checkout.visit")} hint={t("calendar.checkout.visitHint")} badge={String(chosenCompanions.length + 1)}>
+            <ListItemGroup data-testid="checkout-visit">
+              {[appointment, ...companions].map((item) => {
+                const isCurrent = item.id === appointment.id;
+                const itemServices = isCurrent ? services : servicesOf(ctx.catalog, item);
+                return (
+                  <ListItem
+                    key={item.id}
+                    size="sm"
+                    selected={isCurrent || companionIds.includes(item.id)}
+                    onClick={isCurrent ? undefined : () => toggleCompanion(item.id)}
+                    leading={<ServiceThumb service={itemServices[0]} />}
+                    title={itemServices.map((service) => service.name).join(" + ") || "—"}
+                    description={isCurrent ? `${appointmentRange(item, ctx.intl)} · ${t("calendar.checkout.thisAppointment")}` : appointmentRange(item, ctx.intl)}
+                    meta={ctx.formatMoney(isCurrent ? itemServices.reduce((sum, service) => sum + service.price, 0) : appointmentTotal(ctx.catalog, item))}
+                    data-testid="checkout-visit-item"
+                  />
+                );
+              })}
+            </ListItemGroup>
+          </DrawerSection>
+        )}
+
         <DrawerSection icon={Scissors} tone="brand" title={t("calendar.checkout.services")} hint={t("calendar.section.appointmentHint")} badge={String(services.length)}>
           <div className="space-y-3">
             <ListItemGroup>

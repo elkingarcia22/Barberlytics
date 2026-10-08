@@ -4,6 +4,7 @@ import { renderWithProviders, screen, waitFor, within, userEvent } from "@/test/
 import { db } from "@/mocks/db";
 import { RequireAuth } from "@/features/auth";
 import { CalendarPage } from "./CalendarPage";
+import { CheckoutDrawer } from "./CheckoutDrawer";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
@@ -759,6 +760,20 @@ describe("Calendario", () => {
     // Las propinas son las de Configuración, no una lista fija.
     expect(await within(screen.getByTestId("checkout-drawer")).findByRole("button", { name: /^25%/ })).toBeInTheDocument();
     expect(screen.getByTestId("checkout-pay")).toHaveTextContent(/Cobrar US\$/);
+  });
+
+  test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {
+    const user = userEvent.setup();
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "seated" as const };
+    renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} companions={[second]} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
+    const visit = await screen.findByTestId("checkout-visit");
+    const items = within(visit).getAllByTestId("checkout-visit-item");
+    expect(items).toHaveLength(2);
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
+    await user.click(within(items[1]).getByRole("button"));
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$35");
+    await user.click(within(items[1]).getByRole("button"));
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
   });
 
   test("la vista Semana cruza barberos y días, y una celda abre ese día con ese barbero", async () => {

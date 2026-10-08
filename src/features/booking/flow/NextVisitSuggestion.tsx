@@ -83,7 +83,7 @@ export function NextVisitSuggestion({ suggestion, catalog, onPickOther }: NextVi
         </Text>
       )}
 
-      <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-col items-center gap-3">
         <Button
           type="button"
           size="lg"

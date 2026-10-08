@@ -32,6 +32,9 @@ export const PROMOS: readonly Promo[] = [
   { code: "BARBER5", type: "amount", value: 5 },
 ];
 
+/** El cupón de bienvenida (solo primera visita): se le ofrece y aplica solo al cliente nuevo. */
+export const FIRST_VISIT_PROMO: Promo | undefined = PROMOS.find((promo) => promo.firstVisitOnly);
+
 export type PromoProblem = "unknown" | "firstVisitOnly" | "minAppointments";
 
 export interface PromoContext {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isApiError } from "@/lib/api";
 import { bookingApi } from "../api";
-import type { PromoProblem } from "../pricing";
+import { FIRST_VISIT_PROMO, type PromoProblem } from "../pricing";
 import { useBookingFlow } from "./BookingContext";
 
 const PROBLEM_KEYS: Record<PromoProblem, AppMessageKey> = {
@@ -28,6 +28,16 @@ export function PromoField() {
   const t = useAppT();
   const { state, dispatch, totals, fmt } = useBookingFlow();
   const [code, setCode] = React.useState("");
+  // El cliente nuevo no tiene que saberse el cupón de bienvenida: se aplica solo, una vez (si lo quita, no vuelve).
+  const autoTried = React.useRef(false);
+  React.useEffect(() => {
+    if (autoTried.current || state.promo || !state.customer?.isNew || !FIRST_VISIT_PROMO) return;
+    autoTried.current = true;
+    bookingApi
+      .checkPromo(state.token, { code: FIRST_VISIT_PROMO.code, appointments: state.items.length })
+      .then((promo) => dispatch({ type: "setPromo", promo }))
+      .catch(() => undefined);
+  }, [dispatch, state.customer?.isNew, state.items.length, state.promo, state.token]);
   const check = useMutation({ mutationFn: () => bookingApi.checkPromo(state.token, { code, appointments: state.items.length }) });
 
   if (state.promo) {

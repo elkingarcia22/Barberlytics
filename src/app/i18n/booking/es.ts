@@ -508,6 +508,8 @@ export const bookingEs = {
   "booking.loyalty.useOn": "Se descuentan {amount} de esta reserva.",
   "booking.loyalty.useOff": "Lo guardas para la próxima.",
   "booking.loyalty.line": "Cortesía cliente frecuente",
+  "booking.firstVisit.title": "{value} de descuento en tu primera visita",
+  "booking.firstVisit.hint": "Se aplica solo al pagar.",
   "booking.receipt.title": "Recibo",
   "booking.receipt.sendTitle": "Enviar el recibo",
   "booking.receipt.sendLead": "Te lo mandamos por correo o por SMS.",

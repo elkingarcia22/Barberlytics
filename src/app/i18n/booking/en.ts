@@ -486,6 +486,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.loyalty.useOn": "{amount} comes off this booking.",
   "booking.loyalty.useOff": "Saved for next time.",
   "booking.loyalty.line": "Loyalty reward",
+  "booking.firstVisit.title": "{value} off your first visit",
+  "booking.firstVisit.hint": "Applied automatically at checkout.",
   "booking.receipt.title": "Receipt",
   "booking.receipt.sendTitle": "Send the receipt",
   "booking.receipt.sendLead": "We'll send it by email or text.",

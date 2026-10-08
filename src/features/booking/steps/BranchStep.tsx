@@ -65,7 +65,7 @@ export function BranchStep() {
             type="button"
             variant="ghost"
             size="sm"
-            className="absolute bottom-3 left-[calc(6rem+1.5px)] -translate-x-2.5 text-primary hover:text-primary"
+            className="absolute bottom-3 left-[calc(6rem+1.5px)] z-raised -translate-x-2.5 text-primary hover:text-primary"
             onClick={() => setViewing(branch.id)}
             aria-label={`${t("booking.branch.viewProfile")}: ${branch.name}`}
           >

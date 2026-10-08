@@ -245,7 +245,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/flow
 
 - **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, DrawerShell, Heading, Text · usa: @/app/i18n, @/icons
+- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, DrawerShell, Heading, Text · usa: @/app/i18n
 - **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
 - **BookingHeader.tsx** — La cabecera de la reserva: quién es la barbería (y en qué sede), volver y cuánto falta. · `BookingHeader` · piezas: Button, Progress, Stepper, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **BookingSheet.tsx** — Las decisiones cortas de la reserva (cambiar de sede, para quién es, cancelar, enviar el recibo): en celular,… · `BookingSheet` · piezas: DrawerShell
@@ -259,6 +259,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **NextVisitSuggestion.tsx** — Lo que le toca según su frecuencia de visita: el día (su última visita más su ritmo) y la hora a la que suele… · `NextVisitSuggestion` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina y el total, como un ticket. · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
 - **PersonPicker.tsx** — «¿Para quién es la cita?». · `PersonPicker` · piezas: Avatar, AvatarFallback, Button, Chip, Field, Heading, Input, ListItem, ListItemGroup, Text · usa: @/app/i18n, @/icons
+- **PhotoStrip.tsx** — Una tira de fotos que se recorre arrastrando —con el dedo o con el mouse— o con las flechas, sin tener que ab… · `PhotoStrip` · piezas: Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious · usa: @/app/i18n, @/icons, @/lib/utils
 - **ProductCard.tsx** — Un producto de la tienda, con su foto y el botón para sumarlo; ya en la reserva, el mismo hueco se vuelve un… · `ProductCard` · piezas: Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ProductCatalogDrawer.tsx** — Toda la tienda de la sede, ordenada como en el módulo de Productos: por categoría (Styling, Barba, Cuidado…),… · `ProductCatalogDrawer` · piezas: Button, Chip, DrawerShell, EmptyState, Heading, Input, Text · usa: @/app/i18n, @/icons
 - **PromoField.tsx** — El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar. · `PromoField` · piezas: Button, Chip, Field, Input · usa: @/app/i18n, @/lib/api

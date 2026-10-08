@@ -102,6 +102,11 @@ describe("perfil de la sede", () => {
     expect(detail.hours).toHaveLength(7);
     expect(detail.hours.some((entry) => entry.opensAt === null)).toBe(true);
     expect(detail.gallery.length).toBeGreaterThan(1);
+    // Ninguna foto repetida (rompería las claves de la tira).
+    for (const id of ["ma", "nc", "ri", "ut"]) {
+      const { gallery } = await bookingApi.branch(id);
+      expect(new Set(gallery).size).toBe(gallery.length);
+    }
     expect(detail.description.length).toBeGreaterThan(20);
     await expect(bookingApi.branch("zz")).rejects.toMatchObject({ status: 404 });
   });

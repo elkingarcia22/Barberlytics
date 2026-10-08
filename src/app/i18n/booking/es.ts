@@ -147,8 +147,8 @@ export const bookingEs = {
   "booking.branchProfile.closureOne": "{name}: cerrado el {date}.",
   "booking.branchProfile.closureRange": "{name}: cerrado del {from} al {to}.",
   "booking.branchProfile.services": "Lo que hacemos",
-  "booking.branchProfile.showAll": "Ver los {count} servicios",
   "booking.branchProfile.showLess": "Ver menos",
+  "booking.branchProfile.showMore": "Ver {count} más",
   "booking.branchProfile.team": "Quién atiende",
   "booking.branchProfile.moreBarbers": "y {count} barberos más",
 

@@ -135,8 +135,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.branchProfile.closureOne": "{name}: closed on {date}.",
   "booking.branchProfile.closureRange": "{name}: closed from {from} to {to}.",
   "booking.branchProfile.services": "What we do",
-  "booking.branchProfile.showAll": "See all {count} services",
   "booking.branchProfile.showLess": "Show less",
+  "booking.branchProfile.showMore": "See {count} more",
   "booking.branchProfile.team": "Who takes care of you",
   "booking.branchProfile.moreBarbers": "and {count} more barbers",
 

@@ -413,7 +413,8 @@ export function branchDetail(branchId: string) {
     zipcode: branch.zipcode,
     phone: branch.phone,
     mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
-    gallery: [own, ...GALLERY_EXTRA].filter((src): src is string => Boolean(src)).filter((src, index, all) => all.indexOf(src) === index).map((src) => src.replace("w=640&h=400", "w=1200&h=800")).slice(0, 5),
+    // Primero se iguala el tamaño y luego se quitan repetidas: la foto propia también está entre las de ejemplo.
+    gallery: [own, ...GALLERY_EXTRA].filter((src): src is string => Boolean(src)).map((src) => src.replace("w=640&h=400", "w=1200&h=800")).filter((src, index, all) => all.indexOf(src) === index).slice(0, 5),
     hours,
     barbers: members.length,
     closures: (db.settings.lists.closures as unknown as { startDate: string; endDate: string; branchIds: string[]; description: string }[])

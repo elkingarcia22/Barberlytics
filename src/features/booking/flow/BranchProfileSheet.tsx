@@ -14,9 +14,10 @@ import { useBookingCatalogQuery, useBranchDetailQuery } from "../queries";
 import { useBookingFlow } from "./BookingContext";
 import { DRAWER_FIT_STYLE } from "./drawerFit";
 import { GalleryViewer } from "./GalleryViewer";
+import { PhotoStrip } from "./PhotoStrip";
 
-const MAX_SERVICES = 6;
-const MAX_BARBERS = 8;
+const FIRST_SERVICES = 6;
+const FIRST_BARBERS = 4;
 
 interface BranchProfileSheetProps {
   /** La sede que se mira; `null` lo mantiene cerrado. */
@@ -37,6 +38,7 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
   const { layout, fmt, state } = useBookingFlow();
   const [viewing, setViewing] = React.useState<number | null>(null);
   const [showAllServices, setShowAllServices] = React.useState(false);
+  const [showAllBarbers, setShowAllBarbers] = React.useState(false);
   const { data: detail, isLoading } = useBranchDetailQuery(branchId);
   const { data: catalog } = useBookingCatalogQuery(branchId);
   const [now] = React.useState(() => new Date());
@@ -48,7 +50,8 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
     const prices = barbers.map((barber) => barber.prices[serviceId]).filter((value): value is number => value !== undefined);
     return prices.length > 0 ? Math.min(...prices) : fallback;
   };
-  const shownServices = showAllServices ? services : services.slice(0, MAX_SERVICES);
+  const shownServices = showAllServices ? services : services.slice(0, FIRST_SERVICES);
+  const shownBarbers = showAllBarbers ? barbers : barbers.slice(0, FIRST_BARBERS);
 
   return (
     <DrawerShell
@@ -103,21 +106,8 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
           )}
 
           {detail.gallery.length > 0 && (
-            <section aria-label={t("booking.branchProfile.photos")} className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none]">
-              {detail.gallery.map((src, position) => (
-                <button
-                  key={src}
-                  type="button"
-                  onClick={() => setViewing(position)}
-                  aria-label={t("booking.barber.openPhoto", { current: position + 1, total: detail.gallery.length })}
-                  className={cn("group relative h-40 shrink-0 snap-start overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50", position === 0 ? "w-64" : "w-40")}
-                >
-                  <img src={src} alt="" loading={position === 0 ? "eager" : "lazy"} className="size-full object-cover transition-transform duration-slow ease-out-expo group-hover:scale-105 motion-reduce:transition-none" />
-                  <span className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white" aria-hidden>
-                    <ThemaIcon name="expand" size="xs" tone="inverse" />
-                  </span>
-                </button>
-              ))}
+            <section aria-label={t("booking.branchProfile.photos")}>
+              <PhotoStrip photos={detail.gallery} onOpen={setViewing} featured />
             </section>
           )}
 
@@ -218,9 +208,9 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
                   </li>
                 ))}
               </ul>
-              {services.length > MAX_SERVICES && (
+              {services.length > FIRST_SERVICES && (
                 <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setShowAllServices((current) => !current)}>
-                  {showAllServices ? t("booking.branchProfile.showLess") : t("booking.branchProfile.showAll", { count: services.length })}
+                  {showAllServices ? t("booking.branchProfile.showLess") : t("booking.branchProfile.showMore", { count: services.length - FIRST_SERVICES })}
                 </Button>
               )}
             </section>
@@ -232,7 +222,7 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
                 {t("booking.branchProfile.team")}
               </Heading>
               <ul className="grid grid-cols-4 gap-3">
-                {barbers.slice(0, MAX_BARBERS).map((barber) => (
+                {shownBarbers.map((barber) => (
                   <li key={barber.id} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
                     <Avatar size="lg">
                       {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
@@ -249,10 +239,10 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
                   </li>
                 ))}
               </ul>
-              {barbers.length > MAX_BARBERS && (
-                <Text size="xs" tone="muted">
-                  {t("booking.branchProfile.moreBarbers", { count: barbers.length - MAX_BARBERS })}
-                </Text>
+              {barbers.length > FIRST_BARBERS && (
+                <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setShowAllBarbers((current) => !current)}>
+                  {showAllBarbers ? t("booking.branchProfile.showLess") : t("booking.branchProfile.showMore", { count: barbers.length - FIRST_BARBERS })}
+                </Button>
               )}
             </section>
           )}

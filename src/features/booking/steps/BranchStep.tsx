@@ -35,7 +35,7 @@ export function BranchStep() {
             aria-label={`${branch.name}, ${branch.address}`}
             isSelected={branch.id === state.branchId}
             onClick={() => dispatch({ type: "chooseBranch", branchId: branch.id })}
-            contentClassName="items-center gap-4 pr-9 text-left"
+            contentClassName="items-center gap-4 pr-10 text-left"
           >
             <IconTile size="xl" src={branch.imageUrl} icon={<ThemaIcon name="building" />} />
             <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -59,7 +59,7 @@ export function BranchStep() {
             </span>
           </MagicCard>
           {/* El perfil es otro botón, fuera de la tarjeta: un botón no va dentro de otro. */}
-          <Button type="button" variant="ghost" size="icon-sm" className="absolute right-2 top-2" onClick={() => setViewing(branch.id)} aria-label={`${t("booking.branchProfile.view")}: ${branch.name}`}>
+          <Button type="button" variant="ghost" size="icon-sm" className="absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setViewing(branch.id)} aria-label={`${t("booking.branchProfile.view")}: ${branch.name}`}>
             <ThemaIcon name="info" />
           </Button>
           </div>

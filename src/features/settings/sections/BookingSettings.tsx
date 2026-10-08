@@ -13,6 +13,7 @@ import { Text } from "@/components/typography";
 import { SettingsCard, SettingsDocument, SwitchRow, type FieldErrors } from "../SettingsFormParts";
 import { bookingSchema, type BookingSettings as Booking } from "../settingsTypes";
 import { buildBookingUrl, renderPolicy, widgetSnippet } from "./bookingUtils";
+import { BookingFunnelCard } from "./BookingFunnelCard";
 
 const SLOT_INTERVALS: readonly number[] = [10, 15, 20, 30, 45, 60];
 const WAIT_MINUTES: readonly number[] = [5, 10, 15, 20, 30, 45, 60];
@@ -240,6 +241,7 @@ function Links({ links }: { links: Booking["links"] }) {
   const bookingUrl = buildBookingUrl(links.bookingUrl, utm);
   return (
     <>
+      <BookingFunnelCard />
       <SettingsCard title={t("cfg.booking.link")} description={t("cfg.booking.linkHint")}>
         <CopyLine label={t("cfg.booking.linkLabel")} value={bookingUrl} testId="booking-link" />
         <div className="grid gap-3 sm:grid-cols-3">

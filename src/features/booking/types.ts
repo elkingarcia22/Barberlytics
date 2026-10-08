@@ -225,6 +225,18 @@ export interface GiftPurchaseInput {
   savedCardId?: string;
 }
 
+/** El embudo de la reserva en línea para el dueño: cuántas sesiones llegan a cada paso y de dónde vienen. */
+export const funnelSchema = z.object({
+  days: z.number(),
+  demo: z.boolean(),
+  started: z.number(),
+  bookings: z.number(),
+  conversion: z.number(),
+  steps: z.array(z.object({ step: z.string(), sessions: z.number(), rate: z.number() })),
+  sources: z.array(z.object({ source: z.string(), sessions: z.number(), bookings: z.number() })),
+});
+export type BookingFunnel = z.infer<typeof funnelSchema>;
+
 export const waitlistWindowSchema = z.enum(["morning", "afternoon", "evening", "any"]);
 export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
 export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });
@@ -363,6 +375,10 @@ export interface ReservationInput {
   savedCardId?: string;
   /** Tarjeta de regalo: paga primero; lo que sobra queda en ella. */
   giftCode?: string;
+  /** De dónde vino (UTM del enlace), para saber qué canal trae reservas. */
+  utm?: { source: string; medium: string; campaign: string };
+  /** Foto del corte que quiere (data URL JPEG/PNG/WebP, ≤ ~1,5 MB): la ve el barbero en la cita. */
+  referencePhoto?: string;
   notes?: string;
 }
 

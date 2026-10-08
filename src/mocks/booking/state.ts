@@ -25,6 +25,8 @@ export interface MockReservation {
   products: { productId: string; name: string; qty: number; price: number }[];
   promoCode: string | null;
   totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; gift: number; total: number };
+  /** De dónde vino quien reservó (UTM del enlace), si se sabe. */
+  utm?: { source: string; medium: string; campaign: string } | null;
   /** La tarjeta de regalo usada (su código), si la hubo. */
   giftCode?: string | null;
   payment: { method: "card" | "wallet" | "shop" | "credit" | "gift"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
@@ -76,12 +78,25 @@ export interface MockGiftCard {
   createdAt: string;
 }
 
+/** Llegó a un paso de la reserva: anónimo, para medir dónde se van. */
+export interface MockFunnelEvent {
+  sessionId: string;
+  step: string;
+  at: string;
+  /** Enlace público, widget en su sitio o vista previa del panel (esta no cuenta). */
+  surface: "link" | "widget" | "preview";
+  /** De dónde vino: `utm_source`, o «directo». */
+  source: string;
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** Pasos a los que llegó cada sesión (ver funnel.ts). */
+  funnel?: MockFunnelEvent[];
   /** Tarjetas de regalo compradas (la de prueba de la demo se suma sola, ver giftCards.ts). */
   giftCards?: MockGiftCard[];
   /** Reseñas que dejaron los clientes tras su cita (las de la demo se derivan, ver reviews.ts). */

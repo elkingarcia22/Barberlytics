@@ -19,6 +19,7 @@ import { ManageStep } from "./steps/ManageStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { PhoneStep } from "./steps/PhoneStep";
 import { VerifyStep } from "./steps/VerifyStep";
+import { useFunnelTracking, type BookingSurface } from "./funnel";
 import { GiftStep } from "./steps/GiftStep";
 import { ProfileStep } from "./steps/ProfileStep";
 import { ReviewStep } from "./steps/ReviewStep";
@@ -35,6 +36,8 @@ export interface BookingFlowProps {
   headerTrailing?: React.ReactNode;
   /** El widget se cierra al terminar; la página completa no. */
   onFinish?: () => void;
+  /** Dónde se abre, para el embudo: la vista previa del panel no cuenta. */
+  surface?: BookingSurface;
   className?: string;
 }
 
@@ -114,7 +117,7 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
  * panel flotante del widget en el sitio de la barbería. Se adapta al sitio
  * que le dan (`layout`), no al ancho de la ventana.
  */
-export function BookingFlow({ layout = "compact", touch = "default", headerTrailing, onFinish, className }: BookingFlowProps) {
+export function BookingFlow({ layout = "compact", touch = "default", headerTrailing, onFinish, surface = "preview", className }: BookingFlowProps) {
   const t = useAppT();
   const shopQuery = useBookingShopQuery();
   const [state, dispatch] = React.useReducer(bookingReducer, undefined, () => initialBookingState());
@@ -142,10 +145,11 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
   }, [state.step]);
 
   // La sesión vive en el estado de la reserva: empezar de nuevo («¿No eres tú?») la borra sola.
+  const tracking = useFunnelTracking(state.step, surface);
   const setToken = React.useCallback((token: string | null) => dispatch({ type: "setToken", token }), []);
   const value = React.useMemo<BookingFlowValue | null>(
-    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token: state.token, setToken } : null),
-    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, setToken]
+    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token: state.token, setToken, utm: tracking.utm } : null),
+    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, setToken, tracking.utm]
   );
 
   if (shopQuery.isError) {

@@ -241,6 +241,14 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
         </div>
       )}
 
+      {/* La foto del corte que pidió al reservar en línea: el barbero la ve antes de empezar. */}
+      {appointment.referencePhoto && (
+        <figure className="flex flex-col gap-1.5">
+          <Text variant="caption">{t("calendar.detail.referencePhoto")}</Text>
+          <img src={appointment.referencePhoto} alt={t("calendar.detail.referencePhoto")} className="max-h-56 w-full rounded-lg object-cover" data-testid="appointment-reference-photo" />
+        </figure>
+      )}
+
       {/* Lo que toca hacer, debajo de lo que hay que saber para hacerlo. */}
       <section aria-label={t("calendar.detail.actions")} className="space-y-2">
         <div className="flex flex-wrap gap-2" data-testid="appointment-primary">

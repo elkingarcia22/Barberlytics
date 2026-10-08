@@ -102,6 +102,8 @@ export const appointmentSchema = z.object({
   repeat: repeatRuleSchema,
   seriesId: z.string().nullable(),
   notes: z.string().nullable(),
+  /** Foto del corte que pidió el cliente al reservar en línea. */
+  referencePhoto: z.string().nullable().optional(),
   createdAt: z.string(),
   createdBy: z.string(),
   history: z.array(historyEntrySchema),

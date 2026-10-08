@@ -125,6 +125,8 @@ const SETTINGS_TEMPLATE: readonly SettingsGroupTemplate[] = [
     icon: CircleUser,
     items: [
       { id: "preferencias", labelKey: "settings.preferences", hintKey: "settings.preferencesHint", rule: RULES.personal },
+      // Cómo entra cada persona y su correo de respaldo por si el SMS no llega.
+      { id: "inicio-sesion", labelKey: "settings.signIn", hintKey: "settings.signInHint", rule: RULES.personal },
       // La reserva tal como la ve el cliente, en sus tres pantallas: no es un
       // ajuste sino la vitrina, así que abre su propia página fuera del panel.
       { id: "agendamiento-online", labelKey: "settings.onlineBooking", hintKey: "settings.onlineBookingHint", rule: RULES.operativeShared, path: "/reservar" },

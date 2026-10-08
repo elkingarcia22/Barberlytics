@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   HandCoins,
+  KeyRound,
   Landmark,
   Percent,
   Plug,
@@ -52,6 +53,7 @@ export const SETTINGS_ICONS: Record<string, LucideIcon> = {
   pagos: Plug,
   "centro-notificaciones": Bell,
   preferencias: SlidersHorizontal,
+  "inicio-sesion": KeyRound,
   permisos: ShieldCheck,
   "eliminar-cuenta": Trash2,
 };

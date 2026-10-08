@@ -44,9 +44,9 @@ describe("configuración según el rol", () => {
     db.reset();
   });
 
-  test("los barberos solo ven sus preferencias y su usuario", () => {
-    expect(idsFor("barbero-comision")).toEqual(["preferencias", "eliminar-cuenta"]);
-    expect(idsFor("barbero-renta")).toEqual(["preferencias", "eliminar-cuenta"]);
+  test("los barberos solo ven sus preferencias, cómo entran y su usuario", () => {
+    expect(idsFor("barbero-comision")).toEqual(["preferencias", "inicio-sesion", "eliminar-cuenta"]);
+    expect(idsFor("barbero-renta")).toEqual(["preferencias", "inicio-sesion", "eliminar-cuenta"]);
   });
 
   test("recepción ve lo operativo para atender, sin dinero ni contrato", () => {
@@ -226,6 +226,52 @@ describe("pantallas de configuración", () => {
     expect(db.settings.secretKey).toBe("sk_test_xyz");
     expect(JSON.stringify(db.settings.sections.payments)).not.toContain("sk_test_xyz");
     expect(await screen.findByText("Conectada")).toBeInTheDocument();
+  });
+
+  test("el correo de respaldo se activa solo tras verificar el código que le llega", async () => {
+    // Arrange
+    renderSection("inicio-sesion");
+    const user = userEvent.setup();
+
+    // Act
+    await user.click(await screen.findByTestId("backup-email-switch"));
+    const input = await screen.findByTestId("backup-email-input");
+    expect(input).toHaveValue("admin@thema.dev");
+    await user.clear(input);
+    await user.type(input, "carolina@gmail.com");
+    await user.click(screen.getByTestId("backup-email-send"));
+    expect(await screen.findByText(/enviamos a carolina@gmail.com/i)).toBeInTheDocument();
+    expect(db.backupEmails.acc_admin).toBeUndefined();
+    const group = screen.getByRole("group", { name: /código de verificación/i });
+    await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
+    await user.paste("246810");
+
+    // Assert
+    expect(await screen.findByTestId("backup-email-saved")).toHaveTextContent("carolina@gmail.com");
+    expect(db.backupEmails.acc_admin).toBe("carolina@gmail.com");
+  });
+
+  test("un código equivocado no activa el correo de respaldo", async () => {
+    renderSection("inicio-sesion");
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId("backup-email-switch"));
+    await user.click(await screen.findByTestId("backup-email-send"));
+    const group = await screen.findByRole("group", { name: /código de verificación/i });
+    await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
+    await user.paste("000000");
+    expect(await screen.findByText(/no es correcto/i)).toBeInTheDocument();
+    expect(db.backupEmails.acc_admin).toBeUndefined();
+  });
+
+  test("apagar el respaldo pide confirmación y lo quita", async () => {
+    db.backupEmails = { acc_admin: "carolina@gmail.com" };
+    renderSection("inicio-sesion");
+    const user = userEvent.setup();
+    expect(await screen.findByTestId("backup-email-saved")).toHaveTextContent("carolina@gmail.com");
+    await user.click(screen.getByTestId("backup-email-switch"));
+    await user.click(await screen.findByRole("button", { name: /quitar correo/i }));
+    await waitFor(() => expect(db.backupEmails.acc_admin).toBeUndefined());
+    expect(screen.queryByTestId("backup-email-saved")).not.toBeInTheDocument();
   });
 
   test("eliminar la cuenta exige escribir el nombre de la empresa", async () => {

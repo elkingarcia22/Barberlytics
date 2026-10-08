@@ -166,6 +166,10 @@ export interface MockDb {
   sessions: Map<string, string>;
   /** celular → intentos fallidos seguidos al verificar el código. Solo en memoria. */
   loginFailures: Map<string, number>;
+  /** id de cuenta → correo de respaldo verificado, por si el SMS no llega al entrar. */
+  backupEmails: Record<string, string>;
+  /** id de cuenta → correo de respaldo al que se mandó el código y aún no se verifica. Solo en memoria. */
+  pendingBackupEmails: Map<string, string>;
   /** Guarda el estado; se llama tras cada mutación para sobrevivir recargas. */
   persist(): void;
   reset(): void;
@@ -188,6 +192,7 @@ interface PersistedDb {
   expenses?: MockExpense[];
   settings?: MockSettingsState;
   booking?: MockBookingState;
+  backupEmails?: Record<string, string>;
 }
 
 function storage(): Storage | null {
@@ -229,13 +234,15 @@ export function createDb(): MockDb {
     bookingSessions: new Map(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
+    backupEmails: saved?.backupEmails ?? {},
+    pendingBackupEmails: new Map(),
     feedback: [],
     feedbackUploads: [],
     persist() {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -255,6 +262,8 @@ export function createDb(): MockDb {
       db.bookingSessions.clear();
       db.sessions.clear();
       db.loginFailures.clear();
+      db.backupEmails = {};
+      db.pendingBackupEmails.clear();
       db.feedback = [];
       db.feedbackUploads = [];
       try {

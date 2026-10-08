@@ -39,19 +39,26 @@ Cualquier estado ≥ 400 devuelve:
 
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| POST | `/auth/otp/request` | `{ phone }` | `204` siempre (no revela si el número existe) · `422` · `429` bloqueado |
+| POST | `/auth/otp/request` | `{ phone, channel?: "sms" \| "email" }` | `204` siempre (no revela si el número existe ni si tiene correo de respaldo) · `422` · `429` bloqueado |
 | POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` número no registrado, código incorrecto o vencido (`details.attemptsLeft`) · `429` bloqueado |
 | POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone }` | `204` la barbería queda pendiente de activar · `422` (`email` ya registrado va en `fields`) |
 | POST | `/support/tickets` | `{ name, company, email, phone, message, reason: "recovery" \| "lockout" \| "other" }` | `201 { id }` · `422`. Sin sesión. |
 | POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
 | POST | `/auth/recovery/request` | `{ email }` | `204` siempre (no revela si el correo existe) · `422` |
 | GET | `/auth/me` | — | `200 user` |
+| GET | `/auth/backup-email` | — | `200 { email: string \| null }` |
+| POST | `/auth/backup-email` | `{ email }` | `204` manda un código a ese correo; aún no lo activa · `422` |
+| POST | `/auth/backup-email/verify` | `{ email, code }` | `200 { email }` queda activo · `409` no se pidió código para ese correo · `422` código incorrecto (`fields.code`) |
+| DELETE | `/auth/backup-email` | — | `204` |
 | POST | `/auth/logout` | — | `204` |
 
 `user`: `{ id, name, phone, email, role: "admin" | "manager" | "member", avatarUrl?: string | null }`.
 
 No hay contraseña: la llave de entrada es el **celular** en E.164 (`+573001234567`) y cada entrada se confirma con un
 código de 6 dígitos por SMS que vence a los 10 minutos. Quien olvida su número lo pide por correo (`/auth/recovery/request`).
+Si el SMS no llega, el código se puede pedir al **correo de respaldo** (`otp/request` con `channel: "email"`): cada
+persona lo configura y lo verifica en Configuración › Inicio de sesión (`/auth/backup-email`, con sesión). Es el mismo
+código y vale igual en `otp/verify`; la respuesta no dice si la cuenta tiene respaldo, para no filtrar datos.
 Tras **4 verificaciones fallidas seguidas** con un mismo celular, el backend lo bloquea: `otp/request` y `otp/verify`
 responden `429` con `details: { reason: "locked" }` hasta que soporte lo libere. El front muestra el aviso de bloqueo y
 ofrece abrir un ticket (`/support/tickets`, `reason: "lockout"`). Un acceso correcto pone el contador en cero. `country`

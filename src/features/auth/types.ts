@@ -43,8 +43,15 @@ export const sessionSchema = z.object({
 });
 export type Session = z.infer<typeof sessionSchema>;
 
-/** Paso 1: el celular al que se envía el código. */
-export const otpRequestSchema = z.object({ phone: phoneSchema });
+/**
+ * Por dónde llega el código para entrar: SMS al celular, o —si el SMS no
+ * llega— al correo de respaldo que la persona verificó en Configuración.
+ */
+export const otpChannelSchema = z.enum(["sms", "email"]);
+export type OtpChannel = z.infer<typeof otpChannelSchema>;
+
+/** Paso 1: el celular al que se envía el código. Sin `channel`, va por SMS. */
+export const otpRequestSchema = z.object({ phone: phoneSchema, channel: otpChannelSchema.optional() });
 export type OtpRequest = z.infer<typeof otpRequestSchema>;
 
 export const OTP_LENGTH = 6;
@@ -60,13 +67,14 @@ export type OtpVerify = z.infer<typeof otpVerifySchema>;
 export const authProviderSchema = z.enum(["google", "microsoft"]);
 export type AuthProvider = z.infer<typeof authProviderSchema>;
 
+const emailSchema = z.string().trim().min(1, "Escribe tu correo").email("Ese correo no parece válido");
+
 /** Olvidé mi número: se manda al correo registrado. */
 export const recoveryRequestSchema = z.object({
   email: z.string().min(1, "Escribe tu correo").email("Ese correo no parece válido"),
 });
 export type RecoveryRequest = z.infer<typeof recoveryRequestSchema>;
 
-const emailSchema = z.string().trim().min(1, "Escribe tu correo").email("Ese correo no parece válido");
 const required = (message: string) => z.string().trim().min(1, message);
 
 /** Crear cuenta: la barbería queda pendiente de activar. */
@@ -84,6 +92,21 @@ export const signupRequestSchema = z.object({
   timezone: required("Elige tu zona horaria"),
 });
 export type SignupRequest = z.infer<typeof signupRequestSchema>;
+
+/** El correo de respaldo de quien tiene la sesión; `null` si no lo ha configurado. */
+export const backupEmailSchema = z.object({ email: z.string().email().nullable() });
+export type BackupEmail = z.infer<typeof backupEmailSchema>;
+
+/** Configurar el respaldo: primero se manda un código al correo nuevo… */
+export const backupEmailRequestSchema = z.object({ email: emailSchema });
+export type BackupEmailRequest = z.infer<typeof backupEmailRequestSchema>;
+
+/** …y el correo queda activo cuando ese código vuelve. */
+export const backupEmailVerifySchema = z.object({
+  email: emailSchema,
+  code: z.string().length(OTP_LENGTH, `Escribe los ${OTP_LENGTH} dígitos`),
+});
+export type BackupEmailVerify = z.infer<typeof backupEmailVerifySchema>;
 
 /** Por qué se abre un ticket desde el login; soporte lo usa para priorizar. */
 export const ticketReasonSchema = z.enum(["recovery", "lockout", "other"]);

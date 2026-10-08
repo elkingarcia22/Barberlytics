@@ -21,6 +21,7 @@ import { CommissionSettings } from "./sections/CommissionSettings";
 import { CompanySettings } from "./sections/CompanySettings";
 import { DeleteAccountSettings } from "./sections/DeleteAccountSettings";
 import { DevicesSettings } from "./sections/DevicesSettings";
+import { LoginSettings } from "./sections/LoginSettings";
 import { NotificationSettings } from "./sections/NotificationSettings";
 import { PaymentsSettings } from "./sections/PaymentsSettings";
 import { PersonalSettings } from "./sections/PersonalSettings";
@@ -51,6 +52,7 @@ const SETTINGS_BODIES: Record<string, React.ComponentType | undefined> = {
   comisiones: CommissionSettings,
   nomina: PayrollCycleSettings,
   preferencias: PersonalSettings,
+  "inicio-sesion": LoginSettings,
   permisos: RolePermissionsSettings,
   facturacion: BillingSettings,
   "eliminar-cuenta": DeleteAccountSettings,

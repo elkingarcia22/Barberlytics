@@ -89,6 +89,10 @@ Lo que responde MSW hoy.
 - `POST /support/tickets` · src/mocks/handlers.ts
 - `POST /auth/oauth` · src/mocks/handlers.ts
 - `POST /auth/recovery/request` · src/mocks/handlers.ts
+- `GET /auth/backup-email` · src/mocks/handlers.ts
+- `POST /auth/backup-email` · src/mocks/handlers.ts
+- `POST /auth/backup-email/verify` · src/mocks/handlers.ts
+- `DELETE /auth/backup-email` · src/mocks/handlers.ts
 - `GET /auth/me` · src/mocks/handlers.ts
 - `POST /auth/logout` · src/mocks/handlers.ts
 - `POST /feedback` · src/mocks/handlers.ts
@@ -213,15 +217,16 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
 - **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
-- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, POST /auth/signup, POST /support/tickets · usa: @/lib/api
+- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /support/tickets · usa: @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
 - **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom` · usa: @/lib/api
 - **authFormParts.tsx** — Etiqueta, control y mensaje de error enlazados por `id`. · `FieldControlProps`, `AuthField`, `FormErrorAlert`, `BackButton` · piezas: Alert, AlertDescription, AlertTitle, Button, Label, Text · usa: @/icons
+- **backupEmailQueries.ts** — El correo de respaldo de quien tiene la sesión. · `backupEmailKeys`, `useBackupEmailQuery`, `useBackupEmailMutations`
 - **phoneLabel.ts** — «+573001234567» → «+57 300 123 4567», para decir a qué número se envió el código. · `describePhone` · piezas: formatNational, parseE164
 - **providers.ts** — Pide al proveedor (Google Identity Services, MSAL para Outlook) la credencial con la que el backend abre la s… · `requestProviderCredential` · usa: @/lib/api
 - **timezones.ts** — Zonas IANA de cada país que ofrece `PhoneInput`; la primera es la más poblada. · `COUNTRY_TIMEZONES`, `describeTimezone`, `timezonesFor`
 - **tokenStorage.ts** — Dónde vive el token de acceso en el navegador. · `TokenStorage`, `sessionTokenStorage`, `createMemoryTokenStorage`
-- **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
+- **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpChannelSchema`, `OtpChannel`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `backupEmailSchema`, `BackupEmail`, `backupEmailRequestSchema`, `BackupEmailRequest`, `backupEmailVerifySchema`, `BackupEmailVerify`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
 - **useAuth.ts** — El usuario autenticado; lanza si se usa fuera de una ruta protegida. · `useAuth`, `useCurrentUser`
 
 ### booking
@@ -505,6 +510,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CompanySettings.tsx** — Datos legales: la empresa dueña de las sucursales, tal como sale en facturas y recibos. · `CompanySettings` · piezas: Field, Input, PhoneInput · usa: @/app/i18n
 - **DeleteAccountSettings.tsx** — Eliminar cuenta. · `DeleteAccountSettings` · piezas: Alert, AlertDescription, AlertTitle, Button, Field, Input, ModalShell, Skeleton · usa: @/app/i18n, @/features/access, @/features/auth, @/lib/api, @/lib/query
 - **DevicesSettings.tsx** — Datáfonos: las terminales que cobran en caja. · `DevicesSettings` · piezas: Badge, Field, IconTile, Input · usa: @/app/i18n
+- **LoginSettings.tsx** — Inicio de sesión: cómo entra cada persona. · `LoginSettings` · piezas: Badge, Button, ConfirmDialog, Field, IconTile, Input, InputOtp, Skeleton, StatusBadge, Text · usa: @/app/i18n, @/features/auth, @/lib/api, @/lib/query
 - **NotificationSettings.tsx** — Recordatorios y avisos: a cada quien —dueño, administrador, recepción, barberos y clientes— qué se le avisa y… · `NotificationSettings` · piezas: Button, NumberField, Switch, Text, ThemaTabs · usa: @/app/i18n
 - **PaymentsSettings.tsx** — Pasarela de pago: las dos claves de Stripe para cobrar en línea. · `PaymentsSettings` · piezas: Alert, AlertDescription, Button, Field, Input, StatusBadge · usa: @/app/i18n, @/lib/api
 - **PayrollCycleSettings.tsx** — Ciclo de nómina: cada cuánto se le liquida al equipo y qué día arranca el ciclo. · `PayrollCycleSettings` · piezas: CardSelection, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue · usa: @/app/i18n

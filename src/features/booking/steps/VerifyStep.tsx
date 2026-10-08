@@ -66,7 +66,7 @@ export function VerifyStep() {
   if (!sent) return null;
 
   return (
-    <StepLayout title={t("booking.verify.title")} lead={t(sent.channel === "whatsapp" ? "booking.verify.leadWhatsapp" : "booking.verify.leadSms", { phone: sent.sentTo })}>
+    <StepLayout focusTitle={false} title={t("booking.verify.title")} lead={t(sent.channel === "whatsapp" ? "booking.verify.leadWhatsapp" : "booking.verify.leadSms", { phone: sent.sentTo })}>
       <Field label={t("booking.manage.code")} error={error}>
         <InputOtp length={CODE_LENGTH} value={code} onChange={setCode} onComplete={check} groups={[3, 3]} autoFocus disabled={verify.isPending} />
       </Field>

@@ -13,6 +13,9 @@ interface ReceiptViewProps {
 /** El recibo de una reserva: número, lo cobrado por cita y producto, y con qué se pagó. */
 export function ReceiptView({ reservation, fmt }: ReceiptViewProps) {
   const t = useAppT();
+  const card = reservation.payment.last4 ? `${reservation.payment.brand ?? ""} •••• ${reservation.payment.last4}`.trim() : null;
+  // En la barbería con anticipo: lo pagado es el anticipo, con su tarjeta; el resto queda pendiente.
+  const deposit = reservation.payment.method === "shop" && reservation.payment.paid > 0 ? reservation.payment.paid : 0;
   const method =
     reservation.payment.method === "shop"
       ? null
@@ -41,7 +44,9 @@ export function ReceiptView({ reservation, fmt }: ReceiptViewProps) {
             {t("booking.confirmed.number", { number: reservation.number })} · {fmt.day(new Date(reservation.createdAt))}
           </Text>
         </div>
-        <Badge variant={reservation.payment.status === "paid" ? "secondary" : "outline"}>{method ? t("booking.receipt.paidWith", { method }) : t("booking.receipt.pending")}</Badge>
+        <Badge variant={reservation.payment.status === "paid" ? "secondary" : "outline"}>
+          {method ? t("booking.receipt.paidWith", { method }) : deposit > 0 ? t("booking.receipt.depositPaid", { amount: fmt.money(deposit), method: card ?? t("booking.payment.card") }) : t("booking.receipt.pending")}
+        </Badge>
       </div>
       <OrderSummary totals={reservation.totals} money={fmt.money} lines={lines} promoCode={reservation.promoCode} />
     </div>

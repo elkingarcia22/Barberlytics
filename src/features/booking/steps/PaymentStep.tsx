@@ -9,7 +9,7 @@ import { OptionTile, SegmentedControl, type SelectionOption } from "@/components
 import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { personName } from "../bookingState";
-import { feeLabel } from "../pricing";
+import { depositOf, feeLabel } from "../pricing";
 import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
@@ -50,6 +50,8 @@ export function PaymentStep() {
   // Guardar la tarjeta es una decisión del cliente: empieza sin marcar.
   const [saveCard, setSaveCard] = React.useState(false);
   const chosenSaved = savedCards.find((card) => card.id === cardChoice) ?? null;
+  // Anticipo: a quien la barbería se lo pide (nuevo o con inasistencias), pagar en la barbería cobra una parte ya.
+  const depositPercent = customer?.depositRequired && shop.deposit ? shop.deposit.percent : null;
 
   // El recargo se dice en la opción que lo lleva, antes de elegirla, y pagar en la barbería lo evita.
   const fee = shop.cardFee ? t("booking.payment.feeHint", { fee: feeLabel(shop.cardFee, fmt.money) }) : "";
@@ -65,13 +67,21 @@ export function PaymentStep() {
       ? [
           customer?.onlineOnly
             ? { value: "shop", label: t("booking.payment.shop"), description: t("booking.payment.onlineOnly"), icon: Store, disabled: true }
-            : { value: "shop", label: t("booking.payment.shop"), description: [t("booking.payment.shopHint"), shop.cardFee ? t("booking.payment.shopNoFee") : ""].filter(Boolean).join(" "), icon: Store },
+            : {
+                value: "shop",
+                label: t("booking.payment.shop"),
+                description: depositPercent !== null ? t("booking.payment.shopDepositHint", { percent: depositPercent }) : [t("booking.payment.shopHint"), shop.cardFee ? t("booking.payment.shopNoFee") : ""].filter(Boolean).join(" "),
+                icon: Store,
+              },
         ]
       : []),
     ...(credit >= totals.total && totals.total > 0 ? [{ value: "credit", label: t("booking.payment.credit"), description: t("booking.payment.creditHint", { amount: fmt.money(credit) }), icon: Wallet }] : []),
   ];
   const available = methods.filter((option) => !option.disabled);
   const method = state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
+  const deposit = method === "shop" && depositPercent !== null ? depositOf(totals, depositPercent) : 0;
+  /** Pide tarjeta: el pago con tarjeta o el anticipo de quien paga en la barbería. */
+  const usesCard = method === "card" || deposit > 0;
 
   const tipOptions: SelectionOption[] = [
     { value: NO_TIP, label: t("booking.payment.tipNone") },
@@ -80,15 +90,15 @@ export function PaymentStep() {
 
   const serverCardError = isApiError(reserve.error) ? reserve.error.fieldErrors?.card?.[0] : undefined;
   const payLabel =
-    method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
+    deposit > 0 ? t("booking.payment.payDeposit", { amount: fmt.money(deposit) }) : method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
 
   const pay = () => {
     if (!customer || !state.branchId || !method) return;
-    if (method === "card" && !chosenSaved && !card) {
+    if (usesCard && !chosenSaved && !card) {
       setSheet({ open: true, prefill: false });
       return;
     }
-    if (method === "card" && (chosenSaved ? !isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) : !card || !isCardComplete(card))) {
+    if (usesCard && (chosenSaved ? !isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) : !card || !isCardComplete(card))) {
       setShowCardErrors(true);
       return;
     }
@@ -108,8 +118,8 @@ export function PaymentStep() {
         promoCode: state.promo?.code ?? null,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
-        card: method === "card" && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
-        savedCardId: method === "card" && chosenSaved ? chosenSaved.id : undefined,
+        card: usesCard && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
+        savedCardId: usesCard && chosenSaved ? chosenSaved.id : undefined,
         notes: state.notes.trim() || undefined,
       },
       { onSuccess: (reservation) => dispatch({ type: "reserved", reservation }) }
@@ -128,7 +138,7 @@ export function PaymentStep() {
       footer={
         <div className="flex flex-col gap-2">
           <Button type="button" size="lg" className="w-full" disabled={!method || reserve.isPending} onClick={pay}>
-            {reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name={method === "shop" ? "calendar" : "lock"} />}
+            {reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name={method === "shop" && deposit === 0 ? "calendar" : "lock"} />}
             {reserve.isPending ? t("booking.payment.processing") : method ? payLabel : t("booking.payment.choose")}
           </Button>
           <Text size="xs" tone="muted" className="text-center">
@@ -158,7 +168,14 @@ export function PaymentStep() {
             />
           ))}
         </div>
-        {method === "card" && (
+        {deposit > 0 && (
+          <Alert variant="info">
+            <ThemaIcon name="securityLock" />
+            <AlertTitle>{t("booking.payment.deposit.title", { amount: fmt.money(deposit) })}</AlertTitle>
+            <AlertDescription>{t("booking.payment.deposit.body", { percent: depositPercent ?? 0, rest: fmt.money(Math.max(0, totals.total - deposit)), hours: shop.cancelHours })}</AlertDescription>
+          </Alert>
+        )}
+        {usesCard && (
           <SavedCardPicker
             cards={savedCards}
             value={cardChoice}
@@ -176,7 +193,7 @@ export function PaymentStep() {
             showErrors={showCardErrors}
           />
         )}
-        {method === "card" && serverCardError && (
+        {usesCard && serverCardError && (
           <Text size="sm" tone="negative">
             {serverCardError}
           </Text>
@@ -193,7 +210,7 @@ export function PaymentStep() {
             </AlertDescription>
           </Alert>
         )}
-        {method !== "shop" && (
+        {(method !== "shop" || deposit > 0) && (
           <Text size="xs" tone="muted" className="flex items-center gap-1.5">
             <ThemaIcon name="securityLock" size="xs" />
             {t("booking.payment.secure")}
@@ -211,6 +228,26 @@ export function PaymentStep() {
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-subtle p-4">
         <Heading level={6}>{t("booking.payment.order")}</Heading>
         <OrderSummary totals={totals} money={fmt.money} lines={lines} promoCode={state.promo?.code} />
+        {deposit > 0 && (
+          <div className="flex flex-col gap-1 border-t border-border pt-2">
+            <div className="flex items-center justify-between gap-3">
+              <Text size="sm" weight="medium">
+                {t("booking.payment.deposit.today")}
+              </Text>
+              <Text size="sm" weight="semibold" tabular>
+                {fmt.money(deposit)}
+              </Text>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Text size="sm" tone="secondary">
+                {t("booking.payment.deposit.atShop")}
+              </Text>
+              <Text size="sm" tone="secondary" tabular>
+                {fmt.money(Math.max(0, totals.total - deposit))}
+              </Text>
+            </div>
+          </div>
+        )}
       </section>
       <BookingSheet
         open={shopNoticeOpen}

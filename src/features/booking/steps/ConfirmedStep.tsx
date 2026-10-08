@@ -77,7 +77,7 @@ export function ConfirmedStep({ onFinish }: { onFinish?: () => void }) {
         <ReceiptView reservation={reservation} fmt={fmt} />
         {!isPaid && (
           <Text size="sm" tone="secondary" className="mt-3">
-            {t("booking.confirmed.payAtShop", { amount: fmt.money(reservation.totals.total) })}
+            {t("booking.confirmed.payAtShop", { amount: fmt.money(Math.max(0, reservation.totals.total - reservation.payment.paid)) })}
           </Text>
         )}
       </section>

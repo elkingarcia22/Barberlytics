@@ -50,6 +50,7 @@ export function BookingSettings() {
     if (!(draft.maxCancellations >= 0)) errors.maxCancellations = t("cfg.booking.error.maxCancellations");
     if (draft.surge.enabled && !(draft.surge.occupancy >= 1 && draft.surge.occupancy <= 100)) errors.surge = t("cfg.booking.error.surge");
     if (!draft.paymentMethods.card && !draft.paymentMethods.payAtShop) errors.paymentMethods = t("cfg.booking.error.paymentMethods");
+    if (draft.deposit.enabled && !(draft.deposit.percent >= 1 && draft.deposit.percent <= 100)) errors.deposit = t("cfg.booking.error.deposit");
     return errors;
   };
 
@@ -157,6 +158,24 @@ function Rules({ draft, set, errors }: RulesProps) {
       <SettingsCard title={t("cfg.booking.payment")} description={t("cfg.booking.paymentHint")}>
         <SwitchRow label={t("cfg.booking.payCard")} hint={t("cfg.booking.payCardHint")} checked={draft.paymentMethods.card} onCheckedChange={(checked) => set("paymentMethods", { ...draft.paymentMethods, card: checked })} />
         <SwitchRow label={t("cfg.booking.payAtShop")} hint={t("cfg.booking.payAtShopHint")} checked={draft.paymentMethods.payAtShop} onCheckedChange={(checked) => set("paymentMethods", { ...draft.paymentMethods, payAtShop: checked })} testId="booking-pay-at-shop" />
+        {/* El anticipo solo tiene sentido si se puede pagar en la barbería y cobrar con tarjeta. */}
+        {draft.paymentMethods.payAtShop && draft.paymentMethods.card && (
+          <SwitchRow label={t("cfg.booking.deposit")} hint={t("cfg.booking.depositHint")} checked={draft.deposit.enabled} onCheckedChange={(checked) => set("deposit", { ...draft.deposit, enabled: checked })} testId="booking-deposit">
+            {draft.deposit.enabled && (
+              <div className="mt-3 flex flex-col gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t("cfg.booking.depositPercent")} error={errors.deposit}>
+                    <NumberField size="sm" value={number(draft.deposit.percent)} onValueChange={(value) => set("deposit", { ...draft.deposit, percent: value ?? Number.NaN })} min={1} max={100} suffix="%" />
+                  </Field>
+                  <Field label={t("cfg.booking.depositNoShows")} description={t("cfg.booking.depositNoShowsHint")}>
+                    <NumberField size="sm" value={draft.deposit.afterNoShows} onValueChange={(value) => set("deposit", { ...draft.deposit, afterNoShows: Math.max(0, value ?? 0) })} min={0} max={10} />
+                  </Field>
+                </div>
+                <SwitchRow label={t("cfg.booking.depositNew")} hint={t("cfg.booking.depositNewHint")} checked={draft.deposit.newClients} onCheckedChange={(checked) => set("deposit", { ...draft.deposit, newClients: checked })} />
+              </div>
+            )}
+          </SwitchRow>
+        )}
         {errors.paymentMethods && (
           <p className="text-sm font-medium text-status-negative" role="alert">
             {errors.paymentMethods}

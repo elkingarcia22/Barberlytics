@@ -3,6 +3,7 @@ import { memberName } from "../team/seed";
 import { WALK_IN_CLIENT, clockOf, dateKey, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/handlers";
 import { profileOf } from "../customers/handlers";
+import { depositOf } from "@/features/booking/pricing";
 import { hashOf } from "../customers/seed";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 
@@ -27,6 +28,8 @@ const booking = () => db.settings.sections.booking as {
   minNoticeUnit: string;
   slotInterval: number;
   paymentMethods: { card: boolean; payAtShop: boolean };
+  /** Anticipo para pagar en la barbería: a clientes nuevos y/o tras N inasistencias (0 = nunca). */
+  deposit: { enabled: boolean; percent: number; newClients: boolean; afterNoShows: number };
   cancelHours: number;
   lateFeePercent: number;
   maxCancellations: number;
@@ -117,6 +120,7 @@ export function shop() {
     defaultTipId: tips.defaultId,
     payment: rules.paymentMethods,
     cardFee: cardFeeRule(),
+    deposit: rules.deposit.enabled && rules.paymentMethods.payAtShop && rules.paymentMethods.card ? { percent: rules.deposit.percent } : null,
     branches,
   };
 }
@@ -251,7 +255,23 @@ export function customerOf(client: MockClient) {
     credit: db.booking.credits[client.id] ?? 0,
     upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && new Date(item.start).getTime() >= now).length,
     cards: cardsOf(client.id),
+    depositRequired: needsDeposit(client, client.visits === 0 && !last),
   };
+}
+
+/**
+ * ¿Debe dejar anticipo para pagar en la barbería? Solo si la barbería lo pide y aplica a este
+ * cliente: nuevo (si así lo configuró) o con tantas inasistencias. El habitual no paga anticipo.
+ */
+function needsDeposit(client: MockClient, isNew: boolean): boolean {
+  const { deposit, paymentMethods } = bookingRules();
+  if (!deposit.enabled || !paymentMethods.card) return false;
+  return (deposit.newClients && isNew) || (deposit.afterNoShows > 0 && client.noShows >= deposit.afterNoShows);
+}
+
+/** El anticipo: el porcentaje configurado de lo comprado con impuesto (sin propina ni recargo). */
+export function depositAmount(totals: { subtotal: number; tax: number }): number {
+  return depositOf(totals, bookingRules().deposit.percent);
 }
 
 /** Las tarjetas tokenizadas de un cliente. */

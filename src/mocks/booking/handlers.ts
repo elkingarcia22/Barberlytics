@@ -13,6 +13,7 @@ import {
   bookedOf,
   bookingRules,
   cardFeeRule,
+  depositAmount,
   cardsOf,
   saveCard,
   catalog,
@@ -327,33 +328,51 @@ export const bookingHandlers = [
     const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null });
 
     const rules = bookingRules();
+    /**
+     * Cobra con tarjeta (guardada por su token, nueva o la billetera): el pago completo o el
+     * anticipo. Devuelve la marca y los últimos 4, o la respuesta de error de la pasarela.
+     */
+    const chargeCard = (via: "card" | "wallet"): { last4: string; brand: string } | Response => {
+      const savedCardId = text(input.savedCardId);
+      if (via === "card" && savedCardId) {
+        // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
+        const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
+        if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
+        return { last4: saved.last4, brand: saved.brand };
+      }
+      const card = asRecord(input.card as DefaultBodyType);
+      const number = via === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
+      if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
+      if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
+      const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
+      if (via === "card" && card.save === true && expMonth && expYear) {
+        saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
+      }
+      return { last4: number.slice(-4), brand: via === "wallet" ? "Wallet" : brandOf(number) };
+    };
+
     let payment: MockReservation["payment"];
     if (method === "shop") {
       if (!rules.paymentMethods.payAtShop || customer.onlineOnly) return error(422, "validation", "Esta reserva se paga en línea.");
-      payment = { method, status: "pending", last4: null, brand: null, paid: 0 };
+      // Cliente nuevo o con inasistencias: para pagar en la barbería deja un anticipo con tarjeta.
+      const deposit = customer.depositRequired ? depositAmount(totals) : 0;
+      if (deposit > 0) {
+        if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige una tarjeta para el anticipo.", { fields: { card: ["Elige una tarjeta para el anticipo."] } });
+        const charged = chargeCard("card");
+        if (charged instanceof Response) return charged;
+        payment = { method, status: "pending", last4: charged.last4, brand: charged.brand, paid: deposit };
+      } else {
+        payment = { method, status: "pending", last4: null, brand: null, paid: 0 };
+      }
     } else if (method === "credit") {
       if (customer.credit < totals.total) return error(422, "validation", "Tu saldo a favor no alcanza para esta reserva.");
       db.booking.credits = { ...db.booking.credits, [client.id]: Math.round((customer.credit - totals.total) * 100) / 100 };
       payment = { method, status: "paid", last4: null, brand: null, paid: totals.total };
     } else if (method === "card" || method === "wallet") {
       if (!rules.paymentMethods.card) return error(422, "validation", "Esta barbería no cobra en línea.");
-      const savedCardId = text(input.savedCardId);
-      if (method === "card" && savedCardId) {
-        // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
-        const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
-        if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
-        payment = { method, status: "paid", last4: saved.last4, brand: saved.brand, paid: totals.total };
-      } else {
-        const card = asRecord(input.card as DefaultBodyType);
-        const number = method === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
-        if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
-        if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
-        const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
-        if (method === "card" && card.save === true && expMonth && expYear) {
-          saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
-        }
-        payment = { method, status: "paid", last4: number.slice(-4), brand: method === "wallet" ? "Wallet" : brandOf(number), paid: totals.total };
-      }
+      const charged = chargeCard(method);
+      if (charged instanceof Response) return charged;
+      payment = { method, status: "paid", last4: charged.last4, brand: charged.brand, paid: totals.total };
     } else {
       return error(422, "validation", "Elige cómo vas a pagar.");
     }

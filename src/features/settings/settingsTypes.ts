@@ -34,6 +34,8 @@ export const bookingSchema = z.object({
   surge: z.object({ enabled: z.boolean(), occupancy: z.number(), increase: z.number(), increaseType: z.enum(["percent", "amount"]) }),
   waitlist: z.object({ acceptMinutes: z.number(), arriveMinutes: z.number() }),
   paymentMethods: z.object({ card: z.boolean(), payAtShop: z.boolean() }),
+  /** Anticipo con tarjeta para reservar pagando en la barbería: clientes nuevos y/o tras N inasistencias (0 = nunca). */
+  deposit: z.object({ enabled: z.boolean(), percent: z.number(), newClients: z.boolean(), afterNoShows: z.number() }),
   cancelHours: z.number(),
   lateFeePercent: z.number(),
   maxCancellations: z.number(),

@@ -107,6 +107,9 @@ export function computeTotals(input: TotalsInput): Totals {
   return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, total: round2(subtotal + tax + tip + fee) };
 }
 
+/** El anticipo para pagar en la barbería: el porcentaje de lo comprado con impuesto (sin propina ni recargo). */
+export const depositOf = (totals: Pick<Totals, "subtotal" | "tax">, percent: number): number => round2(((totals.subtotal + totals.tax) * percent) / 100);
+
 /** Cuánto es el recargo: «3 %» o «US$ 2». */
 export const feeLabel = (rule: CardFeeRule, money: (value: number) => string): string => (rule.type === "percent" ? `${rule.rate} %` : money(rule.rate));
 

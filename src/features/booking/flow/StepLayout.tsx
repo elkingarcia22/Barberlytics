@@ -11,6 +11,11 @@ interface StepLayoutProps {
   aside?: React.ReactNode;
   /** El pie fijo del paso: lo elegido hasta ahora y el botón para seguir. */
   footer?: React.ReactNode;
+  /**
+   * Al entrar, el foco va al título (para el lector de pantalla). Un paso cuyo primer campo ya
+   * lo dice todo —el código— lo apaga para que el teclado se abra solo en ese campo.
+   */
+  focusTitle?: boolean;
   children: React.ReactNode;
 }
 
@@ -19,13 +24,13 @@ interface StepLayoutProps {
  * un pie pegado abajo con el botón principal, siempre en el mismo sitio para
  * que el pulgar lo encuentre sin buscar.
  */
-export function StepLayout({ title, lead, aside, footer, children }: StepLayoutProps) {
+export function StepLayout({ title, lead, aside, footer, focusTitle = true, children }: StepLayoutProps) {
   const { layout } = useBookingFlow();
   const headingRef = React.useRef<HTMLDivElement>(null);
   // Al cambiar de paso el foco va al título: quien navega con lector sabe dónde está.
   React.useEffect(() => {
-    headingRef.current?.focus({ preventScroll: true });
-  }, [title]);
+    if (focusTitle) headingRef.current?.focus({ preventScroll: true });
+  }, [title, focusTitle]);
 
   return (
     <div className="flex flex-1 flex-col">

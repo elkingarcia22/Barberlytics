@@ -43,6 +43,8 @@ export const bookingShopSchema = z.object({
   payment: z.object({ card: z.boolean(), payAtShop: z.boolean() }),
   /** El recargo por pagar con tarjeta que la barbería tiene encendido en Configuración, o nada. */
   cardFee: z.object({ name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) }).nullable(),
+  /** El anticipo que se pide a algunos clientes para pagar en la barbería, o nada si no se pide. */
+  deposit: z.object({ percent: z.number() }).nullable().default(null),
   branches: z.array(bookingBranchSchema),
 });
 export type BookingShop = z.infer<typeof bookingShopSchema>;
@@ -154,6 +156,8 @@ export const bookingCustomerSchema = z.object({
   upcoming: z.number(),
   /** Sus tarjetas guardadas para pagar sin volver a escribirlas. */
   cards: z.array(savedCardSchema).default([]),
+  /** Para pagar en la barbería debe dejar anticipo (cliente nuevo o con inasistencias). */
+  depositRequired: z.boolean().default(false),
 });
 export type BookingCustomer = z.infer<typeof bookingCustomerSchema>;
 

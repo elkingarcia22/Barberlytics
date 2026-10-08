@@ -9,7 +9,7 @@ import { BookingFlow } from "./BookingFlow";
 import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
-import { cancellationTerms, chargesCardFee, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, depositOf, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
@@ -29,6 +29,7 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   credit: 0,
   upcoming: 0,
   cards: [],
+  depositRequired: false,
   ...draft,
 });
 
@@ -275,6 +276,28 @@ describe("backend de la reserva", () => {
     for (let index = 0; index < 5; index += 1) await expect(bookingApi.verifyOtp("+573004445566", "000000")).rejects.toMatchObject({ status: 422 });
     // Ni el código bueno entra hasta pedir uno nuevo.
     await expect(bookingApi.verifyOtp("+573004445566", DEMO_CODE)).rejects.toMatchObject({ status: 429 });
+  });
+
+  test("pagar en la barbería pide anticipo al cliente nuevo, no al habitual, y el anticipo se cobra con tarjeta", async () => {
+    const items = [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 15, 0)) }];
+    const base = { branchId: "ma", items, products: [], tipId: null, promoCode: null, method: "shop" as const };
+    // Marcela viene seguido y no ha faltado: reserva en la barbería sin anticipo.
+    const regular = await signIn();
+    expect(regular.customer?.depositRequired).toBe(false);
+    const free = await bookingApi.reserve(regular.token, base);
+    expect(free.payment).toMatchObject({ method: "shop", status: "pending", paid: 0 });
+
+    // Alguien nuevo: el perfil dice que lleva anticipo y sin tarjeta no se reserva.
+    const { token } = await signIn("+573006667788");
+    const created = await bookingApi.createCustomer(token, { firstName: "Leo", lastName: "Mora", email: "leo@correo.com", marketing: false });
+    expect(created.depositRequired).toBe(true);
+    const later = { ...base, items: [{ ...items[0], start: toStart(new Date(2026, 9, 9, 16, 0)) }] };
+    await expect(bookingApi.reserve(token, later)).rejects.toMatchObject({ status: 422 });
+    const held = await bookingApi.reserve(token, { ...later, card: { number: "4242 4242 4242 4242", name: "Leo Mora", expiry: "12/30", save: false } });
+    // 30 % de lo comprado con impuesto; el resto se paga al llegar.
+    expect(held.payment).toMatchObject({ method: "shop", status: "pending", last4: "4242" });
+    expect(held.payment.paid).toBeCloseTo(depositOf(held.totals, 30), 2);
+    expect(held.payment.paid).toBeLessThan(held.totals.total);
   });
 
   test("el perfil nuevo usa el celular verificado y guarda el permiso de promociones con fecha", async () => {

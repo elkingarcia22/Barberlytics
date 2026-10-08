@@ -47,6 +47,8 @@ export function seedSettings(): MockSettingsState {
         surge: { enabled: false, occupancy: 80, increase: 10, increaseType: "percent" },
         waitlist: { acceptMinutes: 15, arriveMinutes: 15 },
         paymentMethods: { card: true, payAtShop: true },
+        // A quien paga en la barbería se le pide un anticipo si es nuevo o ya faltó una vez.
+        deposit: { enabled: true, percent: 30, newClients: true, afterNoShows: 1 },
         cancelHours: 3,
         lateFeePercent: 10,
         maxCancellations: 5,

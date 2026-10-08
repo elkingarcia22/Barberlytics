@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
-import { PROGRESS_STEPS, progressIndex } from "../bookingState";
+import { defaultBranchId, PROGRESS_STEPS, progressIndex, progressSteps } from "../bookingState";
 import { useBookingFlow } from "./BookingContext";
 import { ShopBrand } from "./ShopBrand";
 
@@ -33,9 +33,10 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
   const t = useAppT();
   const { shop, state, dispatch, layout } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
-  const index = progressIndex(state.step);
-  const showProgress = index >= 0 && index < PROGRESS_STEPS.length;
-  const steps = PROGRESS_STEPS.map((id) => ({ id, label: t(STEP_LABELS[id]) }));
+  const flow = progressSteps(defaultBranchId(state.customer, shop.branches.map((item) => item.id)) === null);
+  const index = progressIndex(state.step, flow);
+  const showProgress = index >= 0 && index < flow.length;
+  const steps = flow.map((id) => ({ id, label: t(STEP_LABELS[id]) }));
 
   return (
     <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
@@ -62,9 +63,9 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
       </div>
       {showProgress && layout === "compact" && (
         <div className="flex items-center gap-3 px-5 pb-3">
-          <Progress value={((index + 1) / PROGRESS_STEPS.length) * 100} className="flex-1" aria-label={t("booking.header.stepOf", { current: index + 1, total: PROGRESS_STEPS.length })} />
+          <Progress value={((index + 1) / flow.length) * 100} className="flex-1" aria-label={t("booking.header.stepOf", { current: index + 1, total: flow.length })} />
           <Text size="xs" tone="muted" tabular className="shrink-0">
-            {t("booking.header.stepOf", { current: index + 1, total: PROGRESS_STEPS.length })} · {steps[index]?.label}
+            {t("booking.header.stepOf", { current: index + 1, total: flow.length })} · {steps[index]?.label}
           </Text>
         </div>
       )}

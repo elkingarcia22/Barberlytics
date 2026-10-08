@@ -35,6 +35,11 @@ export interface BookingState {
   /** La cita que se está armando; `editingIndex` dice si reemplaza una del carrito. */
   draft: DraftItem | null;
   editingIndex: number | null;
+  /**
+   * La cita en curso se abrió desde el resumen («Agregar otra cita», «Cambiar»): «Atrás»
+   * en servicios vuelve al resumen. Si no, «Atrás» recorre el flujo hacia el inicio.
+   */
+  fromReview: boolean;
   products: Readonly<Record<string, number>>;
   tipId: string | null;
   promo: Promo | null;
@@ -62,6 +67,8 @@ export type BookingAction =
   | { type: "removeItem"; index: number }
   | { type: "restoreItem"; index: number; item: DraftItem }
   | { type: "discardDraft" }
+  /** «Atrás» desde el resumen: reabre la última cita en su hora, para retocarla. */
+  | { type: "reopenLast" }
   | { type: "setProduct"; productId: string; qty: number }
   | { type: "setTip"; tipId: string | null }
   | { type: "setPromo"; promo: Promo | null }
@@ -83,7 +90,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", customer: null, branchId: null, items: [], draft: null, editingIndex: null, products: {}, tipId: defaultTipId, promo: null, method: null, notes: "", reservation: null };
+  return { step: "phone", phone: "", customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, method: null, notes: "", reservation: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -93,7 +100,7 @@ const afterIdentity = (state: BookingState, onlyBranchId: string | null): Bookin
 /** Guarda la cita armada en el carrito (o reemplaza la que se editaba) y va al resumen. */
 function commitDraft(state: BookingState, draft: DraftItem): BookingState {
   const items = state.editingIndex === null ? [...state.items, draft] : state.items.map((item, index) => (index === state.editingIndex ? draft : item));
-  return { ...state, items, draft: null, editingIndex: null, step: "review" };
+  return { ...state, items, draft: null, editingIndex: null, fromReview: false, step: "review" };
 }
 
 export function bookingReducer(state: BookingState, action: BookingAction): BookingState {
@@ -145,10 +152,15 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "chooseTime":
       return state.draft ? commitDraft(state, { ...state.draft, start: action.start }) : state;
     case "addAnother":
-      return { ...state, draft: emptyDraft(action.person), editingIndex: null, step: "services" };
+      return { ...state, draft: emptyDraft(action.person), editingIndex: null, fromReview: state.items.length > 0, step: "services" };
     case "editItem": {
       const item = state.items[action.index];
-      return item ? { ...state, draft: { ...item }, editingIndex: action.index, step: "services" } : state;
+      return item ? { ...state, draft: { ...item }, editingIndex: action.index, fromReview: true, step: "services" } : state;
+    }
+    case "reopenLast": {
+      const index = state.items.length - 1;
+      const item = state.items[index];
+      return item ? { ...state, draft: { ...item }, editingIndex: index, fromReview: false, step: "time" } : state;
     }
     case "removeItem": {
       const items = state.items.filter((_, index) => index !== action.index);
@@ -159,7 +171,7 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, items };
     }
     case "discardDraft":
-      return { ...state, draft: null, editingIndex: null, step: state.items.length > 0 ? "review" : state.step };
+      return { ...state, draft: null, editingIndex: null, fromReview: false, step: state.items.length > 0 ? "review" : state.step };
     case "setProduct": {
       const rest = Object.fromEntries(Object.entries(state.products).filter(([id]) => id !== action.productId));
       return { ...state, products: action.qty > 0 ? { ...rest, [action.productId]: action.qty } : rest };
@@ -193,10 +205,19 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
 export const PROGRESS_STEPS = ["branch", "services", "barber", "time", "review", "payment"] as const;
 export type ProgressStep = (typeof PROGRESS_STEPS)[number];
 
-export function progressIndex(step: BookingStep): number {
-  const index = PROGRESS_STEPS.indexOf(step as ProgressStep);
+/**
+ * Los pasos que cuentan para este cliente: la sede solo es un paso para quien la
+ * elige (cliente nuevo con varias sedes). Quien ya viene o una barbería de una sola
+ * sede empieza en «Servicios», así que contarla sería un paso que nunca ve.
+ */
+export function progressSteps(withBranch: boolean): readonly ProgressStep[] {
+  return withBranch ? PROGRESS_STEPS : PROGRESS_STEPS.filter((step) => step !== "branch");
+}
+
+export function progressIndex(step: BookingStep, steps: readonly ProgressStep[] = PROGRESS_STEPS): number {
+  const index = steps.indexOf(step as ProgressStep);
   if (index !== -1) return index;
-  return step === "confirmed" ? PROGRESS_STEPS.length : -1;
+  return step === "confirmed" ? steps.length : -1;
 }
 
 /** El nombre de quien va a la cita, como lo leen el resumen y el recibo. */

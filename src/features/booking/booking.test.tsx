@@ -5,7 +5,7 @@ import { db } from "@/mocks/db";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
-import { bookingReducer, defaultBranchId, initialBookingState, type BookingState } from "./bookingState";
+import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
 
@@ -132,6 +132,34 @@ describe("recorrido de la reserva", () => {
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
     expect(state.items).toHaveLength(2);
     expect(state.items[1]).toMatchObject({ person: { kind: "new", name: "Santi" }, serviceIds: ["svc_nino"], barberId: null });
+  });
+
+  test("atrás desde el resumen retoca la última cita y sigue hacia atrás, sin volver al resumen", () => {
+    let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    state = bookingReducer(state, { type: "reopenLast" });
+    expect(state).toMatchObject({ step: "time", editingIndex: 0, fromReview: false, draft: { serviceIds: ["svc_corte"] } });
+    // Elegir otra hora reemplaza la cita, no la duplica.
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    expect(state.items).toHaveLength(1);
+    expect(state.items[0].start).toBe("2026-10-09T11:00");
+  });
+
+  test("sumar o cambiar una cita desde el resumen recuerda que hay que volver allí", () => {
+    let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
+    expect(state.fromReview).toBe(false);
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    expect(bookingReducer(state, { type: "addAnother", person: { kind: "self" } }).fromReview).toBe(true);
+    expect(bookingReducer(state, { type: "editItem", index: 0 }).fromReview).toBe(true);
+    expect(bookingReducer(bookingReducer(state, { type: "editItem", index: 0 }), { type: "discardDraft" })).toMatchObject({ step: "review", fromReview: false });
+  });
+
+  test("la sede solo cuenta como paso para quien la elige", () => {
+    expect(progressSteps(true)).toHaveLength(6);
+    expect(progressSteps(false)).toEqual(["services", "barber", "time", "review", "payment"]);
+    expect(progressIndex("services", progressSteps(false))).toBe(0);
+    expect(progressIndex("review", progressSteps(false))).toBe(3);
+    expect(progressIndex("branch", progressSteps(false))).toBe(-1);
   });
 
   test("cambiar una cita la reemplaza en su sitio y quitarla se puede deshacer", () => {

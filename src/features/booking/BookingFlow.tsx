@@ -47,7 +47,8 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
     case "branch":
       return state.items.length > 0 ? { type: "goTo", step: "review" } : identity;
     case "services":
-      if (state.items.length > 0) return { type: "discardDraft" };
+      // Vino del resumen a sumar o cambiar una cita: «Atrás» la descarta y vuelve allí.
+      if (state.fromReview) return { type: "discardDraft" };
       // Con la sede ya dada (única, o la de siempre del cliente) no hay paso de sede al que volver.
       return defaultBranchId(state.customer, shop.branches.map((branch) => branch.id)) === null ? { type: "goTo", step: "branch" } : identity;
     case "barber":
@@ -55,7 +56,8 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
     case "time":
       return { type: "goTo", step: "barber" };
     case "review":
-      return { type: "addAnother", person: { kind: "self" } };
+      // Atrás es hacia atrás en el flujo: la última cita, en su hora, para retocarla.
+      return state.items.length > 0 ? { type: "reopenLast" } : { type: "addAnother", person: { kind: "self" } };
     case "payment":
       return { type: "goTo", step: "review" };
     case "manage":

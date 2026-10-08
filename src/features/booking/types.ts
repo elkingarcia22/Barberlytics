@@ -197,6 +197,12 @@ export type Alternatives = z.infer<typeof alternativesSchema>;
 export const earliestSchema = z.object({ slot: z.object({ date: z.string(), time: z.string(), barberId: z.string() }).nullable() });
 export type Earliest = z.infer<typeof earliestSchema>;
 
+/** Las reseñas públicas de un barbero: nombre con inicial, nota, comentario y fecha. */
+export const barberReviewSchema = z.object({ id: z.string(), clientName: z.string(), rating: z.number(), comment: z.string(), createdAt: z.string() });
+export type BarberReview = z.infer<typeof barberReviewSchema>;
+export const barberReviewsSchema = z.object({ items: z.array(barberReviewSchema), total: z.number() });
+export const reviewSavedSchema = z.object({ id: z.string(), rating: z.number() });
+
 export const waitlistWindowSchema = z.enum(["morning", "afternoon", "evening", "any"]);
 export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
 export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });
@@ -232,6 +238,8 @@ export const bookedAppointmentSchema = z.object({
   /** Lo que ya se pagó por esta cita en línea. */
   paid: z.number(),
   status: bookedStatusSchema,
+  /** Su calificación, si ya la dejó (solo las citas que ocurrieron se califican). */
+  review: z.object({ rating: z.number() }).nullable().default(null),
 });
 export type BookedAppointment = z.infer<typeof bookedAppointmentSchema>;
 

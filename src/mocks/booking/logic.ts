@@ -4,6 +4,7 @@ import { WALK_IN_CLIENT, clockOf, dateKey, parseClock, type MockAppointment, typ
 import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/handlers";
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
+import { ratingOf, reviewOfAppointment } from "./reviews";
 import { hashOf } from "../customers/seed";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 
@@ -141,7 +142,6 @@ export function catalog(branchId: string) {
       const price = barberPrice(barber.id, service.id);
       return price === null ? [] : [[service.id, price]];
     }));
-    const h = hashOf(barber.id, 3);
     return {
       id: barber.id,
       name: barber.name,
@@ -152,8 +152,8 @@ export function catalog(branchId: string) {
       instagram: member?.instagram ?? "",
       facebook: member?.facebook ?? "",
       gallery: member?.gallery ?? [],
-      rating: Math.round((4.6 + (h % 5) / 10) * 10) / 10,
-      reviews: 24 + (h % 180),
+      // El promedio y el conteo salen de las reseñas reales (y las sembradas de la demo).
+      ...ratingOf(barber.id),
       prices,
     };
   });
@@ -295,6 +295,7 @@ export function bookedOf(item: MockAppointment) {
   const price = link?.line.price ?? item.serviceIds.reduce((sum, id) => sum + (barberPrice(item.barberId, id) ?? 0), 0);
   const status = item.status === "cancelled" ? "cancelled" : item.status === "no_show" ? "no_show" : item.status === "paid" ? "completed" : new Date(item.start).getTime() + item.durationMin * 60_000 < Date.now() ? "completed" : "scheduled";
   return {
+    review: reviewOfAppointment(item.id) ? { rating: reviewOfAppointment(item.id)?.rating ?? 0 } : null,
     id: item.id,
     reservationId: link?.reservation.id ?? null,
     branchId: item.branchId,

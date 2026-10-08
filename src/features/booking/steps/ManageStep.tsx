@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { EmptyState } from "@/components/feedback/EmptyState";
+import { Rating } from "@/components/forms";
 import { ThemaTabs } from "@/components/navigation";
 import { Text } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { CancelDialog } from "../flow/CancelDialog";
 import { ManageSignIn } from "../flow/ManageSignIn";
 import { ReceiptView } from "../flow/ReceiptView";
 import { RescheduleDrawer } from "../flow/RescheduleDrawer";
+import { ReviewSheet } from "../flow/ReviewSheet";
 import { SendReceiptDialog } from "../flow/SendReceiptDialog";
 import { StepLayout } from "../flow/StepLayout";
 import { useMyAppointmentsQuery } from "../queries";
@@ -38,6 +40,7 @@ export function ManageStep() {
   const [tab, setTab] = React.useState<ManageTab>("upcoming");
   const [moving, setMoving] = React.useState<BookedAppointment | null>(null);
   const [cancelling, setCancelling] = React.useState<BookedAppointment | null>(null);
+  const [rating, setRating] = React.useState<BookedAppointment | null>(null);
   const [viewing, setViewing] = React.useState<Reservation | null>(null);
   const [sending, setSending] = React.useState<Reservation | null>(null);
   const mine = useMyAppointmentsQuery(token);
@@ -101,10 +104,24 @@ export function ManageStep() {
       status={status(item)}
       muted={item.status === "cancelled"}
       actions={
-        <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "repeatLastVisit", lastVisit: { branchId: item.branchId, serviceIds: item.serviceIds, barberId: item.barberId, at: item.start } })}>
-          <ThemaIcon name="refresh" />
-          {t("booking.manage.rebook")}
-        </Button>
+        <>
+          {/* Solo lo que ocurrió se califica, y una vez. */}
+          {item.status === "completed" &&
+            (item.review ? (
+              <span className="flex items-center gap-1.5" aria-label={t("booking.rate.yours", { count: item.review.rating })}>
+                <Rating value={item.review.rating} readOnly size="sm" />
+              </span>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={() => setRating(item)}>
+                <ThemaIcon name="star" />
+                {t("booking.rate.cta")}
+              </Button>
+            ))}
+          <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "repeatLastVisit", lastVisit: { branchId: item.branchId, serviceIds: item.serviceIds, barberId: item.barberId, at: item.start } })}>
+            <ThemaIcon name="refresh" />
+            {t("booking.manage.rebook")}
+          </Button>
+        </>
       }
     />
   ));
@@ -173,6 +190,7 @@ export function ManageStep() {
 
       <RescheduleDrawer appointment={moving} token={token} onOpenChange={(open) => !open && setMoving(null)} />
       <CancelDialog appointment={cancelling} token={token} onOpenChange={(open) => !open && setCancelling(null)} />
+      <ReviewSheet appointment={rating} onOpenChange={(open) => !open && setRating(null)} />
       <BookingSheet
         open={viewing !== null}
         onOpenChange={(open) => !open && setViewing(null)}

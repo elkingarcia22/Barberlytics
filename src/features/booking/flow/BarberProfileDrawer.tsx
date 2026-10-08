@@ -9,6 +9,7 @@ import { ThemaIcon } from "@/icons";
 import { initialsOf } from "../bookingFormat";
 import type { BookingBarber } from "../types";
 import { useBookingFlow } from "./BookingContext";
+import { BarberReviews } from "./BarberReviews";
 import { GalleryViewer } from "./GalleryViewer";
 import { PhotoStrip } from "./PhotoStrip";
 import { DRAWER_FIT_STYLE } from "./drawerFit";
@@ -79,6 +80,7 @@ export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose
               </div>
             </section>
           )}
+          <BarberReviews barberId={barber.id} rating={barber.rating} />
           {(barber.instagram || barber.facebook) && (
             <section className="flex flex-wrap gap-2" aria-label={t("booking.barber.social")}>
               {socials.map((social) => (

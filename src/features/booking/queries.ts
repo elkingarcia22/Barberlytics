@@ -136,6 +136,27 @@ export function useRepeatMutation(token: string | null) {
   });
 }
 
+export function useBarberReviewsQuery(barberId: string | null) {
+  return useQuery({
+    queryKey: [...bookingKeys.all, "reviews", barberId ?? ""] as const,
+    queryFn: ({ signal }) => bookingApi.barberReviews(barberId as string, signal),
+    enabled: barberId !== null,
+    staleTime: 60_000,
+  });
+}
+
+export function useReviewMutation(token: string | null) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, rating, comment }: { id: string; rating: number; comment: string }) => bookingApi.review(needsSession(token), id, { rating, comment }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: bookingKeys.mine(token ?? "") });
+      void client.invalidateQueries({ queryKey: [...bookingKeys.all, "reviews"] });
+      void client.invalidateQueries({ queryKey: [...bookingKeys.all, "catalog"] });
+    },
+  });
+}
+
 export function useMyAppointmentsQuery(token: string | null) {
   return useQuery({
     queryKey: bookingKeys.mine(token ?? ""),

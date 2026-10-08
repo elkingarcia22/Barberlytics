@@ -1,5 +1,6 @@
 import {
   Queue02Icon,
+  StarIcon,
   CalendarAdd01Icon,
   Mail01Icon,
   Camera01Icon,
@@ -113,6 +114,7 @@ export const iconRegistry: Record<IconName, IconData> = {
   analytics: Analytics01Icon,
   survey: TaskDaily01Icon,
   calendar: Calendar03Icon,
+  star: StarIcon,
   calendarAdd: CalendarAdd01Icon,
   mail: Mail01Icon,
   filter: FilterIcon,

@@ -381,6 +381,8 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo, channel }` (enmascarado), igual para cualquier número. `429 rate_limited` tras 5 en 10 minutos. |
 | `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ status: "known", token, customer }`, `{ status: "new", token, customer: null }` o `{ status: "blocked", token: null, customer: null }`. `422 otp_invalid` con `attemptsLeft`; `429 otp_locked` tras 5 fallos (hay que pedir otro). |
 | `POST` | `/booking/appointments/:id/repeat` | Con token. Deja la cita fija: `{ everyWeeks: 1–4, count: 1–6 }` → `201 { created: BookedAppointment[], skipped: [fecha] }`. Las próximas con el mismo barbero a la misma hora (o la más cercana ese día, ±1 h); sin hueco, se salta. Entran como serie (`seriesId`, `repeat`), se pagan en la barbería y llevan sus recordatorios. |
+| `GET` | `/booking/barbers/:id/reviews?limit` | Reseñas públicas del barbero: `{ items: [{ id, clientName («Marcela G.»), rating, comment, createdAt }], total }`, de la más nueva. El `rating`/`reviews` del catálogo salen de aquí. |
+| `POST` | `/booking/appointments/:id/review` | Con token. `{ rating: 1–5, comment? }` → `201`. Solo citas que ocurrieron (`409 not_completed`) y una vez (`409 already_reviewed`). La cita trae `review: { rating } \| null`. |
 | `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |
 | `PATCH` | `/booking/appointments/:id` | Con token: `{ start, barberId }`. `409 too_late` dentro del plazo de cambio; `409 conflict` si la hora ya no está. |
 | `POST` | `/booking/appointments/:id/cancel` | Con token: `{ refundTo: "card" \| "credit" }` → `{ appointment, fee, refund, refundTo }`. `409 limit` al llegar a `maxCancellations`. |

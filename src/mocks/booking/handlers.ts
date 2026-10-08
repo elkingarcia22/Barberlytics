@@ -33,6 +33,7 @@ import {
 import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alternatives";
 import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminders";
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
+import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -501,6 +502,33 @@ export const bookingHandlers = [
     rescheduleMessages(updated, client.phone);
     db.persist();
     return HttpResponse.json(bookedOf(updated));
+  }),
+
+  http.get(`${BASE}/barbers/:id/reviews`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const limit = Math.min(20, Math.max(1, Number(new URL(request.url).searchParams.get("limit")) || 5));
+    const all = reviewsOf(String(params.id));
+    // Público: solo el nombre con inicial, la nota, el comentario y la fecha.
+    return HttpResponse.json({ items: all.slice(0, limit).map(({ id, clientName, rating, comment, createdAt }) => ({ id, clientName, rating, comment, createdAt })), total: all.length });
+  }),
+
+  http.post(`${BASE}/appointments/:id/review`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    const appointment = db.calendar.appointments.find((item) => item.id === params.id && item.clientId === client.id);
+    if (!appointment) return error(404, "not_found", "Esa cita no existe.");
+    // Solo se califica lo que pasó: cobrada o ya terminada, nunca cancelada ni inasistencia.
+    if (bookedOf(appointment).status !== "completed") return error(409, "not_completed", "Podrás calificarla cuando termine tu cita.");
+    if (reviewOfAppointment(appointment.id)) return error(409, "already_reviewed", "Ya calificaste esta cita.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const rating = Math.round(Number(input.rating));
+    if (!(rating >= 1 && rating <= 5)) return error(422, "validation", "Elige de 1 a 5 estrellas.", { fields: { rating: ["Elige de 1 a 5 estrellas."] } });
+    const comment = text(input.comment).slice(0, 500);
+    const [first = "", last = ""] = client.name.split(" ");
+    const review = addReview({ appointmentId: appointment.id, clientId: client.id, clientName: `${first} ${last ? `${last[0]}.` : ""}`.trim(), barberId: appointment.barberId, rating, comment });
+    db.persist();
+    return HttpResponse.json({ id: review.id, rating: review.rating }, { status: 201 });
   }),
 
   http.post(`${BASE}/appointments/:id/repeat`, async ({ request, params }) => {

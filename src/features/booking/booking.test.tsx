@@ -103,7 +103,7 @@ describe("formatos de la reserva", () => {
   });
 
   test("el archivo de calendario trae una cita por evento con su duración", () => {
-    const appointment: BookedAppointment = { id: "a1", reservationId: "r1", branchId: "ma", branchName: "Massachusetts", personName: "Marcela", guestRelation: null, serviceIds: ["svc_corte"], serviceNames: ["Corte clásico", "Barba"], barberId: "b1", barberName: "Andrés", barberAvatarUrl: null, noPreference: false, start: "2026-10-09T10:30:00", durationMin: 45, price: 50, paid: 0, status: "scheduled" };
+    const appointment: BookedAppointment = { id: "a1", reservationId: "r1", branchId: "ma", branchName: "Massachusetts", personName: "Marcela", guestRelation: null, serviceIds: ["svc_corte"], serviceNames: ["Corte clásico", "Barba"], barberId: "b1", barberName: "Andrés", barberAvatarUrl: null, noPreference: false, start: "2026-10-09T10:30:00", durationMin: 45, price: 50, paid: 0, status: "scheduled", review: null };
     const ics = buildIcs([appointment], "Barbería");
     expect(ics).toContain("DTSTART:20261009T103000");
     expect(ics).toContain("DTEND:20261009T111500");
@@ -302,6 +302,30 @@ describe("backend de la reserva", () => {
     expect(held.payment).toMatchObject({ method: "shop", status: "pending", last4: "4242" });
     expect(held.payment.paid).toBeCloseTo(depositOf(held.totals, 30), 2);
     expect(held.payment.paid).toBeLessThan(held.totals.total);
+  });
+
+  test("solo se califica una cita que ocurrió, una vez, y la nota cuenta en el promedio del barbero", async () => {
+    const { token } = await signIn();
+    // El primer hueco con quien esté libre: la cita existe de verdad.
+    const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    if (!slot) throw new Error("debería haber un hueco");
+    const booked = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop" });
+    const upcomingId = booked.appointments[0].id;
+    // Una cita que aún no pasa no se califica.
+    await expect(bookingApi.review(token, upcomingId, { rating: 5, comment: "" })).rejects.toMatchObject({ status: 409 });
+    // La barbería la cobra al terminar: ya ocurrió.
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === upcomingId ? { ...item, status: "paid" } : item));
+    const done = (await bookingApi.myAppointments(token)).past.find((item) => item.id === upcomingId);
+    if (!done) throw new Error("la cita cobrada debería estar en el historial");
+    expect(done).toMatchObject({ status: "completed", review: null });
+    const before = (await bookingApi.catalog("ma")).barbers.find((barber) => barber.id === done.barberId);
+    await expect(bookingApi.review(token, done.id, { rating: 0, comment: "" })).rejects.toMatchObject({ status: 422 });
+    await bookingApi.review(token, done.id, { rating: 5, comment: "Impecable" });
+    await expect(bookingApi.review(token, done.id, { rating: 4, comment: "" })).rejects.toMatchObject({ status: 409 });
+    const after = (await bookingApi.catalog("ma")).barbers.find((barber) => barber.id === done.barberId);
+    expect(after?.reviews).toBe((before?.reviews ?? 0) + 1);
+    const latest = await bookingApi.barberReviews(done.barberId);
+    expect(latest.items[0]).toMatchObject({ clientName: "Marcela G.", rating: 5, comment: "Impecable" });
   });
 
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {

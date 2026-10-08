@@ -1,5 +1,5 @@
 {
-  "sourceHash": "a800ba44ac5ef775",
+  "sourceHash": "4e7393f8612a9545",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -20417,6 +20417,7 @@
     "share",
     "smsCode",
     "sparkles",
+    "star",
     "stop",
     "success",
     "sun",

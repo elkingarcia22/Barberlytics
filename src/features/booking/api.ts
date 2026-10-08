@@ -2,6 +2,8 @@ import { z } from "zod";
 import { api } from "@/lib/api";
 import {
   alternativesSchema,
+  barberReviewsSchema,
+  reviewSavedSchema,
   earliestSchema,
   availabilitySchema,
   bookedAppointmentSchema,
@@ -18,6 +20,7 @@ import {
   suggestionResponseSchema,
   reservationSchema,
   type Alternatives,
+  type BarberReview,
   type Earliest,
   type Availability,
   type BookedAppointment,
@@ -77,6 +80,9 @@ export const bookingApi = {
   verifyOtp: (phone: string, code: string) => api.post<OtpVerify>("/booking/otp/verify", { phone, code }, { schema: otpVerifySchema }),
   myAppointments: (token: string, signal?: AbortSignal) => api.get<MyAppointments>("/booking/me/appointments", { headers: session(token), schema: myAppointmentsSchema, signal }),
   reschedule: (token: string, id: string, input: RescheduleInput) => api.patch<BookedAppointment>(`/booking/appointments/${id}`, input, { headers: session(token), schema: bookedAppointmentSchema }),
+  barberReviews: (barberId: string, signal?: AbortSignal) => api.get<{ items: BarberReview[]; total: number }>(`/booking/barbers/${barberId}/reviews`, { query: { limit: 3 }, schema: barberReviewsSchema, signal }),
+  review: (token: string, id: string, input: { rating: number; comment: string }) =>
+    api.post<{ id: string; rating: number }>(`/booking/appointments/${id}/review`, input, { headers: session(token), schema: reviewSavedSchema }),
   repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>
     api.post<RepeatResult>(`/booking/appointments/${id}/repeat`, input, { headers: session(token), schema: repeatResultSchema }),
   cancel: (token: string, id: string, refundTo: "card" | "credit") => api.post<CancelResult>(`/booking/appointments/${id}/cancel`, { refundTo }, { headers: session(token), schema: cancelResultSchema }),

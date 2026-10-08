@@ -49,12 +49,27 @@ export interface MockOutboxMessage {
   status: "scheduled" | "sent" | "cancelled";
 }
 
+/** Una reseña de un barbero: de una cita que ocurrió (o sembrada para la demo, sin cita). */
+export interface MockReview {
+  id: string;
+  appointmentId: string | null;
+  clientId: string | null;
+  /** «Marcela G.»: el nombre con la inicial del apellido, así se publica. */
+  clientName: string;
+  barberId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** Reseñas que dejaron los clientes tras su cita (las de la demo se derivan, ver reviews.ts). */
+  reviews?: MockReview[];
   /** Confirmaciones y recordatorios programados por cada reserva (ver reminders.ts). */
   outbox?: MockOutboxMessage[];
   /** id de cliente → sus tarjetas tokenizadas. Sin entrada, la clienta de la demo trae las suyas (`DEMO_CARDS`). */

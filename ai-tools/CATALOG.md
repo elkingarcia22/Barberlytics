@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**201 componentes** en 21 familias · 99 iconos en el registro · 113 tokens.
+**201 componentes** en 21 familias · 100 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -336,4 +336,4 @@ Composiciones completas listas para una pantalla: piezas del sistema ya cableada
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, bug, building, calendar, calendarAdd, camera, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, facebook, feedback, file, filter, flag, folderAdd, globe, google, graduation, help, home, idea, image, info, instagram, layers, link, lock, logout, magicWand, mail, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, queue, record, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, video, volume, warning, zoomIn, zoomOut
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, bug, building, calendar, calendarAdd, camera, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, facebook, feedback, file, filter, flag, folderAdd, globe, google, graduation, help, home, idea, image, info, instagram, layers, link, lock, logout, magicWand, mail, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, queue, record, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, star, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, video, volume, warning, zoomIn, zoomOut

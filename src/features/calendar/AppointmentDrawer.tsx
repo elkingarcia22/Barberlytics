@@ -43,6 +43,12 @@ export interface AppointmentDrawerProps {
   onCancel: (appointment: Appointment) => void;
   onNoShow: (appointment: Appointment) => void;
   onOpenClient: (clientId: string) => void;
+  /** Las citas de su visita (servicios añadidos), en orden; vacío si va suelta. */
+  visit?: readonly Appointment[];
+  /** Mirar otra cita de la misma visita. */
+  onSelectAppointment?: (appointment: Appointment) => void;
+  /** Separar la visita en citas independientes. */
+  onSeparateVisit?: (visit: readonly Appointment[]) => void;
 }
 
 type Tab = "summary" | "clipper" | "notes" | "client" | "history";
@@ -50,10 +56,12 @@ type Tab = "summary" | "clipper" | "notes" | "client" | "history";
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export function AppointmentDrawer(props: AppointmentDrawerProps) {
-  return <AppointmentPanel key={`${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`} {...props} />;
+  // Pasar a otra cita de la misma visita no remonta el panel: sigue en la misma pestaña.
+  const visitKey = props.visit && props.visit.length > 1 ? `visit-${props.visit[0].id}` : (props.appointment?.id ?? "");
+  return <AppointmentPanel key={`${useOpenKey(props.open)}-${visitKey}`} {...props} />;
 }
 
-function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, ...actions }: AppointmentDrawerProps) {
+function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, visit, onSelectAppointment, onSeparateVisit, ...actions }: AppointmentDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const [tab, setTab] = React.useState<Tab>("summary");
@@ -90,7 +98,7 @@ function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, 
             />
           </div>
 
-          {tab === "summary" && <AppointmentSummaryTab appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} onOpenClient={onOpenClient} {...actions} />}
+          {tab === "summary" && <AppointmentSummaryTab key={appointment.id} appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} onOpenClient={onOpenClient} visit={visit} onSelectAppointment={onSelectAppointment} onSeparateVisit={onSeparateVisit} {...actions} />}
           {tab === "clipper" && <AppointmentClipperTab appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />}
           {tab === "notes" && <AppointmentNotesTab client={client ?? null} />}
           {tab === "client" && <AppointmentClientTab client={client ?? null} appointment={appointment} ctx={ctx} onOpenClient={onOpenClient} />}

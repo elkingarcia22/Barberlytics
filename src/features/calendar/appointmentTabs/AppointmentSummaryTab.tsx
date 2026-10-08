@@ -16,6 +16,7 @@ import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
 import { AppointmentEditForm } from "./AppointmentEditForm";
 import { ACTION_ICON, ACTION_LABEL } from "../appointmentActions";
 import { StageHeadline } from "./AppointmentPanelParts";
+import { AppointmentVisitSection } from "./AppointmentVisitSection";
 import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus } from "../types";
 
 /**
@@ -36,6 +37,12 @@ export interface AppointmentSummaryTabProps {
   onCancel: (appointment: Appointment) => void;
   onNoShow: (appointment: Appointment) => void;
   onOpenClient: (clientId: string) => void;
+  /** Las citas de su visita (servicios añadidos), en orden; vacío o sin él si va suelta. */
+  visit?: readonly Appointment[];
+  /** Mirar otra cita de la misma visita. */
+  onSelectAppointment?: (appointment: Appointment) => void;
+  /** Separar la visita en citas independientes. */
+  onSeparateVisit?: (visit: readonly Appointment[]) => void;
 }
 
 const TRACK: readonly AppointmentStatus[] = ["scheduled", "arrived", "seated", "paid"];
@@ -44,7 +51,7 @@ const ACTION_TEST_ID: Partial<Record<AppointmentActionId, string>> = { checkIn: 
 /** Solo los dígitos de un teléfono, para los enlaces de llamada y WhatsApp. */
 const digits = (phone: string) => phone.replace(/[^\d+]/g, "");
 
-export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberReady, onPay, onPatch, onRebook, onCancel, onNoShow, onOpenClient }: AppointmentSummaryTabProps) {
+export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberReady, onPay, onPatch, onRebook, onCancel, onNoShow, onOpenClient, visit = [], onSelectAppointment, onSeparateVisit }: AppointmentSummaryTabProps) {
   const t = useAppT();
   // Lo de todos los días es ver la cita; cambiarla es la excepción y se pide.
   const [editing, setEditing] = React.useState(false);
@@ -145,6 +152,11 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
             </Alert>
           ))}
         </div>
+      )}
+
+      {/* Una visita con servicios añadidos: todas sus citas, cuál se mira y el total. */}
+      {visit.length > 1 && onSelectAppointment && (
+        <AppointmentVisitSection visit={visit} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onSeparate={onSeparateVisit} />
       )}
 
       {/* La cita: las mismas cosas que dice su tarjeta, en filas. */}

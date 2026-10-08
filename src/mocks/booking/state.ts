@@ -28,12 +28,23 @@ export interface MockReservation {
   payment: { method: "card" | "wallet" | "shop" | "credit"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
 }
 
+export interface MockSavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+  holder: string;
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** id de cliente → sus tarjetas tokenizadas. Sin entrada, la clienta de la demo trae las suyas (`DEMO_CARDS`). */
+  cards?: Record<string, MockSavedCard[]>;
   /** Ya se le pusieron a la clienta de la demo sus personas guardadas (una sola vez). */
   demoGuestsSeeded?: boolean;
 }
@@ -56,6 +67,12 @@ export const DEMO_GUESTS = [
   { id: "gst_demo_laura", name: "Laura", relation: "Pareja", visits: 2 },
 ];
 export const DEMO_GUESTS_CLIENT = "cli_001";
+
+/** Las tarjetas que la clienta de la demo ya guardó en otras reservas. */
+export const DEMO_CARDS: readonly MockSavedCard[] = [
+  { id: "card_demo_visa", brand: "Visa", last4: "4242", expMonth: 12, expYear: 2028, holder: "Marcela Gómez" },
+  { id: "card_demo_mc", brand: "Mastercard", last4: "4444", expMonth: 9, expYear: 2027, holder: "Marcela Gómez" },
+];
 
 /** Un número bloqueado por la barbería, para ver ese caso. */
 export const BLOCKED_PHONE = "+573009999999";

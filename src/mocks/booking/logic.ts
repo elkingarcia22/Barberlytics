@@ -4,7 +4,7 @@ import { WALK_IN_CLIENT, clockOf, dateKey, parseClock, type MockAppointment, typ
 import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/handlers";
 import { profileOf } from "../customers/handlers";
 import { hashOf } from "../customers/seed";
-import { BLOCKED_PHONE, DEMO_PHONES, type MockReservation } from "./state";
+import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 
 /**
  * Las derivaciones de la reserva en línea: lo que ve el cliente sale de lo
@@ -248,7 +248,21 @@ export function customerOf(client: MockClient) {
     lastVisit,
     credit: db.booking.credits[client.id] ?? 0,
     upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && new Date(item.start).getTime() >= now).length,
+    cards: cardsOf(client.id),
   };
+}
+
+/** Las tarjetas tokenizadas de un cliente. */
+export const cardsOf = (clientId: string): MockSavedCard[] => db.booking.cards?.[clientId] ?? (clientId === DEMO_GUESTS_CLIENT ? [...DEMO_CARDS] : []);
+
+/** Guarda una tarjeta tokenizada (sin número completo ni CVC); si ya estaba, no la repite. */
+export function saveCard(clientId: string, card: Omit<MockSavedCard, "id">): MockSavedCard {
+  const current = cardsOf(clientId);
+  const existing = current.find((item) => item.brand === card.brand && item.last4 === card.last4 && item.expMonth === card.expMonth && item.expYear === card.expYear);
+  if (existing) return existing;
+  const saved = { ...card, id: `card_${Date.now().toString(36)}` };
+  db.booking.cards = { ...(db.booking.cards ?? {}), [clientId]: [...current, saved] };
+  return saved;
 }
 
 /** Una cita de la agenda como la ve el cliente. */

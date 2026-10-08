@@ -120,6 +120,20 @@ export type BookingGuest = z.infer<typeof bookingGuestSchema>;
 export const lastVisitSchema = z.object({ branchId: z.string(), serviceIds: z.array(z.string()), barberId: z.string().nullable(), at: z.string() });
 export type LastVisit = z.infer<typeof lastVisitSchema>;
 
+/**
+ * Una tarjeta guardada, tal como la devuelve la pasarela al tokenizarla: la marca,
+ * los últimos cuatro dígitos y el vencimiento. Nunca el número completo ni el CVC.
+ */
+export const savedCardSchema = z.object({
+  id: z.string(),
+  brand: z.string(),
+  last4: z.string(),
+  expMonth: z.number(),
+  expYear: z.number(),
+  holder: z.string(),
+});
+export type SavedCard = z.infer<typeof savedCardSchema>;
+
 export const bookingCustomerSchema = z.object({
   id: z.string(),
   firstName: z.string(),
@@ -134,6 +148,8 @@ export const bookingCustomerSchema = z.object({
   /** Saldo a favor de reembolsos anteriores. */
   credit: z.number(),
   upcoming: z.number(),
+  /** Sus tarjetas guardadas para pagar sin volver a escribirlas. */
+  cards: z.array(savedCardSchema).default([]),
 });
 export type BookingCustomer = z.infer<typeof bookingCustomerSchema>;
 
@@ -285,7 +301,13 @@ export interface ReservationInput {
   tipId: string | null;
   promoCode: string | null;
   method: PayMethod;
-  card?: { number: string; name: string };
+  /**
+   * Tarjeta nueva. El CVC no viaja a nuestro servidor: va directo a la pasarela
+   * (aquí, simulada). `save` la guarda tokenizada para la próxima.
+   */
+  card?: { number: string; name: string; expiry: string; save: boolean };
+  /** O una tarjeta guardada; se le pide el CVC otra vez en el celular, que tampoco viaja aquí. */
+  savedCardId?: string;
   notes?: string;
 }
 

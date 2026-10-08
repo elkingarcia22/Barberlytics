@@ -13,6 +13,8 @@ import {
   bookedOf,
   bookingRules,
   cardFeeRule,
+  cardsOf,
+  saveCard,
   catalog,
   clientByPhone,
   customerOf,
@@ -298,11 +300,23 @@ export const bookingHandlers = [
       payment = { method, status: "paid", last4: null, brand: null, paid: totals.total };
     } else if (method === "card" || method === "wallet") {
       if (!rules.paymentMethods.card) return error(422, "validation", "Esta barbería no cobra en línea.");
-      const card = asRecord(input.card as DefaultBodyType);
-      const number = method === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
-      if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
-      if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
-      payment = { method, status: "paid", last4: number.slice(-4), brand: method === "wallet" ? "Wallet" : brandOf(number), paid: totals.total };
+      const savedCardId = text(input.savedCardId);
+      if (method === "card" && savedCardId) {
+        // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
+        const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
+        if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
+        payment = { method, status: "paid", last4: saved.last4, brand: saved.brand, paid: totals.total };
+      } else {
+        const card = asRecord(input.card as DefaultBodyType);
+        const number = method === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
+        if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
+        if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
+        const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
+        if (method === "card" && card.save === true && expMonth && expYear) {
+          saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
+        }
+        payment = { method, status: "paid", last4: number.slice(-4), brand: method === "wallet" ? "Wallet" : brandOf(number), paid: totals.total };
+      }
     } else {
       return error(422, "validation", "Elige cómo vas a pagar.");
     }

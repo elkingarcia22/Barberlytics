@@ -12,6 +12,26 @@ export const groupExpiry = (value: string): string => {
   return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
 };
 
+export type CardBrand = "visa" | "mastercard" | "amex" | "other";
+
+/** La marca por los primeros dígitos (los rangos públicos de cada red). */
+export function cardBrandOf(value: string): CardBrand {
+  const digits = digitsOf(value);
+  if (/^4/.test(digits)) return "visa";
+  if (/^(5[1-5]|2[2-7])/.test(digits)) return "mastercard";
+  if (/^3[47]/.test(digits)) return "amex";
+  return "other";
+}
+
+/** La marca tal como la guarda la pasarela («Visa», «Mastercard») a la de la interfaz. */
+export function brandFromName(name: string): CardBrand {
+  const plain = name.toLowerCase();
+  return plain.includes("visa") ? "visa" : plain.includes("master") ? "mastercard" : plain.includes("amex") || plain.includes("american") ? "amex" : "other";
+}
+
+/** Amex pide 4 dígitos de CVC; las demás, 3. */
+export const cvcLengthOf = (brand: CardBrand): number => (brand === "amex" ? 4 : 3);
+
 export interface CardValues {
   number: string;
   expiry: string;
@@ -33,10 +53,13 @@ export function cardErrors(values: CardValues) {
   return {
     number: digitsOf(values.number).length < MIN_CARD,
     expiry: !expiryOk(values.expiry),
-    cvc: digitsOf(values.cvc).length < 3,
+    cvc: digitsOf(values.cvc).length < cvcLengthOf(cardBrandOf(values.number)),
     name: values.name.trim().length < MIN_NAME,
   };
 }
 
 export const isCardComplete = (values: CardValues): boolean => !Object.values(cardErrors(values)).some(Boolean);
+
+/** El CVC de una tarjeta guardada: se vuelve a pedir y se revisa solo su largo. */
+export const isCvcComplete = (cvc: string, brand: CardBrand): boolean => digitsOf(cvc).length === cvcLengthOf(brand);
 

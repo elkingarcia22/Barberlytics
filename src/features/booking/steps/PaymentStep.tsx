@@ -13,9 +13,10 @@ import { feeLabel } from "../pricing";
 import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { CardForm } from "../flow/CardForm";
-import { isCardComplete, type CardValues } from "../flow/cardValidation";
+import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { OrderSummary } from "../flow/OrderSummary";
 import { PromoField } from "../flow/PromoField";
+import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
 import { StepLayout } from "../flow/StepLayout";
 import { useReserveMutation } from "../queries";
 import type { PayMethod } from "../types";
@@ -37,6 +38,13 @@ export function PaymentStep() {
   const [showCardErrors, setShowCardErrors] = React.useState(false);
   const customer = state.customer;
   const credit = customer?.credit ?? 0;
+  // Con tarjetas guardadas abre en la primera que no esté vencida; si no, en «tarjeta nueva».
+  const savedCards = customer?.cards ?? [];
+  const [cardChoice, setCardChoice] = React.useState<string>(() => savedCards.find((card) => new Date(card.expYear, card.expMonth, 1).getTime() > Date.now())?.id ?? NEW_CARD);
+  const [savedCvc, setSavedCvc] = React.useState("");
+  // Guardar la tarjeta es una decisión del cliente: empieza sin marcar.
+  const [saveCard, setSaveCard] = React.useState(false);
+  const chosenSaved = savedCards.find((card) => card.id === cardChoice) ?? null;
 
   // El recargo se dice en la opción que lo lleva, antes de elegirla, y pagar en la barbería lo evita.
   const fee = shop.cardFee ? t("booking.payment.feeHint", { fee: feeLabel(shop.cardFee, fmt.money) }) : "";
@@ -71,7 +79,7 @@ export function PaymentStep() {
 
   const pay = () => {
     if (!customer || !state.branchId || !method) return;
-    if (method === "card" && !isCardComplete(card)) {
+    if (method === "card" && (chosenSaved ? !isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) : !isCardComplete(card))) {
       setShowCardErrors(true);
       return;
     }
@@ -91,7 +99,9 @@ export function PaymentStep() {
         tipId: state.tipId,
         promoCode: state.promo?.code ?? null,
         method,
-        card: method === "card" ? { number: card.number, name: card.name } : undefined,
+        // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
+        card: method === "card" && !chosenSaved ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
+        savedCardId: method === "card" && chosenSaved ? chosenSaved.id : undefined,
         notes: state.notes.trim() || undefined,
       },
       { onSuccess: (reservation) => dispatch({ type: "reserved", reservation }) }
@@ -136,7 +146,22 @@ export function PaymentStep() {
             <OptionTile key={option.value} option={option} selected={method === option.value} onSelect={(value) => dispatch({ type: "setMethod", method: value as PayMethod })} />
           ))}
         </div>
-        {method === "card" && (
+        {method === "card" && savedCards.length > 0 && (
+          <SavedCardPicker
+            cards={savedCards}
+            value={cardChoice}
+            onChange={(value) => {
+              setCardChoice(value);
+              setSavedCvc("");
+              setShowCardErrors(false);
+              if (reserve.isError) reserve.reset();
+            }}
+            cvc={savedCvc}
+            onCvcChange={setSavedCvc}
+            showErrors={showCardErrors}
+          />
+        )}
+        {method === "card" && !chosenSaved && (
           <CardForm
             values={card}
             onChange={(values) => {
@@ -146,7 +171,14 @@ export function PaymentStep() {
             }}
             showErrors={showCardErrors}
             serverError={serverCardError}
+            save={saveCard}
+            onSaveChange={customer ? setSaveCard : undefined}
           />
+        )}
+        {method === "card" && chosenSaved && serverCardError && (
+          <Text size="sm" tone="negative">
+            {serverCardError}
+          </Text>
         )}
         {method !== "shop" && (
           <Text size="xs" tone="muted" className="flex items-center gap-1.5">

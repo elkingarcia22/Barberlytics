@@ -4,6 +4,7 @@ import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
+import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, chargesCardFee, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
@@ -25,6 +26,7 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   lastVisit: { branchId: "ma", serviceIds: ["svc_corte"], barberId: "team-04", at: "2026-09-20T10:00:00" },
   credit: 0,
   upcoming: 0,
+  cards: [],
   ...draft,
 });
 
@@ -74,6 +76,19 @@ describe("cuentas de la reserva", () => {
 
   test("la política se lee con los valores de Configuración", () => {
     expect(renderPolicy("Cancela con <<time_for_cancel>>; cargo <<fee_cancellation>>%; máximo <<max_cancellations>>.", { cancelHours: 3, lateFeePercent: 10, maxCancellations: 5 })).toBe("Cancela con 3 h; cargo 10%; máximo 5.");
+  });
+});
+
+describe("tarjetas", () => {
+  test("la marca sale de los primeros dígitos y Amex pide 4 de CVC", () => {
+    expect(cardBrandOf("4242 4242")).toBe("visa");
+    expect(cardBrandOf("5105 1051")).toBe("mastercard");
+    expect(cardBrandOf("2221 0000")).toBe("mastercard");
+    expect(cardBrandOf("3782 822463")).toBe("amex");
+    expect(cardBrandOf("6011")).toBe("other");
+    expect(isCvcComplete("123", "visa")).toBe(true);
+    expect(isCvcComplete("123", "amex")).toBe(false);
+    expect(brandFromName("Mastercard")).toBe("mastercard");
   });
 });
 
@@ -271,7 +286,7 @@ describe("backend de la reserva", () => {
       tipId: null,
       promoCode: "FAMILIA15",
       method: "card",
-      card: { number: "4242 4242 4242 4242", name: "Marcela Gómez" },
+      card: { number: "4242 4242 4242 4242", name: "Marcela Gómez", expiry: "12/30", save: false },
     });
     expect(reservation.appointments).toHaveLength(2);
     expect(reservation.appointments[0].barberId).not.toBe(reservation.appointments[1].barberId);
@@ -285,15 +300,32 @@ describe("backend de la reserva", () => {
     // Al pedir la hora se generan las citas de ese día de la agenda: solo cuentan las de la reserva en línea.
     const fromBooking = () => db.calendar.appointments.filter((item) => item.createdBy === "Reserva en línea").length;
     const error = await bookingApi
-      .reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4000000000000002", name: "M" } })
+      .reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4000000000000002", name: "M", expiry: "12/30", save: false } })
       .catch((caught: unknown) => caught);
     expect(isApiError(error) && error.status).toBe(402);
     expect(fromBooking()).toBe(0);
     expect(db.booking.reservations).toHaveLength(0);
   });
 
+  test("se paga con una tarjeta guardada (solo su token) y una nueva se guarda sin número completo", async () => {
+    const item = (hour: number) => [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, hour, 0)) }];
+    const base = { customerId: "cli_001", branchId: "ma", products: [], tipId: null, promoCode: null, method: "card" as const };
+    const { customer: before } = (await bookingApi.lookup(KNOWN_PHONE)) as { customer: BookingCustomer };
+    expect(before.cards.map((card) => `${card.brand} ${card.last4}`)).toEqual(["Visa 4242", "Mastercard 4444"]);
+
+    const withSaved = await bookingApi.reserve({ ...base, items: item(10), savedCardId: "card_demo_mc" });
+    expect(withSaved.payment).toMatchObject({ status: "paid", brand: "Mastercard", last4: "4444" });
+    await expect(bookingApi.reserve({ ...base, items: item(11), savedCardId: "card_que_no_existe" })).rejects.toMatchObject({ status: 422 });
+
+    await bookingApi.reserve({ ...base, items: item(12), card: { number: "5105 1051 0510 5100", name: "Marcela Gómez", expiry: "08/29", save: true } });
+    const { customer: after } = (await bookingApi.lookup(KNOWN_PHONE)) as { customer: BookingCustomer };
+    expect(after.cards.at(-1)).toMatchObject({ brand: "Mastercard", last4: "5100", expMonth: 8, expYear: 2029 });
+    // Lo guardado no lleva el número completo.
+    expect(JSON.stringify(after.cards)).not.toContain("5105105105105100");
+  });
+
   test("con el código se ven las citas, se mueven y se cancelan con reembolso a saldo a favor", async () => {
-    const reservation = await bookingApi.reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M" } });
+    const reservation = await bookingApi.reserve({ customerId: "cli_001", branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M", expiry: "12/30", save: false } });
     const appointment = reservation.appointments[0];
     await expect(bookingApi.verifyOtp(KNOWN_PHONE, "000000")).rejects.toMatchObject({ status: 422 });
     const { token } = await bookingApi.verifyOtp(KNOWN_PHONE, "246810");

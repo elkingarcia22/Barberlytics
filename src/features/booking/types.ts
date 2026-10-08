@@ -65,6 +65,8 @@ export const bookingBarberSchema = z.object({
   avatarUrl: z.string().nullable(),
   level: z.string().nullable(),
   description: z.string(),
+  /** En qué es bueno: «Corte clásico», «Barba a navaja»… */
+  skills: z.array(z.string()),
   gallery: z.array(z.string()),
   rating: z.number(),
   reviews: z.number(),

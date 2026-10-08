@@ -244,7 +244,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/flow
 
 - **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, DrawerShell, Heading, Text · usa: @/app/i18n
+- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, DrawerShell, Heading, Text · usa: @/app/i18n, @/icons
 - **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
 - **BookingHeader.tsx** — La cabecera de la reserva: quién es la barbería (y en qué sede), volver y cuánto falta. · `BookingHeader` · piezas: Button, Progress, Stepper, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **BookingSheet.tsx** — Las decisiones cortas de la reserva (cambiar de sede, para quién es, cancelar, enviar el recibo): en celular,… · `BookingSheet` · piezas: DrawerShell
@@ -252,6 +252,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **BranchChange.tsx** — La sede de la reserva, en el resumen: dónde será y un botón para cambiarla. · `BranchChange` · piezas: Alert, AlertDescription, Button, IconTile, OptionTile, Text · usa: @/app/i18n, @/icons
 - **CancelDialog.tsx** — Cancelar, con las cuentas a la vista antes de confirmar: si todavía es gratis, hasta cuándo; si no, cuánto se… · `CancelDialog` · piezas: Alert, AlertDescription, Button, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **CardForm.tsx** — La tarjeta, en cuatro campos con el teclado numérico del celular y el autocompletado del navegador. · `CardForm` · piezas: Field, Input · usa: @/app/i18n
+- **GalleryViewer.tsx** — La galería a pantalla completa: la foto ocupa el dispositivo, se pasa con el dedo (o con las flechas y el tec… · `GalleryViewer` · piezas: Button, Carousel, CarouselContent, CarouselItem, Dialog, DialogContent, DialogDescription, DialogTitle, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ManageSignIn.tsx** — Entrar a «Mis citas»: el celular y un código por SMS. · `ManageSignIn` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/lib/api
 - **NextVisitSuggestion.tsx** — Lo que le toca según su frecuencia de visita: el día (su última visita más su ritmo) y la hora a la que suele… · `NextVisitSuggestion` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina y el total, como un ticket. · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n

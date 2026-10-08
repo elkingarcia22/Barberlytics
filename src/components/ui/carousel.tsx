@@ -130,13 +130,16 @@ function Carousel({
   )
 }
 
-function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
+function CarouselContent({ className, containerClassName, ...props }: React.ComponentProps<"div"> & {
+  /** Clases del contenedor que recorta (el viewport de Embla): para darle alto propio. */
+  containerClassName?: string
+}) {
   const { carouselRef, orientation } = useCarousel()
 
   return (
     <div
       ref={carouselRef}
-      className="overflow-hidden"
+      className={cn("overflow-hidden", containerClassName)}
       data-slot="carousel-content"
     >
       <div

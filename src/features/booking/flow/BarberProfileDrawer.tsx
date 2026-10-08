@@ -1,11 +1,15 @@
 import { useAppT } from "@/app/i18n";
+import * as React from "react";
+import { Chip } from "@/components/ai-interaction";
 import { DrawerShell } from "@/components/overlays";
 import { Heading, Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemaIcon } from "@/icons";
 import { initialsOf } from "../bookingFormat";
 import type { BookingBarber } from "../types";
 import { useBookingFlow } from "./BookingContext";
+import { GalleryViewer } from "./GalleryViewer";
 import { DRAWER_FIT_STYLE } from "./drawerFit";
 
 interface BarberProfileDrawerProps {
@@ -19,6 +23,7 @@ interface BarberProfileDrawerProps {
 export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose }: BarberProfileDrawerProps) {
   const t = useAppT();
   const { catalog, fmt, layout } = useBookingFlow();
+  const [viewing, setViewing] = React.useState<number | null>(null);
   const services = (catalog?.services ?? []).filter((service) => barber?.prices[service.id] !== undefined);
 
   return (
@@ -57,12 +62,33 @@ export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose
               <span className="tabular-nums">{barber.rating.toFixed(1)}</span>· {t("booking.barber.reviews", { count: barber.reviews })}
             </Text>
           </section>
+          {barber.skills.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <Heading level={6}>{t("booking.barber.skills")}</Heading>
+              <div className="flex flex-wrap gap-2">
+                {barber.skills.map((skill) => (
+                  <Chip key={skill} label={skill} tone="primary" />
+                ))}
+              </div>
+            </section>
+          )}
           {barber.gallery.length > 0 && (
             <section className="flex flex-col gap-2">
               <Heading level={6}>{t("booking.barber.work")}</Heading>
               <div className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none]">
-                {barber.gallery.map((src) => (
-                  <img key={src} src={src} alt="" width={160} height={200} loading="lazy" className="h-48 w-40 shrink-0 snap-start rounded-xl object-cover" />
+                {barber.gallery.map((src, position) => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setViewing(position)}
+                    aria-label={t("booking.barber.openPhoto", { current: position + 1, total: barber.gallery.length })}
+                    className="group relative h-48 w-40 shrink-0 snap-start overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <img src={src} alt="" width={160} height={200} loading="lazy" className="size-full object-cover transition-transform duration-slow ease-out-expo group-hover:scale-105 motion-reduce:transition-none" />
+                    <span className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white opacity-90" aria-hidden>
+                      <ThemaIcon name="expand" size="xs" tone="inverse" />
+                    </span>
+                  </button>
                 ))}
               </div>
             </section>
@@ -84,6 +110,7 @@ export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose
           </section>
         </div>
       )}
+      <GalleryViewer photos={barber?.gallery ?? []} index={viewing} title={barber?.name ?? ""} onClose={() => setViewing(null)} />
     </DrawerShell>
   );
 }

@@ -23,6 +23,7 @@ import {
   shop,
   taxPercent,
   tipOptions,
+  visitSuggestion,
 } from "./logic";
 import { DECLINED_CARD, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
@@ -162,6 +163,14 @@ export const bookingHandlers = [
     const client = clientByPhone(phone);
     if (isBlockedPhone(phone, client)) return HttpResponse.json({ status: "blocked" });
     return HttpResponse.json(client ? { status: "known", customer: customerOf(client) } : { status: "new" });
+  }),
+
+  http.get(`${BASE}/customers/:id/suggestion`, async ({ params }) => {
+    await delay(LATENCY_MS);
+    const client = findClient(String(params.id));
+    if (!client) return error(404, "not_found", "Ese cliente no existe.");
+    // Sin ritmo de visitas todavía (cliente nuevo) no hay nada que proponer.
+    return HttpResponse.json({ suggestion: visitSuggestion(client) });
   }),
 
   http.post(`${BASE}/customers`, async ({ request }) => {

@@ -111,6 +111,23 @@ export const bookingCustomerSchema = z.object({
 });
 export type BookingCustomer = z.infer<typeof bookingCustomerSchema>;
 
+export const visitSuggestionSchema = z.object({
+  /** Cada cuántos días suele volver (su frecuencia de visita). */
+  everyDays: z.number(),
+  lastVisitAt: z.string(),
+  /** El día que le toca: última visita + su ritmo. */
+  dueDate: z.string(),
+  isOverdue: z.boolean(),
+  /** La hora a la que suele venir. */
+  usualTime: z.string(),
+  branchId: z.string(),
+  serviceIds: z.array(z.string()),
+  /** Horas libres propuestas, la mejor primero: «AAAA-MM-DDTHH:mm» y quién atiende. */
+  options: z.array(z.object({ start: z.string(), barberId: z.string(), sameBarber: z.boolean() })),
+});
+export type VisitSuggestion = z.infer<typeof visitSuggestionSchema>;
+export const suggestionResponseSchema = z.object({ suggestion: visitSuggestionSchema.nullable() });
+
 export const lookupSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("known"), customer: bookingCustomerSchema }),
   z.object({ status: z.literal("new") }),

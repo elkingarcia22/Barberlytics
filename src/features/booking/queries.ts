@@ -10,6 +10,7 @@ export const bookingKeys = {
   availabilities: () => [...bookingKeys.all, "availability"] as const,
   availability: (branchId: string, date: string, serviceIds: readonly string[], barberId: string | null, exclude?: string) =>
     [...bookingKeys.availabilities(), branchId, date, serviceIds.join(","), barberId, exclude ?? null] as const,
+  suggestion: (customerId: string) => [...bookingKeys.all, "suggestion", customerId] as const,
   mine: (token: string) => [...bookingKeys.all, "mine", token] as const,
 };
 
@@ -43,6 +44,16 @@ export function useAvailabilityQuery(params: AvailabilityParams) {
     // Al cambiar de día se queda el anterior mientras llega: la rejilla no parpadea.
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+  });
+}
+
+/** La próxima visita que le toca según su frecuencia, con horas libres propuestas. */
+export function useVisitSuggestionQuery(customerId: string | null) {
+  return useQuery({
+    queryKey: bookingKeys.suggestion(customerId ?? ""),
+    queryFn: ({ signal }) => bookingApi.suggestion(customerId as string, signal),
+    enabled: customerId !== null,
+    staleTime: 60_000,
   });
 }
 

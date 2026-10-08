@@ -99,6 +99,22 @@ export const bookingEs = {
   "booking.welcome.credit": "Tienes {amount} a favor: se descuenta al pagar.",
   "booking.welcome.notYou": "¿No eres tú?",
 
+  // ── Próxima visita según su frecuencia ──
+  "booking.suggest.title": "Tu próxima visita",
+  "booking.suggest.due": "Te toca el {date}",
+  "booking.suggest.overdue": "Ya te toca: te reservamos lo primero libre",
+  "booking.suggest.everyDays": "Vienes cada {count} día",
+  "booking.suggest.everyDays_plural": "Vienes cada {count} días",
+  "booking.suggest.everyWeeks": "Vienes cada {count} semana",
+  "booking.suggest.everyWeeks_plural": "Vienes cada {count} semanas",
+  "booking.suggest.lastVisit": "última visita hace {count} día",
+  "booking.suggest.lastVisit_plural": "última visita hace {count} días",
+  "booking.suggest.options": "Horas propuestas",
+  "booking.suggest.withUsual": "Con {name}, tu barbero de siempre",
+  "booking.suggest.withOther": "Con {name}: tu barbero no tiene hueco cerca de tu hora",
+  "booking.suggest.book": "Reservar {when}",
+  "booking.suggest.other": "Otra fecha u hora",
+
   // ── Sede ──
   "booking.branch.title": "¿A qué sede vas?",
   "booking.branch.lead": "Cada sede tiene su equipo y sus horarios.",

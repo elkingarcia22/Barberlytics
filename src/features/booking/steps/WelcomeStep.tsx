@@ -9,7 +9,8 @@ import { ThemaIcon } from "@/icons";
 import { initialsOf, parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
-import { useBookingCatalogQuery } from "../queries";
+import { NextVisitSuggestion } from "../flow/NextVisitSuggestion";
+import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../queries";
 import { itemDuration, itemPrice } from "../useBookingTotals";
 
 /**
@@ -28,6 +29,10 @@ export function WelcomeStep() {
   const services = (last?.serviceIds ?? []).map((id) => catalog?.services.find((item) => item.id === id)).filter((item) => item !== undefined);
   const canRepeat = last !== null && branch !== undefined && services.length > 0;
   const onlyBranchId = shop.branches.length === 1 ? shop.branches[0].id : null;
+  // Con su frecuencia de visita se le propone ya el día y la hora que le tocan.
+  const { data: suggestionData, isLoading: isSuggesting } = useVisitSuggestionQuery(customer?.id ?? null);
+  const suggestion = suggestionData?.suggestion ?? null;
+  const repeat = () => last && dispatch({ type: "repeatLastVisit", lastVisit: { ...last, serviceIds: services.map((item) => item.id), barberId: barber ? barber.id : null } });
 
   if (!customer) return null;
 
@@ -58,10 +63,10 @@ export function WelcomeStep() {
             <div className="flex items-center gap-2">
               <ThemaIcon name="refresh" size="sm" tone="primary" />
               <Heading level={5} id="repeat-title">
-                {t("booking.welcome.repeatTitle")}
+                {suggestion ? t("booking.suggest.title") : t("booking.welcome.repeatTitle")}
               </Heading>
             </div>
-            {isLoading ? (
+            {isLoading || isSuggesting ? (
               <div className="flex flex-col gap-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
@@ -100,24 +105,26 @@ export function WelcomeStep() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-end justify-between gap-3 border-t border-border pt-4">
-                  <div className="flex flex-col">
-                    <Text size="xs" tone="muted">
-                      {branch ? t("booking.welcome.repeatLead", { date: fmt.day(parseStart(last.at)), branch: branch.name }) : ""}
+                <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+                  <Text size="xs" tone="muted">
+                    {branch ? t("booking.welcome.repeatLead", { date: fmt.day(parseStart(last.at)), branch: branch.name }) : ""}
+                  </Text>
+                  <Text size="lg" weight="semibold" tabular className="shrink-0">
+                    {fmt.money(itemPrice({ serviceIds: last.serviceIds, barberId: last.barberId }, catalog))}
+                    <Text as="span" size="sm" tone="muted" weight="normal">
+                      {" · "}
+                      {t("booking.review.minutes", { count: itemDuration(last.serviceIds, catalog) })}
                     </Text>
-                    <Text size="lg" weight="semibold" tabular>
-                      {fmt.money(itemPrice({ serviceIds: last.serviceIds, barberId: last.barberId }, catalog))}
-                      <Text as="span" size="sm" tone="muted" weight="normal">
-                        {" · "}
-                        {t("booking.review.minutes", { count: itemDuration(last.serviceIds, catalog) })}
-                      </Text>
-                    </Text>
-                  </div>
-                  <Button type="button" size="lg" disabled={!canRepeat} onClick={() => dispatch({ type: "repeatLastVisit", lastVisit: { ...last, serviceIds: services.map((item) => item.id), barberId: barber ? barber.id : null } })}>
+                  </Text>
+                </div>
+                {suggestion ? (
+                  <NextVisitSuggestion suggestion={suggestion} catalog={catalog} onPickOther={repeat} />
+                ) : (
+                  <Button type="button" size="lg" className="w-full" disabled={!canRepeat} onClick={repeat}>
                     {t("booking.welcome.repeat")}
                     <ThemaIcon name="arrowRight" />
                   </Button>
-                </div>
+                )}
               </>
             )}
           </div>

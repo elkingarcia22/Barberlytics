@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test/render";
+import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
 import { bookingApi } from "./api";
@@ -121,6 +121,13 @@ describe("recorrido de la reserva", () => {
     expect(state.items).toEqual([item]);
   });
 
+  test("aceptar la hora propuesta arma la cita y va directo al resumen", () => {
+    const state = bookingReducer(known(), { type: "acceptSuggestion", branchId: "ma", serviceIds: ["svc_corte"], barberId: "team-04", start: "2026-10-12T10:00" });
+    expect(state.step).toBe("review");
+    expect(state.items).toHaveLength(1);
+    expect(state.items[0]).toMatchObject({ serviceIds: ["svc_corte"], barberId: "team-04", start: "2026-10-12T10:00", person: { kind: "self" } });
+  });
+
   test("otra sede vacía el carrito; reservar otra vez conserva quién es", () => {
     let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
@@ -197,21 +204,53 @@ describe("backend de la reserva", () => {
     expect(db.booking.credits.cli_001).toBe(appointment.paid);
   });
 
+  test("con su frecuencia de visita se propone el día que le toca y horas libres", async () => {
+    const { suggestion } = await bookingApi.suggestion("cli_001");
+    expect(suggestion).not.toBeNull();
+    const client = db.calendar.clients.find((item) => item.id === "cli_001")!;
+    expect(suggestion!.everyDays).toBe(client.visitEveryDays);
+    expect(suggestion!.options.length).toBeGreaterThan(0);
+    const first = suggestion!.options[0];
+    // Nunca antes de lo que le toca (o de hoy, si ya le tocaba) y siempre una hora libre de verdad.
+    expect(first.start.slice(0, 10) >= (suggestion!.isOverdue ? "2026-10-08" : suggestion!.dueDate)).toBe(true);
+    const slots = await bookingApi.availability({ branchId: suggestion!.branchId, date: first.start.slice(0, 10), serviceIds: suggestion!.serviceIds, barberId: first.barberId });
+    expect(slots.slots.some((slot) => slot.time === first.start.slice(11, 16))).toBe(true);
+  });
+
   test("sin código no se ven ni se tocan las citas", async () => {
     await expect(bookingApi.myAppointments("inventado")).rejects.toMatchObject({ status: 403 });
   });
 });
 
 describe("pantalla de la reserva", () => {
-  test("quien vuelve escribe su celular y ve su última visita lista para repetir", async () => {
+  // Embla (el carrusel de productos) lo pide al montar; jsdom no lo trae.
+  beforeEach(() => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      }
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  test("quien vuelve ve el día y la hora que le tocan y reserva en un toque", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow />);
     const phone = await screen.findByRole("textbox", { name: /celular/i });
     await user.type(phone, "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
-    expect(screen.getByText("Repetir tu última visita")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("button", { name: /elegir hora/i })).toBeEnabled());
+    // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
+    expect(await screen.findByText("Tu próxima visita")).toBeInTheDocument();
+    expect(screen.getByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /^Reservar .+·/ }));
+    expect(await screen.findByText("Revisa tu reserva")).toBeInTheDocument();
   });
 
   test("un número nuevo pide nombre, apellido y correo", async () => {

@@ -302,3 +302,67 @@ export function myAppointments(clientId: string) {
 }
 
 export const findReservationLine = reservationOf;
+
+const DAY_MS = 86_400_000;
+/** Cuántos días a partir de la fecha que le toca se buscan horas para proponer. */
+const SUGGESTION_SEARCH_DAYS = 10;
+const SUGGESTION_OPTIONS = 3;
+/** Horas habituales de quien aún no tiene historial de horas en la agenda. */
+const USUAL_FALLBACK = [600, 660, 900, 1020];
+
+/** La hora a la que suele venir: la mediana de sus citas pasadas, o una estable por cliente. */
+function usualMinute(client: MockClient): number {
+  const past = db.calendar.appointments
+    .filter((item) => item.clientId === client.id && isLive(item) && new Date(item.start).getTime() < Date.now())
+    .map((item) => parseClock(item.start.slice(11, 16)))
+    .sort((a, b) => a - b);
+  if (past.length > 0) return past[Math.floor(past.length / 2)];
+  return USUAL_FALLBACK[hashOf(client.id, 7) % USUAL_FALLBACK.length];
+}
+
+/**
+ * La próxima cita que le toca según su frecuencia de visita (FOV): la fecha
+ * es la última visita más su ritmo, y la hora, la que suele elegir, con su
+ * barbero de siempre. Si ese día no hay hueco se mira hacia delante; si su
+ * barbero no tiene sitio en días, con cualquiera.
+ */
+export function visitSuggestion(client: MockClient) {
+  const customer = customerOf(client);
+  const last = customer.lastVisit;
+  if (!last || !client.visitEveryDays) return null;
+  const lastDay = new Date(`${last.at.slice(0, 10)}T00:00:00`);
+  const due = new Date(lastDay.getTime() + client.visitEveryDays * DAY_MS);
+  const today = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  const from = due.getTime() < today.getTime() ? today : due;
+  const usual = usualMinute(client);
+  const byCloseness = (a: { time: string }, b: { time: string }) => Math.abs(parseClock(a.time) - usual) - Math.abs(parseClock(b.time) - usual);
+
+  const search = (barberId: string | null) => {
+    const options: { start: string; barberId: string; sameBarber: boolean }[] = [];
+    for (let offset = 0; offset < SUGGESTION_SEARCH_DAYS && options.length < SUGGESTION_OPTIONS; offset += 1) {
+      const day = dateKey(new Date(from.getTime() + offset * DAY_MS));
+      const slots = availability(last.branchId, day, last.serviceIds, barberId).sort(byCloseness);
+      // Del primer día con sitio, las dos horas más cercanas a la suya; de los siguientes, una.
+      const take = options.length === 0 ? 2 : 1;
+      for (const slot of slots.slice(0, take)) {
+        const chosen = barberId ?? (last.barberId && slot.barberIds.includes(last.barberId) ? last.barberId : slot.barberIds[0]);
+        options.push({ start: `${day}T${slot.time}`, barberId: chosen, sameBarber: chosen === last.barberId });
+      }
+    }
+    return options.slice(0, SUGGESTION_OPTIONS);
+  };
+
+  const sameBarber = last.barberId ? search(last.barberId) : [];
+  const options = sameBarber.length > 0 ? sameBarber : search(null);
+  if (options.length === 0) return null;
+  return {
+    everyDays: client.visitEveryDays,
+    lastVisitAt: last.at,
+    dueDate: dateKey(due),
+    isOverdue: due.getTime() < today.getTime(),
+    usualTime: clockOf(usual),
+    branchId: last.branchId,
+    serviceIds: last.serviceIds,
+    options,
+  };
+}

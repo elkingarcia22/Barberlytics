@@ -11,6 +11,7 @@ import {
   myAppointmentsSchema,
   otpVerifySchema,
   receiptSentSchema,
+  suggestionResponseSchema,
   reservationSchema,
   type Availability,
   type BookedAppointment,
@@ -26,6 +27,7 @@ import {
   type RescheduleInput,
   type Reservation,
   type ReservationInput,
+  type VisitSuggestion,
 } from "./types";
 import type { Promo } from "./pricing";
 
@@ -45,6 +47,8 @@ export const bookingApi = {
       signal,
     }),
   lookup: (phone: string) => api.post<LookupResult>("/booking/lookup", { phone }, { schema: lookupSchema }),
+  suggestion: (customerId: string, signal?: AbortSignal) =>
+    api.get<{ suggestion: VisitSuggestion | null }>(`/booking/customers/${customerId}/suggestion`, { schema: suggestionResponseSchema, signal }),
   createCustomer: (input: NewCustomerInput) => api.post<BookingCustomer>("/booking/customers", input, { schema: bookingCustomerSchema }),
   checkPromo: (input: { code: string; customerId: string | null; appointments: number }) => api.post<Promo>("/booking/promo", input, { schema: promoSchema }),
   reserve: (input: ReservationInput) => api.post<Reservation>("/booking/reservations", input, { schema: reservationSchema, timeoutMs: 30_000 }),

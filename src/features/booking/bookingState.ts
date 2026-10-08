@@ -51,6 +51,7 @@ export type BookingAction =
   | { type: "profileSaved"; customer: BookingCustomer; onlyBranchId: string | null }
   | { type: "startFresh"; onlyBranchId: string | null }
   | { type: "repeatLastVisit"; lastVisit: LastVisit }
+  | { type: "acceptSuggestion"; branchId: string; serviceIds: string[]; barberId: string; start: string }
   | { type: "chooseBranch"; branchId: string }
   | { type: "setPerson"; person: BookingPerson }
   | { type: "toggleService"; serviceId: string }
@@ -116,6 +117,16 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
         draft: { ...emptyDraft(), serviceIds: [...action.lastVisit.serviceIds], barberId: action.lastVisit.barberId },
         editingIndex: null,
         step: "time",
+      };
+    case "acceptSuggestion":
+      // La hora que le toca, propuesta por su frecuencia de visita: la cita queda armada y va al resumen.
+      return {
+        ...state,
+        branchId: action.branchId,
+        items: [{ ...emptyDraft(), serviceIds: [...action.serviceIds], barberId: action.barberId, start: action.start }],
+        draft: null,
+        editingIndex: null,
+        step: "review",
       };
     case "chooseBranch":
       // Cambiar de sede vacía el carrito: los barberos y los precios son de cada sede.

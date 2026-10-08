@@ -27,11 +27,10 @@ import "./schedule.css";
  * Una propuesta (`ghost`) se dibuja translúcida y con borde discontinuo: un
  * hueco sugerido o a dónde iría una cita si se reacomoda. Tocarla es aceptar.
  *
- * Las citas de un grupo (`group`: varios servicios de un mismo cliente, o su
- * familia) van rodeadas por un borde discontinuo de la marca y llevan la
- * píldora «2/3»; las que se pegan a otra de su columna pierden ese lado del
- * borde y el radio, así el contorno envuelve la visita entera y la costura
- * entre servicios queda como una línea tenue.
+ * Las citas enlazadas (`group`: salieron de un mismo agendamiento o se
+ * enlazaron a mano) llevan un icono de enlace con «1/2» en el color de su
+ * grupo; resaltadas (`group.highlight`), además un borde discontinuo de ese
+ * color, para ver de un vistazo qué va con qué.
  *
  * Una cita con varios servicios (`segments`) es una sola tarjeta en un solo
  * hueco: una línea punteada marca por dentro dónde empieza cada servicio y
@@ -138,12 +137,21 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
             ? `schedule-tone-${tone}`
             : null;
     // Teñida por servicio, el punto sobra: la tarjeta entera ya es el color.
-    const dot = palette && event.fill !== "category" ? <ScheduleColorDot color={event.color ?? 1} className="size-2.5" /> : null;
+    // Con varios servicios cada tramo lleva su círculo; el nombre del cliente, ninguno.
+    const hasSegments = !oneLine && Boolean(event.segments && event.segments.length > 1);
+    const dot = palette && event.fill !== "category" && !hasSegments ? <ScheduleColorDot color={event.color ?? 1} className="size-2.5" /> : null;
     const markers = event.markers ?? [];
     const group = event.group;
+    // El icono de enlace va en el color de su grupo: dos grupos a la vez se distinguen de un vistazo.
+    const groupColored = group?.color !== undefined;
     const groupPill = group && group.size > 1 && (
       <span
-        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1 text-[10px] font-semibold leading-4 tabular-nums text-primary"
+        className={cn(
+          "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1 text-[10px] font-semibold leading-4 tabular-nums",
+          groupColored ? scheduleColorClass(group.color ?? 1) : "bg-primary/15 text-primary"
+        )}
+        style={groupColored ? { color: "hsl(var(--schedule-color))", backgroundColor: "hsl(var(--schedule-color) / 0.15)" } : undefined}
+        data-group-color={group.color}
         role="img"
         aria-label={t("schedule.group", { index: group.index, total: group.size })}
       >
@@ -225,10 +233,8 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               ? "schedule-card-fill border-transparent bg-surface"
               : TONE_CARD[tone],
           event.flexible && !isGhost && "border-dashed",
-          // Un grupo se rodea con un borde discontinuo de la marca; donde se pega a otra de su grupo pierde
-          // ese lado del borde y el radio, y entre todas dibujan un solo contorno alrededor de la visita.
-          // El color del borde lo pone schedule.css: el papel y el pastel lo vuelven transparente.
-          group && !isGhost && "border-dashed",
+          // Un grupo pegado en la misma columna pierde ese lado del borde y el radio. El borde
+          // discontinuo de su color solo sale al resaltar el grupo (`highlight`, más abajo).
           group?.joinTop && "rounded-t-none border-t-0",
           group?.joinBottom && "rounded-b-none border-b-0",
           isGhost && "z-raised border-dashed border-primary/70 bg-primary/5 opacity-85",
@@ -251,6 +257,15 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         )}
 
         {group?.joinTop && <span aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-0 border-t border-foreground/10" />}
+
+        {group?.highlight && !isGhost && (
+          <span
+            aria-hidden="true"
+            data-group-highlight
+            className={cn("pointer-events-none absolute inset-0 rounded-[inherit] border-2 border-dashed", groupColored && scheduleColorClass(group.color ?? 1))}
+            style={{ borderColor: groupColored ? "hsl(var(--schedule-color))" : "hsl(var(--primary))" }}
+          />
+        )}
 
         {onOpen && (
           <button
@@ -354,8 +369,11 @@ function SegmentLines({ segments, heightPx, hasFooter }: { segments: readonly No
         const isLast = index === segments.length - 1;
         const fits = segmentPx >= (isLast && hasFooter ? SEGMENT_WITH_FOOTER_FROM_PX : SEGMENT_LABEL_FROM_PX);
         const label = fits && (
-          <span data-card-ink data-segment-label className="block truncate text-xs text-text-secondary">
-            {segment.label}
+          <span data-segment-label className="flex min-w-0 items-center gap-1.5">
+            {segment.color !== undefined && <ScheduleColorDot color={segment.color} className="size-2" />}
+            <span data-card-ink className="truncate text-xs text-text-secondary">
+              {segment.label}
+            </span>
           </span>
         );
         // El primer tramo sigue el flujo bajo el nombre; los demás se cuelgan de su línea.

@@ -10,13 +10,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Text } from "@/components/typography";
 import { formatClock, formatClockRange, ScheduleColorDot } from "@/components/scheduling";
 import { ClientTypeBadge, DetailRow, PersonAvatar } from "../calendarShared";
-import { appointmentEnd, appointmentRange, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, serviceColor, serviceSlots, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
+import { appointmentEnd, appointmentRange, durationLabel, findBarber, findClient, isActive, isUnpaid, lateMinutes, serviceColor, serviceSlots, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
 import { appointmentPlaybook, type AppointmentActionId } from "../appointmentPlaybook";
 import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
 import { AppointmentEditForm } from "./AppointmentEditForm";
 import { ACTION_ICON, ACTION_LABEL } from "../appointmentActions";
 import { StageHeadline } from "./AppointmentPanelParts";
-import { AppointmentVisitSection } from "./AppointmentVisitSection";
+import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "./AppointmentLinkSection";
 import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus } from "../types";
 
 /**
@@ -26,7 +26,7 @@ import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPat
  * pestaña de Clipper.
  */
 
-export interface AppointmentSummaryTabProps {
+export interface AppointmentSummaryTabProps extends AppointmentLinkProps {
   appointment: Appointment;
   ctx: ModelContext;
   onStatus: (appointment: Appointment, status: AppointmentStatus) => void;
@@ -37,12 +37,6 @@ export interface AppointmentSummaryTabProps {
   onCancel: (appointment: Appointment) => void;
   onNoShow: (appointment: Appointment) => void;
   onOpenClient: (clientId: string) => void;
-  /** Las citas de su visita (servicios añadidos), en orden; vacío o sin él si va suelta. */
-  visit?: readonly Appointment[];
-  /** Mirar otra cita de la misma visita. */
-  onSelectAppointment?: (appointment: Appointment) => void;
-  /** Separar la visita en citas independientes. */
-  onSeparateVisit?: (visit: readonly Appointment[]) => void;
 }
 
 const TRACK: readonly AppointmentStatus[] = ["scheduled", "arrived", "seated", "paid"];
@@ -51,7 +45,7 @@ const ACTION_TEST_ID: Partial<Record<AppointmentActionId, string>> = { checkIn: 
 /** Solo los dígitos de un teléfono, para los enlaces de llamada y WhatsApp. */
 const digits = (phone: string) => phone.replace(/[^\d+]/g, "");
 
-export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberReady, onPay, onPatch, onRebook, onCancel, onNoShow, onOpenClient, visit = [], onSelectAppointment, onSeparateVisit }: AppointmentSummaryTabProps) {
+export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberReady, onPay, onPatch, onRebook, onCancel, onNoShow, onOpenClient, linked = [], linkCandidates = [], onSelectAppointment, onUnlink, onLink, onShowLinked }: AppointmentSummaryTabProps) {
   const t = useAppT();
   // Lo de todos los días es ver la cita; cambiarla es la excepción y se pide.
   const [editing, setEditing] = React.useState(false);
@@ -154,9 +148,9 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
         </div>
       )}
 
-      {/* Una visita con servicios añadidos: todas sus citas, cuál se mira y el total. */}
-      {visit.length > 1 && onSelectAppointment && (
-        <AppointmentVisitSection visit={visit} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onSeparate={onSeparateVisit} />
+      {/* Citas enlazadas: todas las del grupo, cuál se mira, su total y desenlazar. */}
+      {linked.length > 1 && onSelectAppointment && (
+        <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />
       )}
 
       {/* La cita: las mismas cosas que dice su tarjeta, en filas. */}
@@ -236,6 +230,9 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
           </div>
         )}
       </section>
+
+      {/* Enlazarla con otra cita del día (otra persona del mismo agendamiento, una cita aparte…). */}
+      {onLink && isActive(appointment) && <LinkPicker current={appointment} candidates={linkCandidates} ctx={ctx} onLink={onLink} />}
 
       {appointment.notes && (
         <div className="rounded-lg bg-surface-subtle px-3 py-2">

@@ -57,6 +57,9 @@ export interface CalendarFiltersProps {
   /** Ver solo los huecos disponibles; solo en la rejilla del día. */
   freeOnly?: boolean;
   onFreeOnlyChange?: (next: boolean) => void;
+  /** Resaltar las citas enlazadas; solo en la rejilla del día. */
+  showLinked?: boolean;
+  onShowLinkedChange?: (next: boolean) => void;
 }
 
 const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
@@ -71,10 +74,11 @@ const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
 
 const toggle = <T,>(list: readonly T[], value: T): T[] => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
-export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange }: CalendarFiltersProps) {
+export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange }: CalendarFiltersProps) {
   const t = useAppT();
   const freeId = React.useId();
-  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0);
+  const linkedId = React.useId();
+  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0);
   const emit = (next: Partial<CalendarFilterSelection>) =>
     onChange({ focuses: [...focuses], serviceIds: [...serviceIds], clientTypes: [...clientTypes], ...next });
 
@@ -105,6 +109,20 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTy
               </Text>
             </label>
             <Switch id={freeId} checked={freeOnly} onCheckedChange={onFreeOnlyChange} data-testid="calendar-filter-free" />
+          </div>
+        )}
+
+        {onShowLinkedChange && (
+          <div className="flex items-start justify-between gap-3">
+            <label htmlFor={linkedId} className="min-w-0 space-y-0.5">
+              <Text as="span" variant="label" className="block">
+                {t("calendar.filters.linked")}
+              </Text>
+              <Text as="span" variant="caption" className="block">
+                {t("calendar.filters.linkedHint")}
+              </Text>
+            </label>
+            <Switch id={linkedId} checked={showLinked} onCheckedChange={onShowLinkedChange} data-testid="calendar-filter-linked" />
           </div>
         )}
 
@@ -156,6 +174,7 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTy
           <Button variant="ghost" size="sm" onClick={() => {
               onChange({ focuses: [], serviceIds: [], clientTypes: [] });
               if (freeOnly) onFreeOnlyChange?.(false);
+              if (showLinked) onShowLinkedChange?.(false);
             }}
             data-testid="calendar-filters-clear">
             {t("calendar.filters.clear")}

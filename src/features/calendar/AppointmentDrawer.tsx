@@ -11,6 +11,7 @@ import { appointmentStart, findClient, type ModelContext } from "./calendarModel
 import { appointmentInsights } from "./appointmentInsights";
 import type { CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import { AppointmentSummaryTab } from "./appointmentTabs/AppointmentSummaryTab";
+import type { AppointmentLinkProps } from "./appointmentTabs/AppointmentLinkSection";
 import { AppointmentClipperTab } from "./appointmentTabs/AppointmentClipperTab";
 import { AppointmentNotesTab } from "./appointmentTabs/AppointmentNotesTab";
 import { AppointmentClientTab } from "./appointmentTabs/AppointmentClientTab";
@@ -28,7 +29,7 @@ import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
  * - Notas, Cliente e Historial: el resto, por tema.
  */
 
-export interface AppointmentDrawerProps {
+export interface AppointmentDrawerProps extends AppointmentLinkProps {
   appointment: Appointment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,12 +44,6 @@ export interface AppointmentDrawerProps {
   onCancel: (appointment: Appointment) => void;
   onNoShow: (appointment: Appointment) => void;
   onOpenClient: (clientId: string) => void;
-  /** Las citas de su visita (servicios añadidos), en orden; vacío si va suelta. */
-  visit?: readonly Appointment[];
-  /** Mirar otra cita de la misma visita. */
-  onSelectAppointment?: (appointment: Appointment) => void;
-  /** Separar la visita en citas independientes. */
-  onSeparateVisit?: (visit: readonly Appointment[]) => void;
 }
 
 type Tab = "summary" | "clipper" | "notes" | "client" | "history";
@@ -56,12 +51,12 @@ type Tab = "summary" | "clipper" | "notes" | "client" | "history";
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export function AppointmentDrawer(props: AppointmentDrawerProps) {
-  // Pasar a otra cita de la misma visita no remonta el panel: sigue en la misma pestaña.
-  const visitKey = props.visit && props.visit.length > 1 ? `visit-${props.visit[0].id}` : (props.appointment?.id ?? "");
-  return <AppointmentPanel key={`${useOpenKey(props.open)}-${visitKey}`} {...props} />;
+  // Pasar a otra cita del mismo grupo no remonta el panel: sigue en la misma pestaña.
+  const panelKey = props.linked && props.linked.length > 1 && props.appointment?.linkId ? `link-${props.appointment.linkId}` : (props.appointment?.id ?? "");
+  return <AppointmentPanel key={`${useOpenKey(props.open)}-${panelKey}`} {...props} />;
 }
 
-function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, visit, onSelectAppointment, onSeparateVisit, ...actions }: AppointmentDrawerProps) {
+function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, linked, linkCandidates, onSelectAppointment, onUnlink, onLink, onShowLinked, ...actions }: AppointmentDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const [tab, setTab] = React.useState<Tab>("summary");
@@ -98,7 +93,7 @@ function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, 
             />
           </div>
 
-          {tab === "summary" && <AppointmentSummaryTab key={appointment.id} appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} onOpenClient={onOpenClient} visit={visit} onSelectAppointment={onSelectAppointment} onSeparateVisit={onSeparateVisit} {...actions} />}
+          {tab === "summary" && <AppointmentSummaryTab key={appointment.id} appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} onOpenClient={onOpenClient} linked={linked} linkCandidates={linkCandidates} onSelectAppointment={onSelectAppointment} onUnlink={onUnlink} onLink={onLink} onShowLinked={onShowLinked} {...actions} />}
           {tab === "clipper" && <AppointmentClipperTab appointment={appointment} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />}
           {tab === "notes" && <AppointmentNotesTab client={client ?? null} />}
           {tab === "client" && <AppointmentClientTab client={client ?? null} appointment={appointment} ctx={ctx} onOpenClient={onOpenClient} />}

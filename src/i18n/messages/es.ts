@@ -272,7 +272,7 @@ export const es = {
   "schedule.dragging": "Moviendo: {time}",
   "schedule.resourceMenu": "Opciones de {name}",
   "schedule.open": "Abrir {title}",
-  "schedule.group": "Cita {index} de {total} del mismo cliente",
+  "schedule.group": "Cita enlazada {index} de {total}",
   "schedule.groupShort": "{index}/{total}",
   "schedule.acceptProposal": "Aceptar la propuesta: {title}",
   "schedule.lockedPaid": "Cobrada: no se mueve",

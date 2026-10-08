@@ -460,42 +460,38 @@ export function cardMarkers(appointment: Appointment, client: Client | undefined
 export const isFlexible = (appointment: Appointment): boolean => appointment.status === "scheduled" && appointment.requestedBarberId === null && appointment.source !== "online";
 
 /**
- * Las citas del día que son una misma visita con servicios añadidos: del mismo
- * cliente, con el mismo barbero y pegadas (una empieza justo cuando acaba la
- * otra). Devuelve, por id de cita, su sitio en el grupo; las sueltas no
- * aparecen. Dos citas del mismo cliente con otro barbero, o con un hueco entre
- * ellas, son citas normales y no se agrupan. Los clientes de paso (sin ficha)
- * tampoco: dos de paso no son la misma persona. Una cita separada a mano
- * (`standalone`) va siempre suelta.
+ * Las citas enlazadas del día: las que comparten `linkId` —salieron de un
+ * mismo agendamiento o se enlazaron a mano—, sean del cliente o del barbero
+ * que sean. Devuelve, por id de cita, su sitio en el grupo y un color por
+ * grupo (en el orden en que empiezan), para distinguir un grupo de otro; las
+ * sueltas no aparecen. Las anuladas no cuentan.
  */
-export function appointmentGroups(appointments: readonly Appointment[], catalog: CalendarCatalog): Map<string, ScheduleEventGroup> {
-  const byVisit = new Map<string, Appointment[]>();
+export function appointmentGroups(appointments: readonly Appointment[]): Map<string, ScheduleEventGroup> {
+  const byLink = new Map<string, Appointment[]>();
   for (const item of appointments) {
-    if (!isActive(item) || item.barberId === null || item.standalone) continue;
-    const client = findClient(catalog, item.clientId);
-    if (!client || client.type === "walkin") continue;
-    const key = `${item.clientId}|${item.barberId}`;
-    byVisit.set(key, [...(byVisit.get(key) ?? []), item]);
+    if (!isActive(item) || !item.linkId) continue;
+    byLink.set(item.linkId, [...(byLink.get(item.linkId) ?? []), item]);
   }
-  const groups = new Map<string, ScheduleEventGroup>();
-  for (const items of byVisit.values()) {
-    if (items.length < 2) continue;
-    const sorted = [...items].sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime());
-    const chains = sorted.reduce<Appointment[][]>((acc, item) => {
-      const last = acc.at(-1)?.at(-1);
-      return last && appointmentEnd(last).getTime() === appointmentStart(item).getTime()
-        ? [...acc.slice(0, -1), [...acc[acc.length - 1], item]]
-        : [...acc, [item]];
-    }, []);
-    for (const chain of chains) {
-      if (chain.length < 2) continue;
-      const id = `${chain[0].clientId}:${chain[0].id}`;
-      // Cada cita conserva su hueco en la agenda (sin pegarse a la vecina): son citas aparte que
-      // el borde de grupo y la píldora «1/2» atan al mismo cliente.
-      chain.forEach((item, position) => groups.set(item.id, { id, index: position + 1, size: chain.length }));
-    }
-  }
-  return groups;
+  const byStart = (a: Appointment, b: Appointment) => appointmentStart(a).getTime() - appointmentStart(b).getTime() || a.barberId.localeCompare(b.barberId);
+  const linked = [...byLink.entries()].filter(([, items]) => items.length > 1).map(([linkId, items]) => [linkId, [...items].sort(byStart)] as const);
+  const ordered = [...linked].sort(([, a], [, b]) => byStart(a[0], b[0]));
+  return new Map(
+    ordered.flatMap(([linkId, items], groupIndex) => items.map((item, position) => [item.id, { id: linkId, index: position + 1, size: items.length, color: groupIndex + 1 }] as const))
+  );
+}
+
+/**
+ * Las citas enlazadas que siguen a otra del mismo cliente con el mismo
+ * barbero, sin hueco: la segunda parte de una visita. No piden «Ingresar»
+ * (el cliente se ingresa una vez, en la primera).
+ */
+export function visitContinuations(appointments: readonly Appointment[]): Set<string> {
+  const active = appointments.filter((item) => isActive(item) && item.linkId);
+  return new Set(
+    active
+      .filter((item) => active.some((other) => other.id !== item.id && other.linkId === item.linkId && other.clientId === item.clientId && other.barberId === item.barberId && appointmentEnd(other).getTime() === appointmentStart(item).getTime()))
+      .map((item) => item.id)
+  );
 }
 
 /**
@@ -517,15 +513,22 @@ export function serviceSlots(catalog: CalendarCatalog, appointment: Appointment)
   });
 }
 
-/** Las citas de la visita a la que pertenece una, en orden; vacío si va suelta. */
-export function visitOf(appointments: readonly Appointment[], catalog: CalendarCatalog, appointment: Appointment): Appointment[] {
-  const groups = appointmentGroups(appointments, catalog);
-  const groupId = groups.get(appointment.id)?.id;
-  if (!groupId) return [];
-  return appointments.filter((item) => groups.get(item.id)?.id === groupId).sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime());
+/** Las citas enlazadas con una, ella incluida, en orden; vacío si va suelta. */
+export function linkedOf(appointments: readonly Appointment[], appointment: Appointment): Appointment[] {
+  const groups = appointmentGroups(appointments);
+  const linkId = groups.get(appointment.id)?.id;
+  if (!linkId) return [];
+  return appointments.filter((item) => groups.get(item.id)?.id === linkId).sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime() || a.barberId.localeCompare(b.barberId));
 }
 
-export function toEvent(appointment: Appointment, ctx: ModelContext, options: { showBarber?: boolean; faded?: boolean; group?: ScheduleEventGroup } = {}): ScheduleEvent {
+/** Un id de enlace nuevo, a partir de la cita que lo empieza. */
+export const newLinkId = (appointment: Pick<Appointment, "id">): string => `lnk_${appointment.id}`;
+
+export function toEvent(
+  appointment: Appointment,
+  ctx: ModelContext,
+  options: { showBarber?: boolean; faded?: boolean; group?: ScheduleEventGroup; /** Segunda parte de una visita: no pide «Ingresar». */ continuesVisit?: boolean } = {}
+): ScheduleEvent {
   const client = findClient(ctx.catalog, appointment.clientId);
   const barber = findBarber(ctx.catalog, appointment.barberId);
   const services = servicesOf(ctx.catalog, appointment);
@@ -541,7 +544,7 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
   ].filter(Boolean);
   const fillTone: ScheduleTone = stage ? STAGE_FILL[stage] : ctx.colorBy === "client" ? clientTypeTone(client?.type ?? "walkin") : "neutral";
   // Una cita con varios servicios se parte por dentro en sus tramos; el total va en la fila de abajo.
-  const segments = card.service && services.length > 1 ? serviceSlots(ctx.catalog, appointment).map(({ service, minutes }, index) => ({ id: `${service.id}-${index}`, label: `${service.name} · ${durationLabel(minutes)}`, minutes })) : undefined;
+  const segments = card.service && services.length > 1 ? serviceSlots(ctx.catalog, appointment).map(({ service, minutes }, index) => ({ id: `${service.id}-${index}`, label: `${service.name} · ${durationLabel(minutes)}`, minutes, color: serviceColor(ctx.catalog, service.id) })) : undefined;
   return {
     id: appointment.id,
     resourceId: appointment.barberId,
@@ -562,8 +565,8 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     fill: ctx.colorBy === "service" ? "category" : ctx.colorBy === "status" || ctx.colorBy === "client" ? "tone" : "neutral",
     badge: card.clientType && client && client.type !== "walkin" ? { label: ctx.t(CLIENT_TYPE_KEYS[client.type]), tone: clientTypeTone(client.type) } : undefined,
     status: card.status ? stageBadge(appointment, ctx) : undefined,
-    // En una visita de varios servicios el siguiente paso va en la primera: el cliente ingresa una vez.
-    action: card.nextStep && step && ctx.onNextStep && !(options.group && options.group.index > 1 && appointment.status === "scheduled") ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
+    // En una visita de dos citas seguidas el cliente se ingresa una vez, en la primera.
+    action: card.nextStep && step && ctx.onNextStep && !(options.continuesVisit && appointment.status === "scheduled") ? { label: ctx.t(step.labelKey), onClick: () => ctx.onNextStep?.(appointment) } : undefined,
     warning: isActive(appointment) ? appointmentWarning(appointment, ctx) : undefined,
     flexible: isFlexible(appointment),
     faded: options.faded,
@@ -616,8 +619,8 @@ export function historyLabel(event: string, ctx: ModelContext): string {
     barber: "calendar.history.barber",
     duration: "calendar.history.duration",
     paid: "calendar.history.paidWith",
-    split: "calendar.history.split",
-    joined: "calendar.history.joined",
+    linked: "calendar.history.linked",
+    unlinked: "calendar.history.unlinked",
   };
   const key = map[kind] ?? "calendar.history.created";
   return ctx.t(key, { value: kind === "moved" ? value.replace("T", " ") : value });

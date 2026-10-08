@@ -17,7 +17,7 @@ import {
 } from "@/components/scheduling";
 import { minutesOfDay, parseClock } from "@/components/scheduling";
 import type { RowAction } from "@/components/data-display";
-import { appointmentGroups, appointmentStart, blockToEvent, isActive, matchesFilters, toEvent, toResource, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
+import { appointmentGroups, visitContinuations, appointmentStart, blockToEvent, isActive, matchesFilters, toEvent, toResource, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
 import type { Appointment, Barber, CalendarDay, TeamFilter, TimeBlock } from "./types";
 
 /**
@@ -48,6 +48,8 @@ export interface CalendarDayViewProps {
   extraEvents?: readonly ScheduleEvent[];
   /** Citas que una propuesta movería: se apagan mientras se decide. */
   fadedIds?: ReadonlySet<string>;
+  /** Resaltar las citas enlazadas: cada grupo con un borde discontinuo de su color. */
+  highlightLinks?: boolean;
   /** Avisos bajo el nombre de un barbero, por id («Hueco 15:00 · 2 en espera»). */
   alerts?: Readonly<Record<string, ScheduleResourceAlert>>;
   validateDrop?: ScheduleDropValidator;
@@ -93,6 +95,7 @@ export function CalendarDayView({
   slotHeight,
   extraEvents = [],
   fadedIds,
+  highlightLinks = false,
   alerts,
   validateDrop,
   onDropRejected,
@@ -121,15 +124,23 @@ export function CalendarDayView({
     () => barbers.map((barber) => ({ ...toResource(barber, date, day.appointments, ctx, day.blocks), alert: alerts?.[barber.id] })),
     [alerts, barbers, date, day.appointments, day.blocks, ctx]
   );
-  // Las citas de un mismo cliente seguidas (varios servicios, o su familia) se pintan como un bloque.
-  const groups = React.useMemo(() => appointmentGroups(day.appointments, ctx.catalog), [day.appointments, ctx.catalog]);
+  // Las citas enlazadas llevan el icono de su grupo (y, resaltadas, su borde); cada una en su hueco.
+  const groups = React.useMemo(() => appointmentGroups(day.appointments), [day.appointments]);
+  const continuations = React.useMemo(() => visitContinuations(day.appointments), [day.appointments]);
   const events = React.useMemo<ScheduleEvent[]>(
     () => [
-      ...day.appointments.filter(isActive).map((appointment) => toEvent(appointment, ctx, { faded: !matchesFilters(appointment, filters, ctx.now, ctx.catalog) || fadedIds?.has(appointment.id), group: groups.get(appointment.id) })),
+      ...day.appointments.filter(isActive).map((appointment) => {
+        const group = groups.get(appointment.id);
+        return toEvent(appointment, ctx, {
+          faded: !matchesFilters(appointment, filters, ctx.now, ctx.catalog) || fadedIds?.has(appointment.id),
+          group: group && { ...group, highlight: highlightLinks },
+          continuesVisit: continuations.has(appointment.id),
+        });
+      }),
       ...day.blocks.map((block) => blockToEvent(block, date, ctx)),
       ...extraEvents,
     ],
-    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents, groups]
+    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents, groups, continuations, highlightLinks]
   );
 
   // La rejilla enseña la jornada real: de una hora antes de que abra el

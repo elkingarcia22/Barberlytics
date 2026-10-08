@@ -54,19 +54,20 @@ export const SEGMENTED_EVENTS: readonly ScheduleEvent[] = [
     title: "Mariana Rodríguez",
     tone: "primary",
     segments: [
-      { id: "corte", label: "Corte clásico · 30 min", minutes: 30 },
-      { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30 },
+      { id: "corte", label: "Corte clásico · 30 min", minutes: 30, color: 1 },
+      { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30, color: 2 },
     ],
     meta: "US$ 65",
     action: { label: "Ingresar", onClick: noop },
   },
-  { id: "s2", resourceId: "nicolas", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Fade · US$ 45", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 2 } },
-  { id: "s3", resourceId: "nicolas", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 2 } },
+  { id: "s2", resourceId: "nicolas", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Fade · US$ 45", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 2, color: 3 } },
+  { id: "s3", resourceId: "nicolas", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 2, color: 3 } },
 ];
 
 export const GROUPED_EVENTS: readonly ScheduleEvent[] = [
-  { id: "g1", resourceId: "andres", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Corte clásico · US$ 35", tone: "primary", action: { label: "Ingresar", onClick: noop }, status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 4, joinBottom: true } },
-  { id: "g2", resourceId: "andres", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 4, joinTop: true, joinBottom: true } },
-  { id: "g3", resourceId: "andres", start: at(25, 11, 15), end: at(25, 11, 45), title: "Laura Rincón", subtitle: "Diseño de cejas · US$ 12", tone: "primary", group: { id: "laura", index: 3, size: 4, joinTop: true } },
-  { id: "g4", resourceId: "nicolas", start: at(25, 10, 30), end: at(25, 11, 15), title: "Sofía Rincón (hija)", subtitle: "Corte niña · US$ 25", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 4, size: 4 } },
+  { id: "g1", resourceId: "andres", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Corte clásico · US$ 35", tone: "primary", action: { label: "Ingresar", onClick: noop }, status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 3, color: 1, highlight: true } },
+  { id: "g2", resourceId: "andres", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 3, color: 1, highlight: true } },
+  { id: "g3", resourceId: "nicolas", start: at(25, 10, 30), end: at(25, 11, 15), title: "Sofía Rincón (hija)", subtitle: "Corte niña · US$ 25", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 3, size: 3, color: 1, highlight: true } },
+  { id: "g4", resourceId: "nicolas", start: at(25, 11, 30), end: at(25, 12), title: "Pedro Gil", subtitle: "Corte clásico · US$ 35", tone: "primary", group: { id: "pedro", index: 1, size: 2, color: 2, highlight: true } },
+  { id: "g5", resourceId: "andres", start: at(25, 11, 30), end: at(25, 12), title: "Pedro Gil", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "pedro", index: 2, size: 2, color: 2, highlight: true } },
 ];

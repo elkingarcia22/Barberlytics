@@ -37,4 +37,29 @@ describe("ScheduleEventCard con varios servicios", () => {
     expect(container.querySelector("[data-segment]")).toBeNull();
     expect(screen.getByText(BASE.subtitle as string)).toBeInTheDocument();
   });
+
+  test("cada servicio lleva su círculo de color y el nombre del cliente ninguno", () => {
+    const { container } = renderWithProviders(
+      <ScheduleEventCard
+        event={{ ...BASE, color: 1, segments: [{ id: "a", label: "Corte clásico · 30 min", minutes: 30, color: 1 }, { id: "b", label: "Arreglo de barba · 30 min", minutes: 30, color: 2 }] }}
+        timeLabel="10:00 – 11:00"
+        minutes={60}
+        heightPx={112}
+      />
+    );
+    expect(container.querySelectorAll("[data-segment-label] .rounded-full")).toHaveLength(2);
+    expect(screen.getByText("Mariana Rodríguez").previousElementSibling).toBeNull();
+  });
+});
+
+describe("ScheduleEventCard enlazada", () => {
+  const linked: ScheduleEvent = { ...BASE, group: { id: "L1", index: 1, size: 2, color: 3 } };
+
+  test("lleva el icono de enlace en el color del grupo y sin borde hasta que se resalta", () => {
+    const { container, rerender } = renderWithProviders(<ScheduleEventCard event={linked} timeLabel="10:00 – 11:00" minutes={60} heightPx={112} />);
+    expect(screen.getByRole("img", { name: "Cita enlazada 1 de 2" })).toHaveAttribute("data-group-color", "3");
+    expect(container.querySelector("[data-group-highlight]")).toBeNull();
+    rerender(<ScheduleEventCard event={{ ...linked, group: { ...linked.group!, highlight: true } }} timeLabel="10:00 – 11:00" minutes={60} heightPx={112} />);
+    expect(container.querySelector("[data-group-highlight]")).toHaveClass("border-dashed", "schedule-color-3");
+  });
 });

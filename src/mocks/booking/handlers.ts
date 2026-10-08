@@ -440,8 +440,11 @@ export const bookingHandlers = [
     const reservationId = `rsv_${Date.now().toString(36)}`;
     const paidShare = payment.paid === 0 ? 0 : payment.paid / Math.max(1, totals.total);
     const notes = text(input.notes) || null;
+    // Varias citas en un solo agendamiento quedan enlazadas en la agenda.
+    const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     const created: MockAppointment[] = plan.planned.map((item, index) => ({
       id: `apt_web_${Date.now().toString(36)}_${index}`,
+      linkId,
       branchId,
       clientId: client.id,
       barberId: item.barberId,

@@ -8,7 +8,7 @@ import { CheckoutDrawer } from "./CheckoutDrawer";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
-import { appointmentGroups, serviceSlots, visitOf, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
+import { appointmentGroups, linkedOf, serviceSlots, visitContinuations, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
 import { reflowPlan } from "./reflowModel";
 import { dayGaps, gapsSummary } from "./gapsModel";
@@ -85,23 +85,32 @@ const APPOINTMENT: Appointment = {
 const ctx: ModelContext = { t: (key) => key, intl: "es-CO", formatMoney: (value) => `$${value}`, catalog: CATALOG };
 
 describe("modelo del calendario", () => {
-  test("solo las citas pegadas del mismo cliente y barbero (servicios añadidos) forman un grupo", () => {
-    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00" };
-    const otherBarber = { ...APPOINTMENT, id: "a3", barberId: "b2", start: "2026-09-25T10:45:00" };
-    const later = { ...APPOINTMENT, id: "a4", start: "2026-09-25T15:00:00" };
-    const groups = appointmentGroups([APPOINTMENT, second, otherBarber, later], CATALOG);
-    // Cada una conserva su hueco: van atadas por el grupo, no pegadas en un solo bloque.
-    expect(groups.get("a1")).toEqual({ id: "c1:a1", index: 1, size: 2 });
-    expect(groups.get("a2")).toEqual({ id: "c1:a1", index: 2, size: 2 });
-    // La segunda no ofrece «Ingresar»: el cliente se ingresa una vez, en la primera.
-    const stepCtx = { ...ctx, onNextStep: () => {} };
-    expect(toEvent(APPOINTMENT, stepCtx, { group: groups.get("a1") }).action).toBeDefined();
-    expect(toEvent(second, stepCtx, { group: groups.get("a2") }).action).toBeUndefined();
-    expect(toEvent({ ...second, status: "seated" }, stepCtx, { group: groups.get("a2") }).action).toBeDefined();
-    // Con otro barbero a la misma hora, o con un hueco por medio, son citas normales.
-    expect(groups.has("a3")).toBe(false);
+  test("las citas enlazadas forman un grupo con su color, sea cual sea el barbero o la hora", () => {
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", linkId: "L1" };
+    const family = { ...APPOINTMENT, id: "a3", barberId: "b2", start: "2026-09-25T10:30:00", linkId: "L1" };
+    const other = [{ ...APPOINTMENT, id: "b1", start: "2026-09-25T14:00:00", linkId: "L2" }, { ...APPOINTMENT, id: "b2", start: "2026-09-25T15:00:00", linkId: "L2" }];
+    // Pegada a la anterior del mismo cliente, pero sin enlace: va suelta.
+    const neighbour = { ...APPOINTMENT, id: "a4", start: "2026-09-25T11:30:00" };
+    const groups = appointmentGroups([{ ...APPOINTMENT, linkId: "L1" }, second, family, neighbour, ...other]);
+    expect(groups.get("a1")).toEqual({ id: "L1", index: 1, size: 3, color: 1 });
+    expect(groups.get("a3")).toMatchObject({ id: "L1", index: 2 });
+    expect(groups.get("a2")).toMatchObject({ id: "L1", index: 3 });
+    // Cada grupo con su color: así se distinguen en la agenda.
+    expect(groups.get("b1")).toMatchObject({ id: "L2", color: 2 });
     expect(groups.has("a4")).toBe(false);
-    expect(toEvent(second, ctx, { group: groups.get("a2") }).group?.size).toBe(2);
+  });
+
+  test("la segunda parte de una visita enlazada no pide «Ingresar»; otra persona del grupo sí", () => {
+    const first = { ...APPOINTMENT, linkId: "L1" };
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", linkId: "L1" };
+    const family = { ...APPOINTMENT, id: "a3", clientId: "c2", barberId: "b2", start: "2026-09-25T10:30:00", linkId: "L1" };
+    const continuations = visitContinuations([first, second, family]);
+    expect([...continuations]).toEqual(["a2"]);
+    const stepCtx = { ...ctx, onNextStep: () => {} };
+    expect(toEvent(first, stepCtx, { continuesVisit: continuations.has("a1") }).action).toBeDefined();
+    expect(toEvent(second, stepCtx, { continuesVisit: continuations.has("a2") }).action).toBeUndefined();
+    expect(toEvent({ ...second, status: "seated" }, stepCtx, { continuesVisit: true }).action).toBeDefined();
+    expect(toEvent(family, stepCtx, { continuesVisit: continuations.has("a3") }).action).toBeDefined();
   });
 
   test("una cita con varios servicios se parte en tramos por dentro, sin ser un grupo", () => {
@@ -120,26 +129,18 @@ describe("modelo del calendario", () => {
     expect(event.group).toBeUndefined();
     // Con un solo servicio no hay tramos.
     expect(toEvent(APPOINTMENT, ctx).segments).toBeUndefined();
-    expect(appointmentGroups([combo], catalog).size).toBe(0);
+    expect(appointmentGroups([combo]).size).toBe(0);
+    // Cada tramo lleva el color de su servicio.
+    expect(event.segments?.every((segment) => segment.color !== undefined)).toBe(true);
   });
 
-  test("una cita separada a mano va suelta y la visita trae sus citas en orden", () => {
-    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00" };
-    const third = { ...APPOINTMENT, id: "a3", start: "2026-09-25T11:30:00" };
-    expect(visitOf([third, APPOINTMENT, second], CATALOG, second).map((item) => item.id)).toEqual(["a1", "a2", "a3"]);
-    // Separadas todas, ya no hay visita.
-    const split = [APPOINTMENT, second, third].map((item) => ({ ...item, standalone: true }));
-    expect(appointmentGroups(split, CATALOG).size).toBe(0);
-    expect(visitOf(split, CATALOG, split[0])).toEqual([]);
-    // Separada solo la del medio, las otras dos dejan de estar pegadas.
-    expect(appointmentGroups([APPOINTMENT, { ...second, standalone: true }, third], CATALOG).size).toBe(0);
-  });
-
-  test("los clientes de paso y las citas canceladas no se agrupan", () => {
-    const walkInCatalog: CalendarCatalog = { ...CATALOG, clients: [...CATALOG.clients, { ...CATALOG.clients[0], id: "w", type: "walkin" }] };
-    const walkIn = { ...APPOINTMENT, clientId: "w" };
-    expect(appointmentGroups([walkIn, { ...walkIn, id: "a2", start: "2026-09-25T11:00:00" }], walkInCatalog).size).toBe(0);
-    expect(appointmentGroups([APPOINTMENT, { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "cancelled" }], CATALOG).size).toBe(0);
+  test("linkedOf trae el grupo en orden; desenlazada o anulada, la cita va suelta", () => {
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", linkId: "L1" };
+    const third = { ...APPOINTMENT, id: "a3", start: "2026-09-25T11:30:00", linkId: "L1" };
+    const first = { ...APPOINTMENT, linkId: "L1" };
+    expect(linkedOf([third, first, second], second).map((item) => item.id)).toEqual(["a1", "a2", "a3"]);
+    expect(linkedOf([first, { ...second, linkId: null }], first)).toEqual([]);
+    expect(appointmentGroups([first, { ...second, status: "cancelled" }]).size).toBe(0);
   });
 
   test("el filtro de equipo deja a los que trabajan, a todos o a uno", () => {

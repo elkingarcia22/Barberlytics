@@ -9,9 +9,11 @@ import type { ScheduleDrop, ScheduleDropValidator, ScheduleEvent, ScheduleResour
 import { RowContextMenu, type RowAction } from "@/components/data-display";
 import { ScheduleEventCard } from "./ScheduleEventCard";
 import { useScheduleDrag, type DragPreview } from "./useScheduleDrag";
+import { ColumnResizeHandle } from "./ColumnResizeHandle";
 
 import {
   atMinutes,
+  columnTrack,
   earliestWorkingMinute,
   eventMinutes,
   eventsForResource,
@@ -22,6 +24,7 @@ import {
   layoutEvents,
   minutesOfDay,
   nowPercent,
+  SCHEDULE_COLUMN_DEFAULT,
   SLOT_HEIGHT_PX,
   slotMinutes,
 } from "./scheduleUtils";
@@ -55,6 +58,11 @@ const gapBottom = (event: ScheduleEvent, dragging: unknown): number => (event.gr
  * arrastra enseña el motivo («Se pisa con Marcela») y al soltar no mueve nada,
  * avisa por `onDropRejected`. El componente no guarda nada: avisa por
  * `onEventMove` y `onEventResize` y quien lo monta decide si acepta el cambio.
+ *
+ * Con `onColumnResize` cada columna se ensancha o se estrecha desde el borde
+ * derecho de su cabecera, como en una tabla, y con doble clic vuelve a su
+ * ancho de siempre. Tampoco aquí se guarda nada: el ancho elegido llega en
+ * `columnWidths` y la rejilla solo pinta en vivo el arrastre en curso.
  */
 
 export interface ResourceDayGridProps {
@@ -85,6 +93,10 @@ export interface ResourceDayGridProps {
    * de lo que ya ofrece la tarjeta al abrirla; sin acciones, el clic derecho es el del navegador.
    */
   eventActions?: (event: ScheduleEvent) => readonly RowAction[];
+  /** El ancho de cada columna que se ajustó, en píxeles, por id de recurso. Las demás se reparten el sitio. */
+  columnWidths?: Readonly<Record<string, number>>;
+  /** Se cambió el ancho de una columna; `null` es volver al de siempre. Sin él, las columnas no se ajustan. */
+  onColumnResize?: (resourceId: string, width: number | null) => void;
   /** Alto de la región con scroll. Por defecto, lo que queda de pantalla. */
   height?: string;
   /**
@@ -102,7 +114,6 @@ const DEFAULT_SLOT_MINUTES = 30;
 const DEFAULT_HEIGHT = "max(28rem, calc(100dvh - 17rem))";
 /** Ancho de la columna de horas y mínimo de cada columna de recurso. */
 const GUTTER = "4.5rem";
-const COLUMN_MIN = "11rem";
 /** El rayado de las horas en que el recurso no trabaja: se nota sin gritar, en claro y en oscuro. */
 const OFF_HOURS_PATTERN = "repeating-linear-gradient(135deg, hsl(var(--foreground) / 0.07) 0 1px, transparent 1px 8px)";
 /**
@@ -140,6 +151,8 @@ export function ResourceDayGrid({
   onDropRejected,
   resourceActions,
   eventActions,
+  columnWidths,
+  onColumnResize,
   height = DEFAULT_HEIGHT,
   fill = false,
   className,
@@ -189,20 +202,45 @@ export function ResourceDayGrid({
     if (node.firstElementChild) observer.observe(node.firstElementChild);
     return () => observer.disconnect();
   }, [measureEdges, resources.length]);
-  /** Avanza o retrocede por columnas enteras, dejando una a la vista como referencia. */
+  /**
+   * Avanza o retrocede por columnas enteras, dejando una a la vista como referencia. Mide cada
+   * columna en el momento: con anchos ajustados no todas miden lo mismo.
+   */
   const scrollColumns = (direction: 1 | -1) => {
     const node = scrollRef.current;
-    const column = bodyRef.current?.querySelector<HTMLElement>("[data-resource-id]");
-    if (!node || !column) return;
-    const width = column.getBoundingClientRect().width;
-    const gutter = bodyRef.current ? bodyRef.current.offsetLeft : 0;
-    const visible = Math.max(1, Math.floor((node.clientWidth - gutter) / width) - 1);
-    const aligned = Math.round(node.scrollLeft / width) * width;
+    const body = bodyRef.current;
+    if (!node || !body) return;
+    const cells = Array.from(body.querySelectorAll<HTMLElement>("[data-resource-id]")).map((cell) => ({ left: cell.offsetLeft, right: cell.offsetLeft + cell.offsetWidth }));
+    if (cells.length === 0) return;
+    // Lo visible del cuerpo: la columna de horas, pegada a la izquierda, tapa su propio ancho.
+    const viewLeft = node.scrollLeft;
+    const viewWidth = node.clientWidth - body.offsetLeft;
+    const viewRight = viewLeft + viewWidth;
+    const fully = cells.map((cell, index) => ({ ...cell, index })).filter((cell) => cell.left >= viewLeft - EDGE_TOLERANCE_PX && cell.right <= viewRight + EDGE_TOLERANCE_PX);
+    let target: number;
+    if (direction === 1) {
+      const last = fully.at(-1)?.index ?? cells.findIndex((cell) => cell.right > viewLeft);
+      const anchor = cells[last].left > viewLeft + EDGE_TOLERANCE_PX ? last : Math.min(last + 1, cells.length - 1);
+      target = cells[anchor].left;
+    } else {
+      const first = fully[0]?.index ?? cells.findIndex((cell) => cell.right > viewLeft);
+      const aligned = cells[first].right - viewWidth;
+      target = aligned < viewLeft - EDGE_TOLERANCE_PX ? aligned : cells[Math.max(0, first - 1)].left;
+    }
     const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    node.scrollTo({ left: aligned + direction * visible * width, behavior: reduced ? "auto" : "smooth" });
+    node.scrollTo({ left: Math.max(0, target), behavior: reduced ? "auto" : "smooth" });
   };
 
-  const columns = `${GUTTER} repeat(${Math.max(resources.length, 1)}, minmax(${COLUMN_MIN}, 1fr))`;
+  // El arrastre de un asa se pinta en vivo sin pasar por quien monta la rejilla: solo el final se guarda.
+  const [resizing, setResizing] = React.useState<{ id: string; width: number } | null>(null);
+  const widthOf = (id: string): number | undefined => (resizing?.id === id ? resizing.width : columnWidths?.[id]);
+  const tracks = resources.length > 0 ? resources.map((resource) => columnTrack(widthOf(resource.id))).join(" ") : columnTrack(undefined);
+  const contentWidth = resources.map((resource) => {
+    const width = widthOf(resource.id);
+    return width === undefined ? SCHEDULE_COLUMN_DEFAULT : columnTrack(width);
+  });
+  const columns = `${GUTTER} ${tracks}`;
+  const measureColumn = (id: string): number => bodyRef.current?.querySelector<HTMLElement>(`[data-resource-id="${CSS.escape(id)}"]`)?.getBoundingClientRect().width ?? 0;
   const marker = nowPercent(nowDate, date, dayStart, dayEnd);
 
   const openEvent = (event: ScheduleEvent) => {
@@ -224,11 +262,26 @@ export function ResourceDayGrid({
         </Button>
       )}
       <div ref={scrollRef} onScroll={measureEdges} className={cn("relative overflow-auto overscroll-contain", fill && "min-h-0 flex-1 basis-0")} style={fill ? undefined : { maxHeight: height }}>
-        <div className="grid" style={{ gridTemplateColumns: columns, width: `max(100%, calc(${GUTTER} + ${resources.length} * ${COLUMN_MIN}))` }}>
+        <div className={cn("grid", resizing && "cursor-col-resize select-none")} style={{ gridTemplateColumns: columns, width: `max(100%, calc(${[GUTTER, ...contentWidth].join(" + ")}))` }}>
           {/* Cabecera pegajosa: un barbero por columna. La esquina va al final
               del DOM para pintarse encima cuando las dos pegajosas se cruzan. */}
           {resources.map((resource) => (
-            <ResourceHeader key={resource.id} resource={resource} actions={resourceActions?.(resource)} />
+            <ResourceHeader
+              key={resource.id}
+              resource={resource}
+              actions={resourceActions?.(resource)}
+              resizeHandle={
+                onColumnResize && (
+                  <ColumnResizeHandle
+                    label={resource.name}
+                    width={widthOf(resource.id)}
+                    measure={() => measureColumn(resource.id)}
+                    onPreview={(width) => setResizing(width === null ? null : { id: resource.id, width })}
+                    onCommit={(width) => onColumnResize(resource.id, width)}
+                  />
+                )
+              }
+            />
           ))}
           <div className="sticky left-0 top-0 z-sticky border-b border-r border-border bg-surface" style={{ gridColumn: 1, gridRow: 1 }} aria-hidden="true" />
 
@@ -252,7 +305,7 @@ export function ResourceDayGrid({
           </div>
 
           {/* Las columnas: comparten cuerpo para que la línea de «ahora» las cruce. */}
-          <div ref={bodyRef} className="relative grid" style={{ gridColumn: "2 / -1", gridRow: 2, gridTemplateColumns: `repeat(${Math.max(resources.length, 1)}, minmax(${COLUMN_MIN}, 1fr))` }}>
+          <div ref={bodyRef} className="relative grid" style={{ gridColumn: "2 / -1", gridRow: 2, gridTemplateColumns: tracks }}>
             {resources.map((resource) => (
               <ResourceColumn
                 key={resource.id}
@@ -289,7 +342,7 @@ export function ResourceDayGrid({
 
 /* ---------------------------------------------------------------- header */
 
-function ResourceHeader({ resource, actions }: { resource: ScheduleResource; actions?: readonly ScheduleResourceAction[] }) {
+function ResourceHeader({ resource, actions, resizeHandle }: { resource: ScheduleResource; actions?: readonly ScheduleResourceAction[]; resizeHandle?: React.ReactNode }) {
   const t = useT();
   const identity = (
     <>
@@ -363,6 +416,7 @@ function ResourceHeader({ resource, actions }: { resource: ScheduleResource; act
             {alert.label}
           </span>
         ))}
+      {resizeHandle}
     </div>
   );
 }

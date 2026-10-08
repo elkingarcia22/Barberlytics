@@ -105,3 +105,25 @@ html:not(.dark) .schedule-card-fill:not(.shadow-lg):hover {
 .schedule-vivid .schedule-pastel [data-card-ink] {
   color: color-mix(in srgb, var(--schedule-fill, hsl(var(--schedule-color))) 62%, hsl(var(--foreground)));
 }
+
+/*
+ * Una columna estrecha (el ancho se ajusta desde la cabecera) no deja sitio para todo: la tarjeta
+ * mide su propio ancho y suelta primero los iconos de detalle y después la etiqueta del cliente, así
+ * el nombre y el estado terminan en «…» en vez de cortarse contra el borde. Lo que se oculta sigue
+ * en el tooltip de la tarjeta.
+ */
+.schedule-card {
+  container-type: inline-size;
+}
+
+@container (max-width: 140px) {
+  .schedule-card [data-card-markers] {
+    display: none;
+  }
+}
+
+@container (max-width: 104px) {
+  .schedule-card [data-card-badge] {
+    display: none;
+  }
+}

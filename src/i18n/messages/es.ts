@@ -276,6 +276,8 @@ export const es = {
   "schedule.groupShort": "{index}/{total}",
   "schedule.acceptProposal": "Aceptar la propuesta: {title}",
   "schedule.lockedPaid": "Cobrada: no se mueve",
+  "schedule.columnResize": "Ancho de la columna de {name}",
+  "schedule.columnResizeHint": "Arrastra para cambiar el ancho · doble clic para restablecerlo",
   "schedule.scrollNext": "Ver más barberos",
   "schedule.scrollPrevious": "Ver los barberos anteriores",
   "schedule.warning": "Algo que revisar",

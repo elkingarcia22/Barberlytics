@@ -3,6 +3,7 @@ import {
   Banknote,
   CircleDot,
   Clock,
+  Columns3,
   Crown,
   Droplet,
   Globe,
@@ -53,6 +54,9 @@ export interface CalendarViewOptionsProps {
   /** La densidad solo aplica a la rejilla del día; sin ella, la sección no sale. */
   density?: ScheduleDensity;
   onDensityChange?: (density: ScheduleDensity) => void;
+  /** Si alguna columna tiene un ancho ajustado a mano. Sin él (fuera de la vista Día), la fila no sale. */
+  hasColumnWidths?: boolean;
+  onColumnWidthsReset?: () => void;
 }
 
 const COLOR_BY_LABEL: Record<CalendarColorBy, AppMessageKey> = {
@@ -102,7 +106,7 @@ const SIGNAL_ROWS: readonly PrefRow[] = [
   { key: "repeat", icon: Repeat, label: "calendar.view.signal.repeat" },
 ];
 
-export function CalendarViewOptions({ colorBy, onColorByChange, services, clientTypes, card, onCardChange, onCardReset, density, onDensityChange }: CalendarViewOptionsProps) {
+export function CalendarViewOptions({ colorBy, onColorByChange, services, clientTypes, card, onCardChange, onCardReset, density, onDensityChange, hasColumnWidths, onColumnWidthsReset }: CalendarViewOptionsProps) {
   const t = useAppT();
   return (
     <Popover>
@@ -160,7 +164,7 @@ export function CalendarViewOptions({ colorBy, onColorByChange, services, client
         </SettingsGroup>
 
         {density && onDensityChange && (
-          <SettingsGroup title={t("calendar.view.group.grid")}>
+          <SettingsGroup title={t("calendar.view.group.grid")} footer={hasColumnWidths !== undefined ? t("calendar.view.columns.hint") : undefined}>
             <SettingsRow icon={Rows3} label={t("calendar.filters.density")} stacked>
               <SegmentedControl
                 size="sm"
@@ -171,6 +175,14 @@ export function CalendarViewOptions({ colorBy, onColorByChange, services, client
                 onChange={(value) => onDensityChange(value as ScheduleDensity)}
               />
             </SettingsRow>
+            {hasColumnWidths !== undefined && onColumnWidthsReset && (
+              <SettingsRow icon={Columns3} label={t("calendar.view.columns.label")}>
+                <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-text-secondary" disabled={!hasColumnWidths} onClick={onColumnWidthsReset} data-testid="calendar-columns-reset">
+                  <RotateCcw />
+                  {t("calendar.view.columns.reset")}
+                </Button>
+              </SettingsRow>
+            )}
           </SettingsGroup>
         )}
 

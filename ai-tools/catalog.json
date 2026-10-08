@@ -1,5 +1,5 @@
 {
-  "sourceHash": "61b81a2882a771e3",
+  "sourceHash": "21281d852c7e74d1",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -13701,6 +13701,18 @@
           "type": "(event, drop, reason) => void",
           "default": null,
           "description": "Se soltó donde `validateDrop` dijo que no."
+        },
+        {
+          "name": "columnWidths",
+          "type": "Record<string, number>",
+          "default": null,
+          "description": "El ancho en píxeles de cada columna que se ajustó, por id de recurso (entre `SCHEDULE_COLUMN_MIN_PX` y `SCHEDULE_COLUMN_MAX_PX`). Las que no salen miden 11rem y se reparten lo que sobra."
+        },
+        {
+          "name": "onColumnResize",
+          "type": "(resourceId, width: number | null) => void",
+          "default": null,
+          "description": "Con él, cada cabecera lleva un asa en su borde derecho, como en una tabla: se arrastra para ensanchar o estrechar la columna, se mueve con las flechas (Mayús, de 64 en 64) y con doble clic avisa `null`: volver al ancho de siempre. Durante el arrastre la rejilla pinta en vivo y solo avisa al soltar; guardar es de quien la monta. En una columna estrecha las tarjetas sueltan primero los iconos y luego la etiqueta, y el texto termina en «…»."
         },
         {
           "name": "resourceActions",

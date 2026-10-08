@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import {
   atMinutes,
+  clampColumnWidth,
+  columnTrack,
+  SCHEDULE_COLUMN_MAX_PX,
+  SCHEDULE_COLUMN_MIN_PX,
   earliestWorkingMinute,
   findConflicts,
   rangesOverlap,
@@ -90,5 +94,20 @@ describe("scheduleUtils", () => {
     const placed = layoutEvents([event("a", 600, 660), event("g", 600, 660, { ghost: true })], 360, 1440);
     expect(placed.every((item) => item.columns === 1)).toBe(true);
     expect(occupancyRate([event("a", 600, 660), event("g", 660, 720, { ghost: true })], [{ start: "09:00", end: "17:00" }])).toBeCloseTo(60 / 480);
+  });
+});
+
+describe("column widths", () => {
+  test("clamps a width between the limits and rounds it to the pixel", () => {
+    expect(clampColumnWidth(10)).toBe(SCHEDULE_COLUMN_MIN_PX);
+    expect(clampColumnWidth(5000)).toBe(SCHEDULE_COLUMN_MAX_PX);
+    expect(clampColumnWidth(240.6)).toBe(241);
+    expect(clampColumnWidth(Number.NaN)).toBe(SCHEDULE_COLUMN_MIN_PX);
+  });
+
+  test("a column without a width shares the leftover space; one with a width is fixed", () => {
+    expect(columnTrack(undefined)).toBe("minmax(11rem, 1fr)");
+    expect(columnTrack(300)).toBe("300px");
+    expect(columnTrack(20)).toBe(`${SCHEDULE_COLUMN_MIN_PX}px`);
   });
 });

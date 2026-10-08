@@ -46,6 +46,9 @@ export {
   SLOT_HEIGHT_PX,
   SCHEDULE_DENSITIES,
   SCHEDULE_COLOR_COUNT,
+  SCHEDULE_COLUMN_MIN_PX,
+  SCHEDULE_COLUMN_MAX_PX,
+  clampColumnWidth,
   scheduleColorClass,
   type ScheduleDensity,
 } from "./scheduleUtils";

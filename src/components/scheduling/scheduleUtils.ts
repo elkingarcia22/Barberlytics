@@ -18,6 +18,22 @@ export const SLOT_HEIGHT_PX = 56;
 export const SCHEDULE_DENSITIES = { compact: 40, normal: SLOT_HEIGHT_PX, wide: 72 } as const;
 export type ScheduleDensity = keyof typeof SCHEDULE_DENSITIES;
 
+/**
+ * El ancho de una columna de recurso cuando quien mira la ajusta, en píxeles.
+ * Sin ajuste cada columna mide `SCHEDULE_COLUMN_DEFAULT` y se reparte lo que
+ * sobre; con ajuste, lo que diga, entre estos dos topes.
+ */
+export const SCHEDULE_COLUMN_MIN_PX = 96;
+export const SCHEDULE_COLUMN_MAX_PX = 640;
+export const SCHEDULE_COLUMN_DEFAULT = "11rem";
+
+/** Un ancho de columna dentro de los topes, redondeado al píxel. */
+export const clampColumnWidth = (width: number): number =>
+  Number.isFinite(width) ? Math.round(Math.min(SCHEDULE_COLUMN_MAX_PX, Math.max(SCHEDULE_COLUMN_MIN_PX, width))) : SCHEDULE_COLUMN_MIN_PX;
+
+/** La pista de la rejilla de una columna: fija si se ajustó, flexible si no. */
+export const columnTrack = (width: number | undefined): string => (width === undefined ? `minmax(${SCHEDULE_COLUMN_DEFAULT}, 1fr)` : `${clampColumnWidth(width)}px`);
+
 /** Cuántos colores tiene la paleta categórica de la agenda (`schedule.css`). */
 export const SCHEDULE_COLOR_COUNT = 12;
 

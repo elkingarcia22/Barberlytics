@@ -26,6 +26,8 @@ import { ResourceDayGrid } from "@/components/scheduling"
 | `eventActions` | `(event) => RowAction[]` |  | El clic derecho sobre una tarjeta: sus acciones (abrir, el siguiente paso, cancelar…), con `RowContextMenu`. Las propuestas (`ghost`) y la tarjeta que se arrastra no tienen menú. |
 | `validateDrop` | `(event, drop) => string \| null` |  | Si un destino vale. El motivo que devuelva se enseña mientras se arrastra y al soltar no se mueve nada. |
 | `onDropRejected` | `(event, drop, reason) => void` |  | Se soltó donde `validateDrop` dijo que no. |
+| `columnWidths` | `Record<string, number>` |  | El ancho en píxeles de cada columna que se ajustó, por id de recurso (entre `SCHEDULE_COLUMN_MIN_PX` y `SCHEDULE_COLUMN_MAX_PX`). Las que no salen miden 11rem y se reparten lo que sobra. |
+| `onColumnResize` | `(resourceId, width: number \| null) => void` |  | Con él, cada cabecera lleva un asa en su borde derecho, como en una tabla: se arrastra para ensanchar o estrechar la columna, se mueve con las flechas (Mayús, de 64 en 64) y con doble clic avisa `null`: volver al ancho de siempre. Durante el arrastre la rejilla pinta en vivo y solo avisa al soltar; guardar es de quien la monta. En una columna estrecha las tarjetas sueltan primero los iconos y luego la etiqueta, y el texto termina en «…». |
 | `resourceActions` | `(resource) => ScheduleResourceAction[]` |  | El menú al tocar el nombre de un recurso (ver perfil, bloquear…). |
 | `height` | `string` | `"max(28rem, calc(100dvh - 17rem))"` | Alto de la región con scroll. |
 | `fill` | `boolean` | `false` | Ocupa el alto que le deje su contenedor flex en vez de medir la ventana: la rejilla es lo único que se desplaza y la página no suma una segunda barra. |

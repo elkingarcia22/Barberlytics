@@ -260,6 +260,8 @@ export const en: MessageCatalog = {
   "schedule.groupShort": "{index}/{total}",
   "schedule.acceptProposal": "Accept the proposal: {title}",
   "schedule.lockedPaid": "Paid: it does not move",
+  "schedule.columnResize": "Column width for {name}",
+  "schedule.columnResizeHint": "Drag to change the width · double-click to reset it",
   "schedule.scrollNext": "See more barbers",
   "schedule.scrollPrevious": "See previous barbers",
   "schedule.warning": "Something to check",

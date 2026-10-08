@@ -192,7 +192,8 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         type="button"
         size="xs"
         variant="outline"
-        className="pointer-events-auto ml-auto h-5 shrink-0 bg-surface px-1.5"
+        // Cede ante el nombre y el estado: en una columna estrecha su texto termina en «…» en vez de cortarse.
+        className="pointer-events-auto ml-auto h-5 min-w-0 shrink bg-surface px-1.5"
         onPointerDown={(nativeEvent) => nativeEvent.stopPropagation()}
         onClick={(nativeEvent) => {
           nativeEvent.stopPropagation();
@@ -200,7 +201,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         }}
       >
         {event.action.icon}
-        {event.action.label}
+        <span className="min-w-0 truncate">{event.action.label}</span>
       </Button>
     );
 
@@ -222,7 +223,9 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         className={cn(
           // Las tarjetas de la agenda (neutral, pastel o vivo) van con esquinas rectas: bloques que se
           // apilan en la rejilla. Solo las de tono semántico conservan el radio.
-          "group/event absolute overflow-hidden border text-left",
+          // `schedule-card`: la tarjeta es su propio contenedor, y en una columna estrecha suelta primero
+          // los iconos y luego la etiqueta (schedule.css) para que el nombre siga leyéndose.
+          "schedule-card group/event absolute overflow-hidden border text-left",
           pastelClass || palette ? "rounded-none" : "rounded-lg",
           "transition-[box-shadow,opacity] duration-fast ease-out-expo motion-reduce:transition-none",
           // Sin borde: el relleno sólido separa la tarjeta del fondo (`.schedule-card-fill` en schedule.css:
@@ -291,7 +294,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
             <div className="flex min-w-0 items-center gap-1.5">
               {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
               {dot}
-              <span data-card-ink className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+              <span data-card-ink className={cn("min-w-[2.5rem] flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
               {groupPill}
               {markers.length > 0 && <ScheduleMarkers markers={markers} />}
               {event.badge && <CardBadge badge={event.badge} tone={palette ? "neutral" : tone} sober={palette} />}
@@ -312,7 +315,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               <div className="mt-auto flex min-w-0 items-center gap-1">
                 {statusPill}
                 {warning}
-                {meta && <span className={cn("shrink-0 text-xs font-semibold tabular-nums text-text-primary", !action && "ml-auto")}>{meta}</span>}
+                {meta && <span className={cn("min-w-0 shrink truncate text-xs font-semibold tabular-nums text-text-primary", !action && "ml-auto")}>{meta}</span>}
                 {action}
               </div>
             )}
@@ -391,7 +394,8 @@ function SegmentLines({ segments, heightPx, hasFooter }: { segments: readonly No
 /** La etiqueta junto al nombre: el tipo de cliente. */
 function CardBadge({ badge, tone, sober = false }: { badge: NonNullable<ScheduleEvent["badge"]>; tone: ScheduleTone; sober?: boolean }) {
   // En una tarjeta sobria la etiqueta tampoco lleva color: se lee, no compite con el círculo del servicio.
-  return <span className={cn("shrink-0 rounded-sm px-1 text-[10px] font-semibold uppercase leading-4 tracking-wide", sober ? TONE_BADGE.neutral : TONE_BADGE[badge.tone ?? tone])}>{badge.label}</span>;
+  // Cede antes que el nombre: en una columna estrecha termina en «…» en vez de cortarse contra el borde.
+  return <span data-card-badge className={cn("min-w-0 shrink truncate rounded-sm px-1 text-[10px] font-semibold uppercase leading-4 tracking-wide", sober ? TONE_BADGE.neutral : TONE_BADGE[badge.tone ?? tone])}>{badge.label}</span>;
 }
 
 /**
@@ -401,7 +405,7 @@ function CardBadge({ badge, tone, sober = false }: { badge: NonNullable<Schedule
  */
 export function ScheduleMarkers({ markers }: { markers: readonly NonNullable<ScheduleEvent["markers"]>[number][] }) {
   return (
-    <span className="flex shrink-0 items-center gap-1 text-text-muted" role="list">
+    <span data-card-markers className="flex shrink-0 items-center gap-1 text-text-muted" role="list">
       {markers.map((marker) => {
         const Icon = MARKER_ICON[marker.icon];
         return <Icon key={marker.id} className="size-3" role="listitem" aria-label={marker.label} />;

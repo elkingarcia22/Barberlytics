@@ -44,6 +44,7 @@ import { calendarRailActions } from "./calendarRailActions";
 import { calendarAccess, canRemoveBlock, scopeCatalog, scopeDay, waitlistInScope } from "./calendarAccess";
 import { clockLabel, useMoney } from "./calendarFormat";
 import { useCalendarDensity } from "./calendarDensity";
+import { useCalendarColumnWidths } from "./calendarColumnWidths";
 import { useCalendarShortcuts } from "./useCalendarShortcuts";
 import { useCalendarState } from "./useCalendarState";
 import { useCatalogQuery, useDayQuery, useRemoveBlock, useUpdateAppointment, useWaitlistQuery } from "./queries";
@@ -175,6 +176,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const removeBlock = useRemoveBlock();
   const [searchParams] = useSearchParams();
   const [density, setDensity, slotHeight] = useCalendarDensity();
+  const [columnWidths, setColumnWidth, resetColumnWidths] = useCalendarColumnWidths();
   const [cardPrefs, setCardPref, resetCardPrefs] = useCalendarCardPrefs();
   /* Llegar desde la ficha de un cliente («Crear cita») abre el alta con él ya elegido. */
   const [panel, setPanel] = React.useState<Panel | null>(() => {
@@ -767,6 +769,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               onCardReset={resetCardPrefs}
               density={state.view === "day" ? density : undefined}
               onDensityChange={setDensity}
+              hasColumnWidths={state.view === "day" ? Object.keys(columnWidths).length > 0 : undefined}
+              onColumnWidthsReset={resetColumnWidths}
             />
           ) : undefined
         }
@@ -818,6 +822,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         now={nowDate}
                         filters={filters}
                         slotHeight={slotHeight}
+                        columnWidths={columnWidths}
+                        onColumnResize={setColumnWidth}
                         extraEvents={extraEvents}
                         fadedIds={fadedIds}
                         highlightLinks={state.showLinked}

@@ -44,6 +44,10 @@ export interface CalendarDayViewProps {
   filters?: AgendaFilters;
   /** Alto de cada media hora, en píxeles: la densidad elegida. */
   slotHeight?: number;
+  /** El ancho de cada columna de barbero que se ajustó, en píxeles. */
+  columnWidths?: Readonly<Record<string, number>>;
+  /** Se ensanchó o estrechó una columna desde su cabecera; `null` la devuelve al ancho de siempre. */
+  onColumnResize?: (barberId: string, width: number | null) => void;
   /** Propuestas que se dibujan encima de la agenda (huecos sugeridos, reacomodos). */
   extraEvents?: readonly ScheduleEvent[];
   /** Citas que una propuesta movería: se apagan mientras se decide. */
@@ -93,6 +97,8 @@ export function CalendarDayView({
   now,
   filters = NO_FILTERS,
   slotHeight,
+  columnWidths,
+  onColumnResize,
   extraEvents = [],
   fadedIds,
   highlightLinks = false,
@@ -201,6 +207,8 @@ export function CalendarDayView({
         now={now}
         fill
         slotHeight={slotHeight}
+        columnWidths={columnWidths}
+        onColumnResize={onColumnResize}
         startHour={startHour}
         endHour={Math.min(24, endHour)}
         onSlotClick={onSlotClick}

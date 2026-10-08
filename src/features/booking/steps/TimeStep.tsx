@@ -112,6 +112,27 @@ export function TimeStep() {
           onJoinedChange={(joined) => setWaitlist((current) => (joined ? { ...current, [waitlistKey]: joined } : Object.fromEntries(Object.entries(current).filter(([key]) => key !== waitlistKey))))}
         />
       )}
+
+      {/* Al final de todo: si aquí no hay horario o algo falla, se agenda por teléfono. */}
+      {!isWaiting && (
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-subtle p-3">
+          <IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="phone" />} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Text size="sm" weight="medium">
+              {t("booking.time.callTitle")}
+            </Text>
+            <Text size="xs" tone="muted">
+              {t("booking.time.callLead", { name: branch.name })}
+            </Text>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <a href={`tel:${branch.phone}`} aria-label={t("booking.time.callAria", { phone: branch.phone })}>
+              <ThemaIcon name="phone" />
+              {t("booking.time.call")}
+            </a>
+          </Button>
+        </div>
+      )}
     </StepLayout>
   );
 }

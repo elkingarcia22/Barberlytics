@@ -9,6 +9,7 @@ import { OptionTile, SegmentedControl, type SelectionOption } from "@/components
 import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { personName } from "../bookingState";
+import { feeLabel } from "../pricing";
 import { parseStart } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { CardForm } from "../flow/CardForm";
@@ -37,17 +38,27 @@ export function PaymentStep() {
   const customer = state.customer;
   const credit = customer?.credit ?? 0;
 
+  // El recargo se dice en la opción que lo lleva, antes de elegirla, y pagar en la barbería lo evita.
+  const fee = shop.cardFee ? t("booking.payment.feeHint", { fee: feeLabel(shop.cardFee, fmt.money) }) : "";
   const methods: SelectionOption[] = [
     ...(shop.payment.card
       ? [
-          { value: "card", label: t("booking.payment.card"), description: t("booking.payment.cardHint"), icon: CreditCard },
-          { value: "wallet", label: t("booking.payment.wallet"), description: t("booking.payment.walletHint"), icon: Smartphone },
+          { value: "card", label: t("booking.payment.card"), description: [t("booking.payment.cardHint"), fee].filter(Boolean).join(" "), icon: CreditCard },
+          { value: "wallet", label: t("booking.payment.wallet"), description: [t("booking.payment.walletHint"), fee].filter(Boolean).join(" "), icon: Smartphone },
         ]
       : []),
-    ...(shop.payment.payAtShop && !customer?.onlineOnly ? [{ value: "shop", label: t("booking.payment.shop"), description: t("booking.payment.shopHint"), icon: Store }] : []),
+    // «Solo en línea» no esconde la opción: se ve apagada y dice por qué.
+    ...(shop.payment.payAtShop
+      ? [
+          customer?.onlineOnly
+            ? { value: "shop", label: t("booking.payment.shop"), description: t("booking.payment.onlineOnly"), icon: Store, disabled: true }
+            : { value: "shop", label: t("booking.payment.shop"), description: [t("booking.payment.shopHint"), shop.cardFee ? t("booking.payment.shopNoFee") : ""].filter(Boolean).join(" "), icon: Store },
+        ]
+      : []),
     ...(credit >= totals.total && totals.total > 0 ? [{ value: "credit", label: t("booking.payment.credit"), description: t("booking.payment.creditHint", { amount: fmt.money(credit) }), icon: Wallet }] : []),
   ];
-  const method = state.method && methods.some((option) => option.value === state.method) ? state.method : ((methods[0]?.value as PayMethod | undefined) ?? null);
+  const available = methods.filter((option) => !option.disabled);
+  const method = state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
 
   const tipOptions: SelectionOption[] = [
     { value: NO_TIP, label: t("booking.payment.tipNone") },
@@ -120,11 +131,6 @@ export function PaymentStep() {
 
       <section className="flex flex-col gap-3">
         <Heading level={6}>{t("booking.payment.method")}</Heading>
-        {customer?.onlineOnly && (
-          <Text size="xs" tone="muted">
-            {t("booking.payment.onlineOnly")}
-          </Text>
-        )}
         <div role="radiogroup" aria-label={t("booking.payment.method")} className="flex flex-col gap-2">
           {methods.map((option) => (
             <OptionTile key={option.value} option={option} selected={method === option.value} onSelect={(value) => dispatch({ type: "setMethod", method: value as PayMethod })} />

@@ -3,7 +3,7 @@ import { db } from "../db";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
 import { profileOf, saveProfile } from "../customers/handlers";
-import { cancellationTerms, computeTotals, findPromo, promoDiscount, tipAmount } from "@/features/booking/pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, findPromo, promoDiscount, tipAmount } from "@/features/booking/pricing";
 import {
   availability,
   barberFree,
@@ -12,6 +12,7 @@ import {
   bookableBarbers,
   bookedOf,
   bookingRules,
+  cardFeeRule,
   catalog,
   clientByPhone,
   customerOf,
@@ -283,9 +284,9 @@ export const bookingHandlers = [
     const promoResult = text(input.promoCode) ? findPromo(text(input.promoCode), { isNewClient: customer.isNew, appointments: plan.planned.length }) : null;
     const promo = promoResult && "promo" in promoResult ? promoResult.promo : null;
     const tip = tipOptions().options.find((option) => option.id === text(input.tipId)) ?? null;
-    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal) });
-
     const method = text(input.method) as MockReservation["payment"]["method"];
+    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null });
+
     const rules = bookingRules();
     let payment: MockReservation["payment"];
     if (method === "shop") {

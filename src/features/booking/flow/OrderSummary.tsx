@@ -18,7 +18,7 @@ interface OrderSummaryProps {
   promoCode?: string | null;
 }
 
-/** «Tu orden»: lo comprado, el descuento, el impuesto, la propina y el total, como un ticket. */
+/** «Tu orden»: lo comprado, el descuento, el impuesto, la propina, los cargos (recargo por tarjeta) y el total, como un ticket. */
 export function OrderSummary({ totals, money, lines, promoCode }: OrderSummaryProps) {
   const t = useAppT();
   const row = (label: string, amount: number, tone: "default" | "positive" = "default") => (
@@ -62,6 +62,7 @@ export function OrderSummary({ totals, money, lines, promoCode }: OrderSummaryPr
       {row(t("booking.payment.subtotal"), totals.subtotal)}
       {row(t("booking.payment.tax"), totals.tax)}
       {totals.tip > 0 && row(t("booking.payment.tipLine"), totals.tip)}
+      {totals.fee > 0 && row(totals.feeName ?? t("booking.payment.fee"), totals.fee)}
       <Separator className="my-1" />
       <div className="flex items-center justify-between gap-3">
         <Text weight="semibold">{t("booking.payment.total")}</Text>

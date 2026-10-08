@@ -63,12 +63,20 @@ export function tipAmount(option: TipOption | null, servicesTotal: number): numb
   return round2(option.type === "percent" ? (servicesTotal * option.value) / 100 : option.value);
 }
 
+export interface CardFeeRule {
+  name: string;
+  rate: number;
+  type: "percent" | "amount";
+}
+
 export interface TotalsInput {
   services: number;
   products: number;
   discount: number;
   taxPercent: number;
   tip: number;
+  /** El recargo por tarjeta, solo si se paga con tarjeta o billetera. */
+  cardFee?: CardFeeRule | null;
 }
 
 export interface Totals {
@@ -78,16 +86,29 @@ export interface Totals {
   subtotal: number;
   tax: number;
   tip: number;
+  fee: number;
+  feeName: string | null;
   total: number;
 }
 
-/** El impuesto va sobre lo comprado ya con el descuento; la propina va aparte, sin impuesto. */
+/** Los métodos que pasan por la pasarela y por eso llevan el recargo por tarjeta. */
+export const chargesCardFee = (method: string | null): boolean => method === "card" || method === "wallet";
+
+/**
+ * El impuesto va sobre lo comprado ya con el descuento; la propina va aparte, sin
+ * impuesto. El recargo por tarjeta sale del subtotal, como en el cobro de la agenda.
+ */
 export function computeTotals(input: TotalsInput): Totals {
   const subtotal = round2(Math.max(0, input.services + input.products - input.discount));
   const tax = round2((subtotal * input.taxPercent) / 100);
   const tip = round2(Math.max(0, input.tip));
-  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, total: round2(subtotal + tax + tip) };
+  const rule = input.cardFee ?? null;
+  const fee = rule && subtotal > 0 ? round2(rule.type === "percent" ? (subtotal * rule.rate) / 100 : rule.rate) : 0;
+  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, total: round2(subtotal + tax + tip + fee) };
 }
+
+/** Cuánto es el recargo: «3 %» o «US$ 2». */
+export const feeLabel = (rule: CardFeeRule, money: (value: number) => string): string => (rule.type === "percent" ? `${rule.rate} %` : money(rule.rate));
 
 export interface CancellationInput {
   start: Date;

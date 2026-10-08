@@ -55,7 +55,8 @@ export function seedSettings(): MockSettingsState {
       },
       pricing: { currency: "USD", taxInclusive: false },
       tips: { options: [{ id: "tip_1", type: "percent", value: 15 }, { id: "tip_2", type: "percent", value: 20 }, { id: "tip_3", type: "percent", value: 25 }, { id: "tip_4", type: "amount", value: 5 }], defaultId: "tip_2", checkout: "unset" },
-      cardFee: { enabled: false, name: "Recargo por tarjeta", rate: 3, type: "percent" },
+      // Encendido en la demo: se ve en el cobro de la agenda y en la reserva en línea (pagar en la barbería lo evita).
+      cardFee: { enabled: true, name: "Recargo por tarjeta", rate: 3, type: "percent" },
       commissions: { deductDiscounts: true, deductTaxes: true, deductServiceCost: false, deductProductCost: false },
       payrollCycle: { cycle: "weekly", startDay: 1 },
       payments: { provider: "stripe", publicKey: "", secretKeySet: false, connected: false },

@@ -31,6 +31,8 @@ export type IconName =
   | 'analytics'
   | 'survey'
   | 'calendar'
+  | 'calendarAdd'
+  | 'mail'
   | 'filter'
   | 'upload'
   | 'download'

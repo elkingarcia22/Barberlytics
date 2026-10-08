@@ -18,7 +18,7 @@ import type { Reservation } from "../types";
  */
 export function ConfirmedStep({ onFinish }: { onFinish?: () => void }) {
   const t = useAppT();
-  const { state, dispatch, shop, fmt } = useBookingFlow();
+  const { state, dispatch, shop, fmt, layout } = useBookingFlow();
   const [receiptFor, setReceiptFor] = React.useState<Reservation | null>(null);
   const reservation = state.reservation;
   if (!reservation) return null;
@@ -59,13 +59,14 @@ export function ConfirmedStep({ onFinish }: { onFinish?: () => void }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button type="button" variant="outline" onClick={() => downloadIcs(buildIcs(reservation.appointments, shop.name), `${reservation.number}.ics`)}>
-          <ThemaIcon name="calendar" />
+      {/* En el celular van una sobre otra: «Agregar al calendario» no cabe en media fila sin desbordarse. */}
+      <div className={layout === "wide" ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
+        <Button type="button" variant="outline" size="lg" onClick={() => downloadIcs(buildIcs(reservation.appointments, shop.name), `${reservation.number}.ics`)}>
+          <ThemaIcon name="calendarAdd" />
           {t("booking.confirmed.calendar")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setReceiptFor(reservation)}>
-          <ThemaIcon name="send" />
+        <Button type="button" variant="outline" size="lg" onClick={() => setReceiptFor(reservation)}>
+          <ThemaIcon name="mail" />
           {t("booking.confirmed.receipt")}
         </Button>
       </div>

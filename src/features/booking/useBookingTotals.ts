@@ -1,5 +1,5 @@
 import * as React from "react";
-import { computeTotals, promoDiscount, tipAmount, type Totals } from "./pricing";
+import { chargesCardFee, computeTotals, promoDiscount, tipAmount, type Totals } from "./pricing";
 import type { BookingState, DraftItem } from "./bookingState";
 import type { BookingCatalog, BookingShop } from "./types";
 
@@ -26,14 +26,17 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
     const services = state.items.reduce((sum, item) => sum + itemPrice(item, catalog), 0);
     const products = Object.entries(state.products).reduce((sum, [id, qty]) => sum + (catalog?.products.find((product) => product.id === id)?.price ?? 0) * qty, 0);
     const tip = shop?.tipOptions.find((option) => option.id === state.tipId) ?? null;
+    // Sin método elegido, el pago abre en tarjeta si la barbería cobra en línea (como el paso de pago).
+    const method = state.method ?? (shop?.payment.card ? "card" : "shop");
     return computeTotals({
       services,
       products,
       discount: promoDiscount(state.promo, services + products),
       taxPercent: shop?.taxPercent ?? 0,
       tip: tipAmount(tip, services),
+      cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
     });
-  }, [catalog, shop, state.items, state.products, state.promo, state.tipId]);
+  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method]);
 }
 
 export interface DraftOrderLine {

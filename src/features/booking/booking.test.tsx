@@ -6,7 +6,7 @@ import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
-import { cancellationTerms, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
@@ -31,7 +31,16 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
 describe("cuentas de la reserva", () => {
   test("el impuesto va sobre lo comprado con el descuento y la propina va aparte", () => {
     const totals = computeTotals({ services: 90, products: 10, discount: 15, taxPercent: 6.25, tip: 18 });
-    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, total: 108.31 });
+    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, total: 108.31 });
+  });
+
+  test("el recargo por tarjeta sale del subtotal, suma al total y solo lo llevan tarjeta y billetera", () => {
+    const rule = { name: "Recargo por tarjeta", rate: 3, type: "percent" as const };
+    const totals = computeTotals({ services: 90, products: 10, discount: 0, taxPercent: 0, tip: 0, cardFee: rule });
+    expect(totals).toMatchObject({ fee: 3, feeName: "Recargo por tarjeta", total: 103 });
+    expect(computeTotals({ services: 90, products: 0, discount: 0, taxPercent: 0, tip: 0, cardFee: { ...rule, type: "amount", rate: 2 } }).fee).toBe(2);
+    expect(chargesCardFee("card") && chargesCardFee("wallet")).toBe(true);
+    expect(chargesCardFee("shop") || chargesCardFee("credit")).toBe(false);
   });
 
   test("un cupón nunca descuenta más que lo comprado", () => {

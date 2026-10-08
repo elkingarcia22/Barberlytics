@@ -24,7 +24,7 @@ export interface MockReservation {
   lines: MockBookingLine[];
   products: { productId: string; name: string; qty: number; price: number }[];
   promoCode: string | null;
-  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; total: number };
+  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; total: number };
   payment: { method: "card" | "wallet" | "shop" | "credit"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
 }
 

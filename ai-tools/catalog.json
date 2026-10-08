@@ -1,5 +1,5 @@
 {
-  "sourceHash": "a5245355c974c859",
+  "sourceHash": "a800ba44ac5ef775",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -20370,11 +20370,13 @@
     "expand",
     "eyeOff",
     "eyeOn",
+    "facebook",
     "feedback",
     "file",
     "filter",
     "flag",
     "folderAdd",
+    "globe",
     "google",
     "graduation",
     "help",
@@ -20382,6 +20384,7 @@
     "idea",
     "image",
     "info",
+    "instagram",
     "layers",
     "link",
     "lock",

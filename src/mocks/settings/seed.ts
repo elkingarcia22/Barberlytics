@@ -39,7 +39,7 @@ export function seedSettings(): MockSettingsState {
   return {
     secretKey: null,
     sections: {
-      business: { timezone: "America/New_York", timeFormat: "12h", weekStart: "monday", openTime: "09:00", closeTime: "19:00", holidays: ["new-year", "independence", "thanksgiving", "christmas"], website: "https://barberia.example.com", instagram: "", facebook: "", googleMaps: "" },
+      business: { timezone: "America/New_York", timeFormat: "12h", weekStart: "monday", openTime: "09:00", closeTime: "19:00", holidays: ["new-year", "independence", "thanksgiving", "christmas"], website: "https://barberia.example.com", instagram: "https://instagram.com/barberlytics", facebook: "https://facebook.com/barberlytics", googleMaps: "" },
       booking: {
         minNotice: 30,
         minNoticeUnit: "minutes",

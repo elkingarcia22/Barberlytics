@@ -420,6 +420,7 @@ export function branchDetail(branchId: string) {
     if (ranges.length === 0) return { day, opensAt: null, closesAt: null };
     return { day, opensAt: clockOf(Math.min(...ranges.map((range) => parseClock(range.start)))), closesAt: clockOf(Math.max(...ranges.map((range) => parseClock(range.end)))) };
   });
+  const business = db.settings.sections.business as { website: string; instagram: string; facebook: string };
   const own = BRANCH_PHOTOS[branchId];
   const fullAddress = `${branch.address}, ${branch.city}, ${branch.state} ${branch.zipcode}`;
   return {
@@ -434,6 +435,7 @@ export function branchDetail(branchId: string) {
     zipcode: branch.zipcode,
     phone: branch.phone,
     mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
+    links: { website: business.website.trim(), instagram: business.instagram.trim(), facebook: business.facebook.trim() },
     // Primero se iguala el tamaño y luego se quitan repetidas: la foto propia también está entre las de ejemplo.
     gallery: [own, ...GALLERY_EXTRA].filter((src): src is string => Boolean(src)).map((src) => src.replace("w=640&h=400", "w=1200&h=800")).filter((src, index, all) => all.indexOf(src) === index).slice(0, 5),
     hours,

@@ -19,6 +19,12 @@ import { PhotoStrip } from "./PhotoStrip";
 const FIRST_SERVICES = 6;
 const FIRST_BARBERS = 4;
 
+const SOCIALS = [
+  { key: "website", icon: "globe", label: "booking.branchProfile.website" },
+  { key: "instagram", icon: "instagram", label: "booking.branchProfile.instagram" },
+  { key: "facebook", icon: "facebook", label: "booking.branchProfile.facebook" },
+] as const;
+
 interface BranchProfileSheetProps {
   /** La sede que se mira; `null` lo mantiene cerrado. */
   branchId: string | null;
@@ -146,6 +152,19 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
                   <a href={`tel:${detail.phone}`}>{t("booking.branchProfile.call")}</a>
                 </Button>
               </div>
+              {SOCIALS.filter((social) => detail.links[social.key]).map((social) => (
+                <div key={social.key} className="flex items-center gap-3 p-3">
+                  <ThemaIcon name={social.icon} size="sm" tone="muted" />
+                  <Text size="sm" weight="medium" className="flex-1" truncate>
+                    {t(social.label)}
+                  </Text>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={detail.links[social.key]} target="_blank" rel="noreferrer noopener">
+                      {t("booking.branchProfile.visit")}
+                    </a>
+                  </Button>
+                </div>
+              ))}
             </div>
           </section>
 

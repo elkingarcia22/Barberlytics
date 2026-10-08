@@ -58,6 +58,8 @@ export const branchDetailSchema = z.object({
   phone: z.string(),
   /** Abre la dirección en el mapa del dispositivo. */
   mapsUrl: z.string(),
+  /** Los enlaces del negocio (Configuración › Negocio); vacío = no se muestra. */
+  links: z.object({ website: z.string(), instagram: z.string(), facebook: z.string() }),
   gallery: z.array(z.string()),
   /** Una entrada por día de la semana (0 = domingo); sin horas es un día cerrado. */
   hours: z.array(z.object({ day: z.number(), opensAt: z.string().nullable(), closesAt: z.string().nullable() })),

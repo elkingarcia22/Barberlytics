@@ -1,26 +1,32 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Heading, Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { dayKeyOf, initialsOf, parseStart } from "../bookingFormat";
 import { useAlternativesQuery } from "../queries";
+import type { BookingBarber } from "../types";
+import { BarberProfileDrawer } from "./BarberProfileDrawer";
 import { useBookingFlow } from "./BookingContext";
 
 /**
  * Cuando el barbero elegido no tiene horas ese día: otros que hacen los
  * mismos servicios, ordenados por cuánto se parecen (las habilidades que
  * cubren lo pedido y las que comparten con el elegido), con sus primeras horas
- * libres —ese día o el próximo que tengan—. Tocar una hora reserva con él.
+ * libres —ese día o el próximo que tengan—. Tocar una hora reserva con él, y
+ * «Ver perfil» enseña quién es (habilidades, trabajos, precios) antes de decidir.
  */
-export function AlternativeBarbers({ day }: { day: Date }) {
+export function AlternativeBarbers({ day, onDayChange }: { day: Date; onDayChange: (day: Date) => void }) {
   const t = useAppT();
   const { state, dispatch, catalog, fmt, layout } = useBookingFlow();
   const draft = state.draft;
   const query = useAlternativesQuery({ branchId: state.branchId, date: dayKeyOf(day), serviceIds: draft?.serviceIds ?? [], barberId: draft?.barberId ?? null }, Boolean(draft));
   const items = query.data?.items ?? [];
+  const [profile, setProfile] = React.useState<{ barber: BookingBarber; date: string } | null>(null);
 
   const pick = (barberId: string, date: string, time: string) => {
     dispatch({ type: "chooseBarber", barberId });
@@ -77,6 +83,11 @@ export function AlternativeBarbers({ day }: { day: Date }) {
                   </Badge>
                 </div>
 
+                <Button type="button" variant="ghost" size="sm" className="-mt-1 self-start text-primary hover:text-primary" onClick={() => setProfile({ barber, date: item.date })} aria-label={`${t("booking.barber.profile")}: ${barber.name}`}>
+                  {t("booking.barber.profile")}
+                  <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
+                </Button>
+
                 {item.skills.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Text size="xs" tone="muted">
@@ -105,6 +116,17 @@ export function AlternativeBarbers({ day }: { day: Date }) {
           })}
         </ul>
       )}
+      <BarberProfileDrawer
+        barber={profile?.barber ?? null}
+        serviceIds={draft?.serviceIds ?? []}
+        onOpenChange={(open) => !open && setProfile(null)}
+        onChoose={(barber) => {
+          // Elegirlo desde el perfil lleva a su día libre: sigue en «Fecha y hora», con sus horas.
+          if (profile) onDayChange(parseStart(`${profile.date}T00:00`));
+          setProfile(null);
+          dispatch({ type: "chooseBarber", barberId: barber.id });
+        }}
+      />
     </section>
   );
 }

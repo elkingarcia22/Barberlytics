@@ -100,7 +100,7 @@ export function TimeStep() {
         size={touch}
       />
 
-      {!isWaiting && free.size === 0 && <AlternativeBarbers day={day} />}
+      {!isWaiting && free.size === 0 && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
       {/* Siempre: aunque haya horas, puede que ninguna le sirva. */}
       {!isWaiting && (

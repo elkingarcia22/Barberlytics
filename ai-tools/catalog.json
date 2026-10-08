@@ -1,5 +1,5 @@
 {
-  "sourceHash": "9db3ece6f43ebeee",
+  "sourceHash": "0ad0e15e05fa7978",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -13857,6 +13857,12 @@
           "description": "Solo las horas libres, sin las tachadas. Para el cliente; recepción sí quiere ver lo ocupado."
         },
         {
+          "name": "emptyDay",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Con `hideUnavailable`, lo que se ve si el día no tiene ninguna hora libre, en lugar de una franja vacía tras otra: el porqué y qué hacer (otro barbero, la lista de espera)."
+        },
+        {
           "name": "loading",
           "type": "boolean",
           "default": "false",
@@ -13909,7 +13915,7 @@
         {
           "id": "client",
           "title": "Lo que ve el cliente al reservar",
-          "description": "En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size=\"lg\"` agranda todo para el dedo en una tablet.",
+          "description": "En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size=\"lg\"` agranda todo para el dedo en una tablet. Un día sin ninguna hora muestra `emptyDay` en vez de tres franjas vacías.",
           "code": "<TimeSlotPicker\n  value={value}\n  onChange={setValue}\n  day={dia}\n  onDayChange={setDia}\n  loading={disponibilidad.isFetching}\n  hideUnavailable\n  size=\"lg\"\n  isDayDisabled={(fecha) => cerrados.includes(fecha.getDay())}\n  isSlotDisabled={(fecha) => !libres.has(formatoHora(fecha))}\n/>"
         }
       ],

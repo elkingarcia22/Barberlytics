@@ -40,6 +40,11 @@ export interface TimeSlotPickerProps {
   isDayDisabled?: (day: Date) => boolean;
   /** Solo las horas libres, sin las tachadas: lo que ve un cliente, no recepción. */
   hideUnavailable?: boolean;
+  /**
+   * Lo que se ve cuando el día no tiene ninguna hora libre (con `hideUnavailable`),
+   * en lugar de una franja vacía tras otra: el porqué y qué hacer.
+   */
+  emptyDay?: React.ReactNode;
   /** Mientras llegan las horas del día, chips de carga. */
   loading?: boolean;
   /** `lg` agranda días y horas para el dedo: tablet o kiosco. */
@@ -74,6 +79,7 @@ export function TimeSlotPicker({
   onDayChange,
   isDayDisabled,
   hideUnavailable = false,
+  emptyDay,
   loading = false,
   size = "default",
   locale,
@@ -101,6 +107,7 @@ export function TimeSlotPicker({
     { id: "afternoon", label: t("schedule.afternoon"), slots: slots.filter((minute) => minute >= AFTERNOON_FROM * 60 && minute < EVENING_FROM * 60) },
     { id: "evening", label: t("schedule.evening"), slots: slots.filter((minute) => minute >= EVENING_FROM * 60) },
   ].filter((group) => group.slots.length > 0);
+  const isDayEmpty = emptyDay !== undefined && hideUnavailable && !slots.some((minute) => !isSlotDisabled?.(atMinutes(day, minute)));
 
   const monthLabel = capitalize(format(visible[0] ?? day, "LLLL yyyy", { locale: dateLocale }));
   const monthMixed = visible.length > 0 && !isSameMonth(visible[0], visible[visible.length - 1]);
@@ -153,7 +160,9 @@ export function TimeSlotPicker({
         </div>
       </div>
 
-      <div role="radiogroup" aria-label={t("schedule.pickTime")} aria-busy={loading} className="flex flex-col gap-3">
+      {/* Un día sin ninguna hora no es un grupo de opciones vacío: es un aviso con qué hacer. */}
+      {!loading && isDayEmpty && emptyDay}
+      <div role="radiogroup" aria-label={t("schedule.pickTime")} aria-busy={loading} className={cn("flex flex-col gap-3", !loading && isDayEmpty && "hidden")}>
         {loading && (
           <div className="flex flex-wrap gap-1.5">
             {Array.from({ length: LOADING_CHIPS }, (_, index) => (
@@ -161,7 +170,7 @@ export function TimeSlotPicker({
             ))}
           </div>
         )}
-        {!loading && groups.map((group) => {
+        {!loading && !isDayEmpty && groups.map((group) => {
           const all = group.slots.map((minute) => ({ minute, date: atMinutes(day, minute) }));
           const enabled = all.filter((option) => !isSlotDisabled?.(option.date));
           const options = hideUnavailable ? enabled : all;

@@ -164,6 +164,25 @@ export type Slot = z.infer<typeof slotSchema>;
 export const availabilitySchema = z.object({ date: z.string(), slots: z.array(slotSchema) });
 export type Availability = z.infer<typeof availabilitySchema>;
 
+/** Otro barbero que hace lo mismo y tiene horas: lo que tiene en común y sus primeras horas libres. */
+export const alternativeSchema = z.object({ barberId: z.string(), skills: z.array(z.string()), date: z.string(), times: z.array(z.string()) });
+export type Alternative = z.infer<typeof alternativeSchema>;
+export const alternativesSchema = z.object({ date: z.string(), items: z.array(alternativeSchema) });
+export type Alternatives = z.infer<typeof alternativesSchema>;
+
+export const waitlistWindowSchema = z.enum(["morning", "afternoon", "any"]);
+export type WaitlistWindow = z.infer<typeof waitlistWindowSchema>;
+export const waitlistJoinedSchema = z.object({ id: z.string(), date: z.string(), window: waitlistWindowSchema });
+export type WaitlistJoined = z.infer<typeof waitlistJoinedSchema>;
+export interface WaitlistInput {
+  branchId: string;
+  customerId: string;
+  date: string;
+  serviceIds: readonly string[];
+  barberId: string | null;
+  window: WaitlistWindow;
+}
+
 export const bookedStatusSchema = z.enum(["scheduled", "completed", "cancelled", "no_show"]);
 export type BookedStatus = z.infer<typeof bookedStatusSchema>;
 

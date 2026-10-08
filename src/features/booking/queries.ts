@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingApi } from "./api";
-import type { NewCustomerInput, RescheduleInput, ReservationInput } from "./types";
+import type { NewCustomerInput, RescheduleInput, ReservationInput, WaitlistInput } from "./types";
 
 /** Claves jerárquicas: reservar o cancelar invalida la disponibilidad y «Mis citas» sin tocar el catálogo. */
 export const bookingKeys = {
@@ -55,6 +55,24 @@ export function useAvailabilityQuery(params: AvailabilityParams) {
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
+}
+
+/** Otros barberos para lo mismo, cuando el elegido no tiene horas ese día. */
+export function useAlternativesQuery(params: Omit<AvailabilityParams, "exclude">, enabled: boolean) {
+  return useQuery({
+    queryKey: [...bookingKeys.all, "alternatives", params.branchId ?? "", params.date, params.serviceIds.join(","), params.barberId] as const,
+    queryFn: ({ signal }) => bookingApi.alternatives({ ...params, branchId: params.branchId as string }, signal),
+    enabled: enabled && params.branchId !== null && params.serviceIds.length > 0,
+    staleTime: 30_000,
+  });
+}
+
+export function useJoinWaitlistMutation() {
+  return useMutation({ mutationFn: (input: WaitlistInput) => bookingApi.joinWaitlist(input) });
+}
+
+export function useLeaveWaitlistMutation() {
+  return useMutation({ mutationFn: ({ id, customerId }: { id: string; customerId: string }) => bookingApi.leaveWaitlist(id, customerId) });
 }
 
 /** La próxima visita que le toca según su frecuencia, con horas libres propuestas. */

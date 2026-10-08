@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { api } from "@/lib/api";
 import {
+  alternativesSchema,
   availabilitySchema,
   bookedAppointmentSchema,
   bookingCatalogSchema,
@@ -14,6 +15,7 @@ import {
   receiptSentSchema,
   suggestionResponseSchema,
   reservationSchema,
+  type Alternatives,
   type Availability,
   type BookedAppointment,
   type BookingCatalog,
@@ -30,6 +32,9 @@ import {
   type Reservation,
   type ReservationInput,
   type VisitSuggestion,
+  type WaitlistInput,
+  type WaitlistJoined,
+  waitlistJoinedSchema,
 } from "./types";
 import type { Promo } from "./pricing";
 
@@ -49,6 +54,14 @@ export const bookingApi = {
       schema: availabilitySchema,
       signal,
     }),
+  alternatives: (params: { branchId: string; date: string; serviceIds: readonly string[]; barberId: string | null }, signal?: AbortSignal) =>
+    api.get<Alternatives>("/booking/alternatives", {
+      query: { branchId: params.branchId, date: params.date, serviceIds: params.serviceIds.join(","), barberId: params.barberId },
+      schema: alternativesSchema,
+      signal,
+    }),
+  joinWaitlist: (input: WaitlistInput) => api.post<WaitlistJoined>("/booking/waitlist", input, { schema: waitlistJoinedSchema }),
+  leaveWaitlist: (id: string, customerId: string) => api.delete<void>(`/booking/waitlist/${id}`, { query: { customerId } }),
   lookup: (phone: string) => api.post<LookupResult>("/booking/lookup", { phone }, { schema: lookupSchema }),
   suggestion: (customerId: string, signal?: AbortSignal) =>
     api.get<{ suggestion: VisitSuggestion | null }>(`/booking/customers/${customerId}/suggestion`, { schema: suggestionResponseSchema, signal }),

@@ -22,6 +22,7 @@ import { TimeSlotPicker } from "@/components/scheduling"
 | `day / onDayChange` | `Date / (day: Date) => void` |  | El día marcado en la tira, controlado desde fuera: sirve para pedir la disponibilidad de ese día. |
 | `isDayDisabled` | `(day: Date) => boolean` |  | Días que no se pueden elegir (cerrado, sin barberos). |
 | `hideUnavailable` | `boolean` | `false` | Solo las horas libres, sin las tachadas. Para el cliente; recepción sí quiere ver lo ocupado. |
+| `emptyDay` | `ReactNode` |  | Con `hideUnavailable`, lo que se ve si el día no tiene ninguna hora libre, en lugar de una franja vacía tras otra: el porqué y qué hacer (otro barbero, la lista de espera). |
 | `loading` | `boolean` | `false` | Chips de carga en lugar de las horas mientras llegan las del día. |
 | `size` | `"default" \| "lg"` | `"default"` | `lg` agranda días y horas para el dedo: tablet, kiosco. |
 | `locale` | `Locale` |  | Locale de date-fns; sin él, el idioma de la aplicación. |
@@ -63,7 +64,7 @@ const [value, setValue] = React.useState<Date | null>(null);
 
 ### Lo que ve el cliente al reservar
 
-En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size="lg"` agranda todo para el dedo en una tablet.
+En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size="lg"` agranda todo para el dedo en una tablet. Un día sin ninguna hora muestra `emptyDay` en vez de tres franjas vacías.
 
 ```tsx
 <TimeSlotPicker

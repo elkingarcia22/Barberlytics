@@ -2,15 +2,18 @@ import * as React from "react";
 import { startOfDay } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { TimeSlotPicker } from "@/components/scheduling";
-import { Text } from "@/components/typography";
+import { Heading, Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { clockMinutes, dayKeyOf, firstBookableDay, initialsOf, isSameDayAs, isTodayOver, parseStart, toStart } from "../bookingFormat";
+import { AlternativeBarbers } from "../flow/AlternativeBarbers";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
+import { WaitlistCard } from "../flow/WaitlistCard";
 import { useAvailabilityQuery } from "../queries";
+import type { WaitlistJoined } from "../types";
 import { itemDuration } from "../useBookingTotals";
 
 /** Cuántos días hacia delante se puede reservar. */
@@ -22,11 +25,14 @@ const clockOf = (date: Date): string => `${String(date.getHours()).padStart(2, "
 /**
  * Cuándo: el día en una tira y solo las horas libres de ese día, para el
  * barbero elegido o para cualquiera. La disponibilidad se pide al servidor
- * por día, así lo que se ve es lo que se puede reservar.
+ * por día, así lo que se ve es lo que se puede reservar. Un día sin horas no
+ * es un callejón: propone otros barberos que hacen lo mismo y la lista de espera.
  */
 export function TimeStep() {
   const t = useAppT();
-  const { state, dispatch, shop, catalog, touch } = useBookingFlow();
+  const { state, dispatch, shop, catalog, touch, fmt } = useBookingFlow();
+  // Dónde ya se apuntó en la lista de espera, por día y barbero: sobrevive a cambiar de día y volver.
+  const [waitlist, setWaitlist] = React.useState<Readonly<Record<string, WaitlistJoined>>>({});
   const draft = state.draft;
   const branch = shop.branches.find((item) => item.id === state.branchId);
   const todayOver = branch ? isTodayOver(branch.closesAt, shop.minNoticeMinutes) : false;
@@ -37,6 +43,8 @@ export function TimeStep() {
   const barber = catalog?.barbers.find((item) => item.id === draft?.barberId);
   const minutes = itemDuration(draft?.serviceIds ?? [], catalog);
   const services = (draft?.serviceIds ?? []).map((id) => catalog?.services.find((service) => service.id === id)?.name).filter(Boolean);
+
+  const waitlistKey = `${dayKeyOf(day)}|${draft?.barberId ?? "any"}`;
 
   if (!draft || !branch) return null;
 
@@ -76,21 +84,29 @@ export function TimeStep() {
         isDayDisabled={(date) => todayOver && isSameDayAs(date, new Date())}
         isSlotDisabled={(date) => !free.has(clockOf(date))}
         hideUnavailable
+        emptyDay={
+          <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-subtle p-4">
+            <IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="calendar" />} />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <Heading level={6}>{t("booking.time.noSlotsTitle", { day: fmt.dayLong(day) })}</Heading>
+              <Text size="sm" tone="secondary">
+                {barber ? t("booking.time.noSlotsWith", { name: barber.name.split(" ")[0] }) : t("booking.time.noSlotsAny")}
+              </Text>
+            </div>
+          </div>
+        }
         loading={isWaiting}
         size={touch}
       />
 
       {!isWaiting && free.size === 0 && (
-        <div className="flex flex-col items-start gap-2 rounded-2xl border border-dashed border-border p-4">
-          <Text size="sm" tone="secondary">
-            {t("booking.time.noSlots")}
-          </Text>
-          {draft.barberId && (
-            <Button type="button" variant="outline" size="sm" onClick={() => dispatch({ type: "chooseBarber", barberId: null })}>
-              <ThemaIcon name="users" />
-              {t("booking.time.tryAny")}
-            </Button>
-          )}
+        <div className="flex flex-col gap-6">
+          <AlternativeBarbers day={day} />
+          <WaitlistCard
+            day={day}
+            joined={waitlist[waitlistKey] ?? null}
+            onJoinedChange={(joined) => setWaitlist((current) => (joined ? { ...current, [waitlistKey]: joined } : Object.fromEntries(Object.entries(current).filter(([key]) => key !== waitlistKey))))}
+          />
         </div>
       )}
     </StepLayout>

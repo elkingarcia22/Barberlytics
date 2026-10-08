@@ -66,7 +66,7 @@ export const serviceName = (id: string) => db.services.items.find((item) => item
 export const durationOf = (serviceIds: readonly string[]) =>
   serviceIds.reduce((sum, id) => sum + (db.services.items.find((item) => item.id === id)?.durationMin ?? 0), 0);
 
-function branchHoursToday(branchId: string): { opensAt: string; closesAt: string } {
+export function branchHoursToday(branchId: string): { opensAt: string; closesAt: string } {
   const today = dateKey(new Date());
   const ranges = bookableBarbers(branchId).flatMap((barber) => {
     const member = memberOf(barber.id);

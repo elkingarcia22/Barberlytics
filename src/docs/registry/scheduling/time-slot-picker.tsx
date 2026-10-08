@@ -140,7 +140,7 @@ export const timeSlotPickerEntry = defineEntry({
       id: "client",
       title: "Lo que ve el cliente al reservar",
       description:
-        "En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size=\"lg\"` agranda todo para el dedo en una tablet.",
+        "En la reserva en línea el día es controlado (`day` + `onDayChange`) para pedir al servidor las horas de ese día; mientras llegan, `loading`. `hideUnavailable` deja solo las horas libres —un cliente no necesita ver lo ocupado tachado—, `isDayDisabled` apaga los días cerrados y `size=\"lg\"` agranda todo para el dedo en una tablet. Un día sin ninguna hora muestra `emptyDay` en vez de tres franjas vacías.",
       layout: "start",
       code: `<TimeSlotPicker
   value={value}
@@ -167,6 +167,7 @@ export const timeSlotPickerEntry = defineEntry({
     { name: "day / onDayChange", type: "Date / (day: Date) => void", description: "El día marcado en la tira, controlado desde fuera: sirve para pedir la disponibilidad de ese día." },
     { name: "isDayDisabled", type: "(day: Date) => boolean", description: "Días que no se pueden elegir (cerrado, sin barberos)." },
     { name: "hideUnavailable", type: "boolean", default: "false", description: "Solo las horas libres, sin las tachadas. Para el cliente; recepción sí quiere ver lo ocupado." },
+    { name: "emptyDay", type: "ReactNode", description: "Con `hideUnavailable`, lo que se ve si el día no tiene ninguna hora libre, en lugar de una franja vacía tras otra: el porqué y qué hacer (otro barbero, la lista de espera)." },
     { name: "loading", type: "boolean", default: "false", description: "Chips de carga en lugar de las horas mientras llegan las del día." },
     { name: "size", type: '"default" | "lg"', default: '"default"', description: "`lg` agranda días y horas para el dedo: tablet, kiosco." },
     { name: "locale", type: "Locale", description: "Locale de date-fns; sin él, el idioma de la aplicación." },

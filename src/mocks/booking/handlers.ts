@@ -26,6 +26,7 @@ import {
   tipOptions,
   visitSuggestion,
 } from "./logic";
+import { alternatives, joinWaitlist, type WaitlistWindow } from "./alternatives";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -170,6 +171,47 @@ export const bookingHandlers = [
     if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
     if (serviceIds.length === 0) return error(422, "validation", "Elige al menos un servicio.");
     return HttpResponse.json({ date, slots: availability(branchId, date, serviceIds, barberId, exclude) });
+  }),
+
+  http.get(`${BASE}/alternatives`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const url = new URL(request.url);
+    const branchId = url.searchParams.get("branchId") ?? "";
+    const date = url.searchParams.get("date") ?? "";
+    const serviceIds = (url.searchParams.get("serviceIds") ?? "").split(",").filter(Boolean);
+    const barberId = url.searchParams.get("barberId") || null;
+    if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
+    if (serviceIds.length === 0) return error(422, "validation", "Elige al menos un servicio.");
+    return HttpResponse.json({ date, items: alternatives(branchId, date, serviceIds, barberId) });
+  }),
+
+  http.post(`${BASE}/waitlist`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const input = asRecord(await request.json().catch(() => ({})));
+    const customerId = text(input.customerId);
+    const branchId = text(input.branchId);
+    const date = text(input.date);
+    const serviceIds = strings(input.serviceIds);
+    const barberId = text(input.barberId) || null;
+    const window = (["morning", "afternoon", "any"] as const).find((item) => item === input.window);
+    if (!findClient(customerId)) return error(422, "validation", "Escribe tu celular para avisarte.");
+    if (!(db.settings.lists.branches as unknown as { id: string }[]).some((branch) => branch.id === branchId)) return error(422, "validation", "Elige una sede.");
+    if (!DAY_KEY.test(date)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.");
+    if (serviceIds.length === 0 || !serviceIds.every((id) => db.services.items.some((item) => item.id === id))) return error(422, "validation", "Elige al menos un servicio.");
+    if (!window) return error(422, "validation", "Elige mañana, tarde o cualquier hora.");
+    const entry = joinWaitlist({ branchId, clientId: customerId, date, serviceIds, barberId, window: window as WaitlistWindow });
+    return HttpResponse.json({ id: entry.id, date, window }, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/waitlist/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const customerId = new URL(request.url).searchParams.get("customerId") ?? "";
+    const entry = db.calendar.waitlist.find((item) => item.id === params.id);
+    // Solo quien se apuntó puede salir de la lista.
+    if (!entry || entry.clientId !== customerId) return error(404, "not_found", "Esa entrada no existe.");
+    db.calendar.waitlist = db.calendar.waitlist.filter((item) => item.id !== entry.id);
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post(`${BASE}/lookup`, async ({ request }) => {

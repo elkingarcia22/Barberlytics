@@ -192,6 +192,32 @@ describe("backend de la reserva", () => {
     await expect(bookingApi.lookup("+573009999999")).resolves.toEqual({ status: "blocked" });
   });
 
+  test("si el barbero no tiene horas, propone otros que hacen lo mismo, con lo que saben y sus horas", async () => {
+    // Valeria (team-06) está de vacaciones hasta el 9 de octubre.
+    const { items } = await bookingApi.alternatives({ branchId: "ma", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: "team-06" });
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.length).toBeLessThanOrEqual(3);
+    expect(items.some((item) => item.barberId === "team-06")).toBe(false);
+    for (const item of items) {
+      expect(item.times.length).toBeGreaterThan(0);
+      expect(item.skills).toContain("Corte clásico");
+    }
+    // Los que tienen hora ese mismo día van antes que los que solo tienen otro día.
+    const firstOther = items.findIndex((item) => item.date !== "2026-10-09");
+    if (firstOther >= 0) expect(items.slice(firstOther).every((item) => item.date !== "2026-10-09")).toBe(true);
+  });
+
+  test("la lista de espera cae en la del Calendario y solo quien se apuntó puede salir", async () => {
+    const joined = await bookingApi.joinWaitlist({ branchId: "ma", customerId: "cli_001", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: "team-06", window: "afternoon" });
+    const entry = db.calendar.waitlist.find((item) => item.id === joined.id);
+    expect(entry).toMatchObject({ clientId: "cli_001", serviceId: "svc_corte", barberId: "team-06" });
+    expect(entry?.slots.every((slot) => slot.date === "2026-10-09" && slot.time >= "12:00")).toBe(true);
+    await expect(bookingApi.leaveWaitlist(joined.id, "cli_002")).rejects.toMatchObject({ status: 404 });
+    await bookingApi.leaveWaitlist(joined.id, "cli_001");
+    expect(db.calendar.waitlist.some((item) => item.id === joined.id)).toBe(false);
+    await expect(bookingApi.joinWaitlist({ branchId: "ma", customerId: "nadie", date: "2026-10-09", serviceIds: ["svc_corte"], barberId: null, window: "any" })).rejects.toMatchObject({ status: 422 });
+  });
+
   test("dos citas a la misma hora sin preferencia quedan con barberos distintos y salen en la agenda", async () => {
     const day = toStart(new Date(2026, 9, 9, 11, 0));
     const reservation = await bookingApi.reserve({

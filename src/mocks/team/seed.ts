@@ -89,6 +89,8 @@ export interface MockTeamMember {
   /** El código personal; dato sensible. */
   code: string;
   description: string;
+  instagram: string;
+  facebook: string;
   bookingVisible: boolean;
   levelId: string | null;
   skills: string[];
@@ -263,6 +265,8 @@ interface Draft {
   branchIds?: string[];
   isAlsoBarber?: boolean;
   description?: string;
+  instagram?: string;
+  facebook?: string;
   skills?: string[];
   bookingVisible?: boolean;
   compensation?: Partial<MockCompensation>;
@@ -286,6 +290,8 @@ function person(index: number, firstName: string, lastName: string, role: MockTe
     avatarUrl: TEAM_PHOTOS[id] ?? null,
     code: String(4000 + index * 7),
     description: draft.description ?? "",
+    instagram: draft.instagram ?? "",
+    facebook: draft.facebook ?? "",
     bookingVisible: draft.bookingVisible ?? true,
     levelId: isBarber ? (draft.levelId === undefined ? "lvl_senior" : draft.levelId) : null,
     skills: draft.skills ?? (isBarber ? ["Corte clásico", "Barba"] : []),
@@ -306,9 +312,9 @@ export function seedTeam(): MockTeamMember[] {
     person(1, "Carolina", "Vargas", "owner", "ma", { isAlsoBarber: false }),
     person(2, "Mateo", "Herrera", "admin", "ma"),
     person(3, "Lucía", "Bernal", "recepcion", "ma"),
-    person(4, "Andrés", "Beltrán", "barbero-comision", "ma", { levelId: "lvl_master", schedule: week(MON_SAT, "09:00", "19:00"), description: "Especialista en corte clásico y barba a navaja.", skills: ["Corte clásico", "Barba a navaja", "Fade"], compensation: { basic: 45, recurring: 50 } }),
+    person(4, "Andrés", "Beltrán", "barbero-comision", "ma", { levelId: "lvl_master", schedule: week(MON_SAT, "09:00", "19:00"), description: "Especialista en corte clásico y barba a navaja.", instagram: "https://instagram.com/andres.barber", facebook: "https://facebook.com/andres.barber", skills: ["Corte clásico", "Barba a navaja", "Fade"], compensation: { basic: 45, recurring: 50 } }),
     person(29, "Emilio", "Arango", "barbero-comision", "ma", { levelId: "lvl_junior", schedule: week(MON_SAT, "10:00", "19:00"), skills: ["Corte clásico", "Fade", "Corte niño"] }),
-    person(30, "Paola", "Zuluaga", "barbero-renta", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "09:00", "17:00"), skills: ["Barba a navaja", "Barba", "Diseño", "Corte clásico"] }),
+    person(30, "Paola", "Zuluaga", "barbero-renta", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "09:00", "17:00"), instagram: "https://instagram.com/paola.cuts", skills: ["Barba a navaja", "Barba", "Diseño", "Corte clásico"] }),
     person(5, "Nicolás", "Duarte", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "10:00", "20:00"), skills: ["Fade", "Diseño", "Barba"] }),
     person(6, "Valeria", "Marín", "barbero-renta", "ma", { levelId: "lvl_master", schedule: week(MON_FRI, "08:00", "16:00"), bookingVisible: true, options: { newClients: false }, skills: ["Corte clásico", "Barba a navaja", "Tratamientos"] }),
     person(7, "Tomás", "Peña", "barbero-renta", "ma", { levelId: "lvl_junior", schedule: week(WED_SAT, "12:00", "22:00"), skills: ["Fade", "Corte clásico", "Corte niño"] }),

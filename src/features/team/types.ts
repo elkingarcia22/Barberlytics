@@ -94,6 +94,9 @@ export const memberSchema = z.object({
   avatarUrl: z.string().nullable(),
   code: z.string(),
   description: z.string(),
+  /** Enlaces personales del barbero; vacío = no se muestra. */
+  instagram: z.string(),
+  facebook: z.string(),
   bookingVisible: z.boolean(),
   levelId: z.string().nullable(),
   skills: z.array(z.string()),
@@ -147,6 +150,8 @@ export interface ProfileInput {
   phone: string;
   email: string;
   description: string;
+  instagram: string;
+  facebook: string;
   bookingVisible: boolean;
   levelId: string | null;
   skills: string[];

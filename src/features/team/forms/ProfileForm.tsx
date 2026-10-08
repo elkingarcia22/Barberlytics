@@ -118,6 +118,14 @@ export function ProfileForm({ role, value, onChange, levels, errors = {} }: Prof
           <Field label={t("teamMember.profile.description")} description={t("teamMember.profile.descriptionHint")}>
             <Textarea value={value.description} onChange={(event) => set("description", event.target.value)} rows={3} />
           </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("teamMember.profile.instagram")}>
+              <Input type="url" inputMode="url" placeholder="https://instagram.com/…" value={value.instagram} onChange={(event) => set("instagram", event.target.value)} data-testid="profile-instagram" />
+            </Field>
+            <Field label={t("teamMember.profile.facebook")}>
+              <Input type="url" inputMode="url" placeholder="https://facebook.com/…" value={value.facebook} onChange={(event) => set("facebook", event.target.value)} data-testid="profile-facebook" />
+            </Field>
+          </div>
           <label className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
             <Switch checked={value.bookingVisible} onCheckedChange={(checked) => set("bookingVisible", checked)} data-testid="profile-visibility" />
             <span className="flex flex-col">

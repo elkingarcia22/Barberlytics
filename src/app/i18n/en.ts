@@ -1390,6 +1390,8 @@ export const appEn: AppMessageCatalog = {
   "teamMember.profile.code": "Code",
   "teamMember.profile.codeHint": "Sensitive: don't share it or copy it outside the app.",
   "teamMember.profile.description": "Description",
+  "teamMember.profile.instagram": "Instagram",
+  "teamMember.profile.facebook": "Facebook",
   "teamMember.profile.descriptionHint": "A short text about the person, e.g. “Classic cuts and beard specialist”.",
   "teamMember.profile.visibility": "Booking visibility",
   "teamMember.profile.visibilityHint": "When off, nobody can book with this person.",

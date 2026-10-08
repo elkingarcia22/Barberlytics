@@ -249,7 +249,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **AlternativeBarbers.tsx** — Cuando el barbero elegido no tiene horas ese día: otros que hacen los mismos servicios, ordenados por cuánto… · `AlternativeBarbers` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/lib/utils
 - **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, DrawerShell, Heading, Text · usa: @/app/i18n
+- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, DrawerShell, Heading, Text · usa: @/app/i18n, @/icons
 - **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
 - **BookingHeader.tsx** — La cabecera de la reserva: quién es la barbería (y en qué sede), volver y cuánto falta. · `BookingHeader` · piezas: Button, Progress, Stepper, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **BookingSheet.tsx** — Las decisiones cortas de la reserva (cambiar de sede, para quién es, cancelar, enviar el recibo): en celular,… · `BookingSheet` · piezas: DrawerShell

@@ -189,6 +189,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.barber.profile": "View profile",
   "booking.barber.choose": "Choose {name}",
   "booking.barber.about": "About {name}",
+  "booking.barber.social": "Social links",
   "booking.barber.work": "Work",
   "booking.barber.skills": "Skills",
   "booking.barber.openPhoto": "Enlarge photo {current} of {total}",

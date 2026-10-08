@@ -5,6 +5,7 @@ import { DrawerShell } from "@/components/overlays";
 import { Heading, Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemaIcon } from "@/icons";
 import { initialsOf } from "../bookingFormat";
 import type { BookingBarber } from "../types";
 import { useBookingFlow } from "./BookingContext";
@@ -19,11 +20,17 @@ interface BarberProfileDrawerProps {
   onChoose: (barber: BookingBarber) => void;
 }
 
+const SOCIALS = [
+  { key: "instagram", icon: "instagram", label: "booking.branchProfile.instagram" },
+  { key: "facebook", icon: "facebook", label: "booking.branchProfile.facebook" },
+] as const;
+
 /** El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. */
 export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose }: BarberProfileDrawerProps) {
   const t = useAppT();
   const { catalog, fmt, layout } = useBookingFlow();
   const [viewing, setViewing] = React.useState<number | null>(null);
+  const socials = SOCIALS.filter((social) => barber?.[social.key]);
   const services = (catalog?.services ?? []).filter((service) => barber?.prices[service.id] !== undefined);
 
   return (
@@ -70,6 +77,18 @@ export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose
                   <Chip key={skill} label={skill} tone="primary" />
                 ))}
               </div>
+            </section>
+          )}
+          {(barber.instagram || barber.facebook) && (
+            <section className="flex flex-wrap gap-2" aria-label={t("booking.barber.social")}>
+              {socials.map((social) => (
+                <Button key={social.key} asChild variant="outline" size="sm">
+                  <a href={barber[social.key]} target="_blank" rel="noreferrer noopener">
+                    <ThemaIcon name={social.icon} />
+                    {t(social.label)}
+                  </a>
+                </Button>
+              ))}
             </section>
           )}
           {barber.gallery.length > 0 && (

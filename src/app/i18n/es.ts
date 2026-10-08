@@ -1426,6 +1426,8 @@ export const appEs = {
   "teamMember.profile.code": "Código",
   "teamMember.profile.codeHint": "Dato sensible: no lo compartas ni lo copies fuera de la app.",
   "teamMember.profile.description": "Descripción",
+  "teamMember.profile.instagram": "Instagram",
+  "teamMember.profile.facebook": "Facebook",
   "teamMember.profile.descriptionHint": "Un texto corto sobre la persona, por ejemplo «Especialista en corte clásico y barba».",
   "teamMember.profile.visibility": "Visibilidad para agendamiento",
   "teamMember.profile.visibilityHint": "Si está apagado, no se puede agendar con esta persona.",

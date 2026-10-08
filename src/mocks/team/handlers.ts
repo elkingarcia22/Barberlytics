@@ -151,6 +151,8 @@ export const teamHandlers = [
       avatarUrl: text(input.avatarUrl) || null,
       code: String(1000 + Math.floor(Math.random() * 9000)),
       description: text(input.description),
+      instagram: text(input.instagram),
+      facebook: text(input.facebook),
       bookingVisible: input.bookingVisible !== false,
       skills: Array.isArray(input.skills) ? input.skills.filter((item): item is string => typeof item === "string") : [],
       gallery: Array.isArray(input.gallery) ? input.gallery.filter((item): item is string => typeof item === "string").slice(0, 5) : [],
@@ -199,6 +201,8 @@ export const teamHandlers = [
       next = { ...next, ...profile.values };
     }
     if (typeof input.description === "string") next = { ...next, description: input.description.trim() };
+    if (typeof input.instagram === "string") next = { ...next, instagram: input.instagram.trim() };
+    if (typeof input.facebook === "string") next = { ...next, facebook: input.facebook.trim() };
     if (typeof input.bookingVisible === "boolean") next = { ...next, bookingVisible: input.bookingVisible };
     if (typeof input.isAlsoBarber === "boolean") next = { ...next, isAlsoBarber: input.isAlsoBarber };
     if (input.avatarUrl === null || typeof input.avatarUrl === "string") next = { ...next, avatarUrl: input.avatarUrl || null };

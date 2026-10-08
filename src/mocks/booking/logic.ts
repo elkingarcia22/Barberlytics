@@ -145,6 +145,8 @@ export function catalog(branchId: string) {
       level: barber.level,
       description: member?.description ?? "",
       skills: member?.skills ?? [],
+      instagram: member?.instagram ?? "",
+      facebook: member?.facebook ?? "",
       gallery: member?.gallery ?? [],
       rating: Math.round((4.6 + (h % 5) / 10) * 10) / 10,
       reviews: 24 + (h % 180),

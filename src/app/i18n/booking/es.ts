@@ -204,6 +204,7 @@ export const bookingEs = {
   "booking.barber.profile": "Ver perfil",
   "booking.barber.choose": "Elegir a {name}",
   "booking.barber.about": "Sobre {name}",
+  "booking.barber.social": "Sus redes",
   "booking.barber.work": "Trabajos",
   "booking.barber.skills": "Habilidades",
   "booking.barber.openPhoto": "Ampliar la foto {current} de {total}",

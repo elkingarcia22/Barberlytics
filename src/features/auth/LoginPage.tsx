@@ -109,6 +109,7 @@ export function LoginPage() {
                   onForgotNumber={() => setView({ name: "recovery" })}
                   onCreateAccount={() => setView({ name: "signup" })}
                   onLocked={(phone) => setView({ name: "locked", phone })}
+                  onContactSupport={(phone) => setView({ name: "ticket", context: { reason: "other", phone } })}
                 />
               )}
               {view.name === "recovery" && (

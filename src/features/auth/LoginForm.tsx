@@ -2,7 +2,7 @@ import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation, useNavigate } from "react-router";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { InputOtp, PhoneInput } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
@@ -15,7 +15,7 @@ import { describeError } from "@/lib/api";
 import { useAuth } from "./useAuth";
 import { describePhone } from "./phoneLabel";
 import { attemptsLeftFrom, isLockedError } from "./authErrors";
-import { OTP_LENGTH, otpRequestSchema, type AuthProvider, type OtpRequest } from "./types";
+import { OTP_LENGTH, otpRequestSchema, type AuthProvider, type OtpChannel, type OtpRequest } from "./types";
 
 interface LocationState {
   from?: string;
@@ -38,13 +38,20 @@ export interface LoginFormProps {
   onCreateAccount: () => void;
   /** El backend bloqueó el celular tras varios intentos fallidos seguidos. */
   onLocked: (phone: string) => void;
+  /** Ni el SMS ni el correo de respaldo: abrir un ticket con soporte. */
+  onContactSupport: (phone: string) => void;
 }
 
 /**
  * Entrar en dos pasos: el celular pide el código por SMS y el código abre
  * la sesión. Google y Outlook entran directo. Sin contraseña.
+ *
+ * Si el SMS no llega, el mismo código se puede pedir al correo de respaldo
+ * que la persona verificó en Configuración › Inicio de sesión. El backend no
+ * dice si la cuenta lo tiene, así que el texto lo plantea en condicional y
+ * ofrece soporte a quien no lo configuró.
  */
-export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFormProps) {
+export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContactSupport }: LoginFormProps) {
   const t = useAppT();
   const { requestCode, verifyCode, loginWithProvider } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +60,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
 
   const [step, setStep] = React.useState<Step>("phone");
   const [phone, setPhone] = React.useState("");
+  const [channel, setChannel] = React.useState<OtpChannel>("sms");
   const [code, setCode] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [wasResent, setWasResent] = React.useState(false);
@@ -70,6 +78,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
     try {
       await requestCode(values);
       setPhone(values.phone);
+      setChannel("sms");
       setCode("");
       setWasResent(false);
       setStep("code");
@@ -79,13 +88,15 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
     }
   });
 
-  const resendCode = async () => {
+  /** Pide otro código; con `next` cambia además por dónde llega (SMS ↔ correo). */
+  const resendCode = async (next: OtpChannel = channel) => {
     setServerError(null);
     setIsVerifying(true);
     try {
-      await requestCode({ phone });
+      await requestCode({ phone, channel: next });
       setCode("");
-      setWasResent(true);
+      setWasResent(next === channel);
+      setChannel(next);
     } catch (error) {
       if (isLockedError(error)) return onLocked(phone);
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
@@ -139,6 +150,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
   );
 
   if (step === "code") {
+    const byEmail = channel === "email";
     return (
       <>
         <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-4" disabled={isBusy} onClick={changePhone}>
@@ -146,10 +158,10 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
           {t("auth.code.changePhone")}
         </Button>
         <Heading level={3} id="login-heading">
-          {t("auth.code.title")}
+          {byEmail ? t("auth.code.titleEmail") : t("auth.code.title")}
         </Heading>
-        <Text tone="secondary" className="mt-1.5">
-          {t("auth.code.description", { phone: describePhone(phone) })}
+        <Text tone="secondary" className="mt-1.5" data-testid="login-code-description">
+          {byEmail ? t("auth.code.descriptionEmail") : t("auth.code.description", { phone: describePhone(phone) })}
         </Text>
 
         <form
@@ -186,11 +198,36 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked }: LoginFo
             </Button>
             {wasResent && (
               <Text variant="caption" role="status">
-                {t("auth.code.resent", { phone: describePhone(phone) })}
+                {byEmail ? t("auth.code.resentEmail") : t("auth.code.resent", { phone: describePhone(phone) })}
               </Text>
             )}
           </div>
         </form>
+
+        <div className="mt-6 space-y-1 border-t border-border/60 pt-4">
+          {byEmail ? (
+            <>
+              <Text size="sm" tone="secondary">
+                {t("auth.code.emailHelp")}{" "}
+                <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={() => onContactSupport(phone)} data-testid="login-support">
+                  {t("auth.code.contactSupport")}
+                </Button>
+              </Text>
+              <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={() => void resendCode("sms")} data-testid="login-use-sms">
+                <ThemaIcon name="smsCode" size="xs" />
+                {t("auth.code.useSms")}
+              </Button>
+            </>
+          ) : (
+            <Text size="sm" tone="secondary">
+              {t("auth.code.noSms")}{" "}
+              <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={() => void resendCode("email")} data-testid="login-use-email">
+                <Mail className="size-3.5" aria-hidden />
+                {t("auth.code.useEmail")}
+              </Button>
+            </Text>
+          )}
+        </div>
       </>
     );
   }

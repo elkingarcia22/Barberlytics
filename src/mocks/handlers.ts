@@ -101,6 +101,7 @@ function registerFailure(phone: string, message: string) {
 }
 
 const TICKET_REASONS = ["recovery", "lockout", "other"] as const;
+const OTP_CHANNELS = ["sms", "email"] as const;
 const SIGNUP_TEXT_FIELDS = ["firstName", "lastName", "company", "country", "timezone"] as const;
 
 function text(value: unknown): string {
@@ -139,11 +140,17 @@ export const handlers = [
   // Entrar es en dos pasos: el celular pide un código por SMS y el código abre
   // la sesión. Pedirlo responde 204 exista o no el número, para no revelar quién
   // está registrado; verificarlo sí dice si el número no es de ninguna barbería.
+  // `channel: "email"` manda el código al correo de respaldo de la cuenta en vez
+  // de por SMS. Responde 204 siempre: no revela si el número existe ni si su
+  // cuenta tiene correo de respaldo. El código vale igual llegue por donde llegue.
   http.post(`${BASE}/auth/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; channel?: string };
     const phone = normalizePhone(body.phone);
     if (!PHONE_E164.test(phone)) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    if (body.channel !== undefined && !OTP_CHANNELS.includes(body.channel as (typeof OTP_CHANNELS)[number])) {
+      return error(422, "validation_error", "Canal inválido.", { fields: { channel: ["Elige SMS o correo."] } });
+    }
     if ((db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES) return lockedError();
     return new HttpResponse(null, { status: 204 });
   }),
@@ -213,6 +220,54 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as { email?: string };
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (!EMAIL.test(email)) return error(422, "validation_error", "Escribe un correo válido.", { fields: { email: ["Escribe un correo válido."] } });
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Correo de respaldo: es de la persona, no de la barbería. Configurarlo pide
+  // verificarlo con un código; hasta entonces no sirve para entrar.
+  http.get(`${BASE}/auth/backup-email`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    return HttpResponse.json({ email: db.backupEmails[account.id] ?? null });
+  }),
+
+  http.post(`${BASE}/auth/backup-email`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const body = (await request.json().catch(() => ({}))) as { email?: unknown };
+    const email = text(body.email).toLowerCase();
+    if (!EMAIL.test(email)) return error(422, "validation_error", "Escribe un correo válido.", { fields: { email: ["Escribe un correo válido."] } });
+    db.pendingBackupEmails.set(account.id, email);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/auth/backup-email/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const body = (await request.json().catch(() => ({}))) as { email?: unknown; code?: unknown };
+    const email = text(body.email).toLowerCase();
+    if (db.pendingBackupEmails.get(account.id) !== email) {
+      return error(409, "conflict", "Pide un código para ese correo antes de verificarlo.");
+    }
+    if (body.code !== OTP_CODE) {
+      return error(422, "validation_error", "El código no es correcto o ya venció.", { fields: { code: ["El código no es correcto o ya venció."] } });
+    }
+    db.pendingBackupEmails.delete(account.id);
+    db.backupEmails = { ...db.backupEmails, [account.id]: email };
+    db.persist();
+    return HttpResponse.json({ email });
+  }),
+
+  http.delete(`${BASE}/auth/backup-email`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    db.backupEmails = Object.fromEntries(Object.entries(db.backupEmails).filter(([id]) => id !== account.id));
+    db.pendingBackupEmails.delete(account.id);
+    db.persist();
     return new HttpResponse(null, { status: 204 });
   }),
 

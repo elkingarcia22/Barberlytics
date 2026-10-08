@@ -119,6 +119,33 @@ describe("entrar con celular y código", () => {
     expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
   });
 
+  test("si el SMS no llega, el código se pide al correo de respaldo y entra igual", async () => {
+    // Arrange
+    const { tokenStorage } = renderWithProviders(<App />, { route: "/privado" });
+    const user = userEvent.setup();
+    await requestCode(user);
+
+    // Act
+    await user.click(screen.getByTestId("login-use-email"));
+
+    // Assert
+    expect(await screen.findByRole("heading", { name: /revisa tu correo/i })).toBeInTheDocument();
+    expect(screen.getByTestId("login-code-description")).toHaveTextContent(/correo de respaldo/i);
+    expect(screen.getByTestId("login-use-sms")).toBeInTheDocument();
+    await typeCode(user, OTP_CODE);
+    expect(await screen.findByText(/hola carolina vargas/i)).toBeInTheDocument();
+    expect(tokenStorage.get()).toMatch(/^mock-acc_admin/);
+  });
+
+  test("quien no configuró el correo de respaldo puede escribir a soporte desde el código", async () => {
+    renderWithProviders(<App />, { route: "/login" });
+    const user = userEvent.setup();
+    await requestCode(user);
+    await user.click(screen.getByTestId("login-use-email"));
+    await user.click(await screen.findByTestId("login-support"));
+    expect(await screen.findByRole("heading", { name: /contáctanos/i })).toBeInTheDocument();
+  });
+
   test("entrar con Google abre la sesión de la cuenta vinculada", async () => {
     const { tokenStorage } = renderWithProviders(<App />, { route: "/privado" });
     const user = userEvent.setup();

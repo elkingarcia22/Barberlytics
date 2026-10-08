@@ -1,5 +1,5 @@
 import * as React from "react";
-import { chargesCardFee, computeTotals, promoDiscount, tipAmount, type Totals } from "./pricing";
+import { chargesCardFee, computeTotals, coverByPackages, promoDiscount, tipAmount, type Totals } from "./pricing";
 import type { BookingState, DraftItem } from "./bookingState";
 import type { BookingCatalog, BookingShop } from "./types";
 
@@ -21,6 +21,22 @@ export function itemPrice(item: Pick<DraftItem, "serviceIds" | "barberId">, cata
 export const itemDuration = (serviceIds: readonly string[], catalog: BookingCatalog | undefined): number =>
   serviceIds.reduce((sum, id) => sum + (catalog?.services.find((service) => service.id === id)?.durationMin ?? 0), 0);
 
+/** Lo que vale cada servicio de una cita, con el mismo criterio que `itemPrice`. */
+function servicePrices(item: Pick<DraftItem, "serviceIds" | "barberId">, catalog: BookingCatalog | undefined): { serviceId: string; price: number }[] {
+  const barbers = (catalog?.barbers ?? []).filter((barber) => (item.barberId ? barber.id === item.barberId : item.serviceIds.every((id) => barber.prices[id] !== undefined)));
+  return item.serviceIds.map((serviceId) => {
+    const prices = barbers.map((barber) => barber.prices[serviceId]).filter((price): price is number => price !== undefined);
+    return { serviceId, price: prices.length > 0 ? Math.min(...prices) : (catalog?.services.find((service) => service.id === serviceId)?.price ?? 0) };
+  });
+}
+
+/** Cuánto cubren sus paquetes de esta reserva (estimado; el servidor cobra con el barbero asignado). */
+export function packageCoverage(state: BookingState, catalog: BookingCatalog | undefined): number {
+  const owned = state.customer?.packages ?? [];
+  if (!state.usePackages || owned.length === 0) return 0;
+  return coverByPackages(state.items.map((item) => servicePrices(item, catalog)), owned).amount;
+}
+
 export function useBookingTotals(state: BookingState, catalog: BookingCatalog | undefined, shop: BookingShop | undefined): Totals {
   return React.useMemo(() => {
     const services = state.items.reduce((sum, item) => sum + itemPrice(item, catalog), 0);
@@ -36,9 +52,10 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
       tip: tipAmount(tip, services),
       cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
       giftBalance: state.gift?.balance ?? 0,
+      prepaid: packageCoverage(state, catalog),
       reward: state.useReward && (state.customer?.loyalty?.available ?? 0) > 0 ? (state.customer?.loyalty?.rewardValue ?? 0) : 0,
     });
-  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.customer]);
+  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.usePackages, state.customer]);
 }
 
 export interface DraftOrderLine {

@@ -38,6 +38,8 @@ export const bookingSchema = z.object({
   deposit: z.object({ enabled: z.boolean(), percent: z.number(), newClients: z.boolean(), afterNoShows: z.number() }),
   /** Cliente frecuente: cada `every` visitas, el servicio `rewardServiceId` de cortesía. */
   loyalty: z.object({ enabled: z.boolean(), every: z.number(), rewardServiceId: z.string() }),
+  /** Paquetes prepagados que se venden en la reserva: N visitas de un servicio, con vencimiento. */
+  packages: z.array(z.object({ id: z.string(), name: z.string(), serviceId: z.string(), sessions: z.number(), price: z.number(), validDays: z.number() })).default([]),
   cancelHours: z.number(),
   lateFeePercent: z.number(),
   maxCancellations: z.number(),

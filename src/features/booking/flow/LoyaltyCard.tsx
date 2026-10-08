@@ -11,7 +11,7 @@ import { useBookingFlow } from "./BookingContext";
  */
 export function LoyaltyCard({ compact = false }: { compact?: boolean }) {
   const t = useAppT();
-  const { state, dispatch, fmt } = useBookingFlow();
+  const { state, dispatch, fmt, totals } = useBookingFlow();
   const loyalty = state.customer?.loyalty;
   if (!loyalty) return null;
   const reward = loyalty.rewardName || t("booking.loyalty.rewardFallback");
@@ -26,7 +26,8 @@ export function LoyaltyCard({ compact = false }: { compact?: boolean }) {
             {t("booking.loyalty.use", { reward })}
           </Text>
           <Text as="span" size="xs" tone="secondary" tabular>
-            {state.useReward ? t("booking.loyalty.useOn", { amount: fmt.money(loyalty.rewardValue) }) : t("booking.loyalty.useOff")}
+            {/* Si el paquete ya pagó los servicios, la cortesía no se gasta: queda para otra vez. */}
+            {!state.useReward ? t("booking.loyalty.useOff") : totals.reward > 0 ? t("booking.loyalty.useOn", { amount: fmt.money(totals.reward) }) : t("booking.loyalty.keptForLater")}
           </Text>
         </span>
         <Switch checked={state.useReward} onCheckedChange={(checked) => dispatch({ type: "setUseReward", useReward: checked })} aria-label={t("booking.loyalty.use", { reward })} />

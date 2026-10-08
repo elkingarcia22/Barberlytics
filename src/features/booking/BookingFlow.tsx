@@ -20,6 +20,7 @@ import { PaymentStep } from "./steps/PaymentStep";
 import { PhoneStep } from "./steps/PhoneStep";
 import { VerifyStep } from "./steps/VerifyStep";
 import { useFunnelTracking, type BookingSurface } from "./funnel";
+import { PackagesStep } from "./steps/PackagesStep";
 import { GiftStep } from "./steps/GiftStep";
 import { ProfileStep } from "./steps/ProfileStep";
 import { ReviewStep } from "./steps/ReviewStep";
@@ -48,6 +49,7 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
     case "verify":
       return { type: "goTo", step: "phone" };
     case "gift":
+    case "packages":
       return { type: "goTo", step: "welcome" };
     case "profile":
     case "welcome":
@@ -86,6 +88,8 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
       return <VerifyStep />;
     case "gift":
       return <GiftStep />;
+    case "packages":
+      return <PackagesStep />;
     case "profile":
       return <ProfileStep />;
     case "welcome":

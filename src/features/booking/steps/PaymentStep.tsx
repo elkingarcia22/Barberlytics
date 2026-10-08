@@ -16,6 +16,7 @@ import { brandFromName, firstUsableCard, isCardComplete, isCvcComplete, type Car
 import { OrderSummary } from "../flow/OrderSummary";
 import { GiftCardField } from "../flow/GiftCardField";
 import { LoyaltyCard } from "../flow/LoyaltyCard";
+import { PackagesToggle } from "../flow/PackagesToggle";
 import { PromoField } from "../flow/PromoField";
 import { BookingSheet } from "../flow/BookingSheet";
 import { NewCardSheet } from "../flow/NewCardSheet";
@@ -123,6 +124,7 @@ export function PaymentStep() {
         promoCode: state.promo?.code ?? null,
         giftCode: state.gift?.code,
         useReward: totals.reward > 0,
+        usePackages: totals.prepaid > 0,
         referencePhoto: state.referencePhoto ?? undefined,
         utm: utm ?? undefined,
         method,
@@ -201,6 +203,7 @@ export function PaymentStep() {
       </section>
 
       <div className="flex flex-col gap-2">
+        <PackagesToggle />
         <LoyaltyCard compact />
         <PromoField />
         <GiftCardField />

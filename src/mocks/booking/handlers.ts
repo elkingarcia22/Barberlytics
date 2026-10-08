@@ -3,7 +3,7 @@ import { ACCOUNTS, db } from "../db";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
 import { profileOf, saveProfile } from "../customers/handlers";
-import { cancellationTerms, chargesCardFee, computeTotals, findPromo, promoDiscount, tipAmount } from "@/features/booking/pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, findPromo, promoDiscount, tipAmount } from "@/features/booking/pricing";
 import {
   availability,
   barberFree,
@@ -38,6 +38,7 @@ import { cancelMessages, offerFreedSlot, rescheduleMessages, scheduleMessages } 
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
 import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
+import { activePackages, buyPackage, packageOffers, spendPackages } from "./packages";
 import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 
 /** Lo que se puede regalar en una tarjeta. */
@@ -401,11 +402,13 @@ export const bookingHandlers = [
     // Cortesía de cliente frecuente: si la pide y tiene una por usar, se descuenta el servicio de cortesía.
     const loyalty = input.useReward === true ? customer.loyalty : null;
     const rewardValue = loyalty && loyalty.available > 0 ? loyalty.rewardValue : 0;
+    // Paquetes: cada cita con un servicio que tiene visitas por usar se paga con una.
+    const coverage = input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
     // Tarjeta de regalo: paga primero; lo que sobra queda en ella.
     const giftCode = text(input.giftCode);
     const giftCard = giftCode ? findGiftCard(giftCode) : undefined;
     if (giftCode && (!giftCard || giftCard.balance <= 0)) return error(422, "gift_invalid", "Esa tarjeta de regalo no existe o ya no tiene saldo.");
-    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0, reward: rewardValue });
+    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0, reward: rewardValue, prepaid: coverage.amount });
 
     const rules = bookingRules();
     let payment: MockReservation["payment"];
@@ -438,6 +441,7 @@ export const bookingHandlers = [
     }
 
     if (totals.reward > 0) redeemLoyalty(client);
+    if (totals.prepaid > 0) spendPackages(client.id, coverage.used);
     // Lo pagado con la tarjeta de regalo cuenta como pagado (si se cancela, vuelve como saldo a favor).
     if (giftCard && totals.gift > 0) {
       spendGiftCard(giftCard.code, totals.gift);
@@ -585,6 +589,22 @@ export const bookingHandlers = [
     if (!ACCOUNTS.some((account) => account.id === (appToken ? db.sessions.get(appToken) : undefined))) return error(401, "unauthorized", "Tu sesión expiró.");
     const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
     return HttpResponse.json(funnelSummary(days));
+  }),
+
+  http.post(`${BASE}/packages/buy`, async ({ request }) => {
+    await delay(PAY_LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return NO_SESSION();
+    const input = asRecord(await request.json().catch(() => ({})));
+    const offer = packageOffers().find((item) => item.id === text(input.packageId));
+    if (!offer) return error(404, "not_found", "Ese paquete ya no está a la venta.");
+    if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige con qué tarjeta pagas.", { fields: { card: ["Elige con qué tarjeta pagas."] } });
+    const charged = chargeCard(client, input, "card");
+    if (charged instanceof Response) return charged;
+    const owned = buyPackage(client.id, offer);
+    db.persist();
+    const { id, name, serviceId, remaining, total, expiresAt } = owned;
+    return HttpResponse.json({ package: { id, name, serviceId, remaining, total, expiresAt }, paidWith: `${charged.brand} •••• ${charged.last4}` }, { status: 201 });
   }),
 
   http.post(`${BASE}/gift-cards/check`, async ({ request }) => {

@@ -24,7 +24,7 @@ export interface MockReservation {
   lines: MockBookingLine[];
   products: { productId: string; name: string; qty: number; price: number }[];
   promoCode: string | null;
-  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; gift: number; reward: number; total: number };
+  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; gift: number; reward: number; prepaid: number; total: number };
   /** De dónde vino quien reservó (UTM del enlace), si se sabe. */
   utm?: { source: string; medium: string; campaign: string } | null;
   /** La tarjeta de regalo usada (su código), si la hubo. */
@@ -91,6 +91,17 @@ export interface MockFunnelEvent {
   source: string;
 }
 
+/** Un paquete comprado: cuántas visitas le quedan de qué servicio, y hasta cuándo. */
+export interface MockOwnedPackage {
+  id: string;
+  packageId: string;
+  name: string;
+  serviceId: string;
+  remaining: number;
+  total: number;
+  expiresAt: string;
+}
+
 export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
@@ -99,6 +110,8 @@ export interface MockBookingState {
   cancellations: Record<string, number>;
   /** Pasos a los que llegó cada sesión (ver funnel.ts). */
   funnel?: MockFunnelEvent[];
+  /** id de cliente → los paquetes que compró y cuántas visitas le quedan. */
+  ownedPackages?: Record<string, MockOwnedPackage[]>;
   /** id de cliente → cortesías de cliente frecuente ya usadas. */
   loyaltyUsed?: Record<string, number>;
   /** Tarjetas de regalo compradas (la de prueba de la demo se suma sola, ver giftCards.ts). */

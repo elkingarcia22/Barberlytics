@@ -12,7 +12,7 @@ import { brandFromName, cardBrandOf, isCvcComplete } from "./flow/cardValidation
 import { fitWithin } from "./flow/referencePhoto";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, parseStart, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
-import { cancellationTerms, chargesCardFee, computeTotals, depositOf, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, depositOf, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
@@ -34,13 +34,14 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   cards: [],
   depositRequired: false,
   loyalty: null,
+  packages: [],
   ...draft,
 });
 
 describe("cuentas de la reserva", () => {
   test("el impuesto va sobre lo comprado con el descuento y la propina va aparte", () => {
     const totals = computeTotals({ services: 90, products: 10, discount: 15, taxPercent: 6.25, tip: 18 });
-    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, gift: 0, reward: 0, total: 108.31 });
+    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, gift: 0, reward: 0, prepaid: 0, total: 108.31 });
   });
 
   test("el recargo por tarjeta sale del subtotal, suma al total y solo lo llevan tarjeta y billetera", () => {
@@ -419,6 +420,31 @@ describe("backend de la reserva", () => {
     expect(booked.totals.subtotal).toBe(0);
     const { customer: after } = await signIn();
     expect(after?.loyalty?.available).toBe(0);
+  });
+
+  test("un paquete prepagado se compra con tarjeta y paga los servicios que cubre, una visita por cita", async () => {
+    const { token } = await signIn("+573005550102");
+    const shop = await bookingApi.shop();
+    expect(shop.packages.map((item) => item.id)).toContain("pkg_cortes4");
+    await expect(bookingApi.buyPackage(token, { packageId: "no-existe", savedCardId: "card_demo_visa" })).rejects.toMatchObject({ status: 404 });
+    await expect(bookingApi.buyPackage(token, { packageId: "pkg_cortes4" })).rejects.toMatchObject({ status: 422 });
+    const bought = await bookingApi.buyPackage(token, { packageId: "pkg_cortes4", card: { number: "4242424242424242", name: "Ana Pérez", expiry: "12/29", save: false } });
+    expect(bought.package).toMatchObject({ serviceId: "svc_corte", remaining: 4, total: 4 });
+    const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    if (!slot) throw new Error("debería haber hueco");
+    const booked = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop", usePackages: true });
+    expect(booked.totals.prepaid).toBe(booked.totals.services);
+    expect(booked.totals.subtotal).toBe(0);
+    const { customer } = await signIn("+573005550102");
+    expect(customer?.packages[0]?.remaining).toBe(3);
+    // Varias llamadas de pago simulan la espera del banco.
+  }, 15_000);
+
+  test("coverByPackages gasta una visita por servicio cubierto y no más de las que quedan", () => {
+    const owned = [{ id: "p1", serviceId: "svc_corte", remaining: 1 }];
+    const result = coverByPackages([[{ serviceId: "svc_corte", price: 30 }], [{ serviceId: "svc_corte", price: 35 }, { serviceId: "svc_barba", price: 20 }]], owned);
+    expect(result).toEqual({ amount: 30, used: { p1: 1 } });
+    expect(computeTotals({ services: 85, products: 0, discount: 0, taxPercent: 0, tip: 0, prepaid: 30 })).toMatchObject({ prepaid: 30, subtotal: 55 });
   });
 
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {

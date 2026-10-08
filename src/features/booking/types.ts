@@ -43,6 +43,8 @@ export const bookingShopSchema = z.object({
   payment: z.object({ card: z.boolean(), payAtShop: z.boolean() }),
   /** El recargo por pagar con tarjeta que la barbería tiene encendido en Configuración, o nada. */
   cardFee: z.object({ name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) }).nullable(),
+  /** Paquetes que la barbería vende en línea: N visitas de un servicio, con vencimiento. */
+  packages: z.array(z.object({ id: z.string(), name: z.string(), serviceId: z.string(), sessions: z.number(), price: z.number(), validDays: z.number(), regular: z.number().default(0) })).default([]),
   /** El anticipo que se pide a algunos clientes para pagar en la barbería, o nada si no se pide. */
   deposit: z.object({ percent: z.number() }).nullable().default(null),
   branches: z.array(bookingBranchSchema),
@@ -147,6 +149,10 @@ export interface SavedCardInput {
   expYear: number;
 }
 
+/** Un paquete prepagado del cliente: N visitas de un servicio, con vencimiento. */
+export const ownedPackageSchema = z.object({ id: z.string(), name: z.string(), serviceId: z.string(), remaining: z.number(), total: z.number(), expiresAt: z.string() });
+export type OwnedPackage = z.infer<typeof ownedPackageSchema>;
+
 export const bookingCustomerSchema = z.object({
   id: z.string(),
   firstName: z.string(),
@@ -165,6 +171,8 @@ export const bookingCustomerSchema = z.object({
   cards: z.array(savedCardSchema).default([]),
   /** Para pagar en la barbería debe dejar anticipo (cliente nuevo o con inasistencias). */
   depositRequired: z.boolean().default(false),
+  /** Sus paquetes con visitas por usar (los vencidos o agotados no vienen). */
+  packages: z.array(ownedPackageSchema).default([]),
   /** Su tarjeta de cliente frecuente: avance hacia la próxima cortesía y cuántas tiene por usar. */
   loyalty: z.object({ every: z.number(), progress: z.number(), available: z.number(), rewardServiceId: z.string(), rewardName: z.string().default(""), rewardValue: z.number() }).nullable().default(null),
 });
@@ -211,6 +219,15 @@ export const barberReviewSchema = z.object({ id: z.string(), clientName: z.strin
 export type BarberReview = z.infer<typeof barberReviewSchema>;
 export const barberReviewsSchema = z.object({ items: z.array(barberReviewSchema), total: z.number() });
 export const reviewSavedSchema = z.object({ id: z.string(), rating: z.number() });
+
+/** El paquete comprado (ya en la cuenta del cliente) y con qué se pagó. */
+export const packagePurchasedSchema = z.object({ package: ownedPackageSchema, paidWith: z.string() });
+export type PackagePurchased = z.infer<typeof packagePurchasedSchema>;
+export interface PackagePurchaseInput {
+  packageId: string;
+  card?: { number: string; name: string; expiry: string; save: boolean };
+  savedCardId?: string;
+}
 
 /** Una tarjeta de regalo válida y su saldo. */
 export const giftCheckSchema = z.object({ code: z.string(), balance: z.number() });
@@ -296,6 +313,7 @@ export const totalsSchema = z.object({
   feeName: z.string().nullable().default(null),
   gift: z.number().default(0),
   reward: z.number().default(0),
+  prepaid: z.number().default(0),
   total: z.number(),
 });
 
@@ -380,6 +398,8 @@ export interface ReservationInput {
   giftCode?: string;
   /** Usar una cortesía de cliente frecuente (descuenta el servicio de cortesía). */
   useReward?: boolean;
+  /** Usar sus paquetes: cada cita que incluya un servicio con visitas por usar descuenta una. */
+  usePackages?: boolean;
   /** De dónde vino (UTM del enlace), para saber qué canal trae reservas. */
   utm?: { source: string; medium: string; campaign: string };
   /** Foto del corte que quiere (data URL JPEG/PNG/WebP, ≤ ~1,5 MB): la ve el barbero en la cita. */

@@ -5,6 +5,7 @@ import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/ha
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
 import { ratingOf, reviewOfAppointment } from "./reviews";
+import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 
@@ -122,6 +123,8 @@ export function shop() {
     defaultTipId: tips.defaultId,
     payment: rules.paymentMethods,
     cardFee: cardFeeRule(),
+    // Con lo que costarían esas visitas sueltas (precio de lista del servicio), para mostrar el ahorro.
+    packages: rules.paymentMethods.card ? packageOffers().map((offer) => ({ ...offer, regular: (db.services.items.find((item) => item.id === offer.serviceId)?.price ?? 0) * offer.sessions })) : [],
     deposit: rules.deposit.enabled && rules.paymentMethods.payAtShop && rules.paymentMethods.card ? { percent: rules.deposit.percent } : null,
     branches,
   };
@@ -258,6 +261,7 @@ export function customerOf(client: MockClient) {
     cards: cardsOf(client.id),
     depositRequired: needsDeposit(client, client.visits === 0 && !last),
     loyalty: loyaltyOf(client),
+    packages: activePackages(client.id).map(({ id, name, serviceId, remaining, total, expiresAt }) => ({ id, name, serviceId, remaining, total, expiresAt })),
   };
 }
 

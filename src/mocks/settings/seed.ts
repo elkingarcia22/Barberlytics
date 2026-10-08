@@ -51,6 +51,12 @@ export function seedSettings(): MockSettingsState {
         deposit: { enabled: true, percent: 30, newClients: true, afterNoShows: 1 },
         // Cada 10 visitas, un corte clásico de cortesía.
         loyalty: { enabled: true, every: 10, rewardServiceId: "svc_corte" },
+        // Paquetes prepagados: varias visitas de un servicio con descuento, con vencimiento.
+        packages: [
+          { id: "pkg_cortes4", name: "4 cortes clásicos", serviceId: "svc_corte", sessions: 4, price: 120, validDays: 120 },
+          { id: "pkg_combo3", name: "3 corte + barba", serviceId: "svc_combo", sessions: 3, price: 160, validDays: 90 },
+          { id: "pkg_fade6", name: "6 fades", serviceId: "svc_fade", sessions: 6, price: 230, validDays: 180 },
+        ],
         cancelHours: 3,
         lateFeePercent: 10,
         maxCancellations: 5,

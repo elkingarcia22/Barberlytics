@@ -32,6 +32,33 @@ export const PROMOS: readonly Promo[] = [
   { code: "BARBER5", type: "amount", value: 5 },
 ];
 
+export interface OwnedPackageLike {
+  id: string;
+  serviceId: string;
+  remaining: number;
+}
+
+/**
+ * Lo que cubren sus paquetes: por cada cita, cada servicio con visitas por usar en un paquete se
+ * paga con una visita (el precio que habría cobrado el barbero). Devuelve el monto y cuántas
+ * visitas se gastan de cada paquete. Lo usan el resumen del cliente y el servidor, igual.
+ */
+export function coverByPackages(appointments: readonly (readonly { serviceId: string; price: number }[])[], owned: readonly OwnedPackageLike[]): { amount: number; used: Record<string, number> } {
+  const left = new Map(owned.map((item) => [item.id, item.remaining]));
+  const used: Record<string, number> = {};
+  let amount = 0;
+  for (const services of appointments) {
+    for (const service of services) {
+      const pack = owned.find((item) => item.serviceId === service.serviceId && (left.get(item.id) ?? 0) > 0);
+      if (!pack) continue;
+      left.set(pack.id, (left.get(pack.id) ?? 0) - 1);
+      used[pack.id] = (used[pack.id] ?? 0) + 1;
+      amount += service.price;
+    }
+  }
+  return { amount: round2(amount), used };
+}
+
 /** El cupón de bienvenida (solo primera visita): se le ofrece y aplica solo al cliente nuevo. */
 export const FIRST_VISIT_PROMO: Promo | undefined = PROMOS.find((promo) => promo.firstVisitOnly);
 
@@ -84,6 +111,8 @@ export interface TotalsInput {
   giftBalance?: number;
   /** La cortesía de cliente frecuente que se usa: se descuenta de los servicios. */
   reward?: number;
+  /** Lo que cubre un paquete prepagado (los servicios que ya pagó). */
+  prepaid?: number;
 }
 
 export interface Totals {
@@ -99,6 +128,8 @@ export interface Totals {
   gift: number;
   /** La cortesía de cliente frecuente descontada. */
   reward: number;
+  /** Lo que cubre su paquete prepagado. */
+  prepaid: number;
   /** Lo que queda por pagar, ya restada la tarjeta de regalo. */
   total: number;
 }
@@ -113,15 +144,18 @@ export const chargesCardFee = (method: string | null): boolean => method === "ca
  */
 export function computeTotals(input: TotalsInput): Totals {
   // La cortesía no puede valer más que los servicios (no se regala un producto).
-  const reward = round2(Math.min(Math.max(0, input.reward ?? 0), Math.max(0, input.services - input.discount)));
-  const subtotal = round2(Math.max(0, input.services + input.products - input.discount - reward));
+  const servicesLeft = Math.max(0, input.services - input.discount);
+  // Lo ya pagado en un paquete sale primero; la cortesía, de lo que quede de servicios.
+  const prepaid = round2(Math.min(Math.max(0, input.prepaid ?? 0), servicesLeft));
+  const reward = round2(Math.min(Math.max(0, input.reward ?? 0), servicesLeft - prepaid));
+  const subtotal = round2(Math.max(0, input.services + input.products - input.discount - reward - prepaid));
   const tax = round2((subtotal * input.taxPercent) / 100);
   const tip = round2(Math.max(0, input.tip));
   const gift = round2(Math.min(Math.max(0, input.giftBalance ?? 0), subtotal + tax + tip));
   const feeBase = Math.max(0, subtotal - gift);
   const rule = input.cardFee ?? null;
   const fee = rule && feeBase > 0 ? round2(rule.type === "percent" ? (feeBase * rule.rate) / 100 : rule.rate) : 0;
-  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, gift, reward, total: round2(subtotal + tax + tip + fee - gift) };
+  return { services: round2(input.services), products: round2(input.products), discount: round2(input.discount), subtotal, tax, tip, fee, feeName: fee > 0 && rule ? rule.name : null, gift, reward, prepaid, total: round2(subtotal + tax + tip + fee - gift) };
 }
 
 /** El anticipo para pagar en la barbería: el porcentaje de lo comprado con impuesto (sin propina ni recargo). */

@@ -27,6 +27,9 @@ import {
   type GiftCheck,
   type GiftPurchaseInput,
   type GiftPurchased,
+  type PackagePurchaseInput,
+  type PackagePurchased,
+  packagePurchasedSchema,
   type BarberReview,
   type Earliest,
   type Availability,
@@ -96,6 +99,7 @@ export const bookingApi = {
     api.post<{ id: string; rating: number }>(`/booking/appointments/${id}/review`, input, { headers: session(token), schema: reviewSavedSchema }),
   trackEvent: (event: { sessionId: string; step: string; surface: string; source: string }) => api.post<void>("/booking/events", event),
   funnel: (days: number, signal?: AbortSignal) => api.get<BookingFunnel>("/booking/funnel", { query: { days }, schema: funnelSchema, signal }),
+  buyPackage: (token: string, input: PackagePurchaseInput) => api.post<PackagePurchased>("/booking/packages/buy", input, { headers: session(token), schema: packagePurchasedSchema, timeoutMs: 30_000 }),
   checkGift: (code: string) => api.post<GiftCheck>("/booking/gift-cards/check", { code }, { schema: giftCheckSchema }),
   buyGift: (token: string, input: GiftPurchaseInput) => api.post<GiftPurchased>("/booking/gift-cards", input, { headers: session(token), schema: giftPurchasedSchema, timeoutMs: 30_000 }),
   repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>

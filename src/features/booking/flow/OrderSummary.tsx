@@ -58,6 +58,7 @@ export function OrderSummary({ totals, money, lines, promoCode }: OrderSummaryPr
       )}
       {!lines && row(t("booking.payment.services"), totals.services)}
       {!lines && totals.products > 0 && row(t("booking.payment.products"), totals.products)}
+      {totals.prepaid > 0 && row(t("booking.packages.line"), totals.prepaid, "positive")}
       {totals.reward > 0 && row(t("booking.loyalty.line"), totals.reward, "positive")}
       {totals.discount > 0 && row(promoCode ? `${t("booking.payment.discount")} · ${promoCode}` : t("booking.payment.discount"), totals.discount, "positive")}
       {row(t("booking.payment.subtotal"), totals.subtotal)}

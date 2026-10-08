@@ -39,7 +39,7 @@ export function StepLayout({ title, lead, aside, footer, children }: StepLayoutP
         <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">{children}</div>
       </div>
       {footer && (
-        <div className="sticky bottom-0 z-sticky border-t border-border bg-surface/95 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+        <div className="sticky bottom-0 z-sticky border-t border-border bg-surface px-5 py-3 shadow-[0_-8px_16px_-12px_hsl(var(--foreground)/0.25)]">
           {footer}
         </div>
       )}

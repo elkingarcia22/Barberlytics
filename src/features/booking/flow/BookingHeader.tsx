@@ -3,11 +3,11 @@ import { Stepper } from "@/components/navigation/Stepper";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { PROGRESS_STEPS, progressIndex } from "../bookingState";
 import { useBookingFlow } from "./BookingContext";
+import { ShopBrand } from "./ShopBrand";
 
 const STEP_LABELS: Record<(typeof PROGRESS_STEPS)[number], AppMessageKey> = {
   branch: "booking.step.branch",
@@ -47,18 +47,8 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
             </Button>
           )}
         </div>
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-2.5">
-          <IconTile size="sm" shape="circle" src={shop.logoUrl} icon={<ThemaIcon name="scissors" />} />
-          <div className="flex min-w-0 flex-col leading-tight">
-            <Text size="sm" weight="semibold" truncate>
-              {shop.name}
-            </Text>
-            {branch && (
-              <Text size="xs" tone="muted" truncate>
-                {branch.name}
-              </Text>
-            )}
-          </div>
+        <div className="flex min-w-0 flex-1 items-center justify-center">
+          <ShopBrand shop={shop} tagline={branch?.name} />
         </div>
         <div className="flex shrink-0 items-center justify-end gap-1">
           {state.step !== "manage" && state.step !== "confirmed" && (

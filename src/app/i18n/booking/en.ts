@@ -32,6 +32,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.site.fab": "Book now",
   "booking.site.close": "Close booking",
 
+  "booking.brand.tagline": "Barbershop",
+
   "booking.header.back": "Back",
   "booking.header.stepOf": "Step {current} of {total}",
   "booking.header.myAppointments": "My appointments",

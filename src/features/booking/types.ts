@@ -26,6 +26,8 @@ export type BookingBranch = z.infer<typeof bookingBranchSchema>;
 export const bookingShopSchema = z.object({
   name: z.string(),
   logoUrl: z.string().nullable(),
+  /** La versión del logo para fondos oscuros. */
+  logoDarkUrl: z.string().nullable(),
   coverUrl: z.string().nullable(),
   phone: z.string(),
   currency: z.string(),

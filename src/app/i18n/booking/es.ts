@@ -36,6 +36,8 @@ export const bookingEs = {
   "booking.site.fab": "Reservar cita",
   "booking.site.close": "Cerrar la reserva",
 
+  "booking.brand.tagline": "Barbería",
+
   // ── Cabecera del flujo ──
   "booking.header.back": "Atrás",
   "booking.header.stepOf": "Paso {current} de {total}",

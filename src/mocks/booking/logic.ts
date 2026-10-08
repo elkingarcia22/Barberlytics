@@ -99,8 +99,10 @@ export function shop() {
       barbers: bookableBarbers(branch.id).length,
     }));
   return {
-    name: db.branding.name ?? company.name,
+    // La marca de la barbería tal como la subió en Identidad; sin ella, Barberlytics.
+    name: db.branding.name ?? "Barberlytics",
     logoUrl: db.branding.logo,
+    logoDarkUrl: db.branding.logoDark,
     coverUrl: COVER,
     phone: company.phone,
     currency: (db.settings.sections.pricing as { currency: string }).currency,

@@ -8,6 +8,7 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { BookingFlow } from "../BookingFlow";
+import { ShopBrand } from "../flow/ShopBrand";
 import { initialsOf, useBookingFormat } from "../bookingFormat";
 import { useBookingCatalogQuery, useBookingShopQuery } from "../queries";
 
@@ -30,10 +31,7 @@ export function DemoSite() {
     <div className="relative h-full overflow-hidden bg-background">
       <div className="h-full overflow-y-auto">
         <header className="sticky top-0 z-sticky flex items-center justify-between gap-4 border-b border-border bg-background/80 px-6 py-3 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <IconTile size="sm" shape="circle" src={shop?.logoUrl} icon={<ThemaIcon name="scissors" />} />
-            <Text weight="semibold">{shop?.name}</Text>
-          </div>
+          {shop && <ShopBrand shop={shop} />}
           <nav aria-label={shop?.name} className="hidden items-center gap-6 sm:flex">
             {(["booking.site.nav.services", "booking.site.nav.team", "booking.site.nav.visit"] as const).map((key) => (
               <Text key={key} size="sm" tone="secondary" as="span">

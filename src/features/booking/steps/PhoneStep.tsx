@@ -4,11 +4,11 @@ import { Field, PhoneInput } from "@/components/forms";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/feedback/Spinner";
-import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import type { IconName } from "@/icons";
 import { describeError } from "@/lib/api";
 import { useBookingFlow } from "../flow/BookingContext";
+import { ShopBrand } from "../flow/ShopBrand";
 import { StepLayout } from "../flow/StepLayout";
 import { useLookupMutation } from "../queries";
 
@@ -88,7 +88,7 @@ export function PhoneStep() {
         </ul>
 
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4">
-          <IconTile size="lg" shape="circle" src={shop.logoUrl} icon={<ThemaIcon name="scissors" />} />
+          <ShopBrand shop={shop} tagline={undefined} iconOnly />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <Text weight="semibold" truncate>
               {shop.name}

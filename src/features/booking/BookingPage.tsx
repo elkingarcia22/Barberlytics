@@ -54,7 +54,8 @@ export function BookingPage() {
   if (isEmbed) {
     return (
       <main className="h-dvh">
-        <BookingFlow layout={isNarrow ? "compact" : "wide"} touch={isNarrow ? "default" : "lg"} />
+        {/* La página pública cuenta para el embudo; `widget=1` la marca como abierta desde el sitio. */}
+        <BookingFlow layout={isNarrow ? "compact" : "wide"} touch={isNarrow ? "default" : "lg"} surface={params.get("widget") === "1" ? "widget" : "link"} />
       </main>
     );
   }

@@ -33,7 +33,7 @@ const NO_TIP = "none";
  */
 export function PaymentStep() {
   const t = useAppT();
-  const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
+  const { state, dispatch, shop, catalog, totals, fmt, utm } = useBookingFlow();
   const reserve = useReserveMutation(state.token);
   // La tarjeta nueva, ya escrita y revisada en su hoja (null mientras no se agrega).
   const [card, setCard] = React.useState<CardValues | null>(null);
@@ -121,6 +121,7 @@ export function PaymentStep() {
         promoCode: state.promo?.code ?? null,
         giftCode: state.gift?.code,
         referencePhoto: state.referencePhoto ?? undefined,
+        utm: utm ?? undefined,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
         card: usesCard && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,

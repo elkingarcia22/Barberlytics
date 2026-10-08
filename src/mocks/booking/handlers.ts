@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { db } from "../db";
+import { ACCOUNTS, db } from "../db";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
 import { profileOf, saveProfile } from "../customers/handlers";
@@ -35,6 +35,7 @@ import { cancelMessages, rescheduleMessages, scheduleMessages } from "./reminder
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
 import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
+import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 
 /** Lo que se puede regalar en una tarjeta. */
 const GIFT_MIN = 10;
@@ -449,6 +450,10 @@ export const bookingHandlers = [
       products: productLines,
       promoCode: promo?.code ?? null,
       giftCode: giftCard?.code ?? null,
+      utm: (() => {
+        const utm = asRecord(input.utm as DefaultBodyType);
+        return text(utm.source) ? { source: text(utm.source).slice(0, 40), medium: text(utm.medium).slice(0, 40), campaign: text(utm.campaign).slice(0, 60) } : null;
+      })(),
       totals,
       payment,
     };
@@ -526,6 +531,27 @@ export const bookingHandlers = [
     rescheduleMessages(updated, client.phone);
     db.persist();
     return HttpResponse.json(bookedOf(updated));
+  }),
+
+  http.post(`${BASE}/events`, async ({ request }) => {
+    const input = asRecord(await request.json().catch(() => ({})));
+    const step = FUNNEL_STEPS.find((item) => item === input.step);
+    const surface = (["link", "widget", "preview"] as const).find((item) => item === input.surface) ?? "preview";
+    const sessionId = text(input.sessionId).slice(0, 64);
+    if (!step || !sessionId) return new HttpResponse(null, { status: 204 });
+    recordEvent({ sessionId, step, at: new Date().toISOString(), surface, source: text(input.source).slice(0, 40).toLowerCase() || "directo" });
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${BASE}/funnel`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    // Es del dueño: pide la sesión de la app, no la del cliente.
+    const header = request.headers.get("authorization");
+    const appToken = header?.startsWith("Bearer ") ? header.slice(7) : null;
+    if (!ACCOUNTS.some((account) => account.id === (appToken ? db.sessions.get(appToken) : undefined))) return error(401, "unauthorized", "Tu sesión expiró.");
+    const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
+    return HttpResponse.json(funnelSummary(days));
   }),
 
   http.post(`${BASE}/gift-cards/check`, async ({ request }) => {

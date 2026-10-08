@@ -2,6 +2,7 @@ import { z } from "zod";
 import { api } from "@/lib/api";
 import {
   alternativesSchema,
+  funnelSchema,
   giftCheckSchema,
   giftPurchasedSchema,
   barberReviewsSchema,
@@ -22,6 +23,7 @@ import {
   suggestionResponseSchema,
   reservationSchema,
   type Alternatives,
+  type BookingFunnel,
   type GiftCheck,
   type GiftPurchaseInput,
   type GiftPurchased,
@@ -88,6 +90,8 @@ export const bookingApi = {
   barberReviews: (barberId: string, signal?: AbortSignal) => api.get<{ items: BarberReview[]; total: number }>(`/booking/barbers/${barberId}/reviews`, { query: { limit: 3 }, schema: barberReviewsSchema, signal }),
   review: (token: string, id: string, input: { rating: number; comment: string }) =>
     api.post<{ id: string; rating: number }>(`/booking/appointments/${id}/review`, input, { headers: session(token), schema: reviewSavedSchema }),
+  trackEvent: (event: { sessionId: string; step: string; surface: string; source: string }) => api.post<void>("/booking/events", event),
+  funnel: (days: number, signal?: AbortSignal) => api.get<BookingFunnel>("/booking/funnel", { query: { days }, schema: funnelSchema, signal }),
   checkGift: (code: string) => api.post<GiftCheck>("/booking/gift-cards/check", { code }, { schema: giftCheckSchema }),
   buyGift: (token: string, input: GiftPurchaseInput) => api.post<GiftPurchased>("/booking/gift-cards", input, { headers: session(token), schema: giftPurchasedSchema, timeoutMs: 30_000 }),
   repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>

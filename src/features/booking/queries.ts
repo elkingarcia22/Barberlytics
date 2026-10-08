@@ -161,6 +161,11 @@ export function useBuyGiftMutation(token: string | null) {
   return useMutation({ mutationFn: (input: GiftPurchaseInput) => bookingApi.buyGift(needsSession(token), input) });
 }
 
+/** El embudo para el dueño (Ajustes › Reservas): pide la sesión de la app. */
+export function useBookingFunnelQuery(days = 30) {
+  return useQuery({ queryKey: [...bookingKeys.all, "funnel", days] as const, queryFn: ({ signal }) => bookingApi.funnel(days, signal), staleTime: 60_000 });
+}
+
 export function useMyAppointmentsQuery(token: string | null) {
   return useQuery({
     queryKey: bookingKeys.mine(token ?? ""),

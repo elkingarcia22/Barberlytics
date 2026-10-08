@@ -3,6 +3,8 @@ import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
 import { resetBookingLimits } from "@/mocks/booking/handlers";
+import { funnelSummary } from "@/mocks/booking/funnel";
+import { utmFrom } from "./funnel";
 import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
@@ -101,6 +103,26 @@ describe("foto de referencia", () => {
     expect(fitWithin(4032, 3024)).toEqual({ width: 1024, height: 768 });
     expect(fitWithin(1080, 1920)).toEqual({ width: 576, height: 1024 });
     expect(fitWithin(800, 600)).toEqual({ width: 800, height: 600 });
+  });
+});
+
+describe("embudo de la reserva", () => {
+  test("la UTM del enlace dice de dónde vino", () => {
+    expect(utmFrom("?utm_source=instagram&utm_medium=bio&utm_campaign=octubre")).toEqual({ source: "instagram", medium: "bio", campaign: "octubre" });
+    expect(utmFrom("?vista=phone")).toBeNull();
+  });
+
+  test("cuenta las sesiones que llegan a cada paso y de dónde vienen; la vista previa no cuenta", async () => {
+    db.booking.funnel = [];
+    const steps = ["phone", "verify", "services", "barber", "time", "review", "payment", "confirmed"];
+    for (const step of steps) await bookingApi.trackEvent({ sessionId: "s1", step, surface: "link", source: "instagram" });
+    for (const step of steps.slice(0, 3)) await bookingApi.trackEvent({ sessionId: "s2", step, surface: "widget", source: "" });
+    await bookingApi.trackEvent({ sessionId: "s3", step: "phone", surface: "preview", source: "" });
+    const summary = funnelSummary(30);
+    expect(summary).toMatchObject({ demo: false, started: 2, bookings: 1, conversion: 50 });
+    expect(summary.steps.find((item) => item.step === "services")?.rate).toBe(100);
+    expect(summary.steps.find((item) => item.step === "barber")?.rate).toBe(50);
+    expect(summary.sources).toEqual(expect.arrayContaining([{ source: "instagram", sessions: 1, bookings: 1 }, { source: "directo", sessions: 1, bookings: 0 }]));
   });
 });
 

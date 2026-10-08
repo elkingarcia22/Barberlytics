@@ -116,8 +116,15 @@ export function shop() {
     tipOptions: tips.options,
     defaultTipId: tips.defaultId,
     payment: rules.paymentMethods,
+    cardFee: cardFeeRule(),
     branches,
   };
+}
+
+/** El recargo por tarjeta de Configuración, si está encendido (el mismo que cobra la agenda). */
+export function cardFeeRule(): { name: string; rate: number; type: "percent" | "amount" } | null {
+  const fee = db.settings.sections.cardFee as { enabled: boolean; name: string; rate: number; type: "percent" | "amount" };
+  return fee.enabled ? { name: fee.name, rate: fee.rate, type: fee.type } : null;
 }
 
 const POPULAR = new Set(["svc_corte", "svc_combo", "svc_fade"]);

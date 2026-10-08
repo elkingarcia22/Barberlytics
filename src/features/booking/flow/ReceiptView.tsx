@@ -33,8 +33,9 @@ export function ReceiptView({ reservation, fmt }: ReceiptViewProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col">
+      {/* Si el estado del pago no cabe al lado, baja a su propia línea en vez de apretar el número de reserva. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+        <div className="flex min-w-[10rem] flex-1 flex-col">
           <Heading level={6}>{t("booking.payment.order")}</Heading>
           <Text size="xs" tone="muted" tabular>
             {t("booking.confirmed.number", { number: reservation.number })} · {fmt.day(new Date(reservation.createdAt))}

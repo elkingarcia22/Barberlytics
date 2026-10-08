@@ -355,7 +355,7 @@ cerraría la sesión de quien esté dentro de la app en el mismo navegador).
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/booking/shop` | La barbería: nombre, logo, moneda, impuesto, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago y sedes con su horario de hoy. Sale de Configuración. |
+| `GET` | `/booking/shop` | La barbería: nombre, logo, moneda, impuesto, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago, `cardFee` (el recargo por tarjeta encendido en Configuración, o `null`) y sedes con su horario de hoy. Sale de Configuración. |
 | `GET` | `/booking/branches/:id` | El perfil de una sede: `description`, dirección completa, `phone`, `mapsUrl`, `gallery`, `hours` (siete entradas, `opensAt`/`closesAt` nulos si ese día cierra), número de barberos y los `closures` que vienen. La descripción, dirección y teléfono son los de Configuración › Sucursales; el horario de cada día sale del equipo que trabaja ese día. `404` si no existe o está inactiva. |
 | `GET` | `/booking/catalog?branchId` | Lo reservable en la sede: servicios públicos y activos, barberos visibles con lo que cobra cada uno por servicio (`prices`), galería y valoración, y productos visibles y vendibles. |
 | `GET` | `/booking/availability?branchId&date&serviceIds&barberId&exclude` | Las horas libres del día, `{ time, barberIds }`. Sin `barberId`, cualquier barbero que haga todos los servicios. `exclude` es la cita que se está moviendo. Respeta horario, citas, bloqueos, cierres y anticipación mínima. |
@@ -366,7 +366,7 @@ cerraría la sesión de quien esté dentro de la app en el mismo navegador).
 | `GET` | `/booking/customers/:id/suggestion` | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
 | `POST` | `/booking/customers` | Crea el cliente nuevo `{ phone, firstName, lastName, email, marketing }`. `201`. |
 | `POST` | `/booking/promo` | `{ code, customerId, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
-| `POST` | `/booking/reservations` | Reserva y cobra. Cuerpo: `customerId`, `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start`), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card`. `201` con el recibo. |
+| `POST` | `/booking/reservations` | Reserva y cobra. Cuerpo: `customerId`, `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start`), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. |
 | `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo }` (enmascarado). `404` si no hay cliente con ese celular. |
 | `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ token, customer }`. `422 otp_invalid` si el código no es. |
 | `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |

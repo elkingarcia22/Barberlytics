@@ -1,5 +1,5 @@
 {
-  "sourceHash": "0ad0e15e05fa7978",
+  "sourceHash": "a5245355c974c859",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -20348,6 +20348,7 @@
     "bug",
     "building",
     "calendar",
+    "calendarAdd",
     "camera",
     "chart",
     "chat",
@@ -20386,6 +20387,7 @@
     "lock",
     "logout",
     "magicWand",
+    "mail",
     "mic",
     "micOff",
     "microsoft",

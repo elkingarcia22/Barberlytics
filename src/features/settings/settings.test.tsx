@@ -173,11 +173,11 @@ describe("pantallas de configuración", () => {
   test("el recargo por tarjeta no se guarda sin nombre cuando está encendido", async () => {
     renderSection("tarifa-tarjeta");
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId("cardfee-enabled"));
+    // La demo lo trae encendido: borrar el nombre y guardar no deja guardar.
     await user.clear(await screen.findByTestId("cardfee-name"));
     await user.click(screen.getByTestId("settings-save"));
     expect(await screen.findByText("Ponle un nombre al recargo.")).toBeInTheDocument();
-    expect(db.settings.sections.cardFee.enabled).toBe(false);
+    expect(db.settings.sections.cardFee.name).toBe("Recargo por tarjeta");
   });
 
   test("agregar un impuesto lo suma a la lista con su total", async () => {

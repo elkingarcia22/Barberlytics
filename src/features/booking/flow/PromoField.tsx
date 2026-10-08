@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { Chip } from "@/components/ai-interaction";
 import { Field } from "@/components/forms";
+import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isApiError } from "@/lib/api";
@@ -22,17 +23,22 @@ const problemOf = (error: unknown): PromoProblem => {
   return problem === "firstVisitOnly" || problem === "minAppointments" ? problem : "unknown";
 };
 
-/** El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar. */
+/** El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar, con lo que ahorra. */
 export function PromoField() {
   const t = useAppT();
-  const { state, dispatch } = useBookingFlow();
+  const { state, dispatch, totals, fmt } = useBookingFlow();
   const [code, setCode] = React.useState("");
   const check = useMutation({ mutationFn: () => bookingApi.checkPromo({ code, customerId: state.customer?.id ?? null, appointments: state.items.length }) });
 
   if (state.promo) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Chip label={t("booking.payment.promoApplied", { code: state.promo.code })} tone="positive" icon="ticket" removable onRemove={() => dispatch({ type: "setPromo", promo: null })} />
+        <Text size="sm" tone="positive" tabular>
+          {state.promo.type === "percent"
+            ? t("booking.payment.promoSavesPercent", { amount: fmt.money(totals.discount), rule: `${state.promo.value} %` })
+            : t("booking.payment.promoSaves", { amount: fmt.money(totals.discount) })}
+        </Text>
       </div>
     );
   }

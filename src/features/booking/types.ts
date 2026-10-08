@@ -41,6 +41,8 @@ export const bookingShopSchema = z.object({
   tipOptions: z.array(tipOptionSchema),
   defaultTipId: z.string().nullable(),
   payment: z.object({ card: z.boolean(), payAtShop: z.boolean() }),
+  /** El recargo por pagar con tarjeta que la barbería tiene encendido en Configuración, o nada. */
+  cardFee: z.object({ name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) }).nullable(),
   branches: z.array(bookingBranchSchema),
 });
 export type BookingShop = z.infer<typeof bookingShopSchema>;
@@ -216,6 +218,9 @@ export const totalsSchema = z.object({
   subtotal: z.number(),
   tax: z.number(),
   tip: z.number(),
+  /** El recargo por pagar con tarjeta (0 si se paga en la barbería o no hay recargo). */
+  fee: z.number().default(0),
+  feeName: z.string().nullable().default(null),
   total: z.number(),
 });
 

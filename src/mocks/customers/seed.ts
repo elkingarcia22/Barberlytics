@@ -95,7 +95,8 @@ export function deriveProfile(client: MockClient, now = new Date()): MockCustome
     address: `${10 + (h % 380)} ${STREETS[h % STREETS.length]}`,
     zipcode: String(10_000 + (h % 80_000)).padStart(5, "0"),
     birthDate,
-    onlineOnly: h % 9 === 0,
+    // Marcela (cli_001) es la clienta de la demo de reserva en línea: con ella se ve también «Pagar en la barbería».
+    onlineOnly: h % 9 === 0 && client.id !== "cli_001",
     blocked: h % 23 === 7,
     createdAt: new Date(now.getTime() - (60 + (hashOf(client.id, 2) % 700)) * DAY_MS).toISOString(),
     guests,

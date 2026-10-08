@@ -5,12 +5,10 @@ import { ErrorState } from "@/lib/query";
 import { PortalContainerProvider } from "@/components/ui/portal-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { bookingReducer, defaultBranchId, initialBookingState, type BookingAction, type BookingState } from "./bookingState";
-import { useBookingFormat } from "./bookingFormat";
-import { BookingFlowProvider, type BookingFlowValue, type BookingLayout } from "./flow/BookingContext";
+import { defaultBranchId, type BookingAction, type BookingState } from "./bookingState";
+import { BookingFlowProvider, useBookingFlow, type BookingLayout } from "./flow/BookingContext";
 import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
-import { useBookingCatalogQuery, useBookingShopQuery } from "./queries";
 import { BarberStep } from "./steps/BarberStep";
 import { BlockedStep } from "./steps/BlockedStep";
 import { BranchStep } from "./steps/BranchStep";
@@ -19,7 +17,7 @@ import { ManageStep } from "./steps/ManageStep";
 import { PaymentStep } from "./steps/PaymentStep";
 import { PhoneStep } from "./steps/PhoneStep";
 import { VerifyStep } from "./steps/VerifyStep";
-import { useFunnelTracking, type BookingSurface } from "./funnel";
+import type { BookingSurface } from "./funnel";
 import { PackagesStep } from "./steps/PackagesStep";
 import { GiftStep } from "./steps/GiftStep";
 import { ProfileStep } from "./steps/ProfileStep";
@@ -27,10 +25,15 @@ import { ReviewStep } from "./steps/ReviewStep";
 import { ServicesStep } from "./steps/ServicesStep";
 import { TimeStep } from "./steps/TimeStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
-import { useBookingTotals } from "./useBookingTotals";
 import type { BookingShop } from "./types";
+import { useBookingEngine } from "./useBookingEngine";
+import { AgendaFlow } from "./variants/agenda/AgendaFlow";
+import { ChatFlow } from "./variants/chat/ChatFlow";
+import type { BookingVersion } from "./versions";
 
 export interface BookingFlowProps {
+  /** Qué experiencia se monta; por defecto, la guiada. */
+  version?: BookingVersion;
   layout?: BookingLayout;
   touch?: "default" | "lg";
   /** Lo que va en la esquina de la cabecera (el cierre del widget). */
@@ -115,55 +118,64 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
   }
 }
 
-/**
- * La reserva en línea entera, lista para montarse donde haga falta: a
- * pantalla completa en una tablet del local o un monitor, o dentro del
- * panel flotante del widget en el sitio de la barbería. Se adapta al sitio
- * que le dan (`layout`), no al ancho de la ventana.
- */
-export function BookingFlow({ layout = "compact", touch = "default", headerTrailing, onFinish, surface = "preview", className }: BookingFlowProps) {
-  const t = useAppT();
-  const shopQuery = useBookingShopQuery();
-  const [state, dispatch] = React.useReducer(bookingReducer, undefined, () => initialBookingState());
-  const shop = shopQuery.data;
-  const catalogQuery = useBookingCatalogQuery(state.branchId);
-  const totals = useBookingTotals(state, catalogQuery.data, shop);
-  const fmt = useBookingFormat(shop?.currency);
+/** Paso a paso: la cabecera con el progreso, un paso por pantalla y, en monitor, el resumen al lado. */
+function GuidedFlow({ headerTrailing, onFinish }: Pick<BookingFlowProps, "headerTrailing" | "onFinish">) {
+  const { state, dispatch, shop, layout } = useBookingFlow();
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  // Las ventanas (drawers, modales) se abren dentro de la reserva, no en la
-  // ventana: en el marco del celular o en el panel del widget no se salen.
-  const [portalRoot, setPortalRoot] = React.useState<HTMLElement | null>(null);
-
-  // La propina por defecto de la barbería, una vez que se sabe cuál es.
-  const defaultTip = shop?.defaultTipId ?? null;
-  const tipSeeded = React.useRef(false);
-  React.useEffect(() => {
-    if (tipSeeded.current || defaultTip === null) return;
-    tipSeeded.current = true;
-    dispatch({ type: "setTip", tipId: defaultTip });
-  }, [defaultTip]);
 
   // Cada paso empieza arriba.
   React.useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [state.step]);
 
-  // La sesión vive en el estado de la reserva: empezar de nuevo («¿No eres tú?») la borra sola.
-  const tracking = useFunnelTracking(state.step, surface);
-  const setToken = React.useCallback((token: string | null) => dispatch({ type: "setToken", token }), []);
-  const value = React.useMemo<BookingFlowValue | null>(
-    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token: state.token, setToken, utm: tracking.utm } : null),
-    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, setToken, tracking.utm]
-  );
+  const back = backAction(state, shop);
+  const showAside = layout === "wide" && ["branch", "services", "barber", "time", "review", "payment"].includes(state.step);
 
-  if (shopQuery.isError) {
+  return (
+    <>
+      {/* El inicio no lleva cabecera: la marca ya está en su tarjeta. El widget la conserva por su botón de cerrar. */}
+      {(state.step !== "phone" || headerTrailing) && <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />}
+      <div className="flex min-h-0 flex-1">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="flex min-h-full w-full flex-col">
+            <StepSwitch state={state} onFinish={onFinish} />
+          </div>
+        </div>
+        {showAside && (
+          <div className="hidden w-96 shrink-0 overflow-y-auto border-l border-border bg-surface/60 lg:block">
+            <BookingSummaryAside />
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * La reserva en línea entera, lista para montarse donde haga falta: a
+ * pantalla completa en una tablet del local o un monitor, o dentro del
+ * panel flotante del widget en el sitio de la barbería. Se adapta al sitio
+ * que le dan (`layout`), no al ancho de la ventana.
+ *
+ * Las tres versiones comparten el motor (`useBookingEngine`): los datos de la
+ * barbería, el estado de la reserva, las cuentas y el cobro. Lo que cambia es
+ * el recorrido.
+ */
+export function BookingFlow({ version = "guided", layout = "compact", touch = "default", headerTrailing, onFinish, surface = "preview", className }: BookingFlowProps) {
+  const t = useAppT();
+  const engine = useBookingEngine({ layout, touch, surface });
+  // Las ventanas (drawers, modales) se abren dentro de la reserva, no en la
+  // ventana: en el marco del celular o en el panel del widget no se salen.
+  const [portalRoot, setPortalRoot] = React.useState<HTMLElement | null>(null);
+
+  if (engine.shopQuery.isError) {
     return (
       <div className={cn("flex h-full items-center justify-center p-6", className)}>
-        <ErrorState error={shopQuery.error} onRetry={() => void shopQuery.refetch()} />
+        <ErrorState error={engine.shopQuery.error} onRetry={() => void engine.shopQuery.refetch()} />
       </div>
     );
   }
-  if (!value) {
+  if (!engine.value) {
     return (
       <div className={cn("flex h-full flex-col gap-4 p-6", className)} aria-busy>
         <Skeleton className="h-10 w-2/3" />
@@ -174,31 +186,26 @@ export function BookingFlow({ layout = "compact", touch = "default", headerTrail
     );
   }
 
-  const back = backAction(state, value.shop);
-  const showAside = layout === "wide" && ["branch", "services", "barber", "time", "review", "payment"].includes(state.step);
-
   return (
-    <BookingFlowProvider value={value}>
+    <BookingFlowProvider value={engine.value}>
       <PortalContainerProvider value={portalRoot}>
-      {/* `translateZ(0)` hace de esta sección el bloque contenedor de lo `fixed`: las ventanas se miden contra ella. */}
-      <section ref={setPortalRoot} aria-label={t("booking.phone.title")} className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground [transform:translateZ(0)]", className)}>
-        <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
-        <Grain scope="container" />
-        {/* El inicio no lleva cabecera: la marca ya está en su tarjeta. El widget la conserva por su botón de cerrar. */}
-        {(state.step !== "phone" || headerTrailing) && <BookingHeader onBack={back ? () => dispatch(back) : null} trailing={headerTrailing} />}
-        <div className="flex min-h-0 flex-1">
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="flex min-h-full w-full flex-col">
-              <StepSwitch state={state} onFinish={onFinish} />
-            </div>
-          </div>
-          {showAside && (
-            <div className="hidden w-96 shrink-0 overflow-y-auto border-l border-border bg-surface/60 lg:block">
-              <BookingSummaryAside />
-            </div>
+        {/* `translateZ(0)` hace de esta sección el bloque contenedor de lo `fixed`: las ventanas se miden contra ella. */}
+        <section
+          ref={setPortalRoot}
+          aria-label={t("booking.phone.title")}
+          data-version={version}
+          className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground [transform:translateZ(0)]", className)}
+        >
+          <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
+          <Grain scope="container" />
+          {version === "agenda" ? (
+            <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} />
+          ) : version === "chat" ? (
+            <ChatFlow headerTrailing={headerTrailing} onFinish={onFinish} />
+          ) : (
+            <GuidedFlow headerTrailing={headerTrailing} onFinish={onFinish} />
           )}
-        </div>
-      </section>
+        </section>
       </PortalContainerProvider>
     </BookingFlowProvider>
   );

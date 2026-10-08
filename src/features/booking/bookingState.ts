@@ -80,6 +80,11 @@ export type BookingAction =
   | { type: "chooseBarber"; barberId: string | null }
   | { type: "chooseTime"; start: string }
   | { type: "addAnother"; person: BookingPerson }
+  /**
+   * Abre una cita en borrador sin moverse de paso: la usan las versiones que no
+   * van pantalla por pantalla (la agenda abierta, la conversación).
+   */
+  | { type: "openDraft"; person: BookingPerson; serviceIds: readonly string[]; barberId: string | null }
   | { type: "editItem"; index: number }
   | { type: "removeItem"; index: number }
   | { type: "restoreItem"; index: number; item: DraftItem }
@@ -102,6 +107,8 @@ export type BookingAction =
   | { type: "signedIn"; customer: BookingCustomer; token: string }
   /** El perfil cambió sin moverse de pantalla (p. ej. editó o quitó una tarjeta). */
   | { type: "customerUpdated"; customer: BookingCustomer }
+  /** «No soy yo» cuando el carrito ya está armado (la agenda pide los datos al final): olvida quién es y conserva las citas. */
+  | { type: "signOut" }
   | { type: "restart" };
 
 let keySeed = 0;
@@ -180,6 +187,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return state.draft ? commitDraft(state, { ...state.draft, start: action.start }) : state;
     case "addAnother":
       return { ...state, draft: emptyDraft(action.person), editingIndex: null, fromReview: state.items.length > 0, step: "services" };
+    case "openDraft":
+      return { ...state, draft: { ...emptyDraft(action.person), serviceIds: [...action.serviceIds], barberId: action.barberId }, editingIndex: null, fromReview: false };
     case "editItem": {
       const item = state.items[action.index];
       return item ? { ...state, draft: { ...item }, editingIndex: action.index, fromReview: true, step: "services" } : state;
@@ -233,6 +242,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, customer: action.customer, token: action.token, phone: action.customer.phone.replace(/[^\d+]/g, "") || state.phone };
     case "customerUpdated":
       return { ...state, customer: action.customer };
+    case "signOut":
+      return { ...state, phone: "", codeSentTo: null, token: null, customer: null, method: null, useReward: true, usePackages: true };
     case "restart":
       return initialBookingState(state.tipId);
   }

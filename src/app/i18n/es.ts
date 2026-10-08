@@ -1,4 +1,5 @@
 import { bookingEs } from "./booking/es";
+import { bookingVariantsEs } from "./booking/variants.es";
 /**
  * El diccionario **de la aplicación**, no el del sistema de diseño.
  *
@@ -3039,4 +3040,5 @@ export const appEs = {
   "feedback.upload.failed": "No se pudieron subir. Tu comentario sigue en el formulario.",
   // La reserva en línea, en su propio archivo (src/app/i18n/booking).
   ...bookingEs,
+  ...bookingVariantsEs,
 } as const;

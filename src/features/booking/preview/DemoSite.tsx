@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { BookingFlow } from "../BookingFlow";
 import { ShopBrand } from "../flow/ShopBrand";
 import { initialsOf, useBookingFormat } from "../bookingFormat";
+import type { BookingVersion } from "../versions";
 import { useBookingCatalogQuery, useBookingShopQuery } from "../queries";
 
 const FEATURED_SERVICES = 4;
@@ -20,7 +21,7 @@ const FEATURED_BARBERS = 6;
  * abajo a la derecha abre la reserva en un panel sin salir de la página. Es
  * lo que la barbería pega en su web con el script de «Enlaces y widgets».
  */
-export function DemoSite() {
+export function DemoSite({ version = "guided" }: { version?: BookingVersion }) {
   const t = useAppT();
   const [isOpen, setIsOpen] = React.useState(false);
   const { data: shop } = useBookingShopQuery();
@@ -114,6 +115,8 @@ export function DemoSite() {
         )}
       >
         <BookingFlow
+          key={version}
+          version={version}
           layout="compact"
           onFinish={() => setIsOpen(false)}
           headerTrailing={

@@ -1,5 +1,6 @@
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
+import { bookingVariantsEn } from "./booking/variants.en";
 
 /** Inglés de la aplicación. Traducción completa del diccionario fuente. */
 export const appEn: AppMessageCatalog = {
@@ -3002,4 +3003,5 @@ export const appEn: AppMessageCatalog = {
   "feedback.upload.done": "{total} sent with your comment",
   "feedback.upload.failed": "They could not be uploaded. Your comment is still in the form.",
   ...bookingEn,
+  ...bookingVariantsEn,
 };

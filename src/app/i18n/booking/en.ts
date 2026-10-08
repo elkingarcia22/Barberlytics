@@ -234,6 +234,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.card.barber": "Barber",
   "booking.card.branch": "Location",
 
+  "booking.review.pickedTitle": "In your order",
   "booking.review.seeAll": "See all ({count})",
   "booking.review.carouselPrev": "Previous products",
   "booking.review.carouselNext": "More products",

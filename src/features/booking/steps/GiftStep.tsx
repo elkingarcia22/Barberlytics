@@ -13,6 +13,7 @@ import { useBookingFlow } from "../flow/BookingContext";
 import { brandFromName, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { NewCardSheet } from "../flow/NewCardSheet";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
+import { useSavedCardManager } from "../flow/useSavedCardManager";
 import { StepLayout } from "../flow/StepLayout";
 import { useBuyGiftMutation } from "../queries";
 
@@ -46,6 +47,20 @@ export function GiftStep() {
   const [showErrors, setShowErrors] = React.useState(false);
   const amount = preset === OTHER ? (custom ?? 0) : preset;
   const chosenSaved = savedCards.find((item) => item.id === cardChoice) ?? null;
+  const chooseCard = (value: string) => {
+    setCardChoice(value);
+    setSavedCvc("");
+  };
+  const cardManager = useSavedCardManager({
+    choice: cardChoice,
+    newCard: NEW_CARD,
+    hasPending: card !== null,
+    choose: chooseCard,
+    clearPending: () => {
+      setCard(null);
+      setSaveCard(false);
+    },
+  });
   const fieldErrors = isApiError(buy.error) ? buy.error.fieldErrors : undefined;
   const errors = {
     amount: !(amount >= MIN_AMOUNT && amount <= MAX_AMOUNT) ? t("booking.gift.amountError", { min: fmt.money(MIN_AMOUNT), max: fmt.money(MAX_AMOUNT) }) : undefined,
@@ -143,13 +158,13 @@ export function GiftStep() {
         <SavedCardPicker
           cards={savedCards}
           value={cardChoice}
-          onChange={(value) => {
-            setCardChoice(value);
-            setSavedCvc("");
-          }}
+          onChange={chooseCard}
           pending={card}
           onAddNew={() => setSheet({ open: true, prefill: false })}
           onEditPending={() => setSheet({ open: true, prefill: true })}
+          onRemovePending={cardManager.onRemovePending}
+          onEditCard={cardManager.onEditCard}
+          onRemoveCard={cardManager.onRemoveCard}
           cvc={savedCvc}
           onCvcChange={setSavedCvc}
           showErrors={showErrors}
@@ -165,6 +180,7 @@ export function GiftStep() {
         </Text>
       </section>
 
+      {cardManager.sheets}
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
         open={sheet.open}

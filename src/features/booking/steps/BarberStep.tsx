@@ -84,12 +84,13 @@ export function BarberStep() {
               <Button
                 type="button"
                 variant="ghost"
+                size="sm"
                 className="absolute inset-y-[1.5px] right-[1.5px] h-auto rounded-l-none rounded-r-[11px] px-4 text-primary hover:bg-primary/5 hover:text-primary"
                 onClick={() => setProfile(barber)}
                 aria-label={`${t("booking.barber.profile")}: ${barber.name}`}
               >
                 {t("booking.barber.profile")}
-                <ThemaIcon name="chevronRight" data-icon="inline-end" />
+                <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
               </Button>
             </div>
           ))}

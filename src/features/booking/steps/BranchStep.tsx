@@ -35,6 +35,7 @@ export function BranchStep() {
             aria-label={`${branch.name}, ${branch.address}`}
             isSelected={branch.id === state.branchId}
             onClick={() => dispatch({ type: "chooseBranch", branchId: branch.id })}
+            className="w-full"
             contentClassName="items-start gap-4 pb-9 text-left"
           >
             <IconTile size="xl" src={branch.imageUrl} icon={<ThemaIcon name="building" />} />
@@ -69,7 +70,7 @@ export function BranchStep() {
             aria-label={`${t("booking.branch.viewProfile")}: ${branch.name}`}
           >
             {t("booking.branch.viewProfile")}
-            <ThemaIcon name="chevronRight" data-icon="inline-end" />
+            <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
           </Button>
           </div>
         ))}

@@ -2,7 +2,6 @@ import * as React from "react";
 import { CreditCard, Smartphone, Store, Wallet } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { Spinner } from "@/components/feedback/Spinner";
-import { ModalShell } from "@/components/overlays";
 import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { useBookingFlow } from "../flow/BookingContext";
 import { brandFromName, isCardComplete, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { OrderSummary } from "../flow/OrderSummary";
 import { PromoField } from "../flow/PromoField";
+import { BookingSheet } from "../flow/BookingSheet";
 import { NewCardSheet } from "../flow/NewCardSheet";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
 import { StepLayout } from "../flow/StepLayout";
@@ -213,10 +213,9 @@ export function PaymentStep() {
         <Heading level={6}>{t("booking.payment.order")}</Heading>
         <OrderSummary totals={totals} money={fmt.money} lines={lines} promoCode={state.promo?.code} />
       </section>
-      <ModalShell
+      <BookingSheet
         open={shopNoticeOpen}
         onOpenChange={setShopNoticeOpen}
-        size="sm"
         title={t("booking.payment.shopMulti.modalTitle")}
         actions={
           <Button type="button" size="lg" className="w-full" onClick={() => setShopNoticeOpen(false)}>
@@ -233,7 +232,7 @@ export function PaymentStep() {
           </ol>
           <Text tone="secondary">{t("booking.payment.shopMulti.bye")}</Text>
         </div>
-      </ModalShell>
+      </BookingSheet>
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
         open={sheet.open}

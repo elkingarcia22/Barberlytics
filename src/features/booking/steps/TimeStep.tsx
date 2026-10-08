@@ -122,7 +122,7 @@ export function TimeStep() {
               {t("booking.time.callTitle")}
             </Text>
             <Text size="xs" tone="muted">
-              {t("booking.time.callLead", { name: branch.name })}
+              {t("booking.time.callLead")}
             </Text>
           </div>
           <Button asChild variant="outline" size="sm">

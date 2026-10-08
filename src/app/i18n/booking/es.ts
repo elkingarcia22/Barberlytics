@@ -220,7 +220,7 @@ export const bookingEs = {
   "booking.time.withAny": "Con el primer barbero libre",
   "booking.time.change": "Cambiar",
   "booking.time.callTitle": "¿No encuentras horario?",
-  "booking.time.callLead": "Llama a {name} y agenda tu cita por teléfono.",
+  "booking.time.callLead": "Agenda por teléfono.",
   "booking.time.call": "Llamar",
   "booking.time.callAria": "Llamar al {phone}",
   "booking.time.noSlots": "No quedan horas este día. Prueba otro día o sin preferencia de barbero.",

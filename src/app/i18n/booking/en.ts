@@ -204,7 +204,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.time.withAny": "With the first available barber",
   "booking.time.change": "Change",
   "booking.time.callTitle": "Can't find a time?",
-  "booking.time.callLead": "Call {name} and book your appointment by phone.",
+  "booking.time.callLead": "Book by phone.",
   "booking.time.call": "Call",
   "booking.time.callAria": "Call {phone}",
   "booking.time.noSlots": "No times left this day. Try another day or no barber preference.",

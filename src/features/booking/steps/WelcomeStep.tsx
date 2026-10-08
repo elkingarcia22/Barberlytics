@@ -132,6 +132,26 @@ export function WelcomeStep() {
         {t("booking.welcome.different")}
       </Button>
 
+      {/* Regalar una tarjeta: solo si la barbería cobra con tarjeta en línea. */}
+      {shop.payment.card && (
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "goTo", step: "gift" })}
+          className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border p-3 text-left transition-colors duration-fast ease-out-expo hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
+        >
+          <IconTile size="md" shape="circle" icon={<ThemaIcon name="ticket" />} />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <Text as="span" size="sm" weight="medium">
+              {t("booking.gift.cta")}
+            </Text>
+            <Text as="span" size="xs" tone="secondary">
+              {t("booking.gift.ctaHint")}
+            </Text>
+          </span>
+          <ThemaIcon name="chevronRight" size="sm" tone="muted" />
+        </button>
+      )}
+
       <Button type="button" variant="link" size="sm" className="self-center" onClick={() => dispatch({ type: "restart" })}>
         {t("booking.welcome.notYou")}
       </Button>

@@ -36,7 +36,7 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
 describe("cuentas de la reserva", () => {
   test("el impuesto va sobre lo comprado con el descuento y la propina va aparte", () => {
     const totals = computeTotals({ services: 90, products: 10, discount: 15, taxPercent: 6.25, tip: 18 });
-    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, total: 108.31 });
+    expect(totals).toEqual({ services: 90, products: 10, discount: 15, subtotal: 85, tax: 5.31, tip: 18, fee: 0, feeName: null, gift: 0, total: 108.31 });
   });
 
   test("el recargo por tarjeta sale del subtotal, suma al total y solo lo llevan tarjeta y billetera", () => {
@@ -326,6 +326,28 @@ describe("backend de la reserva", () => {
     expect(after?.reviews).toBe((before?.reviews ?? 0) + 1);
     const latest = await bookingApi.barberReviews(done.barberId);
     expect(latest.items[0]).toMatchObject({ clientName: "Marcela G.", rating: 5, comment: "Impecable" });
+  });
+
+  test("la tarjeta de regalo paga primero, deja el saldo que sobra y si cubre todo no hay nada que cobrar", async () => {
+    const { token } = await signIn();
+    await expect(bookingApi.checkGift("NO-EXISTE")).rejects.toMatchObject({ status: 404 });
+    const gift = await bookingApi.checkGift("regalo 50");
+    expect(gift).toEqual({ code: "REGALO-50", balance: 50 });
+    const slot = async () => (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
+    // Un corte (US$ 35 + impuesto) cabe en los 50: no se cobra nada y queda saldo.
+    const first = await slot();
+    if (!first) throw new Error("debería haber hueco");
+    const covered = await bookingApi.reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: first.barberId, start: `${first.date}T${first.time}` }], products: [], tipId: null, promoCode: null, method: "card", giftCode: "REGALO-50" });
+    expect(covered.totals.total).toBe(0);
+    expect(covered.payment).toMatchObject({ method: "gift", status: "paid" });
+    const left = (await bookingApi.checkGift("REGALO-50")).balance;
+    expect(left).toBeCloseTo(50 - covered.totals.gift, 2);
+
+    // Comprar una para alguien: se paga con tarjeta y queda con su saldo completo.
+    await expect(bookingApi.buyGift(token, { amount: 5, recipientName: "Laura", recipientContact: "+573004441122", message: "" })).rejects.toMatchObject({ status: 422 });
+    const bought = await bookingApi.buyGift(token, { amount: 60, recipientName: "Laura", recipientContact: "+573004441122", message: "Feliz cumple", savedCardId: "card_demo_visa" });
+    expect(bought).toMatchObject({ amount: 60, sentTo: "•••• 1122", paidWith: "Visa •••• 4242" });
+    await expect(bookingApi.checkGift(bought.code)).resolves.toEqual({ code: bought.code, balance: 60 });
   });
 
   test("dejar fija una cita agenda las próximas cada tantas semanas con el mismo barbero, en serie", async () => {

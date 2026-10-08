@@ -21,6 +21,8 @@ export function ReceiptView({ reservation, fmt }: ReceiptViewProps) {
       ? null
       : reservation.payment.method === "credit"
         ? t("booking.payment.credit")
+        : reservation.payment.method === "gift"
+          ? t("booking.gift.line")
         : reservation.payment.last4
           ? `${reservation.payment.brand ?? ""} •••• ${reservation.payment.last4}`.trim()
           : (reservation.payment.brand ?? t("booking.payment.card"));

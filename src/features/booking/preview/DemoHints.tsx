@@ -19,6 +19,7 @@ export function DemoHints() {
     t("booking.preview.demoCard", { ok: "4242 4242 4242 4242", declined: "4000 0000 0000 0002" }),
     t("booking.preview.demoOtp", { code: "246810" }),
     t("booking.preview.demoPromo", { codes: PROMOS.map((promo) => promo.code).join(", ") }),
+    t("booking.preview.demoGift", { code: "REGALO-50" }),
   ];
   return (
     <Popover>

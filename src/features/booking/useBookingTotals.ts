@@ -35,8 +35,9 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
       taxPercent: shop?.taxPercent ?? 0,
       tip: tipAmount(tip, services),
       cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
+      giftBalance: state.gift?.balance ?? 0,
     });
-  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method]);
+  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift]);
 }
 
 export interface DraftOrderLine {

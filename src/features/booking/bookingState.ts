@@ -12,7 +12,7 @@ import type { BookingCustomer, LastVisit, PayMethod, Reservation } from "./types
  * preferencia) y una hora.
  */
 
-export type BookingStep = "phone" | "verify" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "manage";
+export type BookingStep = "phone" | "verify" | "gift" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "manage";
 
 export type BookingPerson = { kind: "self" } | { kind: "guest"; guestId: string; name: string; relation: string } | { kind: "new"; name: string; relation: string };
 
@@ -50,6 +50,8 @@ export interface BookingState {
   products: Readonly<Record<string, number>>;
   tipId: string | null;
   promo: Promo | null;
+  /** La tarjeta de regalo que se usa en esta reserva y su saldo. */
+  gift: { code: string; balance: number } | null;
   method: PayMethod | null;
   notes: string;
   reservation: Reservation | null;
@@ -81,6 +83,7 @@ export type BookingAction =
   | { type: "setProduct"; productId: string; qty: number }
   | { type: "setTip"; tipId: string | null }
   | { type: "setPromo"; promo: Promo | null }
+  | { type: "setGift"; gift: { code: string; balance: number } | null }
   | { type: "setMethod"; method: PayMethod }
   | { type: "setNotes"; notes: string }
   | { type: "goTo"; step: BookingStep }
@@ -99,7 +102,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, method: null, notes: "", reservation: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, method: null, notes: "", reservation: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -193,6 +196,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, tipId: action.tipId };
     case "setPromo":
       return { ...state, promo: action.promo };
+    case "setGift":
+      return { ...state, gift: action.gift };
     case "setMethod":
       return { ...state, method: action.method };
     case "setNotes":

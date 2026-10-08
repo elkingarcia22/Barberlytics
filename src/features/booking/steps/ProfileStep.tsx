@@ -11,6 +11,7 @@ import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
+import { defaultBranchId } from "../bookingState";
 import { useCreateCustomerMutation } from "../queries";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -38,7 +39,7 @@ export function ProfileStep() {
     if (!isValid) return;
     create.mutate(
       { phone: state.phone, firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing },
-      { onSuccess: (customer) => dispatch({ type: "profileSaved", customer, onlyBranchId: shop.branches.length === 1 ? shop.branches[0].id : null }) }
+      { onSuccess: (customer) => dispatch({ type: "profileSaved", customer, onlyBranchId: defaultBranchId(customer, shop.branches.map((item) => item.id)) }) }
     );
   };
 

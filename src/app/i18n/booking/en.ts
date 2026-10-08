@@ -111,7 +111,10 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.branch.barbers": "{count} barber",
   "booking.branch.barbers_plural": "{count} barbers",
   "booking.branch.hours": "Today {from} – {to}",
-  "booking.branch.changeWarning": "Changing location clears the appointments you've added.",
+  "booking.branch.changeWarning": "Barbers, prices and times belong to each location: if you change, you'll choose the appointments you have again.",
+  "booking.branch.changeTitle": "Change location",
+  "booking.branch.changeConfirm": "Change location",
+  "booking.branch.current": "Current",
 
   "booking.person.title": "Who is the appointment for?",
   "booking.person.self": "For me",

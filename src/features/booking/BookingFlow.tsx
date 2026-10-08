@@ -5,7 +5,7 @@ import { ErrorState } from "@/lib/query";
 import { PortalContainerProvider } from "@/components/ui/portal-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { bookingReducer, initialBookingState, type BookingAction, type BookingState } from "./bookingState";
+import { bookingReducer, defaultBranchId, initialBookingState, type BookingAction, type BookingState } from "./bookingState";
 import { useBookingFormat } from "./bookingFormat";
 import { BookingFlowProvider, type BookingFlowValue, type BookingLayout } from "./flow/BookingContext";
 import { BookingHeader } from "./flow/BookingHeader";
@@ -48,7 +48,8 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
       return state.items.length > 0 ? { type: "goTo", step: "review" } : identity;
     case "services":
       if (state.items.length > 0) return { type: "discardDraft" };
-      return shop.branches.length > 1 ? { type: "goTo", step: "branch" } : identity;
+      // Con la sede ya dada (única, o la de siempre del cliente) no hay paso de sede al que volver.
+      return defaultBranchId(state.customer, shop.branches.map((branch) => branch.id)) === null ? { type: "goTo", step: "branch" } : identity;
     case "barber":
       return { type: "goTo", step: "services" };
     case "time":

@@ -17,6 +17,7 @@ import { parseStart } from "../bookingFormat";
 import { renderPolicy } from "../pricing";
 import { AppointmentCard } from "../flow/AppointmentCard";
 import { useBookingFlow } from "../flow/BookingContext";
+import { BranchChange } from "../flow/BranchChange";
 import { ProductCard } from "../flow/ProductCard";
 import { ProductCatalogDrawer } from "../flow/ProductCatalogDrawer";
 import { StepLayout } from "../flow/StepLayout";
@@ -78,6 +79,8 @@ export function ReviewStep() {
         </div>
       }
     >
+      <BranchChange />
+
       <div className="flex flex-col gap-3">
         {state.items.map((item, index) => {
           const barber = catalog?.barbers.find((entry) => entry.id === item.barberId);

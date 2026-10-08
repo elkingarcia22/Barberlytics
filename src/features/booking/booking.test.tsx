@@ -5,7 +5,7 @@ import { db } from "@/mocks/db";
 import { bookingApi } from "./api";
 import { BookingFlow } from "./BookingFlow";
 import { buildIcs, firstBookableDay, isTodayOver, toStart } from "./bookingFormat";
-import { bookingReducer, initialBookingState, type BookingState } from "./bookingState";
+import { bookingReducer, defaultBranchId, initialBookingState, type BookingState } from "./bookingState";
 import { cancellationTerms, computeTotals, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
 import type { BookingCustomer, BookedAppointment } from "./types";
 
@@ -119,6 +119,17 @@ describe("recorrido de la reserva", () => {
     expect(state.items).toHaveLength(0);
     state = bookingReducer(state, { type: "restoreItem", index: 0, item });
     expect(state.items).toEqual([item]);
+  });
+
+  test("quien ya es cliente da por hecha su sede; el cliente nuevo con varias sedes la elige", () => {
+    const branches = ["ma", "nc", "ri"];
+    expect(defaultBranchId(customer(), branches)).toBe("ma");
+    expect(defaultBranchId(customer({ isNew: true, lastVisit: null }), branches)).toBeNull();
+    expect(defaultBranchId(customer({ lastVisit: { branchId: "zz", serviceIds: [], barberId: null, at: "2026-09-20T10:00:00" } }), branches)).toBeNull();
+    expect(defaultBranchId(null, ["ma"])).toBe("ma");
+    // «Reservar algo diferente» salta directo a los servicios de esa sede.
+    const state = bookingReducer(known(), { type: "startFresh", onlyBranchId: defaultBranchId(customer(), branches) });
+    expect(state).toMatchObject({ step: "services", branchId: "ma" });
   });
 
   test("aceptar la hora propuesta arma la cita y va directo al resumen", () => {

@@ -204,3 +204,14 @@ export function personName(person: BookingPerson, customer: BookingCustomer | nu
   if (person.kind === "self") return customer?.name ?? "";
   return person.name;
 }
+
+/**
+ * La sede que se da por hecha: la única que hay o, para quien ya es cliente,
+ * donde vino la última vez. `null` pide elegir (cliente nuevo con varias sedes).
+ * Quien ya viene no vuelve a elegir sede al reservar: la ajusta en el resumen.
+ */
+export function defaultBranchId(customer: BookingCustomer | null, branchIds: readonly string[]): string | null {
+  if (branchIds.length === 1) return branchIds[0];
+  const known = customer && !customer.isNew ? customer.lastVisit?.branchId : undefined;
+  return known && branchIds.includes(known) ? known : null;
+}

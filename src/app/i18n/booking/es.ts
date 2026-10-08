@@ -122,7 +122,10 @@ export const bookingEs = {
   "booking.branch.barbers": "{count} barbero",
   "booking.branch.barbers_plural": "{count} barberos",
   "booking.branch.hours": "Hoy {from} – {to}",
-  "booking.branch.changeWarning": "Cambiar de sede vacía las citas que llevas.",
+  "booking.branch.changeWarning": "Los barberos, precios y horas son de cada sede: al cambiar tendrás que elegir de nuevo las citas que llevas.",
+  "booking.branch.changeTitle": "Cambiar de sede",
+  "booking.branch.changeConfirm": "Cambiar de sede",
+  "booking.branch.current": "Actual",
 
   // ── Para quién ──
   "booking.person.title": "¿Para quién es la cita?",

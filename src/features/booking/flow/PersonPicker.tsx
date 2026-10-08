@@ -2,13 +2,16 @@ import * as React from "react";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { Chip } from "@/components/ai-interaction";
 import { Field } from "@/components/forms";
-import { ModalShell } from "@/components/overlays";
-import { Text } from "@/components/typography";
+import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
+import { Heading, Text } from "@/components/typography";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ThemaIcon } from "@/icons";
 import type { BookingPerson } from "../bookingState";
+import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "./BookingContext";
+import { BookingSheet } from "./BookingSheet";
 
 const RELATIONS: readonly AppMessageKey[] = [
   "booking.person.relation.child",
@@ -22,32 +25,43 @@ const MIN_NAME = 2;
 
 const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+interface KnownPerson {
+  key: string;
+  person: Extract<BookingPerson, { kind: "guest" | "new" }>;
+}
+
 /**
- * «¿Para quién es la cita?»: quien reserva, la gente que ya trajo antes (su
- * hijo, su pareja) o alguien nuevo. Así una persona agenda para la familia en
- * una sola reserva y el recordatorio le llega a ella.
+ * «¿Para quién es la cita?». Para mí, o para otra persona: primero la gente que
+ * ya está ligada a su perfil (su hijo, su pareja, un amigo que trajo antes) y
+ * las que sumó en esta misma reserva, a un toque; debajo, agregar a alguien
+ * nuevo con nombre y parentesco. El recordatorio le llega a quien reserva.
  */
 export function PersonPicker() {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
-  const [isAdding, setIsAdding] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [relation, setRelation] = React.useState<string>(t(RELATIONS[0]));
   const [touched, setTouched] = React.useState(false);
   const person = state.draft?.person ?? { kind: "self" };
-  const guests = state.customer?.guests ?? [];
-  // Los nuevos de esta reserva también se ofrecen para la siguiente cita.
-  const freshGuests = state.items
-    .map((item) => item.person)
-    .filter((item): item is Extract<BookingPerson, { kind: "new" }> => item.kind === "new")
-    .filter((item, index, all) => all.findIndex((other) => sameName(other.name, item.name)) === index && !guests.some((guest) => sameName(guest.name, item.name)));
-  const isCustom = person.kind === "new" && !freshGuests.some((item) => sameName(item.name, person.name));
 
-  const save = () => {
+  const known: KnownPerson[] = [
+    ...(state.customer?.guests ?? []).map((guest) => ({ key: guest.id, person: { kind: "guest" as const, guestId: guest.id, name: guest.name, relation: guest.relation } })),
+    ...state.items
+      .map((item) => item.person)
+      .filter((item): item is Extract<BookingPerson, { kind: "new" }> => item.kind === "new")
+      .map((item) => ({ key: `new-${item.name}`, person: item })),
+  ].filter((entry, index, all) => all.findIndex((other) => sameName(other.person.name, entry.person.name)) === index);
+  const isPicked = (entry: KnownPerson) => person.kind !== "self" && sameName(person.name, entry.person.name);
+
+  const choose = (next: BookingPerson) => {
+    dispatch({ type: "setPerson", person: next });
+    setIsOpen(false);
+  };
+  const addNew = () => {
     setTouched(true);
     if (name.trim().length < MIN_NAME) return;
-    dispatch({ type: "setPerson", person: { kind: "new", name: name.trim(), relation } });
-    setIsAdding(false);
+    choose({ kind: "new", name: name.trim(), relation });
     setName("");
     setTouched(false);
   };
@@ -59,53 +73,68 @@ export function PersonPicker() {
       </Text>
       <div className="flex flex-wrap gap-2">
         <Chip label={t("booking.person.self")} icon="users" selected={person.kind === "self"} onClick={() => dispatch({ type: "setPerson", person: { kind: "self" } })} />
-        {guests.map((guest) => (
-          <Chip
-            key={guest.id}
-            label={guest.relation ? `${guest.name} · ${guest.relation}` : guest.name}
-            selected={person.kind === "guest" && person.guestId === guest.id}
-            onClick={() => dispatch({ type: "setPerson", person: { kind: "guest", guestId: guest.id, name: guest.name, relation: guest.relation } })}
-          />
-        ))}
-        {freshGuests.map((guest) => (
-          <Chip key={guest.name} label={`${guest.name} · ${guest.relation}`} selected={person.kind === "new" && sameName(person.name, guest.name)} onClick={() => dispatch({ type: "setPerson", person: guest })} />
-        ))}
-        {isCustom && person.kind === "new" && <Chip label={`${person.name} · ${person.relation}`} selected />}
-        <Chip label={t("booking.person.add")} icon="userAdd" tone="primary" onClick={() => setIsAdding(true)} />
+        {person.kind !== "self" && <Chip label={person.relation ? `${person.name} · ${person.relation}` : person.name} selected onClick={() => setIsOpen(true)} />}
+        <Chip label={person.kind === "self" ? t("booking.person.add") : t("booking.person.change")} icon="userAdd" tone="primary" onClick={() => setIsOpen(true)} />
       </div>
 
-      <ModalShell
-        open={isAdding}
-        onOpenChange={setIsAdding}
-        size="sm"
+      <BookingSheet
+        open={isOpen}
+        onOpenChange={setIsOpen}
         title={t("booking.person.addTitle")}
         description={t("booking.person.addLead")}
         actions={
-          <Button type="button" onClick={save}>
-            {t("booking.person.save")}
+          <Button type="button" className="w-full" onClick={addNew}>
+            <ThemaIcon name="userAdd" />
+            {t("booking.person.addConfirm")}
           </Button>
         }
       >
-        <div className="flex flex-col gap-4">
-          <Field label={t("booking.person.name")} required error={touched && name.trim().length < MIN_NAME ? t("booking.person.nameError") : undefined}>
-            <Input value={name} onChange={(event) => setName(event.target.value)} autoFocus onKeyDown={(event) => event.key === "Enter" && save()} />
-          </Field>
-          <Field label={t("booking.person.relation")}>
-            <Select value={relation} onValueChange={setRelation}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RELATIONS.map((key) => (
-                  <SelectItem key={key} value={t(key)}>
-                    {t(key)}
-                  </SelectItem>
+        <div className="flex flex-col gap-6">
+          {known.length > 0 && (
+            <section className="flex flex-col gap-2" aria-labelledby="known-people">
+              <Heading level={6} id="known-people">
+                {t("booking.person.savedTitle")}
+              </Heading>
+              <ListItemGroup>
+                {known.map((entry) => (
+                  <ListItem
+                    key={entry.key}
+                    leading={
+                      <Avatar>
+                        <AvatarFallback>{initialsOf(entry.person.name)}</AvatarFallback>
+                      </Avatar>
+                    }
+                    title={entry.person.name}
+                    description={entry.person.relation || undefined}
+                    meta={isPicked(entry) ? <ThemaIcon name="check" size="sm" tone="primary" /> : undefined}
+                    selected={isPicked(entry)}
+                    onClick={() => choose(entry.person)}
+                  />
                 ))}
-              </SelectContent>
-            </Select>
-          </Field>
+              </ListItemGroup>
+            </section>
+          )}
+
+          <section className="flex flex-col gap-4" aria-labelledby="new-person">
+            <Heading level={6} id="new-person">
+              {known.length > 0 ? t("booking.person.newTitle") : t("booking.person.firstTitle")}
+            </Heading>
+            <Field label={t("booking.person.name")} required error={touched && name.trim().length < MIN_NAME ? t("booking.person.nameError") : undefined}>
+              <Input value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addNew()} autoComplete="off" />
+            </Field>
+            <div className="flex flex-col gap-2">
+              <Text size="sm" weight="medium">
+                {t("booking.person.relation")}
+              </Text>
+              <div role="radiogroup" aria-label={t("booking.person.relation")} className="flex flex-wrap gap-2">
+                {RELATIONS.map((key) => (
+                  <Chip key={key} label={t(key)} selected={relation === t(key)} onClick={() => setRelation(t(key))} />
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
-      </ModalShell>
+      </BookingSheet>
     </section>
   );
 }

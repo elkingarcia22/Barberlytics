@@ -3,7 +3,6 @@ import { Ticket, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { Spinner } from "@/components/feedback/Spinner";
-import { ModalShell } from "@/components/overlays";
 import { OptionTile } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +14,7 @@ import { cancellationTerms } from "../pricing";
 import { useCancelMutation } from "../queries";
 import type { BookedAppointment } from "../types";
 import { useBookingFlow } from "./BookingContext";
+import { BookingSheet } from "./BookingSheet";
 
 interface CancelDialogProps {
   appointment: BookedAppointment | null;
@@ -54,10 +54,9 @@ export function CancelDialog({ appointment, token, onOpenChange }: CancelDialogP
   };
 
   return (
-    <ModalShell
+    <BookingSheet
       open={appointment !== null}
       onOpenChange={onOpenChange}
-      size="sm"
       title={t("booking.cancel.title")}
       description={appointment ? `${appointment.serviceNames.join(" + ")} · ${fmt.when(parseStart(appointment.start))}` : undefined}
       actions={
@@ -110,6 +109,6 @@ export function CancelDialog({ appointment, token, onOpenChange }: CancelDialogP
           )}
         </div>
       )}
-    </ModalShell>
+    </BookingSheet>
   );
 }

@@ -2,7 +2,6 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { Field, PhoneInput } from "@/components/forms";
-import { ModalShell } from "@/components/overlays";
 import { SegmentedControl } from "@/components/selection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { describeError } from "@/lib/api";
 import { useResetOnChange } from "@/lib/useResetOnChange";
 import { useSendReceiptMutation } from "../queries";
 import type { Reservation } from "../types";
+import { BookingSheet } from "./BookingSheet";
 
 interface SendReceiptDialogProps {
   reservation: Reservation | null;
@@ -46,10 +46,9 @@ export function SendReceiptDialog({ reservation, onOpenChange }: SendReceiptDial
   };
 
   return (
-    <ModalShell
+    <BookingSheet
       open={reservation !== null}
       onOpenChange={onOpenChange}
-      size="sm"
       title={t("booking.receipt.sendTitle")}
       description={t("booking.receipt.sendLead")}
       actions={
@@ -74,6 +73,6 @@ export function SendReceiptDialog({ reservation, onOpenChange }: SendReceiptDial
           {channel === "email" ? <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /> : <PhoneInput value={phone} onValueChange={setPhone} />}
         </Field>
       </div>
-    </ModalShell>
+    </BookingSheet>
   );
 }

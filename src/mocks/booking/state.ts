@@ -34,6 +34,8 @@ export interface MockBookingState {
   credits: Record<string, number>;
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
+  /** Ya se le pusieron a la clienta de la demo sus personas guardadas (una sola vez). */
+  demoGuestsSeeded?: boolean;
 }
 
 export const emptyBooking = (): MockBookingState => ({ reservations: [], credits: {}, cancellations: {} });
@@ -47,6 +49,13 @@ export const DEMO_PHONES: Readonly<Record<string, string>> = {
   "+573005550101": "cli_001",
   "+573005550102": "cli_003",
 };
+
+/** La gente ligada al perfil de la clienta de la demo: para ver «Tu gente» al reservar para otro. */
+export const DEMO_GUESTS = [
+  { id: "gst_demo_santi", name: "Santiago", relation: "Hijo o hija", visits: 4 },
+  { id: "gst_demo_laura", name: "Laura", relation: "Pareja", visits: 2 },
+];
+export const DEMO_GUESTS_CLIENT = "cli_001";
 
 /** Un número bloqueado por la barbería, para ver ese caso. */
 export const BLOCKED_PHONE = "+573009999999";

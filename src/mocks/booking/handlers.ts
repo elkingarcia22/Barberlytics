@@ -25,7 +25,7 @@ import {
   tipOptions,
   visitSuggestion,
 } from "./logic";
-import { DECLINED_CARD, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
+import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
  * La reserva en línea del backend simulado (docs/API_CONTRACT.md, «Reserva en
@@ -130,6 +130,15 @@ function rememberGuests(client: MockClient, planned: readonly PlannedItem[]) {
   saveProfile(client.id, { ...profile, guests });
 }
 
+/** La clienta de la demo llega con su hijo y su pareja guardados en la ficha (una sola vez). */
+function seedDemoGuests(client: MockClient | undefined) {
+  if (!client || client.id !== DEMO_GUESTS_CLIENT || db.booking.demoGuestsSeeded) return;
+  const profile = profileOf(client);
+  if (profile.guests.length === 0) saveProfile(client.id, { ...profile, guests: DEMO_GUESTS.map((guest) => ({ ...guest })) });
+  db.booking = { ...db.booking, demoGuestsSeeded: true };
+  db.persist();
+}
+
 export const bookingHandlers = [
   http.get(`${BASE}/shop`, async () => {
     await delay(LATENCY_MS);
@@ -162,6 +171,7 @@ export const bookingHandlers = [
     if (phone.replace(/\D/g, "").length < 8) return error(422, "validation", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
     const client = clientByPhone(phone);
     if (isBlockedPhone(phone, client)) return HttpResponse.json({ status: "blocked" });
+    seedDemoGuests(client);
     return HttpResponse.json(client ? { status: "known", customer: customerOf(client) } : { status: "new" });
   }),
 

@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
-import { ModalShell } from "@/components/overlays";
 import { OptionTile } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "./BookingContext";
+import { BookingSheet } from "./BookingSheet";
 
 /**
  * La sede de la reserva, en el resumen: dónde será y un botón para cambiarla.
@@ -55,10 +55,9 @@ export function BranchChange() {
         </Button>
       )}
 
-      <ModalShell
+      <BookingSheet
         open={isOpen}
         onOpenChange={open}
-        size="sm"
         title={t("booking.branch.changeTitle")}
         description={t("booking.branch.lead")}
         actions={
@@ -90,7 +89,7 @@ export function BranchChange() {
             </Alert>
           )}
         </div>
-      </ModalShell>
+      </BookingSheet>
     </div>
   );
 }

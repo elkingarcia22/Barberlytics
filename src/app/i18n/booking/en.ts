@@ -131,6 +131,11 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.person.relation.friend": "Friend",
   "booking.person.relation.other": "Other",
   "booking.person.save": "Done",
+  "booking.person.change": "Change person",
+  "booking.person.savedTitle": "Your people",
+  "booking.person.newTitle": "Or add someone new",
+  "booking.person.firstTitle": "Add the person",
+  "booking.person.addConfirm": "Add and choose",
 
   "booking.services.title": "Choose your services",
   "booking.services.lead": "Add several to the same appointment: they're done back to back with the same barber.",

@@ -143,6 +143,11 @@ export const bookingEs = {
   "booking.person.relation.friend": "Amigo",
   "booking.person.relation.other": "Otro",
   "booking.person.save": "Listo",
+  "booking.person.change": "Cambiar persona",
+  "booking.person.savedTitle": "Tu gente",
+  "booking.person.newTitle": "O agrega a alguien nuevo",
+  "booking.person.firstTitle": "Agrega a la persona",
+  "booking.person.addConfirm": "Agregar y elegir",
 
   // ── Servicios ──
   "booking.services.title": "Elige tus servicios",

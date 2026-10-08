@@ -2,7 +2,6 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ThemaTabs } from "@/components/navigation";
-import { ModalShell } from "@/components/overlays";
 import { Text } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import { SendReceiptDialog } from "../flow/SendReceiptDialog";
 import { StepLayout } from "../flow/StepLayout";
 import { useMyAppointmentsQuery } from "../queries";
 import type { BookedAppointment, Reservation } from "../types";
+import { BookingSheet } from "../flow/BookingSheet";
 
 type ManageTab = "upcoming" | "history" | "receipts";
 const SKELETON_CARDS = 2;
@@ -173,7 +173,7 @@ export function ManageStep() {
 
       <RescheduleDrawer appointment={moving} token={token} onOpenChange={(open) => !open && setMoving(null)} />
       <CancelDialog appointment={cancelling} token={token} onOpenChange={(open) => !open && setCancelling(null)} />
-      <ModalShell
+      <BookingSheet
         open={viewing !== null}
         onOpenChange={(open) => !open && setViewing(null)}
         title={t("booking.receipt.title")}
@@ -191,7 +191,7 @@ export function ManageStep() {
         }
       >
         {viewing && <ReceiptView reservation={viewing} fmt={fmt} />}
-      </ModalShell>
+      </BookingSheet>
       <SendReceiptDialog reservation={sending} onOpenChange={(open) => !open && setSending(null)} />
     </StepLayout>
   );

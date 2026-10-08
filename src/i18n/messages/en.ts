@@ -256,6 +256,8 @@ export const en: MessageCatalog = {
   "schedule.dragging": "Moving: {time}",
   "schedule.resourceMenu": "Options for {name}",
   "schedule.open": "Open {title}",
+  "schedule.group": "Appointment {index} of {total} for the same client",
+  "schedule.groupShort": "{index}/{total}",
   "schedule.acceptProposal": "Accept the proposal: {title}",
   "schedule.lockedPaid": "Paid: it does not move",
   "schedule.scrollNext": "See more barbers",

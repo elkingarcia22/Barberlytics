@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BadgeCheck, Ban, Check, Footprints, Globe, Repeat, Star, StickyNote, TriangleAlert, UserRoundPlus, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Ban, Check, Footprints, Globe, Link2, Repeat, Star, StickyNote, TriangleAlert, UserRoundPlus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,11 @@ import "./schedule.css";
  *
  * Una propuesta (`ghost`) se dibuja translúcida y con borde discontinuo: un
  * hueco sugerido o a dónde iría una cita si se reacomoda. Tocarla es aceptar.
+ *
+ * Las citas de un grupo (`group`: varios servicios de un mismo cliente, o su
+ * familia) llevan un filete de la marca a la izquierda y la píldora «2/3»;
+ * las que se pegan a otra de su columna pierden el radio de ese lado y la
+ * costura se marca con una línea punteada: se leen como un solo bloque.
  *
  * Para no anidar un botón dentro de otro, abrirla es un botón estirado
  * detrás del contenido y la acción es otro botón por encima: el lector de
@@ -126,6 +131,17 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
     // Teñida por servicio, el punto sobra: la tarjeta entera ya es el color.
     const dot = palette && event.fill !== "category" ? <ScheduleColorDot color={event.color ?? 1} className="size-2.5" /> : null;
     const markers = event.markers ?? [];
+    const group = event.group;
+    const groupPill = group && group.size > 1 && (
+      <span
+        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1 text-[10px] font-semibold leading-4 tabular-nums text-primary"
+        role="img"
+        aria-label={t("schedule.group", { index: group.index, total: group.size })}
+      >
+        <Link2 className="size-2.5" aria-hidden="true" />
+        {t("schedule.groupShort", { index: group.index, total: group.size })}
+      </span>
+    );
     const status = event.urgent ? { label: event.urgent, tone: "negative" as const } : event.status;
 
     const statusPill = status && (
@@ -179,8 +195,9 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         data-tone={tone}
         data-ghost={isGhost || undefined}
         data-flexible={event.flexible || undefined}
+        data-group={group?.id}
         style={style}
-        title={[event.title, event.badge?.label, status?.label, timeLabel, event.subtitle, event.note, event.warning, ...markers.map((marker) => marker.label)].filter(Boolean).join(" · ")}
+        title={[event.title, group && group.size > 1 ? t("schedule.group", { index: group.index, total: group.size }) : null, event.badge?.label, status?.label, timeLabel, event.subtitle, event.note, event.warning, ...markers.map((marker) => marker.label)].filter(Boolean).join(" · ")}
         className={cn(
           // Las tarjetas de la agenda (neutral, pastel o vivo) van con esquinas rectas: bloques que se
           // apilan en la rejilla. Solo las de tono semántico conservan el radio.
@@ -195,6 +212,9 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               ? "schedule-card-fill border-transparent bg-surface"
               : TONE_CARD[tone],
           event.flexible && !isGhost && "border-dashed",
+          // Pegada a otra del grupo: ese lado sin radio, para que las dos formen un solo bloque.
+          group?.joinTop && "rounded-t-none",
+          group?.joinBottom && "rounded-b-none",
           isGhost && "z-raised border-dashed border-primary/70 bg-primary/5 opacity-85",
           event.muted && "opacity-60",
           event.faded && "opacity-30 saturate-50",
@@ -214,6 +234,13 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
           />
         )}
 
+        {group && (
+          <>
+            <span aria-hidden="true" data-group-rail className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-primary" />
+            {group.joinTop && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-foreground/20" />}
+          </>
+        )}
+
         {onOpen && (
           <button
             type="button"
@@ -229,6 +256,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
             {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
             {dot}
             <span data-card-ink className={cn("min-w-[2.5rem] flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+            {groupPill}
             {warning}
             {statusPill ?? (isGhost && event.badge && <CardBadge badge={event.badge} tone={tone} />)}
           </div>
@@ -238,6 +266,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
               {isBlock && <Ban className="size-3.5 shrink-0 text-text-muted" aria-hidden="true" />}
               {dot}
               <span data-card-ink className={cn("min-w-0 flex-1 truncate text-xs font-semibold text-text-primary", event.muted && "line-through")}>{event.title}</span>
+              {groupPill}
               {markers.length > 0 && <ScheduleMarkers markers={markers} />}
               {event.badge && <CardBadge badge={event.badge} tone={palette ? "neutral" : tone} sober={palette} />}
             </div>

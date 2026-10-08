@@ -42,3 +42,11 @@ export const PROPOSALS: readonly ScheduleEvent[] = [
 export const RESOURCES_WITH_ALERT: readonly ScheduleResource[] = RESOURCES.map((resource) =>
   resource.id === "nicolas" ? { ...resource, alert: { label: "Hueco 12:00 · 2 en espera", tone: "warning", onClick: noop } } : resource
 );
+
+/** Una visita de varios servicios (corte, barba y cejas seguidos con Andrés) y la hija de la clienta a la vez con Nicolás. */
+export const GROUPED_EVENTS: readonly ScheduleEvent[] = [
+  { id: "g1", resourceId: "andres", start: at(25, 10), end: at(25, 10, 45), title: "Laura Rincón", subtitle: "Corte clásico · US$ 35", tone: "primary", action: { label: "Ingresar", onClick: noop }, status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 1, size: 4, joinBottom: true } },
+  { id: "g2", resourceId: "andres", start: at(25, 10, 45), end: at(25, 11, 15), title: "Laura Rincón", subtitle: "Barba · US$ 25", tone: "primary", group: { id: "laura", index: 2, size: 4, joinTop: true, joinBottom: true } },
+  { id: "g3", resourceId: "andres", start: at(25, 11, 15), end: at(25, 11, 45), title: "Laura Rincón", subtitle: "Diseño de cejas · US$ 12", tone: "primary", group: { id: "laura", index: 3, size: 4, joinTop: true } },
+  { id: "g4", resourceId: "nicolas", start: at(25, 10, 30), end: at(25, 11, 15), title: "Sofía Rincón (hija)", subtitle: "Corte niña · US$ 25", tone: "primary", status: { label: "Agendada", tone: "neutral" }, group: { id: "laura", index: 4, size: 4 } },
+];

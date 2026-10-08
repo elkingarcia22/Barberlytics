@@ -13,6 +13,7 @@ export type {
   ScheduleTone,
   ScheduleFill,
   ScheduleEventAction,
+  ScheduleEventGroup,
   ScheduleMarker,
   ScheduleMarkerIcon,
   ScheduleDrop,

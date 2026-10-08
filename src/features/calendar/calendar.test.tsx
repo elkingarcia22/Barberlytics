@@ -7,7 +7,7 @@ import { CalendarPage } from "./CalendarPage";
 import { weekCell, weekStartOf } from "./weekModel";
 import { DEFAULT_CARD_PREFS, resetCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions } from "./calendarContextActions";
-import { appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
+import { appointmentGroups, appointmentMarkers, appointmentTotal, barberLoad, blockClashes, followsAgendaRules, isFlexible, lateMinutes, matchesFilters, nextFreeMinute, placementProblem, serviceColor, teamIds, toEvent, visibleBarbers, nextStep, type ModelContext } from "./calendarModel";
 import { suggestSlots } from "./slotSuggestions";
 import { reflowPlan } from "./reflowModel";
 import { dayGaps, gapsSummary } from "./gapsModel";
@@ -84,6 +84,28 @@ const APPOINTMENT: Appointment = {
 const ctx: ModelContext = { t: (key) => key, intl: "es-CO", formatMoney: (value) => `$${value}`, catalog: CATALOG };
 
 describe("modelo del calendario", () => {
+  test("las citas seguidas de un mismo cliente forman un grupo y se pegan si son del mismo barbero", () => {
+    const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00" };
+    const family = { ...APPOINTMENT, id: "a3", barberId: "b2", start: "2026-09-25T10:45:00" };
+    const later = { ...APPOINTMENT, id: "a4", start: "2026-09-25T15:00:00" };
+    const groups = appointmentGroups([APPOINTMENT, second, family, later], CATALOG);
+    expect(groups.get("a1")).toMatchObject({ index: 1, size: 3, joinBottom: true });
+    expect(groups.get("a1")?.joinTop).toBeUndefined();
+    expect(groups.get("a3")).toMatchObject({ index: 2, size: 3 });
+    expect(groups.get("a3")?.joinTop).toBeUndefined();
+    expect(groups.get("a2")).toMatchObject({ index: 3, size: 3, joinTop: true });
+    // La de la tarde va suelta: no es la misma visita.
+    expect(groups.has("a4")).toBe(false);
+    expect(toEvent(second, ctx, { group: groups.get("a2") }).group?.size).toBe(3);
+  });
+
+  test("los clientes de paso y las citas canceladas no se agrupan", () => {
+    const walkInCatalog: CalendarCatalog = { ...CATALOG, clients: [...CATALOG.clients, { ...CATALOG.clients[0], id: "w", type: "walkin" }] };
+    const walkIn = { ...APPOINTMENT, clientId: "w" };
+    expect(appointmentGroups([walkIn, { ...walkIn, id: "a2", start: "2026-09-25T11:00:00" }], walkInCatalog).size).toBe(0);
+    expect(appointmentGroups([APPOINTMENT, { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "cancelled" }], CATALOG).size).toBe(0);
+  });
+
   test("el filtro de equipo deja a los que trabajan, a todos o a uno", () => {
     const date = new Date(2026, 8, 25);
     expect(visibleBarbers(CATALOG.barbers, "working", date).map((barber) => barber.id)).toEqual(["b1"]);

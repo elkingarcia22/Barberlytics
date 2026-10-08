@@ -17,7 +17,7 @@ import {
 } from "@/components/scheduling";
 import { minutesOfDay, parseClock } from "@/components/scheduling";
 import type { RowAction } from "@/components/data-display";
-import { appointmentStart, blockToEvent, isActive, matchesFilters, toEvent, toResource, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
+import { appointmentGroups, appointmentStart, blockToEvent, isActive, matchesFilters, toEvent, toResource, visibleBarbers, type AgendaFilters, type ModelContext } from "./calendarModel";
 import type { Appointment, Barber, CalendarDay, TeamFilter, TimeBlock } from "./types";
 
 /**
@@ -121,13 +121,15 @@ export function CalendarDayView({
     () => barbers.map((barber) => ({ ...toResource(barber, date, day.appointments, ctx, day.blocks), alert: alerts?.[barber.id] })),
     [alerts, barbers, date, day.appointments, day.blocks, ctx]
   );
+  // Las citas de un mismo cliente seguidas (varios servicios, o su familia) se pintan como un bloque.
+  const groups = React.useMemo(() => appointmentGroups(day.appointments, ctx.catalog), [day.appointments, ctx.catalog]);
   const events = React.useMemo<ScheduleEvent[]>(
     () => [
-      ...day.appointments.filter(isActive).map((appointment) => toEvent(appointment, ctx, { faded: !matchesFilters(appointment, filters, ctx.now, ctx.catalog) || fadedIds?.has(appointment.id) })),
+      ...day.appointments.filter(isActive).map((appointment) => toEvent(appointment, ctx, { faded: !matchesFilters(appointment, filters, ctx.now, ctx.catalog) || fadedIds?.has(appointment.id), group: groups.get(appointment.id) })),
       ...day.blocks.map((block) => blockToEvent(block, date, ctx)),
       ...extraEvents,
     ],
-    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents]
+    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents, groups]
   );
 
   // La rejilla enseña la jornada real: de una hora antes de que abra el

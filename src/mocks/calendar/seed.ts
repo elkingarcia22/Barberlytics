@@ -283,6 +283,8 @@ const PRODUCT_SALE_EVERY = 5;
 /** Cada cuántas citas, de media, una se repite y una trae nota (del hash del id). */
 const REPEAT_EVERY = 5;
 const NOTE_EVERY = 7;
+/** Una de cada tantas citas pegadas a la anterior del mismo barbero es el segundo servicio del mismo cliente. */
+const SAME_VISIT_EVERY = 3;
 const SEED_NOTES = ["Quiere el mismo corte de la última vez", "Trae foto de referencia", "Llega con el tiempo justo", "Prefiere máquina 2 a los lados"] as const;
 
 /** Antes de esta hora (10:00) la agenda de hoy se siembra como a las 12:30, para que la demo muestre todos los estados. */
@@ -388,7 +390,27 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
       }
     }
   }
-  return appointments;
+  return chainVisits(appointments);
+}
+
+/**
+ * Un cliente que pide corte y después barba ocupa dos citas seguidas con el mismo barbero:
+ * algunas citas pegadas a la anterior pasan a ser del mismo cliente, para que la agenda
+ * enseñe esas visitas de varios servicios. Sale del id, no del dado: el resto no se mueve.
+ */
+function chainVisits(appointments: readonly MockAppointment[]): MockAppointment[] {
+  const result: MockAppointment[] = [];
+  for (const item of appointments) {
+    const previous = result[result.length - 1];
+    const glued =
+      previous &&
+      previous.barberId === item.barberId &&
+      !previous.walkIn &&
+      new Date(previous.start).getTime() + previous.durationMin * 60_000 === new Date(item.start).getTime() &&
+      hashKey(`${item.id}:visit`) % SAME_VISIT_EVERY === 0;
+    result.push(glued ? { ...item, clientId: previous.clientId, walkIn: false, source: previous.source, requestedBarberId: previous.requestedBarberId, repeat: "none", seriesId: null } : item);
+  }
+  return result;
 }
 
 function appointmentStatus({ isPast, isToday, nowMinutes, startMinutes, endMinutes, roll }: { isPast: boolean; isToday: boolean; nowMinutes: number; startMinutes: number; endMinutes: number; roll: number }): MockAppointmentStatus {

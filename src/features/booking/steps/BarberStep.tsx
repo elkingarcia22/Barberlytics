@@ -56,7 +56,7 @@ export function BarberStep() {
           )}
           {able.map((barber) => (
             <div key={barber.id} className="relative">
-              <MagicCard role="radio" aria-label={barber.name} aria-checked={state.draft?.barberId === barber.id} isSelected={state.draft?.barberId === barber.id} onClick={() => choose(barber.id)} contentClassName="items-center gap-3 pr-24 text-left">
+              <MagicCard role="radio" aria-label={barber.name} aria-checked={state.draft?.barberId === barber.id} isSelected={state.draft?.barberId === barber.id} onClick={() => choose(barber.id)} contentClassName="items-center gap-3 pr-32 text-left">
                 <Avatar size="lg">
                   {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
                   <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
@@ -65,14 +65,14 @@ export function BarberStep() {
                   <Text weight="semibold" truncate>
                     {barber.name}
                   </Text>
-                  <Text size="xs" tone="secondary" className="flex items-center gap-1">
+                  <Text size="xs" tone="secondary" className="flex flex-wrap items-center gap-x-1">
                     {barber.id === lastBarberId ? <span className="font-medium text-primary">{t("booking.barber.lastTime")}</span> : barber.level}
                     <span aria-hidden>·</span>
                     <span className="text-warning" aria-hidden>
                       ★
                     </span>
                     <span className="tabular-nums">{barber.rating.toFixed(1)}</span>
-                    <span className="text-text-muted">({t("booking.barber.reviews", { count: barber.reviews })})</span>
+                    <span className="whitespace-nowrap text-text-muted">({t("booking.barber.reviews", { count: barber.reviews })})</span>
                   </Text>
                   <Text size="sm" weight="medium" tabular as="span">
                     {fmt.money(itemPrice({ serviceIds, barberId: barber.id }, catalog))}

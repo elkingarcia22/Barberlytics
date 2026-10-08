@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Text } from "@/components/typography";
-import { formatClock, ScheduleColorDot } from "@/components/scheduling";
+import { formatClock, formatClockRange, ScheduleColorDot } from "@/components/scheduling";
 import { ClientTypeBadge, DetailRow, PersonAvatar } from "../calendarShared";
-import { appointmentEnd, appointmentRange, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, serviceColor, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
+import { appointmentEnd, appointmentRange, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, serviceColor, serviceSlots, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
 import { appointmentPlaybook, type AppointmentActionId } from "../appointmentPlaybook";
 import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
 import { AppointmentEditForm } from "./AppointmentEditForm";
@@ -175,12 +175,30 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
           <AppointmentEditForm appointment={appointment} ctx={ctx} onPatch={onPatch} />
         ) : (
           <div>
-            <DetailRow plain label={t("calendar.field.service")}>
-              <span className="inline-flex min-w-0 items-center gap-2">
-                {serviceDot !== undefined && <ScheduleColorDot color={serviceDot} className="size-2.5" />}
-                <span className="truncate">{services.map((service) => service.name).join(" + ") || "—"}</span>
-              </span>
-            </DetailRow>
+            {services.length > 1 ? (
+              // Varios servicios en una sola cita: cada uno con su franja y su precio, en el orden en que se hacen.
+              <div data-testid="appointment-services">
+                <Text variant="caption" className="pt-1.5">
+                  {t("calendar.detail.services", { count: services.length })}
+                </Text>
+                {serviceSlots(ctx.catalog, appointment).map(({ service, start, end }, index) => (
+                  <DetailRow key={`${service.id}-${index}`} plain label={formatClockRange(start, end, ctx.intl)}>
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <ScheduleColorDot color={serviceColor(ctx.catalog, service.id) ?? 1} className="size-2.5" />
+                      <span className="truncate">{service.name}</span>
+                      <span className="text-text-secondary">{ctx.formatMoney(service.price)}</span>
+                    </span>
+                  </DetailRow>
+                ))}
+              </div>
+            ) : (
+              <DetailRow plain label={t("calendar.field.service")}>
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {serviceDot !== undefined && <ScheduleColorDot color={serviceDot} className="size-2.5" />}
+                  <span className="truncate">{services.map((service) => service.name).join(" + ") || "—"}</span>
+                </span>
+              </DetailRow>
+            )}
             <DetailRow plain label={t("calendar.field.barber")}>
               <span className="inline-flex items-center gap-2">
                 {barber && <PersonAvatar name={barber.name} avatarUrl={barber.avatarUrl} size="sm" />}

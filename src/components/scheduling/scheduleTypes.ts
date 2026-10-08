@@ -118,12 +118,28 @@ export interface ScheduleEvent {
   /** Por qué se propone («Sin dejar hueco entre citas»): una línea bajo el título. */
   note?: string;
   /**
+   * Una sola cita con varios servicios: sus tramos en orden («Corte clásico ·
+   * 30 min», «Arreglo de barba · 30 min»). La tarjeta ocupa un solo hueco y una
+   * línea fina marca por dentro dónde empieza cada servicio. No es un grupo:
+   * un grupo son citas aparte.
+   */
+  segments?: readonly ScheduleEventSegment[];
+  /** Un dato corto en la fila de abajo, junto al estado (el total de una cita de varios servicios). */
+  meta?: string;
+  /**
    * Es parte de un grupo: varias citas del mismo cliente —los servicios de una
    * misma visita, seguidos, o su familia a la misma hora—. `index`/`size` dicen
    * cuál es («2 de 3»); `joinTop`/`joinBottom` la pegan a la de arriba o abajo
    * de la misma columna, para que se lean como un solo bloque.
    */
   group?: ScheduleEventGroup;
+}
+
+export interface ScheduleEventSegment {
+  id: string;
+  label: string;
+  /** Cuánto dura: el tramo ocupa esa parte del alto de la tarjeta. */
+  minutes: number;
 }
 
 export interface ScheduleEventGroup {

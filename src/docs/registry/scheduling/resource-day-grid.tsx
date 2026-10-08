@@ -3,7 +3,7 @@ import { UserRound, Ban } from "lucide-react";
 import { findConflicts, ResourceDayGrid, SCHEDULE_DENSITIES, type ScheduleEvent } from "@/components/scheduling";
 import { defineEntry, definePlayground } from "../types";
 import { ValueReadout } from "../date/_shared";
-import { DAY, EVENTS, GROUPED_EVENTS, NOW, PROPOSALS, RESOURCES, RESOURCES_WITH_ALERT } from "./_shared";
+import { DAY, EVENTS, GROUPED_EVENTS, SEGMENTED_EVENTS, NOW, PROPOSALS, RESOURCES, RESOURCES_WITH_ALERT } from "./_shared";
 
 const FRAME = "min-h-[36rem] items-start";
 
@@ -72,6 +72,10 @@ function DragDemo() {
 
 function GroupedDemo() {
   return <ResourceDayGrid date={DAY} resources={RESOURCES.slice(0, 2)} events={GROUPED_EVENTS} now={NOW} startHour={9} endHour={13} height="22rem" onEventClick={() => undefined} />;
+}
+
+function SegmentedDemo() {
+  return <ResourceDayGrid date={DAY} resources={RESOURCES.slice(0, 2)} events={SEGMENTED_EVENTS} now={NOW} startHour={9} endHour={12} height="20rem" onEventClick={() => undefined} />;
 }
 
 function NobodyWorksDemo() {
@@ -224,6 +228,31 @@ export const resourceDayGridEntry = defineEntry({
       render: () => <GroupedDemo />,
     },
     {
+      id: "segments",
+      title: "Una cita con varios servicios",
+      description:
+        "No es lo mismo que un grupo. Una sola cita con varios servicios ocupa un solo hueco: con `segments` ({ id, label, minutes }[]) una línea punteada marca por dentro dónde empieza cada servicio, a la altura de su minuto, y cada tramo lleva su nombre; `meta` pone el total en la fila de abajo (cede si ya van estado y acción). Un grupo, en cambio, son citas aparte del mismo cliente: cada una en su hueco, con borde discontinuo y píldora «1/2».",
+      layout: "stretch",
+      frameClassName: "min-h-[22rem] items-start",
+      code: `<ResourceDayGrid
+  date={hoy}
+  resources={barberos}
+  events={[
+    {
+      id: "s1", resourceId: "andres", start, end, title: "Mariana Rodríguez",
+      segments: [
+        { id: "corte", label: "Corte clásico · 30 min", minutes: 30 },
+        { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30 },
+      ],
+      meta: "US$ 65",
+    },
+    { id: "s2", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 1, size: 2 } },
+    { id: "s3", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 2, size: 2 } },
+  ]}
+/>`,
+      render: () => <SegmentedDemo />,
+    },
+    {
       id: "proposals",
       title: "Propuestas, marcadores y avisos",
       description:
@@ -266,7 +295,7 @@ export const resourceDayGridEntry = defineEntry({
   props: [
     { name: "date", type: "Date", description: "El día que se muestra." },
     { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo." },
-    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, joinTop, joinBottom }) marca las citas de un mismo cliente y pega las seguidas en un solo bloque. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema." },
+    { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, joinTop, joinBottom }) marca las citas de un mismo cliente y pega las seguidas en un solo bloque; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema." },
     { name: "startHour / endHour", type: "number", default: "6 / 24", description: "Primera y última hora visibles (la última exclusiva)." },
     { name: "slotMinutes", type: "number", default: "30", description: "Minutos por franja; también el paso al arrastrar." },
     { name: "slotHeight", type: "number", default: "56", description: "Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae compact, normal y wide." },

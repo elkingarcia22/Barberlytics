@@ -498,6 +498,25 @@ export function appointmentGroups(appointments: readonly Appointment[], catalog:
   return groups;
 }
 
+/**
+ * Los servicios de una cita, cada uno con su franja: van seguidos desde la
+ * hora de inicio. Si la cita dura más o menos que la suma (se estiró o se
+ * acortó a mano), cada tramo se estira en proporción.
+ */
+export function serviceSlots(catalog: CalendarCatalog, appointment: Appointment): { service: Service; start: Date; end: Date; minutes: number }[] {
+  const services = servicesOf(catalog, appointment);
+  const sum = servicesMinutes(services);
+  const scale = sum > 0 ? appointment.durationMin / sum : 1;
+  const begin = appointmentStart(appointment);
+  let offset = 0;
+  return services.map((service) => {
+    const minutes = Math.round(service.durationMin * scale);
+    const slot = { service, start: addMinutes(begin, offset), end: addMinutes(begin, offset + minutes), minutes };
+    offset += minutes;
+    return slot;
+  });
+}
+
 /** Las citas de la visita a la que pertenece una, en orden; vacío si va suelta. */
 export function visitOf(appointments: readonly Appointment[], catalog: CalendarCatalog, appointment: Appointment): Appointment[] {
   const groups = appointmentGroups(appointments, catalog);
@@ -521,6 +540,8 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     card.price ? ctx.formatMoney(appointmentTotal(ctx.catalog, appointment)) : null,
   ].filter(Boolean);
   const fillTone: ScheduleTone = stage ? STAGE_FILL[stage] : ctx.colorBy === "client" ? clientTypeTone(client?.type ?? "walkin") : "neutral";
+  // Una cita con varios servicios se parte por dentro en sus tramos; el total va en la fila de abajo.
+  const segments = card.service && services.length > 1 ? serviceSlots(ctx.catalog, appointment).map(({ service, minutes }, index) => ({ id: `${service.id}-${index}`, label: `${service.name} · ${durationLabel(minutes)}`, minutes })) : undefined;
   return {
     id: appointment.id,
     resourceId: appointment.barberId,
@@ -529,6 +550,8 @@ export function toEvent(appointment: Appointment, ctx: ModelContext, options: { 
     kind: "appointment",
     title: client?.name ?? ctx.t("calendar.clientType.walkin"),
     subtitle: subtitle.length > 0 ? subtitle.join(" · ") : undefined,
+    segments,
+    meta: segments && card.price ? ctx.formatMoney(appointmentTotal(ctx.catalog, appointment)) : undefined,
     hideTime: !card.time,
     markers: cardMarkers(appointment, client, ctx),
     detail: details.length > 0 ? details.join(" · ") : undefined,

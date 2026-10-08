@@ -14,7 +14,7 @@ import { ResourceDayGrid } from "@/components/scheduling"
 |---|---|---|---|
 | `date` | `Date` |  | El día que se muestra. |
 | `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. |
-| `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: "block"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, joinTop, joinBottom }) marca las citas de un mismo cliente y pega las seguidas en un solo bloque. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema. |
+| `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: "block"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, joinTop, joinBottom }) marca las citas de un mismo cliente y pega las seguidas en un solo bloque; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema. |
 | `startHour / endHour` | `number` | `6 / 24` | Primera y última hora visibles (la última exclusiva). |
 | `slotMinutes` | `number` | `30` | Minutos por franja; también el paso al arrastrar. |
 | `slotHeight` | `number` | `56` | Alto de cada franja en píxeles: la densidad. `SCHEDULE_DENSITIES` trae compact, normal y wide. |
@@ -98,6 +98,29 @@ Una visita de varios servicios ocupa varias citas seguidas, y una reserva puede 
     { id: "g1", resourceId: "andres", start, end, title: "Laura Rincón", subtitle: "Corte clásico", group: { id: "laura", index: 1, size: 3, joinBottom: true } },
     { id: "g2", resourceId: "andres", start, end, title: "Laura Rincón", subtitle: "Barba", group: { id: "laura", index: 2, size: 3, joinTop: true } },
     { id: "g3", resourceId: "nicolas", start, end, title: "Sofía Rincón (hija)", group: { id: "laura", index: 3, size: 3 } },
+  ]}
+/>
+```
+
+### Una cita con varios servicios
+
+No es lo mismo que un grupo. Una sola cita con varios servicios ocupa un solo hueco: con `segments` ({ id, label, minutes }[]) una línea punteada marca por dentro dónde empieza cada servicio, a la altura de su minuto, y cada tramo lleva su nombre; `meta` pone el total en la fila de abajo (cede si ya van estado y acción). Un grupo, en cambio, son citas aparte del mismo cliente: cada una en su hueco, con borde discontinuo y píldora «1/2».
+
+```tsx
+<ResourceDayGrid
+  date={hoy}
+  resources={barberos}
+  events={[
+    {
+      id: "s1", resourceId: "andres", start, end, title: "Mariana Rodríguez",
+      segments: [
+        { id: "corte", label: "Corte clásico · 30 min", minutes: 30 },
+        { id: "barba", label: "Arreglo de barba · 30 min", minutes: 30 },
+      ],
+      meta: "US$ 65",
+    },
+    { id: "s2", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 1, size: 2 } },
+    { id: "s3", resourceId: "nicolas", start, end, title: "Laura Rincón", group: { id: "laura", index: 2, size: 2 } },
   ]}
 />
 ```

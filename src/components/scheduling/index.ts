@@ -14,6 +14,7 @@ export type {
   ScheduleFill,
   ScheduleEventAction,
   ScheduleEventGroup,
+  ScheduleEventSegment,
   ScheduleMarker,
   ScheduleMarkerIcon,
   ScheduleDrop,

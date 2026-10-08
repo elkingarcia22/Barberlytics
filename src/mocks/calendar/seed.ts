@@ -391,7 +391,28 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
       }
     }
   }
-  return chainVisits(appointments);
+  return splitCombos(chainVisits(appointments));
+}
+
+/**
+ * Los combos que se piden por partes: una cita, varios servicios. Ocupan lo mismo que el combo
+ * (corte 30 + barba 30 = 60; fade 45 + afeitado 45 = 90), así que la agenda no se mueve.
+ */
+const COMBO_PARTS: Readonly<Record<string, readonly string[]>> = {
+  svc_combo: ["svc_corte", "svc_barba"],
+  svc_premium: ["svc_fade", "svc_afeitado"],
+};
+/** Uno de cada tantos combos se agenda por partes. Sale del id, no del dado. */
+const SPLIT_COMBO_EVERY = 2;
+
+function splitCombos(appointments: readonly MockAppointment[]): MockAppointment[] {
+  const priceOf = (ids: readonly string[]) => ids.reduce((sum, id) => sum + (SERVICES.find((service) => service.id === id)?.price ?? 0), 0);
+  return appointments.map((item) => {
+    const parts = item.serviceIds.length === 1 ? COMBO_PARTS[item.serviceIds[0]] : undefined;
+    if (!parts || hashKey(`${item.id}:split`) % SPLIT_COMBO_EVERY !== 0) return item;
+    const payment = item.payment ? { ...item.payment, total: item.payment.total - priceOf(item.serviceIds) + priceOf(parts) } : null;
+    return { ...item, serviceIds: [...parts], payment };
+  });
 }
 
 /**

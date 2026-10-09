@@ -93,6 +93,14 @@ describe("lo que entiende la conversación", () => {
     expect(parse("tinte").serviceIds).toEqual(["svc_tinte"]);
   });
 
+  test("con un error de escritura o de dictado (una letra de más, de menos o cambiada)", () => {
+    expect(parse("quiero cita cortee clasico").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("un corrte").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("arreglo de barva").serviceIds).toEqual(["svc_barba"]);
+    // Las palabras cortas no se adivinan: «fase» no es «fade».
+    expect(parse("fase").serviceIds).toEqual([]);
+  });
+
   test("el barbero por su nombre, o «cualquiera»", () => {
     expect(parse("con Andrés").barberId).toBe("team-04");
     expect(parse("con daniela el viernes").barberId).toBe("team-08");
@@ -591,7 +599,7 @@ describe("las otras dos experiencias", () => {
     // Al pagar, recién ahí: quién eres.
     const more = await screen.findByRole("group", { name: /Algo más/ });
     await user.click(within(more).getByRole("button", { name: /pagar/i }));
-    expect(await screen.findByText(/para apartarla necesito saber quién eres/)).toBeInTheDocument();
+    expect(await screen.findByText(/para reservarla necesito saber quién eres/)).toBeInTheDocument();
     await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);

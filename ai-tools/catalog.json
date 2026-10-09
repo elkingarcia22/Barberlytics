@@ -1,5 +1,5 @@
 {
-  "sourceHash": "121d763213dafcfd",
+  "sourceHash": "d4bfe9df98d944a4",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -1908,6 +1908,12 @@
           "type": "number",
           "default": "10 / 25",
           "description": "Los límites del adjunto; se muestran en el menú."
+        },
+        {
+          "name": "attachKind",
+          "type": "\"files\" | \"photos\"",
+          "default": "\"files\"",
+          "description": "Qué se adjunta: el menú «+» con conectores y documentos, o un botón de imagen que abre la galería o la cámara y deja las fotos en miniatura (la nota para el barbero en la reserva)."
         }
       ],
       "guidelines": {
@@ -2003,7 +2009,7 @@
           "name": "question",
           "type": "ChatQuestion",
           "default": null,
-          "description": "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, otherLabel, otherPlaceholder y answer."
+          "description": "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, quantity { max } (con multiple), otherLabel, otherPlaceholder y answer."
         },
         {
           "name": "active",
@@ -2046,6 +2052,12 @@
           "title": "Varias a la vez y «Otro»",
           "description": "Se marcan varias y se confirman con el botón; «Otro» deja escribir la respuesta.",
           "code": "<ChatQuestionCard question={{ title: \"¿Qué te vas a hacer?\", hint: \"Puedes elegir varios.\", options, details, multiple: { confirmLabel: \"Continuar\" } }} active onAnswer={setAnswer} />"
+        },
+        {
+          "id": "quantity",
+          "title": "Varias con cantidad",
+          "description": "Con quantity, cada opción elegida trae su − cantidad +; la respuesta llega como «Cera mate × 2 · Shampoo» (splitQuantity la separa).",
+          "code": "<ChatQuestionCard question={{ title: \"¿Qué productos agrego?\", options, details, multiple: { confirmLabel: \"Agregar\" }, quantity: { max: 9 } }} active onAnswer={setAnswer} />"
         },
         {
           "id": "simple",

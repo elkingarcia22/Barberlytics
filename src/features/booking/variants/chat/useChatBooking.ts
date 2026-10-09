@@ -21,6 +21,9 @@ import { looksLikeDetail, useChatProfiles } from "./chatProfiles";
 
 const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 import { activeQuestionTurn, capitalize, DAYS_OFFERED, firstName, isKnownAnswer, nextId, reducedMotion, RELATIONS, TYPING_MS, type ChatReplyId, type ChatTurn, type Expecting, type Handlers, type MessageInput, type PaymentEvent } from "./chatKit";
+import { MAX_REFERENCE_PHOTOS } from "../../flow/referencePhoto";
+import { useChatExtras } from "./chatExtras";
+import { isReceiptStep, type ReceiptPlan } from "./chatReceipt";
 import { makeQuestion, matchOption, matchOptionLoosely, type BookingQuestion, type QuestionEntry } from "./chatQuestions";
 import { parseBookingText, type ParsedRequest } from "./parseBookingText";
 
@@ -48,6 +51,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const expecting = React.useRef<Expecting>("phone");
   const profile = React.useRef({ firstName: "", lastName: "", email: "" });
   const pendingName = React.useRef("");
+  const receiptPlan = React.useRef<ReceiptPlan | null>(null);
   const pendingManage = React.useRef(false);
   const timesDay = React.useRef<string | null>(null);
   const rescheduling = React.useRef<BookedAppointment | null>(null);
@@ -75,9 +79,9 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
 
   /** Cuántas veces habló el cliente: una pregunta que llega tarde (tras una consulta) no pisa lo que ya pidió. */
   const userTurns = React.useRef(0);
-  const pushUser = (text: string) => {
+  const pushUser = (text: string, photos?: readonly string[]) => {
     userTurns.current += 1;
-    setTurns((current) => [...current, { id: nextId(), from: "user", text }]);
+    setTurns((current) => [...current, { id: nextId(), from: "user", text, ...(photos && photos.length > 0 ? { photos } : {}) }]);
   };
 
   /** Mensajes del asistente, uno tras otro, con su «escribiendo…» delante. */
@@ -355,7 +359,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   };
   const profiles = useChatProfiles({ t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume, lastTeam });
   const { askBranch, askBarber, info } = profiles;
-  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
+  const extras = useChatExtras({ t, fmt, apply, say, ask, expect, stateRef, catalogRef, pushUser, askMore });
+  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, settle: (turnId: string, label: string) => settle(turnId, label), receiptPlan, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
   const newCard = useChatNewCard({ t, say, ask, expect, stateRef, payment, cardDraft, askMethod: pay.askMethod });
   const { checkout, manage, askMethod, askConfirm } = pay;
 
@@ -473,21 +478,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
       return askPerson(t("booking.chat.anotherAsk"));
     }
-    if (value === "products") {
-      const products = catalogRef.current?.products ?? [];
-      return ask(
-        makeQuestion(
-          "products",
-          t("booking.chat.productsTitle"),
-          products.map((product) => ({ label: product.name, value: product.id, description: `${fmt.money(product.price)}${product.category ? ` · ${product.category}` : ""}`, ...(product.imageUrl ? { image: product.imageUrl } : {}) })),
-          { hint: t("booking.chat.productsHint"), searchPlaceholder: t("booking.chat.productsSearch"), multiple: { confirmLabel: t("booking.chat.productsAdd") } }
-        )
-      );
-    }
-    if (value === "note") {
-      expect("note");
-      return say({ text: t("booking.chat.askNote") });
-    }
+    if (value === "products") return extras.askProducts();
+    if (value === "note") return extras.askNote();
     if (current.items.length === 1) return askEditWhat(0);
     ask(
       makeQuestion(
@@ -577,23 +569,21 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
         if (value === "barber") return askBarber();
         return askDay();
       }
-      case "products": {
-        const names = splitMultipleAnswer(label);
-        names.forEach((name) => {
-          const id = question.values[name];
-          if (id) apply({ type: "setProduct", productId: id, qty: Math.max(1, stateRef.current.products[id] ?? 0) });
-        });
-        return askMore(t("booking.chat.productsAdded", { items: names.join(", ") }));
-      }
+      case "products":
+        return extras.answerProducts(question, label);
     }
   };
+
+  /** Deja la pregunta como respondida con `label`, sin atenderla (quien llama ya lo hizo). */
+  const settle = (turnId: string, label: string) =>
+    setTurns((current) => current.map((item) => (item.id === turnId && item.question ? { ...item, question: { ...item.question, answer: label } } : item)));
 
   /** Se respondió la pregunta abierta: tocando una opción (`echo`: su texto como mensaje) o escribiéndola. */
   const answer = (turnId: string, label: string, { echo = true, isOther }: { echo?: boolean; isOther?: boolean } = {}) => {
     const turn = turnsRef.current.find((item) => item.id === turnId);
     const question = turn?.question;
     if (!question || question.answer !== undefined) return;
-    setTurns((current) => current.map((item) => (item.id === turnId && item.question ? { ...item, question: { ...item.question, answer: label } } : item)));
+    settle(turnId, label);
     if (echo) pushUser(label);
     void handle(question, label, isOther ?? !isKnownAnswer(question, label));
   };
@@ -642,8 +632,10 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   };
 
   /** Lo que se escribe en la caja: según lo que se esté esperando, la pregunta abierta o una frase para entender. */
-  const send = (text: string) => {
+  const send = (text: string, files: readonly File[] = []) => {
     const waiting = expecting.current;
+    // La nota para el barbero con sus fotos (el clip solo aparece mientras se escribe la nota).
+    if (waiting === "note") return void extras.submitNote(text, files);
     const secret = waiting === "code" || waiting === "cvc" || isCardStep(waiting);
     // «Perfil de Andrés», «cómo es la sede Centro»: el detalle antes de elegir.
     if (!waiting && looksLikeDetail(text)) {
@@ -691,12 +683,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     }
     if (waiting === "code") return void submitCode(text);
     if (isCardStep(waiting)) return newCard.submit(waiting, text);
+    if (isReceiptStep(waiting)) return pay.submitReceiptTarget(waiting, text);
     if (waiting === "firstName" || waiting === "lastName" || waiting === "email") return submitProfileText(text);
-    if (waiting === "note") {
-      expect(null);
-      apply({ type: "setNotes", notes: [stateRef.current.notes, text.trim()].filter(Boolean).join("\n") });
-      return askMore(t("booking.chat.noted"));
-    }
     if (waiting === "cvc") {
       const card = stateRef.current.customer?.cards.find((item) => item.id === payment.current?.cardChoice);
       const cvc = text.replace(/\D/g, "");
@@ -706,6 +694,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       return askConfirm();
     }
     if (!stateRef.current.customer && !stateRef.current.token) return askPhone(t("booking.chat.needPhone"));
+    // «A los dos», «por SMS», un correo o un celular, con la lista del recibo abierta.
+    if (open && pay.answerTypedReceipt(open, text)) return;
     if (open?.question && !open.question.multiple && open.question.otherPlaceholder) return answer(open.id, text.trim(), { echo: false, isOther: true });
     void interpret(text);
   };
@@ -762,6 +752,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     cardName: "booking.chat.placeholderCardName",
     cardExpiry: "booking.chat.placeholderCardExpiry",
     cardCvc: "booking.chat.placeholderCvc",
+    receiptEmail: "booking.chat.placeholderEmail",
+    receiptPhone: "booking.chat.placeholderPhone",
   };
   const open = activeQuestionTurn(turns);
   return {
@@ -772,6 +764,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     reply,
     onPaymentEvent,
     activeTurnId: open?.id ?? null,
+    /** Mientras escribe la nota para el barbero, la caja deja adjuntar fotos (las que aún caben). */
+    photoRoom: expectingNow === "note" ? Math.max(0, MAX_REFERENCE_PHOTOS - state.referencePhotos.length) : 0,
     placeholder: t(expectingNow ? placeholderKey[expectingNow] : "booking.chat.placeholder"),
   };
 }

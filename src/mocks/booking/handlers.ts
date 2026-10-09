@@ -44,7 +44,7 @@ import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 /** Lo que se puede regalar en una tarjeta. */
 const GIFT_MIN = 10;
 const GIFT_MAX = 500;
-import { MAX_PHOTO_CHARS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
+import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -451,8 +451,9 @@ export const bookingHandlers = [
     const reservationId = `rsv_${Date.now().toString(36)}`;
     const paidShare = payment.paid === 0 ? 0 : payment.paid / Math.max(1, totals.total);
     const notes = text(input.notes) || null;
-    const referencePhoto = text(input.referencePhoto) || null;
-    if (referencePhoto && !(PHOTO_PATTERN.test(referencePhoto) && referencePhoto.length <= MAX_PHOTO_CHARS)) return error(422, "validation", "La foto no se pudo subir. Prueba con otra.", { fields: { referencePhoto: ["La foto no se pudo subir. Prueba con otra."] } });
+    const referencePhotos = (Array.isArray(input.referencePhotos) ? input.referencePhotos : []).map((photo) => text(photo)).filter(Boolean);
+    const badPhoto = referencePhotos.length > MAX_REFERENCE_PHOTOS || referencePhotos.some((photo) => !(PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS));
+    if (badPhoto) return error(422, "validation", "La foto no se pudo subir. Prueba con otra.", { fields: { referencePhotos: ["La foto no se pudo subir. Prueba con otra."] } });
     // Varias citas en un solo agendamiento quedan enlazadas en la agenda.
     const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     const created: MockAppointment[] = plan.planned.map((item, index) => ({
@@ -472,8 +473,8 @@ export const bookingHandlers = [
       source: "online",
       repeat: "none",
       seriesId: null,
-      notes: [item.guestName ? `Para ${item.guestName}${item.guestRelation ? ` (${item.guestRelation})` : ""}` : null, notes, referencePhoto ? "Trae foto de referencia" : null].filter(Boolean).join(" · ") || null,
-      referencePhoto,
+      notes: [item.guestName ? `Para ${item.guestName}${item.guestRelation ? ` (${item.guestRelation})` : ""}` : null, notes, referencePhotos.length > 0 ? "Trae foto de referencia" : null].filter(Boolean).join(" · ") || null,
+      referencePhotos,
       createdAt: new Date().toISOString(),
       createdBy: "Reserva en línea",
       history: [{ id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "created" }],

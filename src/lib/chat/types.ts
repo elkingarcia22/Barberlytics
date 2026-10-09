@@ -33,6 +33,11 @@ export interface ChatQuestion {
   searchPlaceholder?: string;
   /** Se eligen varias y se confirman con un botón (su texto). */
   multiple?: { confirmLabel: string };
+  /**
+   * Con `multiple`, cada opción elegida trae su cantidad (− 1 +) hasta `max`; en la respuesta
+   * va como «Cera mate × 2» (`CHAT_QUANTITY_MARK`).
+   */
+  quantity?: { max: number };
   /** Placeholder de «Otro»; sin él no hay campo libre. */
   otherPlaceholder?: string;
   /** El nombre de la opción libre; por defecto, «Otro». */

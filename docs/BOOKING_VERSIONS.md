@@ -108,9 +108,19 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
 - Las opciones también se responden con otras palabras: si ni el número ni el texto coinciden, gana la
   que comparte más palabras («mándame el recibo» → «Enviarme el recibo por correo»), y solo después de
   descartar que sea una petición de pasada.
-- Después de reservar, «Agregar al calendario» deja el `.ics` como adjunto descargable dentro del chat,
-  y «Enviarme el recibo» pregunta a dónde: su correo (si es nuevo, el que acaba de dar), otro correo
-  escrito en la caja («mejor a ana@correo.com» también vale) o SMS al celular con el que entró.
+- Productos de la tienda con su cantidad: en la lista, cada producto elegido trae su − cantidad +
+  (`ChatQuestionCard` con `quantity`) y queda como «Cera mate × 2».
+- La nota para el barbero puede llevar hasta **3 fotos** del corte (`chatExtras`): mientras se escribe la
+  nota, la caja muestra el botón de imagen (`ChatComposer attachKind="photos"`), las fotos se ven en
+  miniatura antes de mandar y en la burbuja del cliente después, y llegan a la cita en `referencePhotos`
+  (las otras versiones también aceptan hasta 3 en «Agregar foto del corte»).
+- Tarjeta nueva: el vencimiento dice qué está mal («30 no es un mes: va de 01 a 12», «escribiste solo el
+  año», vencida, año demasiado lejos) en vez de un error genérico.
+- Después de reservar, «Agregar al calendario» deja el `.ics` como adjunto descargable dentro del chat.
+  «Enviar recibo» (por correo o por SMS) abre una lista de **varios a la vez** (`chatReceipt`): mi correo,
+  SMS a mi celular (el que verificó), a otro correo y a otro número; los «otros» se piden en la caja y al
+  final dice a dónde llegó. También se escribe: «a los dos», «por SMS», un correo o un celular.
+- «Dejarla fija» tiene su «No, solo esta cita».
 - Lo que el asistente pide va resaltado en negrita («tu **nombre y apellido**», «el **CVC**»…).
 - `parseBookingText` entiende servicios por su nombre de a pie («corte y barba» → combo), el barbero por
   su nombre o «cualquiera», días («mañana», «el viernes», «20 de octubre») y horas («a las 5» = 17:00,

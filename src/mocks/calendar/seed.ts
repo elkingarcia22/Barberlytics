@@ -112,8 +112,8 @@ export interface MockAppointment {
   repeat: MockRepeatRule;
   seriesId: string | null;
   notes: string | null;
-  /** Foto del corte que quiere el cliente (data URL), si la mandó al reservar en línea. */
-  referencePhoto?: string | null;
+  /** Fotos del corte que quiere el cliente (data URL), si las mandó al reservar en línea. */
+  referencePhotos?: string[];
   createdAt: string;
   createdBy: string;
   history: MockHistoryEntry[];

@@ -11,7 +11,8 @@ import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, BookingShop, VisitSuggestion } from "../../types";
 import { itemPrice } from "../../useBookingTotals";
 import { makeQuestion, orderLine, type BookingQuestion, type QuestionEntry, type QuestionKind } from "./chatQuestions";
-import { EMAIL, type Expecting, type MessageInput } from "./chatKit";
+import type { Expecting, MessageInput } from "./chatKit";
+import { createChatReceipt, type ReceiptPlan } from "./chatReceipt";
 
 const REPEAT_COUNT = 3;
 const CHECKOUT_KINDS: ReadonlySet<QuestionKind> = new Set(["receiptTo", "tip", "discount", "method", "card", "confirm", "after", "repeat", "manage", "manageWhat", "cancelConfirm", "refund"]);
@@ -28,6 +29,9 @@ export interface CheckoutKit {
   ask: (question: BookingQuestion, text?: string) => void;
   busy: <T>(work: () => Promise<T>) => Promise<T>;
   expect: (next: Expecting) => void;
+  /** Deja una pregunta respondida con lo que se escribió (para el recibo escrito en vez de tocado). */
+  settle: (turnId: string, label: string) => void;
+  receiptPlan: { current: ReceiptPlan | null };
   stateRef: { readonly current: BookingState };
   catalogRef: { readonly current: BookingCatalog | undefined };
   totalsRef: { readonly current: Totals };
@@ -69,7 +73,7 @@ export function adjustmentRows(t: ReturnType<typeof useAppT>, fmt: { money: (val
  * versiones), el resumen para confirmar, el recibo y mover o cancelar una cita.
  */
 export function useChatCheckout(kit: CheckoutKit) {
-  const { t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard } = kit;
+  const { settle, receiptPlan, t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard } = kit;
 
   /* ── pagar ── */
 
@@ -198,33 +202,7 @@ export function useChatCheckout(kit: CheckoutKit) {
       text
     );
 
-  const masked = (phone: string) => `•••• ${phone.replace(/\D/g, "").slice(-4)}`;
-  /** El SMS va al celular con el que entró en esta conversación (el que verificó con el código). */
-  const smsPhone = (): string => stateRef.current.phone || stateRef.current.customer?.phone || "";
-
-  /** ¿A dónde le mando el recibo? Su correo (confirmarlo), otro correo o un SMS a su celular. */
-  const askReceipt = () => {
-    const customer = stateRef.current.customer;
-    const email = customer?.email ?? "";
-    const entries: QuestionEntry[] = [
-      ...(email ? [{ label: t("booking.chat.receiptToEmail", { email }), value: "email", emoji: "✉️" }] : []),
-      ...(smsPhone() ? [{ label: t("booking.chat.receiptBySms", { phone: masked(smsPhone()) }), value: "sms", emoji: "💬" }] : []),
-    ];
-    const lead = !email ? t("booking.chat.receiptAskEmail") : customer?.isNew ? t("booking.chat.receiptConfirmNew") : t("booking.chat.receiptConfirm");
-    ask(makeQuestion("receiptTo", t("booking.chat.receiptTitle"), entries, { otherLabel: t("booking.chat.receiptOther"), otherPlaceholder: t("booking.chat.receiptOtherPlaceholder") }), lead);
-  };
-
-  const sendReceipt = async (channel: "email" | "sms", to: string) => {
-    const reservation = stateRef.current.reservation;
-    if (!reservation) return;
-    try {
-      await busy(() => bookingApi.sendReceipt(reservation.id, { channel, to }));
-      askAfter(t(channel === "sms" ? "booking.chat.receiptSentSms" : "booking.chat.receiptSent", { to: channel === "sms" ? masked(to) : to }));
-    } catch (error) {
-      say({ text: describeError(error).description });
-      askReceipt();
-    }
-  };
+  const receipt = createChatReceipt({ t, say, ask, busy, expect, stateRef, settle, askAfter, receiptPlan });
 
   const reserved = () => {
     const current = stateRef.current;
@@ -288,10 +266,11 @@ export function useChatCheckout(kit: CheckoutKit) {
       say({ text: t("booking.chat.icsReady"), attachment: { name: `${reservation.number}.ics`, url, description: t("booking.chat.icsDescription", { count: reservation.appointments.length }) } });
       return askAfter();
     }
-    if (value === "receipt") return askReceipt();
+    if (value === "receipt") return receipt.askReceipt();
     if (value === "repeat") {
       const usual = suggestion.current ? Math.min(4, Math.max(1, Math.round(suggestion.current.everyDays / 7))) : 3;
-      return ask(makeQuestion("repeat", t("booking.chat.repeatTitle"), [1, 2, 3, 4].map((weeks) => ({ label: t("booking.chat.everyWeeks", { count: weeks }), value: String(weeks), description: weeks === usual ? t("booking.chat.yourRhythm") : undefined }))), t("booking.chat.repeatLead", { count: REPEAT_COUNT }));
+      const every: QuestionEntry[] = [1, 2, 3, 4].map((weeks) => ({ label: t("booking.chat.everyWeeks", { count: weeks }), value: String(weeks), description: weeks === usual ? t("booking.chat.yourRhythm") : undefined }));
+      return ask(makeQuestion("repeat", t("booking.chat.repeatTitle"), [...every, { label: t("booking.chat.repeatNo"), value: "no", emoji: "✋" }]), t("booking.chat.repeatLead", { count: REPEAT_COUNT }));
     }
     if (value === "again") {
       apply({ type: "bookAgain" });
@@ -307,6 +286,7 @@ export function useChatCheckout(kit: CheckoutKit) {
     const reservation = current.reservation;
     const token = current.token;
     if (!reservation || !token) return;
+    if (value === "no" || !value) return askAfter(t("booking.chat.repeatSkippedAll"));
     try {
       const results = await busy(() => Promise.all(reservation.appointments.map((item) => bookingApi.repeat(token, item.id, { everyWeeks: Number(value), count: REPEAT_COUNT }))));
       const created = results.reduce((sum, result) => sum + result.created.length, 0);
@@ -370,20 +350,8 @@ export function useChatCheckout(kit: CheckoutKit) {
         return value === "pay" ? payment.current?.pay() : askMore();
       case "after":
         return onAfter(value);
-      case "receiptTo": {
-        const customer = current.customer;
-        if (isOther) {
-          // «mejor a ana@correo.com»: el correo dentro de la frase.
-          const to = label.split(/\s+/).find((word) => EMAIL.test(word.replace(/[.,;]$/, "")))?.replace(/[.,;]$/, "") ?? "";
-          if (!EMAIL.test(to)) {
-            say({ text: t("booking.chat.badEmail") });
-            return askReceipt();
-          }
-          return sendReceipt("email", to);
-        }
-        if (value === "sms" && smsPhone()) return sendReceipt("sms", smsPhone());
-        return sendReceipt("email", customer?.email ?? "");
-      }
+      case "receiptTo":
+        return receipt.answerReceipt(question, label);
       case "repeat":
         return onRepeat(value);
       case "manage":
@@ -408,5 +376,5 @@ export function useChatCheckout(kit: CheckoutKit) {
     return true;
   };
 
-  return { checkout, askMethod, askConfirm, reserved, manage, answerCheckout };
+  return { checkout, askMethod, askConfirm, reserved, manage, answerCheckout, submitReceiptTarget: receipt.submitTarget, answerTypedReceipt: receipt.answerTyped };
 }

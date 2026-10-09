@@ -30,6 +30,11 @@ export interface ChatComposerProps {
   onRemoveContext?: () => void;
   /** El menú «+»; apagado no hay botón. */
   attach?: boolean;
+  /**
+   * Qué se adjunta: `files` (el menú «+» con conectores y documentos) o `photos`
+   * (un botón de imagen que abre la galería o la cámara; se ven en miniatura).
+   */
+  attachKind?: "files" | "photos";
   connectors?: readonly ChatConnector[];
   onToggleConnector?: (id: string, connected: boolean) => void;
   onAddConnectors?: () => void;
@@ -65,6 +70,41 @@ function InlineBold({ text }: { text: string }) {
   );
 }
 
+/** Un adjunto antes de enviarlo: la foto en miniatura o, si no es imagen, su nombre. */
+function PendingFile({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const t = useT();
+  const isImage = file.type.startsWith("image/");
+  const imageRef = React.useRef<HTMLImageElement>(null);
+  // La URL se crea y se libera con el efecto (en modo estricto se monta dos veces: cada vez la suya).
+  React.useEffect(() => {
+    const node = imageRef.current;
+    if (!node || typeof URL.createObjectURL !== "function") return;
+    const url = URL.createObjectURL(file);
+    node.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  const remove = (
+    <button type="button" aria-label={t("chat.attachmentRemove")} onClick={onRemove} className="rounded-full p-0.5 text-text-muted hover:text-text-primary">
+      <ThemaIcon className="text-current" name="close" size="xs" decorative />
+    </button>
+  );
+  if (isImage) {
+    return (
+      <li className="relative">
+        <img ref={imageRef} alt={file.name} className="size-14 rounded-lg border border-border/70 bg-surface-muted object-cover" />
+        <span className="absolute -right-1.5 -top-1.5 rounded-full bg-surface shadow-sm">{remove}</span>
+      </li>
+    );
+  }
+  return (
+    <li className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface-muted py-1 pl-2.5 pr-1 text-xs text-text-primary">
+      <ThemaIcon name="file" size="xs" tone="muted" decorative />
+      <span className="max-w-40 truncate">{file.name}</span>
+      {remove}
+    </li>
+  );
+}
+
 /**
  * La caja de escribir del chat.
  *
@@ -86,6 +126,7 @@ export function ChatComposer({
   contextChip,
   onRemoveContext,
   attach = true,
+  attachKind = "files",
   connectors,
   onToggleConnector,
   onAddConnectors,
@@ -115,7 +156,7 @@ export function ChatComposer({
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const accepted = Array.from(list).filter((file) => file.size <= maxSizeMb * MB);
+    const accepted = Array.from(list).filter((file) => file.size <= maxSizeMb * MB && (attachKind !== "photos" || file.type.startsWith("image/")));
     setFiles((previous) => [...previous, ...accepted].slice(0, maxFiles));
   };
 
@@ -191,18 +232,7 @@ export function ChatComposer({
           {files.length > 0 && (
             <ul className="flex flex-wrap gap-2 px-4 pt-3" aria-label={t("chat.attachFiles")}>
               {files.map((file, index) => (
-                <li key={`${file.name}-${index}`} className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface-muted py-1 pl-2.5 pr-1 text-xs text-text-primary">
-                  <ThemaIcon name="file" size="xs" tone="muted" decorative />
-                  <span className="max-w-40 truncate">{file.name}</span>
-                  <button
-                    type="button"
-                    aria-label={t("chat.attachmentRemove")}
-                    onClick={() => setFiles((previous) => previous.filter((_, position) => position !== index))}
-                    className="rounded-full p-0.5 text-text-muted hover:text-text-primary"
-                  >
-                    <ThemaIcon className="text-current" name="close" size="xs" decorative />
-                  </button>
-                </li>
+                <PendingFile key={`${file.name}-${index}`} file={file} onRemove={() => setFiles((previous) => previous.filter((_, position) => position !== index))} />
               ))}
             </ul>
           )}
@@ -233,20 +263,27 @@ export function ChatComposer({
             <div className="flex items-center gap-2">
               {attach && (
                 <>
-                  <ChatAttachMenu
-                    connectors={connectors}
-                    onToggleConnector={onToggleConnector}
-                    onAddConnectors={onAddConnectors}
-                    onPickFiles={pickFiles}
-                    maxFiles={maxFiles}
-                    maxSizeMb={maxSizeMb}
-                    disabled={disabled}
-                  />
+                  {attachKind === "photos" ? (
+                    <Button type="button" variant="ghost" size="icon-sm" className="rounded-full" onClick={pickFiles} disabled={disabled || files.length >= maxFiles} aria-label={t("chat.attachPhotos")} data-testid="chat-attach-photos">
+                      <ThemaIcon name="image" />
+                    </Button>
+                  ) : (
+                    <ChatAttachMenu
+                      connectors={connectors}
+                      onToggleConnector={onToggleConnector}
+                      onAddConnectors={onAddConnectors}
+                      onPickFiles={pickFiles}
+                      maxFiles={maxFiles}
+                      maxSizeMb={maxSizeMb}
+                      disabled={disabled}
+                    />
+                  )}
                   <input
                     ref={fileInput}
                     type="file"
                     multiple
-                    accept=".pdf,.xls,.xlsx,.csv"
+                    accept={attachKind === "photos" ? "image/*" : ".pdf,.xls,.xlsx,.csv"}
+                    aria-label={attachKind === "photos" ? t("chat.attachPhotos") : t("chat.attachFiles")}
                     className="sr-only"
                     tabIndex={-1}
                     onChange={(event) => {

@@ -12,7 +12,7 @@ export type {
   ChatState,
   Conversation,
 } from "./types";
-export { CHAT_MULTIPLE_SEPARATOR, splitMultipleAnswer } from "./question";
+export { CHAT_MULTIPLE_SEPARATOR, CHAT_QUANTITY_MARK, splitMultipleAnswer, splitQuantity, withQuantity } from "./question";
 export { createChatStore, type ChatPersistence, type ChatStore, type ChatStoreOptions } from "./store";
 export { createDemoBackend, type DemoBackendOptions } from "./demoBackend";
 export { createRecognizer, isSpeechRecognitionSupported, isSpeechSynthesisSupported, speak, type Recognizer, type RecognizerOptions } from "./speech";

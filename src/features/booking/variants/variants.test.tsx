@@ -8,7 +8,7 @@ import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
-import { maskCardInput, normalizeExpiry } from "./chat/chatCard";
+import { expiryProblem, maskCardInput, normalizeExpiry } from "./chat/chatCard";
 import { detectAside } from "./chat/chatIntents";
 
 /** Un jueves a las 8:00. */
@@ -197,6 +197,16 @@ describe("tarjeta nueva en la conversación", () => {
     expect(normalizeExpiry("08/2029")).toBe("08/29");
     expect(normalizeExpiry("829")).toBe("08/29");
   });
+
+  test("un vencimiento mal escrito dice qué está mal: el mes, solo el año, vencida o el formato", () => {
+    expect(expiryProblem("0829", NOW)).toBeNull();
+    expect(expiryProblem("3030", NOW)).toEqual({ key: "booking.chat.cardBadMonth", params: { month: "30" } });
+    expect(expiryProblem("13/28", NOW)).toEqual({ key: "booking.chat.cardBadMonth", params: { month: "13" } });
+    expect(expiryProblem("2030", NOW)).toEqual({ key: "booking.chat.cardOnlyYear", params: { year: "2030", short: "30" } });
+    expect(expiryProblem("0825", NOW)).toEqual({ key: "booking.chat.cardExpired", params: { date: "08/25" } });
+    expect(expiryProblem("12", NOW)).toEqual({ key: "booking.chat.cardBadExpiryFormat" });
+    expect(expiryProblem("0899", NOW)).toEqual({ key: "booking.chat.cardTooFar", params: { date: "08/99" } });
+  });
 });
 
 describe("cuentas de la agenda abierta", () => {
@@ -244,6 +254,14 @@ describe("estado compartido por las tres versiones", () => {
     expect(state.items).toHaveLength(1);
     expect(state.draft).toMatchObject({ serviceIds: ["svc_corte"], barberId: null, start: null });
     expect(state.step).toBe("review");
+  });
+
+  test("las fotos para el barbero llegan hasta tres y cada una se puede quitar", () => {
+    let state = initialBookingState();
+    for (const photo of ["a", "b", "c", "d"]) state = bookingReducer(state, { type: "addReferencePhoto", photo });
+    expect(state.referencePhotos).toEqual(["a", "b", "c"]);
+    state = bookingReducer(state, { type: "removeReferencePhoto", index: 1 });
+    expect(state.referencePhotos).toEqual(["a", "c"]);
   });
 
   test("«No soy yo» olvida al cliente pero no las citas apartadas", () => {
@@ -463,6 +481,54 @@ describe("las otras dos experiencias", () => {
     await write("mejor con otro barbero");
     expect(await screen.findByText(/cambiemos de/)).toBeInTheDocument();
     expect(await screen.findByRole("group", { name: "¿Con quién quieres ir?" })).toBeInTheDocument();
+  });
+
+  test("conversación: productos con su cantidad, el recibo a varios destinos (otro número también) y no dejarla fija", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
+    await screen.findByTestId("chat-input");
+    await write("3202172738");
+    await screen.findByText(/Te acabo de mandar un/);
+    await write(DEMO_CODE);
+    await screen.findByText(/Hola de nuevo, Marcela/);
+    await write("corte mañana a las 11 con quien sea");
+    await screen.findByRole("group", { name: "¿Algo más?" });
+    // Productos: cada uno con su − cantidad +.
+    await write("productos");
+    const products = await screen.findByRole("group", { name: "¿Qué te llevas de la tienda?" });
+    const [first] = within(products).getAllByRole("button", { pressed: undefined }).filter((button) => /US\$/.test(button.textContent ?? ""));
+    await user.click(first);
+    await user.click(within(products).getByRole("button", { name: "Sumar" }));
+    await user.click(within(products).getByRole("button", { name: /Agregar · 2/ }));
+    expect(await screen.findByText(/× 2 a tu pedido/)).toBeInTheDocument();
+    // Pagar en la barbería y reservar.
+    await write("confirmar y pagar");
+    await screen.findByRole("group", { name: "¿Le dejas propina a tu barbero?" });
+    await write("sin propina");
+    await screen.findByRole("group", { name: "¿Tienes un cupón o una tarjeta de regalo?" });
+    await write("no");
+    await screen.findByRole("group", { name: "¿Cómo quieres pagar?" });
+    await write("en la barbería");
+    await screen.findByRole("group", { name: "¿Confirmo tu reserva?" });
+    await write("1");
+    await screen.findByText(/está confirmada/);
+    // El recibo: varios destinos a la vez; «A otro número» se pide en la caja.
+    await write("enviar recibo");
+    const receipt = await screen.findByRole("group", { name: "¿A dónde te mando el recibo?" });
+    await user.click(within(receipt).getByRole("button", { name: /SMS a mi celular/ }));
+    await user.click(within(receipt).getByRole("button", { name: /A otro número/ }));
+    await user.click(within(receipt).getByRole("button", { name: /Enviar recibo · 2/ }));
+    await screen.findByText(/A qué/);
+    await write("300 12");
+    expect(await screen.findByText(/no se ve completo/)).toBeInTheDocument();
+    await write("3001234567");
+    expect(await screen.findByText(/te mandé el recibo: SMS al •••• 2738, SMS al •••• 4567/)).toBeInTheDocument();
+    // Dejarla fija tiene su «no».
+    await write("dejarla fija");
+    const repeat = await screen.findByRole("group", { name: "¿Cada cuánto?" });
+    await user.click(within(repeat).getByRole("button", { name: /No, solo esta cita/ }));
+    expect(await screen.findByText("Listo, queda solo esta cita.")).toBeInTheDocument();
   });
 
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {

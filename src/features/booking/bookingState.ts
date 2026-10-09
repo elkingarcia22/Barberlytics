@@ -1,3 +1,4 @@
+import { MAX_REFERENCE_PHOTOS } from "./flow/referencePhoto";
 import type { Promo } from "./pricing";
 import type { BookingCustomer, LastVisit, PayMethod, Reservation } from "./types";
 
@@ -59,7 +60,8 @@ export interface BookingState {
   method: PayMethod | null;
   notes: string;
   /** Foto del corte que quiere (data URL ya reducida), para el barbero. */
-  referencePhoto: string | null;
+  /** Fotos del corte que quiere (data URL), hasta `MAX_REFERENCE_PHOTOS`. */
+  referencePhotos: readonly string[];
   reservation: Reservation | null;
 }
 
@@ -99,7 +101,8 @@ export type BookingAction =
   | { type: "setUsePackages"; usePackages: boolean }
   | { type: "setMethod"; method: PayMethod }
   | { type: "setNotes"; notes: string }
-  | { type: "setReferencePhoto"; photo: string | null }
+  | { type: "addReferencePhoto"; photo: string }
+  | { type: "removeReferencePhoto"; index: number }
   | { type: "goTo"; step: BookingStep }
   | { type: "reserved"; reservation: Reservation }
   | { type: "bookAgain" }
@@ -120,7 +123,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhoto: null, reservation: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -226,8 +229,10 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, method: action.method };
     case "setNotes":
       return { ...state, notes: action.notes };
-    case "setReferencePhoto":
-      return { ...state, referencePhoto: action.photo };
+    case "addReferencePhoto":
+      return state.referencePhotos.length >= MAX_REFERENCE_PHOTOS ? state : { ...state, referencePhotos: [...state.referencePhotos, action.photo] };
+    case "removeReferencePhoto":
+      return { ...state, referencePhotos: state.referencePhotos.filter((_, index) => index !== action.index) };
     case "goTo":
       return { ...state, step: action.step };
     case "reserved":

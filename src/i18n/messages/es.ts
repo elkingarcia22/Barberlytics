@@ -212,6 +212,8 @@ export const es = {
   "chat.yourMessage": "Tu mensaje",
   "chat.agentMessage": "Respuesta del agente",
   "chat.followups": "Sugerencias para seguir",
+  "chat.questionQuantity": "Cuántas de {option}",
+  "chat.attachPhotos": "Adjuntar fotos",
   "chat.questionOther": "Otro",
   "chat.questionOtherPlaceholder": "Escribe tu respuesta",
   "chat.questionAnswered": "Respondido",

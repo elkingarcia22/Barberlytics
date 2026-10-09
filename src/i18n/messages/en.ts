@@ -196,6 +196,8 @@ export const en: MessageCatalog = {
   "chat.yourMessage": "Your message",
   "chat.agentMessage": "Agent answer",
   "chat.followups": "Suggestions to continue",
+  "chat.questionQuantity": "How many {option}",
+  "chat.attachPhotos": "Attach photos",
   "chat.questionOther": "Other",
   "chat.questionOtherPlaceholder": "Write your answer",
   "chat.questionAnswered": "Answered",

@@ -292,7 +292,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ProductCatalogDrawer.tsx** — Toda la tienda de la sede, ordenada como en el módulo de Productos: por categoría (Styling, Barba, Cuidado…),… · `ProductCatalogDrawer` · piezas: Button, Chip, DrawerShell, EmptyState, Heading, Input, Text · usa: @/app/i18n, @/icons
 - **PromoField.tsx** — El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar, con lo que ahorra. · `PromoField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
 - **ReceiptView.tsx** — El recibo de una reserva: número, lo cobrado por cita y producto, y con qué se pagó. · `ReceiptView` · piezas: Badge, Heading, Text · usa: @/app/i18n
-- **ReferencePhotoField.tsx** — «Agregar foto del corte que quieres»: una imagen de referencia que le llega al barbero con la cita (la ve en… · `ReferencePhotoField` · piezas: Button, Text · usa: @/app/i18n, @/icons
+- **ReferencePhotoField.tsx** — «Agregar foto del corte que quieres»: hasta tres imágenes de referencia que le llegan al barbero con la cita… · `ReferencePhotoField` · piezas: Button, Text · usa: @/app/i18n, @/icons
 - **RepeatOffer.tsx** — «¿La dejamos fija?»: tras reservar, las próximas con el mismo barbero y a la misma hora, cada tantas semanas. · `RepeatOffer` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RescheduleDrawer.tsx** — Cambiar la hora sin llamar: las horas libres para el mismo barbero (o para cualquiera, si lo prefiere) y un b… · `RescheduleDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Label, Spinner, Switch, Text, TimeSlotPicker · usa: @/app/i18n, @/icons, @/lib/api, @/lib/useResetOnChange
 - **ReviewSheet.tsx** — Calificar una cita que ya pasó: las estrellas (obligatorias) y un comentario opcional. · `ReviewSheet` · piezas: Button, Field, Rating, Textarea · usa: @/app/i18n, @/lib/api
@@ -304,7 +304,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`
-- **referencePhoto.ts** — La foto de referencia del corte, preparada en el celular antes de subirla: se reduce a 1024 px por el lado la… · `MAX_PHOTO_SIDE`, `MAX_PHOTO_CHARS`, `PHOTO_PATTERN`, `fitWithin`, `prepareReferencePhoto`
+- **referencePhoto.ts** — La foto de referencia del corte, preparada en el celular antes de subirla: se reduce a 1024 px por el lado la… · `MAX_PHOTO_SIDE`, `MAX_REFERENCE_PHOTOS`, `MAX_PHOTO_CHARS`, `PHOTO_PATTERN`, `fitWithin`, `prepareReferencePhoto`
 - **stepWidth.ts** — El ancho de lectura de un paso: la columna del contenido, no la de la barra del pie, que va de lado a lado. · `STEP_WIDTH`
 - **usePaymentController.ts** — El cobro de la reserva, sin la pantalla alrededor: la propina, los descuentos, cómo se paga, la tarjeta y el… · `usePaymentController`, `PaymentController` · usa: @/app/i18n, @/lib/api
 - **useSavedCardManager.tsx** — Editar y quitar tarjetas desde el selector, igual en Pagar y en Regalar: las dos hojas, qué queda elegido des… · `useSavedCardManager`
@@ -357,13 +357,15 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/variants/chat
 
 - **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
-- **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
+- **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `ExpiryProblem`, `expiryProblem`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
 - **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `adjustmentRows`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
+- **chatExtras.ts** — Lo que se suma a la reserva después de apartar: productos de la tienda (cada uno con su cantidad, − 1 + en la… · `ExtrasKit`, `useChatExtras` · usa: @/app/i18n, @/lib/chat
 - **chatIdentity.ts** — Quién es, conversando: el celular (solo números), el código que le llega y, si es la primera vez, nombre y ap… · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/lib/api
 - **chatIntents.ts** — Lo que se pide «de pasada» en cualquier momento de la conversación, como se le hablaría a una persona: volver… · `ChatAside`, `detectAside`, `IntentsKit`, `useChatIntents` · usa: @/app/i18n
 - **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
 - **chatProfiles.ts** — Si lo escrito pide conocer a un barbero o una sede antes de elegir. · `looksLikeDetail`, `ProfilesKit`, `useChatProfiles` · usa: @/app/i18n, @/lib/api
 - **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `matchOptionLoosely`, `orderLine` · usa: @/lib/chat
+- **chatReceipt.ts** — Lo que se va armando: a dónde va el recibo y qué falta que escriba. · `ReceiptPlan`, `ReceiptStep`, `isReceiptStep`, `ReceiptKit`, `createChatReceipt` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 
@@ -689,7 +691,7 @@ Cliente de API, consultas y utilidades sin interfaz.
 
 - **demoBackend.ts** — Respuestas de ejemplo mientras no hay un modelo detrás. · `DemoBackendOptions`, `createDemoBackend` · usa: @/lib/help
 - **history.ts** — Las conversaciones por cuándo se tocaron: Hoy, Ayer, Últimos 7 días, Anteriores. · `ConversationGroupKey`, `ConversationGroup`, `groupConversations`
-- **question.ts** — Con `ChatQuestion.multiple`, la respuesta une las opciones elegidas con esto. · `CHAT_MULTIPLE_SEPARATOR`, `splitMultipleAnswer`
+- **question.ts** — Con `ChatQuestion.multiple`, la respuesta une las opciones elegidas con esto. · `CHAT_MULTIPLE_SEPARATOR`, `splitMultipleAnswer`, `CHAT_QUANTITY_MARK`, `splitQuantity`, `withQuantity`
 - **speech.ts** — Un reconocedor continuo con resultados parciales; `null` si el navegador no puede. · `isSpeechRecognitionSupported`, `Recognizer`, `RecognizerOptions`, `createRecognizer`, `isSpeechSynthesisSupported`, `speak`
 - **store.ts** — Las conversaciones, en un solo sitio. · `ChatPersistence`, `ChatStoreOptions`, `createChatStore`, `ChatStore`
 - **types.ts** — El modelo de una conversación con el agente. · `ChatRole`, `ChatSource`, `ChatQuestion`, `ChatQuestionChoice`, `ChatCard`, `ChatLink`, `ChatMessageStatus`, `ChatMessage`, `Conversation`, `ChatReply`, `ChatBackend`, `ChatState`

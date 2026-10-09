@@ -102,7 +102,7 @@ export function usePaymentController() {
         giftCode: state.gift?.code,
         useReward: totals.reward > 0,
         usePackages: totals.prepaid > 0,
-        referencePhoto: state.referencePhoto ?? undefined,
+        referencePhotos: state.referencePhotos.length > 0 ? [...state.referencePhotos] : undefined,
         utm: utm ?? undefined,
         method,
         // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).

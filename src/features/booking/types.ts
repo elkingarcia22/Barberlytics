@@ -402,8 +402,8 @@ export interface ReservationInput {
   usePackages?: boolean;
   /** De dónde vino (UTM del enlace), para saber qué canal trae reservas. */
   utm?: { source: string; medium: string; campaign: string };
-  /** Foto del corte que quiere (data URL JPEG/PNG/WebP, ≤ ~1,5 MB): la ve el barbero en la cita. */
-  referencePhoto?: string;
+  /** Fotos del corte que quiere (hasta 3; data URL JPEG/PNG/WebP, ≤ ~1,5 MB cada una): las ve el barbero en la cita. */
+  referencePhotos?: string[];
   notes?: string;
 }
 

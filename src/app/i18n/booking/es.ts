@@ -496,6 +496,8 @@ export const bookingEs = {
   "booking.gift.paidWith": "Pagada con {method}.",
   "booking.gift.back": "Volver al inicio",
   "booking.photo.add": "Agregar foto del corte que quieres",
+  "booking.photo.addMore": "Agregar otra foto (te queda {count})",
+  "booking.photo.addMore_plural": "Agregar otra foto (te quedan {count})",
   "booking.photo.preparing": "Preparando la foto…",
   "booking.photo.added": "Foto de referencia",
   "booking.photo.addedHint": "Tu barbero la ve con la cita.",

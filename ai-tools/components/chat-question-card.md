@@ -12,7 +12,7 @@ import { ChatQuestionCard } from "@/components/chat"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `question` | `ChatQuestion` |  | Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, otherLabel, otherPlaceholder y answer. |
+| `question` | `ChatQuestion` |  | Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, quantity { max } (con multiple), otherLabel, otherPlaceholder y answer. |
 | `active` | `boolean` |  | Se puede responder: es la última pregunta de la conversación. |
 | `onAnswer` | `(option: string) => void` |  | La opción elegida; con multiple, las elegidas unidas por « · » (CHAT_MULTIPLE_SEPARATOR). |
 
@@ -51,6 +51,14 @@ Se marcan varias y se confirman con el botón; «Otro» deja escribir la respues
 
 ```tsx
 <ChatQuestionCard question={{ title: "¿Qué te vas a hacer?", hint: "Puedes elegir varios.", options, details, multiple: { confirmLabel: "Continuar" } }} active onAnswer={setAnswer} />
+```
+
+### Varias con cantidad
+
+Con quantity, cada opción elegida trae su − cantidad +; la respuesta llega como «Cera mate × 2 · Shampoo» (splitQuantity la separa).
+
+```tsx
+<ChatQuestionCard question={{ title: "¿Qué productos agrego?", options, details, multiple: { confirmLabel: "Agregar" }, quantity: { max: 9 } }} active onAnswer={setAnswer} />
 ```
 
 ### Sin título (en una respuesta del hilo)

@@ -4,6 +4,8 @@
  * para probarla aparte.
  */
 export const MAX_PHOTO_SIDE = 1024;
+/** Cuántas fotos de referencia lleva una reserva. */
+export const MAX_REFERENCE_PHOTOS = 3;
 const JPEG_QUALITY = 0.82;
 /** Lo que acepta el servidor: una imagen en data URL de hasta ~1,5 MB. */
 export const MAX_PHOTO_CHARS = 1_500_000;

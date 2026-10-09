@@ -21,6 +21,7 @@ import { ChatComposer } from "@/components/chat"
 | `chips / onChip` | `string[] / (text) => void` |  | Preguntas para arrancar, encima de la caja. |
 | `compact` | `boolean` | `false` | Una fila, para el pie de un hilo. |
 | `maxFiles / maxSizeMb` | `number` | `10 / 25` | Los límites del adjunto; se muestran en el menú. |
+| `attachKind` | `"files" \| "photos"` | `"files"` | Qué se adjunta: el menú «+» con conectores y documentos, o un botón de imagen que abre la galería o la cámara y deja las fotos en miniatura (la nota para el barbero en la reserva). |
 
 ## Guías
 

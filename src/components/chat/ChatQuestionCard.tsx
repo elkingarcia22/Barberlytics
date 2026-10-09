@@ -4,9 +4,10 @@ import { ThemaIcon } from "@/icons/ThemaIcon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { NumberField } from "@/components/forms";
 import { Text } from "@/components/typography";
 import { useT } from "@/i18n";
-import { CHAT_MULTIPLE_SEPARATOR as MULTIPLE_SEPARATOR, type ChatQuestion } from "@/lib/chat";
+import { CHAT_MULTIPLE_SEPARATOR as MULTIPLE_SEPARATOR, splitQuantity, withQuantity, type ChatQuestion } from "@/lib/chat";
 
 export interface ChatQuestionCardProps {
   question: ChatQuestion;
@@ -46,14 +47,15 @@ const initialsOf = (name: string): string =>
  * Con `title` es una tarjeta completa: la pregunta arriba con su ayuda y la
  * flecha para plegarla, un buscador si la lista es larga (`searchPlaceholder`),
  * cada opción con su descripción y su bandera o foto (`details`) y, con
- * `multiple`, varias a la vez y un botón para confirmar. Respondida, se pliega
- * y deja a la vista lo elegido.
+ * `multiple`, varias a la vez y un botón para confirmar (con `quantity`, cada
+ * elegida trae su − cantidad +). Respondida, se pliega y deja a la vista lo elegido.
  */
 export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCardProps) {
   const t = useT();
   const [other, setOther] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [picked, setPicked] = React.useState<readonly string[]>([]);
+  const [counts, setCounts] = React.useState<Readonly<Record<string, number>>>({});
   const otherRef = React.useRef<HTMLInputElement>(null);
   const answered = question.answer !== undefined;
   const [collapsed, setCollapsed] = React.useState(answered && Boolean(question.title));
@@ -62,7 +64,9 @@ export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCar
   const options = isRich ? question.options : question.options.slice(0, MAX_KEYED);
   const otherIndex = options.length + 1;
   const canOther = Boolean(question.otherPlaceholder);
-  const answers = answered ? (isMultiple ? (question.answer ?? "").split(MULTIPLE_SEPARATOR) : [question.answer ?? ""]) : [];
+  // Lo respondido, sin las cantidades: «Cera mate × 2» es la opción «Cera mate».
+  const answers = answered ? (isMultiple ? (question.answer ?? "").split(MULTIPLE_SEPARATOR).map((part) => splitQuantity(part).option) : [question.answer ?? ""]) : [];
+  const maxQuantity = isMultiple ? (question.quantity?.max ?? 0) : 0;
   const enabled = active && !answered;
   const visible = query.trim() ? options.filter((option) => plain(`${option} ${question.details?.[option]?.description ?? ""}`).includes(plain(query.trim()))) : options;
 
@@ -114,8 +118,9 @@ export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCar
         const index = options.indexOf(option);
         const chosen = answers.includes(option) || (isMultiple && picked.includes(option));
         const detail = question.details?.[option];
+        const counting = maxQuantity > 1 && enabled && picked.includes(option);
         return (
-          <li key={option}>
+          <li key={option} className="relative">
             <button
               type="button"
               disabled={!enabled}
@@ -125,7 +130,8 @@ export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCar
                 isRich ? "rounded-xl border border-transparent bg-surface-subtle px-3.5 py-3" : "px-4 py-3 focus-visible:bg-primary/5",
                 enabled && (isRich ? "hover:border-border hover:bg-surface-muted" : "hover:bg-surface-muted"),
                 answered && !chosen && "opacity-50",
-                chosen && (isRich ? "border-primary/40 bg-primary/5" : "bg-primary/5")
+                chosen && (isRich ? "border-primary/40 bg-primary/5" : "bg-primary/5"),
+                counting && "pr-36"
               )}
               aria-pressed={chosen || undefined}
             >
@@ -150,8 +156,21 @@ export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCar
                   </Text>
                 )}
               </span>
-              {chosen ? <ThemaIcon name="check" size="sm" tone="primary" label={t("chat.questionAnswered")} /> : index < MAX_KEYED ? <Kbd>{index + 1}</Kbd> : null}
+              {counting ? null : chosen ? <ThemaIcon name="check" size="sm" tone="primary" label={t("chat.questionAnswered")} /> : index < MAX_KEYED ? <Kbd>{index + 1}</Kbd> : null}
             </button>
+            {counting && (
+              // Fuera del botón de la fila (no se anida un botón en otro), sobre su borde derecho.
+              <NumberField
+                size="sm"
+                stepper="sides"
+                min={1}
+                max={maxQuantity}
+                value={counts[option] ?? 1}
+                onValueChange={(value) => setCounts((current) => ({ ...current, [option]: Math.max(1, value ?? 1) }))}
+                aria-label={t("chat.questionQuantity", { option })}
+                className="absolute right-3 top-1/2 w-28 -translate-y-1/2"
+              />
+            )}
           </li>
         );
       })}
@@ -270,9 +289,9 @@ export function ChatQuestionCard({ question, active, onAnswer }: ChatQuestionCar
           )}
           {list}
           {isMultiple && enabled && (
-            <Button type="button" disabled={picked.length === 0} onClick={() => onAnswer(picked.join(MULTIPLE_SEPARATOR))}>
+            <Button type="button" disabled={picked.length === 0} onClick={() => onAnswer(picked.map((option) => withQuantity(option, maxQuantity > 1 ? (counts[option] ?? 1) : 1)).join(MULTIPLE_SEPARATOR))}>
               {question.multiple?.confirmLabel}
-              {picked.length > 0 && ` · ${picked.length}`}
+              {picked.length > 0 && ` · ${picked.reduce((sum, option) => sum + (maxQuantity > 1 ? (counts[option] ?? 1) : 1), 0)}`}
               <ThemaIcon name="arrowRight" />
             </Button>
           )}

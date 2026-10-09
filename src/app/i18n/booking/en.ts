@@ -474,6 +474,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.gift.paidWith": "Paid with {method}.",
   "booking.gift.back": "Back to start",
   "booking.photo.add": "Add a photo of the cut you want",
+  "booking.photo.addMore": "Add another photo ({count} left)",
+  "booking.photo.addMore_plural": "Add another photo ({count} left)",
   "booking.photo.preparing": "Preparing the photo…",
   "booking.photo.added": "Reference photo",
   "booking.photo.addedHint": "Your barber sees it with the appointment.",

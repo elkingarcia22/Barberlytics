@@ -56,4 +56,18 @@ describe("ChatComposer", () => {
     rerender(<Harness onVoice={vi.fn()} />);
     expect(screen.getByTestId("chat-voice")).toBeTruthy();
   });
+
+  test("con fotos: un botón de imagen en vez del menú, solo acepta imágenes y se envían sin texto", async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    render(<Harness onSend={onSend} attachKind="photos" maxFiles={3} />);
+    expect(screen.getByTestId("chat-attach-photos")).toBeTruthy();
+    const picker = screen.getByLabelText("Adjuntar fotos", { selector: "input" });
+    expect(picker).toHaveAttribute("accept", "image/*");
+    const photo = new File(["x"], "corte.jpg", { type: "image/jpeg" });
+    const pdf = new File(["x"], "menu.pdf", { type: "application/pdf" });
+    await user.upload(picker, [photo, pdf]);
+    await user.click(screen.getByTestId("chat-send"));
+    expect(onSend).toHaveBeenCalledWith("", [photo]);
+  });
 });

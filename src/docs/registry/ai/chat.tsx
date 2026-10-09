@@ -134,6 +134,7 @@ export const chatComposerEntry = defineEntry({
     { name: "chips / onChip", type: "string[] / (text) => void", description: "Preguntas para arrancar, encima de la caja." },
     { name: "compact", type: "boolean", default: "false", description: "Una fila, para el pie de un hilo." },
     { name: "maxFiles / maxSizeMb", type: "number", default: "10 / 25", description: "Los límites del adjunto; se muestran en el menú." },
+    { name: "attachKind", type: '"files" | "photos"', default: '"files"', description: "Qué se adjunta: el menú «+» con conectores y documentos, o un botón de imagen que abre la galería o la cámara y deja las fotos en miniatura (la nota para el barbero en la reserva)." },
   ],
   guidelines: {
     do: ["Una sola caja por pantalla: es la misma en el panel, en pantalla completa y al volver de la voz.", "Deja el aviso «puede cometer errores» salvo en un pie muy apretado."],
@@ -371,6 +372,25 @@ export const chatQuestionCardEntry = defineEntry({
       ),
     },
     {
+      id: "quantity",
+      title: "Varias con cantidad",
+      description: "Con quantity, cada opción elegida trae su − cantidad +; la respuesta llega como «Cera mate × 2 · Shampoo» (splitQuantity la separa).",
+      layout: "center",
+      code: `<ChatQuestionCard question={{ title: "¿Qué productos agrego?", options, details, multiple: { confirmLabel: "Agregar" }, quantity: { max: 9 } }} active onAnswer={setAnswer} />`,
+      render: () => (
+        <QuestionDemo
+          question={{
+            title: "¿Qué productos agrego?",
+            hint: "Lo recoges el día de tu cita.",
+            options: ["Cera mate", "Shampoo de barba", "Aceite para barba"],
+            details: { "Cera mate": { description: "US$ 18" }, "Shampoo de barba": { description: "US$ 15" }, "Aceite para barba": { description: "US$ 22" } },
+            multiple: { confirmLabel: "Agregar" },
+            quantity: { max: 9 },
+          }}
+        />
+      ),
+    },
+    {
       id: "simple",
       title: "Sin título (en una respuesta del hilo)",
       description: "La forma corta que usa el chat de ayuda: solo las opciones numeradas y «Otro».",
@@ -380,7 +400,7 @@ export const chatQuestionCardEntry = defineEntry({
     },
   ],
   props: [
-    { name: "question", type: "ChatQuestion", description: "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, otherLabel, otherPlaceholder y answer." },
+    { name: "question", type: "ChatQuestion", description: "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, quantity { max } (con multiple), otherLabel, otherPlaceholder y answer." },
     { name: "active", type: "boolean", description: "Se puede responder: es la última pregunta de la conversación." },
     { name: "onAnswer", type: "(option: string) => void", description: "La opción elegida; con multiple, las elegidas unidas por « · » (CHAT_MULTIPLE_SEPARATOR)." },
   ],

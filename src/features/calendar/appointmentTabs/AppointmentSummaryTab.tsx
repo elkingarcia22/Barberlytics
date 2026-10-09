@@ -241,11 +241,15 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
         </div>
       )}
 
-      {/* La foto del corte que pidió al reservar en línea: el barbero la ve antes de empezar. */}
-      {appointment.referencePhoto && (
+      {/* Las fotos del corte que pidió al reservar en línea: el barbero las ve antes de empezar. */}
+      {appointment.referencePhotos && appointment.referencePhotos.length > 0 && (
         <figure className="flex flex-col gap-1.5">
           <Text variant="caption">{t("calendar.detail.referencePhoto")}</Text>
-          <img src={appointment.referencePhoto} alt={t("calendar.detail.referencePhoto")} className="max-h-56 w-full rounded-lg object-cover" data-testid="appointment-reference-photo" />
+          <div className={cn("grid gap-2", appointment.referencePhotos.length > 1 && "grid-cols-2")}>
+            {appointment.referencePhotos.map((photo, index) => (
+              <img key={index} src={photo} alt={t("calendar.detail.referencePhoto")} className={cn("w-full rounded-lg object-cover", appointment.referencePhotos && appointment.referencePhotos.length > 1 ? "aspect-square" : "max-h-56")} data-testid="appointment-reference-photo" />
+            ))}
+          </div>
         </figure>
       )}
 

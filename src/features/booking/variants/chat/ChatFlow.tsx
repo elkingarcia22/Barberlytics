@@ -98,6 +98,30 @@ function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; 
   );
 }
 
+/** Lo que escribió el cliente; si mandó fotos (para el barbero), van encima, como en un chat. */
+function UserTurn({ turn }: { turn: ChatTurn }) {
+  const t = useAppT();
+  const [viewing, setViewing] = React.useState<number | null>(null);
+  const photos = turn.photos ?? [];
+  return (
+    <div className="flex flex-col items-end gap-2">
+      {photos.length > 0 && (
+        <ul className="flex flex-wrap justify-end gap-2" aria-label={t("booking.photo.added")}>
+          {photos.map((photo, index) => (
+            <li key={index}>
+              <button type="button" onClick={() => setViewing(index)} className="block overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                <img src={photo} alt={t("booking.photo.alt")} className="size-24 object-cover" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {photos.length > 0 && <GalleryViewer photos={photos} index={viewing} title={t("booking.photo.added")} onClose={() => setViewing(null)} />}
+      {turn.text && <ChatUserMessage message={{ id: turn.id, role: "user", text: turn.text, createdAt: 0, status: "done" }} />}
+    </div>
+  );
+}
+
 /**
  * Conversación: se reserva hablando con el asistente de la barbería, como por
  * WhatsApp. Lo que se escribe (el celular, el código, el nombre, una frase como
@@ -166,7 +190,7 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
                   turn.from === "agent" ? (
                     <AgentTurn key={turn.id} turn={turn} isOpen={turn.id === engine.activeTurnId} engine={engine} />
                   ) : (
-                    <ChatUserMessage key={turn.id} message={{ id: turn.id, role: "user", text: turn.text ?? "", createdAt: 0, status: "done" }} />
+                    <UserTurn key={turn.id} turn={turn} />
                   )
                 )}
                 {engine.typing && <ChatThinking label={t("booking.chat.typing")} />}
@@ -174,7 +198,17 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
             </div>
             <div className="shrink-0 border-t border-border bg-surface/80 px-4 py-3 backdrop-blur">
               <div className={cn("mx-auto w-full", isWide ? "max-w-2xl" : "max-w-xl")}>
-                <ChatComposer value={draft} onChange={setDraft} onSend={(text) => engine.send(text)} placeholder={engine.placeholder} compact attach={false} disclaimer={false} />
+                <ChatComposer
+                  value={draft}
+                  onChange={setDraft}
+                  onSend={(text, files) => engine.send(text, files)}
+                  placeholder={engine.placeholder}
+                  compact
+                  attach={engine.photoRoom > 0}
+                  attachKind="photos"
+                  maxFiles={engine.photoRoom}
+                  disclaimer={false}
+                />
               </div>
             </div>
           </div>

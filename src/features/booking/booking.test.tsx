@@ -383,16 +383,17 @@ describe("backend de la reserva", () => {
     await expect(bookingApi.checkGift(bought.code)).resolves.toEqual({ code: bought.code, balance: 60 });
   });
 
-  test("la foto de referencia llega a la cita de la agenda; una que no es imagen se rechaza", async () => {
+  test("las fotos de referencia (hasta 3) llegan a la cita de la agenda; una que no es imagen se rechaza", async () => {
     const { token } = await signIn();
     const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
     if (!slot) throw new Error("debería haber hueco");
     const base = { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: slot.barberId, start: `${slot.date}T${slot.time}` }], products: [], tipId: null, promoCode: null, method: "shop" as const };
-    await expect(bookingApi.reserve(token, { ...base, referencePhoto: "data:text/html;base64,PHNjcmlwdD4=" })).rejects.toMatchObject({ status: 422 });
+    await expect(bookingApi.reserve(token, { ...base, referencePhotos: ["data:text/html;base64,PHNjcmlwdD4="] })).rejects.toMatchObject({ status: 422 });
     const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
-    const booked = await bookingApi.reserve(token, { ...base, referencePhoto: photo });
+    await expect(bookingApi.reserve(token, { ...base, referencePhotos: [photo, photo, photo, photo] })).rejects.toMatchObject({ status: 422 });
+    const booked = await bookingApi.reserve(token, { ...base, referencePhotos: [photo, photo] });
     const inAgenda = db.calendar.appointments.find((item) => item.id === booked.appointments[0].id);
-    expect(inAgenda?.referencePhoto).toBe(photo);
+    expect(inAgenda?.referencePhotos).toEqual([photo, photo]);
     expect(inAgenda?.notes).toContain("foto de referencia");
   });
 

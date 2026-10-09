@@ -4,11 +4,12 @@ import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "./BookingContext";
-import { prepareReferencePhoto } from "./referencePhoto";
+import { MAX_REFERENCE_PHOTOS, prepareReferencePhoto } from "./referencePhoto";
 
 /**
- * «Agregar foto del corte que quieres»: una imagen de referencia que le llega al barbero con la
- * cita (la ve en el calendario). Se elige de la galería o con la cámara y se puede quitar.
+ * «Agregar foto del corte que quieres»: hasta tres imágenes de referencia que le llegan al
+ * barbero con la cita (las ve en el calendario). Se eligen de la galería o con la cámara y
+ * cada una se puede quitar.
  */
 export function ReferencePhotoField() {
   const t = useAppT();
@@ -16,13 +17,16 @@ export function ReferencePhotoField() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [isPreparing, setIsPreparing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const photos = state.referencePhotos;
+  const room = MAX_REFERENCE_PHOTOS - photos.length;
 
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
+  const pick = async (files: FileList | null) => {
+    const chosen = Array.from(files ?? []).slice(0, room);
+    if (chosen.length === 0) return;
     setError(null);
     setIsPreparing(true);
     try {
-      dispatch({ type: "setReferencePhoto", photo: await prepareReferencePhoto(file) });
+      for (const file of chosen) dispatch({ type: "addReferencePhoto", photo: await prepareReferencePhoto(file) });
     } catch {
       setError(t("booking.photo.error"));
     } finally {
@@ -33,11 +37,10 @@ export function ReferencePhotoField() {
 
   return (
     <div className="flex flex-col gap-2">
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void pick(event.target.files?.[0])} aria-label={t("booking.photo.add")} />
-      {state.referencePhoto ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
-          <img src={state.referencePhoto} alt={t("booking.photo.alt")} className="size-16 shrink-0 rounded-xl object-cover" />
-          <div className="flex min-w-0 flex-1 flex-col">
+      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => void pick(event.target.files)} aria-label={t("booking.photo.add")} />
+      {photos.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3">
+          <div className="flex flex-col">
             <Text size="sm" weight="medium">
               {t("booking.photo.added")}
             </Text>
@@ -45,14 +48,29 @@ export function ReferencePhotoField() {
               {t("booking.photo.addedHint")}
             </Text>
           </div>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => dispatch({ type: "setReferencePhoto", photo: null })} aria-label={t("booking.photo.remove")}>
-            <ThemaIcon name="close" />
-          </Button>
+          <ul className="flex flex-wrap gap-2">
+            {photos.map((photo, index) => (
+              <li key={index} className="relative">
+                <img src={photo} alt={t("booking.photo.alt")} className="size-16 rounded-xl object-cover" />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-xs"
+                  className="absolute -right-1.5 -top-1.5 rounded-full shadow-sm"
+                  onClick={() => dispatch({ type: "removeReferencePhoto", index })}
+                  aria-label={t("booking.photo.remove")}
+                >
+                  <ThemaIcon name="close" />
+                </Button>
+              </li>
+            ))}
+          </ul>
         </div>
-      ) : (
+      )}
+      {room > 0 && (
         <Button type="button" variant="outline" className="self-start" disabled={isPreparing} onClick={() => inputRef.current?.click()}>
           <ThemaIcon name="camera" />
-          {isPreparing ? t("booking.photo.preparing") : t("booking.photo.add")}
+          {isPreparing ? t("booking.photo.preparing") : photos.length > 0 ? t("booking.photo.addMore", { count: room }) : t("booking.photo.add")}
         </Button>
       )}
       {error && (

@@ -89,4 +89,18 @@ describe("ChatQuestionCard", () => {
     await user.click(screen.getByRole("button", { name: /Continuar/ }));
     expect(onAnswer).toHaveBeenCalledWith("Corte · Cejas");
   });
+
+  test("con cantidad: cada elegida trae su − 1 + y la respuesta lleva cuántas", async () => {
+    const user = userEvent.setup();
+    const onAnswer = vi.fn();
+    render(<ChatQuestionCard question={{ title: "¿Qué productos?", options: ["Cera", "Shampoo"], multiple: { confirmLabel: "Agregar" }, quantity: { max: 9 } }} active onAnswer={onAnswer} />);
+
+    expect(screen.queryByRole("button", { name: "Sumar" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /Cera/ }));
+    await user.click(screen.getByRole("button", { name: /Shampoo/ }));
+    await user.click(screen.getAllByRole("button", { name: "Sumar" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Sumar" })[0]);
+    await user.click(screen.getByRole("button", { name: /Agregar · 4/ }));
+    expect(onAnswer).toHaveBeenCalledWith("Cera × 3 · Shampoo");
+  });
 });

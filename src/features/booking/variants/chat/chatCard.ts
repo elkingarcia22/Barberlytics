@@ -26,12 +26,42 @@ export function normalizeExpiry(text: string): string {
   return digits.length === 4 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : text.trim();
 }
 
+/** Lo más lejos que vence una tarjeta: más que esto es un año mal escrito. */
+const MAX_YEARS_AHEAD = 20;
+const MONTHS = 12;
+
+export type ExpiryProblem =
+  | { key: "booking.chat.cardBadExpiryFormat" }
+  | { key: "booking.chat.cardBadMonth"; params: { month: string } }
+  | { key: "booking.chat.cardOnlyYear"; params: { year: string; short: string } }
+  | { key: "booking.chat.cardExpired" | "booking.chat.cardTooFar"; params: { date: string } };
+
+/**
+ * Qué está mal en el vencimiento escrito, para decirlo con precisión: «3030»
+ * no es un mes (30), «2030» es solo el año, «0820» ya venció… `null` si sirve.
+ */
+export function expiryProblem(text: string, now = new Date()): ExpiryProblem | null {
+  const digits = digitsOf(text);
+  const thisYear = now.getFullYear() % 100;
+  // «2030»: un año de cuatro cifras sin mes.
+  if (digits.length === 4 && digits.startsWith("20") && Number(digits.slice(0, 2)) > MONTHS && Number(digits.slice(2)) >= thisYear) {
+    return { key: "booking.chat.cardOnlyYear", params: { year: digits, short: digits.slice(2) } };
+  }
+  if (![3, 4, 6].includes(digits.length) || (digits.length === 6 && !digits.slice(2, 4).startsWith("20"))) return { key: "booking.chat.cardBadExpiryFormat" };
+  const expiry = normalizeExpiry(text);
+  const [month = "", year = ""] = expiry.split("/");
+  if (Number(month) < 1 || Number(month) > MONTHS) return { key: "booking.chat.cardBadMonth", params: { month } };
+  if (!expiryOk(expiry, now)) return { key: "booking.chat.cardExpired", params: { date: expiry } };
+  if (Number(year) - thisYear > MAX_YEARS_AHEAD) return { key: "booking.chat.cardTooFar", params: { date: expiry } };
+  return null;
+}
+
 /** Cómo se ve en el hilo lo que se escribe en cada paso: el número y el CVC nunca enteros. */
 export function maskCardInput(step: CardStep, text: string): string {
   const digits = digitsOf(text);
   if (step === "cardNumber") return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : "••••";
   if (step === "cardCvc") return "•".repeat(Math.max(3, Math.min(4, digits.length)));
-  if (step === "cardExpiry") return normalizeExpiry(text);
+  // El vencimiento y el nombre, tal como los escribió (si el vencimiento está mal, se ve qué puso).
   return text.trim();
 }
 
@@ -101,8 +131,9 @@ export function useChatNewCard(kit: CardKit) {
       return say({ text: t("booking.chat.cardAskExpiry") });
     }
     if (step === "cardExpiry") {
+      const problem = expiryProblem(text);
+      if (problem) return say({ text: "params" in problem ? t(problem.key, problem.params) : t(problem.key) });
       const expiry = normalizeExpiry(text);
-      if (!/^\d{2}\/\d{2}$/.test(expiry) || !expiryOk(expiry)) return say({ text: t("booking.chat.cardBadExpiry") });
       values.current = { ...current, expiry };
       expect("cardCvc");
       return say({ text: t("booking.chat.cardAskCvc", { count: cvcLengthOf(cardBrandOf(current.number)) }) });

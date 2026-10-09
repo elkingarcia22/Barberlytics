@@ -62,6 +62,19 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
     silence.current = null;
   };
 
+  /**
+   * Cada reconocedor tiene su turno. Al dejar de escuchar (para contestar, en pausa o al cerrar) el
+   * turno cambia: lo que el reconocedor anterior entregue tarde —Chrome suelta el final de lo que oyó
+   * aunque se le haya parado— ya no cuenta, y no se pregunta dos veces lo mismo.
+   */
+  const turn = React.useRef(0);
+  const stopListening = React.useCallback(() => {
+    turn.current += 1;
+    if (silence.current) window.clearTimeout(silence.current);
+    silence.current = null;
+    recognizer.current?.stop();
+  }, []);
+
   /** La respuesta (o el saludo) en camino: se piensa, se dice en voz alta y se vuelve a escuchar. */
   const respond = React.useCallback((pending: Promise<ChatReply>) => {
     setStatus("thinking");
@@ -84,31 +97,35 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
 
   const finishAndAsk = React.useCallback(
     (text: string) => {
-      clearSilence();
-      recognizer.current?.stop();
+      stopListening();
       respond(askRef.current(text));
     },
-    [respond]
+    [respond, stopListening]
   );
 
   /** Arranca el reconocedor sin tocar el estado: lo usan el efecto de apertura y `listen`. */
   const startRecognizer = React.useCallback(() => {
     recognizer.current?.stop();
+    turn.current += 1;
+    const mine = turn.current;
+    // Solo cuenta lo que oye este reconocedor mientras se está escuchando (no mientras piensa o habla).
+    const isCurrent = () => mine === turn.current && statusRef.current === "listening";
     recognizer.current = createRecognizer({
       lang,
       onTranscript: (finalText, interimText) => {
+        if (!isCurrent()) return;
         setTranscript(finalText);
         setInterim(interimText);
         clearSilence();
         // La pausa cuenta desde lo último que se oyó, firme o no: Chrome a veces tarda en dar la
         // frase por terminada y, si se esperara a eso, habría que mandarla a mano.
         const heard = [finalText, interimText].filter(Boolean).join(" ").trim();
-        if (heard) silence.current = window.setTimeout(() => finishAndAsk(heard), silenceMs);
+        if (heard) silence.current = window.setTimeout(() => isCurrent() && finishAndAsk(heard), silenceMs);
       },
       onError: (kind) => setStatus(kind === "denied" ? "denied" : "paused"),
       onEnd: () => {
         // El navegador corta solo cada cierto tiempo: si seguíamos escuchando, se retoma.
-        if (statusRef.current === "listening") recognizer.current?.start();
+        if (isCurrent()) recognizer.current?.start();
       },
     });
     recognizer.current?.start();
@@ -145,10 +162,9 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
   );
 
   const pause = React.useCallback(() => {
-    clearSilence();
-    recognizer.current?.stop();
+    stopListening();
     setStatus("paused");
-  }, [setStatus]);
+  }, [setStatus, stopListening]);
 
   const reset = React.useCallback(() => {
     setTranscript("");
@@ -170,12 +186,11 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
       }
     } else if (isSpeechRecognitionSupported()) startRecognizer();
     return () => {
-      clearSilence();
-      recognizer.current?.stop();
+      stopListening();
       recognizer.current = null;
       stopSpeaking.current?.();
     };
-  }, [open, startRecognizer, respond]);
+  }, [open, startRecognizer, respond, stopListening]);
 
   // El cronómetro corre mientras se escucha.
   React.useEffect(() => {

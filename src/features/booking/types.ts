@@ -173,7 +173,7 @@ export const bookingCustomerSchema = z.object({
   depositRequired: z.boolean().default(false),
   /** Sus paquetes con visitas por usar (los vencidos o agotados no vienen). */
   packages: z.array(ownedPackageSchema).default([]),
-  /** Su tarjeta de cliente frecuente: avance hacia la próxima cortesía y cuántas tiene por usar. */
+  /** Su membresía: avance hacia la próxima cortesía y cuántas tiene por usar. */
   loyalty: z.object({ every: z.number(), progress: z.number(), available: z.number(), rewardServiceId: z.string(), rewardName: z.string().default(""), rewardValue: z.number() }).nullable().default(null),
 });
 export type BookingCustomer = z.infer<typeof bookingCustomerSchema>;

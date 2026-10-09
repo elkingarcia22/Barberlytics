@@ -269,7 +269,7 @@ describe("las otras dos experiencias", () => {
     renderWithProviders(<BookingFlow version="chat" />);
     const input = await screen.findByTestId("chat-input");
     await user.type(input, "3202172738{Enter}");
-    await screen.findByText(/Te acabo de mandar un código/);
+    await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     await screen.findByText(/Hola de nuevo, Marcela/);
     await user.type(screen.getByTestId("chat-input"), "quiero un corte{Enter}");
@@ -281,6 +281,8 @@ describe("las otras dos experiencias", () => {
     // Una sede, escrita en la caja: su detalle y la pregunta pendiente otra vez.
     await user.type(screen.getByTestId("chat-input"), "cómo es la sede massachusetts{Enter}");
     expect(await screen.findByText("Horario de la semana")).toBeInTheDocument();
+    // Quién atiende en la sede, con su nivel y su nota.
+    expect(screen.getByText(/^Quién atiende \(\d+\)$/)).toBeInTheDocument();
     expect(await screen.findByText("¿Seguimos donde íbamos?")).toBeInTheDocument();
     // La pregunta que quedó pendiente vuelve, y se responde como cualquier otra.
     expect(confirm).not.toBeInTheDocument();
@@ -303,6 +305,27 @@ describe("las otras dos experiencias", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(field).toHaveTextContent(name);
     expect(field.textContent).not.toBe(before);
+  });
+
+  test("conversación: si el barbero no tiene horas, recomienda otros que hacen lo mismo y las demás opciones", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
+    await screen.findByText(/Te acabo de mandar un/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    await screen.findByText(/Hola de nuevo, Marcela/);
+    // Valeria está de vacaciones hasta el viernes en la demo.
+    await user.type(screen.getByTestId("chat-input"), "corte con valeria el viernes{Enter}");
+    expect(await screen.findByText(/Te recomiendo estos barberos/)).toBeInTheDocument();
+    const options = await screen.findByRole("group", { name: "¿Qué hacemos?" });
+    expect(within(options).getByRole("button", { name: /Con quien esté libre/ })).toBeInTheDocument();
+    expect(within(options).getByRole("button", { name: /Ver otro día con Valeria/ })).toBeInTheDocument();
+    expect(within(options).getByRole("button", { name: /Avísame si se libera/ })).toBeInTheDocument();
+    // Un recomendado: se sigue con sus horas.
+    const recommended = within(options).getAllByRole("button").find((button) => /★/.test(button.textContent ?? ""));
+    expect(recommended).toBeDefined();
+    await user.click(recommended as HTMLElement);
+    expect(await screen.findByRole("group", { name: /^¿A qué hora el / })).toBeInTheDocument();
   });
 
   test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
@@ -343,7 +366,7 @@ describe("las otras dos experiencias", () => {
     await user.type(await screen.findByTestId("chat-input"), "320-217{Enter}");
     expect(await screen.findByText(/ese número no se ve bien/)).toBeInTheDocument();
     await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
-    expect(await screen.findByText(/Te acabo de mandar un código/)).toBeInTheDocument();
+    expect(await screen.findByText(/Te acabo de mandar un/)).toBeInTheDocument();
     // El código no se repite en el hilo.
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     expect(screen.queryByText(DEMO_CODE)).toBeNull();

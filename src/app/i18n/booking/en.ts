@@ -318,6 +318,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.payment.tip": "Tip for your barber",
   "booking.payment.tipNone": "No tip",
   "booking.payment.tipHint": "The whole tip goes to your barber.",
+  "booking.payment.promoAsk": "Have a coupon?",
   "booking.payment.promo": "Coupon",
   "booking.payment.promoPlaceholder": "Enter your coupon",
   "booking.payment.promoApply": "Apply",

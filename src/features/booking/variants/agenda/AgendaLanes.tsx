@@ -135,6 +135,8 @@ interface TimeWindowsProps {
   timeLabel: (time: string) => string;
   /** Si ya se eligió con quién: las horas se anuncian «con» esa persona. */
   withName?: string;
+  /** La hora ya elegida (una sola cita): se queda a la vista, marcada, en vez de desaparecer. */
+  selectedTime?: string | null;
   onPick: (time: string) => void;
 }
 
@@ -142,7 +144,7 @@ interface TimeWindowsProps {
  * Las horas del día sin pensar en quién: por franja, cada hora con las caras de
  * quienes pueden y cuántos son. Tocar una es reservar «con quien esté libre».
  */
-export function TimeWindows({ groups, timeLabel, withName, onPick }: TimeWindowsProps) {
+export function TimeWindows({ groups, timeLabel, withName, selectedTime = null, onPick }: TimeWindowsProps) {
   const t = useAppT();
   const { catalog } = useBookingFlow();
   const faces = (ids: readonly string[]) => ids.map((id) => catalog?.barbers.find((barber) => barber.id === id)).filter((barber): barber is BookingBarber => barber !== undefined);
@@ -161,7 +163,7 @@ export function TimeWindows({ groups, timeLabel, withName, onPick }: TimeWindows
                 <TimePill
                   key={option.time}
                   label={timeLabel(option.time)}
-                  taken={option.taken && option.barberIds.length === 0}
+                  taken={option.time === selectedTime || (option.taken && option.barberIds.length === 0)}
                   onPick={() => onPick(option.time)}
                   ariaLabel={withName ? t("booking.agenda.pickWith", { time: timeLabel(option.time), name: withName }) : t("booking.agenda.pickAny", { time: timeLabel(option.time), count: option.barberIds.length })}
                 >

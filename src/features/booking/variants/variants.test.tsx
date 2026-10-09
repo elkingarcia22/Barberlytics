@@ -264,6 +264,28 @@ describe("las otras dos experiencias", () => {
     expect(field).toHaveTextContent("Arreglo de barba");
   });
 
+  test("agenda con selector: sin cuenta no pregunta para quién, una sola hora (la nueva reemplaza) y el cierre no repite la cita", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
+    expect(screen.queryByText("¿Para quién es la cita?")).toBeNull();
+    // De noche hoy ya no quedan horas: se salta al siguiente día con horas.
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    const picks = await screen.findAllByRole("button", { name: /^Apartar a las / });
+    await user.click(picks[0]);
+    await user.click(screen.getAllByRole("button", { name: /^Apartar a las / })[1]);
+    // La segunda reemplaza a la primera y queda marcada, a la vista.
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Apartar a las /, pressed: true })).toHaveLength(1));
+    expect(screen.getAllByRole("button", { name: /^Apartar a las / })[1]).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("1 cita")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText("Tu cita")).toBeInTheDocument();
+    expect(screen.queryByText("Tus citas")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Volver a la agenda" })).toBeNull();
+  });
+
   test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);

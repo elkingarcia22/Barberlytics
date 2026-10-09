@@ -17,6 +17,7 @@ import { personName } from "../../bookingState";
 import { dayKeyOf, firstBookableDay, parseStart } from "../../bookingFormat";
 import { BarberProfileDrawer } from "../../flow/BarberProfileDrawer";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { AlternativeBarbers } from "../../flow/AlternativeBarbers";
 import { EarliestSlot } from "../../flow/EarliestSlot";
 import { PersonPicker } from "../../flow/PersonPicker";
 import { WaitlistCard } from "../../flow/WaitlistCard";
@@ -94,14 +95,18 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
     const start = `${dayKey}T${time}`;
     dispatch({ type: "chooseBarber", barberId });
     dispatch({ type: "chooseTime", start });
-    toast.success(t(editing ? "booking.agenda.moved" : "booking.agenda.added", { when: fmt.when(parseStart(start)) }));
+    // En la Agenda con selector la hora queda marcada a la vista (y la reserva, abajo): el aviso sobra.
+    if (!isSelect) toast.success(t(editing ? "booking.agenda.moved" : "booking.agenda.added", { when: fmt.when(parseStart(start)) }));
   };
 
   // Quien tiene horas ese día va primero (el de siempre, delante de todos); los demás quedan al final, apagados.
   const lanes = barbers
     .map((barber) => ({ barber, times: barberTimes(slots, barber.id, dayKey, state.items, state.editingIndex) }))
     .sort((a, b) => Number(b.barber.id === usualId) - Number(a.barber.id === usualId) || Number(b.times.length > 0) - Number(a.times.length > 0));
-  const windows = timesByWindow(slots, dayKey, state.items, state.editingIndex);
+  // Una sola cita: lo apartado no se descuenta de las horas, se marca (y tocar otra la reemplaza).
+  const windows = isSelect ? timesByWindow(slots, dayKey, [], null) : timesByWindow(slots, dayKey, state.items, state.editingIndex);
+  const pickedStart = isSelect ? (state.items[0]?.start ?? null) : null;
+  const selectedTime = pickedStart?.startsWith(dayKey) ? pickedStart.slice(11, 16) : null;
   const hasSlots = slots.length > 0;
   const boardView: BoardView = isSelect ? "time" : view;
   const waitlistKey = `${dayKey}|any`;
@@ -111,8 +116,8 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
     <div className={cn("flex flex-col gap-6 px-5 pb-8 pt-6", layout === "wide" && "px-8 pt-8")}>
       <header className="flex flex-wrap items-end justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Heading level={layout === "wide" ? 2 : 3}>{t("booking.agenda.title")}</Heading>
-          <Text tone="secondary">{t("booking.agenda.lead")}</Text>
+          <Heading level={layout === "wide" ? 2 : 3}>{t(isSelect ? "booking.agenda.selectTitle" : "booking.agenda.title")}</Heading>
+          <Text tone="secondary">{t(isSelect ? "booking.agenda.selectLead" : "booking.agenda.lead")}</Text>
         </div>
         {servicePicker === "chips" && <AgendaBranchSelect />}
       </header>
@@ -131,7 +136,8 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
 
       {isSelect ? (
         <>
-          <PersonPicker />
+          {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
+          {state.customer && <PersonPicker />}
           <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
         </>
       ) : (
@@ -221,8 +227,11 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
               ))}
             </div>
           ) : (
-            <TimeWindows groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
+            <TimeWindows groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
           )}
+
+          {/* El barbero elegido no tiene horas ese día: otros parecidos que sí, con sus primeras horas. */}
+          {!isWaiting && chosenBarber && !hasSlots && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
           {!isWaiting &&
             (state.customer ? (

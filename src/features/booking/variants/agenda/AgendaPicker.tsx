@@ -203,13 +203,16 @@ interface PickerRowProps {
   onClick: () => void;
   /** «Ver perfil» / «Ver detalle»: un botón al lado (un botón no va dentro de otro). */
   action?: { label: string; ariaLabel: string; onClick: () => void };
+  /** Algo más debajo del texto, dentro de la tarjeta (la cantidad de un producto elegido). */
+  below?: React.ReactNode;
   children: React.ReactNode;
 }
 
 /** Una fila de la lista: foto, texto y la marca (casilla si se pueden varios, círculo si uno). */
-export function PickerRow({ role, checked, label, imageUrl, icon, round = false, onClick, action, children }: PickerRowProps) {
+export function PickerRow({ role, checked, label, imageUrl, icon, round = false, onClick, action, below, children }: PickerRowProps) {
   const { touch } = useBookingFlow();
   const isLarge = touch === "lg";
+  const hasBelow = Boolean(action || below);
   // El fondo (pasar el puntero, lo elegido) es de la tarjeta entera: con «Ver detalle» debajo, lo cubre también.
   // `foreground/5` aclara en oscuro y oscurece en claro: `bg-muted` sobre el popover se veía como un hueco negro.
   const surface = cn("rounded-xl transition-colors duration-fast hover:bg-foreground/5", checked && "bg-primary/10 hover:bg-primary/15");
@@ -222,10 +225,10 @@ export function PickerRow({ role, checked, label, imageUrl, icon, round = false,
       onClick={onClick}
       className={cn(
         "group/row flex w-full min-w-0 items-center gap-3 rounded-xl px-2 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        !action && surface,
-        !action && "active:bg-foreground/10",
+        !hasBelow && surface,
+        !hasBelow && "active:bg-foreground/10",
         isLarge ? "min-h-16 py-2.5" : "min-h-14 py-2",
-        action && "pb-1"
+        hasBelow && "pb-1"
       )}
     >
       <IconTile size={isLarge ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
@@ -242,16 +245,19 @@ export function PickerRow({ role, checked, label, imageUrl, icon, round = false,
       </span>
     </button>
   );
-  if (!action) return row;
+  if (!hasBelow) return row;
   return (
     <div className={surface}>
       {row}
       {/* Alineado con el texto de la fila (relleno + foto + hueco), debajo de él y no al lado: la fila conserva su ancho. */}
-      <div className={cn("pb-2", isLarge ? "pl-[4.25rem]" : "pl-14")}>
-        <Button type="button" variant="link" size="sm" onClick={action.onClick} aria-label={action.ariaLabel} className="h-auto gap-1 px-0 py-1 text-xs font-medium">
-          {action.label}
-          <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
-        </Button>
+      <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 pb-2 pr-2", isLarge ? "pl-[4.25rem]" : "pl-14")}>
+        {below}
+        {action && (
+          <Button type="button" variant="link" size="sm" onClick={action.onClick} aria-label={action.ariaLabel} className="h-auto gap-1 px-0 py-1 text-xs font-medium">
+            {action.label}
+            <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
+          </Button>
+        )}
       </div>
     </div>
   );

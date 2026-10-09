@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Spinner } from "@/components/feedback/Spinner";
 import { Heading, Text } from "@/components/typography";
@@ -5,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { OptionTile, type SelectionOption } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
+import { cn } from "@/lib/utils";
 import { describeError } from "@/lib/api";
 import { personName } from "../bookingState";
 import { parseStart } from "../bookingFormat";
@@ -23,6 +25,17 @@ import type { PaymentController } from "./usePaymentController";
 
 const NO_TIP = "none";
 
+/** Los títulos de dentro del cobro; compactos, con menos peso para no sumar escalones bajo «Pago». */
+function SubHeading({ compact, children }: { compact: boolean; children: React.ReactNode }) {
+  return compact ? (
+    <Text size="sm" weight="medium">
+      {children}
+    </Text>
+  ) : (
+    <Heading level={6}>{children}</Heading>
+  );
+}
+
 /** El botón que cobra: dice exactamente lo que va a pasar («Pagar $64»). */
 export function PayButton({ payment, className }: { payment: PaymentController; className?: string }) {
   const t = useAppT();
@@ -39,18 +52,26 @@ interface PaymentPanelProps {
   payment: PaymentController;
   /** El resumen del pedido al final; la conversación lo enseña en su propia tarjeta. */
   showOrder?: boolean;
+  /**
+   * Menos alto, para el cierre de la Agenda con selector: sin la nota de la
+   * propina, el cupón detrás de un enlace y las formas de pago en filas cortas
+   * con el detalle solo de la elegida.
+   */
+  compact?: boolean;
 }
 
 /**
  * La propina para el barbero, un cupón y cómo se paga. Si la barbería deja pagar en
  * el local, esa opción está; si el cliente es «solo en línea», no.
  */
-export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
+export function PaymentPanel({ payment, showOrder = true, compact = false }: PaymentPanelProps) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
   const { methods, method, deposit, depositPercent, usesCard, coveredByGift, reserve, serverCardError } = payment;
   const hasSeveralAppointments = state.items.length > 1;
   const customer = state.customer;
+  const [isPromoOpen, setIsPromoOpen] = React.useState(false);
+  const chosenMethod = methods.find((option) => option.value === method);
 
   const tipOptions: SelectionOption[] = [
     { value: NO_TIP, label: t("booking.payment.tipNone") },
@@ -65,9 +86,9 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
   return (
     <>
       <section className="flex flex-col gap-2">
-        <Heading level={6}>{t("booking.payment.tip")}</Heading>
+        <SubHeading compact={compact}>{t("booking.payment.tip")}</SubHeading>
         {/* Pastillas que bajan de línea si no caben: en un segmentado de 5, «Sin propina» y «US$ 5» se salían. */}
-        <div role="radiogroup" aria-label={t("booking.payment.tip")} className="flex flex-wrap gap-2">
+        <div role="radiogroup" aria-label={t("booking.payment.tip")} className={cn("flex flex-wrap", compact ? "gap-1.5" : "gap-2")}>
           {tipOptions.map((option) => {
             const selected = (state.tipId ?? NO_TIP) === option.value;
             return (
@@ -78,7 +99,8 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
                 aria-checked={selected}
                 size="sm"
                 variant={selected ? "default" : "outline"}
-                className="min-w-[4.5rem] rounded-full tabular-nums"
+                // Compacto caben las cinco en una fila de celular.
+                className={cn("rounded-full tabular-nums", compact ? "px-2" : "min-w-[4.5rem]")}
                 onClick={() => dispatch({ type: "setTip", tipId: option.value === NO_TIP ? null : option.value })}
               >
                 {option.label}
@@ -86,16 +108,27 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
             );
           })}
         </div>
-        <Text size="xs" tone="muted">
-          {t("booking.payment.tipHint")}
-        </Text>
+        {!compact && (
+          <Text size="xs" tone="muted">
+            {t("booking.payment.tipHint")}
+          </Text>
+        )}
       </section>
 
       <div className="flex flex-col gap-2">
         <PackagesToggle />
         <MembershipPerk />
-        <PromoField />
-        <GiftCardField />
+        {/* Compacto, los dos enlaces van en una línea; el que se abre toma el ancho entero. */}
+        <div className={compact ? "flex flex-wrap items-start gap-x-4 gap-y-2 [&>*:not(button)]:basis-full" : "contents"}>
+          {compact && !state.promo && !isPromoOpen ? (
+            <Button type="button" variant="link" size="sm" className="self-start px-0" onClick={() => setIsPromoOpen(true)}>
+              {t("booking.payment.promoAsk")}
+            </Button>
+          ) : (
+            <PromoField />
+          )}
+          <GiftCardField />
+        </div>
       </div>
 
       {coveredByGift && (
@@ -106,12 +139,13 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
         </Alert>
       )}
       <section className={coveredByGift ? "hidden" : "flex flex-col gap-3"}>
-        <Heading level={6}>{t("booking.payment.method")}</Heading>
+        <SubHeading compact={compact}>{t("booking.payment.method")}</SubHeading>
         <div role="radiogroup" aria-label={t("booking.payment.method")} className="flex flex-col gap-2">
           {methods.map((option) => (
             <OptionTile
               key={option.value}
               option={option}
+              compact={compact}
               selected={method === option.value}
               onSelect={(value) => {
                 dispatch({ type: "setMethod", method: value as PayMethod });
@@ -120,6 +154,11 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
             />
           ))}
         </div>
+        {compact && chosenMethod?.description && (
+          <Text size="xs" tone="muted">
+            {chosenMethod.description}
+          </Text>
+        )}
         {deposit > 0 && (
           <Alert variant="info">
             <ThemaIcon name="securityLock" />
@@ -176,9 +215,10 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
       )}
 
       {showOrder && (
-        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-subtle p-4">
+        <section className={cn("flex flex-col rounded-2xl border border-border bg-surface-subtle", compact ? "gap-2 p-3" : "gap-3 p-4")}>
           <Heading level={6}>{t("booking.payment.order")}</Heading>
-          <OrderSummary totals={totals} money={fmt.money} lines={lines} promoCode={state.promo?.code} />
+          {/* Compacto, la cita ya está arriba con su precio: aquí solo las cuentas. */}
+          <OrderSummary totals={totals} money={fmt.money} lines={compact ? undefined : lines} promoCode={state.promo?.code} />
           {deposit > 0 && (
             <div className="flex flex-col gap-1 border-t border-border pt-2">
               <div className="flex items-center justify-between gap-3">

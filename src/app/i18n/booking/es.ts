@@ -109,6 +109,7 @@ export const bookingEs = {
   "booking.welcome.repeat": "Elegir hora",
   "booking.welcome.credit": "Tienes {amount} a favor: se descuenta al pagar.",
   "booking.welcome.notYou": "¿No eres tú?",
+  "booking.welcome.shortcuts": "Atajos",
   "booking.welcome.somethingNew": "Algo nuevo",
   "booking.welcome.appointments": "Mis citas",
   "booking.welcome.packages": "Paquetes",

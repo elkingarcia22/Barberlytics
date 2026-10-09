@@ -100,6 +100,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.welcome.repeat": "Pick a time",
   "booking.welcome.credit": "You have {amount} in credit: it's applied at checkout.",
   "booking.welcome.notYou": "Not you?",
+  "booking.welcome.shortcuts": "Shortcuts",
   "booking.welcome.somethingNew": "Something new",
   "booking.welcome.appointments": "My bookings",
   "booking.welcome.packages": "Packs",

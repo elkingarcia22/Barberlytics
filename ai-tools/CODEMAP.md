@@ -331,7 +331,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
 - **VerifyStep.tsx** — El código que llegó al celular. · `VerifyStep` · piezas: Button, Field, InputOtp, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
-- **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo y atajos como pastillas que se deslizan; en me… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo y una fila de atajos del mismo ancho; en medio… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **useWelcomeData.ts** — Lo que necesita la bienvenida del cliente que vuelve: su última visita (servicios, barbero, sede y precio), l… · `useWelcomeData`, `WelcomeData`
 
 ### booking/variants/agenda

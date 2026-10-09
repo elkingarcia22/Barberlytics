@@ -14,7 +14,7 @@ import { Field } from "@/components/forms"
 |---|---|---|---|
 | `label` | `string` |  | Texto de la etiqueta. Se enlaza al hijo mediante htmlFor/id. |
 | `description` | `string` |  | Ayuda contextual bajo el control. Se oculta mientras haya error. |
-| `error` | `string` |  | Mensaje de error; se anuncia vía aria-describedby. |
+| `error` | `string` |  | Mensaje de error; se anuncia vía aria-describedby y marca el control con aria-invalid, que Input, Textarea y PhoneInput pintan con borde y anillo destructivos. |
 | `required` | `boolean` | `false` | Añade el asterisco rojo a la etiqueta. |
 | `disabled` | `boolean` | `false` | Atenúa la etiqueta y propaga disabled al hijo. |
 | `children` | `React.ReactNode` |  | El control. Si es un elemento válido recibe id, disabled y aria-describedby. |
@@ -24,6 +24,7 @@ import { Field } from "@/components/forms"
 
 - Sí: Envuelve cada control de un formulario en un Field, incluso sin descripción.
 - Sí: Escribe errores accionables: qué pasó y cómo corregirlo.
+- Sí: Al intentar seguir con datos que faltan, marca el campo y repite el mensaje en un toast (en la reserva: toastMissing).
 - Sí: Marca como requeridos solo los campos que bloquean el envío.
 - No: No pongas varios controles dentro de un mismo Field: el id solo llega al primero.
 - No: No uses la descripción para repetir la etiqueta.

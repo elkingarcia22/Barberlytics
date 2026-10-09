@@ -10,6 +10,7 @@ import { AsideSlotProvider } from "../../flow/asideSlot";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
+import { toastMissing } from "../../flow/missingData";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
 import { GiftStep } from "../../steps/GiftStep";
 import { ManageStep } from "../../steps/ManageStep";
@@ -43,6 +44,9 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   // Sin citas no hay nada que confirmar: se queda en la agenda.
   const view = state.items.length === 0 ? "board" : chosenView;
   const [signInOpen, setSignInOpen] = React.useState(false);
+  // Tocó «Continuar» sin hora: la agenda marca el día y la hora hasta que aparte una.
+  const [triedContinue, setTriedContinue] = React.useState(false);
+  const timeMissing = triedContinue && state.items.length === 0;
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const seededDraft = React.useRef<string | null>(null);
   const isWide = layout === "wide";
@@ -120,7 +124,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : view === "checkout" ? (
       <AgendaSelectCheckout />
     ) : (
-      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} />
+      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} />
     );
 
   return (
@@ -149,7 +153,16 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
         {/* En la agenda (sin pie propio), el botón de seguir va al pie del resumen. */}
         {isWide && !ownScreen && view === "board" && actionSlot &&
           createPortal(
-            <Button type="button" size="lg" className="w-full" disabled={state.items.length === 0} onClick={toCheckout}>
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setTriedContinue(true);
+                if (toastMissing(t, [state.items.length === 0 && t("booking.agenda.pickTime")])) return;
+                toCheckout();
+              }}
+            >
               {t("booking.agenda.cart.continue")}
               <ThemaIcon name="arrowRight" />
             </Button>,

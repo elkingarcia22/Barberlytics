@@ -61,6 +61,7 @@ export const bookingVariantsEs = {
   "booking.agenda.checkout.shop": "De la tienda",
   "booking.agenda.whereLabel": "¿Dónde quieres que te atendamos?",
   "booking.agenda.whoLabel": "¿Con quién te quieres atender?",
+  "booking.agenda.pickTime": "Elige un día y una hora para tu cita.",
   "booking.agenda.whenLabel": "¿Qué día y a qué hora?",
   "booking.agenda.detail": "Ver detalle",
   "booking.agenda.emptyBarberDay": "{name} no tiene horas el {day}",

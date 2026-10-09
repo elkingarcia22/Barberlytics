@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { toastMissing } from "../../flow/missingData";
 import type { BookingService } from "../../types";
 import { fromPrice, itemDuration, itemPrice } from "../../useBookingTotals";
 import { PickerField, PickerOverlay, PickerRow } from "./AgendaPicker";
@@ -87,6 +88,14 @@ function ServicePickerOverlay({ open, onOpenChange, initial, onApply }: ServiceP
   const t = useAppT();
   const { catalog, fmt } = useBookingFlow();
   const [picked, setPicked] = React.useState<readonly string[]>(initial);
+  // Tocó «Ver horas» sin elegir: el pie lo dice en rojo hasta que elija uno.
+  const [triedApply, setTriedApply] = React.useState(false);
+  const missingService = triedApply && picked.length === 0;
+  const apply = () => {
+    setTriedApply(true);
+    if (toastMissing(t, [picked.length === 0 && t("booking.services.pick")])) return;
+    onApply(picked);
+  };
   const [query, setQuery] = React.useState("");
   const listRef = React.useRef<HTMLDivElement>(null);
 
@@ -115,12 +124,12 @@ function ServicePickerOverlay({ open, onOpenChange, initial, onApply }: ServiceP
             </Text>
           </>
         ) : (
-          <Text size="sm" tone="muted">
+          <Text role={missingService ? "alert" : undefined} size="sm" tone={missingService ? "negative" : "muted"} weight={missingService ? "medium" : undefined}>
             {t("booking.services.pick")}
           </Text>
         )}
       </div>
-      <Button type="button" size="lg" disabled={picked.length === 0} onClick={() => onApply(picked)} data-testid="agenda-service-apply">
+      <Button type="button" size="lg" onClick={apply} data-testid="agenda-service-apply">
         {t("booking.agenda.whatApply")}
       </Button>
     </div>

@@ -136,14 +136,14 @@ const isValid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
   props: [
     { name: "label", type: "string", description: "Texto de la etiqueta. Se enlaza al hijo mediante htmlFor/id." },
     { name: "description", type: "string", description: "Ayuda contextual bajo el control. Se oculta mientras haya error." },
-    { name: "error", type: "string", description: "Mensaje de error; se anuncia vía aria-describedby." },
+    { name: "error", type: "string", description: "Mensaje de error; se anuncia vía aria-describedby y marca el control con aria-invalid, que Input, Textarea y PhoneInput pintan con borde y anillo destructivos." },
     { name: "required", type: "boolean", default: "false", description: "Añade el asterisco rojo a la etiqueta." },
     { name: "disabled", type: "boolean", default: "false", description: "Atenúa la etiqueta y propaga disabled al hijo." },
     { name: "children", type: "React.ReactNode", description: "El control. Si es un elemento válido recibe id, disabled y aria-describedby." },
     { name: "...props", type: 'React.HTMLAttributes<HTMLDivElement>', description: "Atributos del contenedor." },
   ],
   guidelines: {
-    do: ["Envuelve cada control de un formulario en un Field, incluso sin descripción.", "Escribe errores accionables: qué pasó y cómo corregirlo.", "Marca como requeridos solo los campos que bloquean el envío."],
+    do: ["Envuelve cada control de un formulario en un Field, incluso sin descripción.", "Escribe errores accionables: qué pasó y cómo corregirlo.", "Al intentar seguir con datos que faltan, marca el campo y repite el mensaje en un toast (en la reserva: toastMissing).", "Marca como requeridos solo los campos que bloquean el envío."],
     dont: ["No pongas varios controles dentro de un mismo Field: el id solo llega al primero.", "No uses la descripción para repetir la etiqueta."],
   },
   related: ["input", "textarea", "label", "form-section", "single-select"],

@@ -35,7 +35,7 @@ const SKELETON_LANES = 3;
  * franja. Una hora se aparta con un toque y cae en «Tu reserva»; quién es el
  * cliente se pregunta después, al confirmar.
  */
-export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
+export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean }) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, fmt, layout, touch } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
@@ -135,13 +135,19 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
         <>
           <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
             <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-              <Text id="agenda-when" size="sm" weight="medium">
+              <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined}>
                 {t("booking.agenda.whenLabel")}
               </Text>
               <Text size="sm" tone="muted" className="first-letter:uppercase">
                 {fmt.dayLong(day)}
               </Text>
             </div>
+            {timeMissing && (
+              <Text role="alert" size="sm" tone="negative" weight="medium" className="flex items-center gap-1.5">
+                <ThemaIcon name="error" size="sm" tone="negative" />
+                {t("booking.agenda.pickTime")}
+              </Text>
+            )}
             {!editing && <EarliestSlot />}
             <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
           </section>
@@ -167,7 +173,7 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
               }
             />
           ) : (
-            <TimeWindows groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
+            <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
           )}
 
           {/* El barbero elegido no tiene horas ese día: otros parecidos que sí, con sus primeras horas. */}

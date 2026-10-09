@@ -1,5 +1,5 @@
 {
-  "sourceHash": "69eb49575541092f",
+  "sourceHash": "ad000dd3c6b52307",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -9161,7 +9161,7 @@
           "name": "error",
           "type": "string",
           "default": null,
-          "description": "Mensaje de error; se anuncia vía aria-describedby."
+          "description": "Mensaje de error; se anuncia vía aria-describedby y marca el control con aria-invalid, que Input, Textarea y PhoneInput pintan con borde y anillo destructivos."
         },
         {
           "name": "required",
@@ -9192,6 +9192,7 @@
         "do": [
           "Envuelve cada control de un formulario en un Field, incluso sin descripción.",
           "Escribe errores accionables: qué pasó y cómo corregirlo.",
+          "Al intentar seguir con datos que faltan, marca el campo y repite el mensaje en un toast (en la reserva: toastMissing).",
           "Marca como requeridos solo los campos que bloquean el envío."
         ],
         "dont": [

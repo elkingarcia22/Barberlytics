@@ -25,8 +25,8 @@ describe("voiceFor", () => {
 
   test("ElevenLabs uses Clipper's chosen voice for both languages", () => {
     const config = readTtsConfig({ ELEVENLABS_API_KEY: "e" });
-    expect(voiceFor(config, "es")).toBe("DtQLDxHbTiQTpVVanTy1");
-    expect(voiceFor(config, "en")).toBe("DtQLDxHbTiQTpVVanTy1");
+    expect(voiceFor(config, "es")).toBe("cjVigY5qzO86Huf0OWal");
+    expect(voiceFor(config, "en")).toBe("cjVigY5qzO86Huf0OWal");
   });
 
   test("a voice set in the environment replaces the default", () => {

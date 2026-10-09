@@ -3,7 +3,7 @@ import type { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
 import { bookingApi } from "../../api";
 import { personName, type BookingAction, type BookingState } from "../../bookingState";
-import { buildIcs, downloadIcs, parseStart, type BookingFormatters } from "../../bookingFormat";
+import { buildIcs, parseStart, type BookingFormatters } from "../../bookingFormat";
 import { savedCardExpiry } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
 import { cancellationTerms, depositOf, FIRST_VISIT_PROMO, tipAmount, type Totals } from "../../pricing";
@@ -11,10 +11,10 @@ import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, BookingShop, VisitSuggestion } from "../../types";
 import { itemPrice } from "../../useBookingTotals";
 import { makeQuestion, orderLine, type BookingQuestion, type QuestionEntry, type QuestionKind } from "./chatQuestions";
-import type { Expecting, MessageInput } from "./chatKit";
+import { EMAIL, type Expecting, type MessageInput } from "./chatKit";
 
 const REPEAT_COUNT = 3;
-const CHECKOUT_KINDS: ReadonlySet<QuestionKind> = new Set(["tip", "discount", "method", "card", "confirm", "after", "repeat", "manage", "manageWhat", "cancelConfirm", "refund"]);
+const CHECKOUT_KINDS: ReadonlySet<QuestionKind> = new Set(["receiptTo", "tip", "discount", "method", "card", "confirm", "after", "repeat", "manage", "manageWhat", "cancelConfirm", "refund"]);
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 /** Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. */
@@ -50,6 +50,19 @@ export interface CheckoutKit {
   startNewCard: (lead?: string) => void;
 }
 
+/** Lo que cambia el total bajo las citas: paquete, membresía, descuento, impuestos, propina, recargo y regalo. */
+export function adjustmentRows(t: ReturnType<typeof useAppT>, fmt: { money: (value: number) => string }, sums: Totals): string[] {
+  return [
+    sums.prepaid > 0 ? `${t("booking.packages.line")}: −${fmt.money(sums.prepaid)}` : "",
+    sums.reward > 0 ? `${t("booking.loyalty.line")}: −${fmt.money(sums.reward)}` : "",
+    sums.discount > 0 ? `${t("booking.payment.discount")}: −${fmt.money(sums.discount)}` : "",
+    `${t("booking.payment.tax")}: ${fmt.money(sums.tax)}`,
+    sums.tip > 0 ? `${t("booking.payment.tipLine")}: ${fmt.money(sums.tip)}` : "",
+    sums.fee > 0 ? `${sums.feeName ?? t("booking.payment.fee")}: ${fmt.money(sums.fee)}` : "",
+    sums.gift > 0 ? `${t("booking.gift.line")}: −${fmt.money(sums.gift)}` : "",
+  ].filter(Boolean);
+}
+
 /**
  * El cobro, el después de reservar y «Mis citas» en la conversación: la propina,
  * el cupón, cómo paga (con el mismo `usePaymentController` de las otras
@@ -74,15 +87,7 @@ export function useChatCheckout(kit: CheckoutKit) {
       const product = catalogRef.current?.products.find((entry) => entry.id === id);
       if (product) lines.push(orderLine(qty > 1 ? `${product.name} × ${qty}` : product.name, fmt.money(product.price * qty)));
     }
-    const rows = [
-      sums.prepaid > 0 ? `${t("booking.packages.line")}: −${fmt.money(sums.prepaid)}` : "",
-      sums.reward > 0 ? `${t("booking.loyalty.line")}: −${fmt.money(sums.reward)}` : "",
-      sums.discount > 0 ? `${t("booking.payment.discount")}: −${fmt.money(sums.discount)}` : "",
-      `${t("booking.payment.tax")}: ${fmt.money(sums.tax)}`,
-      sums.tip > 0 ? `${t("booking.payment.tipLine")}: ${fmt.money(sums.tip)}` : "",
-      sums.fee > 0 ? `${sums.feeName ?? t("booking.payment.fee")}: ${fmt.money(sums.fee)}` : "",
-      sums.gift > 0 ? `${t("booking.gift.line")}: −${fmt.money(sums.gift)}` : "",
-    ].filter(Boolean);
+    const rows = adjustmentRows(t, fmt, sums);
     return [lines.join("\n"), rows.join(" · "), `**${t("booking.payment.total")}: ${fmt.money(sums.total)}**`].join("\n\n");
   };
 
@@ -184,7 +189,7 @@ export function useChatCheckout(kit: CheckoutKit) {
     ask(
       makeQuestion("after", t("booking.chat.afterTitle"), [
         { label: t("booking.confirmed.calendar"), value: "ics", emoji: "📅" },
-        { label: t("booking.chat.sendReceipt"), value: "receipt", description: stateRef.current.customer?.email ?? "", emoji: "✉️" },
+        { label: t("booking.chat.sendReceipt"), value: "receipt", description: t("booking.chat.sendReceiptHint"), emoji: "✉️" },
         { label: t("booking.chat.makeRecurring"), value: "repeat", description: t("booking.chat.makeRecurringHint"), emoji: "🔁" },
         { label: t("booking.chat.reply.again"), value: "again", emoji: "➕" },
         { label: t("booking.chat.reply.manage"), value: "manage", emoji: "🗓️" },
@@ -192,6 +197,34 @@ export function useChatCheckout(kit: CheckoutKit) {
       ]),
       text
     );
+
+  const masked = (phone: string) => `•••• ${phone.replace(/\D/g, "").slice(-4)}`;
+  /** El SMS va al celular con el que entró en esta conversación (el que verificó con el código). */
+  const smsPhone = (): string => stateRef.current.phone || stateRef.current.customer?.phone || "";
+
+  /** ¿A dónde le mando el recibo? Su correo (confirmarlo), otro correo o un SMS a su celular. */
+  const askReceipt = () => {
+    const customer = stateRef.current.customer;
+    const email = customer?.email ?? "";
+    const entries: QuestionEntry[] = [
+      ...(email ? [{ label: t("booking.chat.receiptToEmail", { email }), value: "email", emoji: "✉️" }] : []),
+      ...(smsPhone() ? [{ label: t("booking.chat.receiptBySms", { phone: masked(smsPhone()) }), value: "sms", emoji: "💬" }] : []),
+    ];
+    const lead = !email ? t("booking.chat.receiptAskEmail") : customer?.isNew ? t("booking.chat.receiptConfirmNew") : t("booking.chat.receiptConfirm");
+    ask(makeQuestion("receiptTo", t("booking.chat.receiptTitle"), entries, { otherLabel: t("booking.chat.receiptOther"), otherPlaceholder: t("booking.chat.receiptOtherPlaceholder") }), lead);
+  };
+
+  const sendReceipt = async (channel: "email" | "sms", to: string) => {
+    const reservation = stateRef.current.reservation;
+    if (!reservation) return;
+    try {
+      await busy(() => bookingApi.sendReceipt(reservation.id, { channel, to }));
+      askAfter(t(channel === "sms" ? "booking.chat.receiptSentSms" : "booking.chat.receiptSent", { to: channel === "sms" ? masked(to) : to }));
+    } catch (error) {
+      say({ text: describeError(error).description });
+      askReceipt();
+    }
+  };
 
   const reserved = () => {
     const current = stateRef.current;
@@ -250,18 +283,12 @@ export function useChatCheckout(kit: CheckoutKit) {
     const reservation = current.reservation;
     if (!reservation) return;
     if (value === "ics") {
-      downloadIcs(buildIcs(reservation.appointments, shop.name), `${reservation.number}.ics`);
-      return askAfter(t("booking.chat.icsDone"));
+      // El archivo va dentro de la conversación, para descargarlo cuando quiera (en el celular lo abre su calendario).
+      const url = URL.createObjectURL(new Blob([buildIcs(reservation.appointments, shop.name)], { type: "text/calendar;charset=utf-8" }));
+      say({ text: t("booking.chat.icsReady"), attachment: { name: `${reservation.number}.ics`, url, description: t("booking.chat.icsDescription", { count: reservation.appointments.length }) } });
+      return askAfter();
     }
-    if (value === "receipt") {
-      const to = current.customer?.email ?? "";
-      try {
-        await busy(() => bookingApi.sendReceipt(reservation.id, { channel: "email", to }));
-        return askAfter(t("booking.chat.receiptSent", { to }));
-      } catch (error) {
-        return askAfter(describeError(error).description);
-      }
-    }
+    if (value === "receipt") return askReceipt();
     if (value === "repeat") {
       const usual = suggestion.current ? Math.min(4, Math.max(1, Math.round(suggestion.current.everyDays / 7))) : 3;
       return ask(makeQuestion("repeat", t("booking.chat.repeatTitle"), [1, 2, 3, 4].map((weeks) => ({ label: t("booking.chat.everyWeeks", { count: weeks }), value: String(weeks), description: weeks === usual ? t("booking.chat.yourRhythm") : undefined }))), t("booking.chat.repeatLead", { count: REPEAT_COUNT }));
@@ -343,6 +370,20 @@ export function useChatCheckout(kit: CheckoutKit) {
         return value === "pay" ? payment.current?.pay() : askMore();
       case "after":
         return onAfter(value);
+      case "receiptTo": {
+        const customer = current.customer;
+        if (isOther) {
+          // «mejor a ana@correo.com»: el correo dentro de la frase.
+          const to = label.split(/\s+/).find((word) => EMAIL.test(word.replace(/[.,;]$/, "")))?.replace(/[.,;]$/, "") ?? "";
+          if (!EMAIL.test(to)) {
+            say({ text: t("booking.chat.badEmail") });
+            return askReceipt();
+          }
+          return sendReceipt("email", to);
+        }
+        if (value === "sms" && smsPhone()) return sendReceipt("sms", smsPhone());
+        return sendReceipt("email", customer?.email ?? "");
+      }
       case "repeat":
         return onRepeat(value);
       case "manage":

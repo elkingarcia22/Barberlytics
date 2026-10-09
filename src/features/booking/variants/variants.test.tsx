@@ -7,8 +7,9 @@ import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
-import { makeQuestion, matchOption } from "./chat/chatQuestions";
+import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
 import { maskCardInput, normalizeExpiry } from "./chat/chatCard";
+import { detectAside } from "./chat/chatIntents";
 
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -123,6 +124,62 @@ describe("preguntas de la conversación", () => {
     expect(matchOption(question, "libre")).toBe("Con quien esté libre");
     expect(matchOption(question, "andrés")).toBeNull();
     expect(matchOption(question, "9")).toBeNull();
+  });
+
+  test("dicho con otras palabras, gana la opción que comparte más («mándame el recibo»)", () => {
+    const after = makeQuestion("after", "¿Algo más?", [
+      { label: "Agregar al calendario", value: "ics" },
+      { label: "Enviarme el recibo por correo", value: "receipt" },
+      { label: "Reservar otra cita", value: "again" },
+      { label: "Mis citas", value: "manage" },
+    ]);
+    expect(matchOptionLoosely(after, "mándame el recibo")).toBe("Enviarme el recibo por correo");
+    expect(matchOptionLoosely(after, "ponlo en mi calendario porfa")).toBe("Agregar al calendario");
+    expect(matchOptionLoosely(after, "quiero reservar otra cita")).toBe("Reservar otra cita");
+    expect(matchOptionLoosely(after, "cita")).toBeNull();
+    expect(matchOptionLoosely(after, "hola")).toBeNull();
+    const receipt = makeQuestion("receiptTo", "¿A dónde?", [{ label: "Sí, a marcela@correo.com", value: "email" }]);
+    expect(matchOptionLoosely(receipt, "ana@correo.com")).toBeNull();
+  });
+});
+
+describe("lo que se pide de pasada en la conversación", () => {
+  const kind = (text: string) => detectAside(text)?.kind ?? null;
+
+  test("volver y cambiar algo ya elegido, dicho de varias formas", () => {
+    expect(kind("volver")).toBe("back");
+    expect(kind("me equivoqué")).toBe("back");
+    expect(kind("espera, quiero volver")).toBe("back");
+    expect(kind("me devuelvo un paso")).toBe("back");
+    expect(kind("quiero volver a reservar")).toBeNull();
+    expect(kind("quiero cambiar de barbero")).toBe("changeBarber");
+    expect(kind("mejor con otro barbero")).toBe("changeBarber");
+    expect(kind("elegir otro barbero")).toBe("changeBarber");
+    expect(kind("cambiar el servicio")).toBe("changeServices");
+    expect(kind("agregar barba")).toBe("changeServices");
+    expect(kind("mejor otra hora")).toBe("changeTime");
+    expect(kind("cambiar el día")).toBe("changeTime");
+    expect(kind("prefiero otra sede")).toBe("changeBranch");
+  });
+
+  test("preguntas en cualquier momento", () => {
+    expect(kind("muéstrame el perfil del barbero que elegí")).toBe("myBarber");
+    expect(kind("¿con quién quedé?")).toBe("myBarber");
+    expect(kind("info de la sede")).toBe("myBranch");
+    expect(kind("¿cuál es la dirección?")).toBe("address");
+    expect(kind("¿cómo llego?")).toBe("address");
+    expect(kind("¿a qué hora cierran?")).toBe("hours");
+    expect(kind("¿cuánto llevo?")).toBe("summary");
+    expect(kind("¿cuánto cuesta un fade?")).toBe("price");
+    expect(kind("¿a qué hora es mi cita?")).toBe("when");
+    expect(kind("gracias")).toBe("thanks");
+    expect(kind("¿eres un bot?")).toBe("who");
+  });
+
+  test("una respuesta normal no se toma como pregunta de pasada", () => {
+    expect(kind("corte mañana a las 5")).toBeNull();
+    expect(kind("3202172738")).toBeNull();
+    expect(kind("Juan Pérez")).toBeNull();
   });
 });
 
@@ -355,6 +412,35 @@ describe("las otras dos experiencias", () => {
     if (jump) await user.click(jump);
     const picks = await screen.findAllByRole("button", { name: /^Apartar a las / });
     picks.forEach((pick) => expect(pick).toHaveAccessibleName(new RegExp(`con ${first}$`)));
+  });
+
+  test("conversación: se vuelve atrás, se cambia el barbero y se pregunta de pasada sin perder el hilo", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
+    await screen.findByTestId("chat-input");
+    await write("3202172738");
+    await screen.findByText(/Te acabo de mandar un/);
+    await write(DEMO_CODE);
+    await screen.findByText(/Hola de nuevo, Marcela/);
+    await write("quiero un corte");
+    await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
+    // «Volver»: la pregunta anterior otra vez (los servicios).
+    await write("volver");
+    expect(await screen.findByRole("group", { name: "¿Qué te vas a hacer?" })).toBeInTheDocument();
+    await write("corte con andrés");
+    await screen.findByRole("group", { name: "¿Qué día te queda bien?" });
+    // Una pregunta de pasada: responde y retoma la pregunta abierta.
+    await write("¿cuál es la dirección?");
+    expect(await screen.findByText(/Cómo llegar/)).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
+    // El perfil del barbero que eligió, sin decir su nombre.
+    await write("muéstrame el perfil del barbero que elegí");
+    expect(await screen.findByText("Lo que dicen sus clientes")).toBeInTheDocument();
+    // Cambiar de barbero en cualquier momento.
+    await write("mejor con otro barbero");
+    expect(await screen.findByText(/cambiemos de/)).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "¿Con quién quieres ir?" })).toBeInTheDocument();
   });
 
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {

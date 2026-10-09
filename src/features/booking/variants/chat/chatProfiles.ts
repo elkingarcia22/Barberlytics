@@ -140,7 +140,7 @@ export function useChatProfiles(kit: ProfilesKit) {
     const priced = draft && draft.serviceIds.length > 0 && draft.serviceIds.every((id) => barber.prices[id] !== undefined)
       ? [`${serviceNames(draft.serviceIds)}: ${fmt.money(itemPrice({ serviceIds: draft.serviceIds, barberId: barber.id }, catalogRef.current))}`]
       : services.filter((service) => barber.prices[service.id] !== undefined).slice(0, PRICES_SHOWN).map((service) => `${service.name}: ${fmt.money(barber.prices[service.id] ?? service.price)}`);
-    const quotes = reviews.slice(0, REVIEWS_SHOWN).map((review) => `> «${review.comment}» — ${review.clientName} · ${"★".repeat(Math.round(review.rating))}${"☆".repeat(STARS - Math.round(review.rating))}`);
+    const quotes = reviews.filter((review) => review.comment.trim()).slice(0, REVIEWS_SHOWN).map((review) => `> «${review.comment}» — ${review.clientName} · ${"★".repeat(Math.round(review.rating))}${"☆".repeat(STARS - Math.round(review.rating))}`);
     return [
       `**${barber.name}**${barber.level ? ` · ${barber.level}` : ""} · ★ ${barber.rating.toFixed(1)} (${t("booking.barber.reviews", { count: barber.reviews })})`,
       barber.description,

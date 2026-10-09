@@ -354,12 +354,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/variants/chat
 
-- **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage, Heading, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
+- **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
 - **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
-- **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
+- **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `adjustmentRows`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
+- **chatIdentity.ts** — Quién es, conversando: el celular (solo números), el código que le llega y, si es la primera vez, nombre y ap… · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/lib/api
+- **chatIntents.ts** — Lo que se pide «de pasada» en cualquier momento de la conversación, como se le hablaría a una persona: volver… · `ChatAside`, `detectAside`, `IntentsKit`, `useChatIntents` · usa: @/app/i18n
 - **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
 - **chatProfiles.ts** — Si lo escrito pide conocer a un barbero o una sede antes de elegir. · `looksLikeDetail`, `ProfilesKit`, `useChatProfiles` · usa: @/app/i18n, @/lib/api
-- **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `orderLine` · usa: @/lib/chat
+- **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `matchOptionLoosely`, `orderLine` · usa: @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 

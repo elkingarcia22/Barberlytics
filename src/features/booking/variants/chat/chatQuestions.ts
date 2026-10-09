@@ -38,7 +38,8 @@ export type QuestionKind =
   | "branchConfirm"
   | "branchInfo"
   | "barberConfirm"
-  | "cardSave";
+  | "cardSave"
+  | "receiptTo";
 
 export interface BookingQuestion extends ChatQuestion {
   kind: QuestionKind;
@@ -89,6 +90,42 @@ export function matchOption(question: ChatQuestion, text: string): string | null
   if (exact) return exact;
   const partial = question.options.filter((option) => plain(option).includes(typed) || (typed.length > 3 && typed.includes(plain(option))));
   return partial.length === 1 ? (partial[0] ?? null) : null;
+}
+
+const STEM = 5;
+const MIN_WORD = 4;
+const FILLER = new Set(["quiero", "quisiera", "porfa", "favor", "para", "como", "esto", "este", "esta", "puedes", "podrias", "dame", "mejor"]);
+/** Verbos que se dicen de varias formas y significan lo mismo en una opción: «mándame» = «enviarme». */
+const SYNONYMS: readonly [RegExp, string][] = [
+  [/^(mand|pas(a|e)m)/, "envia"],
+  [/^(pon|agend|anot|guard)/, "agreg"],
+  [/^(termin|nada mas|ya esta)/, "listo"],
+];
+
+const stems = (text: string): Set<string> =>
+  new Set(
+    plain(text)
+      // Un correo escrito es una respuesta propia («A otro correo»), no palabras que comparar.
+      .replace(/\S+@\S+/g, " ")
+      .replace(/[^a-z0-9ñ\s]/g, " ")
+      .split(/\s+/)
+      .filter((word) => word.length >= MIN_WORD && !FILLER.has(word))
+      .map((word) => SYNONYMS.find(([pattern]) => pattern.test(word))?.[1] ?? word.replace(/s$/, "").slice(0, STEM))
+  );
+
+/**
+ * Cuando ni el número ni el texto coinciden, la opción que comparte más
+ * palabras con lo escrito («mándame el recibo» → «Enviarme el recibo por
+ * correo»), solo si una gana sola. Va después de las preguntas de pasada, para
+ * que «cambiar de barbero» no se tome por «Cambiar o quitar una cita».
+ */
+export function matchOptionLoosely(question: ChatQuestion, text: string): string | null {
+  const typed = stems(text);
+  if (typed.size === 0) return null;
+  const scored = question.options.map((option) => ({ option, score: [...stems(option)].filter((stem) => typed.has(stem)).length }));
+  const best = Math.max(...scored.map((entry) => entry.score));
+  const winners = scored.filter((entry) => entry.score === best);
+  return best > 0 && winners.length === 1 ? (winners[0]?.option ?? null) : null;
 }
 
 /** Una línea de ticket en Markdown: «- Corte clásico · Andrés · vie 9 oct — US$ 35». */

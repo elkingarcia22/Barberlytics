@@ -13,6 +13,8 @@ export interface ChatTurn {
   /** Fotos bajo el mensaje (la sede, los trabajos de un barbero); se abren en la galería. */
   photos?: readonly string[];
   photosTitle?: string;
+  /** Un archivo para descargar desde el mensaje (la cita para el calendario). */
+  attachment?: { name: string; url: string; description?: string };
 }
 
 export type Message = Omit<ChatTurn, "id" | "from">;

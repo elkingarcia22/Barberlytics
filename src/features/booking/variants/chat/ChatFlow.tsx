@@ -3,6 +3,7 @@ import { useAppT } from "@/app/i18n";
 import { ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage } from "@/components/chat";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
+import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { describeError } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ function PaymentBridge({ controllerRef, onEvent }: { controllerRef: React.RefObj
 
 /** Un mensaje del asistente: su marca, lo que dice y, si es la pregunta abierta, su lista para responder. */
 function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; engine: ChatEngine }) {
+  const t = useAppT();
   const [viewing, setViewing] = React.useState<number | null>(null);
   const photos = turn.photos ?? [];
   // Respondida o ya superada, la pregunta se queda como texto en el hilo (la respuesta va como mensaje del cliente).
@@ -60,6 +62,28 @@ function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; 
           <div className="min-w-0 rounded-2xl rounded-tl-md bg-surface-subtle px-4 py-2.5">
             <ChatMarkdown text={text} />
           </div>
+        </div>
+      )}
+      {turn.attachment && (
+        // Un archivo dentro del chat, como los que se mandan por WhatsApp: se descarga con un toque.
+        <div className="ml-9 flex items-center gap-3 rounded-2xl border border-border bg-surface p-3 shadow-sm">
+          <IconTile size="md" icon={<ThemaIcon name="calendarAdd" />} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Text size="sm" weight="medium" truncate>
+              {turn.attachment.name}
+            </Text>
+            {turn.attachment.description && (
+              <Text size="xs" tone="muted" truncate>
+                {turn.attachment.description}
+              </Text>
+            )}
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <a href={turn.attachment.url} download={turn.attachment.name}>
+              <ThemaIcon name="download" />
+              {t("booking.chat.download")}
+            </a>
+          </Button>
         </div>
       )}
       {photos.length > 0 && (

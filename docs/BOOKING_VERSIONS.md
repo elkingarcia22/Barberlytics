@@ -85,6 +85,21 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
 - Sin horas con el barbero elegido ese día: recomienda otros que hacen lo mismo (`/booking/alternatives`:
   habilidades y nivel parecidos) con su primer día libre y sus primeras horas, y debajo «Con quien esté
   libre», «Ver otro día con …», «Probar con otro barbero» y la lista de espera.
+- Volver y cambiar escribiendo, en cualquier momento (`chatIntents`): «volver», «espera, quiero
+  volver», «me equivoqué» regresan un paso (barbero → servicios, día → barbero, hora → día; en el pago,
+  la pregunta anterior); «mejor con otro barbero», «cambiar el servicio», «otra hora», «prefiero otra
+  sede» reabren lo ya apartado en ese punto.
+- Preguntas de pasada que responde sin perder el hilo y luego retoma la pregunta abierta: el perfil
+  del barbero «que elegí» (el de la cita en curso, el asignado si ya reservó, o el de su última visita),
+  el detalle de su sede, la dirección («¿cómo llego?»), el horario, el teléfono, «¿a qué hora es mi
+  cita?», «¿cuánto llevo?» (con paquete, membresía, descuento, impuestos y propina), precios,
+  saludos, gracias y «¿eres un bot?». Si no entiende, lo dice y vuelve a mostrar la pregunta.
+- Las opciones también se responden con otras palabras: si ni el número ni el texto coinciden, gana la
+  que comparte más palabras («mándame el recibo» → «Enviarme el recibo por correo»), y solo después de
+  descartar que sea una petición de pasada.
+- Después de reservar, «Agregar al calendario» deja el `.ics` como adjunto descargable dentro del chat,
+  y «Enviarme el recibo» pregunta a dónde: su correo (si es nuevo, el que acaba de dar), otro correo
+  escrito en la caja («mejor a ana@correo.com» también vale) o SMS al celular con el que entró.
 - Lo que el asistente pide va resaltado en negrita («tu **nombre y apellido**», «el **CVC**»…).
 - `parseBookingText` entiende servicios por su nombre de a pie («corte y barba» → combo), el barbero por
   su nombre o «cualquiera», días («mañana», «el viernes», «20 de octubre») y horas («a las 5» = 17:00,

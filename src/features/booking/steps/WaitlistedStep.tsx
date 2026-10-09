@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "../flow/bookingToast";
 import { useAppT } from "@/app/i18n";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";

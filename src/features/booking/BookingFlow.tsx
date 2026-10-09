@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Grain, Halo } from "@/components/atmosphere";
+import { ThemaToaster } from "@/components/feedback";
 import { ErrorState } from "@/lib/query";
 import { PortalContainerProvider } from "@/components/ui/portal-container";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +11,7 @@ import { BookingFlowProvider, useBookingFlow, type BookingLayout } from "./flow/
 import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
 import { AsideSlotProvider } from "./flow/asideSlot";
+import { BOOKING_TOASTER_ID } from "./flow/bookingToast";
 import { ReservedHairBurst } from "./flow/ReservedHairBurst";
 import { HIDE_SCROLLBAR } from "./flow/drawerFit";
 import { requestVoiceOnArrival, SwitchToChatProvider } from "./flow/versionSwitch";
@@ -177,6 +179,10 @@ function GuidedFlow({ headerTrailing, onFinish }: Pick<BookingFlowProps, "header
  * barbería, el estado de la reserva, las cuentas y el cobro. Lo que cambia es
  * el recorrido.
  */
+/** Debajo de la cabecera de la reserva (h-14 en celular y tablet, 4.5rem en monitor), con aire. */
+const COMPACT_TOAST_TOP_PX = 64;
+const WIDE_TOAST_TOP_PX = 84;
+
 export function BookingFlow({ version = "guided", layout = "compact", touch = "default", isPhone = false, onVersionChange, headerTrailing, onFinish, surface = "preview", className }: BookingFlowProps) {
   const t = useAppT();
   const engine = useBookingEngine({ layout, touch, surface, isPhone });
@@ -233,6 +239,9 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
             )}
           </SwitchToChatProvider>
           <ReservedHairBurst />
+          {/* Los avisos salen dentro de la reserva (su marco), libres de la cabecera: arriba al centro en
+              celular, tablet y widget; arriba a la derecha en monitor. */}
+          <ThemaToaster id={BOOKING_TOASTER_ID} position={layout === "wide" ? "top-right" : "top-center"} topOffset={layout === "wide" ? WIDE_TOAST_TOP_PX : COMPACT_TOAST_TOP_PX} />
         </section>
       </PortalContainerProvider>
     </BookingFlowProvider>

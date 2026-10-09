@@ -141,12 +141,14 @@ toast.success("Reporte listo", { id, description: "Se descargó reporte-ciclo-20
   ],
   props: [
     { name: "topOffset", type: "number", default: "76", description: "Distancia en px desde el borde superior a la pila de toasts; libra el header de la app." },
+    { name: "id", type: "string", description: "Contenedor propio: solo recibe los toasts enviados con ese toasterId (y el de la app deja de pintarlos). Lo usa la reserva en línea para que sus avisos salgan dentro de su marco." },
+    { name: "position", type: '"top-right" | "top-center" | …', default: '"top-right"', description: "Dónde se apila. La reserva usa top-center en celular, tablet y widget." },
     { name: "className", type: "string", description: "Clases extra sobre el contenedor de Sonner." },
     { name: "style", type: "React.CSSProperties", description: "Estilos inline sobre el contenedor." },
   ],
   guidelines: {
     do: ["Monta `<ThemaToaster />` una sola vez, en el root de la app.", "Usa `toast.success` para confirmar lo que acaba de pasar y `toast.error` para lo que falló.", "Añade `action` cuando el usuario pueda deshacer o ir al resultado."],
-    dont: ["No montes un segundo Toaster en una pantalla: cada toast se pintaría dos veces.", "No uses toasts para validaciones de formulario; el error va junto al campo.", "No uses `richColors`: el sistema mantiene el fondo sobrio y colorea solo icono y borde."],
+    dont: ["No montes un segundo Toaster sin `id`: cada toast se pintaría dos veces. Una superficie embebida (la reserva en su marco) monta el suyo con `id` y le manda los toasts con `toasterId`.", "No uses el toast como única señal de un formulario: el error va junto al campo; el toast solo lo repite al intentar seguir.", "No uses `richColors`: el sistema mantiene el fondo sobrio y colorea solo icono y borde."],
   },
   related: ["alert", "button", "alert-dialog"],
 });

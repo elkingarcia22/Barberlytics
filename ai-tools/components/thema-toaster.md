@@ -13,6 +13,8 @@ import { ThemaToaster } from "@/components/feedback/ThemaToaster"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `topOffset` | `number` | `76` | Distancia en px desde el borde superior a la pila de toasts; libra el header de la app. |
+| `id` | `string` |  | Contenedor propio: solo recibe los toasts enviados con ese toasterId (y el de la app deja de pintarlos). Lo usa la reserva en línea para que sus avisos salgan dentro de su marco. |
+| `position` | `"top-right" \| "top-center" \| …` | `"top-right"` | Dónde se apila. La reserva usa top-center en celular, tablet y widget. |
 | `className` | `string` |  | Clases extra sobre el contenedor de Sonner. |
 | `style` | `React.CSSProperties` |  | Estilos inline sobre el contenedor. |
 
@@ -21,8 +23,8 @@ import { ThemaToaster } from "@/components/feedback/ThemaToaster"
 - Sí: Monta `<ThemaToaster />` una sola vez, en el root de la app.
 - Sí: Usa `toast.success` para confirmar lo que acaba de pasar y `toast.error` para lo que falló.
 - Sí: Añade `action` cuando el usuario pueda deshacer o ir al resultado.
-- No: No montes un segundo Toaster en una pantalla: cada toast se pintaría dos veces.
-- No: No uses toasts para validaciones de formulario; el error va junto al campo.
+- No: No montes un segundo Toaster sin `id`: cada toast se pintaría dos veces. Una superficie embebida (la reserva en su marco) monta el suyo con `id` y le manda los toasts con `toasterId`.
+- No: No uses el toast como única señal de un formulario: el error va junto al campo; el toast solo lo repite al intentar seguir.
 - No: No uses `richColors`: el sistema mantiene el fondo sobrio y colorea solo icono y borde.
 
 Relacionados: alert, button, alert-dialog

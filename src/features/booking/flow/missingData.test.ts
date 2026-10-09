@@ -16,12 +16,12 @@ describe("lo que falta para seguir", () => {
 
   test("con un dato, el toast es su mensaje", () => {
     expect(toastMissing(t, ["Escribe tu nombre."])).toBe(true);
-    expect(toast.error).toHaveBeenCalledWith("Escribe tu nombre.", { id: "booking-missing-data" });
+    expect(toast.error).toHaveBeenCalledWith("Escribe tu nombre.", { id: "booking-missing-data", toasterId: "booking" });
   });
 
   test("con varios, dice cuántos y nombra el primero", () => {
     toastMissing(t, ["Escribe tu nombre.", undefined, "Revisa el correo."]);
-    expect(toast.error).toHaveBeenCalledWith('booking.form.missingMany {"count":2}', { id: "booking-missing-data", description: "Escribe tu nombre." });
+    expect(toast.error).toHaveBeenCalledWith('booking.form.missingMany {"count":2}', { id: "booking-missing-data", description: "Escribe tu nombre.", toasterId: "booking" });
   });
 
   test("la tarjeta dice qué campos revisar", () => {

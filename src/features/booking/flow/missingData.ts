@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "./bookingToast";
 import type { useAppT } from "@/app/i18n";
 import { cardErrors, type CardValues } from "./cardValidation";
 

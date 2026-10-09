@@ -13,6 +13,7 @@ import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, VisitSuggestion } from "../../types";
 import type { DayWindow } from "../agenda/agendaModel";
+import { EMPTY_CARD, isCardStep, maskCardInput, useChatNewCard, type CardDraft } from "./chatCard";
 import { useChatCheckout } from "./chatCheckout";
 import { looksLikeDetail, useChatProfiles } from "./chatProfiles";
 
@@ -53,8 +54,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const started = React.useRef(false);
   const seenCustomer = React.useRef<string | null>(null);
   const seenReservation = React.useRef<string | null>(null);
-  /** Se abrió la hoja de la tarjeta nueva: escribir «tarjeta» la vuelve a abrir si se cerró. */
-  const awaitingCard = React.useRef(false);
+  /** La tarjeta nueva a medio escribir (un dato por mensaje). */
+  const cardDraft = React.useRef<CardDraft>(EMPTY_CARD);
 
   const apply = React.useCallback(
     (action: BookingAction) => {
@@ -412,7 +413,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   };
   const profiles = useChatProfiles({ t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume });
   const { askBranch, askBarber, info } = profiles;
-  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, awaitingCard });
+  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
+  const newCard = useChatNewCard({ t, say, ask, expect, stateRef, payment, cardDraft, askMethod: pay.askMethod });
   const { checkout, manage, askMethod, askConfirm } = pay;
 
   /* ───────────────────────────── al saludar ───────────────────────────── */
@@ -528,6 +530,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     const value = isOther ? null : (question.values[label] ?? null);
     if (await pay.answerCheckout(question, value, label, isOther)) return;
     if (await profiles.answerProfile(question, value, label, isOther)) return;
+    if (newCard.answerCard(question, value)) return;
     const current = stateRef.current;
     switch (question.kind) {
       case "next":
@@ -659,7 +662,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   /** Lo que se escribe en la caja: según lo que se esté esperando, la pregunta abierta o una frase para entender. */
   const send = (text: string) => {
     const waiting = expecting.current;
-    const secret = waiting === "code" || waiting === "cvc";
+    const secret = waiting === "code" || waiting === "cvc" || isCardStep(waiting);
     // «Perfil de Andrés», «cómo es la sede Centro»: el detalle antes de elegir.
     if (!waiting && looksLikeDetail(text)) {
       pushUser(text);
@@ -668,9 +671,10 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     }
     // Un número o un trozo de una opción de la pregunta abierta: el mensaje queda con el texto de la opción.
     const open = waiting ? undefined : activeQuestionTurn(turnsRef.current);
-    const option = open?.question && !open.question.multiple && stateRef.current.customer ? matchOption(open.question, text) : null;
+    // Con la sesión del código ya se puede responder (el cliente nuevo aún no tiene ficha al dar el permiso).
+    const option = open?.question && !open.question.multiple && (stateRef.current.customer || stateRef.current.token) ? matchOption(open.question, text) : null;
     if (open && option) return answer(open.id, option, { echo: true, isOther: false });
-    pushUser(secret ? "•".repeat(Math.min(6, text.replace(/\s/g, "").length)) : text);
+    pushUser(isCardStep(waiting) ? maskCardInput(waiting, text) : secret ? "•".repeat(Math.min(6, text.replace(/\s/g, "").length)) : text);
     const quick = parseBookingText(text, { services: [], barbers: [], now: new Date() }).intent;
     if (!secret && quick === "restart") return restart();
     if (!secret && quick === "info") return info();
@@ -686,10 +690,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       return askPhone();
     }
     if (waiting === "code") return void submitCode(text);
-    if (awaitingCard.current && /tarjeta|formulario|card/.test(plain(text))) {
-      payment.current?.setSheet({ open: true, prefill: false });
-      return;
-    }
+    if (isCardStep(waiting)) return newCard.submit(waiting, text);
     if (waiting === "firstName" || waiting === "lastName" || waiting === "email") return submitProfileText(text);
     if (waiting === "note") {
       expect(null);
@@ -704,14 +705,13 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       payment.current?.setSavedCvc(cvc);
       return askConfirm();
     }
-    if (!stateRef.current.customer) return askPhone(t("booking.chat.needPhone"));
+    if (!stateRef.current.customer && !stateRef.current.token) return askPhone(t("booking.chat.needPhone"));
     if (open?.question && !open.question.multiple && open.question.otherPlaceholder) return answer(open.id, text.trim(), { echo: false, isOther: true });
     void interpret(text);
   };
 
   /** La pasarela respondió con un error o se agregó una tarjeta nueva en su hoja. */
   const onPaymentEvent = (event: PaymentEvent) => {
-    awaitingCard.current = false;
     if (event.kind === "failed") return askMethod(event.message);
     say({ text: t("booking.chat.cardAdded", { last4: event.last4 }) });
     askConfirm();
@@ -758,6 +758,10 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     firstName: "booking.chat.placeholderName",
     lastName: "booking.chat.placeholderName",
     note: "booking.chat.placeholderNote",
+    cardNumber: "booking.chat.placeholderCardNumber",
+    cardName: "booking.chat.placeholderCardName",
+    cardExpiry: "booking.chat.placeholderCardExpiry",
+    cardCvc: "booking.chat.placeholderCvc",
   };
   const open = activeQuestionTurn(turns);
   return {

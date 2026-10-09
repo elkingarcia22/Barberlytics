@@ -60,7 +60,11 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
 - `useChatBooking` (la reserva) y `chatCheckout` (propina, cupón o tarjeta de regalo, cómo paga, el
   resumen para confirmar, después de reservar y «Mis citas»: mover o cancelar con reembolso) no guardan
   la reserva aparte: despachan las acciones del `bookingReducer` y cobran con `usePaymentController`.
-  La tarjeta nueva se escribe en su hoja segura (el número no pasa por el chat).
+  La tarjeta nueva también se pide conversando (`chatCard`): número, nombre como aparece en la tarjeta,
+  vencimiento (vale «0829», «08 29» u «08/2029») y CVC, uno por mensaje y revisados al llegar; en el hilo
+  el número queda «•••• 4242» y el CVC «•••». Al final pregunta si se guarda (solo marca, últimos 4 y
+  vencimiento). «Cancelar» a mitad vuelve a la forma de pago. El descuento de primera visita se aplica
+  solo al llegar al pago, como en las otras versiones.
 - Conocer antes de elegir (`chatProfiles`): las listas de sedes y de barberos traen al final «Conocer una
   sede» / «Ver el perfil de un barbero» para escribir de cuál; también vale escribirlo en la caja
   («perfil de Andrés», «cómo es la sede Utah», «¿dónde quedan?»). El detalle llega como mensaje con sus

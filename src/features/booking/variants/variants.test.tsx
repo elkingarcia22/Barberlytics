@@ -8,6 +8,7 @@ import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption } from "./chat/chatQuestions";
+import { maskCardInput, normalizeExpiry } from "./chat/chatCard";
 
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -122,6 +123,22 @@ describe("preguntas de la conversación", () => {
     expect(matchOption(question, "libre")).toBe("Con quien esté libre");
     expect(matchOption(question, "andrés")).toBeNull();
     expect(matchOption(question, "9")).toBeNull();
+  });
+});
+
+describe("tarjeta nueva en la conversación", () => {
+  test("el número y el CVC nunca se ven enteros en el hilo", () => {
+    expect(maskCardInput("cardNumber", "4242 4242 4242 4242")).toBe("•••• 4242");
+    expect(maskCardInput("cardCvc", "123")).toBe("•••");
+    expect(maskCardInput("cardCvc", "1234")).toBe("••••");
+    expect(maskCardInput("cardName", " Marcela Gómez ")).toBe("Marcela Gómez");
+  });
+
+  test("el vencimiento se entiende como se escriba", () => {
+    expect(normalizeExpiry("0829")).toBe("08/29");
+    expect(normalizeExpiry("08 29")).toBe("08/29");
+    expect(normalizeExpiry("08/2029")).toBe("08/29");
+    expect(normalizeExpiry("829")).toBe("08/29");
   });
 });
 

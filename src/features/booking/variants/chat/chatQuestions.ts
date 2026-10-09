@@ -37,7 +37,8 @@ export type QuestionKind =
   | "next"
   | "branchConfirm"
   | "branchInfo"
-  | "barberConfirm";
+  | "barberConfirm"
+  | "cardSave";
 
 export interface BookingQuestion extends ChatQuestion {
   kind: QuestionKind;

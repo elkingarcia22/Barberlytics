@@ -353,6 +353,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/variants/chat
 
 - **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage, Heading, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
+- **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
 - **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
 - **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
 - **chatProfiles.ts** — Si lo escrito pide conocer a un barbero o una sede antes de elegir. · `looksLikeDetail`, `ProfilesKit`, `useChatProfiles` · usa: @/app/i18n, @/lib/api

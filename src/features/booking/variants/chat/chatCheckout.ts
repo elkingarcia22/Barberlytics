@@ -6,7 +6,7 @@ import { personName, type BookingAction, type BookingState } from "../../booking
 import { buildIcs, downloadIcs, parseStart, type BookingFormatters } from "../../bookingFormat";
 import { savedCardExpiry } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
-import { cancellationTerms, depositOf, tipAmount, type Totals } from "../../pricing";
+import { cancellationTerms, depositOf, FIRST_VISIT_PROMO, tipAmount, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, BookingShop, VisitSuggestion } from "../../types";
 import { itemPrice } from "../../useBookingTotals";
@@ -46,7 +46,8 @@ export interface CheckoutKit {
   askPhone: (text?: string) => void;
   askServices: (text?: string) => Promise<void>;
   askNext: (text?: string, withManage?: boolean) => void;
-  awaitingCard: { current: boolean };
+  /** Pedir la tarjeta nueva dato por dato en la caja. */
+  startNewCard: (lead?: string) => void;
 }
 
 /**
@@ -55,7 +56,7 @@ export interface CheckoutKit {
  * versiones), el resumen para confirmar, el recibo y mover o cancelar una cita.
  */
 export function useChatCheckout(kit: CheckoutKit) {
-  const { t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, awaitingCard } = kit;
+  const { t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard } = kit;
 
   /* ── pagar ── */
 
@@ -85,16 +86,27 @@ export function useChatCheckout(kit: CheckoutKit) {
     return [lines.join("\n"), rows.join(" · "), `**${t("booking.payment.total")}: ${fmt.money(sums.total)}**`].join("\n\n");
   };
 
-  const checkout = () => {
-    if (stateRef.current.items.length === 0) return void askServices(t("booking.chat.nothingYet"));
+  const checkout = async () => {
+    const current = stateRef.current;
+    if (current.items.length === 0) return void askServices(t("booking.chat.nothingYet"));
     apply({ type: "goTo", step: "payment" });
-    const services = totalsRef.current.services;
-    const entries: QuestionEntry[] = [
-      { label: t("booking.payment.tipNone"), value: "none" },
-      ...shop.tipOptions.map((option) => ({ label: option.type === "percent" ? `${option.value} %` : fmt.money(option.value), value: option.id, description: option.type === "percent" ? fmt.money(tipAmount(option, services)) : undefined })),
-    ];
-    say({ text: [t("booking.chat.checkoutLead"), orderText()].join("\n\n") });
-    ask(makeQuestion("tip", t("booking.chat.tipTitle"), entries, { hint: t("booking.payment.tipHint") }));
+    // Primera visita: el descuento prometido se aplica solo, como en las otras versiones (PromoField).
+    if (current.customer?.isNew && !current.promo && FIRST_VISIT_PROMO) {
+      const promo = await bookingApi.checkPromo(current.token, { code: FIRST_VISIT_PROMO.code, appointments: current.items.length }).catch(() => null);
+      if (promo) apply({ type: "setPromo", promo });
+    }
+    // El resumen y la propina se arman al decirlos, ya con el descuento en las cuentas.
+    say(
+      () => ({ text: [t("booking.chat.checkoutLead"), orderText()].join("\n\n") }),
+      () => {
+        const services = totalsRef.current.services;
+        const entries: QuestionEntry[] = [
+          { label: t("booking.payment.tipNone"), value: "none" },
+          ...shop.tipOptions.map((option) => ({ label: option.type === "percent" ? `${option.value} %` : fmt.money(option.value), value: option.id, description: option.type === "percent" ? fmt.money(tipAmount(option, services)) : undefined })),
+        ];
+        return { question: makeQuestion("tip", t("booking.chat.tipTitle"), entries, { hint: t("booking.payment.tipHint") }) };
+      }
+    );
   };
 
   const askDiscount = () =>
@@ -131,9 +143,8 @@ export function useChatCheckout(kit: CheckoutKit) {
     say(() => {
       const cards = stateRef.current.customer?.cards ?? [];
       if (cards.length === 0) {
-        payment.current?.setSheet({ open: true, prefill: false });
-        awaitingCard.current = true;
-        return { text: t("booking.chat.newCardSheet") };
+        startNewCard();
+        return null;
       }
       return {
         question: makeQuestion("card", t("booking.chat.cardTitle"), [
@@ -318,11 +329,7 @@ export function useChatCheckout(kit: CheckoutKit) {
         return value === "card" || (value === "shop" && deposit !== null) ? askCard() : askConfirm();
       }
       case "card": {
-        if (value === "new" || !value) {
-          payment.current?.setSheet({ open: true, prefill: false });
-          awaitingCard.current = true;
-          return say({ text: t("booking.chat.newCardSheet") });
-        }
+        if (value === "new" || !value) return startNewCard();
         payment.current?.chooseCard(value);
         const card = current.customer?.cards.find((item) => item.id === value);
         expect("cvc");

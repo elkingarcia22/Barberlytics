@@ -171,6 +171,25 @@ export function matchSpokenOption(text: string, options: readonly string[], loca
   return byName.length === 1 ? byName[0] : null;
 }
 
+/** Palabras que no añaden nada al elegir una opción («quiero el corte clásico, por favor»). */
+const FILLER = new Set([
+  "quiero", "quisiera", "me", "gustaria", "dame", "pon", "ponme", "el", "la", "los", "las", "un", "una", "uno", "de", "del", "con", "por", "favor", "porfa", "eso", "esa", "ese", "si", "ok", "vale", "listo", "perfecto", "mejor", "opcion",
+  "i", "want", "would", "like", "the", "a", "an", "with", "please", "that", "one", "yes", "ok", "okay",
+]);
+
+/**
+ * ¿Dijo solo la opción (con palabras de relleno)? Así se elige de la lista. Si dijo más —el barbero,
+ * el día, la hora—, es una petición completa y va entera a la conversación, que toma todo de una vez
+ * y pregunta solo lo que falte.
+ */
+export function saysOnlyOption(text: string, option: string, locale: string): boolean {
+  const optionWords = new Set(plainWords(option).split(" "));
+  const rest = plainWords(fromVoice(text, locale))
+    .split(" ")
+    .filter((word) => word && !optionWords.has(word) && !FILLER.has(word));
+  return rest.length === 0;
+}
+
 const endsSentence = (text: string) => /[.!?…:]$/.test(text.trim());
 const sentence = (text: string) => (endsSentence(text) ? text.trim() : `${text.trim()}.`);
 

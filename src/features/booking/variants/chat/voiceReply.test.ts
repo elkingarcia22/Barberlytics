@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ChatTurn } from "./chatKit";
-import { forVoice, fromVoice, matchSpokenOption, voiceReplyFromTurns } from "./voiceReply";
+import { forVoice, fromVoice, matchSpokenOption, saysOnlyOption, voiceReplyFromTurns } from "./voiceReply";
 
 const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}` };
 const agent = (id: string, text?: string, question?: ChatTurn["question"]): ChatTurn => ({ id, from: "agent", text, question });
@@ -142,5 +142,18 @@ describe("forVoice: números de teléfono y códigos como se dictan", () => {
   test("en inglés, igual", () => {
     expect(forVoice("For example: 3001234567.", "en-US")).toBe("For example: 300, 123, 45, 67.");
     expect(forVoice("to •••• 2738", "en-US")).toBe("to the number ending in 27, 38");
+  });
+});
+
+describe("saysOnlyOption: elegir de la lista o decirlo todo de una vez", () => {
+  test("solo la opción (con palabras de relleno) es elegirla", () => {
+    expect(saysOnlyOption("corte clásico", "Corte clásico", "es-CO")).toBe(true);
+    expect(saysOnlyOption("quiero el corte clásico por favor", "Corte clásico", "es-CO")).toBe(true);
+    expect(saysOnlyOption("con Emilio", "Emilio a las 3:00 p. m.", "es-CO")).toBe(true);
+  });
+
+  test("con más datos (barbero, día, hora) es una petición completa, no la opción", () => {
+    expect(saysOnlyOption("quiero un corte clásico con Andrés mañana a las 3", "Corte clásico", "es-CO")).toBe(false);
+    expect(saysOnlyOption("agendar una cita de corte para el viernes", "Agendar una cita", "es-CO")).toBe(false);
   });
 });

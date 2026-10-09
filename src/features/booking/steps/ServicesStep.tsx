@@ -16,18 +16,11 @@ import { useBookingFlow } from "../flow/BookingContext";
 import { PersonPicker } from "../flow/PersonPicker";
 import { StepLayout } from "../flow/StepLayout";
 import { FIRST_VISIT_PROMO } from "../pricing";
-import type { BookingService } from "../types";
-import { itemDuration, itemPrice } from "../useBookingTotals";
+import { fromPrice, itemDuration, itemPrice } from "../useBookingTotals";
 
 const ALL = "__all__";
 const SKELETON_ROWS = 5;
 const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-
-/** Lo más barato que cobra alguien de la sede por ese servicio: el «desde». */
-function fromPrice(service: BookingService, prices: readonly Record<string, number>[]): number {
-  const values = prices.map((entry) => entry[service.id]).filter((value): value is number => value !== undefined);
-  return values.length > 0 ? Math.min(...values) : service.price;
-}
 
 /**
  * Los servicios: varios en la misma cita (corte + barba), con foto, cuánto
@@ -43,7 +36,6 @@ export function ServicesStep() {
   const selected = state.draft?.serviceIds ?? [];
   const services = catalog?.services ?? [];
   const categories = [...new Set(services.map((service) => service.category).filter(Boolean))];
-  const prices = (catalog?.barbers ?? []).map((barber) => barber.prices);
   const visible = services.filter((service) => (category === ALL || service.category === category) && (query.trim() === "" || plain(`${service.name} ${service.description}`).includes(plain(query.trim()))));
   const minutes = itemDuration(selected, catalog);
 
@@ -146,7 +138,7 @@ export function ServicesStep() {
                     </Text>
                   )}
                   <Text size="sm" tone="muted" tabular as="span" className="mt-0.5">
-                    {t("booking.services.minutes", { count: service.durationMin })} · <span className="font-medium text-text-primary">{t("booking.services.from", { price: fmt.money(fromPrice(service, prices)) })}</span>
+                    {t("booking.services.minutes", { count: service.durationMin })} · <span className="font-medium text-text-primary">{t("booking.services.from", { price: fmt.money(fromPrice(service, catalog)) })}</span>
                   </Text>
                 </span>
                 <span

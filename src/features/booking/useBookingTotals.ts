@@ -1,7 +1,7 @@
 import * as React from "react";
 import { chargesCardFee, computeTotals, coverByPackages, promoDiscount, tipAmount, type Totals } from "./pricing";
 import type { BookingState, DraftItem } from "./bookingState";
-import type { BookingCatalog, BookingShop } from "./types";
+import type { BookingCatalog, BookingService, BookingShop } from "./types";
 
 /**
  * Lo que vale una cita: con barbero elegido, su precio; sin preferencia, el
@@ -16,6 +16,12 @@ export function itemPrice(item: Pick<DraftItem, "serviceIds" | "barberId">, cata
     .map((barber) => item.serviceIds.reduce((sum, id) => sum + (barber.prices[id] ?? 0), 0));
   if (totals.length > 0) return Math.min(...totals);
   return item.serviceIds.reduce((sum, id) => sum + (catalog.services.find((service) => service.id === id)?.price ?? 0), 0);
+}
+
+/** Lo más barato que cobra alguien de la sede por ese servicio: el «desde». */
+export function fromPrice(service: BookingService, catalog: BookingCatalog | undefined): number {
+  const values = (catalog?.barbers ?? []).map((barber) => barber.prices[service.id]).filter((value): value is number => value !== undefined);
+  return values.length > 0 ? Math.min(...values) : service.price;
 }
 
 export const itemDuration = (serviceIds: readonly string[], catalog: BookingCatalog | undefined): number =>

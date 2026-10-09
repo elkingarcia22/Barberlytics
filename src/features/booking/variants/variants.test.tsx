@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { renderWithProviders, screen, userEvent, within } from "@/test/render";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test/render";
 import { resetBookingLimits } from "@/mocks/booking/handlers";
 import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { BookingFlow } from "../BookingFlow";
@@ -187,14 +187,34 @@ describe("las otras dos experiencias", () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda" />);
     expect(await screen.findByText("¿Cuándo puedes venir?")).toBeInTheDocument();
-    // Sin preguntar nada: ya hay horas libres con su barbero.
-    const pick = (await screen.findAllByRole("button", { name: /^Apartar a las .+ con / }))[0];
+    // Sin preguntar nada: ya hay horas libres con su barbero. De noche hoy ya no quedan: se salta al siguiente día con horas.
+    const pickName = /^Apartar a las .+ con /;
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: pickName }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    const pick = (await screen.findAllByRole("button", { name: pickName }))[0];
     expect(screen.queryByRole("textbox", { name: /celular/i })).toBeNull();
     await user.click(pick);
     await user.click(await screen.findByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Confirma y paga")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /celular/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirma tu celular para pagar" })).toBeDisabled();
+  });
+
+  test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    const field = await screen.findByTestId("agenda-service-field");
+    await waitFor(() => expect(field).toHaveTextContent(/min · desde/));
+    await user.click(field);
+    const dialog = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });
+    await user.click(within(dialog).getByRole("checkbox", { name: /^Arreglo de barba/ }));
+    expect(within(dialog).getByRole("checkbox", { name: /^Arreglo de barba/ })).toHaveAttribute("aria-checked", "true");
+    // Hasta aplicar, el tablero sigue con lo de antes.
+    expect(field).not.toHaveTextContent("Arreglo de barba");
+    await user.click(within(dialog).getByRole("button", { name: "Ver horas" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(field).toHaveTextContent("Arreglo de barba");
   });
 
   test("conversación: saluda, pide el celular y con el código reconoce a quien vuelve", async () => {

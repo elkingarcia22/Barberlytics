@@ -198,8 +198,8 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
         >
           <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
           <Grain scope="container" />
-          {version === "agenda" ? (
-            <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} />
+          {version === "agenda" || version === "agenda-select" ? (
+            <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} servicePicker={version === "agenda-select" ? "modal" : "chips"} />
           ) : version === "chat" ? (
             <ChatFlow headerTrailing={headerTrailing} onFinish={onFinish} />
           ) : (

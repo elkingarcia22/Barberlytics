@@ -38,7 +38,8 @@ Sus variables son **del servidor** —sin prefijo `VITE_`—: `GOOGLE_SERVICE_AC
 cómo prepararlas: `docs/FEEDBACK_LOOP.md`. `vercel.json` no reescribe `/api/*` a `index.html`.
 
 La voz de Clipper (`api/tts`, `server/tts/tts.ts`) habla con voz neural natural si hay una de estas
-claves: `ELEVENLABS_API_KEY` (la más natural, una voz multilingüe para español e inglés),
+claves: `ELEVENLABS_API_KEY` (la elegida: la más natural, la voz de Clipper ya viene por defecto y habla
+español e inglés),
 `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` (capa gratuita mensual; Gonzalo y Andrew por defecto) u
 `OPENAI_API_KEY` (`gpt-4o-mini-tts`, voz onyx). Con varias, `TTS_PROVIDER` elige; `TTS_VOICE`,
 `TTS_VOICE_ES` y `TTS_VOICE_EN` cambian la voz. Sin ninguna, la app usa la voz del navegador. El

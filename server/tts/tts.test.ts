@@ -23,6 +23,12 @@ describe("voiceFor", () => {
     expect(voiceFor(config, "en")).toBe("en-US-AndrewMultilingualNeural");
   });
 
+  test("ElevenLabs uses Clipper's chosen voice for both languages", () => {
+    const config = readTtsConfig({ ELEVENLABS_API_KEY: "e" });
+    expect(voiceFor(config, "es")).toBe("DtQLDxHbTiQTpVVanTy1");
+    expect(voiceFor(config, "en")).toBe("DtQLDxHbTiQTpVVanTy1");
+  });
+
   test("a voice set in the environment replaces the default", () => {
     expect(voiceFor(readTtsConfig({ AZURE_SPEECH_KEY: "k", AZURE_SPEECH_REGION: "eastus", TTS_VOICE_ES: "es-MX-JorgeNeural" }), "es")).toBe("es-MX-JorgeNeural");
   });

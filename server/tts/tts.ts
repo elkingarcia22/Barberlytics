@@ -29,8 +29,9 @@ export const MAX_TEXT_LENGTH = 1200;
 
 /** Voces masculinas por defecto: cálidas y naturales, de cada proveedor. */
 const DEFAULT_VOICES: Record<TtsProvider, Record<TtsLang, string>> = {
-  // «Adam», voz multilingüe de la biblioteca de ElevenLabs: habla español e inglés con la misma voz.
-  elevenlabs: { es: "pNInz6obpgDQGcFmaJgB", en: "pNInz6obpgDQGcFmaJgB" },
+  // La voz de Clipper elegida en la biblioteca de ElevenLabs (latina, masculina). El modelo es
+  // multilingüe: la misma voz habla español e inglés (con su acento). `TTS_VOICE_EN` la cambia en inglés.
+  elevenlabs: { es: "DtQLDxHbTiQTpVVanTy1", en: "DtQLDxHbTiQTpVVanTy1" },
   // Gonzalo (Colombia) y Andrew (multilingüe, muy conversacional).
   azure: { es: "es-CO-GonzaloNeural", en: "en-US-AndrewMultilingualNeural" },
   openai: { es: "onyx", en: "onyx" },

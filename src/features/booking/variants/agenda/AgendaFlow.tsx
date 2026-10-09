@@ -8,7 +8,7 @@ import { GiftStep } from "../../steps/GiftStep";
 import { ManageStep } from "../../steps/ManageStep";
 import { PackagesStep } from "../../steps/PackagesStep";
 import { defaultServiceId } from "./agendaModel";
-import { AgendaBoard } from "./AgendaBoard";
+import { AgendaBoard, type ServicePickerMode } from "./AgendaBoard";
 import { AgendaCartAside, AgendaCartBar, AgendaCartLines } from "./AgendaCart";
 import { AgendaCheckout } from "./AgendaCheckout";
 import { AgendaHeader } from "./AgendaHeader";
@@ -17,6 +17,8 @@ import { AgendaIdentity } from "./AgendaIdentity";
 interface AgendaFlowProps {
   headerTrailing?: React.ReactNode;
   onFinish?: () => void;
+  /** Cómo se elige qué se va a hacer: tira de chips (Agenda abierta) o campo con modal (Agenda con selector). */
+  servicePicker?: ServicePickerMode;
 }
 
 /** Pantallas que no son la agenda: el final, «Mis citas» y lo que se compra aparte. */
@@ -29,7 +31,7 @@ const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "manage", "g
  * pregunta quién es y cómo paga. Pensada para quien quiere ir hoy o mañana y
  * para el monitor del local, donde se ve el día entero de un vistazo.
  */
-export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
+export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }: AgendaFlowProps) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, layout } = useBookingFlow();
   const [chosenView, setView] = React.useState<"board" | "checkout">("board");
@@ -101,7 +103,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : view === "checkout" ? (
       <AgendaCheckout onBack={toBoard} showAppointments={isWide ? null : <AgendaCartLines onEdit={toBoard} />} />
     ) : (
-      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} />
+      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} servicePicker={servicePicker} />
     );
 
   return (

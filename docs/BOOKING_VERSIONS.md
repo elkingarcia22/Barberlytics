@@ -1,4 +1,4 @@
-# Reserva en línea: tres versiones de la experiencia
+# Reserva en línea: versiones de la experiencia
 
 2026-10-08. En `/reservar` la vista previa tiene un selector «Versión de la experiencia» (`?version=`)
 con tres maneras de reservar. No son pieles de lo mismo: cada una parte de una pregunta distinta y
@@ -25,6 +25,21 @@ dinero, los cupones, la lealtad, los paquetes, las tarjetas guardadas y la reser
   sin vaciar el carrito.
 - El cierre (`AgendaCheckout`) pide celular, código y —si es nuevo— nombre y correo en el mismo sitio;
   el cobro aparece en cuanto se sabe quién es, con sus beneficios.
+
+### Agenda con selector (`agenda-select`)
+
+2026-10-08. La misma agenda abierta (mismo `AgendaFlow` y `AgendaBoard`, con `servicePicker="modal"`)
+para comparar una sola cosa: cómo se elige qué se va a hacer. En vez de la tira de chips —que con
+muchos servicios obliga a deslizar mucho— hay un campo tipo select (`AgendaServiceField`, en
+`AgendaServicePicker.tsx`) que muestra lo elegido, cuánto dura y desde cuánto, y abre la carta:
+buscador si hay 7 o más, agrupada por categoría, una casilla por fila (se pueden varios). Se aplica
+con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son los de la Agenda abierta.
+
+- Celular y widget: hoja desde abajo (`DrawerShell side="bottom"`), al alcance del pulgar.
+- Tablet y monitor: modal centrado (una hoja a lo ancho de una tablet se ve estirada); en tablet,
+  filas y miniaturas más grandes para el dedo.
+- El foco al abrir va a la primera fila elegida, no al buscador: en táctil el teclado taparía la lista.
+- Las dos ventanas se abren dentro de la reserva (el marco del dispositivo), no en la ventana.
 
 ## Conversación
 

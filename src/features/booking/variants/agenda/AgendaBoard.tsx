@@ -26,7 +26,14 @@ import { itemDuration, itemPrice } from "../../useBookingTotals";
 import { ableBarbers, barberTimes, timesByWindow } from "./agendaModel";
 import { BarberLane, TimeWindows } from "./AgendaLanes";
 import { AgendaBranchSelect } from "./AgendaBranchSelect";
+import { AgendaServiceField } from "./AgendaServicePicker";
 import { DayStrip } from "./DayStrip";
+
+/** Cómo se elige qué se va a hacer: la tira de chips (Agenda abierta) o el campo que abre la carta (Agenda con selector). */
+export type ServicePickerMode = "chips" | "modal";
+
+/** Lo de siempre ya está puesto: el atajo sobra. */
+const sameServices = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((id) => b.includes(id));
 
 /** Cuántos días se recorren en la tira. */
 const DAYS_AHEAD = 21;
@@ -34,12 +41,13 @@ const SKELETON_LANES = 3;
 type BoardView = "barber" | "time";
 
 /**
- * El tablero de la agenda abierta: lo que se va a hacer arriba, el día en una
+ * El tablero de la agenda abierta: lo que se va a hacer arriba (chips, o un
+ * campo que abre la carta en la Agenda con selector), el día en una
  * tira y, debajo, las horas libres de todos los barberos a la vez. Una hora se
  * aparta con un toque y cae en «Tu reserva»; quién es el cliente se pregunta
  * después, al confirmar.
  */
-export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
+export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedSignIn: () => void; servicePicker?: ServicePickerMode }) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, catalogLoading, fmt, layout, touch } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
@@ -69,12 +77,13 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
   const barbers = ableBarbers(catalog?.barbers ?? [], serviceIds, usualId);
   const marked = React.useMemo(() => new Set(state.items.map((item) => item.start?.slice(0, 10)).filter((key): key is string => Boolean(key))), [state.items]);
   const services = catalog?.services ?? [];
-  const minutes = itemDuration(serviceIds, catalog);
   const editing = state.editingIndex !== null ? state.items[state.editingIndex] : null;
   const timeLabel = (time: string) => fmt.clock(time);
   // «Lo de siempre»: lo de su última visita, si fue en esta sede y sigue en el catálogo.
   const lastVisit = state.customer && !state.customer.isNew ? state.customer.lastVisit : null;
   const usual = lastVisit && lastVisit.branchId === state.branchId && lastVisit.serviceIds.every((id) => services.some((service) => service.id === id)) ? lastVisit : null;
+
+  const applyUsual = () => usual && dispatch({ type: "openDraft", person: draft?.person ?? { kind: "self" }, serviceIds: usual.serviceIds, barberId: null });
 
   const pick = (time: string, barberId: string | null) => {
     if (!draft) return;
@@ -115,26 +124,41 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
         </Alert>
       )}
 
-      <section aria-labelledby="agenda-what" className="flex flex-col gap-2.5">
-        <Text id="agenda-what" size="sm" weight="medium">
-          {t("booking.agenda.whatLabel")}
-        </Text>
-        <div ref={servicesRow} className="-mx-5 -my-1.5 flex gap-2 overflow-x-auto px-5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {usual && !editing && (
-            <Chip label={t("booking.agenda.usual")} icon="refresh" tone="primary" onClick={() => dispatch({ type: "openDraft", person: draft?.person ?? { kind: "self" }, serviceIds: usual.serviceIds, barberId: null })} className="shrink-0" />
-          )}
-          {catalogLoading
-            ? Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-8 w-28 shrink-0 rounded-full" />)
-            : services.map((service) => (
-                <Chip key={service.id} label={service.name} icon={serviceIds.includes(service.id) ? "check" : undefined} selected={serviceIds.includes(service.id)} onClick={() => dispatch({ type: "toggleService", serviceId: service.id })} className="shrink-0" />
-              ))}
-        </div>
-        {serviceIds.length > 0 && (
-          <Text size="xs" tone="muted" tabular>
-            {t("booking.agenda.whatSummary", { minutes, price: fmt.money(itemPrice({ serviceIds, barberId: null }, catalog)) })}
+      {servicePicker === "modal" ? (
+        <section aria-labelledby="agenda-what" className="flex flex-col gap-2">
+          <div className="flex min-h-8 items-center justify-between gap-3">
+            <Text id="agenda-what" size="sm" weight="medium">
+              {t("booking.agenda.whatLabel")}
+            </Text>
+            {usual && !editing && !sameServices(usual.serviceIds, serviceIds) && (
+              <Button type="button" variant="ghost" size="sm" className="-mr-2 text-primary" onClick={applyUsual}>
+                <ThemaIcon name="refresh" />
+                {t("booking.agenda.usual")}
+              </Button>
+            )}
+          </div>
+          <AgendaServiceField />
+        </section>
+      ) : (
+        <section aria-labelledby="agenda-what" className="flex flex-col gap-2.5">
+          <Text id="agenda-what" size="sm" weight="medium">
+            {t("booking.agenda.whatLabel")}
           </Text>
-        )}
-      </section>
+          <div ref={servicesRow} className="-mx-5 -my-1.5 flex gap-2 overflow-x-auto px-5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {usual && !editing && <Chip label={t("booking.agenda.usual")} icon="refresh" tone="primary" onClick={applyUsual} className="shrink-0" />}
+            {catalogLoading
+              ? Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-8 w-28 shrink-0 rounded-full" />)
+              : services.map((service) => (
+                  <Chip key={service.id} label={service.name} icon={serviceIds.includes(service.id) ? "check" : undefined} selected={serviceIds.includes(service.id)} onClick={() => dispatch({ type: "toggleService", serviceId: service.id })} className="shrink-0" />
+                ))}
+          </div>
+          {serviceIds.length > 0 && (
+            <Text size="xs" tone="muted" tabular>
+              {t("booking.agenda.whatSummary", { minutes: itemDuration(serviceIds, catalog), price: fmt.money(itemPrice({ serviceIds, barberId: null }, catalog)) })}
+            </Text>
+          )}
+        </section>
+      )}
 
       <PersonPicker />
 

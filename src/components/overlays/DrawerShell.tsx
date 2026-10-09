@@ -45,6 +45,12 @@ export interface DrawerShellProps {
   /** Prevent closing on outside interaction */
   onInteractOutside?: (e: Event) => void
   /**
+   * Dónde cae el foco al abrir. Por defecto, en lo primero enfocable: si eso
+   * es un buscador, en un celular sube el teclado y tapa la lista. Quien no
+   * lo quiera lo cancela aquí y pone el foco donde toca.
+   */
+  onOpenAutoFocus?: (e: Event) => void
+  /**
    * Si el drawer acapara la pantalla (por defecto sí).
    *
    * En modo modal Radix apaga los eventos de puntero del `body` y marca como
@@ -123,6 +129,7 @@ export function DrawerShell({
   disablePadding = false,
   disableScrollbarGutter = false,
   onInteractOutside,
+  onOpenAutoFocus,
   modal = true,
   overlayClassName,
   contentStyle,
@@ -147,6 +154,7 @@ export function DrawerShell({
         overlayStyle={overlayStyle}
         aria-describedby={undefined}
         onInteractOutside={onInteractOutside}
+        onOpenAutoFocus={onOpenAutoFocus}
       >
         {(title || description) && (
           <SheetHeader className={cn("border-b bg-muted/30", leading && "flex-row items-center gap-3")}>

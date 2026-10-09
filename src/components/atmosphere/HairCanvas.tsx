@@ -26,7 +26,7 @@ interface Strand {
   isBrand: boolean;
 }
 
-interface Palette {
+export interface HairPalette {
   brand: string;
   text: string;
 }
@@ -34,8 +34,9 @@ interface Palette {
 /**
  * Los dos colores salen del tema en vivo (tripletas HSL): `--primary` y
  * `--foreground`; sobre el cromo oscuro de navegación, `--nav-foreground`.
+ * Lo comparte `HairBurst`.
  */
-function readPalette(onChrome: boolean): Palette {
+export function readHairPalette(onChrome = false): HairPalette {
   const styles = getComputedStyle(document.documentElement);
   return {
     brand: styles.getPropertyValue("--primary").trim(),
@@ -90,7 +91,7 @@ export function HairCanvas({ className, density = 1, onChrome = false }: HairCan
     let width = 0;
     let height = 0;
     let strands: Strand[] = [];
-    let palette = readPalette(onChrome);
+    let palette = readHairPalette(onChrome);
     let frame = 0;
     let isVisible = true;
     let isRunning = false;
@@ -162,7 +163,7 @@ export function HairCanvas({ className, density = 1, onChrome = false }: HairCan
 
     // El tema puede cambiar de claro a oscuro o de preset: se relee la paleta.
     const themeObserver = new MutationObserver(() => {
-      palette = readPalette(onChrome);
+      palette = readHairPalette(onChrome);
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
 

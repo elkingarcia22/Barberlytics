@@ -1,5 +1,6 @@
 import type { DocEntry } from "../types";
 import { hairCanvasEntry } from "./hair-canvas";
+import { hairBurstEntry } from "./hair-burst";
 import { barberPoleEntry } from "./barber-pole";
 import { poleRingEntry } from "./pole-ring";
 import { cutLineEntry } from "./cut-line";
@@ -17,6 +18,7 @@ import { haloEntry } from "./halo";
 /** Entradas del grupo "atmosphere": fondos, personalidad del oficio y aparición. */
 export const atmosphereEntries: readonly DocEntry[] = [
   hairCanvasEntry,
+  hairBurstEntry,
   barberPoleEntry,
   poleRingEntry,
   cutLineEntry,

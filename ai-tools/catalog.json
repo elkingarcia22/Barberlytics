@@ -1,5 +1,5 @@
 {
-  "sourceHash": "ce6213367facbb93",
+  "sourceHash": "ade892a0d72adf45",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -2828,6 +2828,74 @@
       ],
       "docs": "/docs#/components/grain",
       "ficha": "ai-tools/components/grain.md"
+    },
+    {
+      "id": "hair-burst",
+      "name": "HairBurst",
+      "group": "atmosphere",
+      "description": "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelitos cortos y rizados de un arreglo de barba. Estalla una vez hacia arriba, cae meciéndose y se apaga en unos 3,5 s. Es la celebración de la cita recién creada en la reserva en línea. Toma los colores del tema y con prefers-reduced-motion no se monta.",
+      "import": "import { HairBurst } from \"@/components/atmosphere\"",
+      "source": "src/components/atmosphere/HairBurst.tsx",
+      "status": "stable",
+      "tags": [
+        "canvas",
+        "celebración",
+        "confeti",
+        "barbería",
+        "reduced-motion"
+      ],
+      "props": [
+        {
+          "name": "count",
+          "type": "number",
+          "default": "110",
+          "description": "Cuántos pelos salen; un tercio son cañones cortos y gruesos."
+        },
+        {
+          "name": "origin",
+          "type": "{ x: number; y: number }",
+          "default": "{ x: 0.5, y: 0.3 }",
+          "description": "De dónde estallan, en proporción del contenedor (0 a 1)."
+        },
+        {
+          "name": "onDone",
+          "type": "() => void",
+          "default": null,
+          "description": "Al terminar la ráfaga; con «reducir movimiento», enseguida."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsala para un logro de verdad: la cita creada, no cada paso del recorrido.",
+          "Dale como `key` lo que celebra (el id de la reserva): así no se repite al volver a la pantalla.",
+          "El contenedor tiene que ser `relative` y con `overflow-hidden`; el canvas mide al padre."
+        ],
+        "dont": [
+          "No la dejes montada en bucle: para lluvia de fondo está HairCanvas.",
+          "No la dispares dos veces seguidas en el mismo recorrido.",
+          "No le des colores: los toma del tema (`--primary` y `--foreground`)."
+        ]
+      },
+      "related": [
+        "hair-canvas",
+        "halo"
+      ],
+      "examples": [
+        {
+          "id": "reserved",
+          "title": "Cita creada",
+          "description": "Así sale en la reserva en línea al confirmar la cita: encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
+          "code": "<HairBurst key={reservation.id} className=\"z-toast\" onDone={() => setBurstId(null)} />"
+        }
+      ],
+      "docs": "/docs#/components/hair-burst",
+      "ficha": "ai-tools/components/hair-burst.md"
     },
     {
       "id": "hair-canvas",

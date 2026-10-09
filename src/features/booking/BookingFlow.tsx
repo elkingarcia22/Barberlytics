@@ -10,6 +10,7 @@ import { BookingFlowProvider, useBookingFlow, type BookingLayout } from "./flow/
 import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
 import { AsideSlotProvider } from "./flow/asideSlot";
+import { ReservedHairBurst } from "./flow/ReservedHairBurst";
 import { HIDE_SCROLLBAR } from "./flow/drawerFit";
 import { requestVoiceOnArrival, SwitchToChatProvider } from "./flow/versionSwitch";
 import { BarberStep } from "./steps/BarberStep";
@@ -228,6 +229,7 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
               <GuidedFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             )}
           </SwitchToChatProvider>
+          <ReservedHairBurst />
         </section>
       </PortalContainerProvider>
     </BookingFlowProvider>

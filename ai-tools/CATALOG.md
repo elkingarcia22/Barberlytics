@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**204 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
+**205 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -312,7 +312,7 @@ El registro semántico de iconos y su wrapper.
 - **GlassIcon** [glass-icon] — Ilustración «glass» de 48, 64 o 96px: dos capas de cristal con gradiente, brillo superior y el glifo del registro en blanco. `@/icons`
 - **ThemaIcon** [thema-icon] — El wrapper único de iconos del sistema: se pide por nombre semántico del registro, no por proveedor, con tallas de camiseta y tonos semánti… `@/icons`
 
-## Atmósfera y marca · 14
+## Atmósfera y marca · 15
 
 Fondos con material, la personalidad del oficio y la aparición al hacer scroll: cabello, poste, tijeras, grano, halo.
 
@@ -322,6 +322,7 @@ Fondos con material, la personalidad del oficio y la aparición al hacer scroll:
 - **Enter** [enter] — Entrada de los bloques de portada. `@/components/atmosphere`
 - **Foil** [foil] — Lámina dorada: la palabra de marca de un titular con un barrido de luz cada siete segundos. `@/components/atmosphere`
 - **Grain** [grain] — Grano: una textura de ruido (un SVG en línea, sin coste de red) fundida sobre el fondo con soft-light y sin interceptar el puntero. `@/components/atmosphere`
+- **HairBurst** [hair-burst] — Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelitos cortos y rizados de un arreglo de barba. `@/components/atmosphere`
 - **HairCanvas** [hair-canvas] — Cabello cayendo sobre una portada: hebras finas y curvas que bajan, se mecen y giran, la mitad en el color de marca y la otra mitad en el d… `@/components/atmosphere`
 - **Halo** [halo] — Halo: un resplandor del primario en un punto del contenedor relative, que se funde en el fondo. `@/components/atmosphere`
 - **Marquee** [marquee] — Ticker de vocabulario en bucle: los extremos se funden con el fondo, cada palabra lleva su rombo del primario y se pausa al pasar el punter… `@/components/atmosphere`

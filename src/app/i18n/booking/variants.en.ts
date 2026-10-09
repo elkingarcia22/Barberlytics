@@ -8,7 +8,7 @@ export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, 
   "booking.version.agenda": "Open schedule",
   "booking.version.agendaHint": "Starts from when: everyone's free times at a glance; your details at the end.",
   "booking.version.agendaSelect": "Agenda with picker",
-  "booking.version.agendaSelectHint": "The open agenda, but what you're getting is picked from a separate list; the board doesn't grow.",
+  "booking.version.agendaSelectHint": "The open agenda, but the location and what you're getting are picked from a separate list; the board doesn't grow.",
   "booking.version.chat": "Conversation",
   "booking.version.chatHint": "Book by chatting with the assistant, like on WhatsApp.",
 

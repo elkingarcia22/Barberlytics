@@ -272,6 +272,22 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
   });
 
+  test("agenda con selector: la sede también se elige en la lista y sin citas cambia al tocarla", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    const field = await screen.findByTestId("agenda-branch-field");
+    const before = field.textContent ?? "";
+    await user.click(field);
+    const dialog = await screen.findByRole("dialog", { name: "¿A qué sede vas?" });
+    const other = within(dialog).getAllByRole("radio").find((radio) => radio.getAttribute("aria-checked") === "false");
+    expect(other).toBeDefined();
+    const name = (other?.getAttribute("aria-label") ?? "").split(",")[0];
+    await user.click(other as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(field).toHaveTextContent(name);
+    expect(field.textContent).not.toBe(before);
+  });
+
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);

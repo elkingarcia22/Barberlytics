@@ -11,7 +11,7 @@ export const bookingVariantsEs = {
   "booking.version.agenda": "Agenda abierta",
   "booking.version.agendaHint": "Parte del cuándo: las horas libres de todos a la vista; tus datos, al final.",
   "booking.version.agendaSelect": "Agenda con selector",
-  "booking.version.agendaSelectHint": "La agenda abierta, pero lo que te vas a hacer se elige en una lista aparte; el tablero no crece.",
+  "booking.version.agendaSelectHint": "La agenda abierta, pero la sede y lo que te vas a hacer se eligen en una lista aparte; el tablero no crece.",
   "booking.version.chat": "Conversación",
   "booking.version.chatHint": "Se reserva hablando con el asistente, como por WhatsApp.",
 

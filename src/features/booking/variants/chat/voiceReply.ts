@@ -32,10 +32,52 @@ const VOICE_WORDING: Record<string, ReadonlyArray<[RegExp, string]>> = {
   ],
 };
 
-/** El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número». */
+const ES_WEEKDAYS: Record<string, string> = { lun: "lunes", mar: "martes", mie: "miércoles", jue: "jueves", vie: "viernes", sab: "sábado", dom: "domingo" };
+const ES_MONTHS: Record<string, string> = { ene: "enero", feb: "febrero", mar: "marzo", abr: "abril", may: "mayo", jun: "junio", jul: "julio", ago: "agosto", sep: "septiembre", sept: "septiembre", oct: "octubre", nov: "noviembre", dic: "diciembre" };
+const EN_WEEKDAYS: Record<string, string> = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+const EN_MONTHS: Record<string, string> = { jan: "January", feb: "February", mar: "March", apr: "April", jun: "June", jul: "July", aug: "August", sep: "September", sept: "September", oct: "October", nov: "November", dec: "December" };
+
+const bare = (word: string) => word.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+/** Conserva la mayúscula inicial de lo que se reemplaza («Jue» → «Jueves»). */
+const sameCase = (original: string, word: string) => (original[0] === original[0].toUpperCase() ? word[0].toUpperCase() + word.slice(1) : word);
+
+/** «6:00 p. m.» → «a las 6 de la tarde»; «9:30 a. m.» → «a las 9 y 30 de la mañana». */
+function spokenTimeEs(prefix: string | undefined, hours: string, minutes: string, meridiem: string): string {
+  const hour = Number(hours);
+  const isPm = meridiem.toLowerCase() === "p";
+  const part = !isPm ? "de la mañana" : hour === 12 ? "del mediodía" : hour < 7 ? "de la tarde" : "de la noche";
+  const lead = prefix ?? (hour === 1 ? "a la" : "a las");
+  return `${lead} ${hour}${Number(minutes) > 0 ? ` y ${Number(minutes)}` : ""} ${part}`;
+}
+
+/** Las abreviaturas de fechas, horas y precios del chat, dichas completas (la voz las lee letra por letra). */
+function spokenNumbers(text: string, language: string): string {
+  if (language === "es")
+    return text
+      .replace(/(?:\b(a las|a la)\s+)?\b(\d{1,2}):(\d{2})\s*([ap])\.?\s?m\.?/gi, (_, prefix: string | undefined, h: string, m: string, ap: string) => spokenTimeEs(prefix, h, m, ap))
+      .replace(/\b(lun|mar|mi[eé]|jue|vie|s[aá]b|dom)\.?,\s*/gi, (_, day: string) => `${sameCase(day, ES_WEEKDAYS[bare(day)] ?? day)} `)
+      .replace(/\bde (ene|feb|mar|abr|may|jun|jul|ago|sept?|oct|nov|dic)\b\.?/gi, (_, month: string) => `de ${ES_MONTHS[bare(month)] ?? month}`)
+      .replace(/US\$\s?([\d.,]+)/g, "$1 dólares")
+      .replace(/\$\s?([\d.,]+)/g, "$1 pesos")
+      .replace(/(\d)\s?%/g, "$1 por ciento");
+  return text
+    .replace(/(?:\b(at\s))?\b(\d{1,2}):(\d{2})\s*([AP])\.?\s?M\.?/gi, (_, at: string | undefined, h: string, m: string, ap: string) => `${at ?? "at "}${Number(h)}${Number(m) > 0 ? `:${m}` : ""} ${ap.toUpperCase()}M`)
+    .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b(?=,)/gi, (day: string) => EN_WEEKDAYS[day.toLowerCase()] ?? day)
+    .replace(/\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\b\.?(?= \d)/gi, (month: string) => EN_MONTHS[month.toLowerCase().replace(".", "")] ?? month)
+    .replace(/US\$\s?([\d.,]+)/g, "$1 dollars")
+    .replace(/(\d)\s?%/g, "$1 percent");
+}
+
+/**
+ * El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número», y
+ * las fechas, horas y precios completos («el viernes 9 de octubre a las 6 de la tarde», «71 dólares»).
+ */
 export function forVoice(text: string, locale: string): string {
-  const rules = VOICE_WORDING[locale.slice(0, 2)] ?? [];
-  return rules.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), text);
+  const language = locale.slice(0, 2);
+  const rules = VOICE_WORDING[language] ?? [];
+  const spoken = spokenNumbers(rules.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), text), language);
+  // «… 3:00 p. m.» cerraba la frase con el punto de «m.»: dicha completa, el punto se conserva.
+  return /[.!?]$/.test(text.trim()) && !/[.!?…]$/.test(spoken.trim()) ? `${spoken.trim()}.` : spoken;
 }
 
 /** Cómo se dicta un correo: «arroba» y «punto» (o «at» y «dot»). */
@@ -102,7 +144,14 @@ export function matchSpokenOption(text: string, options: readonly string[], loca
     const label = plainWords(option);
     return (label.length >= 3 && ` ${said} `.includes(` ${label} `)) || (said.length >= 2 && label.startsWith(`${said} `));
   });
-  return fits.length === 1 ? fits[0] : null;
+  if (fits.length === 1) return fits[0];
+  // «Con Emilio»: el nombre con que empieza una opción («Emilio a las 3:00»), dicho suelto.
+  const words = new Set(said.split(" "));
+  const byName = options.filter((option) => {
+    const first = plainWords(option).split(" ")[0] ?? "";
+    return first.length >= 3 && !/\d/.test(first) && words.has(first);
+  });
+  return byName.length === 1 ? byName[0] : null;
 }
 
 const endsSentence = (text: string) => /[.!?…:]$/.test(text.trim());

@@ -14,7 +14,7 @@ describe("voiceReplyFromTurns", () => {
       agent("a2", undefined, question("¿A qué hora?", ["2:00 p. m.", "2:30 p. m.", "3:00 p. m."])),
     ];
     const reply = voiceReplyFromTurns(turns, "es-CO", LABELS);
-    expect(reply.text).toBe("Perfecto, corte con barba con **Maicol**. ¿A qué hora? Puedes decir 2:00 p. m., 2:30 p. m. o 3:00 p. m.");
+    expect(reply.text).toBe("Perfecto, corte con barba con **Maicol**. ¿A qué hora? Puedes decir a las 2 de la tarde, a las 2 y 30 de la tarde o a las 3 de la tarde.");
     expect(reply.followups).toEqual(["2:00 p. m.", "2:30 p. m.", "3:00 p. m."]);
   });
 
@@ -82,8 +82,38 @@ describe("matchSpokenOption", () => {
     expect(matchSpokenOption("la de las 2:30", times, "es-CO")).toBe("2:30 p. m.");
   });
 
+  test("a name said on its own picks the option that starts with it", () => {
+    const near = ["2:00 p. m.", "Emilio a las 3:00 p. m.", "Nicolás a las 3:00 p. m.", "Ver todas las horas"];
+    expect(matchSpokenOption("con Emilio", near, "es-CO")).toBe("Emilio a las 3:00 p. m.");
+    expect(matchSpokenOption("la de nicolas", near, "es-CO")).toBe("Nicolás a las 3:00 p. m.");
+  });
+
   test("returns null when nothing (or more than one) fits", () => {
     expect(matchSpokenOption("corte mañana con Andrés", ["Massachusetts", "Utah"], "es-CO")).toBeNull();
     expect(matchSpokenOption("p. m.", times, "es-CO")).toBeNull();
+  });
+});
+
+describe("forVoice: fechas, horas y precios como se dicen", () => {
+  test("los días y meses abreviados se dicen completos", () => {
+    expect(forVoice("vie, 9 de oct, 6:00 p. m.", "es-CO")).toBe("viernes 9 de octubre, a las 6 de la tarde.");
+    expect(forVoice("Jue, 15 de ene", "es-CO")).toBe("Jueves 15 de enero");
+    expect(forVoice("mar, 13 de mar", "es-CO")).toBe("martes 13 de marzo");
+  });
+
+  test("las horas como se dicen: de la mañana, del mediodía, de la tarde, de la noche", () => {
+    expect(forVoice("a las 9:30 a. m.", "es-CO")).toBe("a las 9 y 30 de la mañana.");
+    expect(forVoice("12:00 p. m.", "es-CO")).toBe("a las 12 del mediodía.");
+    expect(forVoice("Tenemos 3:15 p. m. o 7:00 p. m.", "es-CO")).toBe("Tenemos a las 3 y 15 de la tarde o a las 7 de la noche.");
+  });
+
+  test("precios y porcentajes con sus palabras", () => {
+    expect(forVoice("Total: US$ 71", "es-CO")).toBe("Total: 71 dólares");
+    expect(forVoice("Propina 15 %", "es-CO")).toBe("Propina 15 por ciento");
+  });
+
+  test("en inglés, también completo", () => {
+    expect(forVoice("Fri, Oct 9, 6:00 PM", "en-US")).toBe("Friday, October 9, at 6 PM");
+    expect(forVoice("Total: US$ 71", "en-US")).toBe("Total: 71 dollars");
   });
 });

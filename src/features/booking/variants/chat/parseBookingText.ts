@@ -42,11 +42,28 @@ const plain = (value: string): string =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** Palabras que no distinguen un servicio de otro («Corte clásico» es, para el cliente, «corte»). */
-const STOPWORDS = new Set(["de", "del", "la", "el", "los", "las", "y", "con", "para", "a", "al", "un", "una", "clasico", "clasica", "+"]);
+/**
+ * Palabras que no distinguen un servicio de otro («Corte clásico» es, para el cliente, «corte»). El
+ * cabello o el pelo tampoco: «corte de cabello» es un corte, no el «Tinte de cabello».
+ */
+const STOPWORDS = new Set(["de", "del", "la", "el", "los", "las", "y", "con", "para", "a", "al", "un", "una", "clasico", "clasica", "+", "cabello", "pelo"]);
 
 /** Otras formas de nombrar lo mismo. */
 const SYNONYMS: Readonly<Record<string, readonly string[]>> = {
+  // Cómo lo dice la gente: «cortarme el pelo», «motilarme», «pintarme el cabello».
+  cortar: ["corte"],
+  cortarme: ["corte"],
+  cortarse: ["corte"],
+  motilar: ["corte"],
+  motilarme: ["corte"],
+  motilada: ["corte"],
+  peluquear: ["corte"],
+  peluquearme: ["corte"],
+  pintar: ["tinte"],
+  pintarme: ["tinte"],
+  tenir: ["tinte"],
+  tenirme: ["tinte"],
+  afeitarme: ["afeitado"],
   afeitar: ["afeitado"],
   afeitada: ["afeitado"],
   rasurar: ["afeitado"],

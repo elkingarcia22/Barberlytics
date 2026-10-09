@@ -47,7 +47,7 @@ export const bookingVariantsEs = {
   "booking.agenda.editing": "Estás cambiando la cita de {name}: toca la nueva hora.",
   "booking.agenda.editingCancel": "Dejarla como estaba",
   "booking.agenda.selectTitle": "Arma tu cita",
-  "booking.agenda.selectLead": "Dinos dónde, qué y con quién, y elige una hora libre. Tus datos te los pedimos al final.",
+  "booking.agenda.selectLead": "Elige sede, servicio y barbero; luego, tu hora.",
   "booking.agenda.productsTitle": "¿Llevas algo de la tienda?",
   "booking.agenda.productsLead": "Te lo tenemos listo en tu cita y lo pagas junto con ella.",
   "booking.agenda.productsPlaceholder": "Agrega productos ({count} disponibles)",

@@ -10,7 +10,22 @@ import "./chatHome.css";
  * Clipper contesta en voz alta y vuelve a escuchar; las opciones también se tocan. Va sobre el fondo
  * de la portada de Clipper (la rejilla de puntos) y sigue el tema y el modo de la página.
  */
-export function BookingVoice({ open, onClose, ask, onWrite, secret = false }: { open: boolean; onClose: () => void; ask: (text: string) => Promise<ChatReply>; onWrite: (text: string) => void; secret?: boolean }) {
+export function BookingVoice({
+  open,
+  onClose,
+  ask,
+  onWrite,
+  secret = false,
+  opening,
+}: {
+  open: boolean;
+  onClose: () => void;
+  ask: (text: string) => Promise<ChatReply>;
+  onWrite: (text: string) => void;
+  secret?: boolean;
+  /** El saludo de Clipper al abrir (según de qué experiencia viene). */
+  opening?: () => Promise<ChatReply>;
+}) {
   const t = useAppT();
   const { locale } = useLocale();
   return (
@@ -25,6 +40,7 @@ export function BookingVoice({ open, onClose, ask, onWrite, secret = false }: { 
       agentName={t("booking.chat.agentName")}
       appearance="page"
       secret={secret}
+      opening={opening}
       backdrop={<div aria-hidden className="clipper-dots pointer-events-none absolute inset-0" />}
     />
   );

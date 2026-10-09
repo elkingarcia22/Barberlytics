@@ -43,6 +43,8 @@ export interface ChatVoiceModeProps {
   backdrop?: React.ReactNode;
   /** Lo dicho que no debe quedar a la vista (un código, una tarjeta): se muestra con puntos. */
   secret?: boolean;
+  /** En conversación, el saludo con el que el asistente abre la llamada antes de escuchar. */
+  opening?: () => Promise<ChatReply>;
 }
 
 function pad(value: number): string {
@@ -102,7 +104,7 @@ export function ChatVoiceMode({ open, ...props }: ChatVoiceModeProps) {
   return <VoiceSession {...props} />;
 }
 
-function VoiceSession({ onClose, onWrite, onSend, ask: askProp, lang: langProp, conversation = false, agentName = "", appearance = "immersive", backdrop, secret = false }: Omit<ChatVoiceModeProps, "open">) {
+function VoiceSession({ onClose, onWrite, onSend, ask: askProp, lang: langProp, conversation = false, agentName = "", appearance = "immersive", backdrop, secret = false, opening }: Omit<ChatVoiceModeProps, "open">) {
   const t = useT();
   // Dentro del chat de la app usa su backend; fuera (la reserva), lo que le pasen.
   const context = React.useContext(ChatContext);
@@ -114,7 +116,7 @@ function VoiceSession({ onClose, onWrite, onSend, ask: askProp, lang: langProp, 
   );
   // En una superficie que vive dentro de otra (la reserva en un marco de celular), se abre ahí.
   const portalTarget = usePortalContainer() ?? document.body;
-  const { status, transcript, interim, reply, seconds, spokenWords, toggleMic, submit } = useVoiceSession({ open: true, lang, ask, conversation });
+  const { status, transcript, interim, reply, seconds, spokenWords, toggleMic, submit } = useVoiceSession({ open: true, lang, ask, conversation, opening });
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const language = t(lang.startsWith("en") ? "chat.language.en" : "chat.language.es");
 

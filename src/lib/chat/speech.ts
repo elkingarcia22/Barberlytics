@@ -165,11 +165,44 @@ export interface SpeakOptions {
   gender?: VoiceGender;
   /** Cada palabra que dice (para que las ondas se muevan con su voz). */
   onWord?: () => void;
+  /**
+   * Con la voz natural del servicio de voz (`api/tts`) si está configurado; si no, la del navegador.
+   * La conversación por voz con Clipper la usa; leer un mensaje en el chat, no.
+   */
+  natural?: boolean;
+}
+
+/** El servicio de voz natural (función `api/tts`): voz neural de hombre, en español o inglés. */
+const TTS_ENDPOINT = "/api/tts";
+/** Cada cuánto «late» la voz natural mientras suena (no avisa palabra por palabra como la del navegador). */
+const AUDIO_PULSE_MS = 260;
+/** Si el servidor dijo que no hay servicio de voz, no se vuelve a preguntar en esta sesión. */
+let naturalVoiceUnavailable = false;
+
+/** El audio de la voz natural, o `null` si no hay servicio (sin configurar, sin red, en local sin funciones). */
+async function naturalVoice(text: string, lang: string, signal: AbortSignal): Promise<Blob | null> {
+  if (naturalVoiceUnavailable || typeof fetch === "undefined") return null;
+  try {
+    const response = await fetch(TTS_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, lang: lang.toLowerCase().startsWith("en") ? "en" : "es" }),
+      signal,
+    });
+    const type = response.headers.get("content-type") ?? "";
+    if (response.ok && type.startsWith("audio/")) return await response.blob();
+    // Sin servicio (501) o sin funciones (en local responde la app): la voz del navegador desde ya.
+    if (response.status === 501 || !type.startsWith("audio/")) naturalVoiceUnavailable = true;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Lee un texto en voz alta; devuelve cómo pararlo. Sin voz en el navegador no hace nada. */
 export function speak(text: string, lang: string, onEnd?: () => void, options: SpeakOptions = {}): () => void {
-  if (!isSpeechSynthesisSupported()) {
+  const hasBrowserVoice = isSpeechSynthesisSupported();
+  if (!hasBrowserVoice && !options.natural) {
     onEnd?.();
     return () => {};
   }
@@ -184,9 +217,21 @@ export function speak(text: string, lang: string, onEnd?: () => void, options: S
     onEnd?.();
   };
   const spoken = toSpeech(text);
-  window.speechSynthesis.cancel();
-  void loadVoices().then((voices) => {
-    if (cancelled) return;
+  if (hasBrowserVoice) window.speechSynthesis.cancel();
+  const controller = new AbortController();
+  let audio: HTMLAudioElement | null = null;
+  let pulse = 0;
+  let audioUrl = "";
+  const stopAudio = () => {
+    window.clearInterval(pulse);
+    audio?.pause();
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+  };
+  /** La voz del navegador: la de siempre, o el respaldo si la natural no está. */
+  const browserVoice = () => {
+    if (!hasBrowserVoice) return end();
+    void loadVoices().then((voices) => {
+      if (cancelled) return;
     const utterance = new SpeechSynthesisUtterance(spoken);
     utterance.lang = lang;
     const voice = options.gender ? (pickVoice(voices, lang, options.gender) as SpeechSynthesisVoice | null) : null;
@@ -196,11 +241,34 @@ export function speak(text: string, lang: string, onEnd?: () => void, options: S
     guard = window.setTimeout(end, SPEAK_GUARD_BASE_MS + spoken.split(/\s+/).length * SPEAK_GUARD_PER_WORD_MS);
     if (options.onWord) utterance.onboundary = (event) => event.name === "word" && options.onWord?.();
     window.speechSynthesis.speak(utterance);
-  });
+    });
+  };
+  if (!options.natural) browserVoice();
+  else
+    void naturalVoice(spoken, lang, controller.signal).then((blob) => {
+      if (cancelled) return;
+      if (!blob) return browserVoice();
+      audioUrl = URL.createObjectURL(blob);
+      audio = new Audio(audioUrl);
+      const finish = () => {
+        stopAudio();
+        end();
+      };
+      audio.onended = finish;
+      audio.onerror = finish;
+      if (options.onWord) pulse = window.setInterval(() => options.onWord?.(), AUDIO_PULSE_MS);
+      // Si el navegador no deja reproducir (sin un toque antes), se dice con su propia voz.
+      audio.play().catch(() => {
+        stopAudio();
+        browserVoice();
+      });
+    });
   return () => {
     cancelled = true;
     ended = true;
     window.clearTimeout(guard);
-    window.speechSynthesis.cancel();
+    controller.abort();
+    stopAudio();
+    if (hasBrowserVoice) window.speechSynthesis.cancel();
   };
 }

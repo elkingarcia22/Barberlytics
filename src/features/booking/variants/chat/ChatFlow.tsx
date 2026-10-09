@@ -141,7 +141,8 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
   // La portada primero: decir o escribir qué cita quiere; el chat arranca con eso.
   const [isHome, setIsHome] = React.useState(true);
   // Desde «Agenda con Clipper» en otra experiencia, se llega hablando: la voz ya está abierta.
-  const [isVoiceOpen, setIsVoiceOpen] = React.useState(peekVoiceOnArrival);
+  const [arrival] = React.useState(peekVoiceOnArrival);
+  const [isVoiceOpen, setIsVoiceOpen] = React.useState(arrival !== null);
   React.useEffect(() => clearVoiceOnArrival(), []);
   const engine = useChatBooking({ onFinish, payment: controllerRef, deferStart: true });
   const startChat = (text?: string) => {
@@ -150,7 +151,16 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
   };
   const [draft, setDraft] = React.useState("");
   // Una sola conversación por voz para la portada y el chat: empieza en la portada y sigue en el chat.
-  const askByVoice = useVoiceBridge(engine, { started: !isHome, start: startChat });
+  const voice = useVoiceBridge(engine, {
+    started: !isHome,
+    start: startChat,
+    shopName: shop.name,
+    hasPackages: shop.packages.length > 0,
+    openSide: (step) => {
+      setIsVoiceOpen(false);
+      dispatch({ type: "goTo", step });
+    },
+  });
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const isWide = layout === "wide";
   const onSideScreen = state.step === "gift" || state.step === "packages";
@@ -169,7 +179,10 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
       <BookingVoice
         open={isVoiceOpen}
         onClose={() => setIsVoiceOpen(false)}
-        ask={askByVoice}
+        ask={voice.ask}
+        // Clipper saluda al abrir la llamada (aún sin conversación): desde Paso a paso pide quién eres;
+        // desde la Agenda con selector o la portada, qué quieres hacer hoy.
+        opening={isHome ? () => voice.greet(arrival === "guided" ? "guided" : "menu") : undefined}
         secret={engine.secret}
         onWrite={(text) => {
           // «Escribir»: lo dicho queda en la caja del chat (desde la portada, el chat se abre primero).

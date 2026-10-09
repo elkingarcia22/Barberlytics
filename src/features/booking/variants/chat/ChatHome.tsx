@@ -80,7 +80,7 @@ export function ChatHome(props: HomeProps) {
       <div className={cn("relative mx-auto flex w-full flex-1 flex-col justify-center gap-7 px-5 py-10", STEP_WIDTH[layout])}>
         <div className="flex flex-col items-center gap-5 text-center">
           {/* El orbe de Clipper: un poste de barbería hecho esfera, con el gradiente de IA. */}
-          <ClipperOrb size={layout === "wide" ? 104 : 84} />
+          <ClipperOrb size={layout === "wide" ? 64 : 52} />
           <div className="flex flex-col items-center gap-2">
             <ClipperName />
             <Heading level={layout === "wide" ? 2 : 3}>{t("booking.chat.promptTitle")}</Heading>

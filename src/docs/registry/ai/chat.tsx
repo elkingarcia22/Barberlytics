@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChatComposer, ChatHistoryList, ChatPanel, ChatScreen, ChatThread, ChatVoiceMode, useActiveConversation, useChatActions, useChatState } from "@/components/chat";
+import { ChatComposer, ChatHistoryList, ChatQuestionCard, ChatPanel, ChatScreen, ChatThread, ChatVoiceMode, useActiveConversation, useChatActions, useChatState } from "@/components/chat";
 import { Button } from "@/components/ui/button";
 import { defineEntry, definePlayground } from "../types";
 import { DocsChat, DocsPanelHost } from "./chatDocsHost";
@@ -299,4 +299,96 @@ export const chatVoiceModeEntry = defineEntry({
   related: ["chat-composer", "chat-panel"],
 });
 
-export const chatEntries = [chatComposerEntry, chatThreadEntry, chatPanelEntry, chatScreenEntry, chatVoiceModeEntry];
+function QuestionDemo({ question }: { question: React.ComponentProps<typeof ChatQuestionCard>["question"] }) {
+  const [answer, setAnswer] = React.useState<string | undefined>(undefined);
+  return (
+    <div className="flex w-full max-w-md flex-col gap-3">
+      <ChatQuestionCard question={{ ...question, answer }} active onAnswer={setAnswer} />
+      {answer && (
+        <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setAnswer(undefined)}>
+          Volver a preguntar
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export const chatQuestionCardEntry = defineEntry({
+  id: "chat-question-card",
+  name: "ChatQuestionCard",
+  group: "ai",
+  description: {
+    es: "Una pregunta del agente con opciones numeradas: se contesta tocando, con la tecla del número o escribiendo en «Otro». Con título es una tarjeta completa: la pregunta y su ayuda arriba con la flecha para plegarla, buscador para listas largas, cada opción con descripción y bandera o foto, y varias a la vez con un botón para confirmar. Respondida, se pliega y deja lo elegido.",
+    en: "An agent question with numbered options: answered by tapping, by the number key or by typing in “Other”. With a title it's a full card: the question and its hint on top with the arrow to collapse it, a search box for long lists, each option with a description and a flag or photo, and several at once with a button to confirm. Answered, it collapses and keeps what was chosen.",
+  },
+  importPath: 'import { ChatQuestionCard } from "@/components/chat"',
+  sourcePath: "src/components/chat/ChatQuestionCard.tsx",
+  status: "beta",
+  tags: ["ia", "chat", "pregunta", "opciones", "lista"],
+  examples: [
+    {
+      id: "rich",
+      title: "Lista con buscador y descripción",
+      description: "La pregunta como título, el buscador y cada opción con su bandera o su descripción. Escribe en el buscador o pulsa un número.",
+      layout: "center",
+      code: `<ChatQuestionCard
+  active
+  onAnswer={setAnswer}
+  question={{
+    title: "¿En qué país quieres buscar prospectos?",
+    options: ["Colombia", "México", "Chile", "Argentina", "Brasil", "Perú", "Uruguay"],
+    details: { Colombia: { emoji: "🇨🇴" }, México: { emoji: "🇲🇽" } },
+    searchPlaceholder: "Buscar país",
+  }}
+/>`,
+      render: () => (
+        <QuestionDemo
+          question={{
+            title: "¿En qué país quieres buscar prospectos?",
+            options: ["Colombia", "México", "Chile", "Argentina", "Brasil", "Perú", "Uruguay"],
+            details: { Colombia: { emoji: "🇨🇴" }, México: { emoji: "🇲🇽" }, Chile: { emoji: "🇨🇱" }, Argentina: { emoji: "🇦🇷" }, Brasil: { emoji: "🇧🇷" }, Perú: { emoji: "🇵🇪" }, Uruguay: { emoji: "🇺🇾" } },
+            searchPlaceholder: "Buscar país",
+          }}
+        />
+      ),
+    },
+    {
+      id: "multiple",
+      title: "Varias a la vez y «Otro»",
+      description: "Se marcan varias y se confirman con el botón; «Otro» deja escribir la respuesta.",
+      layout: "center",
+      code: `<ChatQuestionCard question={{ title: "¿Qué te vas a hacer?", hint: "Puedes elegir varios.", options, details, multiple: { confirmLabel: "Continuar" } }} active onAnswer={setAnswer} />`,
+      render: () => (
+        <QuestionDemo
+          question={{
+            title: "¿Qué te vas a hacer?",
+            hint: "Puedes elegir varios.",
+            options: ["Corte clásico", "Arreglo de barba", "Diseño de cejas"],
+            details: { "Corte clásico": { description: "30 min · desde US$ 35" }, "Arreglo de barba": { description: "30 min · desde US$ 30" }, "Diseño de cejas": { description: "15 min · desde US$ 12" } },
+            multiple: { confirmLabel: "Continuar" },
+          }}
+        />
+      ),
+    },
+    {
+      id: "simple",
+      title: "Sin título (en una respuesta del hilo)",
+      description: "La forma corta que usa el chat de ayuda: solo las opciones numeradas y «Otro».",
+      layout: "center",
+      code: `<ChatQuestionCard question={{ options: ["Una", "Dos", "Tres"], otherPlaceholder: "Escribe cuántos" }} active onAnswer={setAnswer} />`,
+      render: () => <QuestionDemo question={{ options: ["Una", "Dos", "Tres"], otherPlaceholder: "Escribe cuántos" }} />,
+    },
+  ],
+  props: [
+    { name: "question", type: "ChatQuestion", description: "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, otherLabel, otherPlaceholder y answer." },
+    { name: "active", type: "boolean", description: "Se puede responder: es la última pregunta de la conversación." },
+    { name: "onAnswer", type: "(option: string) => void", description: "La opción elegida; con multiple, las elegidas unidas por « · » (CHAT_MULTIPLE_SEPARATOR)." },
+  ],
+  guidelines: {
+    do: ["Úsala para cada elección dentro de una conversación: es más chat que meter un formulario en el hilo.", "Pon buscador cuando la lista pase de unas ocho opciones.", "Lo que se escribe (un teléfono, un código, un nombre) va en la caja del chat, no en la tarjeta."],
+    dont: ["No metas formularios dentro de la tarjeta: para datos sensibles (una tarjeta de pago) abre una hoja aparte.", "No repitas la pregunta en un mensaje y en el título: el título ya es la pregunta."],
+  },
+  related: ["chat-thread", "chat-composer", "chip"],
+});
+
+export const chatEntries = [chatComposerEntry, chatThreadEntry, chatQuestionCardEntry, chatPanelEntry, chatScreenEntry, chatVoiceModeEntry];

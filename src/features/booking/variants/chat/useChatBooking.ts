@@ -1,88 +1,60 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAppT } from "@/app/i18n";
-import type { IconName } from "@/icons";
+import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { describeError } from "@/lib/api";
+import { splitMultipleAnswer } from "@/lib/chat";
 import { bookingApi } from "../../api";
-import { bookingReducer, defaultBranchId, personName, type BookingAction, type BookingState } from "../../bookingState";
-import { firstBookableDay, dayKeyOf, formatPhone, parseStart } from "../../bookingFormat";
+import { bookingReducer, defaultBranchId, personName, type BookingAction, type BookingPerson, type BookingState } from "../../bookingState";
+import { dayKeyOf, firstBookableDay, formatPhone, parseStart } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { brandFromName, isCvcComplete } from "../../flow/cardValidation";
+import type { PaymentController } from "../../flow/usePaymentController";
+import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
-import { FIRST_VISIT_PROMO } from "../../pricing";
-import type { VisitSuggestion } from "../../types";
-import { itemDuration } from "../../useBookingTotals";
-import { windowOf, type DayWindow } from "../agenda/agendaModel";
-import { codeFromText, parseBookingText, phoneFromText, type ParsedRequest } from "./parseBookingText";
+import type { BookedAppointment, BookingCatalog, VisitSuggestion } from "../../types";
+import { itemPrice } from "../../useBookingTotals";
+import { ableBarbers, type DayWindow } from "../agenda/agendaModel";
+import { useChatCheckout } from "./chatCheckout";
 
-/** La tarjeta que trae un mensaje del asistente: con ella se responde tocando en vez de escribiendo. */
-export type ChatWidget = "phone" | "code" | "profile" | "blocked" | "home" | "branches" | "services" | "barbers" | "times" | "cart" | "products" | "note" | "payment" | "receipt" | "manage" | "call";
-
-/** Respuestas rápidas: una pastilla bajo el último mensaje que hace lo mismo que escribirla. */
-export type ChatReplyId = "manage" | "info" | "call" | "book" | "different" | "pay" | "another" | "products" | "note" | "again" | "finish" | "restart" | "gift" | "packages" | "anyBarber" | "cart";
-
-export interface ChatReply {
-  id: ChatReplyId;
-  label: string;
-  icon?: IconName;
-}
-
-export interface ChatTurn {
-  id: string;
-  from: "agent" | "user";
-  text: string;
-  widget?: ChatWidget;
-  replies?: readonly ChatReply[];
-}
-
-/** Para qué día (y franja) se abren las horas: lo que dijo en su frase, si dijo algo. */
-export interface TimeFocus {
-  date?: string;
-  window?: DayWindow;
-}
-
-/** El tiempo que «escribe» el asistente antes de cada mensaje; en pruebas, nada. */
-const TYPING_MS = import.meta.env.MODE === "test" ? 0 : 450;
-const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-const plainText = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-/** La tarjeta que se puede usar ahora: la del último mensaje del asistente que trae una. */
-const widgetOf = (turns: readonly ChatTurn[]): ChatWidget | undefined => [...turns].reverse().find((turn) => turn.from === "agent" && turn.widget)?.widget;
-
-interface EventHandlers {
-  greetKnown: () => Promise<void> | void;
-  welcomeNew: () => void;
-  receipt: (number: string) => void;
-}
-
-let turnSeed = 0;
-const nextId = () => {
-  turnSeed += 1;
-  return `turn_${turnSeed}`;
-};
+const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+import { activeQuestionTurn, capitalize, DAYS_OFFERED, EMAIL, firstName, isKnownAnswer, nextId, PHONE_DIGITS, reducedMotion, RELATIONS, TYPING_MS, type ChatReplyId, type ChatTurn, type Expecting, type Handlers, type MessageInput, type PaymentEvent } from "./chatKit";
+import { makeQuestion, matchOption, type BookingQuestion, type QuestionEntry } from "./chatQuestions";
+import { codeFromText, parseBookingText, type ParsedRequest } from "./parseBookingText";
 
 /**
- * La conversación de la reserva. No guarda la reserva aparte: cada respuesta
- * despacha las mismas acciones que las otras versiones sobre el mismo estado
- * (`bookingReducer`), y la conversación solo decide qué preguntar después y
- * con qué tarjeta. Lo que el cliente escribe se interpreta con
- * `parseBookingText`; lo que no se entiende se vuelve a preguntar con opciones.
+ * La conversación de la reserva. Habla como un chat: lo que se escribe (el
+ * celular, el código, el nombre, el correo, el CVC o una frase como «corte
+ * mañana a las 5») va en la caja, y cada elección llega como una pregunta con
+ * su lista (`ChatQuestionCard`). No guarda la reserva aparte: despacha las
+ * mismas acciones del `bookingReducer` que las otras versiones y cobra con el
+ * mismo `usePaymentController`, que le pasa `ChatFlow` por `payment`.
  */
-export function useChatBooking({ onFinish }: { onFinish?: () => void }) {
+export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; payment: React.RefObject<PaymentController | null> }) {
   const t = useAppT();
   const queryClient = useQueryClient();
-  const { state, dispatch, shop, catalog, fmt } = useBookingFlow();
+  const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
   const [turns, setTurns] = React.useState<readonly ChatTurn[]>([]);
   const [typing, setTyping] = React.useState(false);
-  const [focus, setFocus] = React.useState<TimeFocus>({});
-  const [suggestion, setSuggestion] = React.useState<VisitSuggestion | null>(null);
-  // El estado de la reserva al instante: tras despachar, la conversación ya decide con lo nuevo.
+  const [expectingNow, setExpectingNow] = React.useState<Expecting>("phone");
   const stateRef = React.useRef<BookingState>(state);
-  const catalogRef = React.useRef(catalog);
+  const catalogRef = React.useRef<BookingCatalog | undefined>(catalog);
+  const totalsRef = React.useRef<Totals>(totals);
+  const turnsRef = React.useRef(turns);
+  const handlers = React.useRef<Handlers | null>(null);
   const queue = React.useRef<Promise<void>>(Promise.resolve());
+  const expecting = React.useRef<Expecting>("phone");
+  const profile = React.useRef({ firstName: "", lastName: "", email: "" });
+  const pendingName = React.useRef("");
   const pendingManage = React.useRef(false);
+  const timesDay = React.useRef<string | null>(null);
+  const rescheduling = React.useRef<BookedAppointment | null>(null);
+  const managing = React.useRef<BookedAppointment | null>(null);
+  const suggestion = React.useRef<VisitSuggestion | null>(null);
   const started = React.useRef(false);
   const seenCustomer = React.useRef<string | null>(null);
+  const seenReservation = React.useRef<string | null>(null);
+  /** Se abrió la hoja de la tarjeta nueva: escribir «tarjeta» la vuelve a abrir si se cerró. */
+  const awaitingCard = React.useRef(false);
 
   const apply = React.useCallback(
     (action: BookingAction) => {
@@ -92,93 +64,130 @@ export function useChatBooking({ onFinish }: { onFinish?: () => void }) {
     [dispatch]
   );
 
-  const pushUser = React.useCallback((text: string) => setTurns((current) => [...current, { id: nextId(), from: "user", text }]), []);
+  const expect = (next: Expecting) => {
+    expecting.current = next;
+    setExpectingNow(next);
+  };
+
+  /** Cuántas veces habló el cliente: una pregunta que llega tarde (tras una consulta) no pisa lo que ya pidió. */
+  const userTurns = React.useRef(0);
+  const pushUser = (text: string) => {
+    userTurns.current += 1;
+    setTurns((current) => [...current, { id: nextId(), from: "user", text }]);
+  };
 
   /** Mensajes del asistente, uno tras otro, con su «escribiendo…» delante. */
-  const say = React.useCallback((...messages: Omit<ChatTurn, "id" | "from">[]) => {
+  const say = React.useCallback((...messages: MessageInput[]) => {
     const delay = reducedMotion() ? 0 : TYPING_MS;
     queue.current = queue.current.then(async () => {
-      for (const message of messages) {
-        if (delay > 0) {
-          setTyping(true);
-          await new Promise((resolve) => window.setTimeout(resolve, delay));
-        }
+      for (const input of messages) {
+        if (delay > 0) setTyping(true);
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
         setTyping(false);
-        setTurns((current) => [...current, { id: nextId(), from: "agent", ...message }]);
+        const message = typeof input === "function" ? input() : input;
+        if (message) setTurns((current) => [...current, { id: nextId(), from: "agent", ...message }]);
       }
     });
   }, []);
 
-  const turnsRef = React.useRef(turns);
-  const activeWidget = (): ChatWidget | undefined => widgetOf(turnsRef.current);
+  const ask = (question: BookingQuestion, text?: string) => say({ text, question });
+  const busy = async <T,>(work: () => Promise<T>): Promise<T> => {
+    setTyping(true);
+    try {
+      return await work();
+    } finally {
+      setTyping(false);
+    }
+  };
 
   const serviceNames = (ids: readonly string[]) => ids.map((id) => catalogRef.current?.services.find((service) => service.id === id)?.name ?? id).join(" + ");
   const barberName = (id: string | null) => (id ? (catalogRef.current?.barbers.find((barber) => barber.id === id)?.name ?? "") : "");
 
-  /* ───────────────────────────── identidad ───────────────────────────── */
+  /* ───────────────────────────── quién es ───────────────────────────── */
 
-  const askPhone = React.useCallback(
-    (text: string) =>
-      say({
-        text,
-        widget: "phone",
-        replies: [
-          { id: "manage", label: t("booking.chat.reply.manage"), icon: "calendar" },
-          { id: "info", label: t("booking.chat.reply.info"), icon: "compass" },
-          { id: "call", label: t("booking.chat.reply.call"), icon: "phone" },
-        ],
-      }),
-    [say, t]
-  );
+  const askPhone = (text = t("booking.chat.askPhone")) => {
+    expect("phone");
+    say({ text });
+  };
 
-  const submitPhone = async (phone: string) => {
-    pushUser(formatPhone(phone));
+  const submitPhone = async (text: string) => {
+    const digits = text.replace(/\s/g, "");
+    const valid = /^\d+$/.test(digits) && (digits.length === PHONE_DIGITS || (digits.length === PHONE_DIGITS + 2 && digits.startsWith("57")));
+    if (!valid) return say({ text: t("booking.chat.badPhone") });
+    const phone = `+${digits.length === PHONE_DIGITS ? `57${digits}` : digits}`;
     try {
-      const sent = await bookingApi.requestOtp(phone);
+      const sent = await busy(() => bookingApi.requestOtp(phone));
       apply({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel });
-      say({ text: t(sent.channel === "whatsapp" ? "booking.chat.codeWhatsapp" : "booking.chat.codeSms", { phone: sent.sentTo }), widget: "code" });
+      expect("code");
+      say({
+        text: `${t(sent.channel === "whatsapp" ? "booking.chat.codeWhatsapp" : "booking.chat.codeSms", { phone: sent.sentTo })}\n\n${t("booking.chat.codeHelp")}`,
+      });
     } catch (error) {
-      say({ text: describeError(error).description, widget: "phone" });
+      say({ text: describeError(error).description });
     }
   };
 
-  const submitCode = async (code: string) => {
-    const current = stateRef.current;
+  const submitCode = async (text: string) => {
+    const code = codeFromText(text);
+    if (!code) return say({ text: t("booking.chat.needCode") });
     try {
-      const result = await bookingApi.verifyOtp(current.phone, code);
-      if (result.status === "known") apply({ type: "customerFound", customer: result.customer, token: result.token });
-      else if (result.status === "new") {
-        apply({ type: "customerIsNew", token: result.token });
-        say({ text: t("booking.chat.newHello", { shop: shop.name }), widget: "profile" });
-      } else {
-        apply({ type: "customerBlocked" });
-        say({ text: t("booking.chat.blocked"), widget: "blocked" });
+      const result = await busy(() => bookingApi.verifyOtp(stateRef.current.phone, code));
+      if (result.status === "known") {
+        expect(null);
+        return apply({ type: "customerFound", customer: result.customer, token: result.token });
       }
+      if (result.status === "new") {
+        apply({ type: "customerIsNew", token: result.token });
+        expect("firstName");
+        return say({ text: t("booking.chat.newHello", { shop: shop.name }) });
+      }
+      expect(null);
+      apply({ type: "customerBlocked" });
+      ask(makeQuestion("blocked", t("booking.chat.blockedTitle"), [{ label: t("booking.chat.callShop"), value: "call" }, { label: t("booking.blocked.other"), value: "other" }]), t("booking.chat.blocked"));
     } catch (error) {
-      say({ text: describeError(error).description, widget: "code" });
+      say({ text: describeError(error).description });
     }
   };
 
-  /* ───────────────────────────── la reserva ───────────────────────────── */
-
-  const ensureDraft = () => {
-    if (!stateRef.current.draft) apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
-  };
-
-  /** La sede: la única, la de siempre o se pregunta. Devuelve si ya hay sede. */
-  const ensureBranch = (): boolean => {
-    const current = stateRef.current;
-    if (current.branchId) return true;
-    const known = defaultBranchId(current.customer, shop.branches.map((branch) => branch.id));
-    if (!known) {
-      say({ text: t("booking.chat.askBranch", { count: shop.branches.length }), widget: "branches" });
-      return false;
+  /** Primera vez: nombre y apellido, correo y el permiso para promociones (sin marcar de entrada, Ley 1581). */
+  const submitProfileText = (text: string) => {
+    const value = text.trim();
+    if (expecting.current === "firstName") {
+      const [first = "", ...rest] = value.split(/\s+/);
+      if (first.length < 2) return say({ text: t("booking.chat.askName") });
+      profile.current = { ...profile.current, firstName: capitalize(first), lastName: rest.map(capitalize).join(" ") };
+      if (!profile.current.lastName) {
+        expect("lastName");
+        return say({ text: t("booking.chat.askLastName", { name: profile.current.firstName }) });
+      }
+    } else if (expecting.current === "lastName") {
+      if (value.length < 2) return say({ text: t("booking.chat.askLastName", { name: profile.current.firstName }) });
+      profile.current = { ...profile.current, lastName: value.split(/\s+/).map(capitalize).join(" ") };
+    } else if (expecting.current === "email") {
+      if (!EMAIL.test(value)) return say({ text: t("booking.chat.badEmail") });
+      profile.current = { ...profile.current, email: value };
+      expect(null);
+      return ask(makeQuestion("consent", t("booking.chat.consentTitle", { shop: shop.name }), [{ label: t("booking.chat.consentYes"), value: "yes" }, { label: t("booking.chat.consentNo"), value: "no" }], { hint: t("booking.chat.consentHint") }));
     }
-    apply({ type: "chooseBranch", branchId: known });
-    return true;
+    expect("email");
+    say({ text: t("booking.chat.askEmail", { name: profile.current.firstName }) });
   };
 
-  /** La sede que se da por hecha (única o la de siempre), sin preguntar: así el catálogo ya viene en camino. */
+  const createProfile = async (marketing: boolean) => {
+    const token = stateRef.current.token;
+    if (!token) return askPhone();
+    try {
+      const customer = await busy(() => bookingApi.createCustomer(token, { ...profile.current, marketing }));
+      apply({ type: "customerUpdated", customer });
+    } catch (error) {
+      expect("email");
+      say({ text: `${describeError(error).description} ${t("booking.chat.askEmailAgain")}` });
+    }
+  };
+
+  /* ───────────────────────────── la cita ───────────────────────────── */
+
+  /** La sede que se da por hecha (única o la de siempre), sin preguntar. */
   const presetBranch = () => {
     const current = stateRef.current;
     if (current.branchId) return;
@@ -186,8 +195,7 @@ export function useChatBooking({ onFinish }: { onFinish?: () => void }) {
     if (known) apply({ type: "chooseBranch", branchId: known });
   };
 
-  /** El catálogo de la sede para entender la frase; si aún no llegó, se espera. */
-  const loadCatalog = async () => {
+  const loadCatalog = async (): Promise<BookingCatalog | undefined> => {
     const branchId = stateRef.current.branchId;
     if (catalogRef.current || !branchId) return catalogRef.current;
     try {
@@ -199,412 +207,595 @@ export function useChatBooking({ onFinish }: { onFinish?: () => void }) {
     }
   };
 
-  const askServices = (text = t("booking.chat.askServices")) => {
-    if (!ensureBranch()) return;
+  const ensureDraft = (person: BookingPerson = { kind: "self" }) => {
+    if (!stateRef.current.draft) apply({ type: "openDraft", person, serviceIds: [], barberId: null });
+  };
+
+  const setServices = (ids: readonly string[]) => {
+    const draft = stateRef.current.draft;
+    if (!draft) return;
+    const wanted = new Set(ids);
+    draft.serviceIds.filter((id) => !wanted.has(id)).forEach((serviceId) => apply({ type: "toggleService", serviceId }));
+    ids.filter((id) => !draft.serviceIds.includes(id)).forEach((serviceId) => apply({ type: "toggleService", serviceId }));
+  };
+
+  const askBranch = () =>
+    ask(
+      makeQuestion(
+        "branch",
+        t("booking.chat.branchTitle"),
+        shop.branches.map((branch) => ({ label: branch.name, value: branch.id, description: `${branch.address} · ${t("booking.chat.todayHours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}` }))
+      ),
+      t("booking.chat.branchLead", { count: shop.branches.length })
+    );
+
+  const askPerson = (text?: string) => {
+    const current = stateRef.current;
+    const entries: QuestionEntry[] = [{ label: t("booking.person.self"), value: "self", emoji: "🙋" }];
+    for (const guest of current.customer?.guests ?? []) entries.push({ label: guest.name, value: `guest:${guest.id}`, description: guest.relation, image: null });
+    for (const item of current.items) {
+      const person = item.person;
+      if (person.kind === "new" && !entries.some((entry) => entry.label === person.name)) entries.push({ label: person.name, value: `new:${person.name}|${person.relation}`, description: person.relation, image: null });
+    }
+    ask(makeQuestion("person", t("booking.chat.personTitle"), entries, { otherLabel: t("booking.person.add"), otherPlaceholder: t("booking.chat.personPlaceholder") }), text);
+  };
+
+  const askServices = async (text?: string) => {
+    if (!stateRef.current.branchId) {
+      presetBranch();
+      if (!stateRef.current.branchId) return askBranch();
+    }
     ensureDraft();
-    say({ text, widget: "services" });
-  };
-
-  const askBarber = () => {
-    const draft = stateRef.current.draft;
-    if (!draft) return askServices();
-    const able = (catalogRef.current?.barbers ?? []).filter((barber) => draft.serviceIds.every((id) => barber.prices[id] !== undefined));
-    say({ text: t("booking.chat.askBarber", { count: able.length, services: serviceNames(draft.serviceIds) }), widget: "barbers", replies: [{ id: "anyBarber", label: t("booking.chat.reply.anyBarber"), icon: "users" }] });
-  };
-
-  const askTime = (next: TimeFocus = {}) => {
-    const draft = stateRef.current.draft;
-    if (!draft) return askServices();
-    setFocus(next);
-    const name = barberName(draft.barberId).split(" ")[0];
-    say({ text: name ? t("booking.chat.askTimeWith", { name }) : t("booking.chat.askTimeAny"), widget: "times" });
-  };
-
-  const showCart = (lead: string) =>
-    say({
-      text: lead,
-      widget: "cart",
-      replies: [
-        { id: "pay", label: t("booking.chat.reply.pay"), icon: "lock" },
-        { id: "another", label: t("booking.chat.reply.another"), icon: "userAdd" },
-        ...((catalogRef.current?.products.length ?? 0) > 0 ? [{ id: "products" as const, label: t("booking.chat.reply.products"), icon: "layers" as const }] : []),
-        { id: "note", label: t("booking.chat.reply.note"), icon: "edit" },
-      ],
+    const loaded = await loadCatalog();
+    const prices = (loaded?.barbers ?? []).map((barber) => barber.prices);
+    const entries = (loaded?.services ?? []).map((service) => {
+      const values = prices.map((entry) => entry[service.id]).filter((value): value is number => value !== undefined);
+      const from = values.length > 0 ? Math.min(...values) : service.price;
+      return { label: service.name, value: service.id, description: t("booking.agenda.whatSummary", { minutes: service.durationMin, price: fmt.money(from) }), ...(service.imageUrl ? { image: service.imageUrl } : {}) };
     });
+    ask(makeQuestion("services", t("booking.chat.servicesTitle"), entries, { hint: t("booking.chat.servicesHint"), searchPlaceholder: t("booking.services.search"), multiple: { confirmLabel: t("booking.services.next") } }), text);
+  };
+
+  const askBarber = (text?: string) => {
+    const draft = stateRef.current.draft;
+    if (!draft) return void askServices();
+    const usualId = stateRef.current.customer?.lastVisit?.barberId ?? null;
+    const able = ableBarbers(catalogRef.current?.barbers ?? [], draft.serviceIds, usualId);
+    const entries: QuestionEntry[] = [
+      { label: t("booking.chat.reply.anyBarber"), value: "any", description: t("booking.chat.anyBarberHint"), emoji: "✂️" },
+      ...able.map((barber) => ({
+        label: barber.name,
+        value: barber.id,
+        image: barber.avatarUrl,
+        description: [`★ ${barber.rating.toFixed(1)}`, fmt.money(itemPrice({ serviceIds: draft.serviceIds, barberId: barber.id }, catalogRef.current)), barber.id === usualId ? t("booking.agenda.yourBarber") : barber.level].filter(Boolean).join(" · "),
+      })),
+    ];
+    ask(makeQuestion("barber", t("booking.chat.barberTitle"), entries, able.length > 6 ? { searchPlaceholder: t("booking.chat.barberSearch") } : {}), text ?? t("booking.chat.barberLead", { services: serviceNames(draft.serviceIds) }));
+  };
+
+  /** Lo que se está buscando: la cita en borrador o la que se está moviendo. */
+  const target = () => {
+    const moving = rescheduling.current;
+    if (moving) return { serviceIds: moving.serviceIds, barberId: moving.noPreference ? null : moving.barberId, exclude: moving.id, branchId: moving.branchId };
+    const draft = stateRef.current.draft;
+    return draft && stateRef.current.branchId ? { serviceIds: draft.serviceIds, barberId: draft.barberId, exclude: undefined, branchId: stateRef.current.branchId } : null;
+  };
+
+  const askDay = async (text?: string) => {
+    const goal = target();
+    if (!goal) return void askServices();
+    const branch = shop.branches.find((item) => item.id === goal.branchId);
+    const first = branch ? firstBookableDay(branch.closesAt, shop.minNoticeMinutes) : new Date();
+    const earliest = await busy(() => bookingApi.earliest({ branchId: goal.branchId, serviceIds: goal.serviceIds, barberId: goal.barberId }).catch(() => null));
+    const now = new Date();
+    const today = dayKeyOf(now);
+    const tomorrow = dayKeyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+    const entries: QuestionEntry[] = [];
+    if (earliest?.slot && !rescheduling.current) {
+      entries.push({
+        label: t("booking.chat.soonest", { when: fmt.when(parseStart(`${earliest.slot.date}T${earliest.slot.time}`)) }),
+        value: `slot:${earliest.slot.date}T${earliest.slot.time}`,
+        emoji: "⚡",
+        description: goal.barberId ? undefined : t("booking.earliest.with", { name: firstName(barberName(earliest.slot.barberId)) }),
+      });
+    }
+    for (let index = 0; index < DAYS_OFFERED; index += 1) {
+      const day = new Date(first.getFullYear(), first.getMonth(), first.getDate() + index);
+      const key = dayKeyOf(day);
+      entries.push({ label: capitalize(fmt.dayLong(day)), value: `day:${key}`, description: key === today ? t("booking.earliest.today") : key === tomorrow ? t("booking.chat.tomorrow") : undefined });
+    }
+    const who = goal.barberId ? firstName(barberName(goal.barberId)) : "";
+    ask(makeQuestion("day", t("booking.chat.dayTitle"), entries, { hint: who ? t("booking.chat.dayHintWith", { name: who }) : undefined, otherLabel: t("booking.chat.otherDate"), otherPlaceholder: t("booking.chat.otherDatePlaceholder") }), text);
+  };
+
+  const askTimes = async (date: string, window?: DayWindow, text?: string) => {
+    const goal = target();
+    if (!goal) return void askServices();
+    timesDay.current = date;
+    const params = { branchId: goal.branchId, date, serviceIds: goal.serviceIds, barberId: goal.barberId, exclude: goal.exclude };
+    const availability = await busy(() =>
+      queryClient
+        .fetchQuery({ queryKey: bookingKeys.availability(params.branchId, date, params.serviceIds, params.barberId, params.exclude), queryFn: ({ signal }) => bookingApi.availability(params, signal), staleTime: 30_000 })
+        .catch(() => ({ date, slots: [] }))
+    );
+    const day = fmt.dayLong(parseStart(`${date}T00:00`));
+    const slots = availability.slots;
+    if (slots.length === 0) {
+      const entries: QuestionEntry[] = [{ label: t("booking.chat.otherDay"), value: "otherDay" }];
+      if (goal.barberId && !rescheduling.current) entries.push({ label: t("booking.chat.otherBarber"), value: "otherBarber" });
+      if (!rescheduling.current) entries.push({ label: t("booking.chat.waitlistJoin"), value: "waitlist", description: t("booking.chat.waitlistHint") });
+      return ask(makeQuestion("noTimes", t("booking.chat.noTimesTitle"), entries), [text, t("booking.chat.noTimes", { day })].filter(Boolean).join(" "));
+    }
+    const hourOf = (time: string) => Number(time.slice(0, 2));
+    const inWindow = window ? slots.filter((slot) => (window === "morning" ? hourOf(slot.time) < 12 : window === "afternoon" ? hourOf(slot.time) >= 12 && hourOf(slot.time) < 18 : hourOf(slot.time) >= 18)) : slots;
+    const shown = inWindow.length > 0 ? inWindow : slots;
+    const entries: QuestionEntry[] = [
+      ...shown.map((slot) => ({ label: fmt.clock(slot.time), value: `time:${slot.time}`, description: goal.barberId ? undefined : t("booking.chat.freeBarbers", { count: slot.barberIds.length }) })),
+      { label: t("booking.chat.otherDay"), value: "otherDay" },
+    ];
+    ask(makeQuestion("time", t("booking.chat.timeTitle", { day }), entries, shown.length > 8 ? { searchPlaceholder: t("booking.chat.timeSearch") } : {}), text);
+  };
 
   const heldText = () => {
     const current = stateRef.current;
     const item = current.items.at(-1);
     if (!item?.start) return t("booking.chat.cartLead");
-    const who = item.person.kind === "self" ? "" : ` ${t("booking.chat.forWhom", { name: personName(item.person, current.customer) })}`;
     return t("booking.chat.held", {
       services: serviceNames(item.serviceIds),
       barber: item.barberId ? t("booking.chat.withName", { name: barberName(item.barberId) }) : t("booking.chat.withAny"),
       when: fmt.when(parseStart(item.start)),
-      who,
+      who: item.person.kind === "self" ? "" : ` ${t("booking.chat.forWhom", { name: personName(item.person, current.customer) })}`,
     });
   };
 
-  const commitTime = (start: string, { echo }: { echo: boolean }) => {
-    if (echo) pushUser(fmt.when(parseStart(start)));
-    apply({ type: "chooseTime", start });
-    showCart(heldText());
+  const askMore = (text?: string) => {
+    const entries: QuestionEntry[] = [
+      { label: t("booking.chat.reply.pay"), value: "pay", emoji: "💳" },
+      { label: t("booking.chat.moreAnother"), value: "another", description: t("booking.chat.moreAnotherHint"), emoji: "➕" },
+      ...((catalogRef.current?.products.length ?? 0) > 0 ? [{ label: t("booking.chat.moreProducts"), value: "products", emoji: "🧴" }] : []),
+      { label: t("booking.chat.moreNote"), value: "note", emoji: "📝" },
+      ...(stateRef.current.items.length > 0 ? [{ label: t("booking.chat.moreEdit"), value: "edit", emoji: "✏️" }] : []),
+    ];
+    ask(makeQuestion("more", t("booking.chat.moreTitle"), entries), text);
   };
 
-  /** Lo de una frase del cliente aplicado de una vez: servicios, barbero, día y hora; pregunta lo que falte. */
-  const fulfil = async (parsed: ParsedRequest) => {
-    if (!ensureBranch()) return;
-    ensureDraft();
-    const draft = stateRef.current.draft;
-    if (!draft) return;
-    if (parsed.serviceIds.length > 0) {
-      const target = new Set(parsed.serviceIds);
-      draft.serviceIds.filter((id) => !target.has(id)).forEach((serviceId) => apply({ type: "toggleService", serviceId }));
-      parsed.serviceIds.filter((id) => !draft.serviceIds.includes(id)).forEach((serviceId) => apply({ type: "toggleService", serviceId }));
+  /** Para seguir cuando algo terminó (moviste o cancelaste una cita, no hay citas): reservar o ver tus citas. */
+  const askNext = (text?: string, withManage = true) =>
+    ask(
+      makeQuestion("next", t("booking.chat.nextTitle"), [
+        { label: t("booking.chat.nextBook"), value: "book", emoji: "✂️" },
+        ...(withManage ? [{ label: t("booking.chat.reply.manage"), value: "manage", emoji: "📅" }] : []),
+      ]),
+      text
+    );
+
+  const askEditWhat = (index: number) => {
+    const question = makeQuestion("editWhat", t("booking.chat.editWhatTitle"), [
+      { label: t("booking.chat.editTime"), value: "time", emoji: "🕒" },
+      { label: t("booking.chat.editBarber"), value: "barber", emoji: "💈" },
+      { label: t("booking.chat.editServices"), value: "services", emoji: "✂️" },
+      { label: t("booking.chat.editRemove"), value: "remove", emoji: "🗑️" },
+    ]);
+    ask({ ...question, values: { ...question.values, __index: String(index) } });
+  };
+
+  const commitTime = async (start: string) => {
+    const moving = rescheduling.current;
+    if (!moving) {
+      apply({ type: "chooseTime", start });
+      return askMore(heldText());
     }
+    const token = stateRef.current.token;
+    if (!token) return;
+    try {
+      await busy(() => bookingApi.reschedule(token, moving.id, { start, barberId: moving.noPreference ? null : moving.barberId }));
+      rescheduling.current = null;
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      askNext(t("booking.chat.moved", { when: fmt.when(parseStart(start)) }));
+    } catch (error) {
+      say({ text: describeError(error).description });
+      void askDay();
+    }
+  };
+
+  /** Lo de una frase aplicado de una vez: servicios, barbero, día y hora; pregunta lo que falte. */
+  const fulfil = async (parsed: ParsedRequest) => {
+    if (!stateRef.current.branchId) {
+      presetBranch();
+      if (!stateRef.current.branchId) return askBranch();
+    }
+    ensureDraft();
+    if (parsed.serviceIds.length > 0) setServices(parsed.serviceIds);
     if (parsed.barberId !== undefined) apply({ type: "chooseBarber", barberId: parsed.barberId });
     const ready = stateRef.current.draft;
     if (!ready || ready.serviceIds.length === 0) return askServices(t("booking.chat.whichService"));
-
     if (parsed.time) {
-      const current = stateRef.current;
-      const branch = shop.branches.find((item) => item.id === current.branchId);
-      // Sin día: el que ya se está mirando en la conversación o, si no, el primero que se puede.
-      const date = parsed.date ?? focus.date ?? (branch ? dayKeyOf(firstBookableDay(branch.closesAt, shop.minNoticeMinutes)) : dayKeyOf(new Date()));
-      const params = { branchId: current.branchId as string, date, serviceIds: ready.serviceIds, barberId: ready.barberId };
-      try {
-        const availability = await queryClient.fetchQuery({
-          queryKey: bookingKeys.availability(params.branchId, date, params.serviceIds, params.barberId),
-          queryFn: ({ signal }) => bookingApi.availability(params, signal),
-          staleTime: 30_000,
-        });
-        if (availability.slots.some((slot) => slot.time === parsed.time)) return commitTime(`${date}T${parsed.time}`, { echo: false });
-        say({ text: t("booking.chat.notFree", { when: fmt.when(parseStart(`${date}T${parsed.time}`)) }) });
-        return askTime({ date, window: windowOf(parsed.time) });
-      } catch (error) {
-        say({ text: describeError(error).description });
-        return askTime({ date });
-      }
+      const branch = shop.branches.find((item) => item.id === stateRef.current.branchId);
+      const date = parsed.date ?? timesDay.current ?? (branch ? dayKeyOf(firstBookableDay(branch.closesAt, shop.minNoticeMinutes)) : dayKeyOf(new Date()));
+      const params = { branchId: stateRef.current.branchId as string, date, serviceIds: ready.serviceIds, barberId: ready.barberId };
+      const availability = await busy(() =>
+        queryClient.fetchQuery({ queryKey: bookingKeys.availability(params.branchId, date, params.serviceIds, params.barberId), queryFn: ({ signal }) => bookingApi.availability(params, signal), staleTime: 30_000 }).catch(() => ({ date, slots: [] }))
+      );
+      if (availability.slots.some((slot) => slot.time === parsed.time)) return commitTime(`${date}T${parsed.time}`);
+      return askTimes(date, parsed.window, t("booking.chat.notFree", { when: fmt.when(parseStart(`${date}T${parsed.time}`)) }));
     }
-    if (parsed.date || parsed.window) return askTime({ date: parsed.date, window: parsed.window });
-    if (parsed.barberId !== undefined) return askTime();
+    if (parsed.date) return askTimes(parsed.date, parsed.window);
+    if (parsed.barberId !== undefined) return askDay();
     return askBarber();
   };
 
-  const greetKnown = async () => {
+  const startBooking = (text?: string) => {
+    presetBranch();
+    if (!stateRef.current.branchId) return askBranch();
+    ensureDraft();
+    if ((stateRef.current.customer?.guests.length ?? 0) > 0 && stateRef.current.items.length === 0) return askPerson(text);
+    void askServices(text);
+  };
+
+  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, awaitingCard });
+  const { checkout, manage, askMethod, askConfirm } = pay;
+
+  /* ───────────────────────────── al saludar ───────────────────────────── */
+
+  const greet = async () => {
     const current = stateRef.current;
     const customer = current.customer;
     if (!customer) return;
     presetBranch();
-    say({ text: t("booking.chat.knownHello", { name: customer.firstName }) });
-    if (pendingManage.current) {
-      pendingManage.current = false;
-      return manage();
+    if (customer.isNew) {
+      const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
+      say({ text: offer ? t("booking.chat.niceToMeetOffer", { name: customer.firstName, offer }) : t("booking.chat.niceToMeet", { name: customer.firstName }) });
+      if (pendingManage.current) return manage();
+      return startBooking();
     }
+    const loyalty = customer.loyalty;
+    const reward = loyalty?.rewardName || t("booking.loyalty.rewardFallback");
+    const extra = [
+      customer.upcoming > 0 ? t("booking.chat.upcomingLine", { count: customer.upcoming }) : "",
+      loyalty ? (loyalty.available > 0 ? t("booking.loyalty.ready", { reward }) : t("booking.loyalty.left", { count: loyalty.every - loyalty.progress, reward })) : "",
+      customer.credit > 0 ? t("booking.welcome.credit", { amount: fmt.money(customer.credit) }) : "",
+    ].filter(Boolean);
+    say({ text: [t("booking.chat.knownHello", { name: customer.firstName }), ...extra].join("\n\n") });
+    if (pendingManage.current) return manage();
+    const spoken = userTurns.current;
+    await loadCatalog();
     const next = current.token ? await bookingApi.suggestion(current.token).then((result) => result.suggestion, () => null) : null;
-    setSuggestion(next);
-    const replies: ChatReply[] = [
-      { id: "different", label: t("booking.chat.reply.different"), icon: "plus" },
-      ...(customer.upcoming > 0 ? [{ id: "manage" as const, label: t("booking.chat.reply.upcoming", { count: customer.upcoming }), icon: "calendar" as const }] : []),
-      ...(shop.packages.length > 0 ? [{ id: "packages" as const, label: t("booking.packages.cta"), icon: "ticket" as const }] : []),
-      ...(shop.payment.card ? [{ id: "gift" as const, label: t("booking.gift.cta"), icon: "ticket" as const }] : []),
-    ];
-    if (next) {
-      const service = serviceNames(next.serviceIds);
-      say({ text: t(next.isOverdue ? "booking.chat.dueOverdue" : "booking.chat.due", { service, days: next.everyDays }), widget: "home", replies });
-    } else if (customer.lastVisit) {
-      say({ text: t("booking.chat.repeatAsk", { services: serviceNames(customer.lastVisit.serviceIds) }), widget: "home", replies });
-    } else {
-      askServices();
+    suggestion.current = next;
+    if (userTurns.current !== spoken) return;
+    const entries: QuestionEntry[] = [];
+    next?.options.forEach((option, index) => {
+      entries.push({
+        label: capitalize(fmt.when(parseStart(option.start))),
+        value: `slot:${index}`,
+        image: catalogRef.current?.barbers.find((barber) => barber.id === option.barberId)?.avatarUrl ?? null,
+        description: t("booking.chat.withName", { name: barberName(option.barberId) }),
+      });
+    });
+    if (customer.lastVisit) entries.push({ label: t("booking.chat.sameOtherDay"), value: "repeat", description: serviceNames(customer.lastVisit.serviceIds), emoji: "🔁" });
+    entries.push({ label: t("booking.chat.reply.different"), value: "different", emoji: "✂️" });
+    if (customer.upcoming > 0) entries.push({ label: t("booking.chat.reply.manage"), value: "manage", emoji: "📅" });
+    if (shop.packages.length > 0) entries.push({ label: t("booking.packages.cta"), value: "packages", emoji: "🎟️" });
+    if (shop.payment.card) entries.push({ label: t("booking.gift.cta"), value: "gift", emoji: "🎁" });
+    const lead = next ? t(next.isOverdue ? "booking.chat.dueOverdue" : "booking.chat.due", { service: serviceNames(next.serviceIds), days: next.everyDays }) : undefined;
+    ask(makeQuestion("home", next ? t("booking.chat.homeTitleDue") : t("booking.chat.homeTitle"), entries), lead);
+  };
+
+  /* ───────────────────────────── respuestas ───────────────────────────── */
+
+  const onHome = (value: string | null) => {
+    const current = stateRef.current;
+    if (value?.startsWith("slot:")) {
+      const option = suggestion.current?.options[Number(value.slice(5))];
+      if (!option || !suggestion.current) return;
+      apply({ type: "acceptSuggestion", branchId: suggestion.current.branchId, serviceIds: suggestion.current.serviceIds, barberId: option.barberId, start: option.start });
+      return askMore(heldText());
+    }
+    if (value === "repeat" && current.customer?.lastVisit) {
+      apply({ type: "repeatLastVisit", lastVisit: current.customer.lastVisit });
+      return void askDay();
+    }
+    if (value === "manage") return void manage();
+    if (value === "gift" || value === "packages") return apply({ type: "goTo", step: value });
+    startBooking();
+  };
+
+  const onPerson = (value: string | null, label: string, isOther: boolean) => {
+    if (isOther) {
+      pendingName.current = capitalize(label.trim());
+      return ask(makeQuestion("relation", t("booking.chat.relationTitle", { name: pendingName.current }), RELATIONS.map((key) => ({ label: t(key), value: t(key) }))));
+    }
+    const guest = value?.startsWith("guest:") ? stateRef.current.customer?.guests.find((item) => item.id === value.slice(6)) : undefined;
+    const [newName = "", newRelation = ""] = value?.startsWith("new:") ? value.slice(4).split("|") : [];
+    const person: BookingPerson = guest ? { kind: "guest", guestId: guest.id, name: guest.name, relation: guest.relation } : newName ? { kind: "new", name: newName, relation: newRelation } : { kind: "self" };
+    ensureDraft(person);
+    apply({ type: "setPerson", person });
+    void askServices();
+  };
+
+  const onMore = (value: string | null) => {
+    const current = stateRef.current;
+    if (value === "pay") return checkout();
+    if (value === "another") {
+      apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
+      return askPerson(t("booking.chat.anotherAsk"));
+    }
+    if (value === "products") {
+      const products = catalogRef.current?.products ?? [];
+      return ask(
+        makeQuestion(
+          "products",
+          t("booking.chat.productsTitle"),
+          products.map((product) => ({ label: product.name, value: product.id, description: `${fmt.money(product.price)}${product.category ? ` · ${product.category}` : ""}`, ...(product.imageUrl ? { image: product.imageUrl } : {}) })),
+          { hint: t("booking.chat.productsHint"), searchPlaceholder: t("booking.chat.productsSearch"), multiple: { confirmLabel: t("booking.chat.productsAdd") } }
+        )
+      );
+    }
+    if (value === "note") {
+      expect("note");
+      return say({ text: t("booking.chat.askNote") });
+    }
+    if (current.items.length === 1) return askEditWhat(0);
+    ask(
+      makeQuestion(
+        "editPick",
+        t("booking.chat.editPickTitle"),
+        current.items.map((item, index) => ({ label: `${serviceNames(item.serviceIds)} — ${item.start ? fmt.when(parseStart(item.start)) : ""}`, value: String(index), description: personName(item.person, current.customer) }))
+      )
+    );
+  };
+
+  const handle = async (question: BookingQuestion, label: string, isOther: boolean) => {
+    const value = isOther ? null : (question.values[label] ?? null);
+    if (await pay.answerCheckout(question, value, label, isOther)) return;
+    const current = stateRef.current;
+    switch (question.kind) {
+      case "next":
+        if (value === "manage") return manage();
+        return stateRef.current.customer ? startBooking() : askPhone();
+      case "blocked":
+        if (value === "call") window.location.href = `tel:${shop.phone}`;
+        apply({ type: "signOut" });
+        return askPhone();
+      case "consent":
+        return createProfile(value === "yes");
+      case "home":
+        return onHome(value);
+      case "branch":
+        if (value) apply({ type: "chooseBranch", branchId: value });
+        return startBooking();
+      case "person":
+        return onPerson(value, label, isOther);
+      case "relation":
+        ensureDraft();
+        apply({ type: "setPerson", person: { kind: "new", name: pendingName.current, relation: label } });
+        return askServices();
+      case "services":
+        ensureDraft();
+        setServices(splitMultipleAnswer(label).map((part) => question.values[part]).filter((id): id is string => Boolean(id)));
+        return askBarber();
+      case "barber":
+        apply({ type: "chooseBarber", barberId: value === "any" ? null : value });
+        return askDay();
+      case "day": {
+        if (value?.startsWith("slot:")) return commitTime(value.slice(5));
+        if (value?.startsWith("day:")) return askTimes(value.slice(4));
+        const parsed = parseBookingText(label, { services: [], barbers: [], now: new Date() });
+        if (parsed.date) return askTimes(parsed.date, parsed.window);
+        say({ text: t("booking.chat.badDate") });
+        return askDay();
+      }
+      case "time":
+        if (value?.startsWith("time:") && timesDay.current) return commitTime(`${timesDay.current}T${value.slice(5)}`);
+        return askDay();
+      case "noTimes":
+        if (value === "otherBarber") return askBarber();
+        if (value === "waitlist") return ask(makeQuestion("waitlist", t("booking.chat.waitlistTitle"), (["morning", "afternoon", "evening", "any"] as const).map((window) => ({ label: t(`booking.waitlist.${window}`), value: window }))));
+        return askDay();
+      case "waitlist": {
+        const draft = current.draft;
+        const day = timesDay.current;
+        if (!current.token || !current.branchId || !draft || !day || !value) return;
+        try {
+          await busy(() => bookingApi.joinWaitlist(current.token as string, { branchId: current.branchId as string, date: day, serviceIds: draft.serviceIds, barberId: draft.barberId, window: value as DayWindow | "any" }));
+          say({ text: t("booking.chat.waitlistDone", { day: fmt.dayLong(parseStart(`${day}T00:00`)) }) });
+        } catch (error) {
+          say({ text: describeError(error).description });
+        }
+        return askDay(t("booking.chat.meanwhile"));
+      }
+      case "more":
+        return onMore(value);
+      case "editPick":
+        return askEditWhat(Number(value));
+      case "editWhat": {
+        const index = Number(question.values.__index ?? "0");
+        if (value === "remove") {
+          apply({ type: "removeItem", index });
+          return stateRef.current.items.length === 0 ? startBooking(t("booking.chat.removedAll")) : askMore(t("booking.chat.removed"));
+        }
+        apply({ type: "editItem", index });
+        if (value === "services") return askServices(t("booking.chat.editing"));
+        if (value === "barber") return askBarber();
+        return askDay();
+      }
+      case "products": {
+        const names = splitMultipleAnswer(label);
+        names.forEach((name) => {
+          const id = question.values[name];
+          if (id) apply({ type: "setProduct", productId: id, qty: Math.max(1, stateRef.current.products[id] ?? 0) });
+        });
+        return askMore(t("booking.chat.productsAdded", { items: names.join(", ") }));
+      }
     }
   };
 
-  const welcomeNew = () => {
-    presetBranch();
-    const customer = stateRef.current.customer;
-    const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
-    say({ text: offer ? t("booking.chat.niceToMeetOffer", { name: customer?.firstName ?? "", offer }) : t("booking.chat.niceToMeet", { name: customer?.firstName ?? "" }) });
-    if (pendingManage.current) {
-      pendingManage.current = false;
-      return manage();
-    }
-    askServices();
-  };
-
-  const manage = () => {
-    if (!stateRef.current.token || !stateRef.current.customer) {
-      pendingManage.current = true;
-      return askPhone(t("booking.chat.manageNeedsPhone"));
-    }
-    say({ text: t("booking.chat.manageIntro"), widget: "manage", replies: [{ id: "book", label: t("booking.chat.reply.book"), icon: "plus" }] });
+  /** Se respondió la pregunta abierta: tocando una opción (`echo`: su texto como mensaje) o escribiéndola. */
+  const answer = (turnId: string, label: string, { echo = true, isOther }: { echo?: boolean; isOther?: boolean } = {}) => {
+    const turn = turnsRef.current.find((item) => item.id === turnId);
+    const question = turn?.question;
+    if (!question || question.answer !== undefined) return;
+    setTurns((current) => current.map((item) => (item.id === turnId && item.question ? { ...item, question: { ...item.question, answer: label } } : item)));
+    if (echo) pushUser(label);
+    void handle(question, label, isOther ?? !isKnownAnswer(question, label));
   };
 
   const info = () => {
-    const lines = shop.branches.map((branch) => `**${branch.name}** · ${branch.address}, ${branch.city} · ${t("booking.chat.todayHours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}`);
-    say({ text: [t("booking.chat.infoLead"), ...lines.map((line) => `- ${line}`)].join("\n"), replies: [{ id: "book", label: t("booking.chat.reply.book"), icon: "calendar" }, { id: "call", label: t("booking.chat.reply.call"), icon: "phone" }] });
+    const text = [t("booking.chat.infoLead"), ...shop.branches.map((branch) => `- **${branch.name}** · ${branch.address}, ${branch.city} · ${t("booking.chat.todayHours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}`)].join("\n");
+    // Sin saber quién es, la conversación sigue esperando el celular; con cliente, ofrece seguir.
+    if (stateRef.current.customer) askNext(text);
+    else say({ text });
   };
 
-  const call = () => say({ text: t("booking.chat.callText", { phone: formatPhone(shop.phone) }), widget: "call" });
+  const call = () => say({ text: t("booking.chat.callText", { phone: formatPhone(shop.phone), href: `tel:${shop.phone}` }) });
 
-  const checkout = () => {
-    if (stateRef.current.items.length === 0) return askServices(t("booking.chat.nothingYet"));
-    apply({ type: "goTo", step: "payment" });
-    say({ text: t("booking.chat.payIntro"), widget: "payment" });
-  };
-
-  const another = () => {
-    apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
-    say({ text: t("booking.chat.anotherAsk"), widget: "services" });
-  };
+  const greetAtStart = React.useCallback(
+    () =>
+      say(
+        { text: t("booking.chat.hello", { shop: shop.name }) },
+        { text: t("booking.chat.askPhone") }
+      ),
+    [say, shop.name, t]
+  );
 
   const restart = () => {
     apply({ type: "restart" });
+    expect("phone");
     pendingManage.current = false;
     seenCustomer.current = null;
+    rescheduling.current = null;
     setTurns([]);
-    say({ text: t("booking.chat.hello", { shop: shop.name }) });
-    askPhone(t("booking.chat.askPhone"));
+    greetAtStart();
+  };
+
+  /** Los botones de la cabecera: «Mis citas» y empezar de nuevo. */
+  const reply = (id: ChatReplyId, label: string) => {
+    pushUser(label);
+    if (id === "restart") return restart();
+    void manage();
+  };
+
+  const interpret = async (text: string) => {
+    const loaded = await loadCatalog();
+    const parsed = parseBookingText(text, { services: loaded?.services ?? [], barbers: loaded?.barbers ?? [], now: new Date() });
+    if (parsed.intent === "manage") return manage();
+    if (parsed.intent === "pay") return checkout();
+    if (parsed.intent === "help") return say({ text: t("booking.chat.help") });
+    if (parsed.serviceIds.length > 0 || parsed.barberId !== undefined || parsed.date || parsed.time || parsed.window) return fulfil(parsed);
+    if (parsed.intent === "another") {
+      apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
+      return askPerson(t("booking.chat.anotherAsk"));
+    }
+    say({ text: t("booking.chat.fallback") });
+  };
+
+  /** Lo que se escribe en la caja: según lo que se esté esperando, la pregunta abierta o una frase para entender. */
+  const send = (text: string) => {
+    const waiting = expecting.current;
+    const secret = waiting === "code" || waiting === "cvc";
+    // Un número o un trozo de una opción de la pregunta abierta: el mensaje queda con el texto de la opción.
+    const open = waiting ? undefined : activeQuestionTurn(turnsRef.current);
+    const option = open?.question && !open.question.multiple && stateRef.current.customer ? matchOption(open.question, text) : null;
+    if (open && option) return answer(open.id, option, { echo: true, isOther: false });
+    pushUser(secret ? "•".repeat(Math.min(6, text.replace(/\s/g, "").length)) : text);
+    const quick = parseBookingText(text, { services: [], barbers: [], now: new Date() }).intent;
+    if (!secret && quick === "restart") return restart();
+    if (!secret && quick === "info") return info();
+    if (!secret && quick === "call") return call();
+    if (waiting === "phone" && quick === "manage") {
+      pendingManage.current = true;
+      return say({ text: t("booking.chat.manageNeedsPhone") });
+    }
+    if (waiting === "phone") return void submitPhone(text);
+    if (waiting === "code" && /reenvi|resend|otro codigo|no (me )?(ha )?llega/.test(plain(text))) return void submitPhone(stateRef.current.phone.replace(/^\+(57)?/, ""));
+    if (waiting === "code" && /cambiar (el |mi )?numero|change number|otro numero|numero (esta )?mal|me equivoque/.test(plain(text))) {
+      apply({ type: "signOut" });
+      return askPhone();
+    }
+    if (waiting === "code") return void submitCode(text);
+    if (awaitingCard.current && /tarjeta|formulario|card/.test(plain(text))) {
+      payment.current?.setSheet({ open: true, prefill: false });
+      return;
+    }
+    if (waiting === "firstName" || waiting === "lastName" || waiting === "email") return submitProfileText(text);
+    if (waiting === "note") {
+      expect(null);
+      apply({ type: "setNotes", notes: [stateRef.current.notes, text.trim()].filter(Boolean).join("\n") });
+      return askMore(t("booking.chat.noted"));
+    }
+    if (waiting === "cvc") {
+      const card = stateRef.current.customer?.cards.find((item) => item.id === payment.current?.cardChoice);
+      const cvc = text.replace(/\D/g, "");
+      if (!card || !isCvcComplete(cvc, brandFromName(card.brand))) return say({ text: t("booking.chat.badCvc") });
+      expect(null);
+      payment.current?.setSavedCvc(cvc);
+      return askConfirm();
+    }
+    if (!stateRef.current.customer) return askPhone(t("booking.chat.needPhone"));
+    if (open?.question && !open.question.multiple && open.question.otherPlaceholder) return answer(open.id, text.trim(), { echo: false, isOther: true });
+    void interpret(text);
+  };
+
+  /** La pasarela respondió con un error o se agregó una tarjeta nueva en su hoja. */
+  const onPaymentEvent = (event: PaymentEvent) => {
+    awaitingCard.current = false;
+    if (event.kind === "failed") return askMethod(event.message);
+    say({ text: t("booking.chat.cardAdded", { last4: event.last4 }) });
+    askConfirm();
   };
 
   /* ───────────────────────────── lo que reacciona ───────────────────────────── */
 
-  // Al abrir: el saludo y el celular (como en WhatsApp, primero se sabe quién escribe).
+  React.useLayoutEffect(() => {
+    stateRef.current = state;
+    catalogRef.current = catalog;
+    totalsRef.current = totals;
+    turnsRef.current = turns;
+    handlers.current = { greet: () => void greet(), reserved: pay.reserved };
+  });
+
+  // Al abrir: el saludo y quién eres (como en WhatsApp, primero se sabe quién escribe).
   React.useEffect(() => {
     if (started.current) return;
     started.current = true;
-    say({ text: t("booking.chat.hello", { shop: shop.name }) });
-    askPhone(t("booking.chat.askPhone"));
-  }, [askPhone, say, shop.name, t]);
-
-  // Lo que hacen los efectos, siempre en su versión de este render (sin volver a dispararlos).
-  const onEvents = React.useRef<EventHandlers | null>(null);
+    greetAtStart();
+  }, [greetAtStart]);
 
   // Cuando ya se sabe quién es (por el código o al crear su perfil), se le saluda por su nombre.
   const customerId = state.customer?.id ?? null;
   React.useEffect(() => {
     if (!customerId || seenCustomer.current === customerId) return;
     seenCustomer.current = customerId;
-    if (stateRef.current.customer?.isNew) onEvents.current?.welcomeNew();
-    else void onEvents.current?.greetKnown();
+    handlers.current?.greet();
   }, [customerId]);
 
-  // La reserva hecha (desde la tarjeta de pago): el recibo en la conversación.
-  const receipt = (number: string) =>
-    say({
-      text: t("booking.chat.done", { name: stateRef.current.customer?.firstName ?? "", number }),
-      widget: "receipt",
-      replies: [
-        { id: "again", label: t("booking.chat.reply.again"), icon: "plus" },
-        { id: "manage", label: t("booking.chat.reply.manage"), icon: "calendar" },
-        ...(onFinish ? [{ id: "finish" as const, label: t("booking.confirmed.done"), icon: "check" as const }] : []),
-      ],
-    });
-  // Lo último de cada render, para los efectos y los manejadores (se escribe tras pintar, no durante).
-  React.useLayoutEffect(() => {
-    stateRef.current = state;
-    catalogRef.current = catalog;
-    turnsRef.current = turns;
-    onEvents.current = { greetKnown, welcomeNew, receipt };
-  });
+  // La reserva hecha: el recibo en la conversación.
   const reservationId = state.reservation?.id ?? null;
-  const seenReservation = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!reservationId || seenReservation.current === reservationId) return;
     seenReservation.current = reservationId;
-    onEvents.current?.receipt(stateRef.current.reservation?.number ?? "");
+    handlers.current?.reserved();
   }, [reservationId]);
 
-  /* ───────────────────────────── entradas ───────────────────────────── */
-
-  const reply = (id: ChatReplyId, label: string) => {
-    pushUser(label);
-    switch (id) {
-      case "manage":
-        return manage();
-      case "info":
-        return info();
-      case "call":
-        return call();
-      case "book":
-        return stateRef.current.customer ? askServices() : askPhone(t("booking.chat.askPhone"));
-      case "different":
-        return askServices();
-      case "pay":
-        return checkout();
-      case "another":
-        return another();
-      case "products":
-        return say({ text: t("booking.chat.productsIntro"), widget: "products" });
-      case "note":
-        return say({ text: t("booking.chat.noteAsk"), widget: "note" });
-      case "cart":
-        return showCart(t("booking.chat.cartLead"));
-      case "again":
-        apply({ type: "bookAgain" });
-        return askServices();
-      case "finish":
-        return onFinish?.();
-      case "restart":
-        return restart();
-      case "gift":
-      case "packages":
-        return apply({ type: "goTo", step: id });
-      case "anyBarber":
-        apply({ type: "chooseBarber", barberId: null });
-        return askTime();
-    }
+  const placeholderKey: Record<NonNullable<Expecting>, AppMessageKey> = {
+    phone: "booking.chat.placeholderPhone",
+    code: "booking.chat.placeholderCode",
+    cvc: "booking.chat.placeholderCvc",
+    email: "booking.chat.placeholderEmail",
+    firstName: "booking.chat.placeholderName",
+    lastName: "booking.chat.placeholderName",
+    note: "booking.chat.placeholderNote",
   };
-
-  const send = (text: string) => {
-    const current = stateRef.current;
-    const stage = activeWidget();
-    // Un celular escrito en el chat: se repite ya con formato, como lo verá la barbería.
-    const typedPhone = !current.customer && stage !== "code" && stage !== "profile" ? phoneFromText(text) : null;
-    if (typedPhone) return void submitPhone(typedPhone);
-    pushUser(text);
-    void interpret(text, stage);
-  };
-
-  const interpret = async (text: string, stage: ChatWidget | undefined) => {
-    const current = stateRef.current;
-    const loaded = current.customer ? await loadCatalog() : catalogRef.current;
-    const parsed = parseBookingText(text, { services: loaded?.services ?? [], barbers: loaded?.barbers ?? [], now: new Date() });
-
-    if (parsed.intent === "restart") return restart();
-    if (parsed.intent === "info") return info();
-    if (parsed.intent === "call") return call();
-
-    // Antes de saber quién es: el celular y el código.
-    if (!current.customer) {
-      if (stage === "code") {
-        const code = codeFromText(text);
-        return code ? void submitCode(code) : say({ text: t("booking.chat.needCode"), widget: "code" });
-      }
-      if (stage === "profile") return say({ text: t("booking.chat.fillProfile"), widget: "profile" });
-      if (stage === "blocked") return call();
-      if (parsed.intent === "manage") pendingManage.current = true;
-      return askPhone(parsed.intent === "manage" ? t("booking.chat.manageNeedsPhone") : t("booking.chat.needPhone"));
-    }
-
-    if (stage === "payment") {
-      const method = /barberia|local|efectivo|alla|shop|cash/.test(plainText(text)) ? "shop" : /billetera|apple|google|wallet/.test(plainText(text)) ? "wallet" : /tarjeta|card/.test(plainText(text)) ? "card" : null;
-      if (method) {
-        apply({ type: "setMethod", method });
-        const label = { shop: t("booking.payment.shop"), wallet: t("booking.payment.wallet"), card: t("booking.payment.card") }[method];
-        return say({ text: t("booking.chat.methodSet", { method: label.toLowerCase() }), widget: "payment" });
-      }
-    }
-    if (stage === "note") {
-      apply({ type: "setNotes", notes: [current.notes, text].filter(Boolean).join("\n") });
-      return showCart(t("booking.chat.noted"));
-    }
-    switch (parsed.intent) {
-      case "manage":
-        return manage();
-      case "products":
-        return say({ text: t("booking.chat.productsIntro"), widget: "products" });
-      case "note":
-        return say({ text: t("booking.chat.noteAsk"), widget: "note" });
-      case "pay":
-        return checkout();
-      case "another":
-        return another();
-      case "help":
-        return say({ text: t("booking.chat.help") });
-      default:
-        break;
-    }
-    const hasRequest = parsed.serviceIds.length > 0 || parsed.barberId !== undefined || parsed.date !== undefined || parsed.time !== undefined || parsed.window !== undefined;
-    if (hasRequest) return void fulfil(parsed);
-    if (parsed.intent === "yes") {
-      if (stage === "home" && suggestion?.options[0]) {
-        const option = suggestion.options[0];
-        apply({ type: "acceptSuggestion", branchId: suggestion.branchId, serviceIds: suggestion.serviceIds, barberId: option.barberId, start: option.start });
-        return showCart(heldText());
-      }
-      if (stage === "home" && current.customer.lastVisit) {
-        apply({ type: "repeatLastVisit", lastVisit: current.customer.lastVisit });
-        return askTime();
-      }
-      if (stage === "cart") return another();
-    }
-    if (parsed.intent === "no") {
-      if (stage === "cart") return checkout();
-      if (stage === "home") return askServices();
-    }
-    return say({ text: t("booking.chat.fallback"), widget: stage && !["receipt", "payment"].includes(stage) ? stage : undefined });
-  };
-
-  /* ───────────────────────────── desde las tarjetas ───────────────────────────── */
-
-  const actions = {
-    submitPhone: (phone: string) => void submitPhone(phone),
-    submitCode: (code: string) => void submitCode(code),
-    resendCode: async () => {
-      try {
-        const sent = await bookingApi.requestOtp(stateRef.current.phone);
-        apply({ type: "codeSent", phone: stateRef.current.phone, sentTo: sent.sentTo, channel: sent.channel });
-        say({ text: t("booking.chat.codeAgain", { phone: sent.sentTo }), widget: "code" });
-      } catch (error) {
-        say({ text: describeError(error).description, widget: "code" });
-      }
-    },
-    changePhone: () => {
-      seenCustomer.current = null;
-      apply({ type: "signOut" });
-      askPhone(t("booking.chat.askPhone"));
-    },
-    chooseBranch: (branchId: string) => {
-      pushUser(shop.branches.find((branch) => branch.id === branchId)?.name ?? branchId);
-      apply({ type: "chooseBranch", branchId });
-      ensureDraft();
-      say({ text: t("booking.chat.askServices"), widget: "services" });
-    },
-    servicesDone: () => {
-      const draft = stateRef.current.draft;
-      if (!draft || draft.serviceIds.length === 0) return;
-      const who = draft.person.kind === "self" ? "" : ` · ${personName(draft.person, stateRef.current.customer)}`;
-      pushUser(`${serviceNames(draft.serviceIds)}${who}`);
-      askBarber();
-    },
-    chooseBarber: (barberId: string | null) => {
-      pushUser(barberId ? t("booking.chat.withName", { name: barberName(barberId) }) : t("booking.chat.reply.anyBarber"));
-      apply({ type: "chooseBarber", barberId });
-      askTime();
-    },
-    chooseTime: (start: string) => commitTime(start, { echo: true }),
-    acceptSuggestion: (option: VisitSuggestion["options"][number]) => {
-      if (!suggestion) return;
-      pushUser(fmt.when(parseStart(option.start)));
-      apply({ type: "acceptSuggestion", branchId: suggestion.branchId, serviceIds: suggestion.serviceIds, barberId: option.barberId, start: option.start });
-      showCart(heldText());
-    },
-    repeatLast: () => {
-      const last = stateRef.current.customer?.lastVisit;
-      if (!last) return;
-      pushUser(t("booking.chat.reply.same"));
-      apply({ type: "repeatLastVisit", lastVisit: last });
-      askTime();
-    },
-    editItem: () => {
-      say({ text: t("booking.chat.editing"), widget: "services" });
-    },
-    productsDone: () => showCart(t("booking.chat.productsDone")),
-    noteDone: () => showCart(t("booking.chat.noted")),
+  const open = activeQuestionTurn(turns);
+  return {
+    turns,
+    typing,
+    send,
+    answer,
     reply,
+    onPaymentEvent,
+    activeTurnId: open?.id ?? null,
+    placeholder: t(expectingNow ? placeholderKey[expectingNow] : "booking.chat.placeholder"),
   };
-
-  const draftMinutes = itemDuration(state.draft?.serviceIds ?? [], catalog);
-  return { turns, typing, focus, suggestion, send, actions, stage: widgetOf(turns), draftMinutes };
 }
 
 export type ChatEngine = ReturnType<typeof useChatBooking>;
-
-const ChatEngineContext = React.createContext<ChatEngine | null>(null);
-export const ChatEngineProvider = ChatEngineContext.Provider;
-
-export function useChatEngine(): ChatEngine {
-  const value = React.useContext(ChatEngineContext);
-  if (!value) throw new Error("useChatEngine va dentro de <ChatFlow>.");
-  return value;
-}

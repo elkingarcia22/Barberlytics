@@ -1,5 +1,5 @@
 {
-  "sourceHash": "21281d852c7e74d1",
+  "sourceHash": "1adb6adaa9811c36",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -1982,6 +1982,80 @@
       ],
       "docs": "/docs#/components/chat-panel",
       "ficha": "ai-tools/components/chat-panel.md"
+    },
+    {
+      "id": "chat-question-card",
+      "name": "ChatQuestionCard",
+      "group": "ai",
+      "description": "Una pregunta del agente con opciones numeradas: se contesta tocando, con la tecla del número o escribiendo en «Otro». Con título es una tarjeta completa: la pregunta y su ayuda arriba con la flecha para plegarla, buscador para listas largas, cada opción con descripción y bandera o foto, y varias a la vez con un botón para confirmar. Respondida, se pliega y deja lo elegido.",
+      "import": "import { ChatQuestionCard } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatQuestionCard.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "pregunta",
+        "opciones",
+        "lista"
+      ],
+      "props": [
+        {
+          "name": "question",
+          "type": "ChatQuestion",
+          "default": null,
+          "description": "Las opciones y, opcionales: title, hint, details (descripción, emoji o image por opción), searchPlaceholder, multiple { confirmLabel }, otherLabel, otherPlaceholder y answer."
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": null,
+          "description": "Se puede responder: es la última pregunta de la conversación."
+        },
+        {
+          "name": "onAnswer",
+          "type": "(option: string) => void",
+          "default": null,
+          "description": "La opción elegida; con multiple, las elegidas unidas por « · » (CHAT_MULTIPLE_SEPARATOR)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsala para cada elección dentro de una conversación: es más chat que meter un formulario en el hilo.",
+          "Pon buscador cuando la lista pase de unas ocho opciones.",
+          "Lo que se escribe (un teléfono, un código, un nombre) va en la caja del chat, no en la tarjeta."
+        ],
+        "dont": [
+          "No metas formularios dentro de la tarjeta: para datos sensibles (una tarjeta de pago) abre una hoja aparte.",
+          "No repitas la pregunta en un mensaje y en el título: el título ya es la pregunta."
+        ]
+      },
+      "related": [
+        "chat-thread",
+        "chat-composer",
+        "chip"
+      ],
+      "examples": [
+        {
+          "id": "rich",
+          "title": "Lista con buscador y descripción",
+          "description": "La pregunta como título, el buscador y cada opción con su bandera o su descripción. Escribe en el buscador o pulsa un número.",
+          "code": "<ChatQuestionCard\n  active\n  onAnswer={setAnswer}\n  question={{\n    title: \"¿En qué país quieres buscar prospectos?\",\n    options: [\"Colombia\", \"México\", \"Chile\", \"Argentina\", \"Brasil\", \"Perú\", \"Uruguay\"],\n    details: { Colombia: { emoji: \"🇨🇴\" }, México: { emoji: \"🇲🇽\" } },\n    searchPlaceholder: \"Buscar país\",\n  }}\n/>"
+        },
+        {
+          "id": "multiple",
+          "title": "Varias a la vez y «Otro»",
+          "description": "Se marcan varias y se confirman con el botón; «Otro» deja escribir la respuesta.",
+          "code": "<ChatQuestionCard question={{ title: \"¿Qué te vas a hacer?\", hint: \"Puedes elegir varios.\", options, details, multiple: { confirmLabel: \"Continuar\" } }} active onAnswer={setAnswer} />"
+        },
+        {
+          "id": "simple",
+          "title": "Sin título (en una respuesta del hilo)",
+          "description": "La forma corta que usa el chat de ayuda: solo las opciones numeradas y «Otro».",
+          "code": "<ChatQuestionCard question={{ options: [\"Una\", \"Dos\", \"Tres\"], otherPlaceholder: \"Escribe cuántos\" }} active onAnswer={setAnswer} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-question-card",
+      "ficha": "ai-tools/components/chat-question-card.md"
     },
     {
       "id": "chat-screen",

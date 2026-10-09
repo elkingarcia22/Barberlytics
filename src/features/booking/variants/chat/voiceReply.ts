@@ -1,5 +1,6 @@
 import type { ChatReply } from "@/lib/chat";
 import type { ChatTurn } from "./chatKit";
+import { numberWordsToDigits } from "./spokenNumbers";
 
 /** Cuántas opciones se dicen en voz alta; con más, se dicen las primeras y se remite a la lista. */
 const SPOKEN_OPTIONS = 4;
@@ -113,11 +114,13 @@ const SPOKEN_ORDINALS: Record<string, { pattern: RegExp; words: readonly RegExp[
 };
 
 /**
- * Lo dicho como lo entiende el chat escrito: un ordinal («la primera») se vuelve el número de la
- * opción, y un correo dictado («carlos arroba correo punto com») se
+ * Lo dicho como lo entiende el chat escrito: los números dichos con palabras se vuelven cifras, un
+ * ordinal («la primera») el número de la opción, y un correo dictado («carlos arroba correo punto com») se
  * vuelve una dirección. Lo demás pasa tal cual.
  */
-export function fromVoice(text: string, locale: string): string {
+export function fromVoice(said: string, locale: string): string {
+  // Celulares, códigos y horas dichos con palabras o en grupos («trescientos ciento veintitrés…»), a cifras.
+  const text = numberWordsToDigits(said, locale.slice(0, 2) === "en" ? "en" : "es");
   const ordinals = SPOKEN_ORDINALS[locale.slice(0, 2)];
   const word = ordinals?.pattern.exec(text.trim())?.[1];
   const place = word ? ordinals.words.findIndex((ordinal) => ordinal.test(word)) : -1;

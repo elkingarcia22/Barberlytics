@@ -387,6 +387,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `matchOptionLoosely`, `orderLine` · usa: @/lib/chat
 - **chatReceipt.ts** — Lo que se va armando: a dónde va el recibo y qué falta que escriba. · `ReceiptPlan`, `ReceiptStep`, `isReceiptStep`, `ReceiptKit`, `createChatReceipt` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
+- **spokenNumbers.ts** — Cambia por cifras los celulares, códigos y horas dichos con palabras; lo demás queda igual. · `numberWordsToDigits`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **useVoiceBridge.ts** — De qué experiencia llega la voz: Paso a paso pide quién eres; el resto, qué quieres hacer. · `VoiceOrigin`, `useVoiceBridge` · usa: @/app/i18n, @/i18n, @/lib/chat
 - **voiceReply.ts** — El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número», y las fech… · `VoiceReplyLabels`, `forVoice`, `fromVoice`, `matchSpokenOption`, `voiceReplyFromTurns` · usa: @/lib/chat

@@ -62,6 +62,11 @@ describe("fromVoice", () => {
     expect(fromVoice("the second one", "en-US")).toBe("2");
   });
 
+  test("a phone or code said in words or groups arrives as digits", () => {
+    expect(fromVoice("trescientos ciento veintitrés cuarenta y cinco sesenta y siete", "es-CO")).toBe("3001234567");
+    expect(fromVoice("24 68 10", "es-CO")).toBe("246810");
+  });
+
   test("leaves anything else as it was said", () => {
     expect(fromVoice("corte mañana a las 2 con Andrés", "es-CO")).toBe("corte mañana a las 2 con Andrés");
   });

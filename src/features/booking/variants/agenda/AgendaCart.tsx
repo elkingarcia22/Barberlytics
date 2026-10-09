@@ -1,5 +1,5 @@
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "../../flow/bookingToast";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -712,7 +712,10 @@ describe("pantalla de la reserva", () => {
     await typeCode(user);
     expect(await screen.findByText("Conozcámonos")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /crear perfil/i }));
-    expect(screen.getByText("Escribe tu nombre.")).toBeInTheDocument();
+    // El error queda junto a su campo (que se marca inválido) y el toast, dentro de la reserva, dice cuántos faltan.
+    expect(screen.getByRole("textbox", { name: /^nombre/i })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getAllByText("Escribe tu nombre.").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Revisa el correo.")).toBeInTheDocument();
+    expect(await screen.findByText("Te faltan 3 datos por completar.")).toBeInTheDocument();
   });
 });

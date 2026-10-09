@@ -11,7 +11,7 @@ import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
 import { AsideSlotProvider } from "./flow/asideSlot";
 import { HIDE_SCROLLBAR } from "./flow/drawerFit";
-import { SwitchToChatProvider } from "./flow/versionSwitch";
+import { requestVoiceOnArrival, SwitchToChatProvider } from "./flow/versionSwitch";
 import { BarberStep } from "./steps/BarberStep";
 import { BlockedStep } from "./steps/BlockedStep";
 import { BranchStep } from "./steps/BranchStep";
@@ -182,7 +182,12 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
   // Desde Paso a paso y la Agenda con selector se puede pasar a la Conversación sin salir.
   const [switched, setSwitched] = React.useState<BookingVersion | null>(null);
   const active = switched ?? version;
-  const switchToChat = React.useCallback(() => (onVersionChange ? onVersionChange("chat") : setSwitched("chat")), [onVersionChange]);
+  const switchToChat = React.useCallback(() => {
+    // Llega a Clipper hablando, con el saludo de la experiencia de la que viene (ver `ChatFlow`).
+    requestVoiceOnArrival(active);
+    if (onVersionChange) onVersionChange("chat");
+    else setSwitched("chat");
+  }, [onVersionChange, active]);
 
   if (engine.shopQuery.isError) {
     return (

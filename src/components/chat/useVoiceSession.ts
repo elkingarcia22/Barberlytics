@@ -14,6 +14,11 @@ export interface VoiceSessionOptions {
    * vuelve a escuchar solo, como una llamada. Sin esto, la respuesta se queda escrita y en pausa.
    */
   conversation?: boolean;
+  /**
+   * Lo primero que dice el asistente al abrir (el saludo), antes de escuchar: así no se oye a sí
+   * mismo y la conversación empieza como una llamada. Solo en conversación.
+   */
+  opening?: () => Promise<ChatReply>;
 }
 
 const DEFAULT_SILENCE_MS = 1600;
@@ -23,9 +28,9 @@ const DEFAULT_SILENCE_MS = 1600;
  * la respuesta y la deja lista para leer. Si el navegador no puede escuchar
  * lo dice, y el modo voz enseña lo mismo con el teclado.
  */
-export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_MS, conversation = false }: VoiceSessionOptions) {
+export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_MS, conversation = false, opening }: VoiceSessionOptions) {
   // Nace escuchando: la sesión se monta al abrir el modo voz y se desmonta al cerrarlo.
-  const [status, setStatusState] = React.useState<VoiceStatus>(() => (isSpeechRecognitionSupported() ? "listening" : "unsupported"));
+  const [status, setStatusState] = React.useState<VoiceStatus>(() => (conversation && opening ? "thinking" : isSpeechRecognitionSupported() ? "listening" : "unsupported"));
   const [transcript, setTranscript] = React.useState("");
   const [interim, setInterim] = React.useState("");
   const [reply, setReply] = React.useState<ChatReply | null>(null);
@@ -39,6 +44,9 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
   const silence = React.useRef<number | null>(null);
   const statusRef = React.useRef(status);
   const askRef = React.useRef(ask);
+  const openingRef = React.useRef(conversation ? opening : undefined);
+  /** El saludo se dice una vez por sesión (en desarrollo React monta los efectos dos veces). */
+  const greeted = React.useRef(false);
   React.useEffect(() => {
     askRef.current = ask;
   });
@@ -54,12 +62,10 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
     silence.current = null;
   };
 
-  const finishAndAsk = React.useCallback((text: string) => {
-    clearSilence();
-    recognizer.current?.stop();
+  /** La respuesta (o el saludo) en camino: se piensa, se dice en voz alta y se vuelve a escuchar. */
+  const respond = React.useCallback((pending: Promise<ChatReply>) => {
     setStatus("thinking");
-    askRef
-      .current(text)
+    pending
       .then((result) => {
         setReply(result);
         if (!conversation || !result.text.trim()) {
@@ -71,10 +77,19 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
         stopSpeaking.current = speak(result.text, lang, () => {
           stopSpeaking.current = null;
           if (statusRef.current === "speaking") resumeRef.current();
-        }, { gender: "male", onWord: () => setSpokenWords((count) => count + 1) });
+        }, { gender: "male", natural: true, onWord: () => setSpokenWords((count) => count + 1) });
       })
       .catch(() => setStatus("paused"));
   }, [conversation, lang, setStatus]);
+
+  const finishAndAsk = React.useCallback(
+    (text: string) => {
+      clearSilence();
+      recognizer.current?.stop();
+      respond(askRef.current(text));
+    },
+    [respond]
+  );
 
   /** Arranca el reconocedor sin tocar el estado: lo usan el efecto de apertura y `listen`. */
   const startRecognizer = React.useCallback(() => {
@@ -146,15 +161,21 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
   // limpia cada vez (ChatVoiceMode la desmonta al cerrar), así que no hay
   // nada que reiniciar aquí.
   React.useEffect(() => {
-    if (!open || !isSpeechRecognitionSupported()) return;
-    startRecognizer();
+    if (!open) return;
+    // Con saludo, primero habla el asistente y después se escucha (lo retoma `respond`).
+    if (openingRef.current) {
+      if (!greeted.current) {
+        greeted.current = true;
+        respond(openingRef.current());
+      }
+    } else if (isSpeechRecognitionSupported()) startRecognizer();
     return () => {
       clearSilence();
       recognizer.current?.stop();
       recognizer.current = null;
       stopSpeaking.current?.();
     };
-  }, [open, startRecognizer]);
+  }, [open, startRecognizer, respond]);
 
   // El cronómetro corre mientras se escucha.
   React.useEffect(() => {

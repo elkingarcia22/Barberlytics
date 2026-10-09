@@ -11,17 +11,19 @@ export const SwitchToChatProvider = SwitchToChatContext.Provider;
 export const useSwitchToChat = (): (() => void) | null => React.useContext(SwitchToChatContext);
 
 /**
- * «Agenda con Clipper» desde otra experiencia: Clipper abre con la voz ya escuchando. La experiencia
- * se monta de nuevo al cambiar, así que el aviso se deja aquí y lo lee la Conversación al abrir.
+ * «Agenda con Clipper» desde otra experiencia: Clipper abre con la voz ya escuchando y saluda según de
+ * dónde viene (Paso a paso pide quién eres; la Agenda con selector pregunta qué quieres hacer). La
+ * experiencia se monta de nuevo al cambiar, así que el aviso se deja aquí y lo lee Clipper al abrir.
  */
-let voiceOnArrival = false;
+let voiceOnArrival: string | null = null;
 
-export const requestVoiceOnArrival = () => {
-  voiceOnArrival = true;
+export const requestVoiceOnArrival = (origin: string) => {
+  voiceOnArrival = origin;
 };
 
-export const peekVoiceOnArrival = () => voiceOnArrival;
+/** De qué experiencia se llegó con la voz pedida, o `null`. */
+export const peekVoiceOnArrival = (): string | null => voiceOnArrival;
 
 export const clearVoiceOnArrival = () => {
-  voiceOnArrival = false;
+  voiceOnArrival = null;
 };

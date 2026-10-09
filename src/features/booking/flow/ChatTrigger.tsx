@@ -1,7 +1,7 @@
 import { useAppT } from "@/app/i18n";
 import { AIButton } from "@/components/ai-interaction";
 import { useBookingFlow } from "./BookingContext";
-import { requestVoiceOnArrival, useSwitchToChat } from "./versionSwitch";
+import { useSwitchToChat } from "./versionSwitch";
 
 /**
  * «Agenda con Clipper»: el botón de IA (secundario) de la primera pantalla que lleva a Clipper con la voz ya abierta. En monitor
@@ -21,11 +21,7 @@ export function ChatTrigger({ full: alwaysFull = false }: { /** Con el texto com
       variant="secondary"
       size={isWide || touch === "lg" ? "sm" : "xs"}
       label={showFull ? full : t("agent.name")}
-      onClick={() => {
-        // Llega a Clipper hablando: la voz se abre sola (ver `ChatFlow`).
-        requestVoiceOnArrival();
-        switchToChat();
-      }}
+      onClick={switchToChat}
       className="shrink-0"
     />
   );

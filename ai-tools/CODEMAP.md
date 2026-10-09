@@ -316,7 +316,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **stepWidth.ts** — El ancho de lectura de un paso: la columna del contenido, no la de la barra del pie, que va de lado a lado. · `STEP_WIDTH`
 - **usePaymentController.ts** — El cobro de la reserva, sin la pantalla alrededor: la propina, los descuentos, cómo se paga, la tarjeta y el… · `usePaymentController`, `PaymentController` · usa: @/app/i18n, @/lib/api
 - **useSavedCardManager.tsx** — Editar y quitar tarjetas desde el selector, igual en Pagar y en Regalar: las dos hojas, qué queda elegido des… · `useSavedCardManager`
-- **versionSwitch.ts** · `SwitchToChatProvider`, `useSwitchToChat`, `requestVoiceOnArrival`, `peekVoiceOnArrival`, `clearVoiceOnArrival`
+- **versionSwitch.ts** — De qué experiencia se llegó con la voz pedida, o `null`. · `SwitchToChatProvider`, `useSwitchToChat`, `requestVoiceOnArrival`, `peekVoiceOnArrival`, `clearVoiceOnArrival`
 
 ### booking/preview
 
@@ -386,7 +386,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatReceipt.ts** — Lo que se va armando: a dónde va el recibo y qué falta que escriba. · `ReceiptPlan`, `ReceiptStep`, `isReceiptStep`, `ReceiptKit`, `createChatReceipt` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
-- **useVoiceBridge.ts** — La conversación por voz con Clipper sobre el mismo motor del chat escrito: lo dicho entra como si se hubiera… · `useVoiceBridge` · usa: @/app/i18n, @/i18n, @/lib/chat
+- **useVoiceBridge.ts** — De qué experiencia llega la voz: Paso a paso pide quién eres; el resto, qué quieres hacer. · `VoiceOrigin`, `useVoiceBridge` · usa: @/app/i18n, @/i18n, @/lib/chat
 - **voiceReply.ts** — El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número». · `VoiceReplyLabels`, `forVoice`, `fromVoice`, `matchSpokenOption`, `voiceReplyFromTurns` · usa: @/lib/chat
 
 ### branches

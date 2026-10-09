@@ -42,23 +42,8 @@ interface BranchProfileSheetProps {
  */
 export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchProfileSheetProps) {
   const t = useAppT();
-  const { layout, fmt, state } = useBookingFlow();
-  const [viewing, setViewing] = React.useState<number | null>(null);
-  const [showAllServices, setShowAllServices] = React.useState(false);
-  const [showAllBarbers, setShowAllBarbers] = React.useState(false);
-  const { data: detail, isLoading } = useBranchDetailQuery(branchId);
-  const { data: catalog } = useBookingCatalogQuery(branchId);
-  const [now] = React.useState(() => new Date());
-  const openState = detail ? openStateOf(detail.hours, now) : null;
-  const today = now.getDay();
-  const services = catalog?.services ?? [];
-  const barbers = catalog?.barbers ?? [];
-  const priceFrom = (serviceId: string, fallback: number) => {
-    const prices = barbers.map((barber) => barber.prices[serviceId]).filter((value): value is number => value !== undefined);
-    return prices.length > 0 ? Math.min(...prices) : fallback;
-  };
-  const shownServices = showAllServices ? services : services.slice(0, FIRST_SERVICES);
-  const shownBarbers = showAllBarbers ? barbers : barbers.slice(0, FIRST_BARBERS);
+  const { layout, state } = useBookingFlow();
+  const { data: detail } = useBranchDetailQuery(branchId);
 
   return (
     <DrawerShell
@@ -82,6 +67,37 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
         ) : undefined
       }
     >
+      {branchId && <BranchProfileBody branchId={branchId} />}
+    </DrawerShell>
+  );
+}
+
+/**
+ * Lo de adentro del perfil, sin la ventana: el cajón lo usa y también la lista
+ * de sedes de la Agenda con selector, que lo abre sin salir de su modal.
+ */
+export function BranchProfileBody({ branchId }: { branchId: string }) {
+  const t = useAppT();
+  const { fmt } = useBookingFlow();
+  const [viewing, setViewing] = React.useState<number | null>(null);
+  const [showAllServices, setShowAllServices] = React.useState(false);
+  const [showAllBarbers, setShowAllBarbers] = React.useState(false);
+  const { data: detail, isLoading } = useBranchDetailQuery(branchId);
+  const { data: catalog } = useBookingCatalogQuery(branchId);
+  const [now] = React.useState(() => new Date());
+  const openState = detail ? openStateOf(detail.hours, now) : null;
+  const today = now.getDay();
+  const services = catalog?.services ?? [];
+  const barbers = catalog?.barbers ?? [];
+  const priceFrom = (serviceId: string, fallback: number) => {
+    const prices = barbers.map((barber) => barber.prices[serviceId]).filter((value): value is number => value !== undefined);
+    return prices.length > 0 ? Math.min(...prices) : fallback;
+  };
+  const shownServices = showAllServices ? services : services.slice(0, FIRST_SERVICES);
+  const shownBarbers = showAllBarbers ? barbers : barbers.slice(0, FIRST_BARBERS);
+
+  return (
+    <>
       {isLoading || !detail ? (
         <div className="flex flex-col gap-4">
           <Skeleton className="h-40 w-full rounded-xl" />
@@ -271,6 +287,6 @@ export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchP
         </div>
       )}
       <GalleryViewer photos={detail?.gallery ?? []} index={viewing} title={detail?.name ?? ""} onClose={() => setViewing(null)} />
-    </DrawerShell>
+    </>
   );
 }

@@ -56,7 +56,8 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
     if (!state.draft) {
       const last = state.items.at(-1);
       const fallback = defaultServiceId(catalog.services);
-      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: null });
+      // En la Agenda con selector el barbero es una elección propia: la siguiente cita sigue con el mismo.
+      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: servicePicker === "modal" ? (last?.barberId ?? null) : null });
       return;
     }
     if (state.draft.serviceIds.length === 0 && state.items.length === 0 && seededDraft.current !== state.draft.key) {
@@ -64,7 +65,7 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
       const fallback = defaultServiceId(catalog.services);
       if (fallback) dispatch({ type: "toggleService", serviceId: fallback });
     }
-  }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch]);
+  }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch, servicePicker]);
 
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
   if (signInOpen && state.customer) setSignInOpen(false);

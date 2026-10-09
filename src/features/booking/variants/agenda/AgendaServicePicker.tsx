@@ -44,6 +44,9 @@ export function AgendaServiceField({ labelledBy }: { labelledBy: string }) {
     // De a uno, para no perder la cita que se está cambiando (abrir otro borrador la soltaría).
     const changed = [...draft.serviceIds.filter((id) => !next.includes(id)), ...next.filter((id) => !draft.serviceIds.includes(id))];
     changed.forEach((serviceId) => dispatch({ type: "toggleService", serviceId }));
+    // Si el barbero elegido no hace todo lo nuevo, vuelve a «sin preferencia» en vez de dejar la agenda vacía.
+    const barber = catalog?.barbers.find((item) => item.id === draft.barberId);
+    if (barber && !next.every((id) => barber.prices[id] !== undefined)) dispatch({ type: "chooseBarber", barberId: null });
   };
 
   if (catalogLoading) return <Skeleton className={cn("w-full rounded-xl", touch === "lg" ? "h-[4.5rem]" : "h-16")} />;

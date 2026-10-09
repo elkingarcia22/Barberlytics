@@ -27,7 +27,7 @@ const plain = (value: string): string => value.toLowerCase().normalize("NFD").re
  * con 30, y las horas libres quedan a la vista. Se elige dentro y se aplica con
  * «Ver horas»; cerrar sin aplicar no cambia nada.
  */
-export function AgendaServiceField({ labelledBy, eyebrow }: { labelledBy: string; eyebrow?: string }) {
+export function AgendaServiceField({ labelledBy, eyebrow, onNeedBranch }: { labelledBy: string; eyebrow?: string; /** Sin sede no hay carta (es de cada sede): tocar el campo abre primero la sede. */ onNeedBranch?: () => void }) {
   const t = useAppT();
   const { state, dispatch, catalog, catalogLoading, fmt, touch } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
@@ -69,7 +69,7 @@ export function AgendaServiceField({ labelledBy, eyebrow }: { labelledBy: string
         detail={t("booking.agenda.whatSummary", { minutes: itemDuration(selected, catalog), price: fmt.money(itemPrice({ serviceIds: selected, barberId: null }, catalog)) })}
         placeholder={t("booking.agenda.whatPlaceholder")}
         open={open}
-        onOpen={() => setOpen(true)}
+        onOpen={() => (!state.branchId && onNeedBranch ? onNeedBranch() : setOpen(true))}
         testId="agenda-service-field"
       />
       <ServicePickerOverlay open={open} onOpenChange={setOpen} initial={selected} onApply={apply} />

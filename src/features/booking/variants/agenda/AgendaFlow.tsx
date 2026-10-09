@@ -34,8 +34,8 @@ const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "waitlisted"
 /**
  * Agenda con selector: la reserva que parte del «¿cuándo?». Sede, servicios y
  * barbero se eligen en campos que abren su lista (sin cuenta abren vacíos: nada
- * elegido por la persona); luego se aparta una hora con un toque y solo al
- * confirmar se pregunta quién es y cómo paga.
+ * elegido por la persona, y la sede va primero); luego se aparta una hora con un
+ * toque y solo al confirmar se pregunta quién es y cómo paga.
  */
 export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const t = useAppT();
@@ -52,9 +52,11 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const isWide = layout === "wide";
   const ownScreen = OWN_SCREENS.has(state.step);
 
-  // La sede: la de siempre del cliente o la primera; se cambia junto al título.
+  // La sede: con cuenta, la de siempre o la primera; sin cuenta y con varias, la elige la persona (abre vacía).
+  // Con una sola sede no hay nada que elegir.
   React.useEffect(() => {
     if (state.branchId || shop.branches.length === 0) return;
+    if (!state.customer && shop.branches.length > 1) return;
     dispatch({ type: "chooseBranch", branchId: defaultBranchId(state.customer, shop.branches.map((item) => item.id)) ?? shop.branches[0].id });
   }, [state.branchId, state.customer, shop.branches, dispatch]);
 

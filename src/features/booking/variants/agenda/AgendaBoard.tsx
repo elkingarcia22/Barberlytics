@@ -129,7 +129,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignI
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
       </section>
 
-      {serviceIds.length === 0 ? (
+      {!state.branchId ? (
+        <EmptyState icon="building" title={t("booking.agenda.pickBranch")} />
+      ) : serviceIds.length === 0 ? (
         <EmptyState icon="scissors" title={t("booking.agenda.pickService")} />
       ) : (
         <>

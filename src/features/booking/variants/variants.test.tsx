@@ -15,8 +15,17 @@ import { detectAside } from "./chat/chatIntents";
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
 
-/** En la Agenda con selector sin cuenta no viene nada elegido: se abre «Servicios», se marca uno y se aplica. */
+/** En la Agenda con selector sin cuenta la sede viene vacía: se abre su lista y se toca la primera. */
+async function chooseAgendaBranch(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByTestId("agenda-branch-field"));
+  const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
+  await user.click(within(dialog).getAllByRole("radio")[0]);
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+}
+
+/** Tampoco viene servicio: con la sede ya puesta se abre «Servicios», se marca uno y se aplica. */
 async function chooseAgendaService(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await chooseAgendaBranch(user);
   await user.click(await screen.findByTestId("agenda-service-field"));
   const dialog = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });
   await user.click(await within(dialog).findByRole("checkbox", { name }));
@@ -355,17 +364,26 @@ describe("las otras dos experiencias", () => {
     vi.unstubAllGlobals();
   });
 
-  test("agenda con selector: sin cuenta, servicio y barbero abren sin nada elegido", async () => {
+  test("agenda con selector: sin cuenta, sede, servicio y barbero abren sin nada elegido y la sede va primero", async () => {
+    const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
-    expect(await screen.findByText("Elige al menos un servicio para ver las horas libres.")).toBeInTheDocument();
-    expect(await screen.findByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
+    expect(await screen.findByText("Elige la sede para ver sus servicios y las horas libres.")).toBeInTheDocument();
+    expect(await screen.findByTestId("agenda-branch-field")).toHaveTextContent("Elige la sede");
+    expect(screen.getByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
     expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Elige con quién");
     expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
+    // Sin sede no hay carta: tocar «Servicios» abre la lista de sedes, sin ninguna marcada.
+    await user.click(screen.getByTestId("agenda-service-field"));
+    const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
+    expect(within(dialog).getAllByRole("radio").every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
+    await user.click(within(dialog).getAllByRole("radio")[0]);
+    expect(await screen.findByText("Elige al menos un servicio para ver las horas libres.")).toBeInTheDocument();
   });
 
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
+    await chooseAgendaBranch(user);
     const field = await screen.findByTestId("agenda-service-field");
     await user.click(field);
     const dialog = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });

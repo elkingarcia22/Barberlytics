@@ -162,7 +162,7 @@ export const es = {
   "docs.openAppTitle": "Abrir la aplicación de ejemplo: Inicio y Personas",
 
   // ── Chat de IA ──
-  "chat.title": "Agente IA",
+  "chat.title": "Clipper",
   "chat.subtitle": "Asistente de la plataforma",
   "chat.greeting.morning": "¡Buenos días,",
   "chat.greeting.afternoon": "¡Buenas tardes,",
@@ -261,6 +261,9 @@ export const es = {
   "chat.voiceUnsupported": "Este navegador no puede escuchar el micrófono. Puedes escribir tu pregunta.",
   "chat.voiceDenied": "No hay permiso para usar el micrófono. Revísalo en el navegador o escribe tu pregunta.",
   "chat.voiceEmpty": "Di lo que necesitas y haz una pausa para que responda.",
+  "chat.voiceSpeakingLabel": "{agent} responde",
+  "chat.voiceSpeakingHint": "toca el micrófono para interrumpir",
+  "chat.voiceYourTurn": "Te escucho.",
   "chat.language.es": "español",
   "chat.language.en": "inglés",
   "chat.detailShow": "Ver el detalle",

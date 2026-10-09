@@ -142,11 +142,11 @@ interface TimeWindowsProps {
 
 /**
  * Las horas del día sin pensar en quién: por franja, cada hora con las caras de
- * quienes pueden y cuántos son. Tocar una es reservar «con quien esté libre».
+ * quienes pueden; en el celular, sin barbero elegido, el icono de «Sin preferencia». Tocar una es reservar «con quien esté libre».
  */
 export function TimeWindows({ groups, timeLabel, withName, selectedTime = null, onPick }: TimeWindowsProps) {
   const t = useAppT();
-  const { catalog } = useBookingFlow();
+  const { catalog, isPhone } = useBookingFlow();
   const faces = (ids: readonly string[]) => ids.map((id) => catalog?.barbers.find((barber) => barber.id === id)).filter((barber): barber is BookingBarber => barber !== undefined);
 
   return (
@@ -167,16 +167,23 @@ export function TimeWindows({ groups, timeLabel, withName, selectedTime = null, 
                   onPick={() => onPick(option.time)}
                   ariaLabel={withName ? t("booking.agenda.pickWith", { time: timeLabel(option.time), name: withName }) : t("booking.agenda.pickAny", { time: timeLabel(option.time), count: option.barberIds.length })}
                 >
-                  {people.length > 0 && (
-                    <AvatarGroup aria-hidden>
-                      {people.slice(0, AVATAR_STACK).map((barber) => (
-                        <Avatar key={barber.id} size="sm">
-                          {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
-                          <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
-                        </Avatar>
-                      ))}
-                    </AvatarGroup>
-                  )}
+                  {withName || !isPhone
+                    ? people.length > 0 && (
+                        <AvatarGroup aria-hidden>
+                          {people.slice(0, AVATAR_STACK).map((barber) => (
+                            <Avatar key={barber.id} size="sm">
+                              {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
+                              <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
+                            </Avatar>
+                          ))}
+                        </AvatarGroup>
+                      )
+                    : people.length > 0 && (
+                        // En el celular, sin preferencia: el icono del selector en vez de la fila de caras.
+                        <span aria-hidden className="flex size-6 items-center justify-center rounded-full bg-surface-subtle text-text-secondary">
+                          <ThemaIcon name="users" size="xs" />
+                        </span>
+                      )}
                 </TimePill>
               );
             })}

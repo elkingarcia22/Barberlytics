@@ -320,7 +320,8 @@ describe("las otras dos experiencias", () => {
     await user.click(await screen.findByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Confirma y paga")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /celular/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirma tu celular para pagar" })).toBeDisabled();
+    // Sin identificarse no hay botón de pagar abajo: aparece cuando ya se sabe quién es.
+    expect(screen.queryByRole("button", { name: "Confirma tu celular para pagar" })).toBeNull();
   });
 
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
@@ -364,6 +365,8 @@ describe("las otras dos experiencias", () => {
   test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
+    // La portada primero: «Ir a la conversación» entra sin decir nada.
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     const input = await screen.findByTestId("chat-input");
     await user.type(input, "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
@@ -407,6 +410,8 @@ describe("las otras dos experiencias", () => {
   test("conversación: si el barbero no tiene horas, recomienda otros que hacen lo mismo y las demás opciones", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
+    // La portada primero: «Ir a la conversación» entra sin decir nada.
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
@@ -457,6 +462,8 @@ describe("las otras dos experiencias", () => {
   test("conversación: se vuelve atrás, se cambia el barbero y se pregunta de pasada sin perder el hilo", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
+    // La portada primero: «Ir a la conversación» entra sin decir nada.
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
     await screen.findByTestId("chat-input");
     await write("3202172738");
@@ -486,6 +493,8 @@ describe("las otras dos experiencias", () => {
   test("conversación: productos con su cantidad, el recibo a varios destinos (otro número también) y no dejarla fija", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
+    // La portada primero: «Ir a la conversación» entra sin decir nada.
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
     await screen.findByTestId("chat-input");
     await write("3202172738");
@@ -531,9 +540,37 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByText("Listo, queda solo esta cita.")).toBeInTheDocument();
   });
 
+  test("conversación: lo pedido en la portada sigue en pie después de elegir la sede", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    // Desde la portada, un cliente nuevo pide barbero; la sede se pregunta después de crear su ficha.
+    await user.type(await screen.findByPlaceholderText(/Corte mañana en la tarde con Andrés/), "corte con Andrés{Enter}");
+    await user.type(await screen.findByTestId("chat-input"), "3001234567{Enter}");
+    await screen.findByText(/Te acabo de mandar un/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    await screen.findByText(/Cómo te llamas/);
+    await user.type(screen.getByTestId("chat-input"), "Carlos{Enter}");
+    await screen.findByText(/Gracias, Carlos/);
+    await user.type(screen.getByTestId("chat-input"), "Pérez{Enter}");
+    await screen.findByText(/Perfecto, Carlos/);
+    await user.type(screen.getByTestId("chat-input"), "carlos@correo.com{Enter}");
+    const promos = await screen.findByRole("group", { name: /promociones/ });
+    await user.click(within(promos).getByRole("button", { name: /^Sí/ }));
+    // Con varias sedes se pregunta cuál; con una, se elige sola.
+    await screen.findByRole("group", { name: /^(¿A cuál sede vas a ir\?|¿Qué día te queda bien\?)$/ });
+    const branches = screen.queryByRole("group", { name: "¿A cuál sede vas a ir?" });
+    // El primer botón es el título (pliega la lista); la primera sede va después.
+    if (branches) await user.click(within(branches).getAllByRole("button")[1]);
+    // Lo pedido (corte con Andrés) se retoma: no vuelve a preguntar el servicio.
+    expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "¿Qué te vas a hacer?" })).toBeNull();
+  });
+
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
+    // La portada primero: «Ir a la conversación» entra sin decir nada.
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     expect(await screen.findByText(/Te ayudo a reservar tu cita/)).toBeInTheDocument();
     // Sin formularios dentro del chat: el celular va en la caja, solo números.
     expect(screen.queryByRole("textbox", { name: /celular/i })).toBeNull();

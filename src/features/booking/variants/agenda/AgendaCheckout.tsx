@@ -1,9 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
-import { Field } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { formatPhone } from "../../bookingFormat";
@@ -12,8 +10,8 @@ import { PaymentPanel, PayButton } from "../../flow/PaymentPanel";
 import { usePaymentController, type PaymentController } from "../../flow/usePaymentController";
 import { PickedProducts } from "../../flow/PickedProducts";
 import { ProductCatalogDrawer } from "../../flow/ProductCatalogDrawer";
-import { ReferencePhotoField } from "../../flow/ReferencePhotoField";
 import { StepLayout } from "../../flow/StepLayout";
+import { useAsideFooter } from "../../flow/asideSlot";
 import { AgendaIdentity } from "./AgendaIdentity";
 
 /** Una parte del cierre: número, título y lo que va dentro. */
@@ -56,18 +54,14 @@ function WhoBooks() {
   );
 }
 
-/** Lo que va para el barbero (nota y foto) y lo que se lleva de la tienda. */
+/** Lo que se lleva de la tienda; la nota y la foto para el barbero se piden al confirmar. */
 function Extras() {
   const t = useAppT();
-  const { state, dispatch, catalog } = useBookingFlow();
+  const { catalog } = useBookingFlow();
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const products = catalog?.products ?? [];
   return (
     <div className="flex flex-col gap-4">
-      <Field label={t("booking.review.notes")}>
-        <Textarea value={state.notes} onChange={(event) => dispatch({ type: "setNotes", notes: event.target.value })} placeholder={t("booking.review.notesPlaceholder")} rows={2} />
-      </Field>
-      <ReferencePhotoField />
       {products.length > 0 && (
         <div className="flex flex-col gap-3">
           <PickedProducts products={products} />
@@ -90,6 +84,7 @@ interface CheckoutProps {
 
 function CheckoutBody({ payment, showAppointments }: { payment: PaymentController | null; showAppointments: React.ReactNode }) {
   const t = useAppT();
+  const { layout } = useBookingFlow();
   let index = 0;
   const next = () => ++index;
   return (
@@ -108,7 +103,7 @@ function CheckoutBody({ payment, showAppointments }: { payment: PaymentControlle
       <CheckoutSection index={next()} title={t("booking.agenda.checkout.pay")}>
         {payment ? (
           <div className="flex flex-col gap-6">
-            <PaymentPanel payment={payment} />
+            <PaymentPanel payment={payment} showOrder={layout !== "wide"} />
           </div>
         ) : (
           <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border p-4">
@@ -146,9 +141,11 @@ export function CheckoutFooter({ payment }: { payment: PaymentController | null 
 function IdentifiedCheckout({ onBack, showAppointments }: CheckoutProps) {
   const t = useAppT();
   const payment = usePaymentController();
+  const { footer, portal } = useAsideFooter(<CheckoutFooter payment={payment} />);
   return (
-    <StepLayout title={t("booking.agenda.checkout.title")} lead={t("booking.agenda.checkout.lead")} aside={<BackButton onBack={onBack} />} footer={<CheckoutFooter payment={payment} />}>
+    <StepLayout title={t("booking.agenda.checkout.title")} lead={t("booking.agenda.checkout.lead")} aside={<BackButton onBack={onBack} />} footer={footer}>
       <CheckoutBody payment={payment} showAppointments={showAppointments} />
+      {portal}
     </StepLayout>
   );
 }
@@ -171,10 +168,12 @@ function BackButton({ onBack }: { onBack: () => void }) {
 export function AgendaCheckout({ onBack, showAppointments }: CheckoutProps) {
   const t = useAppT();
   const { state } = useBookingFlow();
+  const { footer, portal } = useAsideFooter(<CheckoutFooter payment={null} />, { asideOnly: true });
   if (state.customer) return <IdentifiedCheckout key={state.customer.id} onBack={onBack} showAppointments={showAppointments} />;
   return (
-    <StepLayout title={t("booking.agenda.checkout.title")} lead={t("booking.agenda.checkout.lead")} aside={<BackButton onBack={onBack} />} footer={<CheckoutFooter payment={null} />}>
+    <StepLayout title={t("booking.agenda.checkout.title")} lead={t("booking.agenda.checkout.lead")} aside={<BackButton onBack={onBack} />} footer={footer}>
       <CheckoutBody payment={null} showAppointments={showAppointments} />
+      {portal}
     </StepLayout>
   );
 }

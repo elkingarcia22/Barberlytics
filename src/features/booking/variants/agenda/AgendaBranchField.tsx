@@ -16,7 +16,7 @@ import { PickerField, PickerOverlay, PickerRow } from "./AgendaPicker";
  * (barberos y precios son de cada sede): la sede queda marcada y el pie pide
  * confirmarlo antes.
  */
-export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
+export function AgendaBranchField({ labelledBy, eyebrow }: { labelledBy: string; eyebrow?: string }) {
   const t = useAppT();
   const { shop, state, dispatch, fmt } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
@@ -76,6 +76,8 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
   return (
     <>
       <PickerField
+        asCard
+        eyebrow={eyebrow}
         labelledBy={labelledBy}
         imageUrl={current.imageUrl}
         icon="building"

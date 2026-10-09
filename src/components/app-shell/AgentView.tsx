@@ -72,7 +72,7 @@ export const AgentView: React.FC = () => {
         </div>
 
         <p className="mt-3 text-center text-xs text-text-muted">
-          El Agente IA puede cometer errores, verifica las respuestas.
+          Clipper puede cometer errores, verifica las respuestas.
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

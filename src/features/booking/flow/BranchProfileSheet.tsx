@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { WEEK_ORDER, formatPhone, initialsOf, openStateOf, parseStart } from "../bookingFormat";
 import { useBookingCatalogQuery, useBranchDetailQuery } from "../queries";
 import { useBookingFlow } from "./BookingContext";
-import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "./drawerFit";
 import { GalleryViewer } from "./GalleryViewer";
 import { PhotoStrip } from "./PhotoStrip";
 
@@ -42,14 +42,14 @@ interface BranchProfileSheetProps {
  */
 export function BranchProfileSheet({ branchId, onOpenChange, onChoose }: BranchProfileSheetProps) {
   const t = useAppT();
-  const { layout, state } = useBookingFlow();
+  const { layout, state, touch } = useBookingFlow();
   const { data: detail } = useBranchDetailQuery(branchId);
 
   return (
     <DrawerShell
       open={branchId !== null}
       onOpenChange={onOpenChange}
-      side={layout === "wide" ? "right" : "bottom"}
+      side={sheetSide({ layout, touch })}
       size="lg"
       contentStyle={DRAWER_FIT_STYLE}
       title={detail?.name ?? ""}

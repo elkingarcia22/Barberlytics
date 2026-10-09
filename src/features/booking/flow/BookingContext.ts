@@ -23,6 +23,8 @@ export interface BookingFlowValue {
   layout: BookingLayout;
   /** `lg` en pantallas táctiles grandes (tablet, kiosco): todo más grande para el dedo. */
   touch: "default" | "lg";
+  /** En un celular (la vista previa de celular o la página abierta en uno): hay menos espacio para detalles. */
+  isPhone: boolean;
   /** El token de «Mis citas», una vez que el cliente confirma su código. */
   token: string | null;
   setToken: (token: string | null) => void;

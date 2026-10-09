@@ -1,6 +1,7 @@
 import * as React from "react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import { useNavigate, useSearchParams } from "react-router";
-import { Clock, FileText, Sparkles } from "lucide-react";
+import { Clock, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShellHeaderSlot } from "@/components/app-shell";
 import { Breadcrumbs } from "@/components/navigation";
@@ -29,7 +30,7 @@ function ResultRow({ hit, index, onOpen, highlighted }: { hit: HelpSearchHit; in
   return (
     <ListItem
       className={cn(highlighted && "border-primary/40 ring-1 ring-primary/20")}
-      leading={highlighted ? <Sparkles className="size-4 shrink-0 text-primary" /> : <FileText className="size-4 shrink-0 text-text-muted" />}
+      leading={highlighted ? <ClipperIcon className="size-4 shrink-0 text-primary" /> : <FileText className="size-4 shrink-0 text-text-muted" />}
       title={
         <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <Highlight text={article.title} terms={hit.matched} />

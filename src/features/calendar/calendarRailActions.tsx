@@ -1,4 +1,5 @@
-import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, ShoppingBag, Sparkles } from "lucide-react";
+import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, ShoppingBag } from "lucide-react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { AppMessageKey } from "@/app/i18n/types";
 
@@ -31,7 +32,7 @@ export function calendarRailActions(t: (key: AppMessageKey) => string, on: Calen
     { id: "waitlist", label: t("calendar.action.waitlist"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.waitlist },
     { id: "block", label: t("calendar.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.block },
     { id: "work-hours", label: t("calendar.action.workHours"), icon: <Clock className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.workHours },
-    { id: "assistant", label: t("calendar.action.assistant"), icon: <Sparkles className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.assistant },
+    { id: "assistant", label: t("calendar.action.assistant"), icon: <ClipperIcon className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.assistant },
     { id: "create", label: t("calendar.action.create"), icon: <CalendarPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
   ];
 }

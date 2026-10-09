@@ -3,12 +3,11 @@ import { useAppT } from "@/app/i18n";
 import { DrawerShell } from "@/components/overlays";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
-import { DRAWER_FIT_STYLE } from "../../flow/drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "../../flow/drawerFit";
 
 /**
  * Las dos piezas de la Agenda con selector: un campo que se lee como un select
@@ -30,11 +29,57 @@ interface PickerFieldProps {
   open: boolean;
   onOpen: () => void;
   testId?: string;
+  /** Tarjeta (los campos de sede, servicio y barbero van en fila); si no, fila de siempre. */
+  asCard?: boolean;
+  /** El nombre del campo dentro de la fila («Sede»), cuando no lleva título encima (celular). */
+  eyebrow?: string;
 }
 
-export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId }: PickerFieldProps) {
-  const { touch } = useBookingFlow();
+export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow }: PickerFieldProps) {
+  const { touch, layout } = useBookingFlow();
   const valueId = React.useId();
+  // Tarjeta solo donde caben en fila (tablet y monitor); en celular, la fila de siempre.
+  const isDense = asCard && (layout === "wide" || touch === "lg");
+  // Donde la lista entra por el lado (tablet y monitor), la flecha apunta hacia allá.
+  const opensAside = sheetSide({ layout, touch }) === "right";
+  const arrow = opensAside ? (
+    <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
+  ) : (
+    <ThemaIcon name="chevronDown" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-aria-expanded:rotate-180" />
+  );
+  const base = cn(
+    "group w-full rounded-xl border border-input bg-background text-left shadow-xs outline-none transition-[border-color,box-shadow] duration-fast",
+    "hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+  );
+
+  // Como tarjetas, una al lado de la otra: foto arriba y el texto debajo, a dos líneas.
+  if (isDense) {
+    return (
+      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
+        <span className="flex w-full items-start justify-between gap-2">
+          <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+          {arrow}
+        </span>
+        <span id={valueId} className="flex w-full min-w-0 flex-col">
+          {eyebrow && (
+            <Text as="span" size="xs" tone="muted" className="truncate">
+              {eyebrow}
+            </Text>
+          )}
+          {/* En tarjetas angostas, las palabras largas («Massachusetts») parten en vez de cortarse. */}
+          <Text as="span" size="sm" weight="medium" tone={value ? "default" : "muted"} className="line-clamp-2 hyphens-auto [overflow-wrap:anywhere]" lang="es">
+            {value ?? placeholder}
+          </Text>
+          {value && detail && (
+            <Text as="span" size="xs" tone="muted" tabular className="line-clamp-2 [overflow-wrap:anywhere]">
+              {detail}
+            </Text>
+          )}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -43,14 +88,15 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
       aria-labelledby={`${labelledBy} ${valueId}`}
       onClick={onOpen}
       data-testid={testId}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-xl border border-input bg-background px-3 text-left shadow-xs outline-none transition-[border-color,box-shadow] duration-fast",
-        "hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5"
-      )}
+      className={cn(base, "flex items-center gap-3 px-3", touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5")}
     >
       <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
+        {eyebrow && (
+          <Text as="span" size="xs" tone="muted" className="truncate">
+            {eyebrow}
+          </Text>
+        )}
         {value ? (
           <>
             <Text as="span" weight="medium" className="truncate">
@@ -68,7 +114,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
           </Text>
         )}
       </span>
-      <ThemaIcon name="chevronDown" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-aria-expanded:rotate-180" />
+      {arrow}
     </button>
   );
 }
@@ -151,44 +197,21 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
     </div>
   );
 
-  if (layout === "compact" && touch === "default") {
-    return (
-      <DrawerShell
-        open={open}
-        onOpenChange={onOpenChange}
-        side="bottom"
-        contentStyle={DRAWER_FIT_STYLE}
-        title={title}
-        description={description}
-        leading={hasHeading ? heading : undefined}
-        actions={footer}
-        onOpenAutoFocus={focusList}
-        disablePadding
-      >
-        {content}
-      </DrawerShell>
-    );
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        onOpenAutoFocus={focusList}
-        aria-describedby={undefined}
-        // Medido contra la reserva (el marco de la tablet o la pantalla), no contra la ventana.
-        className={cn("flex max-h-[calc(100%-3rem)] flex-col gap-0 overflow-hidden p-0", touch === "lg" ? "sm:max-w-xl" : "sm:max-w-lg")}
-      >
-        <DialogHeader className={cn("border-b bg-muted/30 p-4 pr-12", hasHeading && "flex-row items-center gap-3 text-left")}>
-          {hasHeading && heading}
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <DialogTitle className="truncate">{title}</DialogTitle>
-            {description && <DialogDescription className="truncate">{description}</DialogDescription>}
-          </div>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">{content}</div>
-        {footer && <DialogFooter className="m-0 rounded-b-xl bg-muted/30 p-4">{footer}</DialogFooter>}
-      </DialogContent>
-    </Dialog>
+    <DrawerShell
+      open={open}
+      onOpenChange={onOpenChange}
+      side={sheetSide({ layout, touch })}
+      contentStyle={DRAWER_FIT_STYLE}
+      title={title}
+      description={description}
+      leading={hasHeading ? heading : undefined}
+      actions={footer}
+      onOpenAutoFocus={focusList}
+      disablePadding
+    >
+      {content}
+    </DrawerShell>
   );
 }
 

@@ -56,7 +56,7 @@ export function WorkspaceUsage({ company, enabled = true }: { company: Company; 
   return (
     <div className="flex flex-col gap-1.5 px-0.5 pb-1">
       <UsageCard label="Licencias" value={company.licenses[0]} total={company.licenses[1]} tone="brand" />
-      <UsageCard label="Créditos de IA" value={company.credits[0]} total={company.credits[1]} tone="ai" />
+      <UsageCard label="Créditos de Clipper" value={company.credits[0]} total={company.credits[1]} tone="ai" />
     </div>
   );
 }

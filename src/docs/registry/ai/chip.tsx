@@ -95,7 +95,7 @@ export const chipEntry = defineEntry({
 <Chip label="Negativo" tone="negative" />
 <Chip label="Alerta" tone="warning" />
 <Chip label="Info" tone="info" />
-<Chip label="Sugerido por IA" tone="ai" icon="sparkles" />`,
+<Chip label="Sugerido por Clipper" tone="ai" icon="sparkles" />`,
       render: () => (
         <div className="flex flex-wrap gap-2">
           <Chip label="Default" />
@@ -105,7 +105,7 @@ export const chipEntry = defineEntry({
           <Chip label="Negativo" tone="negative" />
           <Chip label="Alerta" tone="warning" />
           <Chip label="Info" tone="info" />
-          <Chip label="Sugerido por IA" tone="ai" icon="sparkles" />
+          <Chip label="Sugerido por Clipper" tone="ai" icon="sparkles" />
         </div>
       ),
     },

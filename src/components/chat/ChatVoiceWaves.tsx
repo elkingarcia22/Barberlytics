@@ -74,6 +74,8 @@ export function ChatVoiceWaves({ state, pulse, className }: ChatVoiceWavesProps)
     if (!canvas || !context) return;
     const stops = readStops(canvas);
     const reduced = prefersReducedMotion();
+    // En oscuro las capas suman luz; en claro se superponen sin más (sumadas sobre blanco se quemarían).
+    const blend: GlobalCompositeOperation = canvas.closest(".dark") ? "lighter" : "source-over";
     let amplitude = target.current.amplitude;
     let speed = target.current.speed;
     let phase = 0;
@@ -102,7 +104,7 @@ export function ChatVoiceWaves({ state, pulse, className }: ChatVoiceWavesProps)
       const { width, height } = canvas.getBoundingClientRect();
       const middle = height / 2;
       context.clearRect(0, 0, width, height);
-      context.globalCompositeOperation = "lighter";
+      context.globalCompositeOperation = blend;
 
       for (const [index, layer] of LAYERS.entries()) {
         const gradient = context.createLinearGradient(0, 0, width, 0);

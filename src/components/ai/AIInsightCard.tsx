@@ -1,4 +1,5 @@
-import { Sparkles, AlertTriangle, Lightbulb, Target, ArrowRight } from "lucide-react"
+import { AlertTriangle, Lightbulb, Target, ArrowRight } from "lucide-react"
+import { ClipperIcon } from "@/components/ai-interaction";
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,7 @@ export type AIInsightCardProps = {
 
 const typeConfig = {
   insight: {
-    icon: Sparkles,
+    icon: ClipperIcon,
     label: "Insight IA",
     className: "border-primary/20 bg-primary/5 text-primary",
     iconColor: "text-primary"

@@ -15,5 +15,5 @@ export type {
 export { CHAT_MULTIPLE_SEPARATOR, CHAT_QUANTITY_MARK, splitMultipleAnswer, splitQuantity, withQuantity } from "./question";
 export { createChatStore, type ChatPersistence, type ChatStore, type ChatStoreOptions } from "./store";
 export { createDemoBackend, type DemoBackendOptions } from "./demoBackend";
-export { createRecognizer, isSpeechRecognitionSupported, isSpeechSynthesisSupported, speak, type Recognizer, type RecognizerOptions } from "./speech";
+export { createRecognizer, isSpeechRecognitionSupported, isSpeechSynthesisSupported, loadVoices, pickVoice, speak, toSpeech, type Recognizer, type RecognizerOptions, type SpeakOptions, type VoiceGender, type VoiceLike } from "./speech";
 export { groupConversations, type ConversationGroup, type ConversationGroupKey } from "./history";

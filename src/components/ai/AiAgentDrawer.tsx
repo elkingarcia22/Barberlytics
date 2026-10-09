@@ -1,8 +1,9 @@
 import * as React from "react";
+import { ClipperOrb } from "@/components/ai-interaction";
 import { cn } from "@/lib/utils";
 import { ShellAgentPanelSlot } from "@/components/app-shell";
 import { MovingBorderBeam } from "@/components/ui/moving-border-beam";
-import { ArrowUp, Plus, Sparkles, X } from "lucide-react";
+import { ArrowUp, Plus, X } from "lucide-react";
 import { AI_GRADIENT } from "@/components/app-shell/appShellData";
 import { useShellConfig } from "@/components/app-shell/shellConfig";
 import { AGENT_PANEL_OUTER_WIDTH, AGENT_PANEL_WIDTH, OVERLAY_INSET, agentPanelTransition } from "./agentPanelMotion";
@@ -29,7 +30,7 @@ const CONTEXT_CONFIG = {
     title: "Asistente de Plataforma",
     placeholder: "¿Qué deseas hacer con tus encuestas?",
     suggestions: [
-      "Crear una encuesta con IA",
+      "Crear una encuesta con Clipper",
       "Comparar encuestas recientes",
       "Cargar encuestas históricas",
       "Preguntas frecuentes sobre encuestas",
@@ -120,14 +121,9 @@ export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", custo
             >
               {/* Header */}
               <div className="shrink-0 flex items-center gap-3 px-5 py-3.5 border-b border-border/20">
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                  style={{ background: AI_GRADIENT }}
-                >
-                  <Sparkles className="h-4 w-4 text-white" strokeWidth={2} />
-                </span>
+                <ClipperOrb size={32} state="idle" className="shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-[13px] font-bold text-text-primary leading-tight">Agente IA</h2>
+                  <h2 className="text-[13px] font-bold text-text-primary leading-tight">Clipper</h2>
                   <p className="text-[11px] text-text-muted">{config.title}</p>
                 </div>
                 <button

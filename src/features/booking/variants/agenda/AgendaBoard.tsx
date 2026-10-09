@@ -17,6 +17,7 @@ import { personName } from "../../bookingState";
 import { dayKeyOf, firstBookableDay, parseStart } from "../../bookingFormat";
 import { BarberProfileDrawer } from "../../flow/BarberProfileDrawer";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { STEP_WIDTH } from "../../flow/stepWidth";
 import { AlternativeBarbers } from "../../flow/AlternativeBarbers";
 import { EarliestSlot } from "../../flow/EarliestSlot";
 import { PersonPicker } from "../../flow/PersonPicker";
@@ -112,15 +113,34 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
   const waitlistKey = `${dayKey}|any`;
   const nextSlot = earliest.data?.slot ?? null;
 
+  const heading = (
+    <header className="flex flex-wrap items-end justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {/* Sobre la foto: el texto con su tono pleno y una sombra del color del fondo, para que se lea en cualquier parte de la imagen. */}
+        <Heading level={layout === "wide" ? 2 : 3} className={cn(isSelect && "[text-shadow:0_1px_16px_hsl(var(--background))]")}>
+          {t(isSelect ? "booking.agenda.selectTitle" : "booking.agenda.title")}
+        </Heading>
+        <Text tone={isSelect ? "default" : "secondary"} className={cn(isSelect && "[text-shadow:0_1px_10px_hsl(var(--background))]")}>
+          {t(isSelect ? "booking.agenda.selectLead" : "booking.agenda.lead")}
+        </Text>
+      </div>
+      {servicePicker === "chips" && <AgendaBranchSelect />}
+    </header>
+  );
+  // La portada (como la entrada de Paso a paso): la foto de la barbería de fondo, que se funde hacia abajo.
+  const cover = shop.coverUrl ?? shop.branches.find((branch) => branch.imageUrl)?.imageUrl ?? null;
+
   return (
-    <div className={cn("flex flex-col gap-6 px-5 pb-8 pt-6", layout === "wide" && "px-8 pt-8")}>
-      <header className="flex flex-wrap items-end justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Heading level={layout === "wide" ? 2 : 3}>{t(isSelect ? "booking.agenda.selectTitle" : "booking.agenda.title")}</Heading>
-          <Text tone="secondary">{t(isSelect ? "booking.agenda.selectLead" : "booking.agenda.lead")}</Text>
-        </div>
-        {servicePicker === "chips" && <AgendaBranchSelect />}
-      </header>
+    <>
+    {isSelect && (
+      <div className={cn("relative shrink-0 overflow-hidden bg-surface-subtle", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
+        {cover && <img src={cover} alt="" className="size-full object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/45" />
+      </div>
+    )}
+    {/* La Agenda con selector se lee como Paso a paso: una columna centrada, del mismo ancho. */}
+    <div className={cn("relative flex flex-col gap-6 px-5 pb-8 pt-6", layout === "wide" && "px-8 pt-8", isSelect && cn("mx-auto w-full", STEP_WIDTH[layout], layout === "wide" ? "-mt-60" : "-mt-48"))}>
+      {!isSelect && heading}
 
       {editing && (
         <Alert variant="info">
@@ -135,11 +155,13 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
       )}
 
       {isSelect ? (
-        <>
+        // Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo.
+        <section className="flex flex-col gap-5">
+          {heading}
           {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
           {state.customer && <PersonPicker />}
           <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
-        </>
+        </section>
       ) : (
         <section aria-labelledby="agenda-what" className="flex flex-col gap-2.5">
           <Text id="agenda-what" size="sm" weight="medium">
@@ -262,5 +284,6 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
         }}
       />
     </div>
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Sparkles } from "lucide-react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ActionRailShell,
@@ -262,9 +262,9 @@ export function DataListActionRail({
                         aria-label={agent.label}
                         data-testid="rail-agent"
                         onClick={() => agent.onSelect?.()}
-                        className="hover-icon-pop bg-ai-gradient relative flex size-10 items-center justify-center rounded-xl text-white shadow-ai-premium transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95"
+                        className="hover-icon-pop relative flex size-10 items-center justify-center rounded-xl text-white transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95"
                       >
-                        <Sparkles className="size-[18px]" strokeWidth={2.5} />
+                        <ClipperIcon className="size-[26px]" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>{agent.label}</TooltipContent>

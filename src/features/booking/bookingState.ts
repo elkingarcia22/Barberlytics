@@ -63,6 +63,8 @@ export interface BookingState {
   /** Fotos del corte que quiere (data URL), hasta `MAX_REFERENCE_PHOTOS`. */
   referencePhotos: readonly string[];
   reservation: Reservation | null;
+  /** La tarjeta con la que se va a pagar («Visa •••• 4242»), para mostrarla en el resumen. */
+  payCard: string | null;
 }
 
 export type BookingAction =
@@ -78,6 +80,8 @@ export type BookingAction =
   | { type: "acceptSuggestion"; branchId: string; serviceIds: string[]; barberId: string; start: string }
   | { type: "chooseBranch"; branchId: string }
   | { type: "setPerson"; person: BookingPerson }
+  /** Cambia para quién es una cita ya apartada (en el checkout). */
+  | { type: "setItemPerson"; key: string; person: BookingPerson }
   | { type: "toggleService"; serviceId: string }
   | { type: "chooseBarber"; barberId: string | null }
   | { type: "chooseTime"; start: string }
@@ -100,6 +104,7 @@ export type BookingAction =
   | { type: "setUseReward"; useReward: boolean }
   | { type: "setUsePackages"; usePackages: boolean }
   | { type: "setMethod"; method: PayMethod }
+  | { type: "setPayCard"; card: string | null }
   | { type: "setNotes"; notes: string }
   | { type: "addReferencePhoto"; photo: string }
   | { type: "removeReferencePhoto"; index: number }
@@ -123,7 +128,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null, payCard: null };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -177,6 +182,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, branchId: action.branchId, items: action.branchId === state.branchId ? state.items : [], products: action.branchId === state.branchId ? state.products : {}, draft: state.draft ?? emptyDraft(), step: "services" };
     case "setPerson":
       return state.draft ? { ...state, draft: { ...state.draft, person: action.person } } : state;
+    case "setItemPerson":
+      return { ...state, items: state.items.map((item) => (item.key === action.key ? { ...item, person: action.person } : item)) };
     case "toggleService": {
       if (!state.draft) return state;
       const has = state.draft.serviceIds.includes(action.serviceId);
@@ -227,6 +234,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, usePackages: action.usePackages };
     case "setMethod":
       return { ...state, method: action.method };
+    case "setPayCard":
+      return { ...state, payCard: action.card };
     case "setNotes":
       return { ...state, notes: action.notes };
     case "addReferencePhoto":

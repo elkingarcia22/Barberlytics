@@ -1,5 +1,5 @@
 {
-  "sourceHash": "d4bfe9df98d944a4",
+  "sourceHash": "ce6213367facbb93",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -1697,7 +1697,7 @@
         {
           "name": "title",
           "type": "string",
-          "default": "\"Insights de IA\"",
+          "default": "\"Insights de Clipper\"",
           "description": "Título junto a la chispa."
         },
         {
@@ -1786,13 +1786,13 @@
       "id": "ai-spark-glyph",
       "name": "AiSparkGlyph",
       "group": "ai",
-      "description": "La chispa de la IA: el destello grande con dos satélites que laten a destiempo. Vive suelta porque es la misma marca a 42px en el panel de análisis y a 18px en una tarjeta que se rehace; el latido escalonado es lo que la hace leerse como trabajo en curso.",
+      "description": "La marca de «la IA está trabajando»: el orbe de Clipper pensando (gira rápido, halo vivo). Vive suelta porque es la misma marca a 42px en el panel de análisis y a 18px en una tarjeta que se rehace; por debajo de 32px va sin halo ni anillo.",
       "import": "import { AiSparkGlyph } from \"@/components/ai-interaction\"",
       "source": "src/components/ai-interaction/AiSparkGlyph.tsx",
       "status": "stable",
       "tags": [
         "ia",
-        "svg",
+        "clipper",
         "degradado"
       ],
       "props": [
@@ -1806,7 +1806,7 @@
           "name": "className",
           "type": "string",
           "default": null,
-          "description": "Clases extra para el <svg>. Es `aria-hidden`: acompáñalo de texto."
+          "description": "Clases extra. Es `aria-hidden`: acompáñalo de texto."
         }
       ],
       "guidelines": {
@@ -1816,10 +1816,11 @@
         ],
         "dont": [
           "No la uses como icono decorativo en superficies que no son de IA: el degradado está reservado.",
-          "No dupliques el SVG en otro componente; importa este para que el dibujo no se separe."
+          "No dibujes otra chispa: usa este glifo o `ClipperOrb`."
         ]
       },
       "related": [
+        "clipper-orb",
         "ai-analyzing-state",
         "ai-generated-badge",
         "thema-icon"
@@ -1828,13 +1829,13 @@
         {
           "id": "sizes",
           "title": "Tamaños",
-          "description": "El SVG escala sin perder el trazo relativo; el degradado usa un id único por instancia.",
+          "description": "El orbe escala con el tamaño; bajo 32px pierde el halo y el anillo.",
           "code": "<AiSparkGlyph size={18} />\n<AiSparkGlyph size={24} />\n<AiSparkGlyph />\n<AiSparkGlyph size={64} />"
         },
         {
           "id": "halo",
           "title": "Con halo",
-          "description": "El halo difuminado que usa AiAnalyzingState detrás de la chispa, para cuando la pieza es la protagonista.",
+          "description": "Con el halo difuminado detrás, para cuando la pieza es la protagonista (a partir de 32px ya lo trae).",
           "code": "<div className=\"relative flex h-16 w-16 items-center justify-center\">\n  <div className=\"absolute h-11 w-11 animate-pulse rounded-full bg-ai-gradient opacity-20 blur-xl\" />\n  <AiSparkGlyph size={42} />\n</div>"
         }
       ],
@@ -2340,7 +2341,7 @@
           "id": "tones",
           "title": "Tonos",
           "description": "Los tonos de estado se reservan para significado; `ai` marca contenido o sugerencias que vienen de la IA.",
-          "code": "<Chip label=\"Default\" />\n<Chip label=\"Muted\" tone=\"muted\" />\n<Chip label=\"Primary\" tone=\"primary\" />\n<Chip label=\"Positivo\" tone=\"positive\" />\n<Chip label=\"Negativo\" tone=\"negative\" />\n<Chip label=\"Alerta\" tone=\"warning\" />\n<Chip label=\"Info\" tone=\"info\" />\n<Chip label=\"Sugerido por IA\" tone=\"ai\" icon=\"sparkles\" />"
+          "code": "<Chip label=\"Default\" />\n<Chip label=\"Muted\" tone=\"muted\" />\n<Chip label=\"Primary\" tone=\"primary\" />\n<Chip label=\"Positivo\" tone=\"positive\" />\n<Chip label=\"Negativo\" tone=\"negative\" />\n<Chip label=\"Alerta\" tone=\"warning\" />\n<Chip label=\"Info\" tone=\"info\" />\n<Chip label=\"Sugerido por Clipper\" tone=\"ai\" icon=\"sparkles\" />"
         },
         {
           "id": "selectable",
@@ -2363,6 +2364,73 @@
       ],
       "docs": "/docs#/components/chip",
       "ficha": "ai-tools/components/chip.md"
+    },
+    {
+      "id": "clipper-orb",
+      "name": "ClipperOrb",
+      "group": "ai",
+      "description": "El símbolo de la IA en todo el sistema: el orbe de Clipper, un poste de barbería hecho esfera de vidrio con el gradiente de IA. Gira, respira y late según lo que hace el agente. Es lo que dibuja `ThemaIcon name=\"sparkles\"`, `AiSparkGlyph`, `ChatMark` y la portada de Clipper.",
+      "import": "import { ClipperOrb } from \"@/components/ai-interaction\"",
+      "source": "src/components/ai-interaction/ClipperOrb.tsx",
+      "status": "stable",
+      "tags": [
+        "ia",
+        "marca",
+        "clipper",
+        "animación"
+      ],
+      "props": [
+        {
+          "name": "size",
+          "type": "number",
+          "default": "128",
+          "description": "Lado en px. Pequeño (14–24) acompaña a un texto; grande (120+) es la portada."
+        },
+        {
+          "name": "state",
+          "type": "\"idle\" | \"listening\" | \"thinking\"",
+          "default": "\"idle\"",
+          "description": "Lo que hace Clipper: reposo, escuchando (gira rápido y late) o pensando (el halo se aviva)."
+        },
+        {
+          "name": "bare",
+          "type": "boolean",
+          "default": "false",
+          "description": "Sin halo ni anillo, para tamaños pequeños."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo siempre que haya que mostrar «la IA»: botones, cargas, mensajes del agente, estados vacíos de IA.",
+          "Usa `state` para reflejar lo que hace Clipper (escucha, piensa)."
+        ],
+        "dont": [
+          "No dibujes otro destello o icono de IA: pide el orbe (`ThemaIcon name=\"sparkles\"` ya lo es).",
+          "No lo uses como decoración en superficies que no son de IA: es la marca del agente."
+        ]
+      },
+      "related": [
+        "ai-spark-glyph",
+        "ai-button",
+        "thema-icon",
+        "ai-analyzing-state"
+      ],
+      "examples": [
+        {
+          "id": "states",
+          "title": "Estados",
+          "description": "En reposo gira despacio; escuchando, rápido y late; pensando, el halo se aviva.",
+          "code": "<ClipperOrb size={96} />\n<ClipperOrb size={96} state=\"listening\" />\n<ClipperOrb size={96} state=\"thinking\" />"
+        },
+        {
+          "id": "small",
+          "title": "Pequeño, junto a un texto",
+          "description": "Hasta unos 32 px va `bare`: sin halo ni anillo, para no ensuciar el texto.",
+          "code": "<ClipperOrb size={16} bare />\n<ClipperOrb size={24} bare />"
+        }
+      ],
+      "docs": "/docs#/components/clipper-orb",
+      "ficha": "ai-tools/components/clipper-orb.md"
     },
     {
       "id": "save-indicator",
@@ -13237,7 +13305,7 @@
           "id": "collapsible",
           "title": "Plegable",
           "description": "La cabecera entera es el disparador; el chevron indica el estado. Para contenido de referencia.",
-          "code": "<DrawerSection\n  icon={Sparkles}\n  tone=\"ai\"\n  title=\"Sugerencias de IA\"\n  hint=\"Tres redacciones alternativas para el objetivo.\"\n  collapsible\n>\n  <ul>…</ul>\n</DrawerSection>"
+          "code": "<DrawerSection\n  icon={Sparkles}\n  tone=\"ai\"\n  title=\"Sugerencias de Clipper\"\n  hint=\"Tres redacciones alternativas para el objetivo.\"\n  collapsible\n>\n  <ul>…</ul>\n</DrawerSection>"
         },
         {
           "id": "sticky",
@@ -17490,7 +17558,7 @@
           "id": "ai",
           "title": "Variante IA",
           "description": "Malla de color y anillo degradado al seleccionar. Reservada a la superficie de IA del producto.",
-          "code": "<MagicCard variant=\"ai\" isSelected={selected} onClick={toggle} contentClassName=\"flex-col gap-1.5\">\n  <span className=\"flex items-center gap-2 text-sm font-semibold\"><Sparkles className=\"size-4\" /> Generar con IA</span>\n  <span className=\"text-xs text-text-secondary\">Redactamos las preguntas a partir de tu objetivo.</span>\n</MagicCard>"
+          "code": "<MagicCard variant=\"ai\" isSelected={selected} onClick={toggle} contentClassName=\"flex-col gap-1.5\">\n  <span className=\"flex items-center gap-2 text-sm font-semibold\"><Sparkles className=\"size-4\" /> Generar con Clipper</span>\n  <span className=\"text-xs text-text-secondary\">Redactamos las preguntas a partir de tu objetivo.</span>\n</MagicCard>"
         }
       ],
       "docs": "/docs#/components/magic-card",
@@ -20587,6 +20655,7 @@
     "layers",
     "link",
     "lock",
+    "login",
     "logout",
     "magicWand",
     "mail",

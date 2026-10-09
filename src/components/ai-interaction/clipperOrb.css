@@ -1,0 +1,171 @@
+/*
+ * El orbe de Clipper: el poste de barbería hecho esfera. Una esfera de vidrio con el gradiente de
+ * IA y franjas finas que suben en diagonal, el halo que respira y el anillo fino que da la
+ * vuelta. Escuchando gira más rápido y late; pensando, el halo se aviva. Solo usa los tokens
+ * `--color-ai-stop-*`. Con «reducir movimiento» queda quieto.
+ */
+
+@keyframes clipper-orb-spin {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 0 var(--clipper-orb-cycle);
+  }
+}
+
+@keyframes clipper-orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+  }
+}
+
+@keyframes clipper-orb-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes clipper-orb-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes clipper-orb-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+
+.clipper-orb {
+  --clipper-orb-band: calc(var(--clipper-orb-size) * 0.085);
+  --clipper-orb-cycle: calc(var(--clipper-orb-band) * 2 * 1.4142);
+  position: relative;
+  width: var(--clipper-orb-size);
+  height: var(--clipper-orb-size);
+  flex-shrink: 0;
+  perspective: calc(var(--clipper-orb-size) * 3);
+}
+
+/* ── Lo que comparten todas ─────────────────────────────────────────── */
+
+/* El halo: el mismo color, difuminado detrás. */
+.clipper-orb__halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: conic-gradient(from 90deg, var(--color-ai-stop-1), var(--color-ai-stop-2), var(--color-ai-stop-3), var(--color-ai-stop-5), var(--color-ai-stop-1));
+  filter: blur(calc(var(--clipper-orb-size) * 0.18));
+  animation: clipper-orb-breathe 4.5s ease-in-out infinite;
+}
+
+/* El anillo fino que da la vuelta por fuera. */
+.clipper-orb__ring {
+  position: absolute;
+  inset: -4%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0 55%, var(--color-ai-stop-1) 70%, var(--color-ai-stop-3) 85%, transparent 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  animation: clipper-orb-rotate 6s linear infinite;
+}
+
+/* La esfera base: el gradiente de IA de un lado al otro. */
+.clipper-orb__sphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-image: linear-gradient(120deg, var(--color-ai-stop-1), var(--color-ai-stop-2) 45%, var(--color-ai-stop-3) 75%, var(--color-ai-stop-5));
+}
+
+/* El vidrio: brillo arriba a la izquierda, reflejo abajo y bordes que se oscurecen como una esfera. */
+.clipper-orb__glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.12) 18%, transparent 34%),
+    radial-gradient(circle at 70% 88%, rgba(255, 255, 255, 0.18), transparent 30%),
+    radial-gradient(circle at 42% 38%, transparent 42%, hsl(var(--background) / 0.55) 78%, hsl(var(--background) / 0.9) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 calc(var(--clipper-orb-size) * 0.08) calc(var(--clipper-orb-size) * 0.24) rgba(var(--color-ai-stop-2-rgb), 0.4);
+}
+
+/* El poste: franjas finas en diagonal que suben, bajo el vidrio. */
+.clipper-orb .clipper-orb__sphere {
+  background-image:
+    linear-gradient(120deg, var(--color-ai-stop-1), var(--color-ai-stop-2) 45%, var(--color-ai-stop-3) 75%, var(--color-ai-stop-5)),
+    repeating-linear-gradient(135deg, transparent 0 var(--clipper-orb-band), hsl(var(--background) / 0.82) var(--clipper-orb-band) calc(var(--clipper-orb-band) * 2));
+  background-blend-mode: multiply;
+  background-size: 100% 100%, 100% var(--clipper-orb-cycle);
+  animation: clipper-orb-spin 3.2s linear infinite;
+}
+
+/* ── Estados ───────────────────────────────────────────────────────── */
+
+/* Escuchando: gira más rápido y la esfera late. */
+.clipper-orb[data-state="listening"] .clipper-orb__sphere {
+  animation-duration: 1.2s;
+}
+
+.clipper-orb[data-state="listening"] {
+  animation: clipper-orb-beat 1.2s ease-in-out infinite;
+}
+
+/* Pensando: el halo se aviva y el anillo corre. */
+.clipper-orb[data-state="thinking"] .clipper-orb__halo,
+.clipper-orb[data-state="thinking"] .clipper-orb__ring {
+  animation-duration: 1.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clipper-orb,
+  .clipper-orb *,
+  .clipper-orb *::after {
+    animation: none !important;
+  }
+}
+
+/* ── Modo claro ──────────────────────────────────────────────────────────
+ * Los bordes y las franjas se pintan con `--background`: en oscuro eso las hunde y la esfera
+ * se lee con volumen; en claro es casi blanco y la esfera se lava (franjas pálidas, borde
+ * neblinoso). Aquí se pintan con tinta oscura para que conserve volumen y franjas. El oscuro
+
+/* ── Modo claro ──────────────────────────────────────────────────────────
+ * Los bordes y las franjas se pintan con `--background`: en oscuro eso las hunde y la esfera
+ * se lee con volumen; en claro es casi blanco y la esfera se lava (franjas pálidas, borde
+ * neblinoso). Aquí se pintan con tinta oscura para que conserve volumen y franjas. El oscuro
+ * no se toca.
+ */
+html:not(.dark) .clipper-orb .clipper-orb__sphere {
+  background-image:
+    linear-gradient(120deg, var(--color-ai-stop-1), var(--color-ai-stop-2) 45%, var(--color-ai-stop-3) 75%, var(--color-ai-stop-5)),
+    repeating-linear-gradient(135deg, transparent 0 var(--clipper-orb-band), hsl(var(--foreground) / 0.38) var(--clipper-orb-band) calc(var(--clipper-orb-band) * 2));
+}
+
+html:not(.dark) .clipper-orb__glass {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1) 16%, transparent 30%),
+    radial-gradient(circle at 70% 88%, rgba(255, 255, 255, 0.14), transparent 30%),
+    radial-gradient(circle at 42% 38%, transparent 50%, hsl(var(--foreground) / 0.22) 100%);
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--foreground) / 0.1),
+    0 calc(var(--clipper-orb-size) * 0.08) calc(var(--clipper-orb-size) * 0.22) rgba(var(--color-ai-stop-2-rgb), 0.35);
+}

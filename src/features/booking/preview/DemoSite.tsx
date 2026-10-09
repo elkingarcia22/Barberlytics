@@ -130,6 +130,8 @@ export function DemoSite({ version = "guided" }: { version?: BookingVersion }) {
       <Button
         type="button"
         size="lg"
+        // Abierto, el botón principal es el de la reserva (pagar, continuar): cerrar pasa a secundario.
+        variant={isOpen ? "secondary" : "default"}
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
         className="absolute bottom-6 right-4 z-overlay shadow-xl"

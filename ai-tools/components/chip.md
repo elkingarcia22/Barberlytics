@@ -50,7 +50,7 @@ Los tonos de estado se reservan para significado; `ai` marca contenido o sugeren
 <Chip label="Negativo" tone="negative" />
 <Chip label="Alerta" tone="warning" />
 <Chip label="Info" tone="info" />
-<Chip label="Sugerido por IA" tone="ai" icon="sparkles" />
+<Chip label="Sugerido por Clipper" tone="ai" icon="sparkles" />
 ```
 
 ### Filtros seleccionables

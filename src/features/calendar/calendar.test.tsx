@@ -826,7 +826,7 @@ describe("Calendario", () => {
     await screen.findByRole("region", { name: "Agenda del día por barbero" });
     // El resumen del día está con las demás acciones de la pantalla, plegado en «Más acciones».
     await user.click(screen.getByRole("button", { name: "Más acciones" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Resumen del día con IA" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Resumen del día con Clipper" }));
     const assistant = await screen.findByTestId("calendar-assistant");
     expect(within(assistant).getByText("Hoy conviene mirar")).toBeInTheDocument();
 

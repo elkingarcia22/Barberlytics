@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**203 componentes** en 21 familias · 100 iconos en el registro · 113 tokens.
+**204 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -231,7 +231,7 @@ ECharts con el tema Thema resuelto en tiempo real.
 - **MetricCard** [metric-card] — La tarjeta de la que se hace una fila de indicadores: acento vertical del tono junto al título, icono en chip, número grande y neutro, píld… `@/components/charts`
 - **SparklineChart** [sparkline-chart] — Línea ultracompacta sin ejes, leyenda ni cuadrícula, pensada para acompañar un número: dentro de un KpiCard, en una celda de tabla o al lad… `@/components/charts`
 
-## IA · 16
+## IA · 17
 
 Botones, loaders, badges y paneles con la identidad de IA.
 
@@ -242,7 +242,7 @@ Botones, loaders, badges y paneles con la identidad de IA.
 - **AIInsightCard** [ai-insight-card] — Tarjeta para un hallazgo de la IA: tipo (insight, riesgo, recomendación u oportunidad), nivel de confianza, evidencia e impacto en dos colu… `@/components/ai`
 - **AILoader** [ai-loader] — Estado de espera mientras la IA trabaja, en tres formas: una línea con spinner, un bloque con esqueleto o una tarjeta con progreso. `@/components/ai-interaction`
 - **AIPanel** [ai-panel] — Contenedor de insights de IA: una Card con la chispa en el título, acciones en la cabecera, pie opcional y estados de carga y vacío ya resu… `@/components/ai`
-- **AiSparkGlyph** [ai-spark-glyph] — La chispa de la IA: el destello grande con dos satélites que laten a destiempo. `@/components/ai-interaction`
+- **AiSparkGlyph** [ai-spark-glyph] — La marca de «la IA está trabajando»: el orbe de Clipper pensando (gira rápido, halo vivo). `@/components/ai-interaction`
 - **ChatComposer** [chat-composer] (beta) — La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y… `@/components/chat`
 - **ChatPanel** [chat-panel] (beta) — El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. `@/components/chat`
 - **ChatQuestionCard** [chat-question-card] (beta) — Una pregunta del agente con opciones numeradas: se contesta tocando, con la tecla del número o escribiendo en «Otro». `@/components/chat`
@@ -250,6 +250,7 @@ Botones, loaders, badges y paneles con la identidad de IA.
 - **ChatThread** [chat-thread] (beta) — El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben sola… `@/components/chat`
 - **ChatVoiceMode** [chat-voice-mode] (beta) — El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande… `@/components/chat`
 - **Chip** [chip] — Pastilla compacta para filtros, etiquetas y sugerencias. `@/components/ai-interaction`
+- **ClipperOrb** [clipper-orb] — El símbolo de la IA en todo el sistema: el orbe de Clipper, un poste de barbería hecho esfera de vidrio con el gradiente de IA. `@/components/ai-interaction`
 - **SaveIndicator** [save-indicator] — Indicador discreto del estado de autoguardado: en la nube, guardando, guardado, error o sin conexión. `@/components/ai-interaction`
 
 ## Action rail · 10
@@ -338,4 +339,4 @@ Composiciones completas listas para una pantalla: piezas del sistema ya cableada
 
 ## Iconos del registro
 
-`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, bug, building, calendar, calendarAdd, camera, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, facebook, feedback, file, filter, flag, folderAdd, globe, google, graduation, help, home, idea, image, info, instagram, layers, link, lock, logout, magicWand, mail, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, queue, record, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, star, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, video, volume, warning, zoomIn, zoomOut
+`<ThemaIcon name="…" />` · analytics, arrowLeft, arrowRight, attach, audioWave, award, bolt, bug, building, calendar, calendarAdd, camera, chart, chat, check, chevronDown, chevronLeft, chevronRight, chevronUp, clock, close, code, compass, copy, crop, dashboard, download, edit, error, expand, eyeOff, eyeOn, facebook, feedback, file, filter, flag, folderAdd, globe, google, graduation, help, home, idea, image, info, instagram, layers, link, lock, login, logout, magicWand, mail, mic, micOff, microsoft, moon, more, neutral, notification, palette, pause, phone, plus, pointer, queue, record, refresh, rocket, rotateLeft, rotateRight, scissors, search, securityLock, send, settings, share, smsCode, sparkles, star, stop, success, sun, survey, task, templates, thumbsDown, thumbsUp, ticket, trendDown, trendUp, upload, userAdd, users, vacancies, video, volume, warning, zoomIn, zoomOut

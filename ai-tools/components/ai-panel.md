@@ -12,7 +12,7 @@ import { AIPanel } from "@/components/ai"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `title` | `string` | `"Insights de IA"` | Título junto a la chispa. |
+| `title` | `string` | `"Insights de Clipper"` | Título junto a la chispa. |
 | `description` | `string` |  | Subtítulo bajo el título. |
 | `children` | `React.ReactNode` |  | Contenido, normalmente AIInsightCard. Se apila en una columna con gap. |
 | `actions` | `React.ReactNode` |  | Botones a la derecha de la cabecera. |

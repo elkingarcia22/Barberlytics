@@ -1,9 +1,10 @@
 import * as React from "react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import { RailAgentProvider, type RailActionSpec } from "@/components/action-rail";
 import { AiSparkGlyph } from "@/components/ai-interaction";
 import { PageHeaderExtrasProvider } from "@/components/utility";
 import { AgentButton } from "./AgentButton";
-import { Armchair, BookOpen, ConciergeBell, Crown, ListChecks, Scissors, ShieldCheck, Sparkles } from "lucide-react";
+import { Armchair, BookOpen, ConciergeBell, Crown, ListChecks, Scissors, ShieldCheck } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { AdminShell, PersonalizationMenu, type ChatHistoryGroup, type ShellConfigOverrides, type ShellMode, type UserRoleOption } from "@/components/app-shell";
 import { ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, type ChatContextValue } from "@/components/chat";
@@ -262,7 +263,7 @@ export function AppLayout() {
       onAgentPrompt: (prompt) => chatStore.send(prompt, chatBackend),
       // «Ayuda» abre tres puertas: preguntar (el chat), leer (el centro de ayuda) y que te guíen (paso a paso).
       helpActions: [
-        { id: "ask", label: t("help.menuAsk"), description: t("help.menuAskHint"), icon: Sparkles, tone: "ai", onSelect: openHelp },
+        { id: "ask", label: t("help.menuAsk"), description: t("help.menuAskHint"), icon: ClipperIcon, tone: "ai", onSelect: openHelp },
         { id: "center", label: t("help.menuCenter"), description: t("help.menuCenterHint"), icon: BookOpen, onSelect: () => navigate(helpPath()) },
         { id: "guide", label: t("help.menuGuide"), description: t("help.menuGuideHint"), icon: ListChecks, onSelect: () => setIsGuidesOpen(true) },
       ],

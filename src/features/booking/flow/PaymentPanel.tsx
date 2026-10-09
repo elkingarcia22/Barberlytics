@@ -115,12 +115,12 @@ export function PaymentPanel({ payment, showOrder = true, compact = false }: Pay
         )}
       </section>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <PackagesToggle />
         <MembershipPerk />
-        {/* Compacto, los dos enlaces van en una línea; el que se abre toma el ancho entero. */}
-        <div className={compact ? "flex flex-wrap items-start gap-x-4 gap-y-2 [&>*:not(button)]:basis-full" : "contents"}>
-          {compact && !state.promo && !isPromoOpen ? (
+        {/* Cupón y tarjeta de regalo empiezan como dos enlaces en una línea; el que se abre toma el ancho entero. */}
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-4 [&>*:not(button)]:basis-full">
+          {!state.promo && !isPromoOpen ? (
             <Button type="button" variant="link" size="sm" className="self-start px-0" onClick={() => setIsPromoOpen(true)}>
               {t("booking.payment.promoAsk")}
             </Button>

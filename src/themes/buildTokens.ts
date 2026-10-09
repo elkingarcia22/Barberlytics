@@ -1,4 +1,4 @@
-import { hexToChannels, hexToHsl, hexToRgb, hslChannels, hslToHex, readableForeground, shiftLightness } from "./color";
+import { apcaContrast, hexToChannels, hexToHsl, hexToRgb, hslChannels, hslToHex, mix, readableForeground, shiftLightness } from "./color";
 import { findFont, resolveHeadingFont, type FontId, type HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 
@@ -128,7 +128,31 @@ function buildAiTokens(preset: ThemePreset, mode: ResolvedMode): ThemeTokens {
     tokens[`--color-ai-stop-${index + 1}`] = hex;
     tokens[`--color-ai-stop-${index + 1}-rgb`] = rgb(hex);
   });
+  tokens["--color-ai-ink"] = aiInk([stops[0], stops[1], stops[2], stops[4]]);
   return tokens;
+}
+
+/** La tinta oscura que va sobre el gradiente de IA cuando el blanco no se lee. */
+export const AI_DARK_INK = "#111827";
+/** Cuántos puntos del gradiente se miran y cuánto (en Lc) debe ganar el blanco para elegirse. */
+const AI_INK_SAMPLES = 11;
+const AI_INK_TIE = 5;
+
+/**
+ * El texto sobre el gradiente de IA (el botón principal de IA): blanco o tinta oscura, por tema y por
+ * modo. Se muestrea el gradiente (paradas 1, 2, 3 y 5 en 0 %, 40 %, 75 % y 100 %, como lo pinta
+ * `aiButton.css`) en el tramo donde cae el texto, del 15 % al 85 %, y gana la tinta cuyo punto más
+ * débil se lea mejor con contraste perceptual (APCA). Si empatan casi, gana la tinta oscura.
+ */
+export function aiInk(stops: readonly string[]): string {
+  const positions = [0, 0.4, 0.75, 1];
+  const colorAt = (t: number) => {
+    const i = Math.max(0, positions.findIndex((p, k) => t >= p && t <= positions[k + 1]));
+    return mix(stops[i], stops[i + 1], (t - positions[i]) / (positions[i + 1] - positions[i]));
+  };
+  const samples = Array.from({ length: AI_INK_SAMPLES }, (_, k) => colorAt(0.15 + (0.7 * k) / (AI_INK_SAMPLES - 1)));
+  const weakest = (ink: string) => Math.min(...samples.map((color) => Math.abs(apcaContrast(ink, color))));
+  return weakest("#ffffff") > weakest(AI_DARK_INK) + AI_INK_TIE ? "#ffffff" : AI_DARK_INK;
 }
 
 /**

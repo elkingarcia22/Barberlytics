@@ -17,7 +17,7 @@ import { clockMinutes, dayKeyOf, isSameDayAs, isTodayOver, parseStart, toStart }
 import { useAvailabilityQuery, useRescheduleMutation } from "../queries";
 import type { BookedAppointment } from "../types";
 import { useBookingFlow } from "./BookingContext";
-import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "./drawerFit";
 
 const HOUR = 60;
 const WINDOW_DAYS = 42;
@@ -73,7 +73,7 @@ export function RescheduleDrawer({ appointment, token, onOpenChange }: Reschedul
     <DrawerShell
       open={appointment !== null}
       onOpenChange={onOpenChange}
-      side={layout === "wide" ? "right" : "bottom"}
+      side={sheetSide({ layout, touch })}
       contentStyle={DRAWER_FIT_STYLE}
       size="lg"
       title={t("booking.reschedule.title")}

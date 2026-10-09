@@ -2,6 +2,7 @@ import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { PaymentPanel, PayButton } from "../flow/PaymentPanel";
 import { usePaymentController } from "../flow/usePaymentController";
+import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
 
 /**
@@ -12,6 +13,7 @@ import { StepLayout } from "../flow/StepLayout";
 export function PaymentStep() {
   const t = useAppT();
   const payment = usePaymentController();
+  const { layout } = useBookingFlow();
 
   return (
     <StepLayout
@@ -26,7 +28,8 @@ export function PaymentStep() {
         </div>
       }
     >
-      <PaymentPanel payment={payment} />
+      {/* En monitor la cuenta se ve en el resumen de la derecha. */}
+      <PaymentPanel payment={payment} showOrder={layout !== "wide"} />
     </StepLayout>
   );
 }

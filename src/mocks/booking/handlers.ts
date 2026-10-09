@@ -714,6 +714,32 @@ export const bookingHandlers = [
     return HttpResponse.json({ appointment: bookedOf(updated), fee: terms.fee, refund: terms.refund, refundTo });
   }),
 
+  // Nota y fotos para el barbero, ya con la reserva hecha: se suman a las de sus citas.
+  http.post(`${BASE}/reservations/:id/details`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const client = sessionClient(request);
+    if (!client) return error(403, "booking_session", "Vuelve a pedir el código para agregar tu nota.");
+    const reservation = db.booking.reservations.find((item) => item.id === params.id && item.customerId === client.id);
+    if (!reservation) return error(404, "not_found", "Esa reserva no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const note = text(input.notes);
+    const photos = (Array.isArray(input.referencePhotos) ? input.referencePhotos : []).map((photo) => text(photo)).filter(Boolean);
+    const badPhoto = photos.length > MAX_REFERENCE_PHOTOS || photos.some((photo) => !(PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS));
+    if (badPhoto) return error(422, "validation", "La foto no se pudo subir. Prueba con otra.", { fields: { referencePhotos: ["La foto no se pudo subir. Prueba con otra."] } });
+    const ids = new Set(reservation.lines.map((line) => line.appointmentId));
+    db.calendar.appointments = db.calendar.appointments.map((item) =>
+      ids.has(item.id)
+        ? {
+            ...item,
+            notes: [item.notes, note, photos.length > 0 ? "Trae foto de referencia" : null].filter(Boolean).join(" · ") || null,
+            referencePhotos: [...(item.referencePhotos ?? []), ...photos].slice(0, MAX_REFERENCE_PHOTOS),
+          }
+        : item
+    );
+    db.persist();
+    return HttpResponse.json({ saved: true });
+  }),
+
   http.post(`${BASE}/reservations/:id/receipt`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     const reservation = db.booking.reservations.find((item) => item.id === params.id);

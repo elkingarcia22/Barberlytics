@@ -1,7 +1,7 @@
 import * as React from "react";
 import { DrawerShell } from "@/components/overlays";
 import { useBookingFlow } from "./BookingContext";
-import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "./drawerFit";
 
 interface BookingSheetProps {
   open: boolean;
@@ -20,12 +20,12 @@ interface BookingSheetProps {
  * Un modal centrado se siente de escritorio dentro de una pantalla de celular.
  */
 export function BookingSheet({ open, onOpenChange, title, description, actions, children }: BookingSheetProps) {
-  const { layout } = useBookingFlow();
+  const { layout, touch } = useBookingFlow();
   return (
     <DrawerShell
       open={open}
       onOpenChange={onOpenChange}
-      side={layout === "wide" ? "right" : "bottom"}
+      side={sheetSide({ layout, touch })}
       contentStyle={DRAWER_FIT_STYLE}
       title={title}
       description={description}

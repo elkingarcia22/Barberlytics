@@ -26,7 +26,7 @@ const plain = (value: string): string => value.toLowerCase().normalize("NFD").re
  * con 30, y las horas libres quedan a la vista. Se elige dentro y se aplica con
  * «Ver horas»; cerrar sin aplicar no cambia nada.
  */
-export function AgendaServiceField({ labelledBy }: { labelledBy: string }) {
+export function AgendaServiceField({ labelledBy, eyebrow }: { labelledBy: string; eyebrow?: string }) {
   const t = useAppT();
   const { state, dispatch, catalog, catalogLoading, fmt, touch } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
@@ -59,6 +59,8 @@ export function AgendaServiceField({ labelledBy }: { labelledBy: string }) {
   return (
     <>
       <PickerField
+        asCard
+        eyebrow={eyebrow}
         labelledBy={labelledBy}
         imageUrl={chosen[0]?.imageUrl}
         icon="scissors"

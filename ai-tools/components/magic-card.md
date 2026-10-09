@@ -68,7 +68,7 @@ Malla de color y anillo degradado al seleccionar. Reservada a la superficie de I
 
 ```tsx
 <MagicCard variant="ai" isSelected={selected} onClick={toggle} contentClassName="flex-col gap-1.5">
-  <span className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4" /> Generar con IA</span>
+  <span className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4" /> Generar con Clipper</span>
   <span className="text-xs text-text-secondary">Redactamos las preguntas a partir de tu objetivo.</span>
 </MagicCard>
 ```

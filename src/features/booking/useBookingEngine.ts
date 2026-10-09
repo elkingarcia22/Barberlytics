@@ -10,6 +10,7 @@ interface BookingEngineOptions {
   layout: BookingLayout;
   touch: "default" | "lg";
   surface: BookingSurface;
+  isPhone: boolean;
 }
 
 /**
@@ -17,7 +18,7 @@ interface BookingEngineOptions {
  * estado (quién reserva, el carrito), las cuentas y el embudo. Las tres versiones
  * lo montan igual; lo que cada una cambia es cómo se recorre.
  */
-export function useBookingEngine({ layout, touch, surface }: BookingEngineOptions) {
+export function useBookingEngine({ layout, touch, surface, isPhone }: BookingEngineOptions) {
   const shopQuery = useBookingShopQuery();
   const [state, dispatch] = React.useReducer(bookingReducer, undefined, () => initialBookingState());
   const shop = shopQuery.data;
@@ -38,8 +39,8 @@ export function useBookingEngine({ layout, touch, surface }: BookingEngineOption
   const tracking = useFunnelTracking(state.step, surface);
   const setToken = React.useCallback((token: string | null) => dispatch({ type: "setToken", token }), []);
   const value = React.useMemo<BookingFlowValue | null>(
-    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, token: state.token, setToken, utm: tracking.utm } : null),
-    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, setToken, tracking.utm]
+    () => (shop ? { state, dispatch, shop, catalog: catalogQuery.data, catalogLoading: catalogQuery.isLoading, totals, fmt, layout, touch, isPhone, token: state.token, setToken, utm: tracking.utm } : null),
+    [shop, state, catalogQuery.data, catalogQuery.isLoading, totals, fmt, layout, touch, isPhone, setToken, tracking.utm]
   );
 
   return { shopQuery, value };

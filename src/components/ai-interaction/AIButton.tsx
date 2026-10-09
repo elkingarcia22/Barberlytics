@@ -1,6 +1,9 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons/ThemaIcon";
+import { ClipperOrb } from "./ClipperOrb";
+import "./aiButton.css";
 import type { AIButtonProps } from "./aiInteractionTypes";
 
 export function AIButton({
@@ -35,6 +38,12 @@ export function AIButton({
 
   const isPrimary = variant === "primary";
   const isOutline = variant === "secondary" || variant === "outline";
+  // En los de contorno, el icono también lleva el gradiente de IA: un SVG no toma `background-clip: text`,
+  // así que su trazo apunta a un degradado definido aquí.
+  const gradientId = `ai-btn-${React.useId().replace(/:/g, "")}`;
+  const iconGradient = isOutline && !disabled ? "[&_*]:[stroke:var(--ai-icon-gradient)]" : undefined;
+
+  const orbSize = size === "xs" ? 14 : size === "lg" ? 24 : 20;
 
   return (
     <div className={cn("inline-flex flex-col gap-1.5", className)}>
@@ -47,7 +56,8 @@ export function AIButton({
         aria-busy={loading}
         className={cn(
           "relative overflow-hidden transition-all duration-300 font-bold rounded-full",
-          isPrimary && !disabled && "bg-ai-gradient text-primary-foreground border-transparent shadow-ai-premium hover:opacity-90 active:scale-95",
+          // El principal es el poste de Clipper: el gradiente de IA con franjas que suben, como su orbe.
+          isPrimary && !disabled && "ai-pole-button border-transparent shadow-ai-premium hover:brightness-105 active:scale-95",
           isOutline && !disabled && "border-ai-gradient hover:opacity-80 active:scale-95",
           size === "xs" && "h-7 px-3 text-[10px] gap-1",
           size === "sm" && "h-8 px-4 text-xs gap-1.5",
@@ -64,30 +74,36 @@ export function AIButton({
             <span>{label || children || "Generando..."}</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", iconGradient)} style={isOutline ? ({ "--ai-icon-gradient": `url(#${gradientId})` } as React.CSSProperties) : undefined}>
+            {isOutline && (
+              <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" style={{ stopColor: "var(--color-ai-stop-1)" }} />
+                    <stop offset="38%" style={{ stopColor: "var(--color-ai-stop-2)" }} />
+                    <stop offset="72%" style={{ stopColor: "var(--color-ai-stop-3)" }} />
+                    <stop offset="100%" style={{ stopColor: "var(--color-ai-stop-5)" }} />
+                  </linearGradient>
+                </defs>
+              </svg>
+            )}
             {leftIcon && (
               <ThemaIcon 
                 name={leftIcon} 
                 size={size === "xs" ? "xs" : "sm"} 
-                tone={isPrimary ? "inverse" : "default"}
-                className={cn(!isPrimary && "text-ai-gradient")} 
+                tone="default"
+                className={cn(isPrimary ? "text-current" : "text-ai-gradient")} 
               />
             )}
-            {!leftIcon && (
-              <ThemaIcon 
-                name="sparkles" 
-                size={size === "xs" ? "xs" : "sm"} 
-                tone={isPrimary ? "inverse" : "default"}
-                className={cn(!isPrimary && "text-ai-gradient")} 
-              />
-            )}
-            <span className={cn(isPrimary && "text-primary-foreground")}>{label || children}</span>
+            {/* El principal ya es el poste de Clipper: no lleva orbe. */}
+            {!leftIcon && !isPrimary && <ClipperOrb bare size={orbSize} className="shrink-0" />}
+            <span className={cn(isPrimary && "relative font-extrabold", isOutline && !disabled && "text-ai-gradient")}>{label || children}</span>
             {rightIcon && (
               <ThemaIcon 
                 name={rightIcon} 
                 size={size === "xs" ? "xs" : "sm"} 
-                tone={isPrimary ? "inverse" : "default"}
-                className={cn(!isPrimary && "text-ai-gradient")} 
+                tone="default"
+                className={cn(isPrimary ? "text-current" : "text-ai-gradient")} 
               />
             )}
           </div>

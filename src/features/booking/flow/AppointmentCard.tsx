@@ -28,6 +28,8 @@ interface AppointmentCardProps {
   /** Estado o etiqueta arriba a la derecha (Confirmada, Pagada…). */
   status?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Lo que va al final de la fila «Para» (cambiar para quién es, en el resumen). */
+  personAction?: React.ReactNode;
   /** Atenuada: cancelada o pasada. */
   muted?: boolean;
 }
@@ -49,7 +51,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
  * filas con su etiqueta, qué se hace, para quién y con quién; abajo el precio
  * y lo que se puede hacer con ella.
  */
-export function AppointmentCard({ data, status, actions, muted = false }: AppointmentCardProps) {
+export function AppointmentCard({ data, status, actions, personAction, muted = false }: AppointmentCardProps) {
   const t = useAppT();
   return (
     <article className={cn("flex flex-col rounded-2xl border border-border bg-surface shadow-xs", muted && "opacity-60")}>
@@ -77,6 +79,7 @@ export function AppointmentCard({ data, status, actions, muted = false }: Appoin
             {data.personName}
           </Text>
           {data.relation && <Badge variant="outline">{data.relation}</Badge>}
+          {personAction && <span className="-my-1 ml-auto shrink-0">{personAction}</span>}
         </DetailRow>
         <DetailRow label={t("booking.card.barber")}>
           {data.barberAvatarUrl || data.barberName ? (

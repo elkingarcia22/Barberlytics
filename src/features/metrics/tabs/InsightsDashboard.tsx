@@ -1,5 +1,6 @@
 import * as React from "react";
-import { CheckCircle2, Sparkles, TrendingUp, UserMinus, Users, UserX, Wrench, type LucideIcon } from "lucide-react";
+import { ClipperIcon } from "@/components/ai-interaction";
+import { CheckCircle2, TrendingUp, UserMinus, Users, UserX, Wrench, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 import { HeatmapMatrix, MetricCard, MetricDial, PanelHeading, type HeatmapColumn, type HeatmapRow } from "@/components/charts";
 import { AIInsightCard } from "@/components/ai";
@@ -99,7 +100,7 @@ export function InsightsDashboard({ data }: { data: MetricsInsights }) {
 
       <section aria-labelledby="metrics-suggestions" className="flex flex-col gap-stack">
         <div className="flex flex-wrap items-center gap-inline">
-          <Sparkles className="size-4 text-primary" aria-hidden />
+          <ClipperIcon className="size-4 text-primary" aria-hidden />
           <h2 id="metrics-suggestions" className="text-base font-semibold text-text-primary">
             {t("metrics.insights.suggestions")}
           </h2>

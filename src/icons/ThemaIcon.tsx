@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { cn } from '@/lib/utils';
+import { ClipperOrb } from '@/components/ai-interaction/ClipperOrb';
 import { iconRegistry, IconFallback } from './iconRegistry';
 import type { IconSize, ThemaIconProps } from './iconTypes';
 
@@ -47,8 +48,14 @@ export const ThemaIcon: React.FC<ThemaIconProps> = ({
   decorative = true,
   className,
 }) => {
-  const icon = iconRegistry[name] || IconFallback;
   const dimensions = SIZE_MAP[size];
+
+  // `sparkles` es «la IA»: en todo el sistema la dibuja el orbe de Clipper, no un destello de librería.
+  if (name === 'sparkles') {
+    return <ClipperOrb bare size={dimensions.px} className={cn('align-middle', className)} />;
+  }
+
+  const icon = iconRegistry[name] || IconFallback;
 
   // Requisitos de accesibilidad
   const a11yProps = decorative

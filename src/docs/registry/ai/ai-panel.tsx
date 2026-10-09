@@ -47,7 +47,7 @@ export const aiPanelEntry = defineEntry({
   tags: ["ia", "card", "insights"],
   playground: definePlayground({
     controls: {
-      title: { type: "text", default: "Insights de IA" },
+      title: { type: "text", default: "Insights de Clipper" },
       description: { type: "text", default: "Basados en las respuestas de la última semana" },
       loading: { type: "boolean", label: "Cargando", default: false },
       empty: { type: "boolean", label: "Vacío", default: false },
@@ -70,7 +70,7 @@ export const aiPanelEntry = defineEntry({
     ),
     code: ({ title, description, loading, empty, withActions, withFooter }) => {
       const attrs = [
-        title !== "Insights de IA" ? `title="${title}"` : "",
+        title !== "Insights de Clipper" ? `title="${title}"` : "",
         description ? `description="${description}"` : "",
         loading ? "loading" : "",
         empty ? "empty" : "",
@@ -121,7 +121,7 @@ export const aiPanelEntry = defineEntry({
     },
   ],
   props: [
-    { name: "title", type: "string", default: '"Insights de IA"', description: "Título junto a la chispa." },
+    { name: "title", type: "string", default: '"Insights de Clipper"', description: "Título junto a la chispa." },
     { name: "description", type: "string", description: "Subtítulo bajo el título." },
     { name: "children", type: "React.ReactNode", description: "Contenido, normalmente AIInsightCard. Se apila en una columna con gap." },
     { name: "actions", type: "React.ReactNode", description: "Botones a la derecha de la cabecera." },

@@ -62,7 +62,7 @@ La cabecera entera es el disparador; el chevron indica el estado. Para contenido
 <DrawerSection
   icon={Sparkles}
   tone="ai"
-  title="Sugerencias de IA"
+  title="Sugerencias de Clipper"
   hint="Tres redacciones alternativas para el objetivo."
   collapsible
 >

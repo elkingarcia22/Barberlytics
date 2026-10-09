@@ -73,6 +73,7 @@ export type IconName =
   | 'vacancies'
   | 'templates'
   | 'logout'
+  | 'login'
   | 'scissors'
   | 'phone'
   | 'lock'

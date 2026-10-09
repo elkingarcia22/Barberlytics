@@ -55,5 +55,7 @@ export const isKnownAnswer = (question: BookingQuestion, label: string): boolean
 export interface Handlers {
   greet: () => void;
   reserved: () => void;
+  /** Atiende lo pedido antes de tener sede; `false` si no había nada pendiente. */
+  takeIntent: () => boolean;
 }
 

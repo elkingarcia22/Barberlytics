@@ -49,10 +49,11 @@ export function DayStrip({ first, count, value, onChange, marked, size = "defaul
               selected ? "border-primary bg-primary shadow-md" : "border-border bg-surface hover:border-primary/40 hover:bg-surface-subtle"
             )}
           >
-            <Text as="span" size="xs" weight="medium" tone={selected ? "inverse" : "muted"} className="uppercase tracking-wide">
+            {/* Sobre el color principal va su propio texto (`primary-foreground`), no el «inverso»: así contrasta en todo tema. */}
+            <Text as="span" size="xs" weight="medium" tone={selected ? undefined : "muted"} className={cn("uppercase tracking-wide", selected && "text-primary-foreground/80")}>
               {isToday ? t("booking.earliest.today") : formatDate(day, { weekday: "short" }).replace(".", "")}
             </Text>
-            <Text as="span" size="xl" weight="semibold" tabular tone={selected ? "inverse" : "default"}>
+            <Text as="span" size="xl" weight="semibold" tabular className={selected ? "text-primary-foreground" : undefined}>
               {day.getDate()}
             </Text>
             {marked?.has(dayKeyOf(day)) && <span aria-hidden className={cn("absolute bottom-1.5 size-1.5 rounded-full", selected ? "bg-primary-foreground" : "bg-primary")} />}

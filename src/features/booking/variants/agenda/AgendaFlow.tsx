@@ -1,8 +1,15 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
+import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { ThemaIcon } from "@/icons";
 import { defaultBranchId, type BookingStep } from "../../bookingState";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { AsideSlotProvider } from "../../flow/asideSlot";
+import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
+import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
 import { GiftStep } from "../../steps/GiftStep";
 import { ManageStep } from "../../steps/ManageStep";
@@ -70,6 +77,7 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
 
   // En la Agenda con selector se reserva una cita: la hora que se toca después reemplaza a la anterior.
   const isSelect = servicePicker === "modal";
+  const [actionSlot, setActionSlot] = React.useState<HTMLElement | null>(null);
   React.useEffect(() => {
     if (!isSelect || state.items.length < 2) return;
     for (let extra = state.items.length - 1; extra > 0; extra -= 1) dispatch({ type: "removeItem", index: 0 });
@@ -119,19 +127,40 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
 
   return (
     <>
-      <AgendaHeader onBack={state.step === "confirmed" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} />
+      {/* «Tu reserva» ocupa todo el alto: la cabecera llega hasta el panel. */}
       <div className="flex min-h-0 flex-1">
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="flex min-h-full w-full flex-col">
-            <div className="flex-1">{content}</div>
-            {!isWide && !ownScreen && view === "board" && <AgendaCartBar onEdit={() => undefined} onContinue={toCheckout} />}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AgendaHeader onBack={state.step === "confirmed" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} showChat={!ownScreen && view === "board"} />
+          <div ref={scrollRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain", !isWide && HIDE_SCROLLBAR)}>
+            <div className="flex min-h-full w-full flex-col">
+              {/* Columna flexible: el pie de cada paso queda pegado abajo aunque el contenido sea corto. */}
+              <div className="flex flex-1 flex-col">
+                {/* En monitor, el botón de pagar va al pie de «Tu reserva»; sin panel, en la barra de abajo. */}
+                <AsideSlotProvider value={isWide && !ownScreen && view === "checkout" ? actionSlot : null}>{content}</AsideSlotProvider>
+              </div>
+              {!isWide && !ownScreen && view === "board" && <AgendaCartBar onEdit={() => undefined} onContinue={toCheckout} />}
+            </div>
           </div>
         </div>
         {isWide && !ownScreen && (
-          <div className="w-96 shrink-0 overflow-y-auto border-l border-border bg-surface/60">
-            <AgendaCartAside onEdit={toBoard} onContinue={view === "board" ? toCheckout : undefined} />
+          <div className="w-96 shrink-0 overflow-hidden border-l border-border bg-surface/60">
+            {/* La Agenda con selector usa el mismo resumen que Paso a paso; la abierta, su carrito con varias citas. */}
+            {isSelect ? (
+              <BookingSummaryAside actionSlotRef={setActionSlot} draftUntilBooked atPayment={view === "checkout"} />
+            ) : (
+              <AgendaCartAside onEdit={toBoard} onContinue={view === "board" ? toCheckout : undefined} actionSlotRef={view === "checkout" ? setActionSlot : undefined} />
+            )}
           </div>
         )}
+        {/* En la agenda (sin pie propio), el botón de seguir va al pie del resumen. */}
+        {isWide && isSelect && !ownScreen && view === "board" && actionSlot &&
+          createPortal(
+            <Button type="button" size="lg" className="w-full" disabled={state.items.length === 0} onClick={toCheckout}>
+              {t("booking.agenda.cart.continue")}
+              <ThemaIcon name="arrowRight" />
+            </Button>,
+            actionSlot
+          )}
       </div>
       <BookingSheet open={signInOpen} onOpenChange={setSignInOpen} title={t("booking.agenda.signInTitle")} description={t("booking.agenda.signInLead")}>
         <AgendaIdentity />

@@ -3,6 +3,7 @@ import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
+import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import type { BookingBarber } from "../../types";
 import { AgendaBarberField } from "./AgendaBarberField";
@@ -18,15 +19,24 @@ interface AgendaSelectFieldsProps {
 }
 
 /** Una pregunta con su campo debajo: el mismo título para todas. */
-function FieldSection({ id, label, aside, children }: { id: string; label: string; aside?: React.ReactNode; children: React.ReactNode }) {
+function FieldSection({ id, label, aside, inline = false, children }: { id: string; label: string; aside?: React.ReactNode; /** El título va dentro del campo: se ahorra una línea por pregunta. */ inline?: boolean; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2">
-      <div className="flex min-h-8 items-center justify-between gap-3">
-        <Text id={id} size="sm" weight="medium">
-          {label}
-        </Text>
-        {aside}
-      </div>
+    <section aria-labelledby={id} className="flex min-w-0 flex-col gap-2 [&>button]:flex-1">
+      {inline ? (
+        <>
+          <span id={id} className="sr-only">
+            {label}
+          </span>
+          {aside && <div className="-mb-1 flex justify-end">{aside}</div>}
+        </>
+      ) : (
+        <div className="flex min-h-8 items-center justify-between gap-3">
+          <Text id={id} size="sm" weight="medium" className="truncate">
+            {label}
+          </Text>
+          {aside}
+        </div>
+      )}
       {children}
     </section>
   );
@@ -38,17 +48,23 @@ function FieldSection({ id, label, aside, children }: { id: string; label: strin
  */
 export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFieldsProps) {
   const t = useAppT();
-  const { shop } = useBookingFlow();
+  const { shop, layout, touch } = useBookingFlow();
+  const hasBranches = shop.branches.length > 1;
+  const isWide = layout === "wide";
+  // En celular (y el widget) no caben tres en fila: van una debajo de otra, como filas.
+  const asCards = isWide || touch === "lg";
   return (
-    <div className="flex flex-col gap-5">
-      {shop.branches.length > 1 && (
-        <FieldSection id="agenda-where" label={t("booking.agenda.whereLabel")}>
-          <AgendaBranchField labelledBy="agenda-where" />
+    // Tablet y monitor: tarjetas una al lado de la otra; celular: una debajo de otra.
+    <div className={asCards ? cn("grid items-stretch", isWide ? "gap-3" : "gap-2", hasBranches ? "grid-cols-3" : "grid-cols-2") : "flex flex-col gap-2"}>
+      {hasBranches && (
+        <FieldSection id="agenda-where" label={t("booking.step.branch")} inline>
+          <AgendaBranchField labelledBy="agenda-where" eyebrow={t("booking.step.branch")} />
         </FieldSection>
       )}
       <FieldSection
         id="agenda-what"
-        label={t("booking.agenda.whatTitle")}
+        label={t("booking.step.services")}
+        inline
         aside={
           onUsual && (
             <Button type="button" variant="ghost" size="sm" className="-mr-2 text-primary" onClick={onUsual}>
@@ -58,10 +74,10 @@ export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFi
           )
         }
       >
-        <AgendaServiceField labelledBy="agenda-what" />
+        <AgendaServiceField labelledBy="agenda-what" eyebrow={t("booking.step.services")} />
       </FieldSection>
-      <FieldSection id="agenda-who" label={t("booking.agenda.whoLabel")}>
-        <AgendaBarberField labelledBy="agenda-who" barbers={barbers} usualId={usualId} />
+      <FieldSection id="agenda-who" label={t("booking.step.barber")} inline>
+        <AgendaBarberField labelledBy="agenda-who" barbers={barbers} usualId={usualId} eyebrow={t("booking.step.barber")} />
       </FieldSection>
     </div>
   );

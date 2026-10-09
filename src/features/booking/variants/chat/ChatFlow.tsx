@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
-import { ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage } from "@/components/chat";
+import { ClipperOrb } from "@/components/ai-interaction";
+import { ChatComposer, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage } from "@/components/chat";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
@@ -9,6 +10,7 @@ import { describeError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
+import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
 import { GalleryViewer } from "../../flow/GalleryViewer";
 import { PhotoStrip } from "../../flow/PhotoStrip";
 import { PaymentSheets } from "../../flow/PaymentPanel";
@@ -16,7 +18,11 @@ import { usePaymentController, type PaymentController } from "../../flow/usePaym
 import { GiftStep } from "../../steps/GiftStep";
 import { PackagesStep } from "../../steps/PackagesStep";
 import type { ChatTurn, PaymentEvent } from "./chatKit";
+import { ChatHome } from "./ChatHome";
 import { useChatBooking, type ChatEngine } from "./useChatBooking";
+import { BookingVoice } from "./BookingVoice";
+import { useVoiceBridge } from "./useVoiceBridge";
+import { clearVoiceOnArrival, peekVoiceOnArrival } from "../../flow/versionSwitch";
 
 interface ChatFlowProps {
   headerTrailing?: React.ReactNode;
@@ -58,7 +64,7 @@ function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; 
     <div className="flex flex-col gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300" data-testid="booking-chat-agent">
       {text && (
         <div className="flex items-start gap-3">
-          <ChatMark size="sm" className="mt-1" />
+          <ClipperOrb size={24} bare className="mt-1" />
           <div className="min-w-0 rounded-2xl rounded-tl-md bg-surface-subtle px-4 py-2.5">
             <ChatMarkdown text={text} />
           </div>
@@ -132,8 +138,19 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
   const t = useAppT();
   const { state, dispatch, shop, layout } = useBookingFlow();
   const controllerRef = React.useRef<PaymentController | null>(null);
-  const engine = useChatBooking({ onFinish, payment: controllerRef });
+  // La portada primero: decir o escribir qué cita quiere; el chat arranca con eso.
+  const [isHome, setIsHome] = React.useState(true);
+  // Desde «Agenda con Clipper» en otra experiencia, se llega hablando: la voz ya está abierta.
+  const [isVoiceOpen, setIsVoiceOpen] = React.useState(peekVoiceOnArrival);
+  React.useEffect(() => clearVoiceOnArrival(), []);
+  const engine = useChatBooking({ onFinish, payment: controllerRef, deferStart: true });
+  const startChat = (text?: string) => {
+    setIsHome(false);
+    engine.begin(text);
+  };
   const [draft, setDraft] = React.useState("");
+  // Una sola conversación por voz para la portada y el chat: empieza en la portada y sigue en el chat.
+  const askByVoice = useVoiceBridge(engine, { started: !isHome, start: startChat });
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const isWide = layout === "wide";
   const onSideScreen = state.step === "gift" || state.step === "packages";
@@ -148,77 +165,101 @@ export function ChatFlow({ headerTrailing, onFinish }: ChatFlowProps) {
 
   return (
     <>
-      <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
-        <div className={cn("flex h-14 items-center gap-3 px-3", isWide && "h-16 px-6")}>
-          {onSideScreen ? (
-            <Button type="button" variant="ghost" size="icon-sm" onClick={() => dispatch({ type: "goTo", step: "welcome" })} aria-label={t("booking.header.back")}>
-              <ThemaIcon name="chevronLeft" />
-            </Button>
-          ) : (
-            <ChatMark size="md" motion={engine.typing ? "thinking" : "breathing"} />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Heading level={6} className="truncate">
-              {t("booking.chat.title", { shop: shop.name })}
-            </Heading>
-            <Text size="xs" tone="muted" className="flex items-center gap-1.5">
-              <span aria-hidden className="size-1.5 rounded-full bg-success" />
-              {t("booking.chat.subtitle")}
-            </Text>
-          </div>
-          <Button type="button" variant="ghost" size={isWide ? "sm" : "icon-sm"} onClick={() => engine.reply("manage", t("booking.header.myAppointments"))} aria-label={t("booking.header.myAppointments")}>
-            <ThemaIcon name="calendar" />
-            {isWide && t("booking.header.myAppointments")}
-          </Button>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => engine.reply("restart", t("booking.chat.reply.restart"))} aria-label={t("booking.chat.reply.restart")}>
-            <ThemaIcon name="refresh" />
-          </Button>
-          {headerTrailing}
-        </div>
-      </header>
 
+      <BookingVoice
+        open={isVoiceOpen}
+        onClose={() => setIsVoiceOpen(false)}
+        ask={askByVoice}
+        secret={engine.secret}
+        onWrite={(text) => {
+          // «Escribir»: lo dicho queda en la caja del chat (desde la portada, el chat se abre primero).
+          if (isHome) startChat();
+          setDraft(text);
+        }}
+      />
       {state.customer && <PaymentBridge key={state.customer.id} controllerRef={controllerRef} onEvent={engine.onPaymentEvent} />}
 
-      {onSideScreen ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">{state.step === "gift" ? <GiftStep /> : <PackagesStep />}</div>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div role="log" aria-live="polite" aria-label={t("booking.chat.threadLabel")} className={cn("mx-auto flex w-full flex-col gap-4 px-4 py-6", isWide ? "max-w-2xl" : "max-w-xl")}>
-                {engine.turns.map((turn) =>
-                  turn.from === "agent" ? (
-                    <AgentTurn key={turn.id} turn={turn} isOpen={turn.id === engine.activeTurnId} engine={engine} />
-                  ) : (
-                    <UserTurn key={turn.id} turn={turn} />
-                  )
+      {/* El resumen ocupa todo el alto: la cabecera llega hasta el panel. */}
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* En la portada no hay cabecera de conversación: la portada es la entrada. */}
+          {!(isHome && !onSideScreen) && (
+            <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
+              <div className={cn("flex h-14 items-center gap-3 px-3", isWide && "h-16 px-6")}>
+                {onSideScreen ? (
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => dispatch({ type: "goTo", step: "welcome" })} aria-label={t("booking.header.back")}>
+                    <ThemaIcon name="chevronLeft" />
+                  </Button>
+                ) : (
+                  <ClipperOrb size={36} bare state={engine.typing ? "thinking" : "idle"} />
                 )}
-                {engine.typing && <ChatThinking label={t("booking.chat.typing")} />}
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Heading level={6} className="truncate">
+                    {t("booking.chat.title", { shop: shop.name })}
+                  </Heading>
+                  <Text size="xs" tone="muted" className="flex items-center gap-1.5">
+                    <span aria-hidden className="size-1.5 rounded-full bg-success" />
+                    {t("booking.chat.subtitle")}
+                  </Text>
+                </div>
+                <Button type="button" variant="ghost" size={isWide ? "sm" : "icon-sm"} onClick={() => engine.reply("manage", t("booking.header.myAppointments"))} aria-label={t("booking.header.myAppointments")}>
+                  <ThemaIcon name="calendar" />
+                  {isWide && t("booking.header.myAppointments")}
+                </Button>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => engine.reply("restart", t("booking.chat.reply.restart"))} aria-label={t("booking.chat.reply.restart")}>
+                  <ThemaIcon name="refresh" />
+                </Button>
+                {headerTrailing}
               </div>
-            </div>
-            <div className="shrink-0 border-t border-border bg-surface/80 px-4 py-3 backdrop-blur">
-              <div className={cn("mx-auto w-full", isWide ? "max-w-2xl" : "max-w-xl")}>
-                <ChatComposer
-                  value={draft}
-                  onChange={setDraft}
-                  onSend={(text, files) => engine.send(text, files)}
-                  placeholder={engine.placeholder}
-                  compact
-                  attach={engine.photoRoom > 0}
-                  attachKind="photos"
-                  maxFiles={engine.photoRoom}
-                  disclaimer={false}
-                />
+            </header>
+          )}
+          {onSideScreen ? (
+            <div className="min-h-0 flex-1 overflow-y-auto">{state.step === "gift" ? <GiftStep /> : <PackagesStep />}</div>
+          ) : isHome ? (
+            <>
+              {/* El cierre del widget sigue a mano aunque no haya cabecera. */}
+              {headerTrailing && <div className="absolute right-3 top-3 z-raised">{headerTrailing}</div>}
+              <ChatHome onStart={startChat} onVoice={() => setIsVoiceOpen(true)} />
+            </>
+          ) : (
+            <>
+              <div ref={scrollRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain", !isWide && HIDE_SCROLLBAR)}>
+                <div role="log" aria-live="polite" aria-label={t("booking.chat.threadLabel")} className={cn("mx-auto flex w-full flex-col gap-4 px-4 py-6", isWide ? "max-w-2xl" : "max-w-xl")}>
+                  {engine.turns.map((turn) =>
+                    turn.from === "agent" ? (
+                      <AgentTurn key={turn.id} turn={turn} isOpen={turn.id === engine.activeTurnId} engine={engine} />
+                    ) : (
+                      <UserTurn key={turn.id} turn={turn} />
+                    )
+                  )}
+                  {engine.typing && <ChatThinking label={t("booking.chat.typing")} />}
+                </div>
               </div>
-            </div>
-          </div>
-          {isWide && state.items.length + (state.draft ? 1 : 0) > 0 && (
-            <div className="w-96 shrink-0 overflow-y-auto border-l border-border bg-surface/60">
-              <BookingSummaryAside />
-            </div>
+              <div className="shrink-0 border-t border-border bg-surface/80 px-4 py-3 backdrop-blur">
+                <div className={cn("mx-auto w-full", isWide ? "max-w-2xl" : "max-w-xl")}>
+                  <ChatComposer
+                    value={draft}
+                    onChange={setDraft}
+                    onSend={(text, files) => engine.send(text, files)}
+                    placeholder={engine.placeholder}
+                    compact
+                    attach={engine.photoRoom > 0}
+                    attachKind="photos"
+                    maxFiles={engine.photoRoom}
+                    disclaimer={false}
+                    onVoice={() => setIsVoiceOpen(true)}
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
-      )}
+        {!onSideScreen && isWide && state.items.length + (state.draft ? 1 : 0) > 0 && (
+          <div className="w-96 shrink-0 overflow-hidden border-l border-border bg-surface/60">
+            <BookingSummaryAside />
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -146,7 +146,7 @@ export const en: MessageCatalog = {
   "docs.openAppTitle": "Open the example application: Home and People",
 
   // ── AI chat ──
-  "chat.title": "AI Agent",
+  "chat.title": "Clipper",
   "chat.subtitle": "Platform assistant",
   "chat.greeting.morning": "Good morning,",
   "chat.greeting.afternoon": "Good afternoon,",
@@ -245,6 +245,9 @@ export const en: MessageCatalog = {
   "chat.voiceUnsupported": "This browser can't listen to the microphone. You can type your question.",
   "chat.voiceDenied": "No permission to use the microphone. Check it in the browser or type your question.",
   "chat.voiceEmpty": "Say what you need and pause so I can answer.",
+  "chat.voiceSpeakingLabel": "{agent} is answering",
+  "chat.voiceSpeakingHint": "tap the mic to interrupt",
+  "chat.voiceYourTurn": "I'm listening.",
   "chat.language.es": "Spanish",
   "chat.language.en": "English",
   "chat.detailShow": "Show detail",

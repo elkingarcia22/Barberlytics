@@ -139,14 +139,14 @@ export const drawerSectionEntry = defineEntry({
       code: `<DrawerSection
   icon={Sparkles}
   tone="ai"
-  title="Sugerencias de IA"
+  title="Sugerencias de Clipper"
   hint="Tres redacciones alternativas para el objetivo."
   collapsible
 >
   <ul>…</ul>
 </DrawerSection>`,
       render: () => (
-        <DrawerSection icon={Sparkles} tone="ai" title="Sugerencias de IA" hint="Tres redacciones alternativas para el objetivo." collapsible className="w-full max-w-md">
+        <DrawerSection icon={Sparkles} tone="ai" title="Sugerencias de Clipper" hint="Tres redacciones alternativas para el objetivo." collapsible className="w-full max-w-md">
           <ul className="space-y-2 text-[13px] text-text-secondary">
             <li className="rounded-lg bg-surface-subtle p-2">Acortar el onboarding a 20 días sin bajar la satisfacción.</li>
             <li className="rounded-lg bg-surface-subtle p-2">Onboarding en 20 días con NPS ≥ 4,5.</li>

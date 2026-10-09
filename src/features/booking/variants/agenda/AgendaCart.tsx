@@ -12,12 +12,15 @@ import { initialsOf, parseStart } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { itemPrice } from "../../useBookingTotals";
+import { CheckoutProducts, CheckoutSummary } from "../../flow/CheckoutRecap";
 
 interface CartProps {
   /** Al tocar «Cambiar»: la agenda vuelve a la vista con esa cita abierta. */
   onEdit: () => void;
   /** Ir a confirmar; sin esto (ya en el cierre) no hay botón. */
   onContinue?: () => void;
+  /** El hueco al pie donde el cierre deja su botón de pagar (solo el panel lateral). */
+  actionSlotRef?: (element: HTMLElement | null) => void;
 }
 
 /** Las citas apartadas, una por fila: quién, qué, con quién y cuándo, con cambiar y quitar. */
@@ -115,7 +118,7 @@ function CartTotal({ onContinue }: { onContinue?: () => void }) {
 }
 
 /** «Tu reserva» en la columna de la derecha (monitor): siempre a la vista mientras se eligen horas. */
-export function AgendaCartAside({ onEdit, onContinue }: CartProps) {
+export function AgendaCartAside({ onEdit, onContinue, actionSlotRef }: CartProps) {
   const t = useAppT();
   const { state } = useBookingFlow();
   return (
@@ -136,12 +139,15 @@ export function AgendaCartAside({ onEdit, onContinue }: CartProps) {
           </Text>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
           <AgendaCartLines onEdit={onEdit} readOnly={!onContinue} />
+          {actionSlotRef && <CheckoutProducts />}
         </div>
       )}
-      <div className="border-t border-border pt-4">
-        <CartTotal onContinue={onContinue} />
+      <div className="flex flex-col gap-4 border-t border-border pt-4">
+        {/* En el cierre, la cuenta completa sustituye al total: se ve todo lo elegido. */}
+        {actionSlotRef ? <CheckoutSummary /> : <CartTotal onContinue={onContinue} />}
+        {actionSlotRef && <div ref={actionSlotRef} />}
       </div>
     </aside>
   );

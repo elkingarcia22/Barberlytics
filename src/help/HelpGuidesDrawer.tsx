@@ -1,6 +1,7 @@
 import * as React from "react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import { useNavigate } from "react-router";
-import { ArrowLeft, ArrowRight, Check, Clock, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DrawerShell } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
@@ -204,7 +205,7 @@ export function HelpGuidesDrawer({ open, onOpenChange }: HelpGuidesDrawerProps) 
         ) : (
           <>
             <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-surface-muted/60 p-3">
-              <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+              <ClipperIcon className="mt-0.5 size-4 shrink-0 text-primary" />
               <Text size="xs" tone="secondary" className="leading-snug">
                 {t("help.guidesSoon")}
               </Text>

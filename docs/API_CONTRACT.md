@@ -393,6 +393,7 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |
 | `PATCH` | `/booking/appointments/:id` | Con token: `{ start, barberId }`. `409 too_late` dentro del plazo de cambio; `409 conflict` si la hora ya no está. |
 | `POST` | `/booking/appointments/:id/cancel` | Con token: `{ refundTo: "card" \| "credit" }` → `{ appointment, fee, refund, refundTo }`. `409 limit` al llegar a `maxCancellations`. |
+| `POST` | `/booking/reservations/:id/details` | Con token. Nota y fotos para el barbero con la reserva ya hecha: `{ notes?, referencePhotos? (hasta 3, data URL) }` → `{ saved: true }`. Se suman a las de sus citas. `404` si la reserva no es del cliente. |
 | `POST` | `/booking/reservations/:id/receipt` | `{ channel: "email" \| "sms", to }` → `{ channel, to }`. |
 
 Reglas que el cliente da por hechas:

@@ -7,7 +7,7 @@ import { depositOf, feeLabel } from "../pricing";
 import { useReserveMutation } from "../queries";
 import type { PayMethod } from "../types";
 import { useBookingFlow } from "./BookingContext";
-import { brandFromName, firstUsableCard, isCardComplete, isCvcComplete, type CardValues } from "./cardValidation";
+import { brandFromName, digitsOf, firstUsableCard, isCardComplete, isCvcComplete, type CardValues } from "./cardValidation";
 import { NEW_CARD } from "./SavedCardPicker";
 import { useSavedCardManager } from "./useSavedCardManager";
 
@@ -67,6 +67,15 @@ export function usePaymentController() {
   // Si la tarjeta de regalo cubre todo, no hay nada más que cobrar.
   const coveredByGift = totals.total === 0 && totals.gift > 0;
   const method: PayMethod | null = coveredByGift ? "gift" : state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
+  // La tarjeta elegida (guardada o la nueva ya escrita), dicha como en el recibo.
+  const payCard = chosenSaved ? `${chosenSaved.brand} •••• ${chosenSaved.last4}` : card && digitsOf(card.number).length >= 4 ? `${t("booking.payment.card")} •••• ${digitsOf(card.number).slice(-4)}` : null;
+  React.useEffect(() => {
+    if (payCard !== state.payCard) dispatch({ type: "setPayCard", card: payCard });
+  }, [payCard, state.payCard, dispatch]);
+  // El método que se ve marcado queda también en el estado: el resumen de «Tu reserva» lo muestra.
+  React.useEffect(() => {
+    if (method && method !== "gift" && method !== state.method) dispatch({ type: "setMethod", method });
+  }, [method, state.method, dispatch]);
   const deposit = method === "shop" && depositPercent !== null ? depositOf(totals, depositPercent) : 0;
   /** Pide tarjeta: el pago con tarjeta o el anticipo de quien paga en la barbería. */
   const usesCard = method === "card" || deposit > 0;

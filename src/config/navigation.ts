@@ -1,3 +1,4 @@
+import { ClipperIcon } from "@/components/ai-interaction";
 import { 
   Home, 
   GraduationCap, 
@@ -6,7 +7,6 @@ import {
   ClipboardList, 
   Users, 
   Layers, 
-  Sparkles,
   Book,
   Building2,
   BookOpen,
@@ -55,7 +55,7 @@ export const navigationConfig: NavItemConfig[] = [
     ],
     submenu: [
       { icon: Home, text: "Inicio" },
-      { icon: Sparkles, text: "Modo estudio IA" },
+      { icon: ClipperIcon, text: "Modo estudio IA" },
       { icon: Book, text: "Catálogo" },
       { icon: Building2, text: "U. Corporativa" },
       { icon: BookOpen, text: "Zona de estudio" },

@@ -208,6 +208,12 @@ export function useCancelMutation(token: string) {
   });
 }
 
+export function useReservationDetailsMutation(token: string | null) {
+  return useMutation({
+    mutationFn: ({ reservationId, input }: { reservationId: string; input: { notes?: string; referencePhotos?: string[] } }) => bookingApi.addDetails(needsSession(token), reservationId, input),
+  });
+}
+
 export function useSendReceiptMutation() {
   return useMutation({ mutationFn: ({ reservationId, channel, to }: { reservationId: string; channel: "email" | "sms"; to: string }) => bookingApi.sendReceipt(reservationId, { channel, to }) });
 }

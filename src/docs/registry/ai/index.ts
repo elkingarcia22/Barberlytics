@@ -5,6 +5,7 @@ import { aiLoaderEntry } from "./ai-loader";
 import { aiAnalyzingStateEntry } from "./ai-analyzing-state";
 import { aiGeneratedBadgeEntry } from "./ai-generated-badge";
 import { aiSparkGlyphEntry } from "./ai-spark-glyph";
+import { clipperOrbEntry } from "./clipper-orb";
 import { saveIndicatorEntry } from "./save-indicator";
 import { aiInsightCardEntry } from "./ai-insight-card";
 import { aiPanelEntry } from "./ai-panel";
@@ -19,6 +20,7 @@ export const aiEntries: readonly DocEntry[] = [
   aiAnalyzingStateEntry,
   aiGeneratedBadgeEntry,
   aiSparkGlyphEntry,
+  clipperOrbEntry,
   saveIndicatorEntry,
   aiInsightCardEntry,
   aiPanelEntry,

@@ -106,6 +106,30 @@ export function contrastRatio(a: string, b: string): number {
   return (light + 0.05) / (dark + 0.05);
 }
 
+/** Luminancia que usa APCA: sRGB con exponente 2.4 y una suave subida de los negros. */
+function apcaLuminance(hex: string): number {
+  const [r, g, b] = hexToRgb(hex).map((v) => (v / 255) ** 2.4);
+  const y = 0.2126729 * r + 0.7151522 * g + 0.072175 * b;
+  return y < 0.022 ? y + (0.022 - y) ** 1.414 : y;
+}
+
+/**
+ * Contraste perceptual APCA (W3 0.0.98G) del texto `text` sobre `background`, en Lc: positivo con texto
+ * oscuro sobre fondo claro, negativo al revés; cuanto mayor el valor absoluto, mejor se lee. A diferencia
+ * de la razón WCAG 2, no subestima el texto blanco sobre colores saturados de luminosidad media.
+ */
+export function apcaContrast(text: string, background: string): number {
+  const textY = apcaLuminance(text);
+  const backgroundY = apcaLuminance(background);
+  if (Math.abs(backgroundY - textY) < 0.0005) return 0;
+  if (backgroundY > textY) {
+    const sapc = (backgroundY ** 0.56 - textY ** 0.57) * 1.14;
+    return sapc < 0.1 ? 0 : (sapc - 0.027) * 100;
+  }
+  const sapc = (backgroundY ** 0.65 - textY ** 0.62) * 1.14;
+  return sapc > -0.1 ? 0 : (sapc + 0.027) * 100;
+}
+
 /** Blanco o casi negro, el que contraste mejor con `background`. */
 export function readableForeground(background: string): string {
   return contrastRatio(background, "#ffffff") >= contrastRatio(background, "#111827")

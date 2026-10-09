@@ -97,6 +97,33 @@ export function buildIcs(appointments: readonly BookedAppointment[], shopName: s
   return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Barberlytics//Reserva//ES", ...events, "END:VCALENDAR"].join("\r\n");
 }
 
+export type CalendarProvider = "google" | "outlook" | "office" | "yahoo";
+
+/** «2026-10-09T10:30:00»: la hora local de la barbería, como la piden Outlook y Microsoft 365. */
+const isoLocal = (date: Date): string => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+
+/**
+ * El enlace que abre el calendario del cliente con la cita ya llena, para que la guarde con un
+ * toque. No hace falta conectar su cuenta: cada servicio publica este formato de «agregar evento».
+ */
+export function calendarUrl(provider: CalendarProvider, item: BookedAppointment, shopName: string): string {
+  const start = parseStart(item.start);
+  const end = new Date(start.getTime() + item.durationMin * 60_000);
+  const title = `${shopName} — ${item.serviceNames.join(" + ")}`;
+  const details = `${item.personName}\nBarbero: ${item.barberName}`;
+  if (provider === "google") {
+    const params = new URLSearchParams({ action: "TEMPLATE", text: title, dates: `${icsDate(start)}/${icsDate(end)}`, location: item.branchName, details });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+  if (provider === "yahoo") {
+    const params = new URLSearchParams({ v: "60", title, st: icsDate(start), et: icsDate(end), in_loc: item.branchName, desc: details });
+    return `https://calendar.yahoo.com/?${params.toString()}`;
+  }
+  const host = provider === "office" ? "outlook.office.com" : "outlook.live.com";
+  const params = new URLSearchParams({ path: "/calendar/action/compose", rru: "addevent", subject: title, startdt: isoLocal(start), enddt: isoLocal(end), location: item.branchName, body: details });
+  return `https://${host}/calendar/0/deeplink/compose?${params.toString()}`;
+}
+
 /** Descarga el .ics: en iPhone lo abre el calendario directamente. */
 export function downloadIcs(content: string, fileName = "cita.ics"): void {
   const url = URL.createObjectURL(new Blob([content], { type: "text/calendar;charset=utf-8" }));

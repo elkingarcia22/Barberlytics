@@ -35,7 +35,16 @@ import { parseBookingText, type ParsedRequest } from "./parseBookingText";
  * mismas acciones del `bookingReducer` que las otras versiones y cobra con el
  * mismo `usePaymentController`, que le pasa `ChatFlow` por `payment`.
  */
-export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; payment: React.RefObject<PaymentController | null> }) {
+export function useChatBooking({
+  onFinish,
+  payment,
+  deferStart = false,
+}: {
+  onFinish?: () => void;
+  payment: React.RefObject<PaymentController | null>;
+  /** Con portada: el saludo espera a que diga (o escriba) qué quiere; ver `begin`. */
+  deferStart?: boolean;
+}) {
   const t = useAppT();
   const queryClient = useQueryClient();
   const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
@@ -53,6 +62,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const pendingName = React.useRef("");
   const receiptPlan = React.useRef<ReceiptPlan | null>(null);
   const pendingManage = React.useRef(false);
+  /** Lo que pidió en la portada («corte mañana en la tarde»): se atiende en cuanto se sabe quién es. */
+  const pendingIntent = React.useRef<string | null>(null);
   const timesDay = React.useRef<string | null>(null);
   const rescheduling = React.useRef<BookedAppointment | null>(null);
   const managing = React.useRef<BookedAppointment | null>(null);
@@ -344,6 +355,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const startBooking = (text?: string) => {
     presetBranch();
     if (!stateRef.current.branchId) return askBranch();
+    // Lo pedido antes de tener sede (en la portada o en una frase) se atiende ahora.
+    if (handlers.current?.takeIntent()) return;
     ensureDraft();
     if ((stateRef.current.customer?.guests.length ?? 0) > 0 && stateRef.current.items.length === 0) return askPerson(text);
     void askServices(text);
@@ -401,6 +414,15 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
 
   /* ───────────────────────────── al saludar ───────────────────────────── */
 
+  /** Lo pedido en la portada, ya con quien reserva: se entiende como cualquier frase. */
+  const takeIntent = (): boolean => {
+    const text = pendingIntent.current;
+    if (!text) return false;
+    pendingIntent.current = null;
+    void interpret(text);
+    return true;
+  };
+
   const greet = async () => {
     const current = stateRef.current;
     const customer = current.customer;
@@ -410,12 +432,14 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
       say({ text: offer ? t("booking.chat.niceToMeetOffer", { name: customer.firstName, offer }) : t("booking.chat.niceToMeet", { name: customer.firstName }) });
       if (pendingManage.current) return manage();
+      if (takeIntent()) return;
       return startBooking();
     }
     // La membresía no va en el saludo: se cuenta en el pago, como en las otras versiones.
     const extra = [customer.upcoming > 0 ? t("booking.chat.upcomingLine", { count: customer.upcoming }) : "", customer.credit > 0 ? t("booking.welcome.credit", { amount: fmt.money(customer.credit) }) : ""].filter(Boolean);
     say({ text: [t("booking.chat.knownHello", { name: customer.firstName }), ...extra].join("\n\n") });
     if (pendingManage.current) return manage();
+    if (takeIntent()) return;
     const spoken = userTurns.current;
     await loadCatalog();
     const next = current.token ? await bookingApi.suggestion(current.token).then((result) => result.suggestion, () => null) : null;
@@ -617,11 +641,19 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   };
 
   const interpret = async (text: string) => {
+    // La sede de siempre (o la única) antes de leer el catálogo, que depende de ella.
+    if (!stateRef.current.branchId) presetBranch();
     const loaded = await loadCatalog();
     const parsed = parseBookingText(text, { services: loaded?.services ?? [], barbers: loaded?.barbers ?? [], now: new Date() });
     if (parsed.intent === "manage") return manage();
     if (parsed.intent === "pay") return checkout();
     if (parsed.intent === "help") return say({ text: t("booking.chat.help") });
+    // Sin sede aún no hay servicios ni barberos que reconocer: se guarda lo pedido, se pregunta la
+    // sede y, al elegirla, se vuelve a entender (`startBooking`). Así «corte con Andrés» no se pierde.
+    if (!stateRef.current.branchId && parsed.intent !== "another") {
+      pendingIntent.current = text;
+      return askBranch();
+    }
     if (parsed.serviceIds.length > 0 || parsed.barberId !== undefined || parsed.date || parsed.time || parsed.window) return fulfil(parsed);
     if (parsed.intent === "another") {
       apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
@@ -714,15 +746,29 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     catalogRef.current = catalog;
     totalsRef.current = totals;
     turnsRef.current = turns;
-    handlers.current = { greet: () => void greet(), reserved: pay.reserved };
+    handlers.current = { greet: () => void greet(), reserved: pay.reserved, takeIntent };
   });
 
   // Al abrir: el saludo y quién eres (como en WhatsApp, primero se sabe quién escribe).
   React.useEffect(() => {
-    if (started.current) return;
+    if (started.current || deferStart) return;
     started.current = true;
     greetAtStart();
-  }, [greetAtStart]);
+  }, [greetAtStart, deferStart]);
+
+  /**
+   * Desde la portada: con lo que pidió, queda su mensaje y se le pide el celular para apartarlo;
+   * sin nada (fue directo al chat), el saludo de siempre.
+   */
+  const begin = (text?: string) => {
+    if (started.current) return;
+    started.current = true;
+    const wanted = text?.trim();
+    if (!wanted) return greetAtStart();
+    pendingIntent.current = wanted;
+    pushUser(wanted);
+    say({ text: t("booking.chat.helloWithIntent", { shop: shop.name }) }, { text: t("booking.chat.askPhone") });
+  };
 
   // Cuando ya se sabe quién es (por el código o al crear su perfil), se le saluda por su nombre.
   const customerId = state.customer?.id ?? null;
@@ -759,6 +805,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   return {
     turns,
     typing,
+    begin,
     send,
     answer,
     reply,
@@ -767,6 +814,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     /** Mientras escribe la nota para el barbero, la caja deja adjuntar fotos (las que aún caben). */
     photoRoom: expectingNow === "note" ? Math.max(0, MAX_REFERENCE_PHOTOS - state.referencePhotos.length) : 0,
     placeholder: t(expectingNow ? placeholderKey[expectingNow] : "booking.chat.placeholder"),
+    /** Lo que se espera no debe quedar a la vista (el código, la tarjeta): el modo voz lo muestra con puntos. */
+    secret: expectingNow === "code" || expectingNow === "cvc" || isCardStep(expectingNow),
   };
 }
 

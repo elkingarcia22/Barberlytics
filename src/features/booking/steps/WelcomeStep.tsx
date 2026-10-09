@@ -36,9 +36,15 @@ export function WelcomeStep() {
   const data = useWelcomeData();
   const { customer, services, barber, suggestion, price, durationMin, fmt, actions, catalog, last } = data;
   const [picked, setPicked] = React.useState(0);
+  // Sin visitas ni propuesta no hay nada que repetir: va directo a armar su cita, sin pantalla vacía.
+  const isEmpty = !data.isLoading && !data.suggestion && !data.canRepeat;
+  const { startFresh } = actions;
+  React.useEffect(() => {
+    if (isEmpty) startFresh();
+  }, [isEmpty, startFresh]);
   // «Hace N días» se mide contra el momento en que se abrió la pantalla, no en cada render.
   const [now] = React.useState(() => Date.now());
-  if (!customer) return null;
+  if (!customer || isEmpty) return null;
   const option = suggestion?.options[picked] ?? suggestion?.options[0] ?? null;
   const when = option ? parseStart(option.start) : null;
   const lead = services[0];

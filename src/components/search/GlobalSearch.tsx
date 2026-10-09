@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Clock, CornerDownLeft, FileText, ListTree, Search, Sparkles, Zap } from "lucide-react";
+import { ClipperIcon } from "@/components/ai-interaction";
+import { Clock, CornerDownLeft, FileText, ListTree, Search, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -289,7 +290,7 @@ export function GlobalSearch({
                   onAsk ? "bg-ai-gradient" : "bg-brand-gradient"
                 )}
               >
-                {mark ?? (onAsk ? <Sparkles className="size-4" strokeWidth={2.5} /> : <Search className="size-4" strokeWidth={2.5} />)}
+                {mark ?? (onAsk ? <ClipperIcon className="size-4" /> : <Search className="size-4" strokeWidth={2.5} />)}
               </span>
               <div className="min-w-0 flex-1">
                 <CommandInput value={query} onValueChange={setQuery} placeholder={searchLabel} />
@@ -464,8 +465,8 @@ function Tile({ children }: { children: React.ReactNode }) {
 
 function AskTile() {
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-ai-gradient text-white [&_svg]:size-4">
-      <Sparkles strokeWidth={2.5} />
+    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-muted [&_svg]:size-5">
+      <ClipperIcon />
     </span>
   );
 }

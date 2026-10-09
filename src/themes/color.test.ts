@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { contrastRatio, hexToChannels, hexToHsl, hexToRgb, hslToHex, mix, readableForeground, rgbToHex, shiftLightness } from "./color";
+import { apcaContrast, contrastRatio, hexToChannels, hexToHsl, hexToRgb, hslToHex, mix, readableForeground, rgbToHex, shiftLightness } from "./color";
 
 describe("hexToRgb / rgbToHex", () => {
   test("parses a 6-digit hex", () => {
@@ -67,5 +67,17 @@ describe("contrast", () => {
   test("picks white text on the brand blue and dark text on a pale yellow", () => {
     expect(readableForeground("#0C5BEF")).toBe("#ffffff");
     expect(readableForeground("#FBBF24")).toBe("#111827");
+  });
+});
+
+describe("apcaContrast", () => {
+  test("matches the APCA reference values for black and white", () => {
+    expect(apcaContrast("#000000", "#ffffff")).toBeCloseTo(106.04, 1);
+    expect(apcaContrast("#ffffff", "#000000")).toBeCloseTo(-107.88, 1);
+  });
+
+  test("is zero for the same color and grows with distance", () => {
+    expect(apcaContrast("#777777", "#777777")).toBe(0);
+    expect(Math.abs(apcaContrast("#ffffff", "#2d5cf7"))).toBeGreaterThan(Math.abs(apcaContrast("#111827", "#2d5cf7")));
   });
 });

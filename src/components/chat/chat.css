@@ -5,39 +5,6 @@
  * con `prefers-reduced-motion`.
  */
 
-/* ── La marca del agente: el destello ── */
-.chat-mark--breathing {
-  animation: chat-mark-breathe 3.2s ease-in-out infinite;
-  transform-origin: center;
-}
-
-.chat-mark--thinking {
-  animation: chat-mark-think 1.4s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@keyframes chat-mark-breathe {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    transform: scale(1.08) rotate(8deg);
-  }
-}
-
-@keyframes chat-mark-think {
-  0% {
-    transform: scale(0.94) rotate(0deg);
-  }
-  50% {
-    transform: scale(1.06) rotate(45deg);
-  }
-  100% {
-    transform: scale(0.94) rotate(90deg);
-  }
-}
-
 /* El resplandor detrás de las ondas del modo voz. */
 .chat-waves-glow {
   background: radial-gradient(closest-side, rgba(var(--color-ai-stop-2-rgb), 0.35), rgba(var(--color-ai-stop-1-rgb), 0.15) 55%, transparent);
@@ -206,8 +173,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-mark--breathing,
-  .chat-mark--thinking,
   .chat-send-halo,
   .chat-caret::after,
   .chat-shimmer,

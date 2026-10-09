@@ -1,0 +1,27 @@
+/*
+ * El botón principal de IA es el poste de Clipper: el gradiente de IA con franjas finas en diagonal
+ * que suben despacio, el mismo dibujo que su orbe. Con «reducir movimiento» queda quieto.
+ */
+@keyframes ai-pole-button-rise {
+  to {
+    background-position: 28px 0, 0 0;
+  }
+}
+
+/* Más específico que el brillo del botón primario del nivel premium (`premium.css`), que lo taparía. */
+[data-slot="button"].ai-pole-button.ai-pole-button.ai-pole-button {
+  box-shadow: var(--shadow-ai-premium);
+  /* Blanco o tinta oscura según el tema: lo decide `buildTokens` por el contraste con el gradiente. */
+  color: var(--color-ai-ink);
+  background-image:
+    linear-gradient(135deg, rgb(0 0 0 / 0.12) 25%, transparent 25% 50%, rgb(0 0 0 / 0.12) 50% 75%, transparent 75%),
+    linear-gradient(120deg, var(--color-ai-stop-1), var(--color-ai-stop-2) 40%, var(--color-ai-stop-3) 75%, var(--color-ai-stop-5));
+  background-size: 28px 28px, 100% 100%;
+  animation: ai-pole-button-rise 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="button"].ai-pole-button.ai-pole-button.ai-pole-button {
+    animation: none;
+  }
+}

@@ -1,17 +1,7 @@
 import * as React from "react";
+import { ClipperIcon } from "@/components/ai-interaction";
 import { motion } from "framer-motion";
-import {
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsUpDown,
-  MessageSquare,
-  PanelLeftClose,
-  Plus,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, MessageSquare, PanelLeftClose, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { cascadeContainer, cascadeItem } from "@/lib/cascadeAnimation";
@@ -626,8 +616,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             <span className="absolute right-3 top-8 flex size-7 items-center justify-center rounded-full bg-status-positive/15 text-[10px] font-bold text-status-positive shadow-card">
               JR
             </span>
-            <span className="relative flex size-11 items-center justify-center rounded-full text-sm font-bold text-white shadow-card" style={{ background: AI_GRADIENT }}>
-              <Sparkles className="size-5" strokeWidth={2} />
+            <span className="relative flex size-11 items-center justify-center rounded-full">
+              <ClipperIcon className="size-11" />
             </span>
             <span className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-status-positive shadow-card">
               <Check className="size-3" strokeWidth={3} />

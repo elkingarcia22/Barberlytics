@@ -1,5 +1,6 @@
 import * as React from "react";
-import { LayoutGrid, MessageSquare, PanelLeftOpen, Sparkles } from "lucide-react";
+import { ClipperIcon } from "@/components/ai-interaction";
+import { LayoutGrid, MessageSquare, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,7 +14,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AI_GRADIENT, type NavEntry, type NavRoot } from "./appShellData";
+import { type NavEntry, type NavRoot } from "./appShellData";
 import { useShellConfig } from "./shellConfig";
 import { WorkspaceMenu } from "./WorkspaceMenu";
 import type { ShellMode } from "./shellTypes";
@@ -315,11 +316,10 @@ export function SidebarIconRail({
                 aria-pressed={mode === "agent"}
                 className={cn(
                   "flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  mode === "agent" ? "text-white" : "text-text-muted hover:text-text-primary"
+                  mode === "agent" ? "bg-surface-muted" : "text-text-muted hover:text-text-primary"
                 )}
-                style={mode === "agent" ? { background: AI_GRADIENT } : undefined}
-              >
-                <Sparkles className="size-3.5" strokeWidth={2} />
+                              >
+                <ClipperIcon className="size-5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">Agente IA</TooltipContent>

@@ -105,5 +105,7 @@ export const bookingApi = {
   repeat: (token: string, id: string, input: { everyWeeks: number; count: number }) =>
     api.post<RepeatResult>(`/booking/appointments/${id}/repeat`, input, { headers: session(token), schema: repeatResultSchema }),
   cancel: (token: string, id: string, refundTo: "card" | "credit") => api.post<CancelResult>(`/booking/appointments/${id}/cancel`, { refundTo }, { headers: session(token), schema: cancelResultSchema }),
+  addDetails: (token: string, reservationId: string, input: { notes?: string; referencePhotos?: string[] }) =>
+    api.post<{ saved: boolean }>(`/booking/reservations/${reservationId}/details`, input, { headers: session(token) }),
   sendReceipt: (reservationId: string, input: { channel: "email" | "sms"; to: string }) => api.post<ReceiptSent>(`/booking/reservations/${reservationId}/receipt`, input, { schema: receiptSentSchema }),
 };

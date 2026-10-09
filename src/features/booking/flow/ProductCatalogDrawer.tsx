@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "./BookingContext";
-import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "./drawerFit";
 import { ProductCard } from "./ProductCard";
 
 const ALL = "__all__";
@@ -26,7 +26,7 @@ interface ProductCatalogDrawerProps {
  */
 export function ProductCatalogDrawer({ open, onOpenChange }: ProductCatalogDrawerProps) {
   const t = useAppT();
-  const { catalog, state, fmt, layout } = useBookingFlow();
+  const { catalog, state, fmt, layout, touch } = useBookingFlow();
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState(ALL);
   const products = catalog?.products ?? [];
@@ -47,7 +47,7 @@ export function ProductCatalogDrawer({ open, onOpenChange }: ProductCatalogDrawe
     <DrawerShell
       open={open}
       onOpenChange={onOpenChange}
-      side={layout === "wide" ? "right" : "bottom"}
+      side={sheetSide({ layout, touch })}
       contentStyle={DRAWER_FIT_STYLE}
       size="lg"
       title={t("booking.products.title")}

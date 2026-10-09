@@ -1,4 +1,5 @@
-import { Sparkles, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { ClipperIcon } from "@/components/ai-interaction";
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/feedback"
@@ -16,7 +17,7 @@ export type AIPanelProps = {
 }
 
 export function AIPanel({
-  title = "Insights de IA",
+  title = "Insights de Clipper",
   description,
   children,
   actions,
@@ -31,7 +32,7 @@ export function AIPanel({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <ClipperIcon className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg font-bold text-primary">
               {title}
             </CardTitle>

@@ -59,7 +59,7 @@ export function BookingPage() {
     return (
       <main className="h-dvh">
         {/* La página pública cuenta para el embudo; `widget=1` la marca como abierta desde el sitio. */}
-        <BookingFlow version={version} layout={isNarrow ? "compact" : "wide"} touch={isNarrow ? "default" : "lg"} surface={params.get("widget") === "1" ? "widget" : "link"} />
+        <BookingFlow version={version} onVersionChange={(next) => setParams((current) => ({ ...Object.fromEntries(current), version: next }), { replace: true })} isPhone={isNarrow} layout={isNarrow ? "compact" : "wide"} touch={isNarrow ? "default" : "lg"} surface={params.get("widget") === "1" ? "widget" : "link"} />
       </main>
     );
   }
@@ -79,8 +79,8 @@ export function BookingPage() {
     { value: "agenda-select", label: t("booking.version.agendaSelect"), icon: CalendarSearch },
     { value: "chat", label: t("booking.version.chat"), icon: MessagesSquare },
   ];
-  const versionHint = { guided: t("booking.version.guidedHint"), agenda: t("booking.version.agendaHint"), "agenda-select": t("booking.version.agendaSelectHint"), chat: t("booking.version.chatHint") }[version];
   const setParam = (key: string, value: string) => setParams((current) => ({ ...Object.fromEntries(current), [key]: value }), { replace: true });
+
 
   const modes = [
     { value: "phone", label: t("booking.preview.phone"), icon: Smartphone },
@@ -102,17 +102,6 @@ export function BookingPage() {
           </Text>
           <Badge variant="secondary">{t("booking.preview.badge")}</Badge>
         </div>
-        {!isNarrow && (
-          <div className="order-last flex w-full justify-center lg:order-none lg:w-auto lg:flex-1">
-            <SegmentedControl
-              options={modes}
-              value={mode}
-              onChange={(value) => setParam("vista", value)}
-              size="sm"
-              ariaLabel={t("booking.preview.mode")}
-            />
-          </div>
-        )}
         <div className="ml-auto flex items-center gap-2">
           <DemoHints />
           <ThemeModeToggle />
@@ -128,32 +117,30 @@ export function BookingPage() {
         </div>
       </header>
 
-      {/* Las tres maneras de reservar: no son pieles, cada una parte de una pregunta distinta. */}
-      <div className="relative z-raised flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-surface/80 px-4 py-2 backdrop-blur">
-        <Text size="xs" weight="semibold" tone="muted" className="uppercase tracking-wide">
-          {t("booking.version.label")}
-        </Text>
-        <SegmentedControl options={versions} value={version} onChange={(value) => setParam("version", value)} size="sm" fullWidth={isNarrow} ariaLabel={t("booking.version.label")} />
-        <Text size="sm" tone="secondary" className="min-w-0 flex-1 basis-60">
-          {versionHint}
-        </Text>
-      </div>
-
-      <main className="relative isolate flex min-h-0 flex-1 items-center justify-center overflow-hidden p-0 md:p-6">
+      <main className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
         <Grain scope="container" />
-        {isNarrow ? (
-          <div className="h-full w-full">
-            <BookingFlow key={version} version={version} layout="compact" />
+        {/* Los controles de la vista previa, centrados bajo la cabecera: la experiencia y, si hay marcos, el dispositivo. */}
+        <div className="relative z-raised flex shrink-0 flex-col items-center gap-2 px-4 pb-1 pt-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            <SegmentedControl className="w-auto" options={versions} value={version} onChange={(value) => setParam("version", value)} size="sm" fullWidth={isNarrow} ariaLabel={t("booking.version.label")} />
+            {!isNarrow && <SegmentedControl className="w-auto" options={modes} value={mode} onChange={(value) => setParam("vista", value)} size="sm" ariaLabel={t("booking.preview.mode")} />}
           </div>
-        ) : mode === "widget" ? (
-          <DeviceFrame device="monitor" address="barberia.example.com">
-            <DemoSite version={version} />
-          </DeviceFrame>
-        ) : (
-          <DeviceFrame key={mode} device={mode} address={publicUrl.replace(/^https?:\/\//, "")}>
-            <BookingFlow key={version} version={version} layout={mode === "monitor" ? "wide" : "compact"} touch={mode === "tablet" ? "lg" : "default"} />
-          </DeviceFrame>
-        )}
+        </div>
+        <div className="flex min-h-0 flex-1 items-center justify-center p-0 md:p-6 md:pt-3">
+          {isNarrow ? (
+            <div className="h-full w-full">
+              <BookingFlow key={version} version={version} onVersionChange={(next) => setParam("version", next)} layout="compact" isPhone />
+            </div>
+          ) : mode === "widget" ? (
+            <DeviceFrame device="monitor" address="barberia.example.com">
+              <DemoSite version={version} />
+            </DeviceFrame>
+          ) : (
+            <DeviceFrame key={mode} device={mode} address={publicUrl.replace(/^https?:\/\//, "")}>
+              <BookingFlow key={version} version={version} onVersionChange={(next) => setParam("version", next)} isPhone={mode === "phone"} layout={mode === "monitor" ? "wide" : "compact"} touch={mode === "tablet" ? "lg" : "default"} />
+            </DeviceFrame>
+          )}
+        </div>
       </main>
     </div>
   );

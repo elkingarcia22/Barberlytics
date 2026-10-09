@@ -1,6 +1,6 @@
 # AiSparkGlyph
 
-La chispa de la IA: el destello grande con dos satélites que laten a destiempo. Vive suelta porque es la misma marca a 42px en el panel de análisis y a 18px en una tarjeta que se rehace; el latido escalonado es lo que la hace leerse como trabajo en curso.
+La marca de «la IA está trabajando»: el orbe de Clipper pensando (gira rápido, halo vivo). Vive suelta porque es la misma marca a 42px en el panel de análisis y a 18px en una tarjeta que se rehace; por debajo de 32px va sin halo ni anillo.
 
 Familia: IA · Doc: `/docs#/components/ai-spark-glyph` · Fuente: `src/components/ai-interaction/AiSparkGlyph.tsx`
 
@@ -13,22 +13,22 @@ import { AiSparkGlyph } from "@/components/ai-interaction"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `size` | `number` | `42` | Lado del glifo en píxeles. |
-| `className` | `string` |  | Clases extra para el <svg>. Es `aria-hidden`: acompáñalo de texto. |
+| `className` | `string` |  | Clases extra. Es `aria-hidden`: acompáñalo de texto. |
 
 ## Guías
 
 - Sí: Úsala como marca de «la IA está trabajando» junto a un texto que lo diga.
 - Sí: Prefiere AiAnalyzingState o AiGeneratedBadge; usa el glifo suelto solo para composiciones nuevas de IA.
 - No: No la uses como icono decorativo en superficies que no son de IA: el degradado está reservado.
-- No: No dupliques el SVG en otro componente; importa este para que el dibujo no se separe.
+- No: No dibujes otra chispa: usa este glifo o `ClipperOrb`.
 
-Relacionados: ai-analyzing-state, ai-generated-badge, thema-icon
+Relacionados: clipper-orb, ai-analyzing-state, ai-generated-badge, thema-icon
 
 ## Ejemplos
 
 ### Tamaños
 
-El SVG escala sin perder el trazo relativo; el degradado usa un id único por instancia.
+El orbe escala con el tamaño; bajo 32px pierde el halo y el anillo.
 
 ```tsx
 <AiSparkGlyph size={18} />
@@ -39,7 +39,7 @@ El SVG escala sin perder el trazo relativo; el degradado usa un id único por in
 
 ### Con halo
 
-El halo difuminado que usa AiAnalyzingState detrás de la chispa, para cuando la pieza es la protagonista.
+Con el halo difuminado detrás, para cuando la pieza es la protagonista (a partir de 32px ya lo trae).
 
 ```tsx
 <div className="relative flex h-16 w-16 items-center justify-center">

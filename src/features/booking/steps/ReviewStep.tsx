@@ -2,13 +2,11 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { EmptyState } from "@/components/feedback/EmptyState";
-import { Field } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
@@ -21,19 +19,22 @@ import { BranchChange } from "../flow/BranchChange";
 import { ProductCard } from "../flow/ProductCard";
 import { PickedProducts } from "../flow/PickedProducts";
 import { ProductCatalogDrawer } from "../flow/ProductCatalogDrawer";
-import { ReferencePhotoField } from "../flow/ReferencePhotoField";
+import { PersonSheet } from "../flow/PersonPicker";
 import { StepLayout } from "../flow/StepLayout";
 import { itemDuration, itemPrice } from "../useBookingTotals";
 
 /**
  * El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra
  * —para la misma persona otro día o para alguien que viene con ella—, lo que
- * se lleva de la tienda y una nota para el barbero. El total se ve siempre.
+ * se lleva de la tienda. La nota y la foto para el barbero se piden al confirmar. El total se ve siempre.
  */
 export function ReviewStep() {
   const t = useAppT();
   const { state, dispatch, catalog, shop, fmt, totals, layout } = useBookingFlow();
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
+  // Para quién es cada cita: se cambia aquí, con la misma hoja de «¿Para quién más?».
+  const [personFor, setPersonFor] = React.useState<number | null>(null);
+  const personItem = personFor === null ? null : (state.items[personFor] ?? null);
   const products = catalog?.products ?? [];
   // Lo que ya va en el pedido sale del carrusel: se ve y se ajusta en «En tu pedido», no dos veces.
   const remaining = products.filter((product) => (state.products[product.id] ?? 0) === 0);
@@ -69,15 +70,18 @@ export function ReviewStep() {
       lead={t("booking.review.lead")}
       footer={
         <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Text size="xs" tone="muted">
-              {t("booking.payment.total")}
-            </Text>
-            <Text size="lg" weight="semibold" tabular>
-              {fmt.money(totals.total)}
-            </Text>
-          </div>
-          <Button type="button" size="lg" onClick={() => dispatch({ type: "goTo", step: "payment" })}>
+          {/* En monitor el total ya está en el resumen de la derecha, junto a este botón. */}
+          {layout !== "wide" && (
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Text size="xs" tone="muted">
+                {t("booking.payment.total")}
+              </Text>
+              <Text size="lg" weight="semibold" tabular>
+                {fmt.money(totals.total)}
+              </Text>
+            </div>
+          )}
+          <Button type="button" size="lg" className={layout === "wide" ? "w-full" : undefined} onClick={() => dispatch({ type: "goTo", step: "payment" })}>
             {t("booking.review.continue")}
             <ThemaIcon name="arrowRight" />
           </Button>
@@ -104,6 +108,11 @@ export function ReviewStep() {
                 duration: t("booking.review.minutes", { count: itemDuration(item.serviceIds, catalog) }),
                 price: fmt.money(itemPrice(item, catalog)),
               }}
+              personAction={
+                <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-primary" onClick={() => setPersonFor(index)}>
+                  {item.person.kind === "self" ? t("booking.person.add") : t("booking.person.change")}
+                </Button>
+              }
               actions={
                 <>
                   <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "editItem", index })}>
@@ -154,8 +163,9 @@ export function ReviewStep() {
                 )}
               </div>
             </div>
-            <PickedProducts products={products} />
-            <CarouselContent className={cn("-ml-3", pickedCount > 0 && remaining.length > 0 && "mt-3")}>
+            {/* En monitor lo elegido se ve y se ajusta en el resumen de la derecha. */}
+            {layout !== "wide" && <PickedProducts products={products} />}
+            <CarouselContent className={cn("-ml-3", layout !== "wide" && pickedCount > 0 && remaining.length > 0 && "mt-3")}>
               {remaining.map((product) => (
                 <CarouselItem key={product.id} className={cn("basis-[45%] pl-3", layout === "wide" && "basis-1/3")}>
                   <ProductCard product={product} />
@@ -170,11 +180,6 @@ export function ReviewStep() {
           <ProductCatalogDrawer open={isCatalogOpen} onOpenChange={setIsCatalogOpen} />
         </section>
       )}
-
-      <Field label={t("booking.review.notes")}>
-        <Textarea value={state.notes} onChange={(event) => dispatch({ type: "setNotes", notes: event.target.value })} placeholder={t("booking.review.notesPlaceholder")} rows={2} />
-      </Field>
-      <ReferencePhotoField />
 
       <Collapsible className="rounded-2xl border border-border bg-surface-subtle">
         <CollapsibleTrigger asChild>
@@ -192,6 +197,9 @@ export function ReviewStep() {
           </Text>
         </CollapsibleContent>
       </Collapsible>
+      {personItem && (
+        <PersonSheet open onOpenChange={(open) => !open && setPersonFor(null)} person={personItem.person} onChoose={(person) => dispatch({ type: "setItemPerson", key: personItem.key, person })} />
+      )}
     </StepLayout>
   );
 }

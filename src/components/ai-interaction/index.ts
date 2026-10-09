@@ -6,3 +6,5 @@ export { AiAnalyzingState } from "./AiAnalyzingState";
 export { AiGeneratedBadge } from "./AiGeneratedBadge";
 export { AiSparkGlyph } from "./AiSparkGlyph";
 export { SaveIndicator } from "./SaveIndicator";
+export { ClipperIcon, type ClipperIconProps } from "./ClipperIcon";
+export { ClipperOrb, type ClipperOrbProps, type ClipperOrbState } from "./ClipperOrb";

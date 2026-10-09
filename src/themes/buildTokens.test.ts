@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildFontTokens, buildRadiusTokens, buildSpacingTokens, buildThemeTokens, DENSITY_FACTORS, RADIUS_FACTORS, themeToCss } from "./buildTokens";
+import { AI_DARK_INK, buildFontTokens, buildRadiusTokens, buildSpacingTokens, buildThemeTokens, DENSITY_FACTORS, RADIUS_FACTORS, themeToCss } from "./buildTokens";
 import { hexToHsl } from "./color";
 import { findPreset, THEME_PRESETS } from "./presets";
 
@@ -137,6 +137,24 @@ describe("AI gradient", () => {
       expect(tokens[`--color-ai-stop-${i}`]).toMatch(/^#[0-9a-f]{6}$/);
       expect(tokens[`--color-ai-stop-${i}-rgb`]).toMatch(/^\d+, \d+, \d+$/);
     }
+  });
+
+  test("every theme and mode picks white or dark ink over the AI gradient", () => {
+    for (const preset of THEME_PRESETS) {
+      for (const mode of ["light", "dark"] as const) {
+        expect(["#ffffff", AI_DARK_INK]).toContain(buildThemeTokens(preset, mode)["--color-ai-ink"]);
+      }
+    }
+  });
+
+  test("a saturated gradient takes white ink and a pale one takes dark ink", () => {
+    expect(buildThemeTokens(thema, "light")["--color-ai-ink"]).toBe("#ffffff");
+    expect(buildThemeTokens(findPreset("premium-platino"), "dark")["--color-ai-ink"]).toBe(AI_DARK_INK);
+    expect(buildThemeTokens(findPreset("orange"), "light")["--color-ai-ink"]).toBe(AI_DARK_INK);
+  });
+
+  test("a near tie goes to the dark ink (Premium light: cream on the left)", () => {
+    expect(buildThemeTokens(findPreset("premium"), "light")["--color-ai-ink"]).toBe(AI_DARK_INK);
   });
 });
 

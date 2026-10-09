@@ -12,7 +12,7 @@ import { useBookingFlow } from "./BookingContext";
 import { BarberReviews } from "./BarberReviews";
 import { GalleryViewer } from "./GalleryViewer";
 import { PhotoStrip } from "./PhotoStrip";
-import { DRAWER_FIT_STYLE } from "./drawerFit";
+import { DRAWER_FIT_STYLE, sheetSide } from "./drawerFit";
 
 interface BarberProfileDrawerProps {
   barber: BookingBarber | null;
@@ -29,13 +29,13 @@ const SOCIALS = [
 /** El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. */
 export function BarberProfileDrawer({ barber, serviceIds, onOpenChange, onChoose }: BarberProfileDrawerProps) {
   const t = useAppT();
-  const { layout } = useBookingFlow();
+  const { layout, touch } = useBookingFlow();
 
   return (
     <DrawerShell
       open={barber !== null}
       onOpenChange={onOpenChange}
-      side={layout === "wide" ? "right" : "bottom"}
+      side={sheetSide({ layout, touch })}
       contentStyle={DRAWER_FIT_STYLE}
       title={barber?.name ?? ""}
       description={barber?.level ?? undefined}

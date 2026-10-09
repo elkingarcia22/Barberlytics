@@ -47,7 +47,7 @@ export const aiButtonEntry = defineEntry({
     controls: {
       variant: { type: "select", options: VARIANTS, default: "primary" },
       size: { type: "select", options: SIZES, default: "md" },
-      label: { type: "text", default: "Generar con IA" },
+      label: { type: "text", default: "Generar con Clipper" },
       helperText: { type: "text", label: "Texto de ayuda", default: "" },
       loading: { type: "boolean", label: "Cargando", default: false },
       disabled: { type: "boolean", default: false },

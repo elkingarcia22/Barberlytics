@@ -3,6 +3,7 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test/
 import { resetBookingLimits } from "@/mocks/booking/handlers";
 import { DEMO_OTP as DEMO_CODE } from "@/mocks/booking/state";
 import { BookingFlow } from "../BookingFlow";
+import { requestVoiceOnArrival } from "../flow/versionSwitch";
 import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
@@ -538,6 +539,33 @@ describe("las otras dos experiencias", () => {
     const repeat = await screen.findByRole("group", { name: "¿Cada cuánto?" });
     await user.click(within(repeat).getByRole("button", { name: /No, solo esta cita/ }));
     expect(await screen.findByText("Listo, queda solo esta cita.")).toBeInTheDocument();
+  });
+
+  test("conversación desde la Agenda con selector: se arma la cita primero y el celular se pide al pagar", async () => {
+    const user = userEvent.setup();
+    // Llegó con «Agenda con Clipper» desde la Agenda con selector: la voz se abre; aquí se sigue escribiendo.
+    requestVoiceOnArrival("agenda-select");
+    renderWithProviders(<BookingFlow version="chat" />);
+    await user.click(await screen.findByRole("button", { name: "Volver al chat" }));
+    await user.type(await screen.findByPlaceholderText(/Corte mañana en la tarde con Andrés/), "corte con Andrés{Enter}");
+    // No pide el celular al empezar: va directo a la cita (sede, si hay varias, y los días de Andrés).
+    await screen.findByRole("group", { name: /^(¿A cuál sede vas a ir\?|¿Qué día te queda bien\?)$/ });
+    expect(screen.queryByText(/número de celular/)).toBeNull();
+    const branches = screen.queryByRole("group", { name: "¿A cuál sede vas a ir?" });
+    if (branches) await user.click(within(branches).getAllByRole("button")[1]);
+    const days = await screen.findByRole("group", { name: "¿Qué día te queda bien?" });
+    await user.click(within(days).getAllByRole("button", { name: /^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/ })[1]);
+    const times = await screen.findByRole("group", { name: /^¿A qué hora el / });
+    await user.click(within(times).getAllByRole("button", { name: /\d:\d\d/ })[0]);
+    // Al pagar, recién ahí: quién eres.
+    const more = await screen.findByRole("group", { name: /Algo más/ });
+    await user.click(within(more).getByRole("button", { name: /pagar/i }));
+    expect(await screen.findByText(/para apartarla necesito saber quién eres/)).toBeInTheDocument();
+    await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
+    await screen.findByText(/Te acabo de mandar un/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    // Ya con quien reserva, sigue al pago con lo armado (sin volver a empezar).
+    expect(await screen.findByRole("group", { name: /propina/i })).toBeInTheDocument();
   });
 
   test("conversación: lo pedido en la portada sigue en pie después de elegir la sede", async () => {

@@ -39,25 +39,34 @@ export function useChatBooking({
   onFinish,
   payment,
   deferStart = false,
+  identityAt = "first",
 }: {
   onFinish?: () => void;
   payment: React.RefObject<PaymentController | null>;
   /** Con portada: el saludo espera a que diga (o escriba) qué quiere; ver `begin`. */
   deferStart?: boolean;
+  /**
+   * Cuándo se pide quién eres. `first` (como en WhatsApp): el celular y el código al empezar. `last`
+   * (como en la Agenda con selector): se arma la cita y el celular se pide al pagar.
+   */
+  identityAt?: "first" | "last";
 }) {
+  const identityLast = identityAt === "last";
   const t = useAppT();
   const queryClient = useQueryClient();
   const { state, dispatch, shop, catalog, totals, fmt } = useBookingFlow();
   const [turns, setTurns] = React.useState<readonly ChatTurn[]>([]);
   const [typing, setTyping] = React.useState(false);
-  const [expectingNow, setExpectingNow] = React.useState<Expecting>("phone");
+  const [expectingNow, setExpectingNow] = React.useState<Expecting>(identityLast ? null : "phone");
   const stateRef = React.useRef<BookingState>(state);
   const catalogRef = React.useRef<BookingCatalog | undefined>(catalog);
   const totalsRef = React.useRef<Totals>(totals);
   const turnsRef = React.useRef(turns);
   const handlers = React.useRef<Handlers | null>(null);
   const queue = React.useRef<Promise<void>>(Promise.resolve());
-  const expecting = React.useRef<Expecting>("phone");
+  const expecting = React.useRef<Expecting>(identityLast ? null : "phone");
+  /** Con la identidad al final: se pidió pagar sin saber quién es; al identificarse, sigue al pago. */
+  const pendingCheckout = React.useRef(false);
   const profile = React.useRef({ firstName: "", lastName: "", email: "" });
   const pendingName = React.useRef("");
   const receiptPlan = React.useRef<ReceiptPlan | null>(null);
@@ -366,7 +375,7 @@ export function useChatBooking({
   /** Vuelve a mostrar la pregunta que quedó sin responder; `false` si no hay ninguna. */
   const resume = (lead: string = t("booking.chat.resume")): boolean => {
     const pending = [...turnsRef.current].reverse().find((turn) => turn.question && turn.question.answer === undefined && !["branchInfo", "branchConfirm"].includes(turn.question.kind));
-    if (!pending?.question || !stateRef.current.customer) return false;
+    if (!pending?.question || !(stateRef.current.customer || identityLast)) return false;
     ask({ ...pending.question }, lead);
     return true;
   };
@@ -376,6 +385,15 @@ export function useChatBooking({
   const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, settle: (turnId: string, label: string) => settle(turnId, label), receiptPlan, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
   const newCard = useChatNewCard({ t, say, ask, expect, stateRef, payment, cardDraft, askMethod: pay.askMethod });
   const { checkout, manage, askMethod, askConfirm } = pay;
+
+  /** Pagar: con la identidad al final, si aún no se sabe quién es, primero el celular (y luego al pago). */
+  const payOrIdentify = () => {
+    if (identityLast && !stateRef.current.customer) {
+      pendingCheckout.current = true;
+      return askPhone(t("booking.chat.phoneToFinish"));
+    }
+    return checkout();
+  };
 
   /**
    * «Volver»: un paso atrás en el orden de la reserva (barbero → servicios, día → barbero, hora → día; tras
@@ -428,6 +446,12 @@ export function useChatBooking({
     const customer = current.customer;
     if (!customer) return;
     presetBranch();
+    // Se identificó para pagar lo que ya armó: un saludo corto y al pago, sin volver a empezar.
+    if (pendingCheckout.current) {
+      pendingCheckout.current = false;
+      say({ text: customer.isNew ? t("booking.chat.niceToMeet", { name: customer.firstName }) : t("booking.chat.knownHello", { name: customer.firstName }) });
+      return void checkout();
+    }
     if (customer.isNew) {
       const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
       say({ text: offer ? t("booking.chat.niceToMeetOffer", { name: customer.firstName, offer }) : t("booking.chat.niceToMeet", { name: customer.firstName }) });
@@ -497,7 +521,7 @@ export function useChatBooking({
 
   const onMore = (value: string | null) => {
     const current = stateRef.current;
-    if (value === "pay") return checkout();
+    if (value === "pay") return payOrIdentify();
     if (value === "another") {
       apply({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null });
       return askPerson(t("booking.chat.anotherAsk"));
@@ -625,12 +649,15 @@ export function useChatBooking({
 
   const restart = () => {
     apply({ type: "restart" });
-    expect("phone");
+    expect(identityLast ? null : "phone");
     pendingManage.current = false;
+    pendingCheckout.current = false;
     seenCustomer.current = null;
     rescheduling.current = null;
     setTurns([]);
-    greetAtStart();
+    if (!identityLast) return greetAtStart();
+    say({ text: t("booking.chat.helloLast", { shop: shop.name }) });
+    startBooking();
   };
 
   /** Los botones de la cabecera: «Mis citas» y empezar de nuevo. */
@@ -646,7 +673,7 @@ export function useChatBooking({
     const loaded = await loadCatalog();
     const parsed = parseBookingText(text, { services: loaded?.services ?? [], barbers: loaded?.barbers ?? [], now: new Date() });
     if (parsed.intent === "manage") return manage();
-    if (parsed.intent === "pay") return checkout();
+    if (parsed.intent === "pay") return payOrIdentify();
     if (parsed.intent === "help") return say({ text: t("booking.chat.help") });
     // Sin sede aún no hay servicios ni barberos que reconocer: se guarda lo pedido, se pregunta la
     // sede y, al elegirla, se vuelve a entender (`startBooking`). Así «corte con Andrés» no se pierde.
@@ -684,16 +711,16 @@ export function useChatBooking({
     // Un número o un trozo de una opción de la pregunta abierta: el mensaje queda con el texto de la opción.
     const open = waiting ? undefined : activeQuestionTurn(turnsRef.current);
     // Con la sesión del código ya se puede responder (el cliente nuevo aún no tiene ficha al dar el permiso).
-    const option = open?.question && !open.question.multiple && (stateRef.current.customer || stateRef.current.token) ? matchOption(open.question, text) : null;
+    const option = open?.question && !open.question.multiple && (stateRef.current.customer || stateRef.current.token || identityLast) ? matchOption(open.question, text) : null;
     if (open && option) return answer(open.id, option, { echo: true, isOther: false });
     // De pasada: volver, cambiar algo ya elegido o preguntar (la dirección, el perfil de su barbero, cuánto lleva…).
     const aside = waiting ? null : detectAside(text);
     if (aside) {
       pushUser(text);
-      void intents.handleAside(aside).then((done) => (done ? undefined : stateRef.current.customer ? interpret(text) : askPhone(t("booking.chat.needPhone"))));
+      void intents.handleAside(aside).then((done) => (done ? undefined : stateRef.current.customer || identityLast ? interpret(text) : askPhone(t("booking.chat.needPhone"))));
       return;
     }
-    const loose = open?.question && !open.question.multiple && stateRef.current.customer ? matchOptionLoosely(open.question, text) : null;
+    const loose = open?.question && !open.question.multiple && (stateRef.current.customer || identityLast) ? matchOptionLoosely(open.question, text) : null;
     if (open && loose) {
       pushUser(text);
       return answer(open.id, loose, { echo: false, isOther: false });
@@ -725,7 +752,7 @@ export function useChatBooking({
       payment.current?.setSavedCvc(cvc);
       return askConfirm();
     }
-    if (!stateRef.current.customer && !stateRef.current.token) return askPhone(t("booking.chat.needPhone"));
+    if (!identityLast && !stateRef.current.customer && !stateRef.current.token) return askPhone(t("booking.chat.needPhone"));
     // «A los dos», «por SMS», un correo o un celular, con la lista del recibo abierta.
     if (open && pay.answerTypedReceipt(open, text)) return;
     if (open?.question && !open.question.multiple && open.question.otherPlaceholder) return answer(open.id, text.trim(), { echo: false, isOther: true });
@@ -764,6 +791,12 @@ export function useChatBooking({
     if (started.current) return;
     started.current = true;
     const wanted = text?.trim();
+    // Identidad al final: se saluda y se arma la cita de una vez; el celular, al pagar.
+    if (identityLast) {
+      if (wanted) pushUser(wanted);
+      say({ text: t("booking.chat.helloLast", { shop: shop.name }) });
+      return wanted ? void interpret(wanted) : startBooking();
+    }
     if (!wanted) return greetAtStart();
     pendingIntent.current = wanted;
     pushUser(wanted);

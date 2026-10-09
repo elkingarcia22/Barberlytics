@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { afterAll, afterEach, beforeAll } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
+import { http, HttpResponse } from "msw";
 import { cleanup } from "@testing-library/react";
 import { server } from "@/mocks/server";
 import { db } from "@/mocks/db";
@@ -7,6 +8,9 @@ import { db } from "@/mocks/db";
 // El backend simulado responde en todas las pruebas; cualquier petición no
 // prevista es un error, nunca una llamada real.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+// La voz natural de Clipper (api/tts) no existe en pruebas: responde «sin servicio» y se usa la
+// del navegador. No va en los mocks de desarrollo, que dejarían sin voz real al servidor local.
+beforeEach(() => server.use(http.post("*/api/tts", () => HttpResponse.json({ code: "tts_not_configured" }, { status: 501 }))));
 afterEach(() => {
   server.resetHandlers();
   db.reset();

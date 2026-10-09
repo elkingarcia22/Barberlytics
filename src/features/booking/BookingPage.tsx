@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CalendarClock, CalendarSearch, ListChecks, MessagesSquare, Monitor, PanelBottomOpen, Smartphone, Tablet } from "lucide-react";
+import { CalendarClock, CalendarSearch, FlaskConical, ListChecks, MessagesSquare, Monitor, PanelBottomOpen, Smartphone, Tablet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -75,11 +75,12 @@ export function BookingPage() {
 
   const versions = [
     { value: "guided", label: t("booking.version.guided"), icon: ListChecks },
+    { value: "welcome-lab", label: t("booking.version.welcomeLab"), icon: FlaskConical },
     { value: "agenda", label: t("booking.version.agenda"), icon: CalendarClock },
     { value: "agenda-select", label: t("booking.version.agendaSelect"), icon: CalendarSearch },
     { value: "chat", label: t("booking.version.chat"), icon: MessagesSquare },
   ];
-  const versionHint = { guided: t("booking.version.guidedHint"), agenda: t("booking.version.agendaHint"), "agenda-select": t("booking.version.agendaSelectHint"), chat: t("booking.version.chatHint") }[version];
+  const versionHint = { guided: t("booking.version.guidedHint"), "welcome-lab": t("booking.version.welcomeLabHint"), agenda: t("booking.version.agendaHint"), "agenda-select": t("booking.version.agendaSelectHint"), chat: t("booking.version.chatHint") }[version];
   const setParam = (key: string, value: string) => setParams((current) => ({ ...Object.fromEntries(current), [key]: value }), { replace: true });
 
   const modes = [

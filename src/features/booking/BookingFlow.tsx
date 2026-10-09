@@ -29,6 +29,7 @@ import type { BookingShop } from "./types";
 import { useBookingEngine } from "./useBookingEngine";
 import { AgendaFlow } from "./variants/agenda/AgendaFlow";
 import { ChatFlow } from "./variants/chat/ChatFlow";
+import { WelcomeLab, type WelcomeProposal } from "./variants/welcome-lab/WelcomeLab";
 import type { BookingVersion } from "./versions";
 
 export interface BookingFlowProps {
@@ -83,7 +84,13 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
   }
 }
 
-function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () => void }) {
+/** El laboratorio de la bienvenida: qué propuesta se ve. Vive en el flujo para no perderla al volver atrás. */
+interface WelcomeLabSlot {
+  proposal: WelcomeProposal;
+  onProposalChange: (proposal: WelcomeProposal) => void;
+}
+
+function StepSwitch({ state, onFinish, welcomeLab }: { state: BookingState; onFinish?: () => void; welcomeLab?: WelcomeLabSlot }) {
   switch (state.step) {
     case "phone":
       return <PhoneStep />;
@@ -96,7 +103,7 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
     case "profile":
       return <ProfileStep />;
     case "welcome":
-      return <WelcomeStep />;
+      return welcomeLab ? <WelcomeLab {...welcomeLab} /> : <WelcomeStep />;
     case "blocked":
       return <BlockedStep />;
     case "branch":
@@ -119,8 +126,9 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
 }
 
 /** Paso a paso: la cabecera con el progreso, un paso por pantalla y, en monitor, el resumen al lado. */
-function GuidedFlow({ headerTrailing, onFinish }: Pick<BookingFlowProps, "headerTrailing" | "onFinish">) {
+function GuidedFlow({ headerTrailing, onFinish, welcomeLab = false }: Pick<BookingFlowProps, "headerTrailing" | "onFinish"> & { welcomeLab?: boolean }) {
   const { state, dispatch, shop, layout } = useBookingFlow();
+  const [proposal, setProposal] = React.useState<WelcomeProposal>("pass");
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Cada paso empieza arriba.
@@ -138,7 +146,7 @@ function GuidedFlow({ headerTrailing, onFinish }: Pick<BookingFlowProps, "header
       <div className="flex min-h-0 flex-1">
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="flex min-h-full w-full flex-col">
-            <StepSwitch state={state} onFinish={onFinish} />
+            <StepSwitch state={state} onFinish={onFinish} welcomeLab={welcomeLab ? { proposal, onProposalChange: setProposal } : undefined} />
           </div>
         </div>
         {showAside && (
@@ -203,7 +211,7 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
           ) : version === "chat" ? (
             <ChatFlow headerTrailing={headerTrailing} onFinish={onFinish} />
           ) : (
-            <GuidedFlow headerTrailing={headerTrailing} onFinish={onFinish} />
+            <GuidedFlow headerTrailing={headerTrailing} onFinish={onFinish} welcomeLab={version === "welcome-lab"} />
           )}
         </section>
       </PortalContainerProvider>

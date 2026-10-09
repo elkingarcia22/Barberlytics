@@ -365,6 +365,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 
+### booking/variants/welcome-lab
+
+- **WelcomeBento.tsx** — Propuesta B · Atajos. · `WelcomeBento` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **WelcomeLab.tsx** — Laboratorio temporal de la bienvenida del cliente que vuelve: tres rediseños sobre los mismos datos y accione… · `WelcomeProposal`, `WelcomeLab` · piezas: SegmentedControl, Text · usa: @/app/i18n
+- **WelcomePass.tsx** — Propuesta A · Pase. · `WelcomePass` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **WelcomeRhythm.tsx** — Propuesta C · Tu ritmo. · `WelcomeRhythm` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **useWelcomeData.ts** — Lo que necesita cualquier versión de la bienvenida del cliente que vuelve: su última visita (servicios, barbe… · `useWelcomeData`, `WelcomeData`
+
 ### branches
 
 - **branches.ts** — Las sucursales del negocio. · `BRANCHES`, `DEFAULT_BRANCH_ID`

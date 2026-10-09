@@ -7,13 +7,13 @@ function stubMatchMedia(matches: boolean) {
     ({ matches, media: query, onchange: null, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false }) as MediaQueryList;
 }
 
-function stubCanvas() {
+function stubCanvas(width = 400, height = 600) {
   const context = {
     setTransform: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(), translate: vi.fn(), rotate: vi.fn(),
     beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), strokeStyle: "", lineWidth: 0, lineCap: "butt", lineJoin: "miter", globalAlpha: 1,
   };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
-  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 400, height: 600, top: 0, left: 0, right: 400, bottom: 600, x: 0, y: 0, toJSON: () => ({}) });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) });
   return context;
 }
 
@@ -65,6 +65,30 @@ describe("HairBurst", () => {
 
     // Assert
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+  });
+
+  test("en una pantalla ancha sale de varios focos repartidos a lo ancho", () => {
+    // Arrange: 1080 px son tres tramos de 360 px; un pelo por foco.
+    stubMatchMedia(false);
+    const context = stubCanvas(1080, 700);
+    let frame: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frame = callback;
+      return 1;
+    });
+
+    // Act: el primer fotograma, recién nacidos.
+    render(
+      <div className="relative">
+        <HairBurst count={1} />
+      </div>
+    );
+    (frame as FrameRequestCallback | null)?.(performance.now());
+
+    // Assert: tres pelos, uno por foco, cada uno cerca de su tercio del ancho.
+    const starts = context.translate.mock.calls.map(([x]) => x as number);
+    expect(starts).toHaveLength(3);
+    expect(starts.map((x) => Math.floor(x / 360)).sort()).toEqual([0, 1, 2]);
   });
 
   test("con prefers-reduced-motion no se monta y termina enseguida", () => {

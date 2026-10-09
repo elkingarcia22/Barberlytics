@@ -1,6 +1,6 @@
 # HairBurst
 
-Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.
+Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Se adapta al ancho: en un celular sale de un punto y en pantallas anchas de varios, repartidos de lado a lado. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.
 
 Familia: Atmósfera y marca · Doc: `/docs#/components/hair-burst` · Fuente: `src/components/atmosphere/HairBurst.tsx`
 
@@ -12,8 +12,8 @@ import { HairBurst } from "@/components/atmosphere"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `count` | `number` | `160` | Cuántos pelos salen. |
-| `origin` | `{ x: number; y: number }` | `{ x: 0.5, y: 0.3 }` | De dónde estallan, en proporción del contenedor (0 a 1). |
+| `count` | `number` | `160` | Cuántos pelos salen por foco. Hay un foco por cada 360 px de ancho (uno en un celular, varios en una tablet o un monitor), con tope en 900 pelos. |
+| `origin` | `{ x: number; y: number }` | `{ x: 0.5, y: 0.3 }` | De dónde estallan, en proporción del contenedor (0 a 1). Con varios focos, `x` no cuenta: se reparten a lo ancho. |
 | `onDone` | `() => void` |  | Al terminar la ráfaga; con «reducir movimiento», enseguida. |
 | `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
 

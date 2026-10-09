@@ -29,7 +29,7 @@ export const hairBurstEntry = defineEntry({
   name: "HairBurst",
   group: "atmosphere",
   description:
-    "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
+    "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Se adapta al ancho: en un celular sale de un punto y en pantallas anchas de varios, repartidos de lado a lado. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
   importPath: 'import { HairBurst } from "@/components/atmosphere"',
   sourcePath: "src/components/atmosphere/HairBurst.tsx",
   status: "stable",
@@ -56,8 +56,8 @@ export const hairBurstEntry = defineEntry({
     },
   ],
   props: [
-    { name: "count", type: "number", default: "160", description: "Cuántos pelos salen." },
-    { name: "origin", type: "{ x: number; y: number }", default: "{ x: 0.5, y: 0.3 }", description: "De dónde estallan, en proporción del contenedor (0 a 1)." },
+    { name: "count", type: "number", default: "160", description: "Cuántos pelos salen por foco. Hay un foco por cada 360 px de ancho (uno en un celular, varios en una tablet o un monitor), con tope en 900 pelos." },
+    { name: "origin", type: "{ x: number; y: number }", default: "{ x: 0.5, y: 0.3 }", description: "De dónde estallan, en proporción del contenedor (0 a 1). Con varios focos, `x` no cuenta: se reparten a lo ancho." },
     { name: "onDone", type: "() => void", description: "Al terminar la ráfaga; con «reducir movimiento», enseguida." },
     { name: "className", type: "string", description: "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero." },
   ],

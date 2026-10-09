@@ -4,6 +4,12 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 
 const MAX_DPR = 2;
+/** Ancho que cubre un foco: el celular tiene uno; una tablet o un monitor, varios a lo ancho. */
+const EMITTER_SPAN_PX = 360;
+/** Tope de pelos en total, aunque la pantalla sea muy ancha. */
+const MAX_CLIPPINGS = 900;
+/** Alto de referencia (un celular): en pantallas más altas el impulso crece para llegar arriba. */
+const REFERENCE_HEIGHT_PX = 640;
 /** Cuánto dura la ráfaga entera, en ms; desde `FADE_START` cada pelo se va apagando. */
 const DURATION_MS = 3800;
 const FADE_START_MS = 2400;
@@ -78,12 +84,33 @@ function strandPoints(): Array<[number, number]> {
   return centered(steps.map((t) => [t * length, Math.sin(Math.PI * wavelength * t) * amplitude]));
 }
 
-function spawnClipping(originX: number, originY: number, palette: readonly string[]): Clipping {
+/** Cuánto se abre el punto de salida de un foco solo (el del celular), en px. */
+const SINGLE_SPREAD_PX = 60;
+
+interface Emitters {
+  xs: number[];
+  /** Ancho en que nace cada pelo alrededor de su foco: con varios, los tramos se tocan y se lee una sola ráfaga. */
+  spread: number;
+}
+
+/** Dónde nace cada foco: uno en `originX` si cabe uno solo; si no, repartidos a lo ancho. */
+function emittersFor(width: number, originX: number): Emitters {
+  const count = Math.max(1, Math.round(width / EMITTER_SPAN_PX));
+  if (count === 1) return { xs: [width * originX], spread: SINGLE_SPREAD_PX };
+  return { xs: Array.from({ length: count }, (_, i) => (width * (i + 0.5)) / count), spread: (width / count) * 0.9 };
+}
+
+/** Cuánto más fuerte sale en una pantalla alta: la altura que alcanza crece con el cuadrado de la velocidad. */
+function reachFor(height: number): number {
+  return Math.min(1.4, Math.max(0.9, Math.sqrt(height / REFERENCE_HEIGHT_PX)));
+}
+
+function spawnClipping(originX: number, originY: number, spread: number, reach: number, palette: readonly string[]): Clipping {
   // Hacia arriba y abriéndose, como al sacudir la capa después del arreglo.
   const direction = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
-  const speed = 2.5 + Math.random() * 6;
+  const speed = (2.5 + Math.random() * 6) * reach;
   return {
-    x: originX + (Math.random() - 0.5) * 40,
+    x: originX + (Math.random() - 0.5) * spread,
     y: originY + (Math.random() - 0.5) * 16,
     vx: Math.cos(direction) * speed,
     vy: Math.sin(direction) * speed,
@@ -134,9 +161,9 @@ function drawStrand(context: CanvasRenderingContext2D, points: Clipping["points"
 
 export interface HairBurstProps {
   className?: string;
-  /** Cuántos pelos salen. */
+  /** Cuántos pelos salen por foco; hay un foco por cada 360 px de ancho. */
   count?: number;
-  /** De dónde estallan, en proporción del contenedor. */
+  /** De dónde estallan, en proporción del contenedor. Con varios focos, `x` no cuenta: van repartidos a lo ancho. */
   origin?: HairBurstOrigin;
   /** Al terminar la ráfaga (o enseguida, con «reducir movimiento»). */
   onDone?: () => void;
@@ -147,7 +174,8 @@ export interface HairBurstProps {
  * pelos finos que quedan tras un arreglo de barba —largos, con una curva
  * suave y afinándose hacia la punta— en colores de pelo de verdad.
  * Estalla una sola vez al montarse sobre el contenedor (que debe ser
- * `relative`), cae despacio meciéndose y se apaga en unos 4 s. Para
+ * `relative`) y se adapta a su tamaño: en un celular sale de un punto; en una
+ * tablet o un monitor, de varios a lo ancho. Cae despacio meciéndose y se apaga en unos 4 s. Para
  * repetirla, cambia su `key`. Con `prefers-reduced-motion` no se monta.
  */
 export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 }, onDone }: HairBurstProps) {
@@ -176,7 +204,10 @@ export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 },
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const palette = isDarkBackground() ? HAIR_ON_DARK : HAIR_ON_LIGHT;
-    let clippings = Array.from({ length: count }, () => spawnClipping(rect.width * originX, rect.height * originY, palette));
+    const { xs, spread } = emittersFor(rect.width, originX);
+    const reach = reachFor(rect.height);
+    const total = Math.min(MAX_CLIPPINGS, count * xs.length);
+    let clippings = Array.from({ length: total }, (_, i) => spawnClipping(xs[i % xs.length], rect.height * originY, spread, reach, palette));
     const startedAt = performance.now();
     let last = startedAt;
     let frame = 0;

@@ -25,6 +25,7 @@ import type { BookingBarber, WaitlistJoined } from "../../types";
 import { itemDuration, itemPrice } from "../../useBookingTotals";
 import { ableBarbers, barberTimes, timesByWindow } from "./agendaModel";
 import { BarberLane, TimeWindows } from "./AgendaLanes";
+import { AgendaBranchField } from "./AgendaBranchField";
 import { AgendaBranchSelect } from "./AgendaBranchSelect";
 import { AgendaServiceField } from "./AgendaServicePicker";
 import { DayStrip } from "./DayStrip";
@@ -41,8 +42,8 @@ const SKELETON_LANES = 3;
 type BoardView = "barber" | "time";
 
 /**
- * El tablero de la agenda abierta: lo que se va a hacer arriba (chips, o un
- * campo que abre la carta en la Agenda con selector), el día en una
+ * El tablero de la agenda abierta: lo que se va a hacer arriba (chips, o en la
+ * Agenda con selector sede y servicios como campos que abren su lista), el día en una
  * tira y, debajo, las horas libres de todos los barberos a la vez. Una hora se
  * aparta con un toque y cae en «Tu reserva»; quién es el cliente se pregunta
  * después, al confirmar.
@@ -77,6 +78,7 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
   const barbers = ableBarbers(catalog?.barbers ?? [], serviceIds, usualId);
   const marked = React.useMemo(() => new Set(state.items.map((item) => item.start?.slice(0, 10)).filter((key): key is string => Boolean(key))), [state.items]);
   const services = catalog?.services ?? [];
+  const hasBranches = shop.branches.length > 1;
   const editing = state.editingIndex !== null ? state.items[state.editingIndex] : null;
   const timeLabel = (time: string) => fmt.clock(time);
   // «Lo de siempre»: lo de su última visita, si fue en esta sede y sigue en el catálogo.
@@ -109,7 +111,7 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
           <Heading level={layout === "wide" ? 2 : 3}>{t("booking.agenda.title")}</Heading>
           <Text tone="secondary">{t("booking.agenda.lead")}</Text>
         </div>
-        <AgendaBranchSelect />
+        {servicePicker === "chips" && <AgendaBranchSelect />}
       </header>
 
       {editing && (
@@ -125,20 +127,32 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
       )}
 
       {servicePicker === "modal" ? (
-        <section aria-labelledby="agenda-what" className="flex flex-col gap-2">
-          <div className="flex min-h-8 items-center justify-between gap-3">
-            <Text id="agenda-what" size="sm" weight="medium">
-              {t("booking.agenda.whatLabel")}
-            </Text>
-            {usual && !editing && !sameServices(usual.serviceIds, serviceIds) && (
-              <Button type="button" variant="ghost" size="sm" className="-mr-2 text-primary" onClick={applyUsual}>
-                <ThemaIcon name="refresh" />
-                {t("booking.agenda.usual")}
-              </Button>
-            )}
-          </div>
-          <AgendaServiceField />
-        </section>
+        <div className={cn("grid grid-cols-1 gap-4", layout === "wide" && hasBranches && "grid-cols-2")}>
+          {hasBranches && (
+            <section aria-labelledby="agenda-branch" className="flex flex-col gap-2">
+              <div className="flex min-h-8 items-center">
+                <Text id="agenda-branch" size="sm" weight="medium">
+                  {t("booking.agenda.branchLabel")}
+                </Text>
+              </div>
+              <AgendaBranchField labelledBy="agenda-branch" />
+            </section>
+          )}
+          <section aria-labelledby="agenda-what" className="flex flex-col gap-2">
+            <div className="flex min-h-8 items-center justify-between gap-3">
+              <Text id="agenda-what" size="sm" weight="medium">
+                {t("booking.agenda.whatLabel")}
+              </Text>
+              {usual && !editing && !sameServices(usual.serviceIds, serviceIds) && (
+                <Button type="button" variant="ghost" size="sm" className="-mr-2 text-primary" onClick={applyUsual}>
+                  <ThemaIcon name="refresh" />
+                  {t("booking.agenda.usual")}
+                </Button>
+              )}
+            </div>
+            <AgendaServiceField labelledBy="agenda-what" />
+          </section>
+        </div>
       ) : (
         <section aria-labelledby="agenda-what" className="flex flex-col gap-2.5">
           <Text id="agenda-what" size="sm" weight="medium">

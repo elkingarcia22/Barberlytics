@@ -35,6 +35,11 @@ muchos servicios obliga a deslizar mucho— hay un campo tipo select (`AgendaSer
 buscador si hay 7 o más, agrupada por categoría, una casilla por fila (se pueden varios). Se aplica
 con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son los de la Agenda abierta.
 
+- La sede tampoco va en un select junto al título: es una tarjeta igual (foto del local, nombre y
+  dirección) que abre la lista de sedes con horario y barberos (`AgendaBranchField`). Tocar una la elige
+  y cierra; con citas apartadas queda marcada y el pie pide confirmar, porque cambiar vacía la reserva.
+  En monitor sede y servicios van lado a lado. Campo, ventana y filas son piezas compartidas
+  (`AgendaPicker.tsx`: `PickerField`, `PickerOverlay`, `PickerRow`).
 - Celular y widget: hoja desde abajo (`DrawerShell side="bottom"`), al alcance del pulgar.
 - Tablet y monitor: modal centrado (una hoja a lo ancho de una tablet se ve estirada); en tablet,
   filas y miniaturas más grandes para el dedo.

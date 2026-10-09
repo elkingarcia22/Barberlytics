@@ -15,31 +15,32 @@ export interface ClipperOrbProps {
 }
 
 /*
- * Las franjas del poste, en un lienzo de 100×100. No son rectas: se doblan alrededor del eje
- * vertical del orbe como si lo atravesara una lente: al cruzar el centro se tuercen y hacia los
- * bordes se empinan, como el poste envolviendo un cilindro. `STRIPE_PERIOD` es lo que se desplaza
- * la animación (en `clipperOrb.css`) para que el ciclo empalme sin salto.
+ * Las franjas del poste, en un lienzo de 100×100: rectas, a 45°. Una línea vertical las corta
+ * como un vidrio: al cruzarla, cada franja sigue recta pero corrida. `STRIPE_PERIOD` es lo que
+ * se desplaza la animación (en `clipperOrb.css`) para que el ciclo empalme sin salto.
  */
 const STRIPE_PERIOD = 24;
 const STRIPE_THICKNESS = 12;
-/** Cuánto se tuerce la franja al cruzar el eje vertical: la onda que la deforma en el centro. */
-const STRIPE_BEND = 14;
-const STRIPE_SAMPLES = 40;
+/** Dónde cae la línea vertical que corta las franjas. */
+const STRIPE_SEAM_X = 50;
+/** Cuánto se corre la franja al otro lado de la línea. */
+const STRIPE_SEAM_SHIFT = 6;
 
-/** El cilindro (`asin`) empina los bordes; la onda (`sin`) tuerce la franja al pasar por el centro. */
-function wrapOffset(x: number) {
-  const u = Math.max(-1, Math.min(1, (x - 50) / 50));
-  return 50 * Math.asin(u) + STRIPE_BEND * Math.sin(Math.PI * u);
-}
+/** Las franjas a cada lado de la línea: `[desde, hasta, corrimiento]`. */
+const STRIPE_SLICES = [
+  [-2, STRIPE_SEAM_X, 0],
+  [STRIPE_SEAM_X, 102, STRIPE_SEAM_SHIFT],
+] as const;
 
 function stripePath(baseline: number) {
-  const xs = Array.from({ length: STRIPE_SAMPLES + 1 }, (_, i) => -2 + (i * 104) / STRIPE_SAMPLES);
-  const top = xs.map((x) => `${x.toFixed(2)},${(baseline - wrapOffset(x)).toFixed(2)}`);
-  const bottom = [...xs].reverse().map((x) => `${x.toFixed(2)},${(baseline + STRIPE_THICKNESS - wrapOffset(x)).toFixed(2)}`);
-  return `M${top.join("L")}L${bottom.join("L")}Z`;
+  return STRIPE_SLICES.map(([x0, x1, shift]) => {
+    const y0 = baseline + shift - (x0 - 50);
+    const y1 = baseline + shift - (x1 - 50);
+    return `M${x0},${y0}L${x1},${y1}L${x1},${y1 + STRIPE_THICKNESS}L${x0},${y0 + STRIPE_THICKNESS}Z`;
+  }).join("");
 }
 
-const STRIPES = Array.from({ length: 15 }, (_, i) => stripePath(-120 + i * STRIPE_PERIOD)).join("");
+const STRIPES = Array.from({ length: 14 }, (_, i) => stripePath(-96 + i * STRIPE_PERIOD)).join("");
 
 /**
  * El orbe de Clipper, el agente de IA de Barberlytics: el poste de barbería hecho esfera de vidrio

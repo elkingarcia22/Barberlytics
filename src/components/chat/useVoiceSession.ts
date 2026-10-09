@@ -22,6 +22,12 @@ export interface VoiceSessionOptions {
 }
 
 const DEFAULT_SILENCE_MS = 1600;
+/** Si la frase no está cerrada (aún no es definitiva) se espera más; si termina en «con», «a las»…, más aún. */
+const OPEN_PHRASE_FACTOR = 1.5;
+const UNFINISHED_PHRASE_FACTOR = 2;
+const UNFINISHED_ENDING = /\b(con|y|o|a|al|las|la|el|los|de|del|para|por|que|en|mi|un|una|unos|the|and|or|with|at|for|to|my|an?)$/i;
+/** Cortes seguidos del reconocedor (red, audio) que se reintentan antes de dejarlo en pausa. */
+const MAX_RETRIES = 3;
 
 /**
  * Una sesión de voz: escucha, entiende que la persona hizo una pausa, pide
@@ -68,6 +74,7 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
    * aunque se le haya parado— ya no cuenta, y no se pregunta dos veces lo mismo.
    */
   const turn = React.useRef(0);
+  const retries = React.useRef(0);
   const stopListening = React.useCallback(() => {
     turn.current += 1;
     if (silence.current) window.clearTimeout(silence.current);
@@ -120,9 +127,17 @@ export function useVoiceSession({ open, lang, ask, silenceMs = DEFAULT_SILENCE_M
         // La pausa cuenta desde lo último que se oyó, firme o no: Chrome a veces tarda en dar la
         // frase por terminada y, si se esperara a eso, habría que mandarla a mano.
         const heard = [finalText, interimText].filter(Boolean).join(" ").trim();
-        if (heard) silence.current = window.setTimeout(() => isCurrent() && finishAndAsk(heard), silenceMs);
+        retries.current = 0;
+        // Una pausa para pensar a mitad de frase no es «ya terminé»: sin cerrar, o en «…con», se espera más.
+        const factor = UNFINISHED_ENDING.test(heard) ? UNFINISHED_PHRASE_FACTOR : interimText ? OPEN_PHRASE_FACTOR : 1;
+        if (heard) silence.current = window.setTimeout(() => isCurrent() && finishAndAsk(heard), silenceMs * factor);
       },
-      onError: (kind) => setStatus(kind === "denied" ? "denied" : "paused"),
+      onError: (kind) => {
+        if (kind === "denied") return setStatus("denied");
+        // Un corte pasajero (red, audio): se sigue escuchando y `onEnd` lo retoma; tras varios seguidos, en pausa.
+        retries.current += 1;
+        if (retries.current > MAX_RETRIES) setStatus("paused");
+      },
       onEnd: () => {
         // El navegador corta solo cada cierto tiempo: si seguíamos escuchando, se retoma.
         if (isCurrent()) recognizer.current?.start();

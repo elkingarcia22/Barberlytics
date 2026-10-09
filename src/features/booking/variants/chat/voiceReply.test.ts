@@ -117,3 +117,25 @@ describe("forVoice: fechas, horas y precios como se dicen", () => {
     expect(forVoice("Total: US$ 71", "en-US")).toBe("Total: 71 dollars");
   });
 });
+
+describe("forVoice: números de teléfono y códigos como se dictan", () => {
+  test("un celular: los tres primeros juntos y luego de a tres, dos y dos", () => {
+    expect(forVoice("Por ejemplo: 3001234567.", "es-CO")).toBe("Por ejemplo: 300, 123, 45, 67.");
+    expect(forVoice("Llama al 6012345678", "es-CO")).toBe("Llama al 601, 234, 56, 78");
+  });
+
+  test("el celular oculto se dice por sus últimas cifras, de a dos", () => {
+    expect(forVoice("Te mandé un código por WhatsApp a •••• 2738.", "es-CO")).toBe("Te mandé un código por WhatsApp al número terminado en 27, 38.");
+    expect(forVoice("SMS al •••• 4567", "es-CO")).toBe("SMS al número terminado en 45, 67");
+  });
+
+  test("un código de seis cifras, de a dos; los precios no se tocan", () => {
+    expect(forVoice("Tu código es 246810", "es-CO")).toBe("Tu código es 24, 68, 10");
+    expect(forVoice("Total: US$ 1500", "es-CO")).toBe("Total: 1500 dólares");
+  });
+
+  test("en inglés, igual", () => {
+    expect(forVoice("For example: 3001234567.", "en-US")).toBe("For example: 300, 123, 45, 67.");
+    expect(forVoice("to •••• 2738", "en-US")).toBe("to the number ending in 27, 38");
+  });
+});

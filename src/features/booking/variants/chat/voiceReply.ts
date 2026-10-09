@@ -50,8 +50,22 @@ function spokenTimeEs(prefix: string | undefined, hours: string, minutes: string
   return `${lead} ${hour}${Number(minutes) > 0 ? ` y ${Number(minutes)}` : ""} ${part}`;
 }
 
+/**
+ * Celulares y códigos como se dictan: un celular en grupos de tres, tres, dos y dos («300, 123, 45, 67»);
+ * uno oculto, por sus últimas cifras de a dos; un código de seis, de a dos. Las comas son las pausas.
+ */
+function spokenDigits(text: string, language: string): string {
+  const ending = language === "es" ? "al número terminado en" : "to the number ending in";
+  return text
+    .replace(language === "es" ? /\b(?:a|al)\s+[•*]{2,}\s?(\d{2})(\d{2})\b/g : /\bto\s+[•*]{2,}\s?(\d{2})(\d{2})\b/g, `${ending} $1, $2`)
+    .replace(/\b(\d{3})(\d{3})(\d{2})(\d{2})\b/g, "$1, $2, $3, $4")
+    .replace(/\b(\d{3})(\d{2})(\d{2})\b/g, "$1, $2, $3")
+    .replace(/\b(\d{2})(\d{2})(\d{2})\b/g, "$1, $2, $3");
+}
+
 /** Las abreviaturas de fechas, horas y precios del chat, dichas completas (la voz las lee letra por letra). */
-function spokenNumbers(text: string, language: string): string {
+function spokenNumbers(raw: string, language: string): string {
+  const text = spokenDigits(raw, language);
   if (language === "es")
     return text
       .replace(/(?:\b(a las|a la)\s+)?\b(\d{1,2}):(\d{2})\s*([ap])\.?\s?m\.?/gi, (_, prefix: string | undefined, h: string, m: string, ap: string) => spokenTimeEs(prefix, h, m, ap))

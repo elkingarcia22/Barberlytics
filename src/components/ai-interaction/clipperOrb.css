@@ -1,9 +1,8 @@
 /*
  * El orbe de Clipper: el poste de barbería hecho esfera. Una esfera de vidrio con el gradiente de
- * IA y franjas rectas que suben, cortadas por una línea vertical que las corre como un vidrio
- * (el trazo vive en `ClipperOrb.tsx`), el halo que respira y el anillo fino que da la
- * vuelta. Escuchando gira más rápido y late; pensando, el halo se aviva. Solo usa los tokens
- * `--color-ai-stop-*`. Con «reducir movimiento» queda quieto.
+ * IA y franjas rectas que suben en diagonal (el trazo vive en `ClipperOrb.tsx`), el halo que
+ * respira y el anillo fino que da la vuelta. Escuchando gira más rápido y late; pensando, el
+ * halo se aviva. Solo usa los tokens `--color-ai-stop-*`. Con «reducir movimiento» queda quieto.
  */
 
 /* Las franjas bajan un periodo (`STRIPE_PERIOD` en `ClipperOrb.tsx`) y el ciclo empalma. */
@@ -99,7 +98,7 @@
     0 calc(var(--clipper-orb-size) * 0.08) calc(var(--clipper-orb-size) * 0.24) rgba(var(--color-ai-stop-2-rgb), 0.4);
 }
 
-/* El poste: franjas rectas, corridas al cruzar la línea vertical, bajo el vidrio. */
+/* El poste: franjas rectas en diagonal que suben, bajo el vidrio. */
 .clipper-orb__stripes {
   position: absolute;
   inset: 0;

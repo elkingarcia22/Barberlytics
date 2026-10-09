@@ -15,29 +15,15 @@ export interface ClipperOrbProps {
 }
 
 /*
- * Las franjas del poste, en un lienzo de 100×100: rectas, a 45°. Una línea vertical las corta
- * como un vidrio: al cruzarla, cada franja sigue recta pero corrida. `STRIPE_PERIOD` es lo que
- * se desplaza la animación (en `clipperOrb.css`) para que el ciclo empalme sin salto.
+ * Las franjas del poste, en un lienzo de 100×100: rectas, paralelas y a 45°, de borde a borde.
+ * `STRIPE_PERIOD` es lo que se desplaza la animación (en `clipperOrb.css`) para que el ciclo
+ * empalme sin salto.
  */
 const STRIPE_PERIOD = 24;
 const STRIPE_THICKNESS = 12;
-/** Dónde cae la línea vertical que corta las franjas. */
-const STRIPE_SEAM_X = 50;
-/** Cuánto se corre la franja al otro lado de la línea. */
-const STRIPE_SEAM_SHIFT = 6;
-
-/** Las franjas a cada lado de la línea: `[desde, hasta, corrimiento]`. */
-const STRIPE_SLICES = [
-  [-2, STRIPE_SEAM_X, 0],
-  [STRIPE_SEAM_X, 102, STRIPE_SEAM_SHIFT],
-] as const;
 
 function stripePath(baseline: number) {
-  return STRIPE_SLICES.map(([x0, x1, shift]) => {
-    const y0 = baseline + shift - (x0 - 50);
-    const y1 = baseline + shift - (x1 - 50);
-    return `M${x0},${y0}L${x1},${y1}L${x1},${y1 + STRIPE_THICKNESS}L${x0},${y0 + STRIPE_THICKNESS}Z`;
-  }).join("");
+  return `M-2,${baseline + 52}L102,${baseline - 52}L102,${baseline - 52 + STRIPE_THICKNESS}L-2,${baseline + 52 + STRIPE_THICKNESS}Z`;
 }
 
 const STRIPES = Array.from({ length: 14 }, (_, i) => stripePath(-96 + i * STRIPE_PERIOD)).join("");

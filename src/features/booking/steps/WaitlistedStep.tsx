@@ -15,12 +15,14 @@ import { useLeaveWaitlistMutation } from "../queries";
 /**
  * El final de quien no apartó hora pero se apuntó en la lista de espera: la
  * certeza de que quedó apuntado, en qué (sede, servicio, barbero, día y franja)
- * y qué pasa ahora. Desde aquí puede salir de la lista o volver a buscar hora.
+ * y qué pasa ahora. Desde aquí puede salir de la lista o volver a buscar hora; si ya
+ * tenía una reserva armada (otra cita en el carrito), «Seguir con tu reserva» lo lleva a ella.
  */
 export function WaitlistedStep({ onFinish }: { onFinish?: () => void }) {
   const t = useAppT();
   const { state, dispatch, layout } = useBookingFlow();
   if (state.waitlist.length === 0) return null;
+  const hasBooking = state.items.length > 0;
 
   return (
     <div className={cn("mx-auto flex w-full flex-1 flex-col gap-6 px-5 py-8", STEP_WIDTH[layout])}>
@@ -47,7 +49,14 @@ export function WaitlistedStep({ onFinish }: { onFinish?: () => void }) {
       </Text>
 
       <div className="mt-auto flex flex-col gap-2">
-        <Button type="button" size="lg" onClick={() => dispatch({ type: "goTo", step: "time" })}>
+        {hasBooking && (
+          // La cita que se armaba se suelta: la reserva vuelve a su resumen, lista para pagar.
+          <Button type="button" size="lg" onClick={() => dispatch({ type: "discardDraft" })}>
+            {t("booking.waitlisted.backToBooking", { count: state.items.length })}
+            <ThemaIcon name="arrowRight" />
+          </Button>
+        )}
+        <Button type="button" size="lg" variant={hasBooking ? "outline" : "default"} onClick={() => dispatch({ type: "goTo", step: "time" })}>
           <ThemaIcon name="calendar" />
           {t("booking.waitlisted.more")}
         </Button>

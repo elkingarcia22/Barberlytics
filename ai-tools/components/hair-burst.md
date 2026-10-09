@@ -1,6 +1,6 @@
 # HairBurst
 
-Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelitos cortos y rizados de un arreglo de barba. Estalla una vez hacia arriba, cae meciéndose y se apaga en unos 3,5 s. Es la celebración de la cita recién creada en la reserva en línea. Toma los colores del tema y con prefers-reduced-motion no se monta.
+Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.
 
 Familia: Atmósfera y marca · Doc: `/docs#/components/hair-burst` · Fuente: `src/components/atmosphere/HairBurst.tsx`
 
@@ -12,7 +12,7 @@ import { HairBurst } from "@/components/atmosphere"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `count` | `number` | `110` | Cuántos pelos salen; un tercio son cañones cortos y gruesos. |
+| `count` | `number` | `160` | Cuántos pelos salen. |
 | `origin` | `{ x: number; y: number }` | `{ x: 0.5, y: 0.3 }` | De dónde estallan, en proporción del contenedor (0 a 1). |
 | `onDone` | `() => void` |  | Al terminar la ráfaga; con «reducir movimiento», enseguida. |
 | `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
@@ -24,7 +24,7 @@ import { HairBurst } from "@/components/atmosphere"
 - Sí: El contenedor tiene que ser `relative` y con `overflow-hidden`; el canvas mide al padre.
 - No: No la dejes montada en bucle: para lluvia de fondo está HairCanvas.
 - No: No la dispares dos veces seguidas en el mismo recorrido.
-- No: No le des colores: los toma del tema (`--primary` y `--foreground`).
+- No: No le des los colores del tema: son colores de pelo de verdad (más claros sobre fondo oscuro), para que se lea como pelo y no como confeti.
 
 Relacionados: hair-canvas, halo
 

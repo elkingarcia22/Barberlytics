@@ -2,20 +2,29 @@ import * as React from "react";
 
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
-import { readHairPalette } from "./HairCanvas";
 
 const MAX_DPR = 2;
 /** Cuánto dura la ráfaga entera, en ms; desde `FADE_START` cada pelo se va apagando. */
-const DURATION_MS = 3600;
-const FADE_START_MS = 2200;
+const DURATION_MS = 3800;
+const FADE_START_MS = 2400;
 /** Un fotograma de referencia (60 fps): la física se escala al tiempo real transcurrido. */
 const FRAME_MS = 1000 / 60;
-const GRAVITY = 0.2;
-const DRAG = 0.982;
-/** Proporción de pelos en el color de marca; el resto, en el del texto (el pelo). */
-const BRAND_SHARE = 0.25;
-/** Proporción de cañones: los pelitos más cortos y gruesos de la barba recién cortada. */
-const STUBBLE_SHARE = 0.3;
+/** El pelo pesa poco y el aire lo frena: cae despacio y se mece. */
+const GRAVITY = 0.11;
+const DRAG = 0.965;
+/** Puntos con que se traza cada pelo; con más, la curva sale lisa. */
+const STRAND_POINTS = 12;
+/** Desde qué parte del largo el pelo empieza a afinarse hacia la punta. */
+const TAPER_FROM = 0.55;
+
+/*
+ * Colores de pelo de verdad (negro, castaños, alguna cana), no los del tema: es material, como
+ * una foto. Sobre fondo oscuro van algo más claros, como el pelo bajo la luz del local, para que
+ * se vean. El último de cada lista sale poco: son las canas.
+ */
+const HAIR_ON_LIGHT = ["#16110e", "#231a15", "#33261e", "#4a382b", "#6b6460"] as const;
+const HAIR_ON_DARK = ["#5b4a3e", "#6e5848", "#816a58", "#9a8370", "#b9b2ab"] as const;
+const GREY_SHARE = 0.08;
 
 interface Clipping {
   x: number;
@@ -24,14 +33,14 @@ interface Clipping {
   vy: number;
   angle: number;
   spin: number;
-  length: number;
+  /** El trazo del pelo en su propio sistema, centrado en el origen. */
+  points: ReadonlyArray<readonly [number, number]>;
+  /** Grosor en el extremo cortado; la punta se afina. */
   width: number;
-  /** Lo que se riza: el pelo de barba no es recto, hace una S. */
-  curl: number;
   sway: number;
   swaySpeed: number;
   alpha: number;
-  isBrand: boolean;
+  color: string;
 }
 
 export interface HairBurstOrigin {
@@ -41,25 +50,51 @@ export interface HairBurstOrigin {
   y: number;
 }
 
-function spawnClipping(originX: number, originY: number): Clipping {
-  const isStubble = Math.random() < STUBBLE_SHARE;
-  // Hacia arriba, abriéndose en abanico: como el confeti al estallar.
-  const direction = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
-  const speed = 4 + Math.random() * 8;
+/** Si el fondo del tema es oscuro: la luminosidad de `--background` (tripleta HSL) bajo el 50 %. */
+function isDarkBackground(): boolean {
+  const triplet = getComputedStyle(document.documentElement).getPropertyValue("--background").trim();
+  const lightness = Number.parseFloat(triplet.split(/\s+/)[2] ?? "100");
+  return lightness < 50;
+}
+
+function pickColor(palette: readonly string[]): string {
+  if (Math.random() < GREY_SHARE) return palette[palette.length - 1];
+  return palette[Math.floor(Math.random() * (palette.length - 1))];
+}
+
+/** Recentra el trazo en su punto medio, para que gire sobre sí mismo. */
+function centered(points: Array<[number, number]>): Array<[number, number]> {
+  const [cx, cy] = points[Math.floor(points.length / 2)];
+  return points.map(([x, y]) => [x - cx, y - cy]);
+}
+
+/** Un pelo fino y largo, muestreado en `STRAND_POINTS` puntos: casi siempre una C suave, a veces una S. */
+function strandPoints(): Array<[number, number]> {
+  const steps = Array.from({ length: STRAND_POINTS }, (_, i) => i / (STRAND_POINTS - 1));
+  const isWave = Math.random() < 0.35;
+  const length = 16 + Math.random() * 20;
+  const amplitude = isWave ? 1.5 + Math.random() * 2 : (Math.random() - 0.5) * 6;
+  const wavelength = isWave ? 2 : 1;
+  return centered(steps.map((t) => [t * length, Math.sin(Math.PI * wavelength * t) * amplitude]));
+}
+
+function spawnClipping(originX: number, originY: number, palette: readonly string[]): Clipping {
+  // Hacia arriba y abriéndose, como al sacudir la capa después del arreglo.
+  const direction = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+  const speed = 2.5 + Math.random() * 6;
   return {
-    x: originX + (Math.random() - 0.5) * 24,
-    y: originY + (Math.random() - 0.5) * 12,
+    x: originX + (Math.random() - 0.5) * 40,
+    y: originY + (Math.random() - 0.5) * 16,
     vx: Math.cos(direction) * speed,
     vy: Math.sin(direction) * speed,
     angle: Math.random() * Math.PI * 2,
-    spin: (Math.random() - 0.5) * 0.3,
-    length: isStubble ? 3 + Math.random() * 4 : 8 + Math.random() * 12,
-    width: isStubble ? 1.6 + Math.random() * 1 : 1 + Math.random() * 1,
-    curl: (Math.random() < 0.5 ? -1 : 1) * (isStubble ? 1 : 3 + Math.random() * 5),
+    spin: (Math.random() - 0.5) * 0.08,
+    points: strandPoints(),
+    width: 0.6 + Math.random() * 0.5,
     sway: Math.random() * Math.PI * 2,
-    swaySpeed: 0.05 + Math.random() * 0.08,
-    alpha: 0.6 + Math.random() * 0.35,
-    isBrand: Math.random() < BRAND_SHARE,
+    swaySpeed: 0.04 + Math.random() * 0.06,
+    alpha: 0.82 + Math.random() * 0.18,
+    color: pickColor(palette),
   };
 }
 
@@ -67,8 +102,8 @@ function stepClipping(clipping: Clipping, dt: number): Clipping {
   const drag = DRAG ** dt;
   const vx = clipping.vx * drag;
   const vy = clipping.vy * drag + GRAVITY * dt;
-  // Al caer se mece como un pelo de verdad, no como una piedra.
-  const flutter = vy > 0 ? Math.sin(clipping.sway) * 0.6 : 0;
+  // Al caer se mece de lado a lado, como un pelo de verdad.
+  const flutter = vy > 0 ? Math.sin(clipping.sway) * 0.7 : 0;
   return {
     ...clipping,
     vx,
@@ -78,6 +113,23 @@ function stepClipping(clipping: Clipping, dt: number): Clipping {
     angle: clipping.angle + clipping.spin * dt,
     sway: clipping.sway + clipping.swaySpeed * dt,
   };
+}
+
+/**
+ * El pelo como una línea continua: tramo a tramo sobre su trazo, del grosor
+ * del corte a una punta casi invisible, con los extremos redondeados.
+ */
+function drawStrand(context: CanvasRenderingContext2D, points: Clipping["points"], width: number) {
+  const last = points.length - 1;
+  for (let i = 0; i < last; i++) {
+    const t = i / last;
+    const taper = t < TAPER_FROM ? 1 : 1 - 0.85 * ((t - TAPER_FROM) / (1 - TAPER_FROM));
+    context.beginPath();
+    context.moveTo(points[i][0], points[i][1]);
+    context.lineTo(points[i + 1][0], points[i + 1][1]);
+    context.lineWidth = width * taper;
+    context.stroke();
+  }
 }
 
 export interface HairBurstProps {
@@ -92,12 +144,13 @@ export interface HairBurstProps {
 
 /**
  * Una ráfaga de pelo de barba para celebrar: como el confeti, pero con los
- * pelitos cortos y rizados que quedan tras un arreglo de barba. Estalla una
- * sola vez al montarse sobre el contenedor (que debe ser `relative`), cae
- * meciéndose y se apaga en unos 3,5 s. Para repetirla, cambia su `key`.
- * Toma los colores del tema y con `prefers-reduced-motion` no se monta.
+ * pelos finos que quedan tras un arreglo de barba —largos, con una curva
+ * suave y afinándose hacia la punta— en colores de pelo de verdad.
+ * Estalla una sola vez al montarse sobre el contenedor (que debe ser
+ * `relative`), cae despacio meciéndose y se apaga en unos 4 s. Para
+ * repetirla, cambia su `key`. Con `prefers-reduced-motion` no se monta.
  */
-export function HairBurst({ className, count = 110, origin = { x: 0.5, y: 0.3 }, onDone }: HairBurstProps) {
+export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 }, onDone }: HairBurstProps) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
   const onDoneRef = React.useRef(onDone);
@@ -122,8 +175,8 @@ export function HairBurst({ className, count = 110, origin = { x: 0.5, y: 0.3 },
     canvas.height = Math.round(rect.height * dpr);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const palette = readHairPalette();
-    let clippings = Array.from({ length: count }, () => spawnClipping(rect.width * originX, rect.height * originY));
+    const palette = isDarkBackground() ? HAIR_ON_DARK : HAIR_ON_LIGHT;
+    let clippings = Array.from({ length: count }, () => spawnClipping(rect.width * originX, rect.height * originY, palette));
     const startedAt = performance.now();
     let last = startedAt;
     let frame = 0;
@@ -137,17 +190,14 @@ export function HairBurst({ className, count = 110, origin = { x: 0.5, y: 0.3 },
       context.clearRect(0, 0, rect.width, rect.height);
       clippings = clippings.map((clipping) => stepClipping(clipping, dt));
       for (const clipping of clippings) {
-        const half = clipping.length / 2;
         context.save();
         context.translate(clipping.x, clipping.y);
         context.rotate(clipping.angle);
-        context.beginPath();
-        context.moveTo(-half, 0);
-        context.bezierCurveTo(-half / 3, clipping.curl, half / 3, -clipping.curl, half, 0);
-        context.strokeStyle = `hsl(${clipping.isBrand ? palette.brand : palette.text} / ${clipping.alpha * fade})`;
-        context.lineWidth = clipping.width;
+        context.globalAlpha = clipping.alpha * fade;
+        context.strokeStyle = clipping.color;
         context.lineCap = "round";
-        context.stroke();
+        context.lineJoin = "round";
+        drawStrand(context, clipping.points, clipping.width);
         context.restore();
       }
 

@@ -1,5 +1,5 @@
 {
-  "sourceHash": "ade892a0d72adf45",
+  "sourceHash": "220af54715a3876b",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -2833,7 +2833,7 @@
       "id": "hair-burst",
       "name": "HairBurst",
       "group": "atmosphere",
-      "description": "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelitos cortos y rizados de un arreglo de barba. Estalla una vez hacia arriba, cae meciéndose y se apaga en unos 3,5 s. Es la celebración de la cita recién creada en la reserva en línea. Toma los colores del tema y con prefers-reduced-motion no se monta.",
+      "description": "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
       "import": "import { HairBurst } from \"@/components/atmosphere\"",
       "source": "src/components/atmosphere/HairBurst.tsx",
       "status": "stable",
@@ -2848,8 +2848,8 @@
         {
           "name": "count",
           "type": "number",
-          "default": "110",
-          "description": "Cuántos pelos salen; un tercio son cañones cortos y gruesos."
+          "default": "160",
+          "description": "Cuántos pelos salen."
         },
         {
           "name": "origin",
@@ -2879,7 +2879,7 @@
         "dont": [
           "No la dejes montada en bucle: para lluvia de fondo está HairCanvas.",
           "No la dispares dos veces seguidas en el mismo recorrido.",
-          "No le des colores: los toma del tema (`--primary` y `--foreground`)."
+          "No le des los colores del tema: son colores de pelo de verdad (más claros sobre fondo oscuro), para que se lea como pelo y no como confeti."
         ]
       },
       "related": [

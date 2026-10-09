@@ -10,7 +10,7 @@ function stubMatchMedia(matches: boolean) {
 function stubCanvas() {
   const context = {
     setTransform: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(), translate: vi.fn(), rotate: vi.fn(),
-    beginPath: vi.fn(), moveTo: vi.fn(), bezierCurveTo: vi.fn(), stroke: vi.fn(), strokeStyle: "", lineWidth: 0, lineCap: "butt",
+    beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), strokeStyle: "", lineWidth: 0, lineCap: "butt", lineJoin: "miter", globalAlpha: 1,
   };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 400, height: 600, top: 0, left: 0, right: 400, bottom: 600, x: 0, y: 0, toJSON: () => ({}) });
@@ -23,7 +23,7 @@ describe("HairBurst", () => {
     stubMatchMedia(false);
   });
 
-  test("estalla con pelos rizados al montarse", async () => {
+  test("estalla con pelos que se afinan hacia la punta al montarse", async () => {
     // Arrange
     stubMatchMedia(false);
     const context = stubCanvas();
@@ -37,8 +37,10 @@ describe("HairBurst", () => {
 
     // Assert
     expect(container.querySelector("canvas")).toHaveAttribute("aria-hidden", "true");
-    await waitFor(() => expect(context.bezierCurveTo).toHaveBeenCalled());
-    expect(context.stroke).toHaveBeenCalled();
+    await waitFor(() => expect(context.stroke).toHaveBeenCalled());
+    expect(context.lineTo).toHaveBeenCalled();
+    // Colores de pelo de verdad, no los del tema.
+    expect(context.strokeStyle).toMatch(/^#[0-9a-f]{6}$/);
     unmount();
   });
 

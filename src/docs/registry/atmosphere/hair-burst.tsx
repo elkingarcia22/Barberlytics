@@ -7,7 +7,7 @@ import { defineEntry, definePlayground } from "../types";
 import { Stage } from "./fixtures";
 
 /** La demo dispara la ráfaga con un botón: cada clic cambia la `key` y vuelve a estallar. */
-function BurstDemo({ count = 110 }: { count?: number }) {
+function BurstDemo({ count = 160 }: { count?: number }) {
   const [shot, setShot] = React.useState(0);
   return (
     <Stage className="min-h-[320px]">
@@ -29,19 +29,19 @@ export const hairBurstEntry = defineEntry({
   name: "HairBurst",
   group: "atmosphere",
   description:
-    "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelitos cortos y rizados de un arreglo de barba. Estalla una vez hacia arriba, cae meciéndose y se apaga en unos 3,5 s. Es la celebración de la cita recién creada en la reserva en línea. Toma los colores del tema y con prefers-reduced-motion no se monta.",
+    "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
   importPath: 'import { HairBurst } from "@/components/atmosphere"',
   sourcePath: "src/components/atmosphere/HairBurst.tsx",
   status: "stable",
   tags: ["canvas", "celebración", "confeti", "barbería", "reduced-motion"],
   playground: definePlayground({
     controls: {
-      count: { type: "number", label: "Pelos", default: 110, min: 20, max: 240, step: 10 },
+      count: { type: "number", label: "Pelos", default: 160, min: 40, max: 320, step: 20 },
     },
     layout: "stretch",
     render: ({ count }) => <BurstDemo count={count} />,
     code: ({ count }) => `<section className="relative overflow-hidden">
-  {celebrating && <HairBurst key={reservation.id}${count === 110 ? "" : ` count={${count}}`} onDone={() => setCelebrating(false)} />}
+  {celebrating && <HairBurst key={reservation.id}${count === 160 ? "" : ` count={${count}}`} onDone={() => setCelebrating(false)} />}
   …
 </section>`,
   }),
@@ -56,7 +56,7 @@ export const hairBurstEntry = defineEntry({
     },
   ],
   props: [
-    { name: "count", type: "number", default: "110", description: "Cuántos pelos salen; un tercio son cañones cortos y gruesos." },
+    { name: "count", type: "number", default: "160", description: "Cuántos pelos salen." },
     { name: "origin", type: "{ x: number; y: number }", default: "{ x: 0.5, y: 0.3 }", description: "De dónde estallan, en proporción del contenedor (0 a 1)." },
     { name: "onDone", type: "() => void", description: "Al terminar la ráfaga; con «reducir movimiento», enseguida." },
     { name: "className", type: "string", description: "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero." },
@@ -70,7 +70,7 @@ export const hairBurstEntry = defineEntry({
     dont: [
       "No la dejes montada en bucle: para lluvia de fondo está HairCanvas.",
       "No la dispares dos veces seguidas en el mismo recorrido.",
-      "No le des colores: los toma del tema (`--primary` y `--foreground`).",
+      "No le des los colores del tema: son colores de pelo de verdad (más claros sobre fondo oscuro), para que se lea como pelo y no como confeti.",
     ],
   },
   related: ["hair-canvas", "halo"],

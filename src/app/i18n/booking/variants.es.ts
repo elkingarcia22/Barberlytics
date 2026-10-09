@@ -215,7 +215,7 @@ export const bookingVariantsEs = {
   "booking.chat.checkoutLead": "Perfecto. Esto es lo que llevas:",
   "booking.chat.tipTitle": "¿Le dejas propina a tu barbero?",
   "booking.chat.perkPackage": "Tu paquete cubre {amount} de esta reserva.",
-  "booking.chat.perkReward": "Se descuenta tu cortesía de cliente frecuente ({amount}).",
+  "booking.chat.perkReward": "Se descuenta la cortesía de tu membresía ({amount}).",
   "booking.chat.discountTitle": "¿Tienes un cupón o una tarjeta de regalo?",
   "booking.chat.discountNo": "No, continuar",
   "booking.chat.discountYes": "Sí, tengo un código",

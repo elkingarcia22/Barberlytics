@@ -11,6 +11,7 @@ import { timelineEntry } from "./timeline";
 import { treeEntry } from "./tree";
 import { sortableEntry } from "./sortable";
 import { kanbanEntry } from "./kanban";
+import { progressRingEntry } from "./progress-ring";
 
 /** Entradas del grupo "data-display". Cada componente vive en su propio archivo de esta carpeta. */
 export const dataDisplayEntries: readonly DocEntry[] = [
@@ -26,4 +27,5 @@ export const dataDisplayEntries: readonly DocEntry[] = [
   treeEntry,
   sortableEntry,
   kanbanEntry,
+  progressRingEntry,
 ];

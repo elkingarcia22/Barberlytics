@@ -9,3 +9,4 @@ export * from "./Sortable"
 export * from "./Kanban"
 export * from "./RowActionsMenu"
 export * from "./RowContextMenu";
+export * from "./ProgressRing";

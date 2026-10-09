@@ -1,5 +1,5 @@
 {
-  "sourceHash": "1adb6adaa9811c36",
+  "sourceHash": "121d763213dafcfd",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -5680,6 +5680,101 @@
       ],
       "docs": "/docs#/components/list-item",
       "ficha": "ai-tools/components/list-item.md"
+    },
+    {
+      "id": "progress-ring",
+      "name": "ProgressRing",
+      "group": "data-display",
+      "description": "Avance en un anillo: lo conseguido en color pleno y, opcional, lo que suma la acción en curso en un tono más suave. Para avances cortos y contables —visitas de una membresía, sesiones de un paquete, pasos— con el conteo o un icono en el centro.",
+      "import": "import { ProgressRing } from \"@/components/data-display/ProgressRing\"",
+      "source": "src/components/data-display/ProgressRing.tsx",
+      "status": "beta",
+      "tags": [
+        "svg",
+        "progreso"
+      ],
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "default": null,
+          "description": "Lo conseguido, de 0 a `max`."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": "100",
+          "description": "El total del anillo."
+        },
+        {
+          "name": "pending",
+          "type": "number",
+          "default": "0",
+          "description": "Tramo que se suma en tono suave: lo que aporta la acción en curso. No cuenta en `aria-valuenow`."
+        },
+        {
+          "name": "size",
+          "type": "\"sm\" | \"md\" | \"lg\"",
+          "default": "\"md\"",
+          "description": "32, 44 o 64 px."
+        },
+        {
+          "name": "color",
+          "type": "\"primary\" | \"success\" | \"warning\" | \"destructive\"",
+          "default": "\"primary\"",
+          "description": "Color de los arcos."
+        },
+        {
+          "name": "children",
+          "type": "React.ReactNode",
+          "default": null,
+          "description": "El centro (conteo o icono). Es decorativo: el avance se anuncia con `aria-label`."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "default": null,
+          "description": "Qué avanza y cuánto («6 de 10 visitas»). Obligatorio en la práctica."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo para totales pequeños y contables (hasta ~20): visitas, sesiones, pasos.",
+          "Pon el conteo en el centro y di en el `aria-label` qué avanza.",
+          "Usa `pending` para enseñar lo que aporta la acción que el usuario está por confirmar."
+        ],
+        "dont": [
+          "No lo uses para cargas o porcentajes largos: usa `Progress`.",
+          "No lo uses para repartir un total en partes: usa `DonutChart`.",
+          "No lo pongas sin texto al lado ni `aria-label`: un anillo solo no dice de qué es."
+        ]
+      },
+      "related": [
+        "progress",
+        "donut-chart"
+      ],
+      "examples": [
+        {
+          "id": "membership",
+          "title": "Membresía en el pago",
+          "description": "Seis visitas hechas y la cita que se está pagando suma la séptima, en tono suave hasta que ocurra.",
+          "code": "<ProgressRing value={6} pending={1} max={10} aria-label=\"7 de 10 visitas\">\n  <Text as=\"span\" size=\"xs\" weight=\"semibold\" tabular>7<span className=\"text-text-muted\">/10</span></Text>\n</ProgressRing>"
+        },
+        {
+          "id": "earned",
+          "title": "Premio ganado",
+          "description": "Completo y con un icono en el centro: ya no es avance, es algo por usar.",
+          "code": "<ProgressRing value={10} max={10} aria-label=\"Cortesía lista\">\n  <ThemaIcon name=\"award\" size=\"sm\" tone=\"primary\" />\n</ProgressRing>"
+        },
+        {
+          "id": "sizes",
+          "title": "Tamaños",
+          "description": "`sm` en una fila densa, `md` junto a un texto de dos líneas, `lg` como dato principal de una tarjeta.",
+          "code": "<ProgressRing size=\"sm\" value={2} max={4} aria-label=\"2 de 4 sesiones\" />\n<ProgressRing value={2} max={4} aria-label=\"2 de 4 sesiones\" />\n<ProgressRing size=\"lg\" value={2} max={4} color=\"success\" aria-label=\"2 de 4 sesiones\">…</ProgressRing>"
+        }
+      ],
+      "docs": "/docs#/components/progress-ring",
+      "ficha": "ai-tools/components/progress-ring.md"
     },
     {
       "id": "row-actions-menu",

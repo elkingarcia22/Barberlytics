@@ -13,7 +13,7 @@ import { draftOrderLines } from "../useBookingTotals";
 import { useBookingFlow } from "./BookingContext";
 import { BookingSheet } from "./BookingSheet";
 import { GiftCardField } from "./GiftCardField";
-import { LoyaltyCard } from "./LoyaltyCard";
+import { MembershipPerk } from "./MembershipPerk";
 import { NewCardSheet } from "./NewCardSheet";
 import { OrderSummary } from "./OrderSummary";
 import { PackagesToggle } from "./PackagesToggle";
@@ -93,7 +93,7 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
 
       <div className="flex flex-col gap-2">
         <PackagesToggle />
-        <LoyaltyCard compact />
+        <MembershipPerk />
         <PromoField />
         <GiftCardField />
       </div>

@@ -11,7 +11,7 @@ import { brandFromName, isCvcComplete } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
 import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
-import type { BookedAppointment, BookingBarber, BookingCatalog, VisitSuggestion } from "../../types";
+import type { BookedAppointment, BookingBarber, BookingCatalog, Slot, VisitSuggestion } from "../../types";
 import type { DayWindow } from "../agenda/agendaModel";
 import { EMPTY_CARD, isCardStep, maskCardInput, useChatNewCard, type CardDraft } from "./chatCard";
 import { useChatCheckout } from "./chatCheckout";
@@ -19,6 +19,9 @@ import { useChatIdentity } from "./chatIdentity";
 import { detectAside, useChatIntents } from "./chatIntents";
 import { looksLikeDetail, useChatProfiles } from "./chatProfiles";
 
+/** Al no haber hueco a la hora pedida: cuántas horas cercanas y cuántos barberos libres a esa hora se ofrecen. */
+const NEAR_TIMES = 2;
+const NEAR_OTHERS = 2;
 const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 import { activeQuestionTurn, capitalize, DAYS_OFFERED, firstName, isKnownAnswer, nextId, reducedMotion, RELATIONS, TYPING_MS, type ChatReplyId, type ChatTurn, type Expecting, type Handlers, type MessageInput, type PaymentEvent } from "./chatKit";
 import { MAX_REFERENCE_PHOTOS } from "../../flow/referencePhoto";
@@ -316,11 +319,11 @@ export function useChatBooking({
     ask({ ...question, values: { ...question.values, __index: String(index) } });
   };
 
-  const commitTime = async (start: string) => {
+  const commitTime = async (start: string, lead?: string) => {
     const moving = rescheduling.current;
     if (!moving) {
       apply({ type: "chooseTime", start });
-      return askMore(heldText());
+      return askMore([lead, heldText()].filter(Boolean).join(" "));
     }
     const token = stateRef.current.token;
     if (!token) return;
@@ -353,12 +356,45 @@ export function useChatBooking({
       const availability = await busy(() =>
         queryClient.fetchQuery({ queryKey: bookingKeys.availability(params.branchId, date, params.serviceIds, params.barberId), queryFn: ({ signal }) => bookingApi.availability(params, signal), staleTime: 30_000 }).catch(() => ({ date, slots: [] }))
       );
-      if (availability.slots.some((slot) => slot.time === parsed.time)) return commitTime(`${date}T${parsed.time}`);
-      return askTimes(date, parsed.window, t("booking.chat.notFree", { when: fmt.when(parseStart(`${date}T${parsed.time}`)) }));
+      const when = fmt.when(parseStart(`${date}T${parsed.time}`));
+      // Libre: se confirma con quién y cuándo, y se aparta.
+      if (availability.slots.some((slot) => slot.time === parsed.time)) return commitTime(`${date}T${parsed.time}`, t("booking.chat.isFree"));
+      return offerNear(date, parsed.time, availability.slots, when);
     }
     if (parsed.date) return askTimes(parsed.date, parsed.window);
     if (parsed.barberId !== undefined) return askDay();
     return askBarber();
+  };
+
+  /**
+   * La hora pedida no está libre: como lo diría alguien en la barbería, lo más cercano con el mismo
+   * barbero y quién más está libre a esa misma hora; o todas las horas del día.
+   */
+  const offerNear = async (date: string, time: string, slots: readonly Slot[], when: string) => {
+    const draft = stateRef.current.draft;
+    const branchId = stateRef.current.branchId;
+    if (!draft || !branchId) return;
+    timesDay.current = date;
+    const minutesOf = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+    const nearest = [...slots].sort((a, b) => Math.abs(minutesOf(a.time) - minutesOf(time)) - Math.abs(minutesOf(b.time) - minutesOf(time))).slice(0, NEAR_TIMES);
+    const others: QuestionEntry[] = [];
+    if (draft.barberId) {
+      const params = { branchId, date, serviceIds: draft.serviceIds, barberId: null };
+      const anyone = await queryClient
+        .fetchQuery({ queryKey: bookingKeys.availability(branchId, date, draft.serviceIds, null), queryFn: ({ signal }) => bookingApi.availability(params, signal), staleTime: 30_000 })
+        .catch(() => ({ date, slots: [] as Slot[] }));
+      const free = anyone.slots.find((slot) => slot.time === time)?.barberIds.filter((id) => id !== draft.barberId) ?? [];
+      free.slice(0, NEAR_OTHERS).forEach((id) => others.push({ label: t("booking.chat.withAt", { name: firstName(barberName(id)), time: fmt.clock(time) }), value: `with:${id}|${time}`, image: catalogRef.current?.barbers.find((barber) => barber.id === id)?.avatarUrl ?? null }));
+    }
+    const name = draft.barberId ? firstName(barberName(draft.barberId)) : "";
+    const entries: QuestionEntry[] = [
+      ...nearest.map((slot) => ({ label: fmt.clock(slot.time), value: `time:${slot.time}`, description: name ? t("booking.chat.withName", { name }) : undefined })),
+      ...others,
+      { label: t("booking.chat.allTimes"), value: "allTimes" },
+    ];
+    const lead = name ? t("booking.chat.notFreeWith", { name, when }) : t("booking.chat.notFree", { when });
+    const hint = nearest.length > 0 ? t(others.length > 0 ? "booking.chat.nearAndOthers" : "booking.chat.nearOnly") : others.length > 0 ? t("booking.chat.othersOnly") : "";
+    ask(makeQuestion("time", t("booking.chat.nearTitle"), entries), [lead, hint].filter(Boolean).join(" "));
   };
 
   const startBooking = (text?: string) => {
@@ -576,6 +612,13 @@ export function useChatBooking({
       }
       case "time":
         if (value?.startsWith("time:") && timesDay.current) return commitTime(`${timesDay.current}T${value.slice(5)}`);
+        // A esa misma hora, con otro barbero que sí está libre.
+        if (value?.startsWith("with:") && timesDay.current) {
+          const [barberId = "", time = ""] = value.slice(5).split("|");
+          apply({ type: "chooseBarber", barberId });
+          return commitTime(`${timesDay.current}T${time}`, t("booking.chat.isFree"));
+        }
+        if (value === "allTimes" && timesDay.current) return askTimes(timesDay.current);
         return askDay();
       case "noTimes":
         if (value?.startsWith("alt:")) {

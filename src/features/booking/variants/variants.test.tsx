@@ -24,6 +24,7 @@ const SERVICES: BookingService[] = [
   service("svc_afeitado", "Afeitado clásico"),
   service("svc_combo", "Corte + barba", { isCombo: true, popular: true }),
   service("svc_cejas", "Diseño de cejas"),
+  service("svc_tinte", "Tinte de cabello"),
 ];
 const barber = (id: string, name: string, rating = 4.8, prices: Record<string, number> = { svc_corte: 35, svc_barba: 30 }): BookingBarber => ({
   id,
@@ -40,6 +41,8 @@ const barber = (id: string, name: string, rating = 4.8, prices: Record<string, n
   prices,
 });
 const BARBERS = [barber("team-04", "Andrés Molina", 4.9), barber("team-05", "Camilo Rey", 4.6), barber("team-08", "Daniela Osorio", 5, { svc_corte: 40 })];
+/** Las conversaciones de punta a punta (identidad, cita, pago, recibo) tardan más con toda la suite en paralelo. */
+const LONG_CONVERSATION_MS = 15_000;
 const parse = (text: string) => parseBookingText(text, { services: SERVICES, barbers: BARBERS, now: NOW });
 
 describe("lo que entiende la conversación", () => {
@@ -49,6 +52,15 @@ describe("lo que entiende la conversación", () => {
     expect(parse("me arreglo la barba").serviceIds).toEqual(["svc_barba"]);
     expect(parse("un degradado y las cejas").serviceIds.sort()).toEqual(["svc_cejas", "svc_fade"]);
     expect(parse("corte para mi hijo").serviceIds).toContain("svc_nino");
+  });
+
+  test("como lo dice la gente: «corte de cabello» es un corte, no un tinte; «cortarme el pelo», «motilarme»", () => {
+    expect(parse("quiero un corte de cabello").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("un corte de pelo").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("quiero cortarme el pelo").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("me quiero motilar").serviceIds).toEqual(["svc_corte"]);
+    expect(parse("pintarme el cabello").serviceIds).toEqual(["svc_tinte"]);
+    expect(parse("tinte").serviceIds).toEqual(["svc_tinte"]);
   });
 
   test("el barbero por su nombre, o «cualquiera»", () => {
@@ -510,7 +522,25 @@ describe("las otras dos experiencias", () => {
     const repeat = await screen.findByRole("group", { name: "¿Cada cuánto?" });
     await user.click(within(repeat).getByRole("button", { name: /No, solo esta cita/ }));
     expect(await screen.findByText("Listo, queda solo esta cita.")).toBeInTheDocument();
-  });
+  }, LONG_CONVERSATION_MS);
+
+  test("conversación: pedir una hora confirma si está libre o propone lo más cercano y a otro barbero a esa hora", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
+    await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
+    await screen.findByText(/Te acabo de mandar un/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    await screen.findByText(/Hola de nuevo/);
+    // Una hora en la mañana y otra en la tarde: una de las dos está libre y la otra no, o ambas; nunca el «no hay hueco» seco.
+    for (const phrase of ["corte con Andrés mañana a las 10 de la mañana", "corte con Andrés mañana a las 3"]) {
+      await user.type(screen.getByTestId("chat-input"), `${phrase}{Enter}`);
+      await waitFor(() => expect(screen.queryAllByText(/¡Sí está libre!|ya está ocupado/).length).toBeGreaterThan(0));
+    }
+    expect(screen.queryByText(/A esa hora no hay hueco/)).toBeNull();
+    const near = screen.queryAllByRole("group", { name: "¿Cuál te queda mejor?" }).at(-1);
+    if (near) expect(within(near).getByRole("button", { name: /Ver todas las horas/ })).toBeInTheDocument();
+  }, LONG_CONVERSATION_MS);
 
   test("conversación desde la Agenda con selector: se arma la cita primero y el celular se pide al pagar", async () => {
     const user = userEvent.setup();
@@ -537,7 +567,7 @@ describe("las otras dos experiencias", () => {
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     // Ya con quien reserva, sigue al pago con lo armado (sin volver a empezar).
     expect(await screen.findByRole("group", { name: /propina/i })).toBeInTheDocument();
-  });
+  }, LONG_CONVERSATION_MS);
 
   test("conversación: lo pedido en la portada sigue en pie después de elegir la sede", async () => {
     const user = userEvent.setup();
@@ -563,7 +593,7 @@ describe("las otras dos experiencias", () => {
     // Lo pedido (corte con Andrés) se retoma: no vuelve a preguntar el servicio.
     expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "¿Qué te vas a hacer?" })).toBeNull();
-  });
+  }, LONG_CONVERSATION_MS);
 
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
     const user = userEvent.setup();

@@ -322,7 +322,7 @@ Fondos con material, la personalidad del oficio y la aparición al hacer scroll:
 - **Enter** [enter] — Entrada de los bloques de portada. `@/components/atmosphere`
 - **Foil** [foil] — Lámina dorada: la palabra de marca de un titular con un barrido de luz cada siete segundos. `@/components/atmosphere`
 - **Grain** [grain] — Grano: una textura de ruido (un SVG en línea, sin coste de red) fundida sobre el fondo con soft-light y sin interceptar el puntero. `@/components/atmosphere`
-- **HairBurst** [hair-burst] — Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva… `@/components/atmosphere`
+- **HairBurst** [hair-burst] — Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva s… `@/components/atmosphere`
 - **HairCanvas** [hair-canvas] — Cabello cayendo sobre una portada: hebras finas y curvas que bajan, se mecen y giran, la mitad en el color de marca y la otra mitad en el d… `@/components/atmosphere`
 - **Halo** [halo] — Halo: un resplandor del primario en un punto del contenedor relative, que se funde en el fondo. `@/components/atmosphere`
 - **Marquee** [marquee] — Ticker de vocabulario en bucle: los extremos se funden con el fondo, cada palabra lleva su rombo del primario y se pausa al pasar el punter… `@/components/atmosphere`

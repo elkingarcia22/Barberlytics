@@ -31,7 +31,7 @@ describe("HairBurst", () => {
     // Act
     const { container, unmount } = render(
       <div className="relative">
-        <HairBurst count={12} />
+        <HairBurst />
       </div>
     );
 
@@ -49,7 +49,6 @@ describe("HairBurst", () => {
     stubMatchMedia(false);
     stubCanvas();
     let now = 0;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       now += 400;
       return window.setTimeout(() => callback(now), 0);
@@ -59,7 +58,7 @@ describe("HairBurst", () => {
     // Act
     render(
       <div className="relative">
-        <HairBurst count={4} onDone={onDone} />
+        <HairBurst density={1} onDone={onDone} />
       </div>
     );
 
@@ -67,28 +66,32 @@ describe("HairBurst", () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
   });
 
-  test("en una pantalla ancha sale de varios focos repartidos a lo ancho", () => {
-    // Arrange: 1080 px son tres tramos de 360 px; un pelo por foco.
+  test("cae desde arriba a todo lo ancho, con más pelos en una pantalla ancha", () => {
+    // Arrange: 1000 px de ancho a 2 pelos por cada 100 px son 20 pelos.
     stubMatchMedia(false);
-    const context = stubCanvas(1080, 700);
+    const context = stubCanvas(1000, 700);
     let frame: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frame = callback;
       return 1;
     });
+    const tick = (now: number) => (frame as FrameRequestCallback | null)?.(now);
 
-    // Act: el primer fotograma, recién nacidos.
+    // Act: el primer fotograma arranca el reloj; el segundo llega cuando ya se soltaron todos.
     render(
       <div className="relative">
-        <HairBurst count={1} />
+        <HairBurst density={2} />
       </div>
     );
-    (frame as FrameRequestCallback | null)?.(performance.now());
+    tick(0);
+    context.translate.mockClear();
+    tick(1500);
 
-    // Assert: tres pelos, uno por foco, cada uno cerca de su tercio del ancho.
-    const starts = context.translate.mock.calls.map(([x]) => x as number);
-    expect(starts).toHaveLength(3);
-    expect(starts.map((x) => Math.floor(x / 360)).sort()).toEqual([0, 1, 2]);
+    // Assert: veinte pelos, todos todavía en la mitad de arriba y repartidos a lo ancho.
+    const positions = context.translate.mock.calls.map(([x, y]) => [x as number, y as number]);
+    expect(positions).toHaveLength(20);
+    expect(positions.every(([, y]) => y < 350)).toBe(true);
+    expect(Math.max(...positions.map(([x]) => x)) - Math.min(...positions.map(([x]) => x))).toBeGreaterThan(400);
   });
 
   test("con prefers-reduced-motion no se monta y termina enseguida", () => {

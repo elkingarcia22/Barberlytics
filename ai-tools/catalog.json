@@ -1,5 +1,5 @@
 {
-  "sourceHash": "b2d00c8a83b8d9e2",
+  "sourceHash": "5f0cf85e267afd95",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -2833,7 +2833,7 @@
       "id": "hair-burst",
       "name": "HairBurst",
       "group": "atmosphere",
-      "description": "Ráfaga de pelo de barba para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Se adapta al ancho: en un celular sale de un punto y en pantallas anchas de varios, repartidos de lado a lado. Estalla una vez hacia arriba, cae despacio meciéndose y se apaga en unos 4 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
+      "description": "Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Cae desde arriba del contenedor y a todo su ancho: se van soltando escalonados, cada uno con su peso, y una brisa los lleva de lado. Se apaga en unos 4,5 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
       "import": "import { HairBurst } from \"@/components/atmosphere\"",
       "source": "src/components/atmosphere/HairBurst.tsx",
       "status": "stable",
@@ -2846,22 +2846,16 @@
       ],
       "props": [
         {
-          "name": "count",
+          "name": "density",
           "type": "number",
-          "default": "160",
-          "description": "Cuántos pelos salen por foco. Hay un foco por cada 360 px de ancho (uno en un celular, varios en una tablet o un monitor), con tope en 900 pelos."
-        },
-        {
-          "name": "origin",
-          "type": "{ x: number; y: number }",
-          "default": "{ x: 0.5, y: 0.3 }",
-          "description": "De dónde estallan, en proporción del contenedor (0 a 1). Con varios focos, `x` no cuenta: se reparten a lo ancho."
+          "default": "10",
+          "description": "Pelos por cada 100 px de ancho: unos 37 en un celular y unos 120 en un monitor, entre 14 y 300."
         },
         {
           "name": "onDone",
           "type": "() => void",
           "default": null,
-          "description": "Al terminar la ráfaga; con «reducir movimiento», enseguida."
+          "description": "Al terminar la caída; con «reducir movimiento», enseguida."
         },
         {
           "name": "className",

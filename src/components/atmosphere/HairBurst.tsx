@@ -4,20 +4,18 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
 
 const MAX_DPR = 2;
-/** Ancho que cubre un foco: el celular tiene uno; una tablet o un monitor, varios a lo ancho. */
-const EMITTER_SPAN_PX = 360;
-/** Tope de pelos en total, aunque la pantalla sea muy ancha. */
-const MAX_CLIPPINGS = 900;
-/** Alto de referencia (un celular): en pantallas más altas el impulso crece para llegar arriba. */
+/** Tope y piso de pelos, sea cual sea el ancho. */
+const MIN_CLIPPINGS = 14;
+const MAX_CLIPPINGS = 300;
+/** Alto de referencia (un celular): en pantallas más altas caen más rápido para cruzarla en el mismo tiempo. */
 const REFERENCE_HEIGHT_PX = 640;
-/** Cuánto dura la ráfaga entera, en ms; desde `FADE_START` cada pelo se va apagando. */
-const DURATION_MS = 3800;
-const FADE_START_MS = 2400;
+/** No caen todos a la vez: van soltándose durante este rato, más al principio. */
+const RELEASE_MS = 1400;
+/** Cuánto dura la caída entera, en ms; desde `FADE_START` cada pelo se va apagando. */
+const DURATION_MS = 4600;
+const FADE_START_MS = 3300;
 /** Un fotograma de referencia (60 fps): la física se escala al tiempo real transcurrido. */
 const FRAME_MS = 1000 / 60;
-/** El pelo pesa poco y el aire lo frena: cae despacio y se mece. */
-const GRAVITY = 0.11;
-const DRAG = 0.965;
 /** Puntos con que se traza cada pelo; con más, la curva sale lisa. */
 const STRAND_POINTS = 12;
 /** Desde qué parte del largo el pelo empieza a afinarse hacia la punta. */
@@ -37,6 +35,13 @@ interface Clipping {
   y: number;
   vx: number;
   vy: number;
+  /** Cuándo se suelta, en ms desde el inicio: no caen todos a la vez. */
+  delay: number;
+  /** Cada pelo pesa distinto: unos caen rápido y otros flotan. */
+  gravity: number;
+  drag: number;
+  /** Cuánto lo arrastra la brisa. */
+  catchWind: number;
   angle: number;
   spin: number;
   /** El trazo del pelo en su propio sistema, centrado en el origen. */
@@ -45,15 +50,10 @@ interface Clipping {
   width: number;
   sway: number;
   swaySpeed: number;
+  /** Cuánto se mece de lado a lado al caer. */
+  flutter: number;
   alpha: number;
   color: string;
-}
-
-export interface HairBurstOrigin {
-  /** De 0 a 1, sobre el ancho del contenedor. */
-  x: number;
-  /** De 0 a 1, sobre el alto del contenedor. */
-  y: number;
 }
 
 /** Si el fondo del tema es oscuro: la luminosidad de `--background` (tripleta HSL) bajo el 50 %. */
@@ -84,60 +84,52 @@ function strandPoints(): Array<[number, number]> {
   return centered(steps.map((t) => [t * length, Math.sin(Math.PI * wavelength * t) * amplitude]));
 }
 
-/** Cuánto se abre el punto de salida de un foco solo (el del celular), en px. */
-const SINGLE_SPREAD_PX = 60;
-
-interface Emitters {
-  xs: number[];
-  /** Ancho en que nace cada pelo alrededor de su foco: con varios, los tramos se tocan y se lee una sola ráfaga. */
-  spread: number;
+/** Lo que cae más rápido en una pantalla alta, para cruzarla en el mismo tiempo que un celular. */
+function fallScaleFor(height: number): number {
+  return Math.min(1.8, Math.max(0.9, height / REFERENCE_HEIGHT_PX));
 }
 
-/** Dónde nace cada foco: uno en `originX` si cabe uno solo; si no, repartidos a lo ancho. */
-function emittersFor(width: number, originX: number): Emitters {
-  const count = Math.max(1, Math.round(width / EMITTER_SPAN_PX));
-  if (count === 1) return { xs: [width * originX], spread: SINGLE_SPREAD_PX };
-  return { xs: Array.from({ length: count }, (_, i) => (width * (i + 0.5)) / count), spread: (width / count) * 0.9 };
-}
-
-/** Cuánto más fuerte sale en una pantalla alta: la altura que alcanza crece con el cuadrado de la velocidad. */
-function reachFor(height: number): number {
-  return Math.min(1.4, Math.max(0.9, Math.sqrt(height / REFERENCE_HEIGHT_PX)));
-}
-
-function spawnClipping(originX: number, originY: number, spread: number, reach: number, palette: readonly string[]): Clipping {
-  // Hacia arriba y abriéndose, como al sacudir la capa después del arreglo.
-  const direction = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
-  const speed = (2.5 + Math.random() * 6) * reach;
+/** Nace por encima del borde de arriba, en cualquier punto a lo ancho: cae desde el header. */
+function spawnClipping(width: number, fallScale: number, palette: readonly string[]): Clipping {
   return {
-    x: originX + (Math.random() - 0.5) * spread,
-    y: originY + (Math.random() - 0.5) * 16,
-    vx: Math.cos(direction) * speed,
-    vy: Math.sin(direction) * speed,
+    x: Math.random() * width,
+    y: -8 - Math.random() * 40,
+    vx: (Math.random() - 0.5) * 2.4,
+    vy: 0.4 + Math.random() * 2,
+    delay: Math.random() ** 1.6 * RELEASE_MS,
+    gravity: (0.08 + Math.random() * 0.1) * fallScale,
+    drag: 0.955 + Math.random() * 0.02,
+    catchWind: 0.4 + Math.random() * 0.9,
     angle: Math.random() * Math.PI * 2,
-    spin: (Math.random() - 0.5) * 0.08,
+    spin: (Math.random() - 0.5) * 0.16,
     points: strandPoints(),
     width: 0.6 + Math.random() * 0.5,
     sway: Math.random() * Math.PI * 2,
-    swaySpeed: 0.04 + Math.random() * 0.06,
-    alpha: 0.82 + Math.random() * 0.18,
+    swaySpeed: 0.03 + Math.random() * 0.08,
+    flutter: 0.3 + Math.random() * 1,
+    alpha: 0.8 + Math.random() * 0.2,
     color: pickColor(palette),
   };
 }
 
-function stepClipping(clipping: Clipping, dt: number): Clipping {
-  const drag = DRAG ** dt;
-  const vx = clipping.vx * drag;
-  const vy = clipping.vy * drag + GRAVITY * dt;
-  // Al caer se mece de lado a lado, como un pelo de verdad.
-  const flutter = vy > 0 ? Math.sin(clipping.sway) * 0.7 : 0;
+/** La brisa del local: cambia de lado y de fuerza con el tiempo, así no caen en fila. */
+function windAt(elapsed: number, phase: number): number {
+  return 0.6 * Math.sin(elapsed / 650 + phase) + 0.3 * Math.sin(elapsed / 240 + phase * 2.3);
+}
+
+function stepClipping(clipping: Clipping, dt: number, wind: number): Clipping {
+  const drag = clipping.drag ** dt;
+  const vx = clipping.vx * drag + wind * clipping.catchWind * 0.05 * dt;
+  const vy = clipping.vy * drag + clipping.gravity * dt;
+  const sideways = Math.sin(clipping.sway) * clipping.flutter;
   return {
     ...clipping,
     vx,
     vy,
-    x: clipping.x + (vx + flutter) * dt,
+    x: clipping.x + (vx + sideways) * dt,
     y: clipping.y + vy * dt,
-    angle: clipping.angle + clipping.spin * dt,
+    // Da vueltas a su ritmo y se ladea al mecerse, como un pelo de verdad.
+    angle: clipping.angle + (clipping.spin + Math.cos(clipping.sway) * 0.015) * dt,
     sway: clipping.sway + clipping.swaySpeed * dt,
   };
 }
@@ -161,31 +153,28 @@ function drawStrand(context: CanvasRenderingContext2D, points: Clipping["points"
 
 export interface HairBurstProps {
   className?: string;
-  /** Cuántos pelos salen por foco; hay un foco por cada 360 px de ancho. */
-  count?: number;
-  /** De dónde estallan, en proporción del contenedor. Con varios focos, `x` no cuenta: van repartidos a lo ancho. */
-  origin?: HairBurstOrigin;
-  /** Al terminar la ráfaga (o enseguida, con «reducir movimiento»). */
+  /** Pelos por cada 100 px de ancho: unos 37 en un celular, unos 120 en un monitor. */
+  density?: number;
+  /** Al terminar la caída (o enseguida, con «reducir movimiento»). */
   onDone?: () => void;
 }
 
 /**
- * Una ráfaga de pelo de barba para celebrar: como el confeti, pero con los
- * pelos finos que quedan tras un arreglo de barba —largos, con una curva
- * suave y afinándose hacia la punta— en colores de pelo de verdad.
- * Estalla una sola vez al montarse sobre el contenedor (que debe ser
- * `relative`) y se adapta a su tamaño: en un celular sale de un punto; en una
- * tablet o un monitor, de varios a lo ancho. Cae despacio meciéndose y se apaga en unos 4 s. Para
- * repetirla, cambia su `key`. Con `prefers-reduced-motion` no se monta.
+ * Pelo de barba que cae para celebrar: como el confeti, pero con los pelos
+ * finos que quedan tras un arreglo de barba —largos, con una curva suave y
+ * afinándose hacia la punta— en colores de pelo de verdad. Cae una sola vez
+ * al montarse, desde arriba del contenedor (que debe ser `relative`) y a todo
+ * su ancho: se van soltando escalonados, cada uno con su peso, y una brisa
+ * los lleva de lado. Se apaga en unos 4,5 s. Para repetirla, cambia su `key`.
+ * Con `prefers-reduced-motion` no se monta.
  */
-export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 }, onDone }: HairBurstProps) {
+export function HairBurst({ className, density = 10, onDone }: HairBurstProps) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
   const onDoneRef = React.useRef(onDone);
   React.useEffect(() => {
     onDoneRef.current = onDone;
   });
-  const { x: originX, y: originY } = origin;
 
   React.useEffect(() => {
     if (reducedMotion) {
@@ -204,23 +193,30 @@ export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 },
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const palette = isDarkBackground() ? HAIR_ON_DARK : HAIR_ON_LIGHT;
-    const { xs, spread } = emittersFor(rect.width, originX);
-    const reach = reachFor(rect.height);
-    const total = Math.min(MAX_CLIPPINGS, count * xs.length);
-    let clippings = Array.from({ length: total }, (_, i) => spawnClipping(xs[i % xs.length], rect.height * originY, spread, reach, palette));
-    const startedAt = performance.now();
-    let last = startedAt;
+    const fallScale = fallScaleFor(rect.height);
+    const total = Math.min(MAX_CLIPPINGS, Math.max(MIN_CLIPPINGS, Math.round((rect.width / 100) * density)));
+    let clippings = Array.from({ length: total }, () => spawnClipping(rect.width, fallScale, palette));
+    const windPhase = Math.random() * Math.PI * 2;
+    // El reloj arranca en el primer fotograma: es la misma base que los siguientes.
+    let startedAt: number | null = null;
+    let last = 0;
     let frame = 0;
 
     const draw = (now: number) => {
+      if (startedAt === null) {
+        startedAt = now;
+        last = now;
+      }
       const elapsed = now - startedAt;
       const dt = Math.min(now - last, 48) / FRAME_MS;
       last = now;
       const fade = elapsed < FADE_START_MS ? 1 : Math.max(0, 1 - (elapsed - FADE_START_MS) / (DURATION_MS - FADE_START_MS));
+      const wind = windAt(elapsed, windPhase);
 
       context.clearRect(0, 0, rect.width, rect.height);
-      clippings = clippings.map((clipping) => stepClipping(clipping, dt));
+      clippings = clippings.map((clipping) => (elapsed < clipping.delay ? clipping : stepClipping(clipping, dt, wind)));
       for (const clipping of clippings) {
+        if (elapsed < clipping.delay) continue;
         context.save();
         context.translate(clipping.x, clipping.y);
         context.rotate(clipping.angle);
@@ -242,7 +238,7 @@ export function HairBurst({ className, count = 160, origin = { x: 0.5, y: 0.3 },
 
     frame = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(frame);
-  }, [count, originX, originY, reducedMotion]);
+  }, [density, reducedMotion]);
 
   if (reducedMotion) return null;
 

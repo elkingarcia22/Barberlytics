@@ -3,9 +3,9 @@ import { HairBurst } from "@/components/atmosphere";
 import { useBookingFlow } from "./BookingContext";
 
 /**
- * La celebración de una cita recién creada: pelo de barba que estalla como
- * confeti sobre la reserva. Vive en la raíz de `BookingFlow`, así sale igual
- * en las cuatro versiones (Paso a paso, las dos agendas y la Conversación).
+ * La celebración de una cita recién creada: pelo de barba que cae como
+ * confeti desde arriba de la reserva. Vive en la raíz de `BookingFlow`, así
+ * sale igual en todas las versiones (Paso a paso, la agenda y la Conversación).
  * Solo salta con una reserva nueva: la que ya estaba al montar (se volvió a
  * la confirmación) no se celebra otra vez.
  */

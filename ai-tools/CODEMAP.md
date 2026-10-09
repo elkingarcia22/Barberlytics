@@ -325,6 +325,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **DemoHints.tsx** — Los datos para probar la demo: qué celular es un cliente que vuelve, cuál está bloqueado, la tarjeta que se r… · `DemoHints` · piezas: Button, Popover, PopoverContent, PopoverTrigger, Text · usa: @/app/i18n, @/icons
 - **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **DeviceFrame.tsx** — La silueta de la pantalla donde el cliente ve la reserva: un celular, la tablet del local o un monitor con su… · `PreviewDevice`, `DeviceFrame` · piezas: Text · usa: @/icons, @/lib/utils
+- **portalSlot.tsx** — Pinta `children` dentro del nodo de `usePortalNode`, esté donde esté. · `PortalContent`, `PortalSlot`
+- **usePortalNode.ts** — Un nodo del DOM propio y estable: lo que se pinta en él con `createPortal` sigue en el mismo lugar del árbol… · `usePortalNode`
 
 ### booking/steps
 

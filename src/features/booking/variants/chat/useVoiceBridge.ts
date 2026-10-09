@@ -3,7 +3,7 @@ import type { ChatReply } from "@/lib/chat";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import type { ChatEngine } from "./useChatBooking";
-import { fromVoice, matchSpokenOption, voiceReplyFromTurns } from "./voiceReply";
+import { fromVoice, matchSpokenOption, saysOnlyOption, voiceReplyFromTurns } from "./voiceReply";
 
 /** Cuánto tiene que quedarse quieta la conversación (sin «escribiendo» ni mensajes nuevos) para dar la respuesta por dicha. */
 const SETTLE_MS = 700;
@@ -109,13 +109,27 @@ export function useVoiceBridge(
     [finish]
   );
 
+  /**
+   * La opción que eligió, solo si eso es todo lo que dijo («corte clásico», «la segunda», «con Emilio»).
+   * «Corte clásico con Andrés mañana a las 3» no es elegir «Corte clásico»: va entera, con todo.
+   */
+  const pickOption = React.useCallback(
+    (text: string, options: readonly string[]): string | null => {
+      const option = matchSpokenOption(text, options, locale);
+      if (!option) return null;
+      const byPlace = /^\d+$/.test(fromVoice(text, locale).trim());
+      return byPlace || saysOnlyOption(text, option, locale) ? option : null;
+    },
+    [locale]
+  );
+
   const ask = React.useCallback(
     (text: string): Promise<ChatReply> => {
       const { started: isStarted, start: begin } = latest.current;
       // Respuesta al saludo: agendar, ver sus citas, regalar o un paquete; lo demás es una petición.
       const choices = menu.current;
       menu.current = null;
-      const label = choices ? matchSpokenOption(text, Object.keys(choices), locale) : null;
+      const label = choices ? pickOption(text, Object.keys(choices)) : null;
       const choice = label && choices ? choices[label] : null;
       if (choice === "gift" || choice === "packages") {
         latest.current.openSide(choice);
@@ -123,10 +137,10 @@ export function useVoiceBridge(
       }
       if (choice === "book") return converse(() => begin());
       if (choice === "manage") return converse(() => begin(t("booking.chat.ideaManagePrompt")));
-      const said = matchSpokenOption(text, lastOptions.current, locale) ?? fromVoice(text, locale);
+      const said = pickOption(text, lastOptions.current) ?? fromVoice(text, locale);
       return converse((current) => (isStarted ? current.send(said) : begin(said)));
     },
-    [converse, locale, t]
+    [converse, locale, t, pickOption]
   );
 
   /**

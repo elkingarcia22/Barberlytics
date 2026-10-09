@@ -392,7 +392,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **spokenNumbers.ts** — Cambia por cifras los celulares, códigos y horas dichos con palabras; lo demás queda igual. · `numberWordsToDigits`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **useVoiceBridge.ts** — De qué experiencia llega la voz: Paso a paso pide quién eres; el resto, qué quieres hacer. · `VoiceOrigin`, `useVoiceBridge` · usa: @/app/i18n, @/i18n, @/lib/chat
-- **voiceReply.ts** — El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número», y las fech… · `VoiceReplyLabels`, `forVoice`, `fromVoice`, `matchSpokenOption`, `voiceReplyFromTurns` · usa: @/lib/chat
+- **voiceReply.ts** — El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número», y las fech… · `VoiceReplyLabels`, `forVoice`, `fromVoice`, `matchSpokenOption`, `saysOnlyOption`, `voiceReplyFromTurns` · usa: @/lib/chat
 
 ### branches
 

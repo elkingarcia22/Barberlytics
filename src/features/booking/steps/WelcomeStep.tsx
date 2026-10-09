@@ -14,16 +14,21 @@ import { useWelcomeData } from "./useWelcomeData";
 const WEEK_DAYS = 7;
 const DAY_MS = 86_400_000;
 
-interface Chip {
+interface Shortcut {
   id: string;
   icon: IconName;
   label: string;
+  /** Un número sobre el icono (las citas próximas). */
+  count?: number;
   onClick: () => void;
 }
 
+/** Los atajos se reparten el ancho por igual: con 2, 3 o 4 nunca se cortan ni se deslizan. */
+const SHORTCUT_COLUMNS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
+
 /**
- * El cliente que vuelve, pensado para el pulgar: arriba su ritmo y atajos como pastillas que se
- * deslizan; en medio, lo de siempre en una fila y las horas que le tocan como lista grande (fecha a
+ * El cliente que vuelve, pensado para el pulgar: arriba su ritmo y una fila de atajos del mismo
+ * ancho; en medio, lo de siempre en una fila y las horas que le tocan como lista grande (fecha a
  * la izquierda, hora y barbero a la derecha); abajo, el botón fijo con lo elegido y el precio.
  */
 export function WelcomeStep() {
@@ -46,9 +51,9 @@ export function WelcomeStep() {
   const daysSince = last ? Math.max(0, Math.round((now - new Date(last.at).getTime()) / DAY_MS)) : null;
   const leadText = [rhythm, daysSince !== null ? t("booking.suggest.lastVisit", { count: daysSince }) : null].filter(Boolean).join(" · ");
 
-  const chips: Chip[] = [
+  const shortcuts: Shortcut[] = [
     { id: "new", icon: "plus", label: t("booking.welcome.somethingNew"), onClick: actions.startFresh },
-    ...(customer.upcoming > 0 ? [{ id: "manage", icon: "calendar" as const, label: `${t("booking.welcome.appointments")} · ${customer.upcoming}`, onClick: actions.manage }] : []),
+    ...(customer.upcoming > 0 ? [{ id: "manage", icon: "calendar" as const, label: t("booking.welcome.appointments"), count: customer.upcoming, onClick: actions.manage }] : []),
     ...(data.hasPackages ? [{ id: "packages", icon: "layers" as const, label: t("booking.welcome.packages"), onClick: actions.packages }] : []),
     ...(data.canGift ? [{ id: "gift", icon: "ticket" as const, label: t("booking.welcome.gift"), onClick: actions.gift }] : []),
   ];
@@ -80,15 +85,34 @@ export function WelcomeStep() {
 
   return (
     <StepLayout title={t("booking.welcome.title", { name: customer.firstName })} lead={leadText || undefined} footer={footer}>
-      {/* Atajos que se deslizan de lado: no empujan lo importante hacia abajo. */}
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
-        {chips.map((chip) => (
-          <Button key={chip.id} type="button" size="sm" variant="outline" className="shrink-0 rounded-full" onClick={chip.onClick}>
-            <ThemaIcon name={chip.icon} />
-            {chip.label}
-          </Button>
+      {/* Atajos en una fila del mismo ancho: todos a la vista, ninguno compite con la hora. */}
+      <nav aria-label={t("booking.welcome.shortcuts")} className={cn("grid gap-2", SHORTCUT_COLUMNS[shortcuts.length])}>
+        {shortcuts.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={item.onClick}
+            aria-label={item.count ? `${item.label} · ${item.count}` : undefined}
+            className={cn(
+              "flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface px-1 py-3",
+              "transition-colors duration-fast ease-out-expo hover:border-primary/40 hover:bg-surface-subtle active:bg-surface-subtle motion-reduce:transition-none",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            )}
+          >
+            <span className="relative">
+              <ThemaIcon name={item.icon} tone="primary" />
+              {item.count ? (
+                <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-xs font-semibold leading-none text-primary-foreground tabular-nums" aria-hidden>
+                  {item.count}
+                </span>
+              ) : null}
+            </span>
+            <Text as="span" size="xs" weight="medium" className="w-full truncate text-center">
+              {item.label}
+            </Text>
+          </button>
         ))}
-      </div>
+      </nav>
 
       {data.isLoading ? (
         <div className="flex flex-col gap-3">

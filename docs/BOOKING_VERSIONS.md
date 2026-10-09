@@ -49,7 +49,8 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
 - **Una sola cita**: tocar otra hora reemplaza la anterior (`AgendaFlow` deja solo la última); la hora
   elegida se queda a la vista marcada (`TimeWindows selectedTime`) y no sale aviso.
 - Si el barbero elegido no tiene horas ese día, debajo salen otros parecidos con sus primeras horas
-  (`AlternativeBarbers`, el mismo de Paso a paso).
+  (`AlternativeBarbers`, el mismo de Paso a paso). Solo se recomienda a quien hace lo pedido, comparte
+  al menos una habilidad y tiene horas; tocar una hora de otro día lleva la agenda a ese día.
 - Cierre propio (`AgendaSelectCheckout`): la cita en una tarjeta arriba (con a nombre de quién y «No soy
   yo»), sin «Tus citas» repetidas ni «Volver a la agenda» (la flecha de la cabecera); nota y foto en una
   fila hasta usarlas; la tienda como campo con modal (`AgendaProductField`, cantidad en la misma fila);

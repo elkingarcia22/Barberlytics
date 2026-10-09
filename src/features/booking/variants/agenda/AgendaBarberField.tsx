@@ -114,10 +114,7 @@ export function AgendaBarberField({ labelledBy, barbers, usualId }: AgendaBarber
                     {barber.id === usualId && <Badge variant="secondary">{t("booking.barber.lastTime")}</Badge>}
                   </span>
                   <Text as="span" size="xs" tone="muted" tabular className="truncate">
-                    {[barber.level, `★ ${barber.rating.toFixed(1)}`].filter(Boolean).join(" · ")}
-                  </Text>
-                  <Text as="span" size="xs" weight="medium" tabular className="truncate">
-                    {price}
+                    {[barber.level, `★ ${barber.rating.toFixed(1)}`].filter(Boolean).join(" · ")} · <span className="font-medium text-text-primary">{price}</span>
                   </Text>
                 </PickerRow>
               );

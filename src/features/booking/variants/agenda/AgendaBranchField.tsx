@@ -120,12 +120,13 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
                 <Text as="span" size="xs" tone="secondary" className="truncate">
                   {branch.address}, {branch.city}
                 </Text>
-                <Text as="span" size="xs" tone="muted" tabular className="flex flex-wrap items-center gap-x-1.5">
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                    <ThemaIcon name="clock" size="xs" />
-                    {t("booking.branch.hours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}
-                  </span>
-                  <span className="whitespace-nowrap">· {t("booking.branch.barbers", { count: branch.barbers })}</span>
+                <Text as="span" size="xs" tone="muted" tabular className="flex min-w-0 items-center gap-1.5">
+                  <ThemaIcon name="clock" size="xs" className="shrink-0" />
+                  <span className="truncate">{t("booking.branch.hours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}</span>
+                </Text>
+                <Text as="span" size="xs" tone="muted" tabular className="flex min-w-0 items-center gap-1.5">
+                  <ThemaIcon name="users" size="xs" className="shrink-0" />
+                  <span className="truncate">{t("booking.branch.barbers", { count: branch.barbers })}</span>
                 </Text>
               </PickerRow>
             ))}

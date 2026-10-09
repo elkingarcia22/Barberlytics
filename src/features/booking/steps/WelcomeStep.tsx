@@ -1,178 +1,187 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Heading, Text } from "@/components/typography";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconTile } from "@/components/utility/IconTile";
-import { ThemaIcon } from "@/icons";
-import { defaultBranchId } from "../bookingState";
-import { initialsOf } from "../bookingFormat";
-import { useBookingFlow } from "../flow/BookingContext";
+import { ThemaIcon, type IconName } from "@/icons";
+import { cn } from "@/lib/utils";
+import { initialsOf, parseStart } from "../bookingFormat";
 import { StepLayout } from "../flow/StepLayout";
-import { NextVisitSuggestion } from "../flow/NextVisitSuggestion";
-import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../queries";
-import { itemPrice } from "../useBookingTotals";
+import { useWelcomeData } from "./useWelcomeData";
+
+const WEEK_DAYS = 7;
+const DAY_MS = 86_400_000;
+
+interface Chip {
+  id: string;
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+}
 
 /**
- * El cliente que vuelve: lo más probable es que quiera lo mismo de la última
- * vez, así que eso va primero y a un toque de la hora. Lo distinto queda a
- * la vista, no escondido.
+ * El cliente que vuelve, pensado para el pulgar: arriba su ritmo y atajos como pastillas que se
+ * deslizan; en medio, lo de siempre en una fila y las horas que le tocan como lista grande (fecha a
+ * la izquierda, hora y barbero a la derecha); abajo, el botón fijo con lo elegido y el precio.
  */
 export function WelcomeStep() {
   const t = useAppT();
-  const { state, dispatch, shop, fmt } = useBookingFlow();
-  const customer = state.customer;
-  const last = customer?.lastVisit ?? null;
-  const branch = shop.branches.find((item) => item.id === last?.branchId);
-  const { data: catalog, isLoading } = useBookingCatalogQuery(last?.branchId ?? null);
-  const barber = catalog?.barbers.find((item) => item.id === last?.barberId);
-  const services = (last?.serviceIds ?? []).map((id) => catalog?.services.find((item) => item.id === id)).filter((item) => item !== undefined);
-  const canRepeat = last !== null && branch !== undefined && services.length > 0;
-  // Quien ya viene no vuelve a elegir sede: la de su última visita; se ajusta en el resumen.
-  const onlyBranchId = defaultBranchId(customer, shop.branches.map((item) => item.id));
-  // Con su frecuencia de visita se le propone ya el día y la hora que le tocan.
-  const { data: suggestionData, isLoading: isSuggesting } = useVisitSuggestionQuery(state.token);
-  const suggestion = suggestionData?.suggestion ?? null;
-  const repeat = () => last && dispatch({ type: "repeatLastVisit", lastVisit: { ...last, serviceIds: services.map((item) => item.id), barberId: barber ? barber.id : null } });
-
+  const data = useWelcomeData();
+  const { customer, services, barber, suggestion, price, durationMin, fmt, actions, catalog, last } = data;
+  const [picked, setPicked] = React.useState(0);
+  // «Hace N días» se mide contra el momento en que se abrió la pantalla, no en cada render.
+  const [now] = React.useState(() => Date.now());
   if (!customer) return null;
+  const option = suggestion?.options[picked] ?? suggestion?.options[0] ?? null;
+  const when = option ? parseStart(option.start) : null;
+  const lead = services[0];
+
+  const rhythm = suggestion
+    ? suggestion.everyDays % WEEK_DAYS === 0
+      ? t("booking.suggest.everyWeeks", { count: suggestion.everyDays / WEEK_DAYS })
+      : t("booking.suggest.everyDays", { count: suggestion.everyDays })
+    : null;
+  const daysSince = last ? Math.max(0, Math.round((now - new Date(last.at).getTime()) / DAY_MS)) : null;
+  const leadText = [rhythm, daysSince !== null ? t("booking.suggest.lastVisit", { count: daysSince }) : null].filter(Boolean).join(" · ");
+
+  const chips: Chip[] = [
+    { id: "new", icon: "plus", label: t("booking.welcome.somethingNew"), onClick: actions.startFresh },
+    ...(customer.upcoming > 0 ? [{ id: "manage", icon: "calendar" as const, label: `${t("booking.welcome.appointments")} · ${customer.upcoming}`, onClick: actions.manage }] : []),
+    ...(data.hasPackages ? [{ id: "packages", icon: "layers" as const, label: t("booking.welcome.packages"), onClick: actions.packages }] : []),
+    ...(data.canGift ? [{ id: "gift", icon: "ticket" as const, label: t("booking.welcome.gift"), onClick: actions.gift }] : []),
+  ];
+
+  const footer = (
+    <div className="flex items-center gap-4">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Text size="sm" weight="semibold" tabular truncate className="first-letter:uppercase">
+          {when ? `${fmt.dayShort(when)} · ${fmt.time(when)}` : t("booking.welcome.pickTime")}
+        </Text>
+        <Text size="xs" tone="muted" tabular>
+          {fmt.money(price)}
+          {customer.credit > 0 ? ` · ${t("booking.welcome.creditShort", { amount: fmt.money(customer.credit) })}` : ""}
+        </Text>
+      </div>
+      {option ? (
+        <Button type="button" size="lg" aria-label={when ? t("booking.suggest.book", { when: `${fmt.dayShort(when)} · ${fmt.time(when)}` }) : undefined} onClick={() => actions.book(option)}>
+          {t("booking.welcome.book")}
+          <ThemaIcon name="arrowRight" />
+        </Button>
+      ) : (
+        <Button type="button" size="lg" disabled={!data.canRepeat} onClick={actions.repeat}>
+          {t("booking.welcome.repeat")}
+          <ThemaIcon name="arrowRight" />
+        </Button>
+      )}
+    </div>
+  );
 
   return (
-    <StepLayout title={t("booking.welcome.title", { name: customer.firstName })} lead={t("booking.welcome.lead")}>
-      {customer.upcoming > 0 && (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-subtle px-3 py-2">
-          <Text size="sm" tone="secondary" className="flex items-center gap-2">
-            <ThemaIcon name="calendar" size="sm" tone="info" />
-            {t("booking.welcome.upcoming", { count: customer.upcoming })}
-          </Text>
-          <Button type="button" variant="link" size="sm" onClick={() => dispatch({ type: "openManage" })}>
-            {t("booking.welcome.upcomingAction")}
+    <StepLayout title={t("booking.welcome.title", { name: customer.firstName })} lead={leadText || undefined} footer={footer}>
+      {/* Atajos que se deslizan de lado: no empujan lo importante hacia abajo. */}
+      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+        {chips.map((chip) => (
+          <Button key={chip.id} type="button" size="sm" variant="outline" className="shrink-0 rounded-full" onClick={chip.onClick}>
+            <ThemaIcon name={chip.icon} />
+            {chip.label}
           </Button>
-        </div>
-      )}
-      {customer.credit > 0 && (
-        <Alert variant="success">
-          <ThemaIcon name="ticket" />
-          <AlertDescription>{t("booking.welcome.credit", { amount: fmt.money(customer.credit) })}</AlertDescription>
-        </Alert>
-      )}
+        ))}
+      </div>
 
-      {last && (
-        <section aria-labelledby="repeat-title" className="relative overflow-hidden rounded-2xl border border-primary/30 bg-surface shadow-sm">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent" aria-hidden />
-          <div className="relative flex flex-col gap-5 p-5">
-            <div className="flex items-center gap-2">
-              <ThemaIcon name="refresh" size="sm" tone="primary" />
-              <Heading level={5} id="repeat-title">
-                {suggestion ? t("booking.suggest.title") : t("booking.welcome.repeatTitle")}
-              </Heading>
-            </div>
-            {isLoading || isSuggesting ? (
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+      {data.isLoading ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      ) : (
+        <>
+          {lead && (
+            <section aria-labelledby="rhythm-usual" className="flex flex-col gap-2">
+              <Text size="xs" weight="semibold" tone="muted" className="uppercase tracking-widest">
+                {t("booking.welcome.usual")}
+              </Text>
+              <div className="flex items-center gap-3">
+                <IconTile size="lg" src={lead.imageUrl} icon={<ThemaIcon name="scissors" />} />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Text weight="semibold" truncate id="rhythm-usual">
+                    {services.map((item) => item.name).join(" + ")}
+                  </Text>
+                  <Text size="xs" tone="muted" truncate>
+                    {t("booking.services.minutes", { count: durationMin })}
+                    {barber ? ` · ${t("booking.welcome.with", { name: barber.name })}` : ""}
+                  </Text>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={actions.startFresh}>
+                  {t("booking.welcome.change")}
+                </Button>
+              </div>
+            </section>
+          )}
+
+          <section aria-labelledby="rhythm-times" className="flex flex-col gap-3">
+            <Heading level={5} id="rhythm-times" className="first-letter:uppercase">
+              {suggestion ? (suggestion.isOverdue ? t("booking.suggest.overdue") : t("booking.suggest.due", { date: fmt.dayShort(parseStart(suggestion.options[0]?.start ?? suggestion.dueDate)) })) : t("booking.welcome.pickTime")}
+            </Heading>
+            {suggestion && suggestion.options.length > 0 ? (
+              <div role="radiogroup" aria-label={t("booking.suggest.options")} className="flex flex-col gap-2">
+                {suggestion.options.map((item, index) => {
+                  const date = parseStart(item.start);
+                  const isPicked = index === picked;
+                  const who = item.sameBarber ? barber : catalog?.barbers.find((entry) => entry.id === item.barberId);
+                  return (
+                    <button
+                      key={item.start + item.barberId}
+                      type="button"
+                      role="radio"
+                      aria-checked={isPicked}
+                      onClick={() => setPicked(index)}
+                      className={cn(
+                        "flex items-center gap-4 rounded-2xl border p-3 text-left",
+                        "transition-colors duration-fast ease-out-expo motion-reduce:transition-none",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                        isPicked ? "border-primary bg-primary/10" : "border-border bg-surface hover:bg-surface-subtle"
+                      )}
+                    >
+                      {/* La fecha como hoja de calendario: el día de la semana pequeño y el número grande. */}
+                      <span className={cn("flex w-12 shrink-0 flex-col items-center rounded-xl py-1.5", isPicked ? "bg-primary text-primary-foreground" : "bg-surface-subtle")}>
+                        <span className="text-xs font-semibold uppercase opacity-80">{fmt.dayShort(date).split(" ")[0]}</span>
+                        <span className="text-lg font-semibold leading-6 tabular-nums">{date.getDate()}</span>
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <Text as="span" size="lg" weight="semibold" tabular>
+                          {fmt.time(date)}
+                        </Text>
+                        <Text as="span" size="xs" tone="muted" truncate>
+                          {item.sameBarber ? t("booking.welcome.yourBarber") : t("booking.welcome.otherBarber")}
+                          {who ? ` · ${who.name}` : ""}
+                        </Text>
+                      </span>
+                      {who && (
+                        <Avatar size="sm">
+                          {who.avatarUrl && <AvatarImage src={who.avatarUrl} alt="" />}
+                          <AvatarFallback>{initialsOf(who.name)}</AvatarFallback>
+                        </Avatar>
+                      )}
+                    </button>
+                  );
+                })}
+                <Button type="button" variant="ghost" className="self-start" onClick={actions.repeat}>
+                  <ThemaIcon name="calendar" />
+                  {t("booking.suggest.other")}
+                </Button>
               </div>
             ) : (
-              <>
-                <div className="flex flex-col gap-3">
-                  {services.map((service) => (
-                    <div key={service.id} className="flex items-center gap-3">
-                      <IconTile size="lg" src={service.imageUrl} icon={<ThemaIcon name="scissors" />} />
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <Text weight="semibold" truncate>
-                          {service.name}
-                        </Text>
-                        <Text size="xs" tone="muted">
-                          {t("booking.services.minutes", { count: service.durationMin })}
-                        </Text>
-                      </div>
-                      {/* El precio junto a lo que se paga: con su barbero de la última vez. */}
-                      <Text size="lg" weight="semibold" tabular className="shrink-0">
-                        {fmt.money(itemPrice({ serviceIds: [service.id], barberId: last.barberId }, catalog))}
-                      </Text>
-                    </div>
-                  ))}
-                  {barber && (
-                    <div className="flex items-center gap-3 rounded-xl bg-surface-subtle p-3">
-                      <Avatar>
-                        {barber.avatarUrl && <AvatarImage src={barber.avatarUrl} alt="" />}
-                        <AvatarFallback>{initialsOf(barber.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <Text size="xs" tone="muted">
-                          {t("booking.barber.lastTime")}
-                        </Text>
-                        <Text size="sm" weight="medium" truncate>
-                          {barber.name}
-                          {barber.level ? ` · ${barber.level}` : ""}
-                        </Text>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <Separator />
-                {suggestion ? (
-                  <NextVisitSuggestion suggestion={suggestion} catalog={catalog} onPickOther={repeat} />
-                ) : (
-                  <Button type="button" size="lg" className="w-full" disabled={!canRepeat} onClick={repeat}>
-                    {t("booking.welcome.repeat")}
-                    <ThemaIcon name="arrowRight" />
-                  </Button>
-                )}
-              </>
+              <Text size="sm" tone="secondary">
+                {t("booking.welcome.noSuggestion")}
+              </Text>
             )}
-          </div>
-        </section>
+          </section>
+        </>
       )}
 
-      <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => dispatch({ type: "startFresh", onlyBranchId })}>
-        <ThemaIcon name="plus" />
-        {t("booking.welcome.different")}
-      </Button>
-
-      {/* Paquetes prepagados: solo si la barbería ofrece alguno (y cobra con tarjeta en línea). */}
-      {shop.packages.length > 0 && (
-        <button
-          type="button"
-          onClick={() => dispatch({ type: "goTo", step: "packages" })}
-          className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border p-3 text-left transition-colors duration-fast ease-out-expo hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
-        >
-          <IconTile size="md" shape="circle" icon={<ThemaIcon name="ticket" />} />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <Text as="span" size="sm" weight="medium">
-              {t("booking.packages.cta")}
-            </Text>
-            <Text as="span" size="xs" tone="secondary">
-              {(customer?.packages.length ?? 0) > 0 ? t("booking.packages.ctaOwned", { count: customer?.packages.reduce((sum, item) => sum + item.remaining, 0) ?? 0 }) : t("booking.packages.ctaHint")}
-            </Text>
-          </span>
-          <ThemaIcon name="chevronRight" size="sm" tone="muted" />
-        </button>
-      )}
-
-      {/* Regalar una tarjeta: solo si la barbería cobra con tarjeta en línea. */}
-      {shop.payment.card && (
-        <button
-          type="button"
-          onClick={() => dispatch({ type: "goTo", step: "gift" })}
-          className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border p-3 text-left transition-colors duration-fast ease-out-expo hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
-        >
-          <IconTile size="md" shape="circle" icon={<ThemaIcon name="ticket" />} />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <Text as="span" size="sm" weight="medium">
-              {t("booking.gift.cta")}
-            </Text>
-            <Text as="span" size="xs" tone="secondary">
-              {t("booking.gift.ctaHint")}
-            </Text>
-          </span>
-          <ThemaIcon name="chevronRight" size="sm" tone="muted" />
-        </button>
-      )}
-
-      <Button type="button" variant="link" size="sm" className="self-center" onClick={() => dispatch({ type: "restart" })}>
+      <Button type="button" variant="link" size="sm" className="self-center" onClick={actions.notYou}>
         {t("booking.welcome.notYou")}
       </Button>
     </StepLayout>

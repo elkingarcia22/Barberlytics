@@ -17,7 +17,7 @@ import { StepLayout } from "../../flow/StepLayout";
 import { AgendaIdentity } from "./AgendaIdentity";
 
 /** Una parte del cierre: número, título y lo que va dentro. */
-function CheckoutSection({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
+export function CheckoutSection({ index, title, children }: { index: number; title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="flex flex-col gap-3">
       <div className="flex items-center gap-2.5">
@@ -123,7 +123,7 @@ function CheckoutBody({ payment, showAppointments }: { payment: PaymentControlle
   );
 }
 
-function CheckoutFooter({ payment }: { payment: PaymentController | null }) {
+export function CheckoutFooter({ payment }: { payment: PaymentController | null }) {
   const t = useAppT();
   return (
     <div className="flex flex-col gap-2">

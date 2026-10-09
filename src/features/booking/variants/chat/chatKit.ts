@@ -10,6 +10,9 @@ export interface ChatTurn {
   from: "agent" | "user";
   text?: string;
   question?: BookingQuestion;
+  /** Fotos bajo el mensaje (la sede, los trabajos de un barbero); se abren en la galería. */
+  photos?: readonly string[];
+  photosTitle?: string;
 }
 
 export type Message = Omit<ChatTurn, "id" | "from">;

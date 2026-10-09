@@ -247,6 +247,31 @@ describe("las otras dos experiencias", () => {
     expect(field).toHaveTextContent("Arreglo de barba");
   });
 
+  test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    const input = await screen.findByTestId("chat-input");
+    await user.type(input, "3202172738{Enter}");
+    await screen.findByText(/Te acabo de mandar un código/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    await screen.findByText(/Hola de nuevo, Marcela/);
+    await user.type(screen.getByTestId("chat-input"), "quiero un corte{Enter}");
+    const barbers = await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
+    // La opción de abajo: escribir de quién se quiere ver el perfil.
+    await user.type(within(barbers).getByPlaceholderText("Escribe de quién"), "andrés{Enter}");
+    expect(await screen.findByText("Lo que dicen sus clientes")).toBeInTheDocument();
+    const confirm = await screen.findByRole("group", { name: "¿Te agendo con Andrés?" });
+    // Una sede, escrita en la caja: su detalle y la pregunta pendiente otra vez.
+    await user.type(screen.getByTestId("chat-input"), "cómo es la sede massachusetts{Enter}");
+    expect(await screen.findByText("Horario de la semana")).toBeInTheDocument();
+    expect(await screen.findByText("¿Seguimos donde íbamos?")).toBeInTheDocument();
+    // La pregunta que quedó pendiente vuelve, y se responde como cualquier otra.
+    expect(confirm).not.toBeInTheDocument();
+    const again = await screen.findByRole("group", { name: "¿Te agendo con Andrés?" });
+    await user.click(within(again).getByRole("button", { name: /Sí, con Andrés/ }));
+    expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
+  });
+
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);

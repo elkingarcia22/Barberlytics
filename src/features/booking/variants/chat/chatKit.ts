@@ -10,13 +10,16 @@ export interface ChatTurn {
   from: "agent" | "user";
   text?: string;
   question?: BookingQuestion;
+  /** Fotos bajo el mensaje (la sede, los trabajos de un barbero); se abren en la galería. */
+  photos?: readonly string[];
+  photosTitle?: string;
 }
 
 export type Message = Omit<ChatTurn, "id" | "from">;
 /** Un mensaje, o una función que lo arma justo al decirlo (con las cuentas ya al día). */
 export type MessageInput = Message | (() => Message | null);
 /** Qué significa lo que se escriba en la caja ahora mismo. */
-export type Expecting = "phone" | "code" | "firstName" | "lastName" | "email" | "note" | "cvc" | null;
+export type Expecting = "phone" | "code" | "firstName" | "lastName" | "email" | "note" | "cvc" | "cardNumber" | "cardName" | "cardExpiry" | "cardCvc" | null;
 
 export type PaymentEvent = { kind: "cardAdded"; last4: string } | { kind: "failed"; message: string };
 

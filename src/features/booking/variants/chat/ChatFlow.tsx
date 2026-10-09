@@ -8,6 +8,8 @@ import { describeError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
+import { GalleryViewer } from "../../flow/GalleryViewer";
+import { PhotoStrip } from "../../flow/PhotoStrip";
 import { PaymentSheets } from "../../flow/PaymentPanel";
 import { usePaymentController, type PaymentController } from "../../flow/usePaymentController";
 import { GiftStep } from "../../steps/GiftStep";
@@ -45,6 +47,8 @@ function PaymentBridge({ controllerRef, onEvent }: { controllerRef: React.RefObj
 
 /** Un mensaje del asistente: su marca, lo que dice y, si es la pregunta abierta, su lista para responder. */
 function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; engine: ChatEngine }) {
+  const [viewing, setViewing] = React.useState<number | null>(null);
+  const photos = turn.photos ?? [];
   // Respondida o ya superada, la pregunta se queda como texto en el hilo (la respuesta va como mensaje del cliente).
   const asked = turn.question && !isOpen ? turn.question.title : undefined;
   const text = [turn.text, asked && (turn.text ? `**${asked}**` : asked)].filter(Boolean).join("\n\n") || undefined;
@@ -56,6 +60,13 @@ function AgentTurn({ turn, isOpen, engine }: { turn: ChatTurn; isOpen: boolean; 
           <div className="min-w-0 rounded-2xl rounded-tl-md bg-surface-subtle px-4 py-2.5">
             <ChatMarkdown text={text} />
           </div>
+        </div>
+      )}
+      {photos.length > 0 && (
+        // Las fotos van bajo el mensaje, como en un chat: se recorren y se abren en la galería.
+        <div className="pl-9">
+          <PhotoStrip photos={photos} onOpen={setViewing} className="mx-0" />
+          <GalleryViewer photos={photos} index={viewing} title={turn.photosTitle ?? ""} onClose={() => setViewing(null)} />
         </div>
       )}
       {turn.question && isOpen && <ChatQuestionCard question={turn.question} active onAnswer={(label) => engine.answer(turn.id, label)} />}

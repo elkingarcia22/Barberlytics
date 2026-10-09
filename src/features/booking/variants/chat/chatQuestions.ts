@@ -34,7 +34,11 @@ export type QuestionKind =
   | "refund"
   | "consent"
   | "blocked"
-  | "next";
+  | "next"
+  | "branchConfirm"
+  | "branchInfo"
+  | "barberConfirm"
+  | "cardSave";
 
 export interface BookingQuestion extends ChatQuestion {
   kind: QuestionKind;

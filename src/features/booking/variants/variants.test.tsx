@@ -8,6 +8,7 @@ import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption } from "./chat/chatQuestions";
+import { maskCardInput, normalizeExpiry } from "./chat/chatCard";
 
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -122,6 +123,22 @@ describe("preguntas de la conversación", () => {
     expect(matchOption(question, "libre")).toBe("Con quien esté libre");
     expect(matchOption(question, "andrés")).toBeNull();
     expect(matchOption(question, "9")).toBeNull();
+  });
+});
+
+describe("tarjeta nueva en la conversación", () => {
+  test("el número y el CVC nunca se ven enteros en el hilo", () => {
+    expect(maskCardInput("cardNumber", "4242 4242 4242 4242")).toBe("•••• 4242");
+    expect(maskCardInput("cardCvc", "123")).toBe("•••");
+    expect(maskCardInput("cardCvc", "1234")).toBe("••••");
+    expect(maskCardInput("cardName", " Marcela Gómez ")).toBe("Marcela Gómez");
+  });
+
+  test("el vencimiento se entiende como se escriba", () => {
+    expect(normalizeExpiry("0829")).toBe("08/29");
+    expect(normalizeExpiry("08 29")).toBe("08/29");
+    expect(normalizeExpiry("08/2029")).toBe("08/29");
+    expect(normalizeExpiry("829")).toBe("08/29");
   });
 });
 
@@ -245,6 +262,31 @@ describe("las otras dos experiencias", () => {
     await user.click(within(dialog).getByRole("button", { name: "Ver horas" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(field).toHaveTextContent("Arreglo de barba");
+  });
+
+  test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="chat" />);
+    const input = await screen.findByTestId("chat-input");
+    await user.type(input, "3202172738{Enter}");
+    await screen.findByText(/Te acabo de mandar un código/);
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    await screen.findByText(/Hola de nuevo, Marcela/);
+    await user.type(screen.getByTestId("chat-input"), "quiero un corte{Enter}");
+    const barbers = await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
+    // La opción de abajo: escribir de quién se quiere ver el perfil.
+    await user.type(within(barbers).getByPlaceholderText("Escribe de quién"), "andrés{Enter}");
+    expect(await screen.findByText("Lo que dicen sus clientes")).toBeInTheDocument();
+    const confirm = await screen.findByRole("group", { name: "¿Te agendo con Andrés?" });
+    // Una sede, escrita en la caja: su detalle y la pregunta pendiente otra vez.
+    await user.type(screen.getByTestId("chat-input"), "cómo es la sede massachusetts{Enter}");
+    expect(await screen.findByText("Horario de la semana")).toBeInTheDocument();
+    expect(await screen.findByText("¿Seguimos donde íbamos?")).toBeInTheDocument();
+    // La pregunta que quedó pendiente vuelve, y se responde como cualquier otra.
+    expect(confirm).not.toBeInTheDocument();
+    const again = await screen.findByRole("group", { name: "¿Te agendo con Andrés?" });
+    await user.click(within(again).getByRole("button", { name: /Sí, con Andrés/ }));
+    expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
   });
 
   test("agenda con selector: la sede también se elige en la lista y sin citas cambia al tocarla", async () => {

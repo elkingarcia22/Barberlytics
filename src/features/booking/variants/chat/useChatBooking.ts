@@ -12,9 +12,10 @@ import type { PaymentController } from "../../flow/usePaymentController";
 import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, VisitSuggestion } from "../../types";
-import { itemPrice } from "../../useBookingTotals";
-import { ableBarbers, type DayWindow } from "../agenda/agendaModel";
+import type { DayWindow } from "../agenda/agendaModel";
+import { EMPTY_CARD, isCardStep, maskCardInput, useChatNewCard, type CardDraft } from "./chatCard";
 import { useChatCheckout } from "./chatCheckout";
+import { looksLikeDetail, useChatProfiles } from "./chatProfiles";
 
 const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 import { activeQuestionTurn, capitalize, DAYS_OFFERED, EMAIL, firstName, isKnownAnswer, nextId, PHONE_DIGITS, reducedMotion, RELATIONS, TYPING_MS, type ChatReplyId, type ChatTurn, type Expecting, type Handlers, type MessageInput, type PaymentEvent } from "./chatKit";
@@ -53,8 +54,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const started = React.useRef(false);
   const seenCustomer = React.useRef<string | null>(null);
   const seenReservation = React.useRef<string | null>(null);
-  /** Se abrió la hoja de la tarjeta nueva: escribir «tarjeta» la vuelve a abrir si se cerró. */
-  const awaitingCard = React.useRef(false);
+  /** La tarjeta nueva a medio escribir (un dato por mensaje). */
+  const cardDraft = React.useRef<CardDraft>(EMPTY_CARD);
 
   const apply = React.useCallback(
     (action: BookingAction) => {
@@ -219,16 +220,6 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     ids.filter((id) => !draft.serviceIds.includes(id)).forEach((serviceId) => apply({ type: "toggleService", serviceId }));
   };
 
-  const askBranch = () =>
-    ask(
-      makeQuestion(
-        "branch",
-        t("booking.chat.branchTitle"),
-        shop.branches.map((branch) => ({ label: branch.name, value: branch.id, description: `${branch.address} · ${t("booking.chat.todayHours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}` }))
-      ),
-      t("booking.chat.branchLead", { count: shop.branches.length })
-    );
-
   const askPerson = (text?: string) => {
     const current = stateRef.current;
     const entries: QuestionEntry[] = [{ label: t("booking.person.self"), value: "self", emoji: "🙋" }];
@@ -254,23 +245,6 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       return { label: service.name, value: service.id, description: t("booking.agenda.whatSummary", { minutes: service.durationMin, price: fmt.money(from) }), ...(service.imageUrl ? { image: service.imageUrl } : {}) };
     });
     ask(makeQuestion("services", t("booking.chat.servicesTitle"), entries, { hint: t("booking.chat.servicesHint"), searchPlaceholder: t("booking.services.search"), multiple: { confirmLabel: t("booking.services.next") } }), text);
-  };
-
-  const askBarber = (text?: string) => {
-    const draft = stateRef.current.draft;
-    if (!draft) return void askServices();
-    const usualId = stateRef.current.customer?.lastVisit?.barberId ?? null;
-    const able = ableBarbers(catalogRef.current?.barbers ?? [], draft.serviceIds, usualId);
-    const entries: QuestionEntry[] = [
-      { label: t("booking.chat.reply.anyBarber"), value: "any", description: t("booking.chat.anyBarberHint"), emoji: "✂️" },
-      ...able.map((barber) => ({
-        label: barber.name,
-        value: barber.id,
-        image: barber.avatarUrl,
-        description: [`★ ${barber.rating.toFixed(1)}`, fmt.money(itemPrice({ serviceIds: draft.serviceIds, barberId: barber.id }, catalogRef.current)), barber.id === usualId ? t("booking.agenda.yourBarber") : barber.level].filter(Boolean).join(" · "),
-      })),
-    ];
-    ask(makeQuestion("barber", t("booking.chat.barberTitle"), entries, able.length > 6 ? { searchPlaceholder: t("booking.chat.barberSearch") } : {}), text ?? t("booking.chat.barberLead", { services: serviceNames(draft.serviceIds) }));
   };
 
   /** Lo que se está buscando: la cita en borrador o la que se está moviendo. */
@@ -432,7 +406,15 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     void askServices(text);
   };
 
-  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, awaitingCard });
+  /** Tras un desvío (ver una sede o un perfil), la pregunta que quedó sin responder, otra vez. */
+  const resume = () => {
+    const pending = [...turnsRef.current].reverse().find((turn) => turn.question && turn.question.answer === undefined && !["branchInfo", "branchConfirm"].includes(turn.question.kind));
+    if (pending?.question && stateRef.current.customer) ask({ ...pending.question }, t("booking.chat.resume"));
+  };
+  const profiles = useChatProfiles({ t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume });
+  const { askBranch, askBarber, info } = profiles;
+  const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
+  const newCard = useChatNewCard({ t, say, ask, expect, stateRef, payment, cardDraft, askMethod: pay.askMethod });
   const { checkout, manage, askMethod, askConfirm } = pay;
 
   /* ───────────────────────────── al saludar ───────────────────────────── */
@@ -547,6 +529,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const handle = async (question: BookingQuestion, label: string, isOther: boolean) => {
     const value = isOther ? null : (question.values[label] ?? null);
     if (await pay.answerCheckout(question, value, label, isOther)) return;
+    if (await profiles.answerProfile(question, value, label, isOther)) return;
+    if (newCard.answerCard(question, value)) return;
     const current = stateRef.current;
     switch (question.kind) {
       case "next":
@@ -560,9 +544,6 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
         return createProfile(value === "yes");
       case "home":
         return onHome(value);
-      case "branch":
-        if (value) apply({ type: "chooseBranch", branchId: value });
-        return startBooking();
       case "person":
         return onPerson(value, label, isOther);
       case "relation":
@@ -573,9 +554,6 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
         ensureDraft();
         setServices(splitMultipleAnswer(label).map((part) => question.values[part]).filter((id): id is string => Boolean(id)));
         return askBarber();
-      case "barber":
-        apply({ type: "chooseBarber", barberId: value === "any" ? null : value });
-        return askDay();
       case "day": {
         if (value?.startsWith("slot:")) return commitTime(value.slice(5));
         if (value?.startsWith("day:")) return askTimes(value.slice(4));
@@ -639,13 +617,6 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     void handle(question, label, isOther ?? !isKnownAnswer(question, label));
   };
 
-  const info = () => {
-    const text = [t("booking.chat.infoLead"), ...shop.branches.map((branch) => `- **${branch.name}** · ${branch.address}, ${branch.city} · ${t("booking.chat.todayHours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}`)].join("\n");
-    // Sin saber quién es, la conversación sigue esperando el celular; con cliente, ofrece seguir.
-    if (stateRef.current.customer) askNext(text);
-    else say({ text });
-  };
-
   const call = () => say({ text: t("booking.chat.callText", { phone: formatPhone(shop.phone), href: `tel:${shop.phone}` }) });
 
   const greetAtStart = React.useCallback(
@@ -691,12 +662,19 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   /** Lo que se escribe en la caja: según lo que se esté esperando, la pregunta abierta o una frase para entender. */
   const send = (text: string) => {
     const waiting = expecting.current;
-    const secret = waiting === "code" || waiting === "cvc";
+    const secret = waiting === "code" || waiting === "cvc" || isCardStep(waiting);
+    // «Perfil de Andrés», «cómo es la sede Centro»: el detalle antes de elegir.
+    if (!waiting && looksLikeDetail(text)) {
+      pushUser(text);
+      void profiles.detailRequest(text).then((found) => (found ? undefined : interpret(text)));
+      return;
+    }
     // Un número o un trozo de una opción de la pregunta abierta: el mensaje queda con el texto de la opción.
     const open = waiting ? undefined : activeQuestionTurn(turnsRef.current);
-    const option = open?.question && !open.question.multiple && stateRef.current.customer ? matchOption(open.question, text) : null;
+    // Con la sesión del código ya se puede responder (el cliente nuevo aún no tiene ficha al dar el permiso).
+    const option = open?.question && !open.question.multiple && (stateRef.current.customer || stateRef.current.token) ? matchOption(open.question, text) : null;
     if (open && option) return answer(open.id, option, { echo: true, isOther: false });
-    pushUser(secret ? "•".repeat(Math.min(6, text.replace(/\s/g, "").length)) : text);
+    pushUser(isCardStep(waiting) ? maskCardInput(waiting, text) : secret ? "•".repeat(Math.min(6, text.replace(/\s/g, "").length)) : text);
     const quick = parseBookingText(text, { services: [], barbers: [], now: new Date() }).intent;
     if (!secret && quick === "restart") return restart();
     if (!secret && quick === "info") return info();
@@ -712,10 +690,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       return askPhone();
     }
     if (waiting === "code") return void submitCode(text);
-    if (awaitingCard.current && /tarjeta|formulario|card/.test(plain(text))) {
-      payment.current?.setSheet({ open: true, prefill: false });
-      return;
-    }
+    if (isCardStep(waiting)) return newCard.submit(waiting, text);
     if (waiting === "firstName" || waiting === "lastName" || waiting === "email") return submitProfileText(text);
     if (waiting === "note") {
       expect(null);
@@ -730,14 +705,13 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       payment.current?.setSavedCvc(cvc);
       return askConfirm();
     }
-    if (!stateRef.current.customer) return askPhone(t("booking.chat.needPhone"));
+    if (!stateRef.current.customer && !stateRef.current.token) return askPhone(t("booking.chat.needPhone"));
     if (open?.question && !open.question.multiple && open.question.otherPlaceholder) return answer(open.id, text.trim(), { echo: false, isOther: true });
     void interpret(text);
   };
 
   /** La pasarela respondió con un error o se agregó una tarjeta nueva en su hoja. */
   const onPaymentEvent = (event: PaymentEvent) => {
-    awaitingCard.current = false;
     if (event.kind === "failed") return askMethod(event.message);
     say({ text: t("booking.chat.cardAdded", { last4: event.last4 }) });
     askConfirm();
@@ -784,6 +758,10 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     firstName: "booking.chat.placeholderName",
     lastName: "booking.chat.placeholderName",
     note: "booking.chat.placeholderNote",
+    cardNumber: "booking.chat.placeholderCardNumber",
+    cardName: "booking.chat.placeholderCardName",
+    cardExpiry: "booking.chat.placeholderCardExpiry",
+    cardCvc: "booking.chat.placeholderCvc",
   };
   const open = activeQuestionTurn(turns);
   return {

@@ -13,8 +13,6 @@ import { EarliestSlot } from "../flow/EarliestSlot";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
 import { WaitlistCard } from "../flow/WaitlistCard";
-import { canFinishOnWaitlist } from "../flow/waitlist";
-import { WaitlistFinish } from "../flow/WaitlistFinish";
 import { useAvailabilityQuery } from "../queries";
 import { itemDuration } from "../useBookingTotals";
 
@@ -48,8 +46,7 @@ export function TimeStep() {
   if (!draft || !branch) return null;
 
   return (
-    // Apuntado en la lista de espera sin hora: el pie ofrece terminar ahí.
-    <StepLayout title={t("booking.time.title")} lead={t("booking.time.lead")} footer={canFinishOnWaitlist(state) ? <WaitlistFinish /> : undefined}>
+    <StepLayout title={t("booking.time.title")} lead={t("booking.time.lead")}>
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-subtle p-3">
         {barber ? (
           <Avatar>

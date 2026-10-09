@@ -179,16 +179,12 @@ describe("perfil de la sede", () => {
 describe("recorrido de la reserva", () => {
   const known = (): BookingState => bookingReducer(initialBookingState(), { type: "customerFound", customer: customer(), token: "bk_test" });
 
-  test("lista de espera sin hora: se puede terminar ahí y salir de ella vuelve a buscar hora", () => {
+  test("lista de espera sin hora: apuntarse lleva a su confirmación y salir de ella vuelve a buscar hora", () => {
     const entry = { id: "wl_1", date: "2026-10-09", window: "afternoon" as const, branchId: "ma", serviceIds: ["svc_corte"], barberId: "team-04" };
     let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
-    // Sin apuntarse no hay nada que confirmar.
-    expect(bookingReducer(state, { type: "finishWaitlist" }).step).toBe("time");
     state = bookingReducer(state, { type: "waitlistJoined", entry });
     state = bookingReducer(state, { type: "waitlistJoined", entry });
-    expect(state.waitlist).toEqual([entry]);
-    state = bookingReducer(state, { type: "finishWaitlist" });
-    expect(state.step).toBe("waitlisted");
+    expect(state).toMatchObject({ waitlist: [entry], step: "waitlisted" });
     state = bookingReducer(state, { type: "waitlistLeft", id: "wl_1" });
     expect(state).toMatchObject({ waitlist: [], step: "time" });
   });

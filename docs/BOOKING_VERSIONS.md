@@ -23,9 +23,8 @@ por defecto.
 
 2026-10-09. Quien se apunta en la lista de espera y no aparta ninguna hora puede terminar ahí: lo
 apuntado vive en la reserva (`state.waitlist`, acciones `waitlistJoined` / `waitlistLeft`) y, sin
-citas, el pie del paso de hora (en monitor, el pie del resumen; en celular y tablet, la barra de abajo)
-cambia «Continuar» por **«Finalizar»** (`WaitlistFinish`). Lleva a su propia confirmación
-(`finishWaitlist` → paso `waitlisted`, `WaitlistedStep`): qué quedó en espera (sede, servicio,
+citas apartadas, apuntarse lleva **directo** a su propia confirmación (paso `waitlisted`,
+`WaitlistedStep`), sin botón «Finalizar» de por medio: qué quedó en espera (sede, servicio,
 barbero o «cualquiera», día y franja), que se avisa por WhatsApp y que no se cobra nada; desde ahí,
 «Salir de la lista» o «Ver otras horas». Si aparta una hora, el recorrido sigue normal y la entrada
 de la lista se queda.

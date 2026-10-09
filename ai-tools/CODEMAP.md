@@ -310,7 +310,6 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
-- **WaitlistFinish.tsx** — El cierre de quien solo se apuntó en la lista de espera: no hay cita que pagar, así que en vez de «Continuar»… · `WaitlistFinish` · piezas: Button, Text · usa: @/app/i18n, @/icons
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`, `sheetSide`, `HIDE_SCROLLBAR`
@@ -319,7 +318,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **usePaymentController.ts** — El cobro de la reserva, sin la pantalla alrededor: la propina, los descuentos, cómo se paga, la tarjeta y el… · `usePaymentController`, `PaymentController` · usa: @/app/i18n, @/lib/api
 - **useSavedCardManager.tsx** — Editar y quitar tarjetas desde el selector, igual en Pagar y en Regalar: las dos hojas, qué queda elegido des… · `useSavedCardManager`
 - **versionSwitch.ts** — De qué experiencia se llegó con la voz pedida, o `null`. · `SwitchToChatProvider`, `useSwitchToChat`, `requestVoiceOnArrival`, `peekVoiceOnArrival`, `clearVoiceOnArrival`
-- **waitlist.ts** — Apuntado en la lista de espera y sin hora apartada: terminar es quedarse en ella. · `canFinishOnWaitlist`, `WINDOW_KEYS` · usa: @/app/i18n
+- **waitlist.ts** — El nombre de cada franja de la lista de espera, para la tarjeta y su confirmación. · `WINDOW_KEYS` · usa: @/app/i18n
 
 ### booking/preview
 

@@ -255,8 +255,6 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.waitlist.leave": "Leave the list",
   "booking.waitlist.left": "You left the waitlist.",
   "booking.waitlist.error": "We couldn't add you. Please try again.",
-  "booking.waitlist.finish": "Finish",
-  "booking.waitlist.finishHint": "No time picked: you stay on the waitlist.",
   "booking.waitlisted.title": "You're on the waitlist, {name}",
   "booking.waitlisted.lead": "If a time opens, we'll message you on WhatsApp. It's yours if you take it first.",
   "booking.waitlisted.with": "With {name}",

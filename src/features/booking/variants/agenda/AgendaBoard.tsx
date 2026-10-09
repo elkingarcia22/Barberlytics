@@ -17,7 +17,6 @@ import { EarliestSlot } from "../../flow/EarliestSlot";
 import { PersonPicker } from "../../flow/PersonPicker";
 import { WaitlistCard } from "../../flow/WaitlistCard";
 import { useAvailabilityQuery, useEarliestQuery } from "../../queries";
-import type { WaitlistJoined } from "../../types";
 import { ableBarbers, timesByWindow } from "./agendaModel";
 import { TimeWindows } from "./AgendaLanes";
 import { AgendaSelectFields } from "./AgendaSelectFields";
@@ -42,7 +41,6 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
   const branch = shop.branches.find((item) => item.id === state.branchId);
   const first = React.useMemo(() => (branch ? firstBookableDay(branch.closesAt, shop.minNoticeMinutes) : startOfDay(new Date())), [branch, shop.minNoticeMinutes]);
   const [day, setDay] = React.useState<Date>(first);
-  const [waitlist, setWaitlist] = React.useState<Readonly<Record<string, WaitlistJoined>>>({});
   const draft = state.draft;
   const serviceIds = draft?.serviceIds ?? [];
   const dayKey = dayKeyOf(day);
@@ -86,7 +84,6 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
   const pickedStart = state.items[0]?.start ?? null;
   const selectedTime = pickedStart?.startsWith(dayKey) ? pickedStart.slice(11, 16) : null;
   const hasSlots = slots.length > 0;
-  const waitlistKey = `${dayKey}|any`;
   const nextSlot = earliest.data?.slot ?? null;
 
   const heading = (
@@ -179,11 +176,9 @@ export function AgendaBoard({ onNeedSignIn }: { onNeedSignIn: () => void }) {
           {!isWaiting &&
             (state.customer ? (
               <WaitlistCard
-                key={waitlistKey}
+                key={`${dayKey}|${draft?.barberId ?? "any"}`}
                 day={day}
                 hasSlots={hasSlots}
-                joined={waitlist[waitlistKey] ?? null}
-                onJoinedChange={(joined) => setWaitlist((current) => (joined ? { ...current, [waitlistKey]: joined } : Object.fromEntries(Object.entries(current).filter(([key]) => key !== waitlistKey))))}
               />
             ) : (
               <Button type="button" variant="link" size="sm" className="self-start px-0" onClick={onNeedSignIn}>

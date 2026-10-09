@@ -10,10 +10,13 @@ import { AsideSlotProvider } from "../../flow/asideSlot";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
+import { canFinishOnWaitlist } from "../../flow/waitlist";
+import { WaitlistFinish } from "../../flow/WaitlistFinish";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
 import { GiftStep } from "../../steps/GiftStep";
 import { ManageStep } from "../../steps/ManageStep";
 import { PackagesStep } from "../../steps/PackagesStep";
+import { WaitlistedStep } from "../../steps/WaitlistedStep";
 import { defaultServiceId } from "./agendaModel";
 import { AgendaBoard } from "./AgendaBoard";
 import { AgendaCartBar } from "./AgendaCart";
@@ -27,7 +30,7 @@ interface AgendaFlowProps {
 }
 
 /** Pantallas que no son la agenda: el final, «Mis citas» y lo que se compra aparte. */
-const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "manage", "gift", "packages"]);
+const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "waitlisted", "manage", "gift", "packages"]);
 
 /**
  * Agenda con selector: la reserva que parte del «¿cuándo?». Se abre ya con horas
@@ -46,6 +49,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const seededDraft = React.useRef<string | null>(null);
   const isWide = layout === "wide";
   const ownScreen = OWN_SCREENS.has(state.step);
+  const finishOnWaitlist = canFinishOnWaitlist(state);
 
   // La sede: la de siempre del cliente o la primera; se cambia junto al título.
   React.useEffect(() => {
@@ -106,6 +110,8 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const content =
     state.step === "confirmed" ? (
       <ConfirmedStep onFinish={onFinish} />
+    ) : state.step === "waitlisted" ? (
+      <WaitlistedStep onFinish={onFinish} />
     ) : state.step === "manage" ? (
       <ManageStep />
     ) : state.step === "gift" ? (
@@ -123,7 +129,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       {/* «Tu reserva» ocupa todo el alto: la cabecera llega hasta el panel. */}
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <AgendaHeader onBack={state.step === "confirmed" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} showChat={!ownScreen && view === "board"} />
+          <AgendaHeader onBack={state.step === "confirmed" || state.step === "waitlisted" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} showChat={!ownScreen && view === "board"} />
           <div ref={scrollRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain", !isWide && HIDE_SCROLLBAR)}>
             <div className="flex min-h-full w-full flex-col">
               {/* Columna flexible: el pie de cada paso queda pegado abajo aunque el contenido sea corto. */}
@@ -132,6 +138,12 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
                 <AsideSlotProvider value={isWide && !ownScreen && view === "checkout" ? actionSlot : null}>{content}</AsideSlotProvider>
               </div>
               {!isWide && !ownScreen && view === "board" && <AgendaCartBar onEdit={() => undefined} onContinue={toCheckout} />}
+              {/* Apuntado en la lista de espera sin hora: la barra de abajo ofrece terminar ahí. */}
+              {!isWide && !ownScreen && view === "board" && finishOnWaitlist && (
+                <div className="sticky bottom-0 z-sticky border-t border-border bg-surface px-5 py-3 shadow-[0_-8px_16px_-12px_hsl(var(--foreground)/0.25)]">
+                  <WaitlistFinish />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -144,10 +156,14 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
         {/* En la agenda (sin pie propio), el botón de seguir va al pie del resumen. */}
         {isWide && !ownScreen && view === "board" && actionSlot &&
           createPortal(
-            <Button type="button" size="lg" className="w-full" disabled={state.items.length === 0} onClick={toCheckout}>
-              {t("booking.agenda.cart.continue")}
-              <ThemaIcon name="arrowRight" />
-            </Button>,
+            finishOnWaitlist ? (
+              <WaitlistFinish />
+            ) : (
+              <Button type="button" size="lg" className="w-full" disabled={state.items.length === 0} onClick={toCheckout}>
+                {t("booking.agenda.cart.continue")}
+                <ThemaIcon name="arrowRight" />
+              </Button>
+            ),
             actionSlot
           )}
       </div>

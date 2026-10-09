@@ -241,7 +241,14 @@ export function phoneFromText(input: string): string | null {
 }
 
 /** Un código de seis cifras escrito en el chat. */
+const CODE_DIGITS = 6;
+
 export function codeFromText(input: string): string | null {
+  // En cualquier formato: «246810», «246 810», «24 68 10», «2-4-6-8-1-0».
+  const digits = input.replace(/\D/g, "");
+  if (digits.length === CODE_DIGITS) return digits;
   const match = /\b(\d{3})\s?(\d{3})\b/.exec(input);
   return match ? `${match[1]}${match[2]}` : null;
 }
+
+export { numberWordsToDigits } from "./spokenNumbers";

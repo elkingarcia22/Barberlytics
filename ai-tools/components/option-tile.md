@@ -17,6 +17,7 @@ import { OptionTile } from "@/components/selection"
 | `disabled` | `boolean` | `false` | Deshabilita el tile además de option.disabled. |
 | `onSelect` | `(value: string) => void` |  | Se llama con option.value al pulsar. |
 | `compact` | `boolean` | `false` | Reduce padding e icono y oculta la descripción. |
+| `layout` | `"row" \| "stacked"` | `"row"` | row: todo en una fila. stacked: icono arriba, nombre debajo y radio en la esquina, para 2 a 4 opciones lado a lado. |
 | `className` | `string` |  | Clases para el botón. |
 
 ## Guías
@@ -52,6 +53,18 @@ En modo compacto la descripción se oculta y el padding baja a 8px.
 <div className="grid grid-cols-2 gap-2">
   {options.map((option) => (
     <OptionTile key={option.value} option={option} compact selected={values.includes(option.value)} onSelect={toggle} />
+  ))}
+</div>
+```
+
+### Apilado, lado a lado
+
+Con layout="stacked" el icono va arriba, el nombre debajo (hasta dos líneas) y el radio en la esquina: pocas opciones caben en una fila, como las formas de pago de la reserva.
+
+```tsx
+<div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Cómo pagas">
+  {methods.map((option) => (
+    <OptionTile key={option.value} option={option} layout="stacked" compact selected={value === option.value} onSelect={setValue} />
   ))}
 </div>
 ```

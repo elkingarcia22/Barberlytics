@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Globe, Lock, Shield, Users } from "lucide-react";
+import { CreditCard, Globe, Lock, Shield, Smartphone, Store, Users } from "lucide-react";
 import { OptionTile, type SelectionOption } from "@/components/selection";
 import { defineEntry, definePlayground } from "../types";
 
@@ -26,6 +26,23 @@ function ListDemo() {
     <div className="w-full max-w-md space-y-2" role="radiogroup" aria-label="Visibilidad">
       {VISIBILITY.map((option) => (
         <OptionTile key={option.value} option={option} selected={value === option.value} onSelect={setValue} />
+      ))}
+    </div>
+  );
+}
+
+const METHODS: SelectionOption[] = [
+  { value: "card", label: "Tarjeta", icon: CreditCard },
+  { value: "wallet", label: "Apple Pay o Google Pay", icon: Smartphone },
+  { value: "shop", label: "Pagar en la barbería", icon: Store },
+];
+
+function StackedDemo() {
+  const [value, setValue] = React.useState<string>("card");
+  return (
+    <div className="grid w-full max-w-md grid-cols-3 gap-2" role="radiogroup" aria-label="Cómo pagas">
+      {METHODS.map((option) => (
+        <OptionTile key={option.value} option={option} layout="stacked" compact selected={value === option.value} onSelect={setValue} />
       ))}
     </div>
   );
@@ -101,6 +118,18 @@ export const optionTileEntry = defineEntry({
 </div>`,
       render: () => <CompactDemo />,
     },
+    {
+      id: "stacked",
+      title: "Apilado, lado a lado",
+      description: "Con layout=\"stacked\" el icono va arriba, el nombre debajo (hasta dos líneas) y el radio en la esquina: pocas opciones caben en una fila, como las formas de pago de la reserva.",
+      layout: "start",
+      code: `<div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Cómo pagas">
+  {methods.map((option) => (
+    <OptionTile key={option.value} option={option} layout="stacked" compact selected={value === option.value} onSelect={setValue} />
+  ))}
+</div>`,
+      render: () => <StackedDemo />,
+    },
   ],
   props: [
     { name: "option", type: "SelectionOption", description: "value, label, description, badge, icon y disabled. El eyebrow no se muestra." },
@@ -108,6 +137,7 @@ export const optionTileEntry = defineEntry({
     { name: "disabled", type: "boolean", default: "false", description: "Deshabilita el tile además de option.disabled." },
     { name: "onSelect", type: "(value: string) => void", description: "Se llama con option.value al pulsar." },
     { name: "compact", type: "boolean", default: "false", description: "Reduce padding e icono y oculta la descripción." },
+    { name: "layout", type: '"row" | "stacked"', default: '"row"', description: "row: todo en una fila. stacked: icono arriba, nombre debajo y radio en la esquina, para 2 a 4 opciones lado a lado." },
     { name: "className", type: "string", description: "Clases para el botón." },
   ],
   guidelines: {

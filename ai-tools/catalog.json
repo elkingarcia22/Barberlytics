@@ -1,5 +1,5 @@
 {
-  "sourceHash": "5f0cf85e267afd95",
+  "sourceHash": "69eb49575541092f",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -14508,6 +14508,12 @@
           "description": "Reduce padding e icono y oculta la descripción."
         },
         {
+          "name": "layout",
+          "type": "\"row\" | \"stacked\"",
+          "default": "\"row\"",
+          "description": "row: todo en una fila. stacked: icono arriba, nombre debajo y radio en la esquina, para 2 a 4 opciones lado a lado."
+        },
+        {
           "name": "className",
           "type": "string",
           "default": null,
@@ -14541,6 +14547,12 @@
           "title": "Compacto en grilla, selección múltiple",
           "description": "En modo compacto la descripción se oculta y el padding baja a 8px.",
           "code": "<div className=\"grid grid-cols-2 gap-2\">\n  {options.map((option) => (\n    <OptionTile key={option.value} option={option} compact selected={values.includes(option.value)} onSelect={toggle} />\n  ))}\n</div>"
+        },
+        {
+          "id": "stacked",
+          "title": "Apilado, lado a lado",
+          "description": "Con layout=\"stacked\" el icono va arriba, el nombre debajo (hasta dos líneas) y el radio en la esquina: pocas opciones caben en una fila, como las formas de pago de la reserva.",
+          "code": "<div className=\"grid grid-cols-3 gap-2\" role=\"radiogroup\" aria-label=\"Cómo pagas\">\n  {methods.map((option) => (\n    <OptionTile key={option.value} option={option} layout=\"stacked\" compact selected={value === option.value} onSelect={setValue} />\n  ))}\n</div>"
         }
       ],
       "docs": "/docs#/components/option-tile",

@@ -7,7 +7,7 @@ import { requestVoiceOnArrival } from "../flow/versionSwitch";
 import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
-import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
+import { codeFromText, numberWordsToDigits, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
 import { expiryProblem, maskCardInput, normalizeExpiry } from "./chat/chatCard";
 import { detectAside } from "./chat/chatIntents";
@@ -44,6 +44,36 @@ const BARBERS = [barber("team-04", "Andrés Molina", 4.9), barber("team-05", "Ca
 /** Las conversaciones de punta a punta (identidad, cita, pago, recibo) tardan más con toda la suite en paralelo. */
 const LONG_CONVERSATION_MS = 15_000;
 const parse = (text: string) => parseBookingText(text, { services: SERVICES, barbers: BARBERS, now: NOW });
+
+describe("números dichos en voz alta", () => {
+  test("un celular dicho con palabras, cifra por cifra o mezclado, queda en cifras", () => {
+    expect(numberWordsToDigits("trescientos ciento veintitrés cuarenta y cinco sesenta y siete", "es")).toBe("3001234567");
+    expect(numberWordsToDigits("tres cero cero uno dos tres cuatro cinco seis siete", "es")).toBe("3001234567");
+    expect(numberWordsToDigits("mi número es trescientos 123 45 67", "es")).toBe("mi número es 3001234567");
+    expect(numberWordsToDigits("300 123 45 67", "es")).toBe("3001234567");
+    expect(numberWordsToDigits("three zero zero one two three forty five sixty seven", "en")).toBe("3001234567");
+  });
+
+  test("un código de seis y una hora dichos con palabras", () => {
+    expect(numberWordsToDigits("veinticuatro sesenta y ocho diez", "es")).toBe("246810");
+    expect(numberWordsToDigits("corte a las tres de la tarde", "es")).toBe("corte a las 3 de la tarde");
+  });
+
+  test("las palabras que no son un número se quedan como están", () => {
+    expect(numberWordsToDigits("quiero un corte", "es")).toBe("quiero un corte");
+    expect(numberWordsToDigits("a los dos", "es")).toBe("a los dos");
+    expect(numberWordsToDigits("dos cortes para mañana", "es")).toBe("dos cortes para mañana");
+  });
+
+  test("el celular y el código se leen en cualquier formato", () => {
+    expect(phoneFromText("300-123-4567")).toBe("+573001234567");
+    expect(phoneFromText("(300) 123 45 67")).toBe("+573001234567");
+    expect(codeFromText("24 68 10")).toBe("246810");
+    expect(codeFromText("2-4-6-8-1-0")).toBe("246810");
+    expect(codeFromText("246810")).toBe("246810");
+    expect(codeFromText("es el 246 810")).toBe("246810");
+  });
+});
 
 describe("lo que entiende la conversación", () => {
   test("servicios por su nombre de a pie, con el combo cuando se piden juntos", () => {

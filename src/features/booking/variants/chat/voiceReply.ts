@@ -1,5 +1,6 @@
 import type { ChatReply } from "@/lib/chat";
 import type { ChatTurn } from "./chatKit";
+import { numberWordsToDigits } from "./spokenNumbers";
 
 /** Cuántas opciones se dicen en voz alta; con más, se dicen las primeras y se remite a la lista. */
 const SPOKEN_OPTIONS = 4;
@@ -50,8 +51,22 @@ function spokenTimeEs(prefix: string | undefined, hours: string, minutes: string
   return `${lead} ${hour}${Number(minutes) > 0 ? ` y ${Number(minutes)}` : ""} ${part}`;
 }
 
+/**
+ * Celulares y códigos como se dictan: un celular en grupos de tres, tres, dos y dos («300, 123, 45, 67»);
+ * uno oculto, por sus últimas cifras de a dos; un código de seis, de a dos. Las comas son las pausas.
+ */
+function spokenDigits(text: string, language: string): string {
+  const ending = language === "es" ? "al número terminado en" : "to the number ending in";
+  return text
+    .replace(language === "es" ? /\b(?:a|al)\s+[•*]{2,}\s?(\d{2})(\d{2})\b/g : /\bto\s+[•*]{2,}\s?(\d{2})(\d{2})\b/g, `${ending} $1, $2`)
+    .replace(/\b(\d{3})(\d{3})(\d{2})(\d{2})\b/g, "$1, $2, $3, $4")
+    .replace(/\b(\d{3})(\d{2})(\d{2})\b/g, "$1, $2, $3")
+    .replace(/\b(\d{2})(\d{2})(\d{2})\b/g, "$1, $2, $3");
+}
+
 /** Las abreviaturas de fechas, horas y precios del chat, dichas completas (la voz las lee letra por letra). */
-function spokenNumbers(text: string, language: string): string {
+function spokenNumbers(raw: string, language: string): string {
+  const text = spokenDigits(raw, language);
   if (language === "es")
     return text
       .replace(/(?:\b(a las|a la)\s+)?\b(\d{1,2}):(\d{2})\s*([ap])\.?\s?m\.?/gi, (_, prefix: string | undefined, h: string, m: string, ap: string) => spokenTimeEs(prefix, h, m, ap))
@@ -99,11 +114,13 @@ const SPOKEN_ORDINALS: Record<string, { pattern: RegExp; words: readonly RegExp[
 };
 
 /**
- * Lo dicho como lo entiende el chat escrito: un ordinal («la primera») se vuelve el número de la
- * opción, y un correo dictado («carlos arroba correo punto com») se
+ * Lo dicho como lo entiende el chat escrito: los números dichos con palabras se vuelven cifras, un
+ * ordinal («la primera») el número de la opción, y un correo dictado («carlos arroba correo punto com») se
  * vuelve una dirección. Lo demás pasa tal cual.
  */
-export function fromVoice(text: string, locale: string): string {
+export function fromVoice(said: string, locale: string): string {
+  // Celulares, códigos y horas dichos con palabras o en grupos («trescientos ciento veintitrés…»), a cifras.
+  const text = numberWordsToDigits(said, locale.slice(0, 2) === "en" ? "en" : "es");
   const ordinals = SPOKEN_ORDINALS[locale.slice(0, 2)];
   const word = ordinals?.pattern.exec(text.trim())?.[1];
   const place = word ? ordinals.words.findIndex((ordinal) => ordinal.test(word)) : -1;

@@ -68,7 +68,8 @@ export function useVoiceBridge(
       waiter.current = null;
       window.clearTimeout(current.settle);
       window.clearTimeout(current.deadline);
-      const hellos = greeted.current ? [t("booking.chat.hello", { shop: latest.current.shopName }), t("booking.chat.helloWithIntent", { shop: latest.current.shopName })] : [];
+      const shop = latest.current.shopName;
+      const hellos = greeted.current ? [t("booking.chat.hello", { shop }), t("booking.chat.helloWithIntent", { shop }), t("booking.chat.helloLast", { shop })] : [];
       const fresh = latest.current.engine.turns.slice(current.from).filter((turn) => !hellos.includes(turn.text ?? ""));
       const reply = voiceReplyFromTurns(fresh, locale, { oneOf: (list) => t("booking.chat.voiceOneOf", { list }), someOf: (list) => t("booking.chat.voiceSomeOf", { list }) });
       // Solo valen las opciones que acaba de leer: si pidió un dato (el celular, el correo), no hay lista.

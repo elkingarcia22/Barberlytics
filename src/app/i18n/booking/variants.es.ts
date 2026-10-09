@@ -143,6 +143,8 @@ export const bookingVariantsEs = {
   "booking.chat.ideaManageHint": "Cambiar o cancelar",
   "booking.chat.ideaManagePrompt": "Quiero ver mis citas",
   "booking.chat.hello": "¡Hola! Soy **Clipper**, el asistente de **{shop}**. Te ayudo a reservar tu cita en un minuto.",
+  "booking.chat.helloLast": "¡Hola! Soy **Clipper**, el asistente de **{shop}**. Armemos tu cita; tus datos te los pido al final.",
+  "booking.chat.phoneToFinish": "Ya casi: para apartarla necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**. Por ejemplo: 3001234567.",
   "booking.chat.askPhone": "Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.",
   "booking.chat.badPhone": "Mmm, ese número no se ve bien. Escríbelo con los **10 números**, sin espacios ni signos. Por ejemplo: 3001234567.",
   "booking.chat.needPhone": "Antes de seguir necesito tu **celular**. Escríbelo aquí abajo, **solo los números**.",

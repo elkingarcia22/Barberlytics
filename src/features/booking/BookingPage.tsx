@@ -135,7 +135,7 @@ export function BookingPage() {
               <DemoSite version={version} />
             </DeviceFrame>
           ) : (
-            <DeviceFrame key={mode} device={mode} address={publicUrl.replace(/^https?:\/\//, "")}>
+            <DeviceFrame device={mode} address={publicUrl.replace(/^https?:\/\//, "")}>
               <BookingFlow key={version} version={version} onVersionChange={(next) => setParam("version", next)} isPhone={mode === "phone"} layout={mode === "monitor" ? "wide" : "compact"} touch={mode === "tablet" ? "lg" : "default"} />
             </DeviceFrame>
           )}

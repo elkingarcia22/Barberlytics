@@ -30,7 +30,7 @@ interface WaitlistCardProps {
  * libres le sirva—. Se apunta con la franja que le sirve. La entrada cae en la misma lista
  * de espera que ve la barbería en el Calendario, que le escribe si alguien cancela.
  * Lo apuntado vive en la reserva (`state.waitlist`): sobrevive a cambiar de día y
- * volver, y sin hora apartada permite terminar ahí (`finishWaitlist`).
+ * volver, y sin hora apartada apuntarse lleva directo a su confirmación (`WaitlistedStep`).
  */
 export function WaitlistCard({ day, hasSlots = false }: WaitlistCardProps) {
   const t = useAppT();

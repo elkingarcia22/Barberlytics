@@ -271,8 +271,6 @@ export const bookingEs = {
   "booking.waitlist.leave": "Salir de la lista",
   "booking.waitlist.left": "Saliste de la lista de espera.",
   "booking.waitlist.error": "No pudimos apuntarte. Inténtalo otra vez.",
-  "booking.waitlist.finish": "Finalizar",
-  "booking.waitlist.finishHint": "Sin hora apartada: quedas en la lista de espera.",
   "booking.waitlisted.title": "Quedaste en la lista de espera, {name}",
   "booking.waitlisted.lead": "Si se libera una hora, te escribimos por WhatsApp. Es tuya si la tomas primero.",
   "booking.waitlisted.with": "Con {name}",

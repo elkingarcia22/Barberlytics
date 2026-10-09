@@ -73,7 +73,7 @@ export interface BookingState {
   reservation: Reservation | null;
   /** La tarjeta con la que se va a pagar («Visa •••• 4242»), para mostrarla en el resumen. */
   payCard: string | null;
-  /** Dónde se apuntó en la lista de espera durante esta reserva. Sin hora apartada, terminar es quedarse en ella. */
+  /** Dónde se apuntó en la lista de espera durante esta reserva. Sin hora apartada, apuntarse lleva a su confirmación. */
   waitlist: readonly WaitlistEntry[];
 }
 
@@ -129,8 +129,6 @@ export type BookingAction =
   | { type: "signOut" }
   | { type: "waitlistJoined"; entry: WaitlistEntry }
   | { type: "waitlistLeft"; id: string }
-  /** Termina sin cita: se queda en la lista de espera y ve su confirmación. */
-  | { type: "finishWaitlist" }
   | { type: "restart" };
 
 let keySeed = 0;
@@ -273,14 +271,13 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "signOut":
       return { ...state, phone: "", codeSentTo: null, token: null, customer: null, method: null, useReward: true, usePackages: true };
     case "waitlistJoined":
-      return { ...state, waitlist: [...state.waitlist.filter((entry) => entry.id !== action.entry.id), action.entry] };
+      // Sin hora apartada, apuntarse es el final: va directo a su confirmación (desde allí se sale de la lista).
+      return { ...state, waitlist: [...state.waitlist.filter((entry) => entry.id !== action.entry.id), action.entry], step: state.items.length === 0 ? "waitlisted" : state.step };
     case "waitlistLeft": {
       const waitlist = state.waitlist.filter((entry) => entry.id !== action.id);
       // Sin ninguna entrada no hay nada que confirmar: vuelve a buscar hora.
       return { ...state, waitlist, step: state.step === "waitlisted" && waitlist.length === 0 ? "time" : state.step };
     }
-    case "finishWaitlist":
-      return state.waitlist.length > 0 ? { ...state, step: "waitlisted" } : state;
     case "restart":
       return initialBookingState(state.tipId);
   }

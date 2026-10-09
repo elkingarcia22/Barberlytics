@@ -335,6 +335,7 @@ export const bookingEs = {
   "booking.payment.tip": "Propina para tu barbero",
   "booking.payment.tipNone": "Sin propina",
   "booking.payment.tipHint": "La propina va íntegra al barbero.",
+  "booking.payment.promoAsk": "¿Tienes un cupón?",
   "booking.payment.promo": "Cupón",
   "booking.payment.promoPlaceholder": "Escribe tu cupón",
   "booking.payment.promoApply": "Aplicar",

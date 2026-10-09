@@ -13,6 +13,7 @@ import { AgendaCartAside, AgendaCartBar, AgendaCartLines } from "./AgendaCart";
 import { AgendaCheckout } from "./AgendaCheckout";
 import { AgendaHeader } from "./AgendaHeader";
 import { AgendaIdentity } from "./AgendaIdentity";
+import { AgendaSelectCheckout } from "./AgendaSelectCheckout";
 
 interface AgendaFlowProps {
   headerTrailing?: React.ReactNode;
@@ -67,6 +68,13 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
     }
   }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch, servicePicker]);
 
+  // En la Agenda con selector se reserva una cita: la hora que se toca después reemplaza a la anterior.
+  const isSelect = servicePicker === "modal";
+  React.useEffect(() => {
+    if (!isSelect || state.items.length < 2) return;
+    for (let extra = state.items.length - 1; extra > 0; extra -= 1) dispatch({ type: "removeItem", index: 0 });
+  }, [isSelect, state.items.length, dispatch]);
+
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
   if (signInOpen && state.customer) setSignInOpen(false);
 
@@ -101,6 +109,8 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
       <GiftStep />
     ) : state.step === "packages" ? (
       <PackagesStep />
+    ) : view === "checkout" && isSelect ? (
+      <AgendaSelectCheckout />
     ) : view === "checkout" ? (
       <AgendaCheckout onBack={toBoard} showAppointments={isWide ? null : <AgendaCartLines onEdit={toBoard} />} />
     ) : (

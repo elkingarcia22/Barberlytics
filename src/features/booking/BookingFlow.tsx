@@ -28,6 +28,7 @@ import { ProfileStep } from "./steps/ProfileStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { ServicesStep } from "./steps/ServicesStep";
 import { TimeStep } from "./steps/TimeStep";
+import { WaitlistedStep } from "./steps/WaitlistedStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
 import type { BookingShop } from "./types";
 import { useBookingEngine } from "./useBookingEngine";
@@ -121,6 +122,8 @@ function StepSwitch({ state, onFinish }: { state: BookingState; onFinish?: () =>
       return <PaymentStep />;
     case "confirmed":
       return <ConfirmedStep onFinish={onFinish} />;
+    case "waitlisted":
+      return <WaitlistedStep onFinish={onFinish} />;
     case "manage":
       return <ManageStep />;
   }

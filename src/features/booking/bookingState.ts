@@ -1,6 +1,6 @@
 import { MAX_REFERENCE_PHOTOS } from "./flow/referencePhoto";
 import type { Promo } from "./pricing";
-import type { BookingCustomer, LastVisit, PayMethod, Reservation } from "./types";
+import type { BookingCustomer, LastVisit, PayMethod, Reservation, WaitlistJoined } from "./types";
 
 /**
  * El recorrido de la reserva como datos: en qué paso está, quién reserva, la
@@ -13,7 +13,7 @@ import type { BookingCustomer, LastVisit, PayMethod, Reservation } from "./types
  * preferencia) y una hora.
  */
 
-export type BookingStep = "phone" | "verify" | "gift" | "packages" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "manage";
+export type BookingStep = "phone" | "verify" | "gift" | "packages" | "profile" | "welcome" | "blocked" | "branch" | "services" | "barber" | "time" | "review" | "payment" | "confirmed" | "waitlisted" | "manage";
 
 export type BookingPerson = { kind: "self" } | { kind: "guest"; guestId: string; name: string; relation: string } | { kind: "new"; name: string; relation: string };
 
@@ -25,6 +25,14 @@ export interface DraftItem {
   barberId: string | null;
   /** «AAAA-MM-DDTHH:mm», o nada mientras no se elige. */
   start: string | null;
+}
+
+/** Una entrada de la lista de espera: lo que devolvió el servidor y lo que se pidió. */
+export interface WaitlistEntry extends WaitlistJoined {
+  branchId: string;
+  serviceIds: readonly string[];
+  /** `null` = con cualquier barbero. */
+  barberId: string | null;
 }
 
 export interface BookingState {
@@ -65,6 +73,8 @@ export interface BookingState {
   reservation: Reservation | null;
   /** La tarjeta con la que se va a pagar («Visa •••• 4242»), para mostrarla en el resumen. */
   payCard: string | null;
+  /** Dónde se apuntó en la lista de espera durante esta reserva. Sin hora apartada, terminar es quedarse en ella. */
+  waitlist: readonly WaitlistEntry[];
 }
 
 export type BookingAction =
@@ -117,6 +127,10 @@ export type BookingAction =
   | { type: "customerUpdated"; customer: BookingCustomer }
   /** «No soy yo» cuando el carrito ya está armado (la agenda pide los datos al final): olvida quién es y conserva las citas. */
   | { type: "signOut" }
+  | { type: "waitlistJoined"; entry: WaitlistEntry }
+  | { type: "waitlistLeft"; id: string }
+  /** Termina sin cita: se queda en la lista de espera y ve su confirmación. */
+  | { type: "finishWaitlist" }
   | { type: "restart" };
 
 let keySeed = 0;
@@ -128,7 +142,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null, payCard: null };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null, payCard: null, waitlist: [] };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -258,6 +272,15 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, customer: action.customer };
     case "signOut":
       return { ...state, phone: "", codeSentTo: null, token: null, customer: null, method: null, useReward: true, usePackages: true };
+    case "waitlistJoined":
+      return { ...state, waitlist: [...state.waitlist.filter((entry) => entry.id !== action.entry.id), action.entry] };
+    case "waitlistLeft": {
+      const waitlist = state.waitlist.filter((entry) => entry.id !== action.id);
+      // Sin ninguna entrada no hay nada que confirmar: vuelve a buscar hora.
+      return { ...state, waitlist, step: state.step === "waitlisted" && waitlist.length === 0 ? "time" : state.step };
+    }
+    case "finishWaitlist":
+      return state.waitlist.length > 0 ? { ...state, step: "waitlisted" } : state;
     case "restart":
       return initialBookingState(state.tipId);
   }

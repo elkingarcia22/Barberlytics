@@ -140,12 +140,14 @@ export function PaymentPanel({ payment, showOrder = true, compact = false }: Pay
       )}
       <section className={coveredByGift ? "hidden" : "flex flex-col gap-3"}>
         <SubHeading compact={compact}>{t("booking.payment.method")}</SubHeading>
-        <div role="radiogroup" aria-label={t("booking.payment.method")} className="flex flex-col gap-2">
+        {/* Compacto (Agenda con selector): las formas de pago como tarjetas, una al lado de la otra. */}
+        <div role="radiogroup" aria-label={t("booking.payment.method")} className={compact ? cn("grid gap-2", methods.length === 3 ? "grid-cols-3" : "grid-cols-2") : "flex flex-col gap-2"}>
           {methods.map((option) => (
             <OptionTile
               key={option.value}
               option={option}
               compact={compact}
+              layout={compact ? "stacked" : "row"}
               selected={method === option.value}
               onSelect={(value) => {
                 dispatch({ type: "setMethod", method: value as PayMethod });

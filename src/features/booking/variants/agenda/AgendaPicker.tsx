@@ -209,6 +209,10 @@ interface PickerRowProps {
 /** Una fila de la lista: foto, texto y la marca (casilla si se pueden varios, círculo si uno). */
 export function PickerRow({ role, checked, label, imageUrl, icon, round = false, onClick, action, children }: PickerRowProps) {
   const { touch } = useBookingFlow();
+  const isLarge = touch === "lg";
+  // El fondo (pasar el puntero, lo elegido) es de la tarjeta entera: con «Ver detalle» debajo, lo cubre también.
+  // `foreground/5` aclara en oscuro y oscurece en claro: `bg-muted` sobre el popover se veía como un hueco negro.
+  const surface = cn("rounded-xl transition-colors duration-fast hover:bg-foreground/5", checked && "bg-primary/10 hover:bg-primary/15");
   const row = (
     <button
       type="button"
@@ -217,13 +221,14 @@ export function PickerRow({ role, checked, label, imageUrl, icon, round = false,
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "group/row flex w-full min-w-0 items-center gap-3 rounded-xl px-2 text-left outline-none transition-colors duration-fast",
-        "hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 active:bg-muted/80",
-        checked && "bg-primary/5 hover:bg-primary/10",
-        touch === "lg" ? "min-h-16 py-2.5" : "min-h-14 py-2"
+        "group/row flex w-full min-w-0 items-center gap-3 rounded-xl px-2 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        !action && surface,
+        !action && "active:bg-foreground/10",
+        isLarge ? "min-h-16 py-2.5" : "min-h-14 py-2",
+        action && "pb-1"
       )}
     >
-      <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
+      <IconTile size={isLarge ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</span>
       <span
         aria-hidden
@@ -239,12 +244,15 @@ export function PickerRow({ role, checked, label, imageUrl, icon, round = false,
   );
   if (!action) return row;
   return (
-    <div className="flex items-center gap-1">
-      <div className="min-w-0 flex-1">{row}</div>
-      <Button type="button" variant="ghost" size="sm" onClick={action.onClick} aria-label={action.ariaLabel} className="shrink-0 px-2 text-primary hover:text-primary">
-        {action.label}
-        <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
-      </Button>
+    <div className={surface}>
+      {row}
+      {/* Alineado con el texto de la fila (relleno + foto + hueco), debajo de él y no al lado: la fila conserva su ancho. */}
+      <div className={cn("pb-2", isLarge ? "pl-[4.25rem]" : "pl-14")}>
+        <Button type="button" variant="link" size="sm" onClick={action.onClick} aria-label={action.ariaLabel} className="h-auto gap-1 px-0 py-1 text-xs font-medium">
+          {action.label}
+          <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
+        </Button>
+      </div>
     </div>
   );
 }

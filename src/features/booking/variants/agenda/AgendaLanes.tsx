@@ -46,19 +46,20 @@ interface TimeWindowsProps {
   /** La hora ya elegida (una sola cita): se queda a la vista, marcada, en vez de desaparecer. */
   selectedTime?: string | null;
   onPick: (time: string) => void;
+  className?: string;
 }
 
 /**
  * Las horas del día sin pensar en quién: por franja, cada hora con las caras de
  * quienes pueden; en el celular, sin barbero elegido, el icono de «Sin preferencia». Tocar una es reservar «con quien esté libre».
  */
-export function TimeWindows({ groups, timeLabel, withName, selectedTime = null, onPick }: TimeWindowsProps) {
+export function TimeWindows({ groups, timeLabel, withName, selectedTime = null, onPick, className }: TimeWindowsProps) {
   const t = useAppT();
   const { catalog, isPhone } = useBookingFlow();
   const faces = (ids: readonly string[]) => ids.map((id) => catalog?.barbers.find((barber) => barber.id === id)).filter((barber): barber is BookingBarber => barber !== undefined);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn("flex flex-col gap-5", className)}>
       {groups.map((group) => (
         <section key={group.window} aria-label={t(WINDOW_LABEL[group.window])} className="flex flex-col gap-2.5">
           <Text size="xs" weight="semibold" tone="muted" className="uppercase tracking-wide">

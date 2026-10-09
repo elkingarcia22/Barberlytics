@@ -313,6 +313,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`, `sheetSide`, `HIDE_SCROLLBAR`
+- **missingData.ts** — Lo que falta para seguir, dicho en un toast, además del error en su campo. · `toastMissing`, `cardMissing` · usa: @/app/i18n
 - **referencePhoto.ts** — La foto de referencia del corte, preparada en el celular antes de subirla: se reduce a 1024 px por el lado la… · `MAX_PHOTO_SIDE`, `MAX_REFERENCE_PHOTOS`, `MAX_PHOTO_CHARS`, `PHOTO_PATTERN`, `fitWithin`, `prepareReferencePhoto`
 - **stepWidth.ts** — El ancho de lectura de un paso: la columna del contenido, no la de la barra del pie, que va de lado a lado. · `STEP_WIDTH`
 - **usePaymentController.ts** — El cobro de la reserva, sin la pantalla alrededor: la propina, los descuentos, cómo se paga, la tarjeta y el… · `usePaymentController`, `PaymentController` · usa: @/app/i18n, @/lib/api

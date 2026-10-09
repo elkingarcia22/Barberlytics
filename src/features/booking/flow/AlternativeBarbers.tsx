@@ -29,6 +29,8 @@ export function AlternativeBarbers({ day, onDayChange }: { day: Date; onDayChang
   const [profile, setProfile] = React.useState<{ barber: BookingBarber; date: string } | null>(null);
 
   const pick = (barberId: string, date: string, time: string) => {
+    // La hora puede ser de otro día («Libre el lun 12»): la agenda va a ese día, donde ese barbero sí tiene horas.
+    if (date !== dayKeyOf(day)) onDayChange(parseStart(`${date}T00:00`));
     dispatch({ type: "chooseBarber", barberId });
     dispatch({ type: "chooseTime", start: `${date}T${time}` });
   };

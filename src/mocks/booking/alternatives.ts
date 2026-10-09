@@ -54,10 +54,11 @@ export interface Alternative {
 }
 
 /**
- * Otros barberos para lo mismo: hacen todos los servicios pedidos, se ordenan
- * por cuánto se parecen (habilidades que cubren lo pedido, las que comparten
- * con el elegido y su nivel) y traen sus horas de ese día o del próximo libre.
- * Los que tienen hora el mismo día van primero: es lo que el cliente quería.
+ * Otros barberos para lo mismo: hacen todos los servicios pedidos, saben de lo
+ * mismo (al menos una habilidad que cubre lo pedido o que comparten con el
+ * elegido) y tienen horas —ese día o en los próximos—; sin eso no se
+ * recomiendan. Se ordenan por cuánto se parecen (habilidades y nivel) y los que
+ * tienen hora el mismo día van primero: es lo que el cliente quería.
  */
 export function alternatives(branchId: string, day: string, serviceIds: readonly string[], barberId: string | null): Alternative[] {
   const wanted = skillsFor(serviceIds);
@@ -80,7 +81,7 @@ export function alternatives(branchId: string, day: string, serviceIds: readonly
       }
       return { barberId: barber.id, skills: [...new Set([...covers, ...shared])], score, found };
     })
-    .filter((item): item is typeof item & { found: { date: string; times: string[] } } => item.found !== null)
+    .filter((item): item is typeof item & { found: { date: string; times: string[] } } => item.found !== null && item.skills.length > 0)
     .sort((a, b) => Number(b.found.date === day) - Number(a.found.date === day) || b.score - a.score || a.found.date.localeCompare(b.found.date));
   return ranked.slice(0, MAX_ALTERNATIVES).map((item) => ({ barberId: item.barberId, skills: item.skills, date: item.found.date, times: item.found.times }));
 }

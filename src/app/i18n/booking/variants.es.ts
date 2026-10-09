@@ -19,6 +19,7 @@ export const bookingVariantsEs = {
   "booking.agenda.whatSummary": "{minutes} min · desde {price}",
   "booking.agenda.usual": "Lo de siempre",
   "booking.agenda.whatPlaceholder": "Elige uno o varios servicios",
+  "booking.agenda.whoPlaceholder": "Elige con quién",
   "booking.agenda.whatMore": "{names} y {count} más",
   "booking.agenda.whatTitle": "¿Qué te vas a hacer?",
   "booking.agenda.whatLead": "Puedes elegir varios: se hacen en la misma cita.",

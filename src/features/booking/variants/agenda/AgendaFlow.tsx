@@ -31,10 +31,10 @@ interface AgendaFlowProps {
 const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "waitlisted", "manage", "gift", "packages"]);
 
 /**
- * Agenda con selector: la reserva que parte del «¿cuándo?». Se abre ya con horas
- * a la vista —para el servicio más pedido— sin pedir nada; sede, servicios y
- * barbero se cambian en campos que abren su lista, se aparta una hora con un
- * toque y solo al confirmar se pregunta quién es y cómo paga.
+ * Agenda con selector: la reserva que parte del «¿cuándo?». Sede, servicios y
+ * barbero se eligen en campos que abren su lista (sin cuenta abren vacíos: nada
+ * elegido por la persona); luego se aparta una hora con un toque y solo al
+ * confirmar se pregunta quién es y cómo paga.
  */
 export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const t = useAppT();
@@ -54,23 +54,25 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     dispatch({ type: "chooseBranch", branchId: defaultBranchId(state.customer, shop.branches.map((item) => item.id)) ?? shop.branches[0].id });
   }, [state.branchId, state.customer, shop.branches, dispatch]);
 
-  // Siempre hay una cita en borrador: la agenda abre con el servicio más pedido para enseñar horas desde
-  // el primer momento; tras apartar una hora, la siguiente sigue con lo mismo.
+  // Siempre hay una cita en borrador. Sin cuenta abre vacía: servicio y barbero los elige la persona.
+  // Con cuenta abre con el servicio más pedido para enseñar horas desde el primer momento. Tras apartar
+  // una hora, la siguiente sigue con lo mismo.
+  const isSignedIn = Boolean(state.customer);
   React.useEffect(() => {
     if (!catalog || !state.branchId || ownScreen) return;
     if (!state.draft) {
       const last = state.items.at(-1);
-      const fallback = defaultServiceId(catalog.services);
+      const fallback = isSignedIn ? defaultServiceId(catalog.services) : null;
       // El barbero es una elección propia: la siguiente cita sigue con el mismo.
-      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: last?.barberId ?? null });
+      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: last?.barberId ?? null, barberChosen: last?.barberChosen });
       return;
     }
-    if (state.draft.serviceIds.length === 0 && state.items.length === 0 && seededDraft.current !== state.draft.key) {
+    if (isSignedIn && state.draft.serviceIds.length === 0 && state.items.length === 0 && seededDraft.current !== state.draft.key) {
       seededDraft.current = state.draft.key;
       const fallback = defaultServiceId(catalog.services);
       if (fallback) dispatch({ type: "toggleService", serviceId: fallback });
     }
-  }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch]);
+  }, [catalog, state.branchId, state.draft, state.items, ownScreen, isSignedIn, dispatch]);
 
   // Se reserva una cita: la hora que se toca después reemplaza a la anterior.
   const [actionSlot, setActionSlot] = React.useState<HTMLElement | null>(null);

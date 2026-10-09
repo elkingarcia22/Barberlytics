@@ -15,6 +15,15 @@ import { detectAside } from "./chat/chatIntents";
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
 
+/** En la Agenda con selector sin cuenta no viene nada elegido: se abre «Servicios», se marca uno y se aplica. */
+async function chooseAgendaService(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await user.click(await screen.findByTestId("agenda-service-field"));
+  const dialog = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });
+  await user.click(await within(dialog).findByRole("checkbox", { name }));
+  await user.click(within(dialog).getByRole("button", { name: "Ver horas" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+}
+
 const service = (id: string, name: string, extra: Partial<BookingService> = {}): BookingService => ({ id, name, description: "", category: "", durationMin: 30, price: 30, imageUrl: null, isCombo: false, popular: false, ...extra });
 const SERVICES: BookingService[] = [
   service("svc_corte", "Corte clásico", { popular: true }),
@@ -346,13 +355,22 @@ describe("las otras dos experiencias", () => {
     vi.unstubAllGlobals();
   });
 
+  test("agenda con selector: sin cuenta, servicio y barbero abren sin nada elegido", async () => {
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    expect(await screen.findByText("Elige al menos un servicio para ver las horas libres.")).toBeInTheDocument();
+    expect(await screen.findByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
+    expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Elige con quién");
+    expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
+  });
+
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
     const field = await screen.findByTestId("agenda-service-field");
-    await waitFor(() => expect(field).toHaveTextContent(/min · desde/));
     await user.click(field);
     const dialog = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });
+    // Sin cuenta no viene ninguno marcado.
+    expect(within(dialog).getAllByRole("checkbox").every((box) => box.getAttribute("aria-checked") === "false")).toBe(true);
     await user.click(within(dialog).getByRole("checkbox", { name: /^Arreglo de barba/ }));
     expect(within(dialog).getByRole("checkbox", { name: /^Arreglo de barba/ })).toHaveAttribute("aria-checked", "true");
     // Hasta aplicar, el tablero sigue con lo de antes.
@@ -367,6 +385,7 @@ describe("las otras dos experiencias", () => {
     renderWithProviders(<BookingFlow version="agenda-select" />);
     expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
     expect(screen.queryByText("¿Para quién es la cita?")).toBeNull();
+    await chooseAgendaService(user, /^Corte clásico/);
     // De noche hoy ya no quedan horas: se salta al siguiente día con horas.
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
     const jump = screen.queryByRole("button", { name: /^Ir al / });
@@ -455,12 +474,13 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
-    // Con el catálogo ya cargado (el servicio más pedido puesto) se sabe quién puede.
-    await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toHaveTextContent(/min · desde/));
+    // Con un servicio elegido se sabe quién puede; el barbero sigue sin elegir.
+    await chooseAgendaService(user, /^Corte clásico/);
     const field = await screen.findByTestId("agenda-barber-field");
-    expect(field).toHaveTextContent("Sin preferencia");
+    expect(field).toHaveTextContent("Elige con quién");
     await user.click(field);
     const dialog = await screen.findByRole("dialog", { name: "¿Con quién te quieres atender?" });
+    expect(within(dialog).getByRole("radio", { name: "Sin preferencia" })).toHaveAttribute("aria-checked", "false");
     const profile = within(dialog).getAllByRole("button", { name: /^Ver perfil: / })[0];
     const name = (profile.getAttribute("aria-label") ?? "").replace("Ver perfil: ", "");
     const first = name.split(" ")[0];

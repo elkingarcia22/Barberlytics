@@ -32,6 +32,8 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow }: Age
   const listRef = React.useRef<HTMLDivElement>(null);
   const serviceIds = state.draft?.serviceIds ?? [];
   const chosen = barbers.find((barber) => barber.id === state.draft?.barberId) ?? null;
+  // Sin cuenta y sin haber elegido, el campo va vacío: «Sin preferencia» también es una elección.
+  const isUnset = !state.customer && !chosen && !state.draft?.barberChosen;
   const shown = viewing ? (barbers.find((barber) => barber.id === viewing) ?? null) : null;
   const firstName = (barber: BookingBarber) => barber.name.split(" ")[0] ?? barber.name;
 
@@ -40,7 +42,8 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow }: Age
     if (!next) setViewing(null);
   };
   const choose = (barberId: string | null) => {
-    if (barberId !== (state.draft?.barberId ?? null)) dispatch({ type: "chooseBarber", barberId });
+    // «Sin preferencia» también cuenta cuando el campo estaba vacío: deja de estarlo.
+    if (barberId !== (state.draft?.barberId ?? null) || !state.draft?.barberChosen) dispatch({ type: "chooseBarber", barberId });
     openChange(false);
   };
 
@@ -53,9 +56,9 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow }: Age
         imageUrl={chosen?.avatarUrl}
         icon="users"
         round={Boolean(chosen)}
-        value={chosen ? chosen.name : t("booking.barber.any")}
+        value={isUnset ? undefined : chosen ? chosen.name : t("booking.barber.any")}
         detail={chosen ? [chosen.level, `★ ${chosen.rating.toFixed(1)}`].filter(Boolean).join(" · ") : t("booking.barber.anyLead")}
-        placeholder={t("booking.barber.any")}
+        placeholder={t("booking.agenda.whoPlaceholder")}
         open={open}
         onOpen={() => setOpen(true)}
         testId="agenda-barber-field"
@@ -83,7 +86,7 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow }: Age
           </div>
         ) : (
           <div ref={listRef} role="radiogroup" aria-label={t("booking.agenda.whoLabel")} className="flex flex-col gap-0.5 p-2">
-            <PickerRow role="radio" checked={!chosen} label={t("booking.barber.any")} icon="users" round onClick={() => choose(null)}>
+            <PickerRow role="radio" checked={!chosen && !isUnset} label={t("booking.barber.any")} icon="users" round onClick={() => choose(null)}>
               <Text as="span" weight="medium" className="truncate">
                 {t("booking.barber.any")}
               </Text>

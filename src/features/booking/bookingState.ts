@@ -23,6 +23,8 @@ export interface DraftItem {
   serviceIds: string[];
   /** `null` = sin preferencia. */
   barberId: string | null;
+  /** Ya se eligió con quién, aunque sea «Sin preferencia»: hasta entonces la agenda deja el campo vacío. */
+  barberChosen?: boolean;
   /** «AAAA-MM-DDTHH:mm», o nada mientras no se elige. */
   start: string | null;
 }
@@ -100,7 +102,7 @@ export type BookingAction =
    * Abre una cita en borrador sin moverse de paso: la usan las versiones que no
    * van pantalla por pantalla (la agenda, la conversación).
    */
-  | { type: "openDraft"; person: BookingPerson; serviceIds: readonly string[]; barberId: string | null }
+  | { type: "openDraft"; person: BookingPerson; serviceIds: readonly string[]; barberId: string | null; barberChosen?: boolean }
   | { type: "editItem"; index: number }
   | { type: "removeItem"; index: number }
   | { type: "restoreItem"; index: number; item: DraftItem }
@@ -204,13 +206,13 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, draft: { ...state.draft, serviceIds, start: null } };
     }
     case "chooseBarber":
-      return state.draft ? { ...state, draft: { ...state.draft, barberId: action.barberId, start: null }, step: "time" } : state;
+      return state.draft ? { ...state, draft: { ...state.draft, barberId: action.barberId, barberChosen: true, start: null }, step: "time" } : state;
     case "chooseTime":
       return state.draft ? commitDraft(state, { ...state.draft, start: action.start }) : state;
     case "addAnother":
       return { ...state, draft: emptyDraft(action.person), editingIndex: null, fromReview: state.items.length > 0, step: "services" };
     case "openDraft":
-      return { ...state, draft: { ...emptyDraft(action.person), serviceIds: [...action.serviceIds], barberId: action.barberId }, editingIndex: null, fromReview: false };
+      return { ...state, draft: { ...emptyDraft(action.person), serviceIds: [...action.serviceIds], barberId: action.barberId, barberChosen: action.barberChosen ?? action.barberId !== null }, editingIndex: null, fromReview: false };
     case "editItem": {
       const item = state.items[action.index];
       return item ? { ...state, draft: { ...item }, editingIndex: action.index, fromReview: true, step: "services" } : state;

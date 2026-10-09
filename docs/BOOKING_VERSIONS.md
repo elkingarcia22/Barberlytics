@@ -6,34 +6,29 @@ ordena el recorrido a partir de ella. Las tres comparten el motor (`useBookingEn
 catálogo, `bookingReducer`, cuentas) y el cobro (`usePaymentController` + `PaymentPanel`), así que el
 dinero, los cupones, la lealtad, los paquetes, las tarjetas guardadas y la reserva salen iguales.
 
-| | Paso a paso (`guided`) | Agenda abierta (`agenda`) | Conversación (`chat`) |
+| | Paso a paso (`guided`) | Agenda con selector (`agenda-select`) | Conversación (`chat`) |
 |---|---|---|---|
-| Pregunta de partida | ¿Quién eres? | ¿Cuándo puedes venir? | Dime qué necesitas |
+| Pregunta de partida | ¿Quién eres? | Arma tu cita | Dime qué necesitas |
 | Identidad | Al entrar (celular + código) | Al final, al confirmar; opcional antes («Ya soy cliente») | Al entrar, como en WhatsApp |
-| Recorrido | Sede → servicios → barbero → hora → resumen → pago, una decisión por pantalla | Una sola pantalla: servicio arriba, día en una tira y las horas de **todos** los barberos a la vista (por barbero o por hora); se apartan horas con un toque | Preguntas de a una, cada una con su tarjeta para responder tocando; también entiende texto libre |
-| Para quién | Cliente que vuelve con «lo de siempre» | Último minuto, quien busca hueco hoy, el monitor del local | Quien prefiere escribir o no sabe qué pedir |
-| Varias citas / personas | «Agregar otra cita» en el resumen | Cambiar «Para quién» y tocar otra hora; la reserva crece al lado | «Otra cita» en el chat |
+| Recorrido | Sede → servicios → barbero → hora → resumen → pago, una decisión por pantalla | Una sola pantalla: sede, servicios y barbero en campos que abren su lista; debajo el día en una tira y las horas por franja | Preguntas de a una, cada una con su tarjeta para responder tocando; también entiende texto libre |
+| Para quién | Cliente que vuelve con «lo de siempre» | Quien busca hueco pronto, el monitor del local | Quien prefiere escribir o no sabe qué pedir |
+| Varias citas / personas | «Agregar otra cita» en el resumen | Una sola cita: tocar otra hora la reemplaza | «Otra cita» en el chat |
 | Código | `BookingFlow` › `GuidedFlow`, `steps/` | `variants/agenda/` | `variants/chat/` |
 
-## Agenda abierta
+2026-10-09: se quitó la **Agenda abierta** (`agenda`: tira de chips, horas de todos los barberos «por
+barbero / por hora» y carrito con varias citas). Un enlace viejo con `?version=agenda` cae en la versión
+por defecto.
+
+## Agenda con selector (`agenda-select`)
 
 - Abre con el servicio más pedido para enseñar horas sin preguntar nada (`agendaModel.defaultServiceId`).
 - Una sola petición de disponibilidad por día (sin preferencia) trae quién puede a cada hora; el tablero
-  la reparte por barbero (`barberTimes`) o por franja con las caras de quienes pueden (`timesByWindow`).
-  Lo que ya está en el carrito se marca y no se puede apartar dos veces.
-- Cambiar una cita del carrito vuelve a la agenda en su día; «No soy yo» (`signOut`) olvida al cliente
-  sin vaciar el carrito.
-- El cierre (`AgendaCheckout`) pide celular, código y —si es nuevo— nombre y correo en el mismo sitio;
-  el cobro aparece en cuanto se sabe quién es, con sus beneficios.
-
-### Agenda con selector (`agenda-select`)
-
-2026-10-08. La misma agenda abierta (mismo `AgendaFlow` y `AgendaBoard`, con `servicePicker="modal"`)
-para comparar una sola cosa: cómo se elige qué se va a hacer. En vez de la tira de chips —que con
-muchos servicios obliga a deslizar mucho— hay un campo tipo select (`AgendaServiceField`, en
-`AgendaServicePicker.tsx`) que muestra lo elegido, cuánto dura y desde cuánto, y abre la carta:
-buscador si hay 7 o más, agrupada por categoría, una casilla por fila (se pueden varios). Se aplica
-con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son los de la Agenda abierta.
+  la muestra por franja con las caras de quienes pueden (`timesByWindow`).
+- «No soy yo» (`signOut`) olvida al cliente sin vaciar la reserva.
+- Lo que se va a hacer se elige en un campo tipo select (`AgendaServiceField`, en
+  `AgendaServicePicker.tsx`) que muestra lo elegido, cuánto dura y desde cuánto, y abre la carta:
+  buscador si hay 7 o más, agrupada por categoría, una casilla por fila (se pueden varios). Se aplica
+  con «Ver horas»; cerrar sin aplicar no cambia nada.
 
 - Orden de la pantalla: «¿Para quién es la cita?» primero; luego «¿Dónde quieres que te atendamos?»,
   «¿Qué te vas a hacer?» y «¿Con quién te quieres atender?», cada una un campo que abre su lista; y al

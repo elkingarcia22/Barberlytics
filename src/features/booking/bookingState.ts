@@ -88,7 +88,7 @@ export type BookingAction =
   | { type: "addAnother"; person: BookingPerson }
   /**
    * Abre una cita en borrador sin moverse de paso: la usan las versiones que no
-   * van pantalla por pantalla (la agenda abierta, la conversación).
+   * van pantalla por pantalla (la agenda, la conversación).
    */
   | { type: "openDraft"; person: BookingPerson; serviceIds: readonly string[]; barberId: string | null }
   | { type: "editItem"; index: number }

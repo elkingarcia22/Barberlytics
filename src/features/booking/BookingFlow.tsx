@@ -221,8 +221,8 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
           <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
           <Grain scope="container" />
           <SwitchToChatProvider value={active === "guided" || active === "agenda-select" ? switchToChat : null}>
-            {active === "agenda" || active === "agenda-select" ? (
-              <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} servicePicker={active === "agenda-select" ? "modal" : "chips"} />
+            {active === "agenda-select" ? (
+              <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             ) : active === "chat" ? (
               <ChatFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             ) : (

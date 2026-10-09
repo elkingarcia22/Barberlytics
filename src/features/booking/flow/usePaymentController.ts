@@ -14,7 +14,7 @@ import { useSavedCardManager } from "./useSavedCardManager";
 /**
  * El cobro de la reserva, sin la pantalla alrededor: la propina, los descuentos,
  * cómo se paga, la tarjeta y el resumen. Lo comparten las tres versiones de la
- * reserva —el paso «Pagar», el cierre de la agenda abierta y la tarjeta de pago
+ * reserva —el paso «Pagar», el cierre de la agenda y la tarjeta de pago
  * dentro de la conversación—, así el dinero se calcula y se cobra igual en todas.
  */
 export function usePaymentController() {

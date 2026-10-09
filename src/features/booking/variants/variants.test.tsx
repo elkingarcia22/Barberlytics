@@ -6,7 +6,7 @@ import { BookingFlow } from "../BookingFlow";
 import { requestVoiceOnArrival } from "../flow/versionSwitch";
 import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
-import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
+import { ableBarbers, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
 import { expiryProblem, maskCardInput, normalizeExpiry } from "./chat/chatCard";
@@ -210,7 +210,7 @@ describe("tarjeta nueva en la conversación", () => {
   });
 });
 
-describe("cuentas de la agenda abierta", () => {
+describe("cuentas de la agenda", () => {
   const slots: Slot[] = [
     { time: "09:00", barberIds: ["team-04", "team-05"] },
     { time: "12:30", barberIds: ["team-04"] },
@@ -225,16 +225,6 @@ describe("cuentas de la agenda abierta", () => {
   test("solo quien hace todo lo elegido, con el de siempre primero", () => {
     expect(ableBarbers(BARBERS, ["svc_corte", "svc_barba"], null).map((item) => item.id)).toEqual(["team-04", "team-05"]);
     expect(ableBarbers(BARBERS, ["svc_corte"], "team-05").map((item) => item.id)).toEqual(["team-05", "team-08", "team-04"]);
-  });
-
-  test("las horas de cada barbero marcan lo que ya apartó con él", () => {
-    const items = [{ key: "a", person: { kind: "self" as const }, serviceIds: ["svc_corte"], barberId: "team-04", start: "2026-10-09T09:00" }];
-    expect(barberTimes(slots, "team-04", "2026-10-09", items, null)).toEqual([
-      { time: "09:00", taken: true },
-      { time: "12:30", taken: false },
-    ]);
-    // Si se está cambiando esa misma cita, su hora vuelve a estar libre.
-    expect(barberTimes(slots, "team-04", "2026-10-09", items, 0)[0]).toEqual({ time: "09:00", taken: false });
   });
 
   test("por hora: cada cita sin preferencia ocupa a un barbero; sin nadie libre la hora sale", () => {
@@ -304,25 +294,6 @@ describe("las otras dos experiencias", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
-  });
-
-  test("agenda abierta: se ven horas sin dar el celular, se aparta una y el celular se pide al confirmar", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda" />);
-    expect(await screen.findByText("¿Cuándo puedes venir?")).toBeInTheDocument();
-    // Sin preguntar nada: ya hay horas libres con su barbero. De noche hoy ya no quedan: se salta al siguiente día con horas.
-    const pickName = /^Apartar a las .+ con /;
-    await waitFor(() => expect(screen.queryAllByRole("button", { name: pickName }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
-    const jump = screen.queryByRole("button", { name: /^Ir al / });
-    if (jump) await user.click(jump);
-    const pick = (await screen.findAllByRole("button", { name: pickName }))[0];
-    expect(screen.queryByRole("textbox", { name: /celular/i })).toBeNull();
-    await user.click(pick);
-    await user.click(await screen.findByRole("button", { name: "Continuar" }));
-    expect(await screen.findByText("Confirma y paga")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: /celular/i })).toBeInTheDocument();
-    // Sin identificarse no hay botón de pagar abajo: aparece cuando ya se sabe quién es.
-    expect(screen.queryByRole("button", { name: "Confirma tu celular para pagar" })).toBeNull();
   });
 
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {

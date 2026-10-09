@@ -15,9 +15,8 @@ import { GiftStep } from "../../steps/GiftStep";
 import { ManageStep } from "../../steps/ManageStep";
 import { PackagesStep } from "../../steps/PackagesStep";
 import { defaultServiceId } from "./agendaModel";
-import { AgendaBoard, type ServicePickerMode } from "./AgendaBoard";
-import { AgendaCartAside, AgendaCartBar, AgendaCartLines } from "./AgendaCart";
-import { AgendaCheckout } from "./AgendaCheckout";
+import { AgendaBoard } from "./AgendaBoard";
+import { AgendaCartBar } from "./AgendaCart";
 import { AgendaHeader } from "./AgendaHeader";
 import { AgendaIdentity } from "./AgendaIdentity";
 import { AgendaSelectCheckout } from "./AgendaSelectCheckout";
@@ -25,21 +24,18 @@ import { AgendaSelectCheckout } from "./AgendaSelectCheckout";
 interface AgendaFlowProps {
   headerTrailing?: React.ReactNode;
   onFinish?: () => void;
-  /** Cómo se elige qué se va a hacer: tira de chips (Agenda abierta) o campo con modal (Agenda con selector). */
-  servicePicker?: ServicePickerMode;
 }
 
 /** Pantallas que no son la agenda: el final, «Mis citas» y lo que se compra aparte. */
 const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "manage", "gift", "packages"]);
 
 /**
- * Agenda abierta: la reserva que parte del «¿cuándo?». Se abre ya con horas a
- * la vista —de todos los barberos, para el servicio más pedido— sin pedir nada;
- * se apartan horas con un toque (para uno o para varios) y solo al confirmar se
- * pregunta quién es y cómo paga. Pensada para quien quiere ir hoy o mañana y
- * para el monitor del local, donde se ve el día entero de un vistazo.
+ * Agenda con selector: la reserva que parte del «¿cuándo?». Se abre ya con horas
+ * a la vista —para el servicio más pedido— sin pedir nada; sede, servicios y
+ * barbero se cambian en campos que abren su lista, se aparta una hora con un
+ * toque y solo al confirmar se pregunta quién es y cómo paga.
  */
-export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }: AgendaFlowProps) {
+export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, layout } = useBookingFlow();
   const [chosenView, setView] = React.useState<"board" | "checkout">("board");
@@ -64,8 +60,8 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
     if (!state.draft) {
       const last = state.items.at(-1);
       const fallback = defaultServiceId(catalog.services);
-      // En la Agenda con selector el barbero es una elección propia: la siguiente cita sigue con el mismo.
-      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: servicePicker === "modal" ? (last?.barberId ?? null) : null });
+      // El barbero es una elección propia: la siguiente cita sigue con el mismo.
+      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: last?.barberId ?? null });
       return;
     }
     if (state.draft.serviceIds.length === 0 && state.items.length === 0 && seededDraft.current !== state.draft.key) {
@@ -73,15 +69,14 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
       const fallback = defaultServiceId(catalog.services);
       if (fallback) dispatch({ type: "toggleService", serviceId: fallback });
     }
-  }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch, servicePicker]);
+  }, [catalog, state.branchId, state.draft, state.items, ownScreen, dispatch]);
 
-  // En la Agenda con selector se reserva una cita: la hora que se toca después reemplaza a la anterior.
-  const isSelect = servicePicker === "modal";
+  // Se reserva una cita: la hora que se toca después reemplaza a la anterior.
   const [actionSlot, setActionSlot] = React.useState<HTMLElement | null>(null);
   React.useEffect(() => {
-    if (!isSelect || state.items.length < 2) return;
+    if (state.items.length < 2) return;
     for (let extra = state.items.length - 1; extra > 0; extra -= 1) dispatch({ type: "removeItem", index: 0 });
-  }, [isSelect, state.items.length, dispatch]);
+  }, [state.items.length, dispatch]);
 
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
   if (signInOpen && state.customer) setSignInOpen(false);
@@ -117,12 +112,10 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
       <GiftStep />
     ) : state.step === "packages" ? (
       <PackagesStep />
-    ) : view === "checkout" && isSelect ? (
-      <AgendaSelectCheckout />
     ) : view === "checkout" ? (
-      <AgendaCheckout onBack={toBoard} showAppointments={isWide ? null : <AgendaCartLines onEdit={toBoard} />} />
+      <AgendaSelectCheckout />
     ) : (
-      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} servicePicker={servicePicker} />
+      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} />
     );
 
   return (
@@ -144,16 +137,12 @@ export function AgendaFlow({ headerTrailing, onFinish, servicePicker = "chips" }
         </div>
         {isWide && !ownScreen && (
           <div className="w-96 shrink-0 overflow-hidden border-l border-border bg-surface/60">
-            {/* La Agenda con selector usa el mismo resumen que Paso a paso; la abierta, su carrito con varias citas. */}
-            {isSelect ? (
-              <BookingSummaryAside actionSlotRef={setActionSlot} draftUntilBooked atPayment={view === "checkout"} />
-            ) : (
-              <AgendaCartAside onEdit={toBoard} onContinue={view === "board" ? toCheckout : undefined} actionSlotRef={view === "checkout" ? setActionSlot : undefined} />
-            )}
+            {/* El mismo resumen que Paso a paso. */}
+            <BookingSummaryAside actionSlotRef={setActionSlot} draftUntilBooked atPayment={view === "checkout"} />
           </div>
         )}
         {/* En la agenda (sin pie propio), el botón de seguir va al pie del resumen. */}
-        {isWide && isSelect && !ownScreen && view === "board" && actionSlot &&
+        {isWide && !ownScreen && view === "board" && actionSlot &&
           createPortal(
             <Button type="button" size="lg" className="w-full" disabled={state.items.length === 0} onClick={toCheckout}>
               {t("booking.agenda.cart.continue")}

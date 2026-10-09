@@ -1,5 +1,5 @@
 /**
- * Las otras dos maneras de reservar (Agenda abierta y Conversación) y el
+ * Las otras dos maneras de reservar (Agenda con selector y Conversación) y el
  * selector de versión de la vista previa. Mismo tono que la reserva: tú,
  * corto, sin jerga de la app.
  */
@@ -12,14 +12,10 @@ export const bookingVariantsEs = {
   "booking.chat.trigger": "Agenda con {name}",
   "booking.version.label": "Versión de la experiencia",
   "booking.version.guided": "Paso a paso",
-  "booking.version.agenda": "Agenda abierta",
   "booking.version.agendaSelect": "Agenda con selector",
   "booking.version.chat": "Clipper",
 
-  // ── Agenda abierta ──
-  "booking.agenda.title": "¿Cuándo puedes venir?",
-  "booking.agenda.lead": "Toca una hora libre para apartarla. Tus datos te los pedimos al final.",
-  "booking.agenda.whatLabel": "Qué te vas a hacer",
+  // ── Agenda con selector ──
   "booking.agenda.whatSummary": "{minutes} min · desde {price}",
   "booking.agenda.usual": "Lo de siempre",
   "booking.agenda.whatPlaceholder": "Elige uno o varios servicios",
@@ -29,18 +25,10 @@ export const bookingVariantsEs = {
   "booking.agenda.whatApply": "Ver horas",
   "booking.agenda.pickService": "Elige al menos un servicio para ver las horas libres.",
   "booking.agenda.dayLabel": "Día",
-  "booking.agenda.viewLabel": "Cómo ver las horas",
-  "booking.agenda.byBarber": "Por barbero",
-  "booking.agenda.byTime": "Por hora",
   "booking.agenda.yourBarber": "Tu barbero",
-  "booking.agenda.noSlotsBarber": "Sin horas este día.",
-  "booking.agenda.moreTimes": "+{count} más",
-  "booking.agenda.lessTimes": "Ver menos",
   "booking.agenda.pickWith": "Apartar a las {time} con {name}",
   "booking.agenda.pickAny": "Apartar a las {time}, {count} barbero libre",
   "booking.agenda.pickAny_plural": "Apartar a las {time}, {count} barberos libres",
-  "booking.agenda.added": "Apartada: {when}",
-  "booking.agenda.moved": "Cambiada a {when}",
   "booking.agenda.emptyDayTitle": "No quedan horas el {day}",
   "booking.agenda.emptyDayLead": "Prueba otro día en la tira de arriba o apúntate a la lista de espera.",
   "booking.agenda.jumpTo": "Ir al {day}",
@@ -76,7 +64,6 @@ export const bookingVariantsEs = {
   "booking.agenda.detail": "Ver detalle",
   "booking.agenda.emptyBarberDay": "{name} no tiene horas el {day}",
   "booking.agenda.emptyBarberDayLead": "Prueba otro día en la tira de arriba o elige «Sin preferencia» para ver a todo el equipo.",
-  "booking.agenda.branchLabel": "Sede",
   "booking.agenda.branchChangeTitle": "¿Cambiar de sede?",
   "booking.agenda.branchChangeBody": "Los barberos y los precios son de cada sede.",
   "booking.agenda.branchChangeCount": "Se quita {count} cita que ya apartaste.",
@@ -90,8 +77,6 @@ export const bookingVariantsEs = {
   "booking.agenda.signInLead": "Verás primero a tu barbero de siempre y tus beneficios al pagar. No hace falta para mirar horas.",
   "booking.agenda.more": "Más opciones",
   "booking.agenda.cart.title": "Tu reserva",
-  "booking.agenda.cart.empty": "Aún no apartas ninguna hora.",
-  "booking.agenda.cart.emptyHint": "Toca una hora libre en la agenda y aparece aquí.",
   "booking.agenda.cart.another": "¿Viene alguien más? Cambia «Para quién» y toca otra hora.",
   "booking.agenda.cart.count": "{count} cita",
   "booking.agenda.cart.count_plural": "{count} citas",

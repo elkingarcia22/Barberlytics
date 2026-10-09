@@ -46,3 +46,6 @@ if (!Element.prototype.hasPointerCapture) {
   Element.prototype.setPointerCapture = () => {};
   Element.prototype.releasePointerCapture = () => {};
 }
+// jsdom no trae canvas: sin contexto 2D las piezas de atmósfera (HairCanvas,
+// HairBurst) no dibujan, en vez de llenar la salida con «Not implemented».
+HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;

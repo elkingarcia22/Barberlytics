@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CalendarClock, CalendarSearch, ListChecks, MessagesSquare, Monitor, PanelBottomOpen, Smartphone, Tablet } from "lucide-react";
+import { CalendarSearch, ListChecks, MessagesSquare, Monitor, PanelBottomOpen, Smartphone, Tablet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -75,7 +75,6 @@ export function BookingPage() {
 
   const versions = [
     { value: "guided", label: t("booking.version.guided"), icon: ListChecks },
-    { value: "agenda", label: t("booking.version.agenda"), icon: CalendarClock },
     { value: "agenda-select", label: t("booking.version.agendaSelect"), icon: CalendarSearch },
     { value: "chat", label: t("booking.version.chat"), icon: MessagesSquare },
   ];

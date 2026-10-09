@@ -38,11 +38,13 @@ Sus variables son **del servidor** —sin prefijo `VITE_`—: `GOOGLE_SERVICE_AC
 cómo prepararlas: `docs/FEEDBACK_LOOP.md`. `vercel.json` no reescribe `/api/*` a `index.html`.
 
 La voz de Clipper (`api/tts`, `server/tts/tts.ts`) habla con voz neural natural si hay una de estas
-claves: `ELEVENLABS_API_KEY` (la más natural, una voz multilingüe para español e inglés),
+claves: `ELEVENLABS_API_KEY` (la elegida: la más natural, la voz de Clipper ya viene por defecto y habla
+español e inglés),
 `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` (capa gratuita mensual; Gonzalo y Andrew por defecto) u
 `OPENAI_API_KEY` (`gpt-4o-mini-tts`, voz onyx). Con varias, `TTS_PROVIDER` elige; `TTS_VOICE`,
 `TTS_VOICE_ES` y `TTS_VOICE_EN` cambian la voz. Sin ninguna, la app usa la voz del navegador. El
-idioma lo pone la app (español o inglés según su configuración). `Permissions-Policy` permite el
+idioma lo pone la app (español o inglés según su configuración). En local, `npm run dev` atiende
+`/api/tts` con el mismo código (`vite.config.ts`): basta con poner la clave en `.env.local`. `Permissions-Policy` permite el
 micrófono al propio sitio (`microphone=(self)`): sin eso el modo voz no escucha. La CSP permite
 `media-src 'self' blob:` porque el audio de la voz natural se reproduce desde un `blob:`.
 

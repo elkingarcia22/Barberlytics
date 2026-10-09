@@ -48,15 +48,25 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
 
 ## Conversación
 
-- `useChatBooking` lleva el hilo; no guarda la reserva aparte: despacha las mismas acciones del
-  `bookingReducer` y decide qué preguntar después y con qué tarjeta (`ChatWidgets`).
+- Se siente como un chat, sin formularios dentro del hilo: lo que se escribe (el celular **solo con
+  números**, el código, nombre y apellido, el correo, el CVC, una nota o una frase como «corte mañana a
+  las 5 con Andrés») va en la caja. El código y el CVC se ven como «••••••».
+- Cada elección llega como una pregunta en lista (`ChatQuestionCard` con título, ayuda, buscador,
+  descripción y foto o emoji por opción, y varias a la vez para servicios y productos). Se responde
+  tocando, con el número o escribiendo parte de la opción; al responder, la tarjeta se va y queda la
+  pregunta y la respuesta como mensajes. Sin pastillas de atajos bajo los mensajes (confundían): lo que
+  hacían se escribe («reenviar», «cambiar número», «mis citas», «¿dónde quedan?») y «Mis citas» y
+  «Empezar de nuevo» están en la cabecera.
+- `useChatBooking` (la reserva) y `chatCheckout` (propina, cupón o tarjeta de regalo, cómo paga, el
+  resumen para confirmar, después de reservar y «Mis citas»: mover o cancelar con reembolso) no guardan
+  la reserva aparte: despachan las acciones del `bookingReducer` y cobran con `usePaymentController`.
+  La tarjeta nueva se escribe en su hoja segura (el número no pasa por el chat).
 - `parseBookingText` entiende servicios por su nombre de a pie («corte y barba» → combo), el barbero por
   su nombre o «cualquiera», días («mañana», «el viernes», «20 de octubre») y horas («a las 5» = 17:00,
-  «10 y media», «en la tarde»), además de intenciones sueltas («mis citas», «¿dónde quedan?», «pagar»).
-  Sin modelo de lenguaje: lo que no entiende lo vuelve a preguntar con opciones.
-- Una frase completa aparta la hora de una vez si está libre; si no, propone las de ese día y franja.
-- El celular y el código también se pueden escribir en el chat. En el pago, «en la barbería» o
-  «con tarjeta» eligen el método.
+  «10 y media», «en la tarde»), además de intenciones sueltas. Sin modelo de lenguaje: lo que no entiende
+  lo vuelve a preguntar.
+- Fuera de la conversación quedan la foto de referencia del corte y las compras de regalo y paquetes
+  (se abren como pantalla aparte desde la bienvenida).
 
 ## Pendiente
 

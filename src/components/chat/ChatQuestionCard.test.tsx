@@ -54,4 +54,39 @@ describe("ChatQuestionCard", () => {
 
     expect(onAnswer).not.toHaveBeenCalled();
   });
+
+  test("con título: busca, describe cada opción y se pliega con la flecha", async () => {
+    const user = userEvent.setup();
+    const onAnswer = vi.fn();
+    const rich = {
+      title: "¿En qué país?",
+      hint: "Elige uno",
+      options: ["Colombia", "México", "Chile"],
+      details: { Colombia: { emoji: "🇨🇴", description: "Bogotá" }, Chile: { description: "Santiago" } },
+      searchPlaceholder: "Buscar país",
+    };
+    render(<ChatQuestionCard question={rich} active onAnswer={onAnswer} />);
+
+    expect(screen.getByRole("group", { name: "¿En qué país?" })).toBeInTheDocument();
+    expect(screen.getByText("Bogotá")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Buscar país"), "santi");
+    expect(screen.queryByRole("button", { name: /Colombia/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /Chile/ }));
+    expect(onAnswer).toHaveBeenCalledWith("Chile");
+
+    await user.click(screen.getByRole("button", { name: "Plegar la pregunta" }));
+    expect(screen.queryByPlaceholderText("Buscar país")).toBeNull();
+  });
+
+  test("con varias: se marcan y se confirman juntas", async () => {
+    const user = userEvent.setup();
+    const onAnswer = vi.fn();
+    render(<ChatQuestionCard question={{ title: "¿Qué te haces?", options: ["Corte", "Barba", "Cejas"], multiple: { confirmLabel: "Continuar" } }} active onAnswer={onAnswer} />);
+
+    await user.click(screen.getByRole("button", { name: /Corte/ }));
+    await user.click(screen.getByRole("button", { name: /Cejas/ }));
+    expect(onAnswer).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /Continuar/ }));
+    expect(onAnswer).toHaveBeenCalledWith("Corte · Cejas");
+  });
 });

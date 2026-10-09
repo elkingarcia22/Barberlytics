@@ -285,7 +285,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **NextVisitSuggestion.tsx** — Lo que le toca según su frecuencia de visita: el día (su última visita más su ritmo) y la hora a la que suele… · `NextVisitSuggestion` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina, los cargos (recargo por tarjeta) y el total,… · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
 - **PackagesToggle.tsx** — En el pago: si sus paquetes cubren algo de esta reserva, lo dice y deja usarlos o guardarlos para otra vez. · `PackagesToggle` · piezas: Switch, Text · usa: @/app/i18n, @/icons
-- **PaymentPanel.tsx** — El botón que cobra: dice exactamente lo que va a pasar («Pagar $64»). · `PayButton`, `PaymentPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **PaymentPanel.tsx** — El botón que cobra: dice exactamente lo que va a pasar («Pagar $64»). · `PayButton`, `PaymentPanel`, `PaymentSheets` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **PersonPicker.tsx** — «¿Para quién es la cita?». · `PersonPicker` · piezas: Avatar, AvatarFallback, Button, Chip, Field, Heading, Input, ListItem, ListItemGroup, Text · usa: @/app/i18n, @/icons
 - **PhotoStrip.tsx** — Una tira de fotos que se recorre arrastrando —con el dedo o con el mouse— o con las flechas, sin tener que ab… · `PhotoStrip` · piezas: Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious · usa: @/app/i18n, @/icons, @/lib/utils
 - **PickedProducts.tsx** — Lo que ya va en la reserva, se haya sumado desde el carrusel o desde el catálogo completo: una fila por produ… · `PickedProducts` · piezas: IconTile, NumberField, Text · usa: @/app/i18n, @/icons
@@ -352,10 +352,12 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/variants/chat
 
-- **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatThinking, ChatUserMessage, Chip · usa: @/app/i18n, @/icons, @/lib/utils
-- **ChatWidgets.tsx** — La tarjeta de un mensaje: solo la del último mensaje se puede usar; las anteriores ya se respondieron. · `ChatWidgetView`, `ChatTitle` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Chip, Field, Heading, IconTile, InputOtp, ListItem, ListItemGroup, PhoneInput, Skeleton, Text, Textarea · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
+- **ChatFlow.tsx** — Conversación: se reserva hablando con el asistente de la barbería, como por WhatsApp. · `ChatFlow` · piezas: Button, ChatComposer, ChatMark, ChatMarkdown, ChatQuestionCard, ChatThinking, ChatUserMessage, Heading, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
+- **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
+- **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
+- **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `orderLine` · usa: @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
-- **useChatBooking.ts** — La tarjeta que trae un mensaje del asistente: con ella se responde tocando en vez de escribiendo. · `ChatWidget`, `ChatReplyId`, `ChatReply`, `ChatTurn`, `TimeFocus`, `useChatBooking`, `ChatEngine`, `ChatEngineProvider`, `useChatEngine` · usa: @/app/i18n, @/icons, @/lib/api
+- **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
 
 ### branches
 
@@ -679,9 +681,10 @@ Cliente de API, consultas y utilidades sin interfaz.
 
 - **demoBackend.ts** — Respuestas de ejemplo mientras no hay un modelo detrás. · `DemoBackendOptions`, `createDemoBackend` · usa: @/lib/help
 - **history.ts** — Las conversaciones por cuándo se tocaron: Hoy, Ayer, Últimos 7 días, Anteriores. · `ConversationGroupKey`, `ConversationGroup`, `groupConversations`
+- **question.ts** — Con `ChatQuestion.multiple`, la respuesta une las opciones elegidas con esto. · `CHAT_MULTIPLE_SEPARATOR`, `splitMultipleAnswer`
 - **speech.ts** — Un reconocedor continuo con resultados parciales; `null` si el navegador no puede. · `isSpeechRecognitionSupported`, `Recognizer`, `RecognizerOptions`, `createRecognizer`, `isSpeechSynthesisSupported`, `speak`
 - **store.ts** — Las conversaciones, en un solo sitio. · `ChatPersistence`, `ChatStoreOptions`, `createChatStore`, `ChatStore`
-- **types.ts** — El modelo de una conversación con el agente. · `ChatRole`, `ChatSource`, `ChatQuestion`, `ChatCard`, `ChatLink`, `ChatMessageStatus`, `ChatMessage`, `Conversation`, `ChatReply`, `ChatBackend`, `ChatState`
+- **types.ts** — El modelo de una conversación con el agente. · `ChatRole`, `ChatSource`, `ChatQuestion`, `ChatQuestionChoice`, `ChatCard`, `ChatLink`, `ChatMessageStatus`, `ChatMessage`, `Conversation`, `ChatReply`, `ChatBackend`, `ChatState`
 
 ### help
 

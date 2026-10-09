@@ -207,7 +207,7 @@ export function PaymentPanel({ payment, showOrder = true }: PaymentPanelProps) {
 }
 
 /** Las hojas del cobro: cómo se paga en el local con varias citas y la tarjeta nueva. */
-function PaymentSheets({ payment }: { payment: PaymentController }) {
+export function PaymentSheets({ payment }: { payment: PaymentController }) {
   const t = useAppT();
   const { state } = useBookingFlow();
   const { reserve, sheet, setSheet, card, saveCard } = payment;

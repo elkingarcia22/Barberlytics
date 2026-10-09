@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**201 componentes** en 21 familias · 100 iconos en el registro · 113 tokens.
+**202 componentes** en 21 familias · 100 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -230,7 +230,7 @@ ECharts con el tema Thema resuelto en tiempo real.
 - **MetricCard** [metric-card] — La tarjeta de la que se hace una fila de indicadores: acento vertical del tono junto al título, icono en chip, número grande y neutro, píld… `@/components/charts`
 - **SparklineChart** [sparkline-chart] — Línea ultracompacta sin ejes, leyenda ni cuadrícula, pensada para acompañar un número: dentro de un KpiCard, en una celda de tabla o al lad… `@/components/charts`
 
-## IA · 15
+## IA · 16
 
 Botones, loaders, badges y paneles con la identidad de IA.
 
@@ -244,6 +244,7 @@ Botones, loaders, badges y paneles con la identidad de IA.
 - **AiSparkGlyph** [ai-spark-glyph] — La chispa de la IA: el destello grande con dos satélites que laten a destiempo. `@/components/ai-interaction`
 - **ChatComposer** [chat-composer] (beta) — La caja de escribir del chat: el borde que recorre y la malla al enfocar, Enter envía y Shift+Enter baja de línea, el «+» con conectores y… `@/components/chat`
 - **ChatPanel** [chat-panel] (beta) — El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. `@/components/chat`
+- **ChatQuestionCard** [chat-question-card] (beta) — Una pregunta del agente con opciones numeradas: se contesta tocando, con la tecla del número o escribiendo en «Otro». `@/components/chat`
 - **ChatScreen** [chat-screen] (beta) — El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. `@/components/chat`
 - **ChatThread** [chat-thread] (beta) — El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben sola… `@/components/chat`
 - **ChatVoiceMode** [chat-voice-mode] (beta) — El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande… `@/components/chat`

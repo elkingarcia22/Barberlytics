@@ -23,10 +23,31 @@ export interface ChatSource {
  */
 export interface ChatQuestion {
   options: readonly string[];
+  /** La pregunta como título de la tarjeta, con la flecha para plegarla. */
+  title?: string;
+  /** Una línea de ayuda bajo el título («Por ejemplo: …»). */
+  hint?: string;
+  /** Lo que acompaña a cada opción, por su texto: una descripción y una bandera, emoji o foto. */
+  details?: Readonly<Record<string, ChatQuestionChoice>>;
+  /** Buscador encima de la lista, para listas largas; su placeholder. */
+  searchPlaceholder?: string;
+  /** Se eligen varias y se confirman con un botón (su texto). */
+  multiple?: { confirmLabel: string };
   /** Placeholder de «Otro»; sin él no hay campo libre. */
   otherPlaceholder?: string;
-  /** La respuesta que se dio, si ya se respondió. */
+  /** El nombre de la opción libre; por defecto, «Otro». */
+  otherLabel?: string;
+  /** La respuesta que se dio, si ya se respondió (con varias, unidas por « · »). */
   answer?: string;
+}
+
+/** El detalle de una opción de `ChatQuestion`. */
+export interface ChatQuestionChoice {
+  description?: string;
+  /** Una bandera o un emoji delante del texto. */
+  emoji?: string;
+  /** Una foto redonda delante del texto; `null` pinta las iniciales. */
+  image?: string | null;
 }
 
 /** Una tarjeta con datos dentro de la respuesta. */

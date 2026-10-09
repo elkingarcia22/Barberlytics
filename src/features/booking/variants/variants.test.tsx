@@ -7,6 +7,7 @@ import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, barberTimes, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, parseBookingText, phoneFromText } from "./chat/parseBookingText";
+import { makeQuestion, matchOption } from "./chat/chatQuestions";
 
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -101,6 +102,29 @@ describe("lo que entiende la conversación", () => {
   });
 });
 
+describe("preguntas de la conversación", () => {
+  const question = makeQuestion("barber", "¿Con quién?", [
+    { label: "Con quien esté libre", value: "any" },
+    { label: "Andrés Molina", value: "team-04", image: null },
+    { label: "Andrés Molina", value: "team-99" },
+    { label: "Camilo Rey", value: "team-05" },
+  ]);
+
+  test("cada opción es única y guarda lo que vale", () => {
+    expect(question.options).toEqual(["Con quien esté libre", "Andrés Molina", "Andrés Molina (2)", "Camilo Rey"]);
+    expect(question.values["Andrés Molina (2)"]).toBe("team-99");
+    expect(question.details?.["Andrés Molina"]).toEqual({ image: null });
+  });
+
+  test("lo escrito responde por número, por texto o por un trozo que solo está en una", () => {
+    expect(matchOption(question, "4")).toBe("Camilo Rey");
+    expect(matchOption(question, "camilo rey")).toBe("Camilo Rey");
+    expect(matchOption(question, "libre")).toBe("Con quien esté libre");
+    expect(matchOption(question, "andrés")).toBeNull();
+    expect(matchOption(question, "9")).toBeNull();
+  });
+});
+
 describe("cuentas de la agenda abierta", () => {
   const slots: Slot[] = [
     { time: "09:00", barberIds: ["team-04", "team-05"] },
@@ -168,6 +192,9 @@ describe("las otras dos experiencias", () => {
     });
   });
   beforeEach(() => {
+    // Un jueves a las 8:00: con el día entero por delante, haya la hora que haya al correr la prueba.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
     resetBookingLimits();
     vi.stubGlobal(
       "IntersectionObserver",
@@ -181,7 +208,10 @@ describe("las otras dos experiencias", () => {
       }
     );
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   test("agenda abierta: se ven horas sin dar el celular, se aparta una y el celular se pide al confirmar", async () => {
     const user = userEvent.setup();
@@ -233,20 +263,26 @@ describe("las otras dos experiencias", () => {
     expect(field.textContent).not.toBe(before);
   });
 
-  test("conversación: saluda, pide el celular y con el código reconoce a quien vuelve", async () => {
+  test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
-    expect(await screen.findByText(/Te consigo turno en un minuto/)).toBeInTheDocument();
-    const composer = await screen.findByTestId("chat-input");
-    await user.type(composer, "320 217 2738{Enter}");
-    expect(await screen.findByText(/Te envié un código de 6 números/)).toBeInTheDocument();
-    // El código también se puede escribir en el chat, como se respondería en WhatsApp.
+    expect(await screen.findByText(/Te ayudo a reservar tu cita/)).toBeInTheDocument();
+    // Sin formularios dentro del chat: el celular va en la caja, solo números.
+    expect(screen.queryByRole("textbox", { name: /celular/i })).toBeNull();
+    await user.type(await screen.findByTestId("chat-input"), "320-217{Enter}");
+    expect(await screen.findByText(/ese número no se ve bien/)).toBeInTheDocument();
+    await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
+    expect(await screen.findByText(/Te acabo de mandar un código/)).toBeInTheDocument();
+    // El código no se repite en el hilo.
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    expect(screen.queryByText(DEMO_CODE)).toBeNull();
     expect(await screen.findByText(/Hola de nuevo, Marcela/)).toBeInTheDocument();
-    // Lo que escribe se entiende: servicios y barbero de una vez, y pregunta lo que falta (la hora).
+    // Lo que escribe se entiende: servicios y barbero de una vez; pregunta lo que falta (el día) en lista.
     await user.type(screen.getByTestId("chat-input"), "corte con Andrés{Enter}");
-    expect(await screen.findByText(/Estas son las horas libres de Andrés/)).toBeInTheDocument();
-    const log = screen.getByRole("log");
-    expect(within(log).getByText("corte con Andrés")).toBeInTheDocument();
+    const days = await screen.findByRole("group", { name: "¿Qué día te queda bien?" });
+    expect(within(days).getByText("Te muestro los días de Andrés.")).toBeInTheDocument();
+    // Se responde tocando una opción: queda como mensaje y llegan las horas de ese día.
+    await user.click(within(days).getAllByRole("button", { name: /^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/ })[1]);
+    expect(await screen.findByRole("group", { name: /^¿A qué hora el / })).toBeInTheDocument();
   });
 });

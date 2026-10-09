@@ -59,33 +59,40 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
     </div>
   );
 
-  return (
-    <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
-      {isWide ? (
-        // En monitor, volver y la marca a la izquierda y «Mis citas» a la derecha.
-        <div className="flex h-[4.5rem] items-center gap-4 px-6">
+  const stepLabel = t("booking.header.stepOf", { current: index + 1, total: flow.length });
+  const progress = showProgress && (
+    <div className={cn("flex min-w-0 items-center gap-3", isWide ? "flex-1" : "px-5 pb-3")}>
+      <Progress value={((index + 1) / flow.length) * 100} className="flex-1" aria-label={stepLabel} />
+      <Text size="xs" tone="muted" tabular className="shrink-0">
+        {stepLabel} · {steps[index]?.label}
+      </Text>
+    </div>
+  );
+
+  // En monitor todo va en una sola fila: volver y la marca, el progreso al centro y «Mis citas» a la derecha.
+  if (isWide) {
+    return (
+      <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
+        <div className="flex h-[4.5rem] items-center gap-6 px-6">
           {back}
           <ShopBrand shop={shop} tagline={branch?.name} className="shrink-0" />
-          <div className="flex-1" />
+          {progress || <div className="flex-1" />}
           {end}
         </div>
-      ) : (
-        <div className="flex h-14 items-center gap-2 px-3">
-          {back}
-          <div className="flex min-w-0 flex-1 items-center justify-center">
-            <ShopBrand shop={shop} tagline={branch?.name} />
-          </div>
-          {end}
+      </header>
+    );
+  }
+
+  return (
+    <header className="relative z-sticky shrink-0 border-b border-border bg-surface/90 backdrop-blur">
+      <div className="flex h-14 items-center gap-2 px-3">
+        {back}
+        <div className="flex min-w-0 flex-1 items-center justify-center">
+          <ShopBrand shop={shop} tagline={branch?.name} />
         </div>
-      )}
-      {showProgress && (
-        <div className={cn("flex items-center gap-3 pb-3", isWide ? "px-6" : "px-5")}>
-          <Progress value={((index + 1) / flow.length) * 100} className="flex-1" aria-label={t("booking.header.stepOf", { current: index + 1, total: flow.length })} />
-          <Text size="xs" tone="muted" tabular className="shrink-0">
-            {t("booking.header.stepOf", { current: index + 1, total: flow.length })} · {steps[index]?.label}
-          </Text>
-        </div>
-      )}
+        {end}
+      </div>
+      {progress}
     </header>
   );
 }

@@ -22,12 +22,13 @@ por defecto.
 ## Terminar en la lista de espera (Paso a paso y Agenda con selector)
 
 2026-10-09. Quien se apunta en la lista de espera y no aparta ninguna hora puede terminar ahí: lo
-apuntado vive en la reserva (`state.waitlist`, acciones `waitlistJoined` / `waitlistLeft`) y, sin
-citas apartadas, apuntarse lleva **directo** a su propia confirmación (paso `waitlisted`,
+apuntado vive en la reserva (`state.waitlist`, acciones `waitlistJoined` / `waitlistLeft`) y
+apuntarse lleva **directo** a su propia confirmación (paso `waitlisted`,
 `WaitlistedStep`), sin botón «Finalizar» de por medio: qué quedó en espera (sede, servicio,
 barbero o «cualquiera», día y franja), que se avisa por WhatsApp y que no se cobra nada; desde ahí,
-«Salir de la lista» o «Ver otras horas». Si aparta una hora, el recorrido sigue normal y la entrada
-de la lista se queda.
+«Salir de la lista» o «Ver otras horas». Si ya había una reserva armada (otra cita en el carrito, o la
+que se estaba cambiando), «Seguir con tu reserva» suelta la cita en curso y vuelve al resumen para
+pagarla; la entrada de la lista se queda.
 
 ## Agenda con selector (`agenda-select`)
 

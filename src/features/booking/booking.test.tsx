@@ -189,6 +189,17 @@ describe("recorrido de la reserva", () => {
     expect(state).toMatchObject({ waitlist: [], step: "time" });
   });
 
+  test("con una reserva armada, apuntarse también lleva a la confirmación y se puede volver a la reserva", () => {
+    const entry = { id: "wl_2", date: "2026-10-09", window: "any" as const, branchId: "ma", serviceIds: ["svc_corte"], barberId: null };
+    let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-30T13:30" });
+    state = bookingReducer(state, { type: "addAnother", person: { kind: "self" } });
+    state = bookingReducer(state, { type: "waitlistJoined", entry });
+    expect(state.step).toBe("waitlisted");
+    state = bookingReducer(state, { type: "discardDraft" });
+    expect(state).toMatchObject({ step: "review", draft: null, items: [expect.objectContaining({ start: "2026-10-30T13:30" })] });
+  });
+
   test("repetir la última visita salta directo a la hora con el mismo servicio y barbero", () => {
     const state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
     expect(state.step).toBe("time");

@@ -261,6 +261,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.waitlisted.withAny": "With any barber",
   "booking.waitlisted.noCharge": "Nothing is charged: you pay when you book the time.",
   "booking.waitlisted.more": "See other times",
+  "booking.waitlisted.backToBooking": "Continue with your booking ({count} appointment)",
+  "booking.waitlisted.backToBooking_plural": "Continue with your booking ({count} appointments)",
   "booking.earliest.title": "Soonest available",
   "booking.earliest.today": "Today",
   "booking.earliest.with": "with {name}",

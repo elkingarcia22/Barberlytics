@@ -277,6 +277,8 @@ export const bookingEs = {
   "booking.waitlisted.withAny": "Con cualquier barbero",
   "booking.waitlisted.noCharge": "No te cobramos nada: pagas cuando apartes la hora.",
   "booking.waitlisted.more": "Ver otras horas",
+  "booking.waitlisted.backToBooking": "Seguir con tu reserva ({count} cita)",
+  "booking.waitlisted.backToBooking_plural": "Seguir con tu reserva ({count} citas)",
   "booking.earliest.title": "Lo antes posible",
   "booking.earliest.today": "Hoy",
   "booking.earliest.with": "con {name}",

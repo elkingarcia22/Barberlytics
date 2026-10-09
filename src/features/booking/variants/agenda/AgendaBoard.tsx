@@ -25,9 +25,8 @@ import type { BookingBarber, WaitlistJoined } from "../../types";
 import { itemDuration, itemPrice } from "../../useBookingTotals";
 import { ableBarbers, barberTimes, timesByWindow } from "./agendaModel";
 import { BarberLane, TimeWindows } from "./AgendaLanes";
-import { AgendaBranchField } from "./AgendaBranchField";
 import { AgendaBranchSelect } from "./AgendaBranchSelect";
-import { AgendaServiceField } from "./AgendaServicePicker";
+import { AgendaSelectFields } from "./AgendaSelectFields";
 import { DayStrip } from "./DayStrip";
 
 /** Cómo se elige qué se va a hacer: la tira de chips (Agenda abierta) o el campo que abre la carta (Agenda con selector). */
@@ -70,16 +69,19 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
     if (editingStart) setDay(startOfDay(parseStart(editingStart)));
   }
 
-  const availability = useAvailabilityQuery({ branchId: state.branchId, date: dayKey, serviceIds, barberId: null });
-  const earliest = useEarliestQuery({ branchId: state.branchId, serviceIds, barberId: null });
-  const slots = availability.data?.date === dayKey ? availability.data.slots : [];
-  const isWaiting = availability.isLoading || (availability.isFetching && availability.data?.date !== dayKey);
   const usualId = state.customer && !state.customer.isNew ? (state.customer.lastVisit?.barberId ?? null) : null;
   const barbers = ableBarbers(catalog?.barbers ?? [], serviceIds, usualId);
+  const availability = useAvailabilityQuery({ branchId: state.branchId, date: dayKey, serviceIds, barberId: null });
+  const allSlots = availability.data?.date === dayKey ? availability.data.slots : [];
+  const isWaiting = availability.isLoading || (availability.isFetching && availability.data?.date !== dayKey);
   const marked = React.useMemo(() => new Set(state.items.map((item) => item.start?.slice(0, 10)).filter((key): key is string => Boolean(key))), [state.items]);
   const services = catalog?.services ?? [];
-  const hasBranches = shop.branches.length > 1;
+  const isSelect = servicePicker === "modal";
+  // En la Agenda con selector el barbero se elige en su campo: las horas de abajo son solo las suyas.
+  const chosenBarber = isSelect ? (barbers.find((barber) => barber.id === draft?.barberId) ?? null) : null;
   const editing = state.editingIndex !== null ? state.items[state.editingIndex] : null;
+  const slots = chosenBarber ? allSlots.filter((slot) => slot.barberIds.includes(chosenBarber.id)).map((slot) => ({ ...slot, barberIds: [chosenBarber.id] })) : allSlots;
+  const earliest = useEarliestQuery({ branchId: state.branchId, serviceIds, barberId: chosenBarber?.id ?? null });
   const timeLabel = (time: string) => fmt.clock(time);
   // «Lo de siempre»: lo de su última visita, si fue en esta sede y sigue en el catálogo.
   const lastVisit = state.customer && !state.customer.isNew ? state.customer.lastVisit : null;
@@ -101,6 +103,7 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
     .sort((a, b) => Number(b.barber.id === usualId) - Number(a.barber.id === usualId) || Number(b.times.length > 0) - Number(a.times.length > 0));
   const windows = timesByWindow(slots, dayKey, state.items, state.editingIndex);
   const hasSlots = slots.length > 0;
+  const boardView: BoardView = isSelect ? "time" : view;
   const waitlistKey = `${dayKey}|any`;
   const nextSlot = earliest.data?.slot ?? null;
 
@@ -126,33 +129,11 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
         </Alert>
       )}
 
-      {servicePicker === "modal" ? (
-        <div className={cn("grid grid-cols-1 gap-4", layout === "wide" && hasBranches && "grid-cols-2")}>
-          {hasBranches && (
-            <section aria-labelledby="agenda-branch" className="flex flex-col gap-2">
-              <div className="flex min-h-8 items-center">
-                <Text id="agenda-branch" size="sm" weight="medium">
-                  {t("booking.agenda.branchLabel")}
-                </Text>
-              </div>
-              <AgendaBranchField labelledBy="agenda-branch" />
-            </section>
-          )}
-          <section aria-labelledby="agenda-what" className="flex flex-col gap-2">
-            <div className="flex min-h-8 items-center justify-between gap-3">
-              <Text id="agenda-what" size="sm" weight="medium">
-                {t("booking.agenda.whatLabel")}
-              </Text>
-              {usual && !editing && !sameServices(usual.serviceIds, serviceIds) && (
-                <Button type="button" variant="ghost" size="sm" className="-mr-2 text-primary" onClick={applyUsual}>
-                  <ThemaIcon name="refresh" />
-                  {t("booking.agenda.usual")}
-                </Button>
-              )}
-            </div>
-            <AgendaServiceField labelledBy="agenda-what" />
-          </section>
-        </div>
+      {isSelect ? (
+        <>
+          <PersonPicker />
+          <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
+        </>
       ) : (
         <section aria-labelledby="agenda-what" className="flex flex-col gap-2.5">
           <Text id="agenda-what" size="sm" weight="medium">
@@ -174,30 +155,42 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
         </section>
       )}
 
-      <PersonPicker />
+      {!isSelect && <PersonPicker />}
 
       {serviceIds.length === 0 ? (
         <EmptyState icon="scissors" title={t("booking.agenda.pickService")} />
       ) : (
         <>
-          {!editing && <EarliestSlot />}
+          {!editing && !isSelect && <EarliestSlot />}
 
           <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Text id="agenda-when" size="sm" weight="medium">
-                {fmt.dayLong(day)}
-              </Text>
-              <SegmentedControl
-                options={[
-                  { value: "barber", label: t("booking.agenda.byBarber"), icon: Users },
-                  { value: "time", label: t("booking.agenda.byTime"), icon: Clock },
-                ]}
-                value={view}
-                onChange={(value) => setView(value as BoardView)}
-                size="sm"
-                ariaLabel={t("booking.agenda.viewLabel")}
-              />
-            </div>
+            {isSelect ? (
+              <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                <Text id="agenda-when" size="sm" weight="medium">
+                  {t("booking.agenda.whenLabel")}
+                </Text>
+                <Text size="sm" tone="muted" className="first-letter:uppercase">
+                  {fmt.dayLong(day)}
+                </Text>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Text id="agenda-when" size="sm" weight="medium">
+                  {fmt.dayLong(day)}
+                </Text>
+                <SegmentedControl
+                  options={[
+                    { value: "barber", label: t("booking.agenda.byBarber"), icon: Users },
+                    { value: "time", label: t("booking.agenda.byTime"), icon: Clock },
+                  ]}
+                  value={view}
+                  onChange={(value) => setView(value as BoardView)}
+                  size="sm"
+                  ariaLabel={t("booking.agenda.viewLabel")}
+                />
+              </div>
+            )}
+            {isSelect && !editing && <EarliestSlot />}
             <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
           </section>
 
@@ -210,8 +203,8 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
           ) : !hasSlots ? (
             <EmptyState
               icon="calendar"
-              title={t("booking.agenda.emptyDayTitle", { day: fmt.dayLong(day) })}
-              description={t("booking.agenda.emptyDayLead")}
+              title={chosenBarber ? t("booking.agenda.emptyBarberDay", { name: chosenBarber.name.split(" ")[0] ?? chosenBarber.name, day: fmt.dayLong(day) }) : t("booking.agenda.emptyDayTitle", { day: fmt.dayLong(day) })}
+              description={chosenBarber ? t("booking.agenda.emptyBarberDayLead") : t("booking.agenda.emptyDayLead")}
               action={
                 nextSlot && nextSlot.date !== dayKey ? (
                   <Button type="button" onClick={() => setDay(startOfDay(parseStart(`${nextSlot.date}T00:00`)))}>
@@ -221,14 +214,14 @@ export function AgendaBoard({ onNeedSignIn, servicePicker = "chips" }: { onNeedS
                 ) : undefined
               }
             />
-          ) : view === "barber" ? (
+          ) : boardView === "barber" ? (
             <div className={cn("grid grid-cols-1 gap-3", layout === "wide" && "grid-cols-2")}>
               {lanes.map(({ barber, times }) => (
                 <BarberLane key={barber.id} barber={barber} times={times} isUsual={barber.id === usualId} timeLabel={timeLabel} onPick={(time) => pick(time, barber.id)} onProfile={() => setProfile(barber)} />
               ))}
             </div>
           ) : (
-            <TimeWindows groups={windows} timeLabel={timeLabel} onPick={(time) => pick(time, null)} />
+            <TimeWindows groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
           )}
 
           {!isWaiting &&

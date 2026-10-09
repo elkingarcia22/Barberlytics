@@ -297,7 +297,7 @@ describe("las otras dos experiencias", () => {
     const field = await screen.findByTestId("agenda-branch-field");
     const before = field.textContent ?? "";
     await user.click(field);
-    const dialog = await screen.findByRole("dialog", { name: "¿A qué sede vas?" });
+    const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
     const other = within(dialog).getAllByRole("radio").find((radio) => radio.getAttribute("aria-checked") === "false");
     expect(other).toBeDefined();
     const name = (other?.getAttribute("aria-label") ?? "").split(",")[0];
@@ -326,6 +326,35 @@ describe("las otras dos experiencias", () => {
     expect(recommended).toBeDefined();
     await user.click(recommended as HTMLElement);
     expect(await screen.findByRole("group", { name: /^¿A qué hora el / })).toBeInTheDocument();
+  });
+
+  test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    // Con el catálogo ya cargado (el servicio más pedido puesto) se sabe quién puede.
+    await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toHaveTextContent(/min · desde/));
+    const field = await screen.findByTestId("agenda-barber-field");
+    expect(field).toHaveTextContent("Sin preferencia");
+    await user.click(field);
+    const dialog = await screen.findByRole("dialog", { name: "¿Con quién te quieres atender?" });
+    const profile = within(dialog).getAllByRole("button", { name: /^Ver perfil: / })[0];
+    const name = (profile.getAttribute("aria-label") ?? "").replace("Ver perfil: ", "");
+    const first = name.split(" ")[0];
+    // El perfil se abre en la misma ventana y se vuelve a la lista.
+    await user.click(profile);
+    expect(await within(dialog).findByRole("heading", { name: `Sobre ${first}` })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Volver" }));
+    expect(await within(dialog).findByRole("radio", { name: "Sin preferencia" })).toBeInTheDocument();
+    await user.click(within(dialog).getAllByRole("button", { name: /^Ver perfil: / })[0]);
+    await user.click(await within(dialog).findByRole("button", { name: `Elegir a ${first}` }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(field).toHaveTextContent(name);
+    // Las horas son solo las suyas (de noche hoy ya no quedan: se salta al siguiente día con horas).
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    const picks = await screen.findAllByRole("button", { name: /^Apartar a las / });
+    picks.forEach((pick) => expect(pick).toHaveAccessibleName(new RegExp(`con ${first}$`)));
   });
 
   test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {

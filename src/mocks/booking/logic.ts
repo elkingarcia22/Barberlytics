@@ -281,7 +281,7 @@ export function depositAmount(totals: { subtotal: number; tax: number }): number
 }
 
 /**
- * La tarjeta de cliente frecuente: cada `every` visitas gana una cortesía. Las ganadas salen de sus
+ * La membresía: cada `every` visitas gana una cortesía. Las ganadas salen de sus
  * visitas; las usadas se cuentan aparte. Un cliente de la demo arranca con a lo más una por usar.
  */
 export function loyaltyOf(client: MockClient): { every: number; progress: number; available: number; rewardServiceId: string; rewardName: string; rewardValue: number } | null {

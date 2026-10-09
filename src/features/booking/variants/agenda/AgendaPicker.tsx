@@ -1,6 +1,8 @@
 import * as React from "react";
+import { useAppT } from "@/app/i18n";
 import { DrawerShell } from "@/components/overlays";
 import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
@@ -19,6 +21,8 @@ interface PickerFieldProps {
   labelledBy: string;
   imageUrl?: string | null;
   icon: IconName;
+  /** Foto redonda: es una persona. */
+  round?: boolean;
   /** Lo elegido; sin él se ve el `placeholder`. */
   value?: string;
   detail?: string;
@@ -28,7 +32,7 @@ interface PickerFieldProps {
   testId?: string;
 }
 
-export function PickerField({ labelledBy, imageUrl, icon, value, detail, placeholder, open, onOpen, testId }: PickerFieldProps) {
+export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId }: PickerFieldProps) {
   const { touch } = useBookingFlow();
   const valueId = React.useId();
   return (
@@ -45,7 +49,7 @@ export function PickerField({ labelledBy, imageUrl, icon, value, detail, placeho
         touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5"
       )}
     >
-      <IconTile size={touch === "lg" ? "lg" : "md"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+      <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
         {value ? (
           <>
@@ -78,6 +82,15 @@ interface PickerOverlayProps {
   footer?: React.ReactNode;
   /** Dónde cae el foco al abrir: la lista, no un buscador (en táctil el teclado la taparía). */
   focusRef: React.RefObject<HTMLElement | null>;
+  /**
+   * Para navegar dentro de la ventana (la lista → el perfil de uno): con
+   * `onBack` la cabecera muestra «Volver», y al cambiar `view` el contenido
+   * vuelve arriba y el foco pasa a «Volver» o, de regreso, a la lista.
+   */
+  view?: string;
+  onBack?: () => void;
+  /** Foto o avatar junto al título (el de la sede o el barbero que se mira). */
+  leading?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -87,20 +100,72 @@ interface PickerOverlayProps {
  * centrado (una hoja a lo ancho de una tablet se ve estirada). En los dos casos
  * dentro de la reserva —el marco del dispositivo—, no de la ventana.
  */
-export function PickerOverlay({ open, onOpenChange, title, description, footer, focusRef, children }: PickerOverlayProps) {
+export function PickerOverlay({ open, onOpenChange, title, description, footer, focusRef, view = "list", onBack, leading, children }: PickerOverlayProps) {
+  const t = useAppT();
   const { layout, touch } = useBookingFlow();
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const backRef = React.useRef<HTMLButtonElement>(null);
+  const isDetail = Boolean(onBack);
 
-  const focusList = (event: Event) => {
-    event.preventDefault();
+  const focusSelected = () => {
     const list = focusRef.current;
     const target = list?.querySelector<HTMLElement>('[aria-checked="true"]') ?? list?.querySelector<HTMLElement>("[role=checkbox],[role=radio]");
     target?.focus();
   };
+  const focusList = (event: Event) => {
+    event.preventDefault();
+    focusSelected();
+  };
+
+  // Al pasar de la lista a un perfil (o volver) se arranca desde arriba y el foco no se queda en un botón que ya no está.
+  const shownView = React.useRef(view);
+  React.useEffect(() => {
+    if (view === shownView.current) return;
+    shownView.current = view;
+    const scroller = bodyRef.current?.parentElement;
+    if (scroller) scroller.scrollTop = 0;
+    if (isDetail) backRef.current?.focus();
+    else focusSelected();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de vista
+  }, [view]);
+
+  const heading = (
+    <span className="flex min-w-0 items-center gap-2">
+      {onBack && (
+        <Button ref={backRef} type="button" variant="ghost" size="icon-sm" onClick={onBack} aria-label={t("common.back")} className="-ml-1 shrink-0">
+          <ThemaIcon name="arrowLeft" />
+        </Button>
+      )}
+      {leading && <span className="shrink-0">{leading}</span>}
+    </span>
+  );
+  const hasHeading = Boolean(onBack || leading);
+  const content = (
+    <div
+      key={view}
+      ref={bodyRef}
+      // El perfil entra desde el lado, como una pantalla que se apila; la lista solo aparece.
+      className={cn("flex flex-col", isDetail && "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-4 motion-safe:duration-200")}
+    >
+      {children}
+    </div>
+  );
 
   if (layout === "compact" && touch === "default") {
     return (
-      <DrawerShell open={open} onOpenChange={onOpenChange} side="bottom" contentStyle={DRAWER_FIT_STYLE} title={title} description={description} actions={footer} onOpenAutoFocus={focusList} disablePadding>
-        {children}
+      <DrawerShell
+        open={open}
+        onOpenChange={onOpenChange}
+        side="bottom"
+        contentStyle={DRAWER_FIT_STYLE}
+        title={title}
+        description={description}
+        leading={hasHeading ? heading : undefined}
+        actions={footer}
+        onOpenAutoFocus={focusList}
+        disablePadding
+      >
+        {content}
       </DrawerShell>
     );
   }
@@ -113,11 +178,14 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
         // Medido contra la reserva (el marco de la tablet o la pantalla), no contra la ventana.
         className={cn("flex max-h-[calc(100%-3rem)] flex-col gap-0 overflow-hidden p-0", touch === "lg" ? "sm:max-w-xl" : "sm:max-w-lg")}
       >
-        <DialogHeader className="border-b bg-muted/30 p-4 pr-12">
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+        <DialogHeader className={cn("border-b bg-muted/30 p-4 pr-12", hasHeading && "flex-row items-center gap-3 text-left")}>
+          {hasHeading && heading}
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <DialogTitle className="truncate">{title}</DialogTitle>
+            {description && <DialogDescription className="truncate">{description}</DialogDescription>}
+          </div>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">{content}</div>
         {footer && <DialogFooter className="m-0 rounded-b-xl bg-muted/30 p-4">{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
@@ -130,14 +198,18 @@ interface PickerRowProps {
   label: string;
   imageUrl?: string | null;
   icon: IconName;
+  /** Foto redonda: es una persona. */
+  round?: boolean;
   onClick: () => void;
+  /** «Ver perfil» / «Ver detalle»: un botón al lado (un botón no va dentro de otro). */
+  action?: { label: string; ariaLabel: string; onClick: () => void };
   children: React.ReactNode;
 }
 
 /** Una fila de la lista: foto, texto y la marca (casilla si se pueden varios, círculo si uno). */
-export function PickerRow({ role, checked, label, imageUrl, icon, onClick, children }: PickerRowProps) {
+export function PickerRow({ role, checked, label, imageUrl, icon, round = false, onClick, action, children }: PickerRowProps) {
   const { touch } = useBookingFlow();
-  return (
+  const row = (
     <button
       type="button"
       role={role}
@@ -145,13 +217,13 @@ export function PickerRow({ role, checked, label, imageUrl, icon, onClick, child
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "group/row flex w-full items-center gap-3 rounded-xl px-2 text-left outline-none transition-colors duration-fast",
+        "group/row flex w-full min-w-0 items-center gap-3 rounded-xl px-2 text-left outline-none transition-colors duration-fast",
         "hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 active:bg-muted/80",
         checked && "bg-primary/5 hover:bg-primary/10",
         touch === "lg" ? "min-h-16 py-2.5" : "min-h-14 py-2"
       )}
     >
-      <IconTile size={touch === "lg" ? "lg" : "md"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
+      <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</span>
       <span
         aria-hidden
@@ -164,5 +236,15 @@ export function PickerRow({ role, checked, label, imageUrl, icon, onClick, child
         {checked && <ThemaIcon name="check" size="xs" tone="inverse" />}
       </span>
     </button>
+  );
+  if (!action) return row;
+  return (
+    <div className="flex items-center gap-1">
+      <div className="min-w-0 flex-1">{row}</div>
+      <Button type="button" variant="ghost" size="sm" onClick={action.onClick} aria-label={action.ariaLabel} className="shrink-0 px-2 text-primary hover:text-primary">
+        {action.label}
+        <ThemaIcon name="chevronRight" size="xs" data-icon="inline-end" />
+      </Button>
+    </div>
   );
 }

@@ -439,13 +439,8 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
       if (pendingManage.current) return manage();
       return startBooking();
     }
-    const loyalty = customer.loyalty;
-    const reward = loyalty?.rewardName || t("booking.loyalty.rewardFallback");
-    const extra = [
-      customer.upcoming > 0 ? t("booking.chat.upcomingLine", { count: customer.upcoming }) : "",
-      loyalty ? (loyalty.available > 0 ? t("booking.loyalty.ready", { reward }) : t("booking.loyalty.left", { count: loyalty.every - loyalty.progress, reward })) : "",
-      customer.credit > 0 ? t("booking.welcome.credit", { amount: fmt.money(customer.credit) }) : "",
-    ].filter(Boolean);
+    // La membresía no va en el saludo: se cuenta en el pago, como en las otras versiones.
+    const extra = [customer.upcoming > 0 ? t("booking.chat.upcomingLine", { count: customer.upcoming }) : "", customer.credit > 0 ? t("booking.welcome.credit", { amount: fmt.money(customer.credit) }) : ""].filter(Boolean);
     say({ text: [t("booking.chat.knownHello", { name: customer.firstName }), ...extra].join("\n\n") });
     if (pendingManage.current) return manage();
     const spoken = userTurns.current;

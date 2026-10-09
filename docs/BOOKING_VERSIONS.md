@@ -35,6 +35,15 @@ muchos servicios obliga a deslizar mucho— hay un campo tipo select (`AgendaSer
 buscador si hay 7 o más, agrupada por categoría, una casilla por fila (se pueden varios). Se aplica
 con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son los de la Agenda abierta.
 
+- Orden de la pantalla: «¿Para quién es la cita?» primero; luego «¿Dónde quieres que te atendamos?»,
+  «¿Qué te vas a hacer?» y «¿Con quién te quieres atender?», cada una un campo que abre su lista; y al
+  final «¿Qué día y a qué hora?», solo con las horas (sin «Por barbero / Por hora»): las del barbero
+  elegido o, sin preferencia, las de todos (`AgendaSelectFields`).
+- Sede y barbero tienen «Ver detalle» / «Ver perfil» en cada fila: el perfil se abre **dentro** de la
+  misma ventana, con «Volver» a la lista y el botón de elegir en el pie (`PickerOverlay` con `onBack` y
+  `view`; los cuerpos `BranchProfileBody` y `BarberProfileBody` son los mismos de los cajones).
+- El barbero vive en `draft.barberId`; si los servicios nuevos no los hace o se cambia de sede, vuelve a
+  «Sin preferencia». La siguiente cita sigue con el mismo barbero.
 - La sede tampoco va en un select junto al título: es una tarjeta igual (foto del local, nombre y
   dirección) que abre la lista de sedes con horario y barberos (`AgendaBranchField`). Tocar una la elige
   y cierra; con citas apartadas queda marcada y el pie pide confirmar, porque cambiar vacía la reserva.

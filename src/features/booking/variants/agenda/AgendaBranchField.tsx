@@ -2,14 +2,17 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
+import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { BranchProfileBody } from "../../flow/BranchProfileSheet";
 import { PickerField, PickerOverlay, PickerRow } from "./AgendaPicker";
 
 /**
  * La sede en la Agenda con selector: el mismo campo que los servicios (foto del
  * local, nombre y dirección) y la lista de sedes en la misma ventana. Tocar una
- * sede la elige y cierra. Con citas ya apartadas cambiar vacía la reserva
+ * sede la elige y cierra; «Ver detalle» abre su perfil sin salir de la ventana
+ * (con «Volver» a la lista). Con citas ya apartadas cambiar vacía la reserva
  * (barberos y precios son de cada sede): la sede queda marcada y el pie pide
  * confirmarlo antes.
  */
@@ -18,16 +21,22 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
   const { shop, state, dispatch, fmt } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState<string | null>(null);
+  const [viewing, setViewing] = React.useState<string | null>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
   const current = shop.branches.find((branch) => branch.id === state.branchId);
   if (shop.branches.length < 2 || !current) return null;
 
   const openChange = (next: boolean) => {
     setOpen(next);
-    if (!next) setPending(null);
+    if (!next) {
+      setPending(null);
+      setViewing(null);
+    }
   };
   const choose = (branchId: string) => {
     dispatch({ type: "chooseBranch", branchId });
+    // Los barberos son de cada sede: el que estaba elegido no sigue.
+    if (state.draft?.barberId) dispatch({ type: "chooseBarber", barberId: null });
     openChange(false);
   };
   const pick = (branchId: string) => {
@@ -36,6 +45,7 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
     choose(branchId);
   };
   const marked = pending ?? state.branchId;
+  const shown = viewing ? shop.branches.find((branch) => branch.id === viewing) : undefined;
 
   const footer = pending ? (
     <div className="flex w-full flex-col gap-3">
@@ -51,6 +61,16 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
         </Button>
       </div>
     </div>
+  ) : shown ? (
+    shown.id === state.branchId ? (
+      <Button type="button" size="lg" variant="outline" className="w-full" onClick={() => openChange(false)}>
+        {t("booking.branchProfile.current")}
+      </Button>
+    ) : (
+      <Button type="button" size="lg" className="w-full" onClick={() => pick(shown.id)}>
+        {t("booking.branchProfile.choose", { name: shown.name })}
+      </Button>
+    )
   ) : undefined;
 
   return (
@@ -61,31 +81,56 @@ export function AgendaBranchField({ labelledBy }: { labelledBy: string }) {
         icon="building"
         value={current.name}
         detail={`${current.address}, ${current.city}`}
-        placeholder={t("booking.agenda.branchLabel")}
+        placeholder={t("booking.agenda.whereLabel")}
         open={open}
         onOpen={() => setOpen(true)}
         testId="agenda-branch-field"
       />
-      <PickerOverlay open={open} onOpenChange={openChange} title={t("booking.branch.title")} description={t("booking.branch.lead")} footer={footer} focusRef={listRef}>
-        <div ref={listRef} role="radiogroup" aria-label={t("booking.branch.title")} className="flex flex-col gap-0.5 p-2">
-          {shop.branches.map((branch) => (
-            <PickerRow key={branch.id} role="radio" checked={branch.id === marked} label={`${branch.name}, ${branch.address}`} imageUrl={branch.imageUrl} icon="building" onClick={() => pick(branch.id)}>
-              <Text as="span" weight="medium" className="truncate">
-                {branch.name}
-              </Text>
-              <Text as="span" size="xs" tone="secondary" className="truncate">
-                {branch.address}, {branch.city}
-              </Text>
-              <Text as="span" size="xs" tone="muted" tabular className="flex flex-wrap items-center gap-x-1.5">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                  <ThemaIcon name="clock" size="xs" />
-                  {t("booking.branch.hours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}
-                </span>
-                <span className="whitespace-nowrap">· {t("booking.branch.barbers", { count: branch.barbers })}</span>
-              </Text>
-            </PickerRow>
-          ))}
-        </div>
+      <PickerOverlay
+        open={open}
+        onOpenChange={openChange}
+        title={shown ? shown.name : t("booking.agenda.whereLabel")}
+        description={shown ? `${shown.address}, ${shown.city}` : t("booking.branch.lead")}
+        leading={shown ? <IconTile size="md" src={shown.imageUrl ?? undefined} icon={<ThemaIcon name="building" />} /> : undefined}
+        onBack={shown ? () => setViewing(null) : undefined}
+        view={shown ? `branch:${shown.id}` : "list"}
+        footer={footer}
+        focusRef={listRef}
+      >
+        {shown ? (
+          <div className="p-4">
+            <BranchProfileBody branchId={shown.id} />
+          </div>
+        ) : (
+          <div ref={listRef} role="radiogroup" aria-label={t("booking.agenda.whereLabel")} className="flex flex-col gap-0.5 p-2">
+            {shop.branches.map((branch) => (
+              <PickerRow
+                key={branch.id}
+                role="radio"
+                checked={branch.id === marked}
+                label={`${branch.name}, ${branch.address}`}
+                imageUrl={branch.imageUrl}
+                icon="building"
+                onClick={() => pick(branch.id)}
+                action={{ label: t("booking.agenda.detail"), ariaLabel: `${t("booking.agenda.detail")}: ${branch.name}`, onClick: () => setViewing(branch.id) }}
+              >
+                <Text as="span" weight="medium" className="truncate">
+                  {branch.name}
+                </Text>
+                <Text as="span" size="xs" tone="secondary" className="truncate">
+                  {branch.address}, {branch.city}
+                </Text>
+                <Text as="span" size="xs" tone="muted" tabular className="flex flex-wrap items-center gap-x-1.5">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <ThemaIcon name="clock" size="xs" />
+                    {t("booking.branch.hours", { from: fmt.clock(branch.opensAt), to: fmt.clock(branch.closesAt) })}
+                  </span>
+                  <span className="whitespace-nowrap">· {t("booking.branch.barbers", { count: branch.barbers })}</span>
+                </Text>
+              </PickerRow>
+            ))}
+          </div>
+        )}
       </PickerOverlay>
     </>
   );

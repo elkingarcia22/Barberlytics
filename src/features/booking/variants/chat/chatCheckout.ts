@@ -112,7 +112,11 @@ export function useChatCheckout(kit: CheckoutKit) {
   const askDiscount = () =>
     say(() => {
       const sums = totalsRef.current;
-      const perks = [sums.prepaid > 0 ? t("booking.chat.perkPackage", { amount: fmt.money(sums.prepaid) }) : "", sums.reward > 0 ? t("booking.chat.perkReward", { amount: fmt.money(sums.reward) }) : ""].filter(Boolean).join(" ");
+      // La membresía se cuenta aquí, en el pago: la cortesía si la tiene, o cuánto suma esta cita.
+      const loyalty = stateRef.current.customer?.loyalty ?? null;
+      const reward = loyalty?.rewardName || t("booking.loyalty.rewardFallback");
+      const membership = loyalty && sums.reward === 0 && loyalty.available === 0 ? t("booking.loyalty.thisVisit", { count: Math.min(loyalty.every, loyalty.progress + 1), total: loyalty.every }) : "";
+      const perks = [sums.prepaid > 0 ? t("booking.chat.perkPackage", { amount: fmt.money(sums.prepaid) }) : "", sums.reward > 0 ? t("booking.chat.perkReward", { amount: fmt.money(sums.reward) }) : "", membership ? `**${t("booking.loyalty.title")}:** ${membership}${loyalty && loyalty.progress + 1 >= loyalty.every ? ` ${t("booking.loyalty.earns", { reward })}` : ""}` : ""].filter(Boolean).join(" ");
       return { text: perks || undefined, question: makeQuestion("discount", t("booking.chat.discountTitle"), [{ label: t("booking.chat.discountNo"), value: "none" }], { otherLabel: t("booking.chat.discountYes"), otherPlaceholder: t("booking.chat.discountPlaceholder") }) };
     });
 

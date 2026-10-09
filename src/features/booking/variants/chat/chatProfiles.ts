@@ -39,6 +39,8 @@ export interface ProfilesKit {
   askServices: (text?: string) => Promise<void>;
   /** Vuelve a hacer la pregunta que quedó pendiente antes de pedir el detalle. */
   resume: () => void;
+  /** Los barberos de la última sede que se mostró: su perfil se puede pedir aunque no sea la sede de la reserva. */
+  lastTeam: { current: readonly BookingBarber[] };
 }
 
 /**
@@ -47,7 +49,7 @@ export interface ProfilesKit {
  * con sus fotos. Después del detalle pregunta si se elige.
  */
 export function useChatProfiles(kit: ProfilesKit) {
-  const { t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume } = kit;
+  const { t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume, lastTeam } = kit;
 
   const branchByText = (text: string) => {
     const typed = plain(text);
@@ -96,7 +98,7 @@ export function useChatProfiles(kit: ProfilesKit) {
     );
   };
 
-  const branchText = (detail: BranchDetail): string => {
+  const branchText = (detail: BranchDetail, barbers: readonly BookingBarber[]): string => {
     const now = new Date();
     const open = openStateOf(detail.hours, now);
     const state = open.kind === "open" ? `${t("booking.branchProfile.open")} · ${t("booking.branchProfile.closesAt", { time: fmt.clock(open.closesAt) })}` : open.kind === "opensLater" ? t("booking.branchProfile.opensAt", { time: fmt.clock(open.opensAt) }) : t("booking.branchProfile.closedToday");
@@ -122,7 +124,11 @@ export function useChatProfiles(kit: ProfilesKit) {
       // Dos espacios antes del salto: en Markdown, una línea nueva sin cerrar el párrafo.
       [`📍 ${detail.address}, ${detail.city} · [${t("booking.branchProfile.directions")}](${detail.mapsUrl})`, `📞 [${formatPhone(detail.phone)}](tel:${detail.phone})`, links.length > 0 ? `🔗 ${links.join(" · ")}` : ""].filter(Boolean).join("  \n"),
       `**${t("booking.branchProfile.hours")}**\n${hours.join("\n")}`,
-      [t("booking.chat.branchBarbers", { count: detail.barbers }), ...closures].join("\n"),
+      // Quién atiende en esa sede: nombre, nivel y nota; el perfil se pide escribiendo su nombre.
+      barbers.length > 0
+        ? `**${t("booking.chat.branchTeam", { count: barbers.length })}**\n${barbers.map((barber) => `- ${barber.name}${barber.level ? ` · ${barber.level}` : ""} · ★ ${barber.rating.toFixed(1)}`).join("\n")}\n\n${t("booking.chat.branchTeamHint")}`
+        : t("booking.chat.branchBarbers", { count: detail.barbers }),
+      closures.join("\n"),
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -153,8 +159,10 @@ export function useChatProfiles(kit: ProfilesKit) {
   /** El detalle de una sede; `offer` pregunta después si va a esa (mientras arma la reserva). */
   const showBranch = async (branchId: string, offer: boolean) => {
     try {
-      const detail = await busy(() => bookingApi.branch(branchId));
-      say({ text: branchText(detail), photos: detail.gallery, photosTitle: detail.name });
+      const [detail, team] = await busy(() => Promise.all([bookingApi.branch(branchId), bookingApi.catalog(branchId).then((catalog) => catalog.barbers, () => [])]));
+      const ranked = [...team].sort((a, b) => b.rating - a.rating);
+      lastTeam.current = ranked;
+      say({ text: branchText(detail, ranked), photos: detail.gallery, photosTitle: detail.name });
       if (!offer) return resume();
       ask(
         makeQuestion("branchConfirm", stateRef.current.branchId ? t("booking.chat.branchSwitchTitle") : t("booking.chat.branchConfirmTitle"), [
@@ -192,7 +200,7 @@ export function useChatProfiles(kit: ProfilesKit) {
       return true;
     }
     const loaded = await loadCatalog();
-    const barber = barberByText(text, loaded?.barbers ?? []);
+    const barber = barberByText(text, loaded?.barbers ?? []) ?? barberByText(text, lastTeam.current);
     if (!barber) return false;
     await showBarber(barber);
     return true;
@@ -202,7 +210,7 @@ export function useChatProfiles(kit: ProfilesKit) {
   const detailRequest = async (text: string): Promise<boolean> => {
     if (!looksLikeDetail(text)) return false;
     const loaded = stateRef.current.branchId ? await loadCatalog() : undefined;
-    const barber = barberByText(text, loaded?.barbers ?? []);
+    const barber = barberByText(text, loaded?.barbers ?? []) ?? barberByText(text, lastTeam.current);
     if (barber) {
       await showBarber(barber);
       return true;
@@ -213,6 +221,23 @@ export function useChatProfiles(kit: ProfilesKit) {
       return true;
     }
     return false;
+  };
+
+  /**
+   * El barbero elegido no tiene horas ese día: otros que hacen lo mismo (por habilidades y nivel
+   * parecidos), con su primer día libre y sus primeras horas, para elegir con quién seguir.
+   */
+  const alternativeEntries = async (goal: { branchId: string; serviceIds: readonly string[]; barberId: string }, date: string): Promise<QuestionEntry[]> => {
+    const found = await busy(() => bookingApi.alternatives({ branchId: goal.branchId, date, serviceIds: goal.serviceIds, barberId: goal.barberId }).catch(() => null));
+    const barbers = catalogRef.current?.barbers ?? [];
+    return (found?.items ?? []).flatMap((item) => {
+      const barber = barbers.find((entry) => entry.id === item.barberId);
+      if (!barber || item.times.length === 0) return [];
+      const day = item.date === date ? t("booking.chat.altSameDay") : fmt.dayShort(parseStart(`${item.date}T00:00`));
+      const times = item.times.slice(0, 3).map((time) => fmt.clock(time)).join(", ");
+      const skills = item.skills.length > 0 ? ` · ${t("booking.chat.altSkills", { skills: item.skills.slice(0, 2).join(", ") })}` : "";
+      return [{ label: barber.name, value: `alt:${barber.id}|${item.date}`, image: barber.avatarUrl, description: `★ ${barber.rating.toFixed(1)} · ${day}: ${times}${skills}` }];
+    });
   };
 
   /** ¿Dónde quedan? Con varias sedes, cuál conocer; con una, su detalle de una vez. */
@@ -264,5 +289,5 @@ export function useChatProfiles(kit: ProfilesKit) {
     }
   };
 
-  return { askBranch, askBarber, showBranch, showBarber, detailRequest, info, answerProfile };
+  return { askBranch, askBarber, showBranch, showBarber, detailRequest, info, answerProfile, alternativeEntries };
 }

@@ -377,8 +377,8 @@ describe("backend de la reserva", () => {
     expect(left).toBeCloseTo(50 - covered.totals.gift, 2);
 
     // Comprar una para alguien: se paga con tarjeta y queda con su saldo completo.
-    await expect(bookingApi.buyGift(token, { amount: 5, recipientName: "Laura", recipientContact: "+573004441122", message: "" })).rejects.toMatchObject({ status: 422 });
-    const bought = await bookingApi.buyGift(token, { amount: 60, recipientName: "Laura", recipientContact: "+573004441122", message: "Feliz cumple", savedCardId: "card_demo_visa" });
+    await expect(bookingApi.buyGift(token, { amount: 5, recipientName: "Mateo", recipientContact: "+573004441122", message: "" })).rejects.toMatchObject({ status: 422 });
+    const bought = await bookingApi.buyGift(token, { amount: 60, recipientName: "Mateo", recipientContact: "+573004441122", message: "Feliz cumple", savedCardId: "card_demo_visa" });
     expect(bought).toMatchObject({ amount: 60, sentTo: "•••• 1122", paidWith: "Visa •••• 4242" });
     await expect(bookingApi.checkGift(bought.code)).resolves.toEqual({ code: bought.code, balance: 60 });
   });

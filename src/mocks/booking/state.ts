@@ -141,7 +141,6 @@ export const DEMO_PHONES: Readonly<Record<string, string>> = {
 /** La gente ligada al perfil de la clienta de la demo: para ver «Tu gente» al reservar para otro. */
 export const DEMO_GUESTS = [
   { id: "gst_demo_santi", name: "Santiago", relation: "Hijo o hija", visits: 4 },
-  { id: "gst_demo_laura", name: "Laura", relation: "Pareja", visits: 2 },
 ];
 export const DEMO_GUESTS_CLIENT = "cli_001";
 

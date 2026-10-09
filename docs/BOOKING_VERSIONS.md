@@ -69,10 +69,14 @@ con «Ver horas»; cerrar sin aplicar no cambia nada. Día, horas y cierre son l
   sede» / «Ver el perfil de un barbero» para escribir de cuál; también vale escribirlo en la caja
   («perfil de Andrés», «cómo es la sede Utah», «¿dónde quedan?»). El detalle llega como mensaje con sus
   fotos (se abren en la galería): la sede con su estado de hoy, dirección y «Cómo llegar», teléfono,
-  redes, horario de la semana y cierres; el barbero con nivel, nota, habilidades, lo que cobra por lo
+  redes, horario de la semana, quién atiende (nombre, nivel y nota; su perfil se pide por nombre) y cierres; el barbero con nivel, nota, habilidades, lo que cobra por lo
   elegido, Instagram y dos reseñas. Después pregunta si se elige («¿Te agendo con Andrés?», «¿Prefieres
   reservar en esta sede?», que avisa que cambiar de sede quita lo apartado) o retoma la pregunta que
   quedó pendiente («¿Seguimos donde íbamos?»).
+- Sin horas con el barbero elegido ese día: recomienda otros que hacen lo mismo (`/booking/alternatives`:
+  habilidades y nivel parecidos) con su primer día libre y sus primeras horas, y debajo «Con quien esté
+  libre», «Ver otro día con …», «Probar con otro barbero» y la lista de espera.
+- Lo que el asistente pide va resaltado en negrita («tu **nombre y apellido**», «el **CVC**»…).
 - `parseBookingText` entiende servicios por su nombre de a pie («corte y barba» → combo), el barbero por
   su nombre o «cualquiera», días («mañana», «el viernes», «20 de octubre») y horas («a las 5» = 17:00,
   «10 y media», «en la tarde»), además de intenciones sueltas. Sin modelo de lenguaje: lo que no entiende

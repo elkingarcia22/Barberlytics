@@ -11,7 +11,7 @@ import { brandFromName, isCvcComplete } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
 import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
-import type { BookedAppointment, BookingCatalog, VisitSuggestion } from "../../types";
+import type { BookedAppointment, BookingBarber, BookingCatalog, VisitSuggestion } from "../../types";
 import type { DayWindow } from "../agenda/agendaModel";
 import { EMPTY_CARD, isCardStep, maskCardInput, useChatNewCard, type CardDraft } from "./chatCard";
 import { useChatCheckout } from "./chatCheckout";
@@ -51,6 +51,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
   const rescheduling = React.useRef<BookedAppointment | null>(null);
   const managing = React.useRef<BookedAppointment | null>(null);
   const suggestion = React.useRef<VisitSuggestion | null>(null);
+  const lastTeam = React.useRef<readonly BookingBarber[]>([]);
   const started = React.useRef(false);
   const seenCustomer = React.useRef<string | null>(null);
   const seenReservation = React.useRef<string | null>(null);
@@ -295,10 +296,18 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     const day = fmt.dayLong(parseStart(`${date}T00:00`));
     const slots = availability.slots;
     if (slots.length === 0) {
-      const entries: QuestionEntry[] = [{ label: t("booking.chat.otherDay"), value: "otherDay" }];
-      if (goal.barberId && !rescheduling.current) entries.push({ label: t("booking.chat.otherBarber"), value: "otherBarber" });
-      if (!rescheduling.current) entries.push({ label: t("booking.chat.waitlistJoin"), value: "waitlist", description: t("booking.chat.waitlistHint") });
-      return ask(makeQuestion("noTimes", t("booking.chat.noTimesTitle"), entries), [text, t("booking.chat.noTimes", { day })].filter(Boolean).join(" "));
+      // Sin horas con su barbero: primero otros que hacen lo mismo y sí tienen; después, el resto de opciones.
+      const name = goal.barberId ? firstName(barberName(goal.barberId)) : "";
+      const others = goal.barberId && !rescheduling.current ? await profiles.alternativeEntries({ branchId: goal.branchId, serviceIds: goal.serviceIds, barberId: goal.barberId }, date) : [];
+      const entries: QuestionEntry[] = [
+        ...others,
+        ...(goal.barberId && !rescheduling.current ? [{ label: t("booking.chat.reply.anyBarber"), value: "any", description: t("booking.chat.anyThatDay"), emoji: "✂️" }] : []),
+        { label: name ? t("booking.chat.otherDayWith", { name }) : t("booking.chat.otherDay"), value: "otherDay", emoji: "📅" },
+        ...(goal.barberId && !rescheduling.current ? [{ label: t("booking.chat.otherBarber"), value: "otherBarber", emoji: "💈" }] : []),
+        ...(!rescheduling.current ? [{ label: t("booking.chat.waitlistJoin"), value: "waitlist", description: t("booking.chat.waitlistHint"), emoji: "🔔" }] : []),
+      ];
+      const lead = name ? (others.length > 0 ? t("booking.chat.noTimesWithAlts", { name, day }) : t("booking.chat.noTimesWith", { name, day })) : t("booking.chat.noTimes", { day });
+      return ask(makeQuestion("noTimes", t("booking.chat.noTimesTitle"), entries), [text, lead].filter(Boolean).join(" "));
     }
     const hourOf = (time: string) => Number(time.slice(0, 2));
     const inWindow = window ? slots.filter((slot) => (window === "morning" ? hourOf(slot.time) < 12 : window === "afternoon" ? hourOf(slot.time) >= 12 && hourOf(slot.time) < 18 : hourOf(slot.time) >= 18)) : slots;
@@ -411,7 +420,7 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
     const pending = [...turnsRef.current].reverse().find((turn) => turn.question && turn.question.answer === undefined && !["branchInfo", "branchConfirm"].includes(turn.question.kind));
     if (pending?.question && stateRef.current.customer) ask({ ...pending.question }, t("booking.chat.resume"));
   };
-  const profiles = useChatProfiles({ t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume });
+  const profiles = useChatProfiles({ t, fmt, shop, apply, say, ask, busy, stateRef, catalogRef, loadCatalog, serviceNames, startBooking, askDay, askServices, resume, lastTeam });
   const { askBranch, askBarber, info } = profiles;
   const pay = useChatCheckout({ t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard: (lead?: string) => newCard.start(lead) });
   const newCard = useChatNewCard({ t, say, ask, expect, stateRef, payment, cardDraft, askMethod: pay.askMethod });
@@ -566,6 +575,15 @@ export function useChatBooking({ onFinish, payment }: { onFinish?: () => void; p
         if (value?.startsWith("time:") && timesDay.current) return commitTime(`${timesDay.current}T${value.slice(5)}`);
         return askDay();
       case "noTimes":
+        if (value?.startsWith("alt:")) {
+          const [barberId = "", date = ""] = value.slice(4).split("|");
+          apply({ type: "chooseBarber", barberId });
+          return askTimes(date);
+        }
+        if (value === "any") {
+          apply({ type: "chooseBarber", barberId: null });
+          return askTimes(timesDay.current ?? dayKeyOf(new Date()));
+        }
         if (value === "otherBarber") return askBarber();
         if (value === "waitlist") return ask(makeQuestion("waitlist", t("booking.chat.waitlistTitle"), (["morning", "afternoon", "evening", "any"] as const).map((window) => ({ label: t(`booking.waitlist.${window}`), value: window }))));
         return askDay();

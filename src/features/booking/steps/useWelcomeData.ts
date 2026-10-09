@@ -1,12 +1,11 @@
-import { defaultBranchId } from "../../bookingState";
-import { useBookingFlow } from "../../flow/BookingContext";
-import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../../queries";
-import { itemPrice } from "../../useBookingTotals";
+import { defaultBranchId } from "../bookingState";
+import { useBookingFlow } from "../flow/BookingContext";
+import { useBookingCatalogQuery, useVisitSuggestionQuery } from "../queries";
+import { itemPrice } from "../useBookingTotals";
 
 /**
- * Lo que necesita cualquier versión de la bienvenida del cliente que vuelve: su última visita
- * (servicios, barbero, sede y precio), la propuesta de su próxima visita y las acciones del paso.
- * Las tres propuestas del laboratorio leen de aquí para que solo cambie el diseño.
+ * Lo que necesita la bienvenida del cliente que vuelve: su última visita (servicios, barbero, sede
+ * y precio), la propuesta de su próxima visita según su ritmo y las acciones del paso.
  */
 export function useWelcomeData() {
   const { state, dispatch, shop, fmt, layout } = useBookingFlow();

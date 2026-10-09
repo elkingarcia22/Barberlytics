@@ -679,8 +679,8 @@ describe("pantalla de la reserva", () => {
     await typeCode(user);
     expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
     // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
-    expect(await screen.findByText("Tu próxima visita")).toBeInTheDocument();
-    expect(screen.getByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
+    expect(await screen.findByText("Lo de siempre")).toBeInTheDocument();
+    expect(await screen.findByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /^Reservar .+·/ }));
     expect(await screen.findByText("Revisa tu reserva")).toBeInTheDocument();
   });

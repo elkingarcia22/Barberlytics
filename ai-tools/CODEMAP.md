@@ -282,7 +282,6 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ManageSignIn.tsx** — Entrar a «Mis citas»: el celular y un código por SMS. · `ManageSignIn` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/lib/api
 - **MembershipPerk.tsx** — La membresía del cliente, en el pago: cada tantas visitas gana un servicio de cortesía. · `MembershipPerk` · piezas: ProgressRing, Switch, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **NewCardSheet.tsx** — Agregar una tarjeta en su propia hoja, como el catálogo de productos o el perfil del barbero: la tarjeta dibu… · `NewCardSheet` · piezas: Button · usa: @/app/i18n, @/icons
-- **NextVisitSuggestion.tsx** — Lo que le toca según su frecuencia de visita: el día (su última visita más su ritmo) y la hora a la que suele… · `NextVisitSuggestion` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina, los cargos (recargo por tarjeta) y el total,… · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
 - **PackagesToggle.tsx** — En el pago: si sus paquetes cubren algo de esta reserva, lo dice y deja usarlos o guardarlos para otra vez. · `PackagesToggle` · piezas: Switch, Text · usa: @/app/i18n, @/icons
 - **PaymentPanel.tsx** — El botón que cobra: dice exactamente lo que va a pasar («Pagar $64»). · `PayButton`, `PaymentPanel`, `PaymentSheets` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
@@ -332,7 +331,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
 - **VerifyStep.tsx** — El código que llegó al celular. · `VerifyStep` · piezas: Button, Field, InputOtp, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
-- **WelcomeStep.tsx** — El cliente que vuelve: lo más probable es que quiera lo mismo de la última vez, así que eso va primero y a un… · `WelcomeStep` · piezas: Alert, AlertDescription, Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Separator, Skeleton, Text · usa: @/app/i18n, @/icons
+- **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo y atajos como pastillas que se deslizan; en me… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **useWelcomeData.ts** — Lo que necesita la bienvenida del cliente que vuelve: su última visita (servicios, barbero, sede y precio), l… · `useWelcomeData`, `WelcomeData`
 
 ### booking/variants/agenda
 
@@ -362,14 +362,6 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatQuestions.ts** — Las preguntas de la conversación como datos: lo que se lee (las opciones y su detalle) y lo que significa cad… · `QuestionKind`, `BookingQuestion`, `QuestionEntry`, `makeQuestion`, `matchOption`, `orderLine` · usa: @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
-
-### booking/variants/welcome-lab
-
-- **WelcomeBento.tsx** — Propuesta B · Atajos. · `WelcomeBento` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **WelcomeLab.tsx** — Laboratorio temporal de la bienvenida del cliente que vuelve: tres rediseños sobre los mismos datos y accione… · `WelcomeProposal`, `WelcomeLab` · piezas: SegmentedControl, Text · usa: @/app/i18n
-- **WelcomePass.tsx** — Propuesta A · Pase. · `WelcomePass` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **WelcomeRhythm.tsx** — Propuesta C · Tu ritmo. · `WelcomeRhythm` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **useWelcomeData.ts** — Lo que necesita cualquier versión de la bienvenida del cliente que vuelve: su última visita (servicios, barbe… · `useWelcomeData`, `WelcomeData`
 
 ### branches
 

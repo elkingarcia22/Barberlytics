@@ -7,10 +7,8 @@
  *   se va a hacer se elige en un campo que abre la carta en un modal, en vez de
  *   una tira de chips; día y hora, igual.
  * - `chat` (Conversación): «dime qué necesitas»; se reserva hablando con el asistente.
- * - `welcome-lab` (temporal): el paso a paso con tres propuestas de la bienvenida del cliente que
- *   vuelve, para compararlas. Se borra al elegir una.
  */
-export type BookingVersion = "guided" | "welcome-lab" | "agenda" | "agenda-select" | "chat";
-export const BOOKING_VERSIONS: readonly BookingVersion[] = ["guided", "welcome-lab", "agenda", "agenda-select", "chat"];
+export type BookingVersion = "guided" | "agenda" | "agenda-select" | "chat";
+export const BOOKING_VERSIONS: readonly BookingVersion[] = ["guided", "agenda", "agenda-select", "chat"];
 
 export const isBookingVersion = (value: string | null): value is BookingVersion => value !== null && (BOOKING_VERSIONS as readonly string[]).includes(value);

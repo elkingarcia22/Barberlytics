@@ -88,13 +88,13 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
 
   const heading = (
     <header className="flex flex-wrap items-end justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
-      {/* Sobre la foto. En claro va en una placa de vidrio (crema translúcido con desenfoque): la foto se ve con
-          fuerza y la tinta oscura se lee encima. En oscuro basta la sombra del color del fondo. */}
-      <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/75 px-4 py-3 shadow-sm backdrop-blur-md dark:rounded-none dark:border-0 dark:bg-transparent dark:p-0 dark:shadow-none dark:backdrop-blur-none">
-        <Heading level={layout === "wide" ? 2 : 3} className="[text-shadow:0_1px_16px_hsl(var(--background))]">
+      {/* Sobre la foto. En claro va en vidrio ahumado: la foto desenfocada y más viva detrás, un canto de luz
+          arriba y texto blanco (un vidrio claro sobre una foto oscura salía gris). En oscuro basta la sombra del fondo. */}
+      <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-white/25 bg-black/30 px-4 py-3 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_10px_28px_-14px_rgb(0_0_0/0.6)] backdrop-blur-xl backdrop-saturate-150 dark:rounded-none dark:border-0 dark:bg-transparent dark:p-0 dark:shadow-none dark:backdrop-blur-none dark:backdrop-saturate-100">
+        <Heading level={layout === "wide" ? 2 : 3} tone="inverse" className="dark:text-text-primary dark:[text-shadow:0_1px_16px_hsl(var(--background))]">
           {t("booking.agenda.selectTitle")}
         </Heading>
-        <Text className="[text-shadow:0_1px_10px_hsl(var(--background))]">{t("booking.agenda.selectLead")}</Text>
+        <Text tone="inverse" className="dark:text-text-primary dark:[text-shadow:0_1px_10px_hsl(var(--background))]">{t("booking.agenda.selectLead")}</Text>
       </div>
     </header>
   );

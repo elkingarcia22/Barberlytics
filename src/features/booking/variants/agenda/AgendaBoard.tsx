@@ -140,31 +140,33 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
       </section>
 
+      {/* El día y la hora siempre a la vista, aunque aún no haya nada elegido arriba; las horas, debajo, cuando hay sede y servicio. */}
+      <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
+        <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined}>
+            {t("booking.agenda.whenLabel")}
+          </Text>
+          <Text size="sm" tone="muted" className="first-letter:uppercase">
+            {fmt.dayLong(day)}
+          </Text>
+        </div>
+        {timeMissing && (
+          <Text role="alert" size="sm" tone="negative" weight="medium" className="flex items-center gap-1.5">
+            <ThemaIcon name="error" size="sm" tone="negative" />
+            {t("booking.agenda.pickTime")}
+          </Text>
+        )}
+        {/* «Lo antes posible» se calcula con sede y servicio: hasta entonces solo se ven los días. */}
+        {!editing && state.branchId && serviceIds.length > 0 && <EarliestSlot />}
+        <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
+      </section>
+
       {!state.branchId ? (
         <EmptyState icon="building" title={t("booking.agenda.pickBranch")} />
       ) : serviceIds.length === 0 ? (
         <EmptyState icon="scissors" title={t("booking.agenda.pickService")} />
       ) : (
         <>
-          <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
-            <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-              <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined}>
-                {t("booking.agenda.whenLabel")}
-              </Text>
-              <Text size="sm" tone="muted" className="first-letter:uppercase">
-                {fmt.dayLong(day)}
-              </Text>
-            </div>
-            {timeMissing && (
-              <Text role="alert" size="sm" tone="negative" weight="medium" className="flex items-center gap-1.5">
-                <ThemaIcon name="error" size="sm" tone="negative" />
-                {t("booking.agenda.pickTime")}
-              </Text>
-            )}
-            {!editing && <EarliestSlot />}
-            <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
-          </section>
-
           {isWaiting ? (
             <div className={cn("grid grid-cols-1 gap-3", layout === "wide" && "grid-cols-2")}>
               {Array.from({ length: SKELETON_LANES }, (_, index) => (

@@ -103,8 +103,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
 
   return (
     <>
-    <div className={cn("relative shrink-0 overflow-hidden bg-surface-subtle", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
-      {cover && <img src={cover} alt="" className="size-full object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
+    {/* Encuadrada arriba (donde está la cara) y desvanecida por máscara, para fundirse con cualquier fondo de debajo. */}
+    <div className={cn("relative shrink-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
+      {cover && <img src={cover} alt="" className="size-full object-cover object-[50%_15%] motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
       {/* En claro la foto va con fuerza (casi sin velo) y solo se funde abajo, bajo las tarjetas: un velo crema
           encima la dejaba grisácea. En oscuro el velo la cubre entera y el título se lee sobre ella. */}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 via-30% to-transparent to-65% dark:via-background/85 dark:via-50% dark:to-background/45 dark:to-100%" />

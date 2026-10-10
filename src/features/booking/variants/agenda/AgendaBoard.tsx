@@ -104,7 +104,8 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignI
     <>
     <div className={cn("relative shrink-0 overflow-hidden bg-surface-subtle", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
       {cover && <img src={cover} alt="" className="size-full object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/85 to-background/45" />
+      {/* En claro el velo es más ligero arriba (la foto se ve, no lavada) y se cierra abajo, donde va el título. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/5 dark:via-background/85 dark:to-background/45" />
     </div>
     {/* Se lee como Paso a paso: una columna centrada, del mismo ancho. */}
     <div className={cn("relative mx-auto flex w-full flex-col gap-6 px-5 pb-8 pt-6", STEP_WIDTH[layout], layout === "wide" ? "-mt-60 px-8 pt-8" : "-mt-48")}>

@@ -364,13 +364,13 @@ describe("las otras dos experiencias", () => {
     vi.unstubAllGlobals();
   });
 
-  test("agenda con selector: sin cuenta, sede, servicio y barbero abren sin nada elegido y la sede va primero", async () => {
+  test("agenda con selector: sin cuenta, sede y servicio abren sin nada elegido, el barbero en «Sin preferencia», y la sede va primero", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
     expect(await screen.findByText("Elige la sede para ver sus servicios y las horas libres.")).toBeInTheDocument();
     expect(await screen.findByTestId("agenda-branch-field")).toHaveTextContent("Elige la sede");
     expect(screen.getByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
-    expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Elige con quién");
+    expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Sin preferencia");
     expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
     // Sin sede no hay carta: tocar «Servicios» abre la lista de sedes, sin ninguna marcada.
     await user.click(screen.getByTestId("agenda-service-field"));
@@ -492,13 +492,13 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
-    // Con un servicio elegido se sabe quién puede; el barbero sigue sin elegir.
+    // Con un servicio elegido se sabe quién puede; el barbero viene en «Sin preferencia».
     await chooseAgendaService(user, /^Corte clásico/);
     const field = await screen.findByTestId("agenda-barber-field");
-    expect(field).toHaveTextContent("Elige con quién");
+    expect(field).toHaveTextContent("Sin preferencia");
     await user.click(field);
     const dialog = await screen.findByRole("dialog", { name: "¿Con quién te quieres atender?" });
-    expect(within(dialog).getByRole("radio", { name: "Sin preferencia" })).toHaveAttribute("aria-checked", "false");
+    expect(within(dialog).getByRole("radio", { name: "Sin preferencia" })).toHaveAttribute("aria-checked", "true");
     const profile = within(dialog).getAllByRole("button", { name: /^Ver perfil: / })[0];
     const name = (profile.getAttribute("aria-label") ?? "").replace("Ver perfil: ", "");
     const first = name.split(" ")[0];

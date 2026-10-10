@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { AI_DARK_INK, buildFontTokens, buildRadiusTokens, buildSpacingTokens, buildThemeTokens, DENSITY_FACTORS, RADIUS_FACTORS, themeToCss } from "./buildTokens";
-import { hexToHsl } from "./color";
+import { contrastRatio, hexToHsl } from "./color";
 import { findPreset, THEME_PRESETS } from "./presets";
 
 const thema = findPreset("thema");
@@ -67,6 +67,20 @@ describe("buildThemeTokens", () => {
       expect(tokens["--color-brand-gradient-via"]).toBe(tokens["--color-brand"]);
       expect(tokens["--shadow-glow-brand"]).toContain(tokens["--color-brand-rgb"]);
     }
+  });
+});
+
+describe("light text contrast", () => {
+  // Etiquetas, ayudas y placeholders usan el tenue: tiene que leerse (AA, 4,5:1)
+  // sobre cada fondo claro donde vive, la pista de pestañas incluida.
+  const BACKGROUNDS = ["--color-bg-app", "--color-surface", "--color-surface-muted", "--color-tab-track"];
+
+  test.each(THEME_PRESETS.map((preset) => [preset.id, preset] as const))("%s: el texto tenue pasa 4,5:1 y sigue más suave que el secundario", (_id, preset) => {
+    const tokens = buildThemeTokens(preset, "light");
+    const muted = tokens["--color-text-muted"];
+    for (const background of BACKGROUNDS) expect(contrastRatio(muted, tokens[background])).toBeGreaterThanOrEqual(4.5);
+    expect(hexToHsl(muted).l).toBeGreaterThan(hexToHsl(tokens["--color-text-secondary"]).l);
+    expect(hexToHsl(tokens["--color-text-secondary"]).l).toBeGreaterThan(hexToHsl(tokens["--color-text-primary"]).l);
   });
 });
 

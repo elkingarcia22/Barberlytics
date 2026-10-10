@@ -44,7 +44,7 @@ function useIsNarrow(): boolean {
  * dentro de cada pantalla donde vive —celular, tablet, monitor o el widget de
  * su sitio— y la puede recorrer entera con los datos de la demo.
  */
-export function BookingPage() {
+export function BookingPage({ standalone = false }: { /** La reserva sola (el repo `booking-flow`): sin «Volver a la app». */ standalone?: boolean } = {}) {
   const t = useAppT();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -121,10 +121,12 @@ export function BookingPage() {
   return (
     <div className="flex h-dvh flex-col bg-surface-subtle">
       <header className="relative z-header flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-2.5">
-        <Button type="button" variant="ghost" size="sm" onClick={() => navigate("/")}>
-          <ThemaIcon name="arrowLeft" />
-          <span className="hidden sm:inline">{t("booking.preview.back")}</span>
-        </Button>
+        {!standalone && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => navigate("/")}>
+            <ThemaIcon name="arrowLeft" />
+            <span className="hidden sm:inline">{t("booking.preview.back")}</span>
+          </Button>
+        )}
         <div className="flex min-w-0 items-center gap-2">
           <Text weight="semibold" truncate>
             {t("booking.preview.title")}

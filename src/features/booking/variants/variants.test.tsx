@@ -421,6 +421,27 @@ describe("las otras dos experiencias", () => {
     expect(screen.queryByRole("button", { name: "Volver a la agenda" })).toBeNull();
   });
 
+  test("agenda con selector: «Confirma tu cita» es solo la cita (sin pago) y permite sumar otra", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-select" />);
+    await screen.findByText("Arma tu cita");
+    await chooseAgendaService(user, /^Corte clásico/);
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[0]);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByRole("heading", { name: "Confirma tu cita" })).toBeInTheDocument();
+    // El pago es la pantalla siguiente: aquí no hay propina ni formas de pago.
+    expect(screen.queryByText("Propina para tu barbero")).toBeNull();
+    // Sumar otra: vuelve a la agenda con las de ahora guardadas y se elige otra hora.
+    await user.click(screen.getByRole("button", { name: /Agregar otra cita/ }));
+    expect(await screen.findByText(/Ya tienes 1 cita lista/)).toBeInTheDocument();
+    await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[1]);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText("Tus citas")).toBeInTheDocument();
+  });
+
   test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);

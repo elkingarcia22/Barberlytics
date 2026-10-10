@@ -35,7 +35,7 @@ const SKELETON_LANES = 3;
  * franja. Una hora se aparta con un toque y cae en «Tu reserva»; quién es el
  * cliente se pregunta después, al confirmar.
  */
-export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean }) {
+export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean; /** Citas ya confirmadas antes de sumar otra: la hora que se aparta es la siguiente a ellas. */ heldCount?: number }) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, fmt, layout, touch } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
@@ -79,9 +79,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignI
     dispatch({ type: "chooseTime", start });
   };
 
-  // Una sola cita: lo apartado no se descuenta de las horas, se marca (y tocar otra la reemplaza).
+  // Una cita por elegir: lo apartado no se descuenta de las horas, se marca (y tocar otra la reemplaza).
   const windows = timesByWindow(slots, dayKey, [], null);
-  const pickedStart = state.items[0]?.start ?? null;
+  const pickedStart = state.items[heldCount]?.start ?? null;
   const selectedTime = pickedStart?.startsWith(dayKey) ? pickedStart.slice(11, 16) : null;
   const hasSlots = slots.length > 0;
   const nextSlot = earliest.data?.slot ?? null;
@@ -121,6 +121,13 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false }: { onNeedSignI
               {t("booking.agenda.editingCancel")}
             </Button>
           </AlertDescription>
+        </Alert>
+      )}
+
+      {heldCount > 0 && !editing && (
+        <Alert variant="info">
+          <ThemaIcon name="plus" />
+          <AlertDescription>{t("booking.agenda.addingAnother", { count: heldCount })}</AlertDescription>
         </Alert>
       )}
 

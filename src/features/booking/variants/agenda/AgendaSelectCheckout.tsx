@@ -207,42 +207,12 @@ export function AgendaSelectCheckout({ onContinue, onAddAnother }: ReviewProps) 
   );
 }
 
-/** Lo que se va a pagar, en una línea por cita: qué, cuándo y cuánto. */
-function PayRecap() {
-  const { state, catalog, fmt } = useBookingFlow();
-  return (
-    <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface">
-      {state.items.map((item) => {
-        const names = item.serviceIds.map((id) => catalog?.services.find((service) => service.id === id)?.name ?? id).join(" + ");
-        return (
-          <li key={item.key} className="flex items-start gap-3 p-3">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Text size="sm" weight="semibold" className="truncate">
-                {names}
-              </Text>
-              {item.start && (
-                <Text size="xs" tone="muted" tabular className="first-letter:uppercase">
-                  {fmt.when(parseStart(item.start))}
-                </Text>
-              )}
-            </div>
-            <Text size="sm" weight="medium" tabular>
-              {fmt.money(itemPrice(item, catalog))}
-            </Text>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
 function PayBody({ payment }: { payment: PaymentController }) {
   const { layout } = useBookingFlow();
   const { footer, portal } = useAsideFooter(<CheckoutFooter payment={payment} />);
   const t = useAppT();
   return (
     <StepLayout title={t("booking.agenda.pay.title")} lead={t("booking.agenda.pay.lead")} footer={footer}>
-      {layout !== "wide" && <PayRecap />}
       <PaymentPanel payment={payment} compact showOrder={layout !== "wide"} />
       {portal}
     </StepLayout>

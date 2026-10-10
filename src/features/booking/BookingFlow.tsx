@@ -238,7 +238,8 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
               <GuidedFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             )}
           </SwitchToChatProvider>
-          <ReservedHairBurst />
+          {/* La Conversación con Clipper no suelta pelo: ahí la celebración la lleva el propio chat. */}
+          {active !== "chat" && <ReservedHairBurst />}
           {/* Los avisos salen dentro de la reserva (su marco), libres de la cabecera: arriba al centro en
               celular, tablet y widget; arriba a la derecha en monitor. */}
           <ThemaToaster id={BOOKING_TOASTER_ID} position={layout === "wide" ? "top-right" : "top-center"} topOffset={layout === "wide" ? WIDE_TOAST_TOP_PX : COMPACT_TOAST_TOP_PX} />

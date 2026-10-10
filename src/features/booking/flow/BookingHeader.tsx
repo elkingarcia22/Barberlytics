@@ -49,7 +49,7 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
   );
   const end = (
     <div className="flex shrink-0 items-center justify-end gap-1">
-      {state.step !== "manage" && state.step !== "confirmed" && (
+      {state.customer && state.step !== "manage" && state.step !== "confirmed" && (
         <Button type="button" variant="ghost" size={isWide ? "sm" : "icon-sm"} onClick={() => dispatch({ type: "openManage" })} aria-label={t("booking.header.myAppointments")}>
           <ThemaIcon name="calendar" />
           {isWide && t("booking.header.myAppointments")}

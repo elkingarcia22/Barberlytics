@@ -21,7 +21,6 @@ export const bookingVariantsEs = {
   "booking.agenda.whatPlaceholder": "Elige uno o varios servicios",
   "booking.agenda.wherePlaceholder": "Elige la sede",
   "booking.agenda.pickBranch": "Elige la sede para ver sus servicios y las horas libres.",
-  "booking.agenda.whoPlaceholder": "Elige con quién",
   "booking.agenda.whatMore": "{names} y {count} más",
   "booking.agenda.whatTitle": "¿Qué te vas a hacer?",
   "booking.agenda.whatLead": "Puedes elegir varios: se hacen en la misma cita.",

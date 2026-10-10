@@ -88,8 +88,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
 
   const heading = (
     <header className="flex flex-wrap items-end justify-between gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
-      <div className="flex min-w-0 flex-col gap-1.5">
-        {/* Sobre la foto: el texto con su tono pleno y una sombra del color del fondo, para que se lea en cualquier parte de la imagen. */}
+      {/* Sobre la foto. En claro va en una placa de vidrio (crema translúcido con desenfoque): la foto se ve con
+          fuerza y la tinta oscura se lee encima. En oscuro basta la sombra del color del fondo. */}
+      <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-border/60 bg-background/75 px-4 py-3 shadow-sm backdrop-blur-md dark:rounded-none dark:border-0 dark:bg-transparent dark:p-0 dark:shadow-none dark:backdrop-blur-none">
         <Heading level={layout === "wide" ? 2 : 3} className="[text-shadow:0_1px_16px_hsl(var(--background))]">
           {t("booking.agenda.selectTitle")}
         </Heading>
@@ -104,8 +105,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
     <>
     <div className={cn("relative shrink-0 overflow-hidden bg-surface-subtle", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
       {cover && <img src={cover} alt="" className="size-full object-cover motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
-      {/* En claro el velo es más ligero arriba (la foto se ve, no lavada) y se cierra abajo, donde va el título. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/5 dark:via-background/85 dark:to-background/45" />
+      {/* En claro la foto va con fuerza (casi sin velo) y solo se funde abajo, bajo las tarjetas: un velo crema
+          encima la dejaba grisácea. En oscuro el velo la cubre entera y el título se lee sobre ella. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 via-30% to-transparent to-65% dark:via-background/85 dark:via-50% dark:to-background/45 dark:to-100%" />
     </div>
     {/* Se lee como Paso a paso: una columna centrada, del mismo ancho. */}
     <div className={cn("relative mx-auto flex w-full flex-col gap-6 px-5 pb-8 pt-6", STEP_WIDTH[layout], layout === "wide" ? "-mt-60 px-8 pt-8" : "-mt-48")}>

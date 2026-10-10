@@ -170,8 +170,19 @@ const THEME_BOOT = `// Aplica el modo antes del primer pintado para evitar el fl
 })();
 `;
 
+/**
+ * La CSP va a todo menos al service worker de la demo (MSW): el worker reenvía también las peticiones
+ * a otros dominios (fotos de Unsplash, fuentes) y con `connect-src 'self'` las bloqueaba.
+ */
+const SERVICE_WORKER = "mockServiceWorker\\.js";
+
 const VERCEL_JSON = (source) => {
   const config = JSON.parse(source);
+  const headers = config.headers.flatMap((rule) => {
+    const csp = rule.headers.filter((header) => header.key === "Content-Security-Policy");
+    const rest = rule.headers.filter((header) => header.key !== "Content-Security-Policy");
+    return [{ ...rule, headers: rest }, ...(csp.length > 0 ? [{ source: `/((?!${SERVICE_WORKER}).*)`, headers: csp }] : [])];
+  });
   return {
     $schema: "https://openapi.vercel.sh/vercel.json",
     framework: "vite",
@@ -179,7 +190,7 @@ const VERCEL_JSON = (source) => {
     buildCommand: "npm run build",
     outputDirectory: "dist",
     rewrites: config.rewrites,
-    headers: config.headers,
+    headers,
     functions: { "api/tts/index.ts": { maxDuration: 30 } },
   };
 };

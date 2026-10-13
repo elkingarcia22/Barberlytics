@@ -554,7 +554,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.loyalty.metaOn": "Membership · −{amount}",
   "booking.loyalty.metaOff": "Membership · saved for next time",
   "booking.loyalty.metaKept": "Membership · your pack covers this one",
-  "booking.loyalty.count": "Membership · {count} of {total} visits",
+  "booking.loyalty.count": "{count} of {total} visits",
   "booking.loyalty.leftShort": "{count} more for your free {reward}",
   "booking.loyalty.leftShort_plural": "{count} more for your free {reward}",
   "booking.loyalty.earnsShort": "This booking earns you a free {reward}",

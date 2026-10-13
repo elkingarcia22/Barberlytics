@@ -576,7 +576,7 @@ export const bookingEs = {
   "booking.loyalty.metaOn": "Membresía · −{amount}",
   "booking.loyalty.metaOff": "Membresía · lo guardas para la próxima",
   "booking.loyalty.metaKept": "Membresía · tu paquete cubre esta cita",
-  "booking.loyalty.count": "Membresía · {count} de {total} visitas",
+  "booking.loyalty.count": "{count} de {total} visitas",
   "booking.loyalty.leftShort": "Falta {count} para tu {reward} gratis",
   "booking.loyalty.leftShort_plural": "Faltan {count} para tu {reward} gratis",
   "booking.loyalty.earnsShort": "Con esta cita ganas tu {reward} gratis",

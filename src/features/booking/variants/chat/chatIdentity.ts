@@ -3,9 +3,9 @@ import { describeError } from "@/lib/api";
 import { bookingApi } from "../../api";
 import type { BookingAction, BookingState } from "../../bookingState";
 import type { BookingShop } from "../../types";
-import { capitalize, EMAIL, PHONE_DIGITS, type Expecting, type MessageInput } from "./chatKit";
+import { capitalize, EMAIL, type Expecting, type MessageInput } from "./chatKit";
 import { makeQuestion, type BookingQuestion } from "./chatQuestions";
-import { codeFromText } from "./parseBookingText";
+import { codeFromText, phoneFromText } from "./parseBookingText";
 
 export interface IdentityKit {
   t: ReturnType<typeof useAppT>;
@@ -31,10 +31,9 @@ export function useChatIdentity(kit: IdentityKit) {
   const { t, shop, apply, say, ask, busy, expect, expecting, stateRef, profile, askPhone } = kit;
 
   const submitPhone = async (text: string) => {
-    const digits = text.replace(/\s/g, "");
-    const valid = /^\d+$/.test(digits) && (digits.length === PHONE_DIGITS || (digits.length === PHONE_DIGITS + 2 && digits.startsWith("57")));
-    if (!valid) return say({ text: t("booking.chat.badPhone") });
-    const phone = `+${digits.length === PHONE_DIGITS ? `57${digits}` : digits}`;
+    // Con palabras alrededor («mi número es 320 217 27 38»), guiones o espacios: solo cuentan las cifras.
+    const phone = phoneFromText(text);
+    if (!phone) return say({ text: t("booking.chat.badPhone") });
     try {
       const sent = await busy(() => bookingApi.requestOtp(phone));
       apply({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel });

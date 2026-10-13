@@ -383,22 +383,20 @@ describe("las otras dos experiencias", () => {
     await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toBeEnabled());
   });
 
-  test("agenda en lista: un paso a la vez (sede, barbero, servicios) y luego las horas", async () => {
+  test("agenda en lista: un paso a la vez (sede, servicios, barbero) y luego las horas", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
     await screen.findByText("Arma tu cita");
-    // Un paso a la vez: sin sede no hay barbero; sin barbero, no hay servicios.
-    expect(screen.queryByTestId("agenda-barber-field")).toBeNull();
-    await chooseAgendaBranch(user);
+    // Un paso a la vez: sin sede no hay servicios; sin servicio, no hay barbero.
     expect(screen.queryByTestId("agenda-service-field")).toBeNull();
-    await user.click(await screen.findByTestId("agenda-barber-field"));
-    const barbers = await screen.findByRole("dialog", { name: "¿Con quién te quieres atender?" });
-    await user.click(within(barbers).getByRole("radio", { name: "Sin preferencia" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await chooseAgendaBranch(user);
+    expect(screen.queryByTestId("agenda-barber-field")).toBeNull();
     await user.click(await screen.findByTestId("agenda-service-field"));
     const services = await screen.findByRole("dialog", { name: "¿Qué te vas a hacer?" });
     await user.click(await within(services).findByRole("checkbox", { name: /^Corte clásico/ }));
     await user.click(within(services).getByRole("button", { name: "Ver horas" }));
+    // El barbero aparece ya en «Sin preferencia» y las horas con él.
+    expect(await screen.findByTestId("agenda-barber-field")).toHaveTextContent("Sin preferencia");
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
   });
 

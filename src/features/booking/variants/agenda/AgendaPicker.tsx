@@ -37,6 +37,13 @@ interface PickerFieldProps {
   step?: number;
 }
 
+/**
+ * Las tarjetas que suman algo a la cita («Agregar otra cita», «Agregar productos»): secundarias,
+ * sin botón, pero con el filo y el fondo dorados de «Lo antes posible» para que se noten.
+ */
+export const ADD_CARD_CLASS =
+  "group flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-3 text-left transition-colors duration-fast hover:border-primary/70 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 /** El número de una pregunta de «Arma tu cita», como los de «Confirma tu cita»: círculo tenue con la cifra en el color de marca. */
 export function StepNumber({ value, className }: { value: number; className?: string }) {
   return (

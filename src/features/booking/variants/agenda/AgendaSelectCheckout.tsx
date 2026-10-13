@@ -18,6 +18,7 @@ import { itemPrice } from "../../useBookingTotals";
 import { CheckoutFooter, CheckoutSection } from "./AgendaCheckout";
 import { AgendaIdentity, ProfileForm } from "./AgendaIdentity";
 import { AgendaProductField } from "./AgendaProductField";
+import { ADD_CARD_CLASS } from "./AgendaPicker";
 
 /** La cita en una tarjeta: qué, cuándo, con quién y dónde, con su precio; y a nombre de quién va. */
 function AppointmentCard({ item }: { item: DraftItem }) {
@@ -131,17 +132,17 @@ function NewCustomerDetails() {
   );
 }
 
-/** «Agregar otra cita»: con el mismo trazo de las demás tarjetas, rayado como lo que falta por llenar. */
+/** «Agregar otra cita»: la misma tarjeta que «Agregar productos». */
 function AddAnotherCard({ onClick }: { onClick: () => void }) {
   const t = useAppT();
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-surface/60 p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={ADD_CARD_CLASS}
     >
       <IconTile size="md" icon={<ThemaIcon name="plus" />} />
-      <span className="flex min-w-0 flex-col">
+      <span className="flex min-w-0 flex-1 flex-col">
         <Text as="span" weight="semibold">
           {t("booking.review.addAnother")}
         </Text>
@@ -149,6 +150,7 @@ function AddAnotherCard({ onClick }: { onClick: () => void }) {
           {t("booking.review.addAnotherHint")}
         </Text>
       </span>
+      <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
     </button>
   );
 }

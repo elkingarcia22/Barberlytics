@@ -7,7 +7,7 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "../../flow/BookingContext";
 import type { BookingProduct } from "../../types";
-import { PickerOverlay, PickerRow } from "./AgendaPicker";
+import { ADD_CARD_CLASS, PickerOverlay, PickerRow } from "./AgendaPicker";
 
 const MAX_QTY = 9;
 /** Cuántos nombres caben en el campo antes de resumir con «y N más». */
@@ -84,7 +84,7 @@ export function AgendaProductField({ labelledBy }: { labelledBy: string }) {
 
   return (
     <>
-      {/* Con el mismo trazo rayado de «Agregar otra cita»: es algo que se suma, no un dato que falte. */}
+      {/* Igual que «Agregar otra cita»: algo que se suma, no un dato que falte. */}
       <button
         type="button"
         aria-haspopup="dialog"
@@ -93,9 +93,9 @@ export function AgendaProductField({ labelledBy }: { labelledBy: string }) {
         aria-describedby={hintId}
         onClick={openPicker}
         data-testid="agenda-products-field"
-        className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-surface/60 p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={ADD_CARD_CLASS}
       >
-        <IconTile size="md" src={chosen[0]?.imageUrl} tone={chosen.length > 0 ? "primary" : "neutral"} icon={<ThemaIcon name={chosen.length > 0 ? "layers" : "plus"} />} />
+        <IconTile size="md" src={chosen[0]?.imageUrl} icon={<ThemaIcon name={chosen.length > 0 ? "layers" : "plus"} />} />
         <span className="flex min-w-0 flex-1 flex-col">
           <Text as="span" weight="semibold" className="truncate">
             {chosen.length > 0 ? names : t("booking.agenda.productsAdd")}
@@ -104,7 +104,7 @@ export function AgendaProductField({ labelledBy }: { labelledBy: string }) {
             {chosen.length > 0 ? fmt.money(amountOf(state.products)) : t("booking.agenda.productsHint", { count: products.length })}
           </Text>
         </span>
-        <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0" />
+        <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
       </button>
       <PickerOverlay open={open} onOpenChange={setOpen} title={t("booking.agenda.productsTitle")} description={t("booking.agenda.productsLead")} footer={footer} focusRef={listRef}>
         <div ref={listRef} className="flex flex-col gap-0.5 p-2">

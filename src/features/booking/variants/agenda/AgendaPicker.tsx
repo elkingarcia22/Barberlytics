@@ -180,7 +180,8 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
   const focusSelected = () => {
     const list = focusRef.current;
     const target = list?.querySelector<HTMLElement>('[aria-checked="true"]') ?? list?.querySelector<HTMLElement>("[role=checkbox],[role=radio]");
-    target?.focus();
+    // Sin desplazar: el panel aún está entrando desde abajo y el navegador movía la página de atrás para «mostrarlo».
+    target?.focus({ preventScroll: true });
   };
   const focusList = (event: Event) => {
     event.preventDefault();
@@ -194,7 +195,7 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
     shownView.current = view;
     const scroller = bodyRef.current?.parentElement;
     if (scroller) scroller.scrollTop = 0;
-    if (isDetail) backRef.current?.focus();
+    if (isDetail) backRef.current?.focus({ preventScroll: true });
     else focusSelected();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de vista
   }, [view]);

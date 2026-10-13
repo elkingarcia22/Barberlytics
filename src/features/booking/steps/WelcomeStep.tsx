@@ -173,7 +173,7 @@ export function WelcomeStep() {
       )}
 
       {/* Lo demás que se puede hacer, debajo de las horas y en pequeño: no compite con la cita. */}
-      <QuickActions label={t("booking.welcome.shortcuts")} actions={shortcuts} />
+      <QuickActions label={t("booking.welcome.shortcuts")} actions={shortcuts} layout="tiles" />
 
       <Button type="button" variant="link" size="sm" className="self-center" onClick={actions.notYou}>
         {t("booking.welcome.notYou")}

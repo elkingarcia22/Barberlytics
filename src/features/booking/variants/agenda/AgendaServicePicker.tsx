@@ -153,8 +153,10 @@ interface ServicePickerListProps {
 /** La lista de la carta: buscador si hay muchos, agrupada por categoría y con casilla por fila (se pueden varios). */
 const ServicePickerList = React.forwardRef<HTMLDivElement, ServicePickerListProps>(function ServicePickerList({ picked, onToggle, query, onQueryChange }, ref) {
   const t = useAppT();
-  const { catalog, fmt } = useBookingFlow();
-  const services = catalog?.services ?? [];
+  const { state, catalog, fmt } = useBookingFlow();
+  // El barbero se elige antes: con uno elegido, solo lo que él hace.
+  const barber = catalog?.barbers.find((item) => item.id === state.draft?.barberId);
+  const services = (catalog?.services ?? []).filter((service) => !barber || barber.prices[service.id] !== undefined);
   const needle = plain(query.trim());
   const visible = needle === "" ? services : services.filter((service) => plain(`${service.name} ${service.description} ${service.category}`).includes(needle));
   // Por categoría mientras no se busca; buscando, una sola lista con lo que coincide.

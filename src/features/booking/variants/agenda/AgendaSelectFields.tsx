@@ -43,7 +43,7 @@ function FieldSection({ id, label, aside, inline = false, children }: { id: stri
 }
 
 /**
- * Las preguntas de la Agenda con selector, en orden y numeradas: dónde, qué y con quién.
+ * Las preguntas de la Agenda con selector, en orden y numeradas: dónde, con quién y qué.
  * Cada una es un campo que abre su lista; las horas van aparte, debajo.
  */
 export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFieldsProps) {
@@ -54,7 +54,7 @@ export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFi
   const [branchOpen, setBranchOpen] = React.useState(false);
   const needBranch = hasBranches ? () => setBranchOpen(true) : undefined;
   const isWide = layout === "wide";
-  // Las preguntas van numeradas; con una sola sede, Servicios es la 1.
+  // Las preguntas van numeradas: sede, barbero y servicios; con una sola sede, Barbero es la 1.
   const first = hasBranches ? 2 : 1;
   // En celular (y el widget) no caben tres en fila: van una debajo de otra, como filas.
   const asCards = isWide || touch === "lg";
@@ -66,6 +66,9 @@ export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFi
           <AgendaBranchField labelledBy="agenda-where" eyebrow={t("booking.step.branch")} step={1} open={branchOpen} onOpenChange={setBranchOpen} />
         </FieldSection>
       )}
+      <FieldSection id="agenda-who" label={t("booking.step.barber")} inline>
+        <AgendaBarberField labelledBy="agenda-who" barbers={barbers} usualId={usualId} eyebrow={t("booking.step.barber")} step={first} onNeedBranch={needBranch} />
+      </FieldSection>
       <FieldSection
         id="agenda-what"
         label={t("booking.step.services")}
@@ -79,10 +82,7 @@ export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFi
           )
         }
       >
-        <AgendaServiceField labelledBy="agenda-what" eyebrow={t("booking.step.services")} step={first} onNeedBranch={needBranch} />
-      </FieldSection>
-      <FieldSection id="agenda-who" label={t("booking.step.barber")} inline>
-        <AgendaBarberField labelledBy="agenda-who" barbers={barbers} usualId={usualId} eyebrow={t("booking.step.barber")} step={first + 1} onNeedBranch={needBranch} />
+        <AgendaServiceField labelledBy="agenda-what" eyebrow={t("booking.step.services")} step={first + 1} onNeedBranch={needBranch} />
       </FieldSection>
     </div>
   );

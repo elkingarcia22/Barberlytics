@@ -59,6 +59,9 @@ describe("forVoice", () => {
 
   test("drops the examples and formats meant for typing", () => {
     expect(forVoice("Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.", "es-CO")).toBe("Primero necesito saber quién eres. Dime tu **número de celular**.");
+    expect(forVoice("Listo. Te acabo de mandar un **código de 6 números** por WhatsApp a ••••2738. **Escríbelo aquí** para confirmar que eres tú.\n\n¿No te llegó? Escribe **reenviar**. ¿El número está mal? Escribe **cambiar número**.", "es-CO")).toBe(
+      "Listo. Te acabo de mandar un **código de 6 números** por mensaje de texto al número terminado en 27, 38. **Dímelo** para confirmar que eres tú."
+    );
     expect(forVoice("No entendí esa fecha. Escríbela así: **20 de octubre** o **el viernes**.", "es-CO")).toBe("No entendí esa fecha.");
     expect(forVoice("¿Cuándo **vence**? Escríbelo como **mes y año**: 08/29.", "es-CO")).toBe("¿Cuándo **vence**? Dímelo como **mes y año**.");
   });
@@ -146,7 +149,7 @@ describe("forVoice: números de teléfono y códigos como se dictan", () => {
   });
 
   test("el celular oculto se dice por sus últimas cifras, de a dos", () => {
-    expect(forVoice("Te mandé un código por WhatsApp a •••• 2738.", "es-CO")).toBe("Te mandé un código por WhatsApp al número terminado en 27, 38.");
+    expect(forVoice("Te mandé un código por WhatsApp a •••• 2738.", "es-CO")).toBe("Te mandé un código por mensaje de texto al número terminado en 27, 38.");
     expect(forVoice("SMS al •••• 4567", "es-CO")).toBe("SMS al número terminado en 45, 67");
   });
 

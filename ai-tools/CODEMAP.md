@@ -263,6 +263,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/flow
 
+- **AddCard.tsx** — Las tarjetas que suman algo a la reserva («Agregar otra cita», «Agregar productos»): secundarias, sin botón,… · `ADD_CARD_CLASS`, `AddCardArrow`, `AddCard` · piezas: IconTile, Text · usa: @/icons
 - **AlternativeBarbers.tsx** — Cuando el barbero elegido no tiene horas ese día: otros que hacen los mismos servicios, ordenados por cuánto… · `AlternativeBarbers` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AppointmentDetailSheet.tsx** — «Ver detalle»: la cita como una ficha — el día grande, la hora de inicio a fin, y debajo qué, con quién, para… · `AppointmentDetailSheet` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
@@ -298,6 +299,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ProductCard.tsx** — Un producto de la tienda, con su foto y el botón para sumarlo; ya en la reserva, el mismo hueco se vuelve un… · `ProductCard` · piezas: Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ProductCatalogDrawer.tsx** — Toda la tienda de la sede, ordenada como en el módulo de Productos: por categoría (Styling, Barba, Cuidado…),… · `ProductCatalogDrawer` · piezas: Button, Chip, DrawerShell, EmptyState, Heading, Input, Text · usa: @/app/i18n, @/icons
 - **PromoField.tsx** — El cupón: se valida en el servidor y, si aplica, queda como un chip que se puede quitar, con lo que ahorra. · `PromoField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
+- **QuickActions.tsx** — Lo que se puede hacer además de reservar (ver tus citas, llamar, paquetes, regalar): pastillas pequeñas en un… · `QuickAction`, `QuickActions` · piezas: Text · usa: @/icons, @/lib/utils
 - **ReceiptView.tsx** — El recibo de una reserva: número, lo cobrado por cita y producto, y con qué se pagó. · `ReceiptView` · piezas: Badge, Heading, Text · usa: @/app/i18n
 - **ReferencePhotoField.tsx** — «Agregar foto del corte que quieres»: hasta tres imágenes de referencia que le llegan al barbero con la cita… · `ReferencePhotoField` · piezas: Button, Text · usa: @/app/i18n, @/icons
 - **RepeatSheet.tsx** — «Fijar la cita»: cada cuánto y cuántas más, con las fechas que quedarían a la vista antes de confirmar (mismo… · `RepeatSheet` · piezas: Alert, AlertDescription, AlertTitle, Button, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
@@ -342,18 +344,18 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PaymentStep.tsx** — Pagar: la propina para el barbero, un cupón y cómo se paga. · `PaymentStep` · piezas: Text · usa: @/app/i18n
 - **PhoneStep.tsx** — La puerta: el celular. · `PhoneStep`
 - **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para crear su ficha en la barbería. · `ProfileStep` · piezas: Button, Checkbox, Field, Input, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
-- **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Heading, IconTile, MagicCard, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Heading, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
 - **VerifyStep.tsx** — El código que llegó al celular. · `VerifyStep` · piezas: Button, Field, InputOtp, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **WaitlistedStep.tsx** — El final de quien no apartó hora pero se apuntó en la lista de espera: la certeza de que quedó apuntado, en q… · `WaitlistedStep` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo y una fila de atajos del mismo ancho; en medio… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo; en medio, lo de siempre en una fila y las hor… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **useWelcomeData.ts** — Lo que necesita la bienvenida del cliente que vuelve: su última visita (servicios, barbero, sede y precio), l… · `useWelcomeData`, `WelcomeData`
 
 ### booking/steps/entry
 
 - **CoverEntry.tsx** — Entrada «Portada»: la foto de la barbería arriba, como la vitrina, y encima una tarjeta con su marca y el cel… · `CoverEntry` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **EntryShortcuts.tsx** — Los dos atajos de la entrada que no pasan por el código: ver las citas que ya tiene y llamar a la barbería. · `EntryShortcuts` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
+- **EntryShortcuts.tsx** — Los dos atajos de la entrada que no pasan por el código: ver las citas que ya tiene y llamar a la barbería. · `EntryShortcuts` · usa: @/app/i18n
 - **PhoneEntryParts.tsx** — El campo del celular, igual en los tres diseños. · `PhoneEntryField`, `PhoneEntryActions` · piezas: Button, Field, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons
 - **usePhoneEntry.ts** — Lo que comparten los tres diseños de la entrada: el celular, su validación y el envío del código. · `usePhoneEntry`, `PhoneEntry` · usa: @/app/i18n, @/lib/api
 
@@ -368,7 +370,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaHeader.tsx** — La cabecera de la agenda: la barbería y su sede, entrar como cliente (no hace falta para mirar horas), «Mis c… · `AgendaHeader` · piezas: Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaIdentity.tsx** — Primera vez: lo justo para su ficha. · `ProfileForm`, `AgendaIdentity` · piezas: Alert, AlertDescription, AlertTitle, Button, Checkbox, Field, Input, InputOtp, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **AgendaLanes.tsx** — Las horas del día sin pensar en quién: por franja, cada hora con las caras de quienes pueden; en el celular,… · `TimeWindows` · piezas: Avatar, AvatarFallback, AvatarGroup, AvatarImage, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaPicker.tsx** — Las tarjetas que suman algo a la cita («Agregar otra cita», «Agregar productos»): secundarias, sin botón, per… · `ADD_CARD_CLASS`, `StepNumber`, `PickerField`, `PickerOverlay`, `PickerRow` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaPicker.tsx** — El número de una pregunta de «Arma tu cita», como los de «Confirma tu cita»: círculo tenue con la cifra en el… · `StepNumber`, `PickerField`, `PickerOverlay`, `PickerRow` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaProductField.tsx** — Lo que se lleva de la tienda en la Agenda con selector: el mismo campo y la misma ventana que los servicios. · `AgendaProductField` · piezas: Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons
 - **AgendaSelectCheckout.tsx** — «Confirma tu cita» en la Agenda con selector: solo lo de la cita. · `AgendaSelectCheckout`, `AgendaSelectPay` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
 - **AgendaSelectFields.tsx** — Las preguntas de la Agenda con selector, en orden y numeradas: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils

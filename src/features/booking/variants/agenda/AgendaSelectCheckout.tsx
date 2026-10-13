@@ -18,7 +18,7 @@ import { itemPrice } from "../../useBookingTotals";
 import { CheckoutFooter, CheckoutSection } from "./AgendaCheckout";
 import { AgendaIdentity, ProfileForm } from "./AgendaIdentity";
 import { AgendaProductField } from "./AgendaProductField";
-import { ADD_CARD_CLASS } from "./AgendaPicker";
+import { AddCard } from "../../flow/AddCard";
 
 /** La cita en una tarjeta: qué, cuándo, con quién y dónde, con su precio; y a nombre de quién va. */
 function AppointmentCard({ item }: { item: DraftItem }) {
@@ -132,27 +132,10 @@ function NewCustomerDetails() {
   );
 }
 
-/** «Agregar otra cita»: la misma tarjeta que «Agregar productos». */
+/** «Agregar otra cita»: la misma tarjeta que en Paso a paso y que «Agregar productos». */
 function AddAnotherCard({ onClick }: { onClick: () => void }) {
   const t = useAppT();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={ADD_CARD_CLASS}
-    >
-      <IconTile size="md" icon={<ThemaIcon name="plus" />} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <Text as="span" weight="semibold">
-          {t("booking.review.addAnother")}
-        </Text>
-        <Text as="span" size="xs" tone="muted">
-          {t("booking.review.addAnotherHint")}
-        </Text>
-      </span>
-      <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
-    </button>
-  );
+  return <AddCard title={t("booking.review.addAnother")} hint={t("booking.review.addAnotherHint")} onClick={onClick} />;
 }
 
 /** El pie de «Confirma tu cita»: seguir al pago, que se abre al identificarse. */
@@ -209,13 +192,13 @@ export function AgendaSelectCheckout({ onContinue, onAddAnother }: ReviewProps) 
   );
 }
 
-function PayBody({ payment }: { payment: PaymentController }) {
+function PayBody({ payment, onChangeTime }: { payment: PaymentController; onChangeTime?: () => void }) {
   const { layout } = useBookingFlow();
   const { footer, portal } = useAsideFooter(<CheckoutFooter payment={payment} />);
   const t = useAppT();
   return (
     <StepLayout title={t("booking.agenda.pay.title")} lead={t("booking.agenda.pay.lead")} footer={footer}>
-      <PaymentPanel payment={payment} compact showOrder={layout !== "wide"} />
+      <PaymentPanel payment={payment} compact showOrder={layout !== "wide"} onChangeTime={onChangeTime} />
       {portal}
     </StepLayout>
   );
@@ -226,13 +209,13 @@ function PayBody({ payment }: { payment: PaymentController }) {
  * método y tarjeta) y el botón que cobra. Aquí ya se sabe quién es: sin cuenta
  * se vuelve a «Confirma tu cita».
  */
-export function AgendaSelectPay() {
+export function AgendaSelectPay({ onChangeTime }: { onChangeTime?: () => void }) {
   const { state } = useBookingFlow();
   if (!state.customer) return null;
-  return <IdentifiedPay key={state.customer.id} />;
+  return <IdentifiedPay key={state.customer.id} onChangeTime={onChangeTime} />;
 }
 
-function IdentifiedPay() {
+function IdentifiedPay({ onChangeTime }: { onChangeTime?: () => void }) {
   const payment = usePaymentController();
-  return <PayBody payment={payment} />;
+  return <PayBody payment={payment} onChangeTime={onChangeTime} />;
 }

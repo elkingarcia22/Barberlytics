@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { OptionTile } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
-import { describeError } from "@/lib/api";
+import { describeError, isApiError } from "@/lib/api";
 import { personName } from "../bookingState";
 import { parseStart } from "../bookingFormat";
 import type { PayMethod } from "../types";
@@ -59,13 +59,15 @@ interface PaymentPanelProps {
    * con el detalle solo de la elegida.
    */
   compact?: boolean;
+  /** Volver a elegir la hora cuando la que se iba a pagar ya no está libre. */
+  onChangeTime?: () => void;
 }
 
 /**
  * Un cupón y cómo se paga (la propina se pregunta en un modal al pulsar «Pagar»). Si la barbería deja pagar en
  * el local, esa opción está; si el cliente es «solo en línea», no.
  */
-export function PaymentPanel({ payment, showOrder = true, compact = false }: PaymentPanelProps) {
+export function PaymentPanel({ payment, showOrder = true, compact = false, onChangeTime }: PaymentPanelProps) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, totals, fmt, isPhone } = useBookingFlow();
   const { methods, method, deposit, depositPercent, usesCard, coveredByGift, reserve, serverCardError } = payment;
@@ -179,7 +181,24 @@ export function PaymentPanel({ payment, showOrder = true, compact = false }: Pay
       {reserve.isError && !serverCardError && (
         <Alert variant="destructive">
           <ThemaIcon name="error" />
-          <AlertDescription>{describeError(reserve.error).description}</AlertDescription>
+          <AlertDescription className="flex flex-col items-start gap-2">
+            {describeError(reserve.error).description}
+            {/* La hora ya no está (se ocupó o ya pasó): ir directo a cambiarla. */}
+            {onChangeTime && isApiError(reserve.error) && reserve.error.code === "conflict" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  reserve.reset();
+                  onChangeTime();
+                }}
+              >
+                <ThemaIcon name="calendar" />
+                {t("booking.payment.changeTime")}
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 

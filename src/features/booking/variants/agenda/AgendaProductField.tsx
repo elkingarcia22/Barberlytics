@@ -7,7 +7,8 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { useBookingFlow } from "../../flow/BookingContext";
 import type { BookingProduct } from "../../types";
-import { ADD_CARD_CLASS, PickerOverlay, PickerRow } from "./AgendaPicker";
+import { ADD_CARD_CLASS, AddCardArrow } from "../../flow/AddCard";
+import { PickerOverlay, PickerRow } from "./AgendaPicker";
 
 const MAX_QTY = 9;
 /** Cuántos nombres caben en el campo antes de resumir con «y N más». */
@@ -104,7 +105,7 @@ export function AgendaProductField({ labelledBy }: { labelledBy: string }) {
             {chosen.length > 0 ? fmt.money(amountOf(state.products)) : t("booking.agenda.productsHint", { count: products.length })}
           </Text>
         </span>
-        <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
+        <AddCardArrow />
       </button>
       <PickerOverlay open={open} onOpenChange={setOpen} title={t("booking.agenda.productsTitle")} description={t("booking.agenda.productsLead")} footer={footer} focusRef={listRef}>
         <div ref={listRef} className="flex flex-col gap-0.5 p-2">

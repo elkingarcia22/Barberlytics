@@ -141,7 +141,8 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : state.step === "packages" ? (
       <PackagesStep />
     ) : view === "pay" ? (
-      <AgendaSelectPay />
+      // La hora ya no está: de vuelta a la agenda, donde la nueva reemplaza a la anterior.
+      <AgendaSelectPay onChangeTime={toBoard} />
     ) : view === "checkout" ? (
       <AgendaSelectCheckout onContinue={toPay} onAddAnother={addAnother} />
     ) : (

@@ -111,14 +111,14 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
   return (
     <>
     {/* Encuadrada arriba (donde está la cara) y desvanecida por máscara, para fundirse con cualquier fondo de debajo. */}
-    <div className={cn("relative shrink-0 overflow-hidden dark:[mask-image:linear-gradient(to_bottom,black_55%,transparent)]", layout === "wide" ? "h-72" : "h-56")} aria-hidden>
+    <div className={cn("relative shrink-0 overflow-hidden dark:[mask-image:linear-gradient(to_bottom,black_55%,transparent)]", layout === "wide" ? "h-72" : "h-48 dark:h-56")} aria-hidden>
       {cover && <img src={cover} alt="" className="size-full object-cover object-[50%_15%] brightness-[1.2] dark:brightness-100 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700" />}
       {/* En claro la foto va entera, sin velo ni desvanecido y algo más clara: cualquier fundido la lavaba de
           blanco. En oscuro el velo la cubre entera y el título se lee sobre ella. */}
       <div className="absolute inset-0 hidden bg-gradient-to-t from-background via-background/85 via-50% to-background/45 dark:block" />
     </div>
     {/* Se lee como Paso a paso: una columna centrada, del mismo ancho. */}
-    <div className={cn("relative mx-auto flex w-full flex-col gap-6 px-5 pb-8 pt-6", STEP_WIDTH[layout], layout === "wide" ? "-mt-60 px-8 pt-8" : "-mt-48")}>
+    <div className={cn("relative mx-auto flex w-full flex-col gap-6 px-5 pb-8 pt-6", STEP_WIDTH[layout], layout === "wide" ? "-mt-60 px-8 pt-8" : "-mt-40 dark:-mt-48")}>
 
       {editing && (
         <Alert variant="info" className={SOLID_INFO}>

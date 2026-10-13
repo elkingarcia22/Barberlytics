@@ -15,7 +15,7 @@ import type { PayMethod } from "../types";
 import { draftOrderLines } from "../useBookingTotals";
 import { useBookingFlow } from "./BookingContext";
 import { BookingSheet } from "./BookingSheet";
-import { sheetSide } from "./drawerFit";
+import { overlayKind } from "./drawerFit";
 import { GiftCardField } from "./GiftCardField";
 import { MembershipPerk } from "./MembershipPerk";
 import { NewCardSheet } from "./NewCardSheet";
@@ -297,7 +297,7 @@ export function PaymentSheets({ payment }: { payment: PaymentController }) {
 
 /**
  * La propina para el barbero: se elige después de pulsar «Pagar» y al elegir se cobra.
- * En el celular sube como hoja desde abajo; en tablet y monitor es un modal centrado.
+ * En celular y tablet sube como hoja desde abajo; en monitor es un modal centrado.
  */
 function TipSheet({ payment }: { payment: PaymentController }) {
   const t = useAppT();
@@ -327,7 +327,7 @@ function TipSheet({ payment }: { payment: PaymentController }) {
       })}
     </div>
   );
-  if (sheetSide({ layout, touch }) === "bottom") {
+  if (overlayKind({ layout, touch }) === "sheet") {
     return (
       <BookingSheet open={payment.tipOpen} onOpenChange={payment.setTipOpen} title={title} description={description} actions={actions}>
         {choices}

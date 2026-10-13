@@ -1,13 +1,13 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
-import { DrawerShell } from "@/components/overlays";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
-import { DRAWER_FIT_STYLE, sheetSide } from "../../flow/drawerFit";
+import { BookingOverlay } from "../../flow/BookingOverlay";
+import { overlayKind } from "../../flow/drawerFit";
 
 /**
  * Las dos piezas de la Agenda con selector: un campo que se lee como un select
@@ -64,8 +64,8 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
   const valueId = React.useId();
   // Tarjeta solo donde caben en fila (tablet y monitor); en celular, la fila de siempre.
   const isDense = asCard && (layout === "wide" || touch === "lg");
-  // Donde la lista entra por el lado (tablet y monitor), la flecha apunta hacia allá.
-  const opensAside = sheetSide({ layout, touch }) === "right";
+  // En monitor la lista abre en un modal: la flecha apunta a la derecha; donde sube desde abajo, hacia abajo.
+  const opensAside = overlayKind({ layout, touch }) === "modal";
   const arrow = opensAside ? (
     <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
   ) : (
@@ -173,7 +173,6 @@ interface PickerOverlayProps {
  */
 export function PickerOverlay({ open, onOpenChange, title, description, footer, focusRef, view = "list", onBack, leading, children }: PickerOverlayProps) {
   const t = useAppT();
-  const { layout, touch } = useBookingFlow();
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const backRef = React.useRef<HTMLButtonElement>(null);
   const isDetail = Boolean(onBack);
@@ -224,11 +223,9 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
   );
 
   return (
-    <DrawerShell
+    <BookingOverlay
       open={open}
       onOpenChange={onOpenChange}
-      side={sheetSide({ layout, touch })}
-      contentStyle={DRAWER_FIT_STYLE}
       title={title}
       description={description}
       leading={hasHeading ? heading : undefined}
@@ -237,7 +234,7 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
       disablePadding
     >
       {content}
-    </DrawerShell>
+    </BookingOverlay>
   );
 }
 

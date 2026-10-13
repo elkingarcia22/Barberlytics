@@ -48,14 +48,26 @@ export function StepNumber({ value, className }: { value: number; className?: st
   );
 }
 
-/** El nombre del campo, con su número si lo lleva. */
-function Eyebrow({ text, step }: { text: string; step?: number }) {
+/** El nombre del campo, encima de lo elegido. */
+function Eyebrow({ text }: { text: string }) {
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      {step !== undefined && <StepNumber value={step} />}
-      <Text as="span" size="xs" tone="muted" className="truncate">
-        {text}
-      </Text>
+    <Text as="span" size="xs" tone="muted" className="truncate">
+      {text}
+    </Text>
+  );
+}
+
+/** El icono o la foto del campo, con el número de la pregunta en su esquina (como un aviso, sin ocupar línea). */
+function NumberedTile({ step, children }: { step?: number; children: React.ReactNode }) {
+  if (step === undefined) return children;
+  return (
+    <span className="relative shrink-0">
+      {children}
+      <span aria-hidden className="absolute -left-1.5 -top-1.5 grid size-[1.125rem] place-items-center rounded-full border border-primary/40 bg-surface shadow-xs">
+        <Text as="span" size="xs" weight="semibold" tone="primary" tabular className="text-[0.6875rem] leading-none">
+          {step}
+        </Text>
+      </span>
     </span>
   );
 }
@@ -83,11 +95,13 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     return (
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
         <span className="flex w-full items-start justify-between gap-2">
-          <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+          <NumberedTile step={step}>
+            <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+          </NumberedTile>
           {arrow}
         </span>
         <span id={valueId} className="flex w-full min-w-0 flex-col">
-          {eyebrow && <Eyebrow text={eyebrow} step={step} />}
+          {eyebrow && <Eyebrow text={eyebrow} />}
           {/* En tarjetas angostas, las palabras largas («Massachusetts») parten en vez de cortarse. */}
           <Text as="span" size="sm" weight="medium" tone={value ? "default" : "muted"} className="line-clamp-2 hyphens-auto [overflow-wrap:anywhere]" lang="es">
             {value ?? placeholder}
@@ -112,9 +126,11 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
       data-testid={testId}
       className={cn(base, "flex items-center gap-3 px-3", touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5")}
     >
-      <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+      <NumberedTile step={step}>
+        <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+      </NumberedTile>
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
-        {eyebrow && <Eyebrow text={eyebrow} step={step} />}
+        {eyebrow && <Eyebrow text={eyebrow} />}
         {value ? (
           <>
             <Text as="span" weight="medium" className="truncate">

@@ -43,7 +43,10 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
   const first = React.useMemo(() => (branch ? firstBookableDay(branch.closesAt, shop.minNoticeMinutes) : startOfDay(new Date())), [branch, shop.minNoticeMinutes]);
   const [day, setDay] = React.useState<Date>(first);
   const draft = state.draft;
+
   const serviceIds = draft?.serviceIds ?? [];
+  // Las tres respuestas de arriba: sede, servicios y barbero (que siempre tiene una, «Sin preferencia» de entrada).
+  const isReady = Boolean(state.branchId) && serviceIds.length > 0;
   const dayKey = dayKeyOf(day);
 
   // Al cambiar una cita del carrito, la agenda salta a su día.
@@ -141,8 +144,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
       </section>
 
-      {/* El día y la hora siempre a la vista, aunque aún no haya nada elegido arriba; las horas, debajo, cuando hay sede y servicio. */}
-      <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
+      {/* El día y la hora aparecen cuando ya están las tres respuestas de arriba: sede, servicios y barbero. */}
+      {isReady && (
+      <section aria-labelledby="agenda-when" className="flex flex-col gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
         <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           {/* La última pregunta: después de sede, servicios y barbero. */}
           <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined} className="flex items-center gap-2.5">
@@ -163,6 +167,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         {!editing && state.branchId && serviceIds.length > 0 && <EarliestSlot />}
         <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
       </section>
+      )}
 
       {!state.branchId ? (
         <EmptyState icon="building" title={t("booking.agenda.pickBranch")} />

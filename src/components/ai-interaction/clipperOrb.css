@@ -117,24 +117,27 @@
 
 /*
  * Chico (junto a un texto, en un botón): el SVG de franjas con `multiply` se rompía a 14–24 px. Aquí las
- * franjas son un degradado repetido sobre la esfera, nítido a cualquier tamaño, que sube igual.
+ * franjas son una sola capa de degradado repetido, más alta que la esfera, que sube un periodo y vuelve:
+ * sin baldosas (en sus uniones la diagonal no empalmaba y el orbe se veía torcido). A 45°, subir
+ * `periodo × √2` en vertical deja las franjas exactamente donde estaban.
  */
 @keyframes clipper-orb-rise-small {
   to {
-    background-position: 0 calc(var(--clipper-orb-size) * -0.5), 0 0;
+    transform: translateY(calc(var(--clipper-orb-size) * -0.25 * 1.41421));
   }
 }
 
-.clipper-orb[data-small] .clipper-orb__sphere {
-  background-image:
-    repeating-linear-gradient(135deg, var(--clipper-orb-stripe-small) 0 calc(var(--clipper-orb-size) * 0.12), transparent calc(var(--clipper-orb-size) * 0.12) calc(var(--clipper-orb-size) * 0.25)),
-    linear-gradient(120deg, var(--color-ai-stop-1), var(--color-ai-stop-2) 45%, var(--color-ai-stop-3) 75%, var(--color-ai-stop-5));
-  background-size: 100% calc(var(--clipper-orb-size) * 0.5), 100% 100%;
+.clipper-orb[data-small] .clipper-orb__sphere::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 calc(var(--clipper-orb-size) * -0.4) 0;
+  background-image: repeating-linear-gradient(135deg, var(--clipper-orb-stripe-small) 0 calc(var(--clipper-orb-size) * 0.12), transparent calc(var(--clipper-orb-size) * 0.12) calc(var(--clipper-orb-size) * 0.25));
   animation: clipper-orb-rise-small 2.4s linear infinite;
 }
 
 .clipper-orb[data-small] {
   --clipper-orb-stripe-small: hsl(var(--background) / 0.35);
+  perspective: none;
 }
 
 /* A ese tamaño el borde oscuro del vidrio ensuciaba el color: solo el brillo. */
@@ -162,7 +165,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .clipper-orb,
-  .clipper-orb[data-small] .clipper-orb__sphere,
+  .clipper-orb[data-small] .clipper-orb__sphere::before,
   .clipper-orb *,
   .clipper-orb *::after {
     animation: none !important;

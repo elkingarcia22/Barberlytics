@@ -277,7 +277,17 @@ async function main() {
 
   // Vercel instala con `npm ci`: el lock tiene que existir y coincidir con el package.json de arriba.
   console.log("Generando package-lock.json…");
-  execFileSync("npm", ["install", "--package-lock-only", "--no-audit", "--no-fund"], { cwd: out, stdio: "inherit" });
+  // Con un node_modules ya instalado (de Mac), npm arma el lock desde lo instalado y borra los binarios de las
+  // otras plataformas (rolldown, lightningcss para Linux): Vercel, que compila en Linux, fallaba. Se aparta un momento.
+  const installed = path.join(out, "node_modules");
+  const parked = path.join(out, ".node_modules-export");
+  const hasInstalled = fs.existsSync(installed);
+  if (hasInstalled) fs.renameSync(installed, parked);
+  try {
+    execFileSync("npm", ["install", "--package-lock-only", "--no-audit", "--no-fund"], { cwd: out, stdio: "inherit" });
+  } finally {
+    if (hasInstalled) fs.renameSync(parked, installed);
+  }
 
   console.log(`Listo: ${relatives.length} archivos de código, ${packages.size} paquetes en ${out}`);
 }

@@ -2,12 +2,28 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { BookingOverlay } from "../../flow/BookingOverlay";
 import { overlayKind } from "../../flow/drawerFit";
+
+/**
+ * La Agenda en lista: la misma agenda, pero las preguntas van en filas (también en tablet y monitor) y,
+ * fuera del celular, cada lista se abre ahí mismo debajo de su fila en vez de en una hoja o un modal.
+ */
+const AgendaListModeContext = React.createContext(false);
+export const AgendaListModeProvider = AgendaListModeContext.Provider;
+export const useAgendaListMode = () => React.useContext(AgendaListModeContext);
+
+/** ¿Las listas se abren en su sitio? En la Agenda en lista, fuera del celular y el widget. */
+export function useInlineLists(): boolean {
+  const listMode = useAgendaListMode();
+  const { layout, touch } = useBookingFlow();
+  return listMode && (layout === "wide" || touch === "lg");
+}
 
 /**
  * Las dos piezas de la Agenda con selector: un campo que se lee como un select
@@ -63,11 +79,13 @@ function Eyebrow({ text }: { text: string }) {
 
 export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow, step, selected = Boolean(value), disabled = false }: PickerFieldProps) {
   const { touch, layout } = useBookingFlow();
+  const listMode = useAgendaListMode();
+  const inline = useInlineLists();
   const valueId = React.useId();
-  // Tarjeta solo donde caben en fila (tablet y monitor); en celular, la fila de siempre.
-  const isDense = asCard && (layout === "wide" || touch === "lg");
+  // Tarjeta solo donde caben en fila (tablet y monitor); en celular y en la Agenda en lista, la fila de siempre.
+  const isDense = asCard && !listMode && (layout === "wide" || touch === "lg");
   // En monitor la lista abre en un modal: la flecha apunta a la derecha; donde sube desde abajo, hacia abajo.
-  const opensAside = overlayKind({ layout, touch }) === "modal";
+  const opensAside = !inline && overlayKind({ layout, touch }) === "modal";
   const arrow = opensAside ? (
     <ThemaIcon name="chevronRight" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-hover:translate-x-0.5" />
   ) : (
@@ -182,6 +200,7 @@ interface PickerOverlayProps {
  */
 export function PickerOverlay({ open, onOpenChange, title, description, footer, focusRef, view = "list", onBack, leading, children }: PickerOverlayProps) {
   const t = useAppT();
+  const inline = useInlineLists();
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const backRef = React.useRef<HTMLButtonElement>(null);
   const isDetail = Boolean(onBack);
@@ -231,6 +250,15 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
     </div>
   );
 
+  if (inline) {
+    if (!open) return null;
+    return (
+      <InlinePanel title={title} description={description} heading={hasHeading ? heading : null} footer={footer} onClose={() => onOpenChange(false)} onShown={focusSelected}>
+        {content}
+      </InlinePanel>
+    );
+  }
+
   return (
     <BookingOverlay
       open={open}
@@ -244,6 +272,61 @@ export function PickerOverlay({ open, onOpenChange, title, description, footer, 
     >
       {content}
     </BookingOverlay>
+  );
+}
+
+/** La lista abierta en su sitio (Agenda en lista, fuera del celular): se asoma a la vista y pone el foco en lo elegido. */
+function InlinePanel({ title, description, heading, footer, onClose, onShown, children }: { title: string; description?: string; heading: React.ReactNode; footer?: React.ReactNode; onClose: () => void; onShown: () => void; children: React.ReactNode }) {
+  const t = useAppT();
+  const ref = React.useRef<HTMLElement>(null);
+  React.useEffect(() => {
+    ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    onShown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir
+  }, []);
+  return (
+    <section
+      ref={ref}
+      aria-label={title}
+      className="flex scroll-mt-4 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+    >
+      <header className="flex items-start gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        {heading}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <Text as="span" weight="semibold">
+            {title}
+          </Text>
+          {description && (
+            <Text as="span" size="xs" tone="muted">
+              {description}
+            </Text>
+          )}
+        </span>
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} aria-label={t("common.close")} className="-mr-1 shrink-0">
+          <ThemaIcon name="close" />
+        </Button>
+      </header>
+      <div className="max-h-[26rem] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">{children}</div>
+      {footer && <footer className="flex flex-col gap-2 border-t border-border bg-muted/30 px-4 py-3">{footer}</footer>}
+    </section>
+  );
+}
+
+/** Desde cuántas opciones la lista lleva buscador. */
+export const PICKER_SEARCH_FROM = 7;
+
+/** Sin tildes ni mayúsculas, para buscar «andres» y encontrar «Andrés». */
+export const plainText = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** El buscador de arriba de una lista larga; se queda pegado al desplazar. */
+export function PickerSearch({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return (
+    <div className="sticky top-0 z-10 bg-popover px-4 pb-2 pt-3">
+      <div className="relative">
+        <ThemaIcon name="search" size="sm" tone="muted" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-label={placeholder} className="pl-9" />
+      </div>
+    </div>
   );
 }
 

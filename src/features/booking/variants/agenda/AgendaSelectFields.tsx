@@ -8,6 +8,7 @@ import { useBookingFlow } from "../../flow/BookingContext";
 import type { BookingBarber } from "../../types";
 import { AgendaBarberField } from "./AgendaBarberField";
 import { AgendaBranchField } from "./AgendaBranchField";
+import { useAgendaListMode } from "./AgendaPicker";
 import { AgendaServiceField } from "./AgendaServicePicker";
 
 interface AgendaSelectFieldsProps {
@@ -49,6 +50,8 @@ function FieldSection({ id, label, aside, inline = false, children }: { id: stri
 export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFieldsProps) {
   const t = useAppT();
   const { shop, layout, touch } = useBookingFlow();
+  // La Agenda en lista: filas una debajo de otra en todos los tamaños.
+  const listMode = useAgendaListMode();
   const hasBranches = shop.branches.length > 1;
   // La lista de sedes se abre desde su campo o desde Servicios y Barbero cuando aún no hay sede.
   const [branchOpen, setBranchOpen] = React.useState(false);
@@ -57,7 +60,7 @@ export function AgendaSelectFields({ barbers, usualId, onUsual }: AgendaSelectFi
   // Las preguntas van numeradas: sede, barbero y servicios; con una sola sede, Barbero es la 1.
   const first = hasBranches ? 2 : 1;
   // En celular (y el widget) no caben tres en fila: van una debajo de otra, como filas.
-  const asCards = isWide || touch === "lg";
+  const asCards = (isWide || touch === "lg") && !listMode;
   return (
     // Tablet y monitor: tarjetas una al lado de la otra; celular: una debajo de otra.
     <div className={asCards ? cn("grid items-stretch", isWide ? "gap-3" : "gap-2", hasBranches ? "grid-cols-3" : "grid-cols-2") : "flex flex-col gap-2"}>

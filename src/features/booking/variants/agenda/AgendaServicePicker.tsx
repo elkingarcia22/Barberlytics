@@ -4,21 +4,16 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { Text } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { toastMissing } from "../../flow/missingData";
 import type { BookingService } from "../../types";
 import { fromPrice, itemDuration, itemPrice } from "../../useBookingTotals";
-import { PickerField, PickerOverlay, PickerRow } from "./AgendaPicker";
+import { PICKER_SEARCH_FROM, PickerField, PickerOverlay, PickerRow, PickerSearch, plainText as plain } from "./AgendaPicker";
 
-/** Con menos servicios que esto el buscador estorba más de lo que ayuda. */
-const SEARCH_FROM = 7;
 /** Cuántos nombres caben en el campo antes de resumir con «y N más». */
 const NAMES_SHOWN = 2;
-const plain = (value: string): string => value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 /**
  * «Qué te vas a hacer» en la Agenda con selector: un campo que se lee como un
@@ -168,14 +163,7 @@ const ServicePickerList = React.forwardRef<HTMLDivElement, ServicePickerListProp
 
   return (
     <div ref={ref} className="flex flex-col">
-      {services.length >= SEARCH_FROM && (
-        <div className="sticky top-0 z-10 bg-popover px-4 pb-2 pt-3">
-          <div className="relative">
-            <ThemaIcon name="search" size="sm" tone="muted" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={t("booking.services.search")} aria-label={t("booking.services.search")} className="pl-9" />
-          </div>
-        </div>
-      )}
+      {services.length >= PICKER_SEARCH_FROM && <PickerSearch value={query} onChange={onQueryChange} placeholder={t("booking.services.search")} />}
 
       {services.length === 0 ? (
         <EmptyState icon="scissors" title={t("booking.services.emptyBranch")} />

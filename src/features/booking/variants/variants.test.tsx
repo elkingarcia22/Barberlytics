@@ -383,6 +383,14 @@ describe("las otras dos experiencias", () => {
     await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toBeEnabled());
   });
 
+  test("agenda en lista: la misma agenda; en celular, sede y servicio se eligen igual y aparecen las horas", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-list" />);
+    await screen.findByText("Arma tu cita");
+    await chooseAgendaService(user, /^Corte clásico/);
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+  });
+
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);

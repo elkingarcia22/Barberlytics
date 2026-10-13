@@ -86,27 +86,33 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
   // El número también cambia: lleno cuando la pregunta ya está respondida.
   const stepClass = selected && !disabled ? "bg-primary [&>span]:text-primary-foreground" : undefined;
 
-  // Como tarjetas, una al lado de la otra: foto arriba y el texto debajo, a dos líneas.
+  // Como tarjetas, una al lado de la otra. Dos franjas que se alinean entre las tres: arriba el número y el
+  // nombre de la pregunta («1 · SEDE») con la flecha; debajo, el icono o la foto junto a lo elegido.
   if (isDense) {
     return (
-      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} disabled={disabled} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
-        <span className="flex w-full items-start gap-2">
-          {/* El número de la pregunta delante del icono, como el 4 delante de «¿Qué día y a qué hora?». */}
-          {step !== undefined && <StepNumber value={step} className={cn("mt-1 size-6", stepClass)} />}
-          <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
-          <span className="ml-auto">{arrow}</span>
-        </span>
-        <span id={valueId} className="flex w-full min-w-0 flex-col">
-          {eyebrow && <Eyebrow text={eyebrow} />}
-          {/* En tarjetas angostas, las palabras largas («Massachusetts») parten en vez de cortarse. */}
-          <Text as="span" size="sm" weight="medium" tone={value ? "default" : "muted"} className="line-clamp-2 hyphens-auto [overflow-wrap:anywhere]" lang="es">
-            {value ?? placeholder}
-          </Text>
-          {value && detail && (
-            <Text as="span" size="xs" tone="muted" tabular className="line-clamp-2 [overflow-wrap:anywhere]">
-              {detail}
+      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} disabled={disabled} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-4" : "gap-2.5 p-3")}>
+        <span className="flex w-full items-center gap-2">
+          {step !== undefined && <StepNumber value={step} className={cn("size-6", stepClass)} />}
+          {eyebrow && (
+            <Text as="span" size="xs" weight="semibold" tone="muted" className="truncate uppercase tracking-wide">
+              {eyebrow}
             </Text>
           )}
+          <span className="ml-auto">{arrow}</span>
+        </span>
+        <span className="flex w-full min-w-0 items-center gap-3">
+          <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+          <span id={valueId} className="flex min-w-0 flex-1 flex-col">
+            {/* En tarjetas angostas, las palabras largas («Massachusetts») parten en vez de cortarse. */}
+            <Text as="span" size="sm" weight={value ? "semibold" : "medium"} tone={value ? "default" : "muted"} className="line-clamp-2 hyphens-auto [overflow-wrap:anywhere]" lang="es">
+              {value ?? placeholder}
+            </Text>
+            {value && detail && (
+              <Text as="span" size="xs" tone="muted" tabular className="line-clamp-1 [overflow-wrap:anywhere]">
+                {detail}
+              </Text>
+            )}
+          </span>
         </span>
       </button>
     );

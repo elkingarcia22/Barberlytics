@@ -8,9 +8,9 @@ const SPOKEN_OPTIONS = 4;
 const SAMPLE_OPTIONS = 3;
 
 export interface VoiceReplyLabels {
-  /** «Puedes decir {list}»: todas las opciones caben en la frase. */
+  /** «Puede ser {list}.»: todas las opciones caben en la frase. */
   oneOf: (list: string) => string;
-  /** «Por ejemplo: {list}, o mira la lista»: se dicen algunas. */
+  /** «Por ejemplo, {list}. Las demás las ves en pantalla.»: se dicen algunas. */
   someOf: (list: string) => string;
   /** «¿Cuándo quieres venir?»: el día y la hora en una sola pregunta abierta. */
   when: string;
@@ -55,6 +55,9 @@ const VOICE_WORDING: Record<string, ReadonlyArray<[RegExp, string]>> = {
     // Dicho en voz, como lo pediría una persona (y sin cerrar en «tu…», que la voz alargaba).
     [/Dime tu (\*{0,2})número de celular\1\./g, "¿Me das tu $1número de celular$1?"],
     [/Dímelo (?:aquí )?abajo/g, "Dímelo"],
+    [/\s*Elige en la lista o escr[ií]bemelo\./g, ""],
+    [/\bPuedes escribirme\b/g, "Puedes pedirme"],
+    [/,? como \*{0,2}MM\/AA\*{0,2}/g, ""],
   ],
   en: [
     [/\s*(?:For example|E\.g)\.?:?\s[^.!?]*[.!?]?/g, ""],
@@ -228,6 +231,16 @@ export function saysOnlyOption(text: string, option: string, locale: string): bo
   return rest.length === 0;
 }
 
+/**
+ * Una opción dicha dentro de una frase: «Pagar en la barbería» → «pagar en la barbería». Los nombres
+ * propios («Apple Pay o Google Pay», «Andrés») se quedan como están.
+ */
+function asSpokenOption(option: string): string {
+  const [first = "", ...rest] = option.split(" ");
+  const hasOtherCapitals = rest.some((word) => /^[A-ZÁÉÍÓÚÑ]/.test(word));
+  return !hasOtherCapitals && /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+$/.test(first) ? option.charAt(0).toLowerCase() + option.slice(1) : option;
+}
+
 const endsSentence = (text: string) => /[.!?…:]$/.test(text.trim());
 const sentence = (text: string) => (endsSentence(text) ? text.trim() : `${text.trim()}.`);
 
@@ -255,8 +268,10 @@ export function voiceReplyFromTurns(turns: readonly ChatTurn[], locale: string, 
       if (title) parts.pop();
       parts.push(labels.propose(list.format(times)));
     }
-  } else if (options.length > 0 && question && speaksOptions(question.kind, options.length)) {
-    parts.push(options.length <= SPOKEN_OPTIONS ? labels.oneOf(list.format(options)) : labels.someOf(list.format(options.slice(0, SAMPLE_OPTIONS))));
+  } else if (options.length > 1 && question && speaksOptions(question.kind, options.length)) {
+    // Una sola opción («No, continuar») no se lee: la pregunta ya se contesta sola.
+    const spoken = options.map(asSpokenOption);
+    parts.push(options.length <= SPOKEN_OPTIONS ? labels.oneOf(list.format(spoken)) : labels.someOf(list.format(spoken.slice(0, SAMPLE_OPTIONS))));
   }
   // Lo mismo dos veces seguidas (el mensaje y el título de su pregunta) se dice una vez.
   const unique = parts.filter((part, index) => index === 0 || plainWords(part) !== plainWords(parts[index - 1]));

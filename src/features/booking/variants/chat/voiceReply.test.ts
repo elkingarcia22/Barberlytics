@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { ChatTurn } from "./chatKit";
 import { forVoice, fromVoice, matchSpokenOption, saysOnlyOption, voiceReplyFromTurns } from "./voiceReply";
 
-const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}`, when: "¿Cuándo quieres venir?", propose: (list: string) => `Tengo ${list}. ¿Te sirve alguna?` };
+const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puede ser ${list}`, when: "¿Cuándo quieres venir?", propose: (list: string) => `Tengo ${list}. ¿Te sirve alguna?` };
 const agent = (id: string, text?: string, question?: ChatTurn["question"]): ChatTurn => ({ id, from: "agent", text, question });
 const question = (title: string, options: string[], kind = "time") => ({ title, options, kind, values: {} }) as unknown as ChatTurn["question"];
 
@@ -40,9 +40,9 @@ describe("voiceReplyFromTurns", () => {
     expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿A qué hora el viernes?");
   });
 
-  test("still reads short choices like yes or no", () => {
+  test("still reads short choices, inside a natural sentence", () => {
     const turns = [agent("a1", "¿Para cuándo?", question("¿Para cuándo?", ["Hoy", "Mañana"], "noTimes"))];
-    expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿Para cuándo? Puedes decir Hoy o Mañana.");
+    expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿Para cuándo? Puede ser hoy o mañana.");
   });
 
   test("ignores the person's own messages and returns plain text without a question", () => {
@@ -60,6 +60,13 @@ describe("forVoice", () => {
 
   test("does the same in English", () => {
     expect(forVoice("Type your phone number, digits only, no spaces or symbols.", "en-US")).toBe("Tell me your phone number.");
+  });
+
+  test("does not read a single option, and keeps brand names as they are", () => {
+    const one = [agent("a1", undefined, question("¿Tienes un cupón o una tarjeta de regalo?", ["No, continuar"], "discount"))];
+    expect(voiceReplyFromTurns(one, "es-CO", LABELS).text).toBe("¿Tienes un cupón o una tarjeta de regalo?");
+    const method = [agent("a1", undefined, question("¿Cómo quieres pagar?", ["Tarjeta", "Apple Pay o Google Pay", "Pagar en la barbería"], "method"))];
+    expect(voiceReplyFromTurns(method, "es-CO", LABELS).text).toBe("¿Cómo quieres pagar? Puede ser tarjeta, Apple Pay o Google Pay o pagar en la barbería.");
   });
 
   test("drops the examples and formats meant for typing", () => {

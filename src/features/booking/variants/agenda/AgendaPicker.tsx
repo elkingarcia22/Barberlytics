@@ -57,20 +57,6 @@ function Eyebrow({ text }: { text: string }) {
   );
 }
 
-/** El icono o la foto del campo, con el número de la pregunta en su esquina (como un aviso, sin ocupar línea). */
-function NumberedTile({ step, children }: { step?: number; children: React.ReactNode }) {
-  if (step === undefined) return children;
-  return (
-    <span className="relative shrink-0">
-      {children}
-      {/* El mismo círculo que el 4 de «¿Qué día y a qué hora?», sobre un fondo sólido para que no se transparente el icono. */}
-      <span className="absolute -left-2.5 -top-2.5 rounded-full bg-surface">
-        <StepNumber value={step} className="size-6" />
-      </span>
-    </span>
-  );
-}
-
 export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow, step }: PickerFieldProps) {
   const { touch, layout } = useBookingFlow();
   const valueId = React.useId();
@@ -93,11 +79,11 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
   if (isDense) {
     return (
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
-        <span className="flex w-full items-start justify-between gap-2">
-          <NumberedTile step={step}>
-            <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
-          </NumberedTile>
-          {arrow}
+        <span className="flex w-full items-start gap-2">
+          {/* El número de la pregunta delante del icono, como el 4 delante de «¿Qué día y a qué hora?». */}
+          {step !== undefined && <StepNumber value={step} className="mt-1 size-6" />}
+          <IconTile size={layout === "wide" ? "md" : "sm"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
+          <span className="ml-auto">{arrow}</span>
         </span>
         <span id={valueId} className="flex w-full min-w-0 flex-col">
           {eyebrow && <Eyebrow text={eyebrow} />}
@@ -125,9 +111,8 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
       data-testid={testId}
       className={cn(base, "flex items-center gap-3 px-3", touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5")}
     >
-      <NumberedTile step={step}>
-        <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
-      </NumberedTile>
+      {step !== undefined && <StepNumber value={step} className="size-6" />}
+      <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
         {eyebrow && <Eyebrow text={eyebrow} />}
         {value ? (

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { readTtsConfig, synthesize, toSsml, voiceFor } from "./tts.js";
+import { geminiToWav, readTtsConfig, synthesize, toSsml, voiceFor } from "./tts.js";
 
 const audio = () => new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { "content-type": "audio/mpeg" } });
 
@@ -86,5 +86,40 @@ describe("synthesize", () => {
     const result = await synthesize({ text: "Hola", lang: "es" }, readTtsConfig({ OPENAI_API_KEY: "o" }), fetcher);
     expect(result.status).toBe(502);
     expect(await result.text()).not.toContain("sk-123");
+  });
+});
+
+describe("Gemini", () => {
+  const pcm = btoa(String.fromCharCode(1, 2, 3, 4));
+  const geminiBody = { candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/L16;codec=pcm;rate=24000", data: pcm } }] } }] };
+
+  test("goes first when its key is set, with a male voice for both languages", () => {
+    const config = readTtsConfig({ GEMINI_API_KEY: "g", ELEVENLABS_API_KEY: "e", AZURE_SPEECH_KEY: "k", AZURE_SPEECH_REGION: "eastus" });
+    expect(config.provider).toBe("gemini");
+    expect(voiceFor(config, "es")).toBe("Achird");
+  });
+
+  test("wraps the PCM it returns in a playable WAV", () => {
+    const wav = geminiToWav(geminiBody);
+    expect(wav).not.toBeNull();
+    const text = (from: number) => String.fromCharCode(...(wav as Uint8Array).slice(from, from + 4));
+    expect(text(0)).toBe("RIFF");
+    expect(text(8)).toBe("WAVE");
+    expect((wav as Uint8Array).length).toBe(44 + 4);
+    expect(new DataView((wav as Uint8Array).buffer).getUint32(24, true)).toBe(24000);
+    expect(geminiToWav({ candidates: [] })).toBeNull();
+  });
+
+  test("asks Gemini for audio with the voice and the tone, and answers audio/wav", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(geminiBody), { status: 200, headers: { "content-type": "application/json" } }));
+    const response = await synthesize({ text: "Hola, Marcela", lang: "es" }, readTtsConfig({ GEMINI_API_KEY: "g" }), fetcher);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("audio/wav");
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit & { headers: Record<string, string> }];
+    expect(url).toContain("gemini-2.5-flash-preview-tts:generateContent");
+    expect(init.headers["x-goog-api-key"]).toBe("g");
+    const body = JSON.parse(String(init.body));
+    expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe("Achird");
+    expect(body.contents[0].parts[0].text).toMatch(/Hola, Marcela$/);
   });
 });

@@ -97,7 +97,6 @@ export const bookingVariantsEs = {
   "booking.agenda.checkout.addProducts": "Agregar productos ({count})",
   "booking.agenda.checkout.signInFirst": "Confirma tu celular arriba y aquí verás cómo pagar, con tus tarjetas guardadas y tus beneficios.",
   "booking.agenda.checkout.continue": "Continuar al pago",
-  "booking.agenda.checkout.continueLocked": "Confirma tu celular para continuar",
   "booking.agenda.pay.title": "Pago",
   "booking.agenda.pay.lead": "Elige cómo pagas y listo.",
   "booking.agenda.heldTitle": "Ya tienes {count} cita lista",

@@ -138,14 +138,13 @@ function AddAnotherCard({ onClick }: { onClick: () => void }) {
   return <AddCard title={t("booking.review.addAnother")} hint={t("booking.review.addAnotherHint")} onClick={onClick} />;
 }
 
-/** El pie de «Confirma tu cita»: seguir al pago, que se abre al identificarse. */
-function ContinueFooter({ onContinue, locked }: { onContinue: () => void; locked: boolean }) {
+/** El pie de «Confirma tu cita» ya identificado: seguir al pago. */
+function ContinueFooter({ onContinue }: { onContinue: () => void }) {
   const t = useAppT();
   return (
-    <Button type="button" size="lg" className="w-full" disabled={locked} onClick={onContinue}>
-      {locked ? <ThemaIcon name="lock" /> : null}
-      {locked ? t("booking.agenda.checkout.continueLocked") : t("booking.agenda.checkout.continue")}
-      {locked ? null : <ThemaIcon name="arrowRight" />}
+    <Button type="button" size="lg" className="w-full" onClick={onContinue}>
+      {t("booking.agenda.checkout.continue")}
+      <ThemaIcon name="arrowRight" />
     </Button>
   );
 }
@@ -166,7 +165,9 @@ export function AgendaSelectCheckout({ onContinue, onAddAnother }: ReviewProps) 
   const t = useAppT();
   const { state } = useBookingFlow();
   const isSignedIn = Boolean(state.customer);
-  const { footer, portal } = useAsideFooter(<ContinueFooter onContinue={onContinue} locked={!isSignedIn} />);
+  // Sin identificarse, el único botón principal es el de «Tus datos» (enviar el código): el de seguir no se
+  // muestra bloqueado al lado. Al identificarse pasa solo al pago; el botón queda para volver a él.
+  const { footer, portal } = useAsideFooter(isSignedIn ? <ContinueFooter onContinue={onContinue} /> : null);
   // Se identificó aquí (cliente de siempre, o nuevo al crear su ficha): sigue solo al pago.
   const wasSignedIn = React.useRef(isSignedIn);
   React.useEffect(() => {

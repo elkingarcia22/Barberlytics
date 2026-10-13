@@ -53,6 +53,8 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step,
         asCard
         eyebrow={eyebrow}
         step={step}
+        // Sin sede no hay barberos ni carta: el campo espera apagado.
+        disabled={!state.branchId}
         labelledBy={labelledBy}
         imageUrl={chosen?.avatarUrl}
         icon="users"

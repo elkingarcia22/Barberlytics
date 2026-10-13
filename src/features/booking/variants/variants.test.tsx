@@ -372,8 +372,11 @@ describe("las otras dos experiencias", () => {
     expect(screen.getByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
     expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Sin preferencia");
     expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
-    // Sin sede no hay carta: tocar «Servicios» abre la lista de sedes, sin ninguna marcada.
-    await user.click(screen.getByTestId("agenda-service-field"));
+    // Sin sede no se puede elegir barbero ni servicios: los dos esperan apagados.
+    expect(screen.getByTestId("agenda-service-field")).toBeDisabled();
+    expect(screen.getByTestId("agenda-barber-field")).toBeDisabled();
+    // La sede se elige primero, sin ninguna marcada.
+    await user.click(screen.getByTestId("agenda-branch-field"));
     const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
     expect(within(dialog).getAllByRole("radio").every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
     await user.click(within(dialog).getAllByRole("radio")[0]);

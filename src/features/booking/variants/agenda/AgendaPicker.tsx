@@ -33,6 +33,8 @@ interface PickerFieldProps {
   asCard?: boolean;
   /** El nombre del campo dentro de la fila («Sede»), cuando no lleva título encima (celular). */
   eyebrow?: string;
+  /** Aún no se puede responder (falta la sede): apagado y sin abrir. */
+  disabled?: boolean;
   /** Ya respondida: borde y fondo de marca para distinguirla de las que faltan. Por defecto, si tiene `value`. */
   selected?: boolean;
   /** El número de la pregunta en «Arma tu cita» (1 sede, 2 servicios…), delante del `eyebrow`. */
@@ -59,7 +61,7 @@ function Eyebrow({ text }: { text: string }) {
   );
 }
 
-export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow, step, selected = Boolean(value) }: PickerFieldProps) {
+export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow, step, selected = Boolean(value), disabled = false }: PickerFieldProps) {
   const { touch, layout } = useBookingFlow();
   const valueId = React.useId();
   // Tarjeta solo donde caben en fila (tablet y monitor); en celular, la fila de siempre.
@@ -77,15 +79,17 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     "hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
     // Siempre con fondo sólido (va sobre la foto). Respondida: filo de marca y un tinte encima del fondo, no en vez de él.
     "bg-surface",
-    selected ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input"
+    // Apagada: el contenido tenue, el fondo sólido (una tarjeta transparente dejaba ver la foto de atrás).
+    "disabled:cursor-not-allowed disabled:shadow-none disabled:hover:border-input [&:disabled>*]:opacity-50",
+    selected && !disabled ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input"
   );
   // El número también cambia: lleno cuando la pregunta ya está respondida.
-  const stepClass = selected ? "bg-primary [&>span]:text-primary-foreground" : undefined;
+  const stepClass = selected && !disabled ? "bg-primary [&>span]:text-primary-foreground" : undefined;
 
   // Como tarjetas, una al lado de la otra: foto arriba y el texto debajo, a dos líneas.
   if (isDense) {
     return (
-      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
+      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} disabled={disabled} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-3" : "gap-2 p-2.5")}>
         <span className="flex w-full items-start gap-2">
           {/* El número de la pregunta delante del icono, como el 4 delante de «¿Qué día y a qué hora?». */}
           {step !== undefined && <StepNumber value={step} className={cn("mt-1 size-6", stepClass)} />}
@@ -114,6 +118,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-labelledby={`${labelledBy} ${valueId}`}
+      disabled={disabled}
       onClick={onOpen}
       data-testid={testId}
       className={cn(base, "flex items-center gap-3 px-3", touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5")}

@@ -63,6 +63,8 @@ export function AgendaServiceField({ labelledBy, eyebrow, step, onNeedBranch }: 
         asCard
         eyebrow={eyebrow}
         step={step}
+        // Sin sede no hay barberos ni carta: el campo espera apagado.
+        disabled={!state.branchId}
         labelledBy={labelledBy}
         imageUrl={chosen[0]?.imageUrl}
         icon="scissors"

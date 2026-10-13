@@ -11,6 +11,7 @@ import { PickerField, PickerOverlay, PickerRow } from "./AgendaPicker";
 
 interface AgendaBarberFieldProps {
   eyebrow?: string;
+  step?: number;
   labelledBy: string;
   /** Quienes hacen todo lo elegido, ya ordenados (el de siempre primero). */
   barbers: readonly BookingBarber[];
@@ -26,7 +27,7 @@ interface AgendaBarberFieldProps {
  * cobran por eso. «Ver perfil» abre su perfil dentro de la ventana. Lo elegido
  * filtra las horas de abajo; las horas se eligen aparte.
  */
-export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, onNeedBranch }: AgendaBarberFieldProps) {
+export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step, onNeedBranch }: AgendaBarberFieldProps) {
   const t = useAppT();
   const { state, dispatch, catalog, fmt } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
@@ -51,6 +52,7 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, onNee
       <PickerField
         asCard
         eyebrow={eyebrow}
+        step={step}
         labelledBy={labelledBy}
         imageUrl={chosen?.avatarUrl}
         icon="users"

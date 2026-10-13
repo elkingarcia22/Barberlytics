@@ -27,7 +27,7 @@ const plain = (value: string): string => value.toLowerCase().normalize("NFD").re
  * con 30, y las horas libres quedan a la vista. Se elige dentro y se aplica con
  * «Ver horas»; cerrar sin aplicar no cambia nada.
  */
-export function AgendaServiceField({ labelledBy, eyebrow, onNeedBranch }: { labelledBy: string; eyebrow?: string; /** Sin sede no hay carta (es de cada sede): tocar el campo abre primero la sede. */ onNeedBranch?: () => void }) {
+export function AgendaServiceField({ labelledBy, eyebrow, step, onNeedBranch }: { labelledBy: string; eyebrow?: string; step?: number; /** Sin sede no hay carta (es de cada sede): tocar el campo abre primero la sede. */ onNeedBranch?: () => void }) {
   const t = useAppT();
   const { state, dispatch, catalog, catalogLoading, fmt, touch } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
@@ -62,6 +62,7 @@ export function AgendaServiceField({ labelledBy, eyebrow, onNeedBranch }: { labe
       <PickerField
         asCard
         eyebrow={eyebrow}
+        step={step}
         labelledBy={labelledBy}
         imageUrl={chosen[0]?.imageUrl}
         icon="scissors"

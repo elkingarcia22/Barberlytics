@@ -33,9 +33,32 @@ interface PickerFieldProps {
   asCard?: boolean;
   /** El nombre del campo dentro de la fila («Sede»), cuando no lleva título encima (celular). */
   eyebrow?: string;
+  /** El número de la pregunta en «Arma tu cita» (1 sede, 2 servicios…), delante del `eyebrow`. */
+  step?: number;
 }
 
-export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow }: PickerFieldProps) {
+/** El número de una pregunta de «Arma tu cita»: un círculo pequeño con el color de marca. */
+export function StepNumber({ value, className }: { value: number; className?: string }) {
+  return (
+    <span aria-hidden className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[0.625rem] font-semibold leading-none text-primary-foreground tabular-nums", className)}>
+      {value}
+    </span>
+  );
+}
+
+/** El nombre del campo, con su número si lo lleva. */
+function Eyebrow({ text, step }: { text: string; step?: number }) {
+  return (
+    <span className="flex min-w-0 items-center gap-1.5">
+      {step !== undefined && <StepNumber value={step} />}
+      <Text as="span" size="xs" tone="muted" className="truncate">
+        {text}
+      </Text>
+    </span>
+  );
+}
+
+export function PickerField({ labelledBy, imageUrl, icon, round = false, value, detail, placeholder, open, onOpen, testId, asCard = false, eyebrow, step }: PickerFieldProps) {
   const { touch, layout } = useBookingFlow();
   const valueId = React.useId();
   // Tarjeta solo donde caben en fila (tablet y monitor); en celular, la fila de siempre.
@@ -62,11 +85,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
           {arrow}
         </span>
         <span id={valueId} className="flex w-full min-w-0 flex-col">
-          {eyebrow && (
-            <Text as="span" size="xs" tone="muted" className="truncate">
-              {eyebrow}
-            </Text>
-          )}
+          {eyebrow && <Eyebrow text={eyebrow} step={step} />}
           {/* En tarjetas angostas, las palabras largas («Massachusetts») parten en vez de cortarse. */}
           <Text as="span" size="sm" weight="medium" tone={value ? "default" : "muted"} className="line-clamp-2 hyphens-auto [overflow-wrap:anywhere]" lang="es">
             {value ?? placeholder}
@@ -93,11 +112,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     >
       <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
-        {eyebrow && (
-          <Text as="span" size="xs" tone="muted" className="truncate">
-            {eyebrow}
-          </Text>
-        )}
+        {eyebrow && <Eyebrow text={eyebrow} step={step} />}
         {value ? (
           <>
             <Text as="span" weight="medium" className="truncate">

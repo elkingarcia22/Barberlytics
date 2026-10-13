@@ -27,6 +27,9 @@ import { DayStrip } from "./DayStrip";
 const sameServices = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((id) => b.includes(id));
 
 /** Cuántos días se recorren en la tira. */
+/** Los avisos van sobre la foto: fondo sólido con el tinte encima, para que no se transparenten. */
+const SOLID_INFO = "bg-surface dark:bg-surface bg-[linear-gradient(hsl(var(--info)/0.08),hsl(var(--info)/0.08))]";
+
 const DAYS_AHEAD = 21;
 const SKELETON_LANES = 3;
 
@@ -118,7 +121,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
     <div className={cn("relative mx-auto flex w-full flex-col gap-6 px-5 pb-8 pt-6", STEP_WIDTH[layout], layout === "wide" ? "-mt-60 px-8 pt-8" : "-mt-48")}>
 
       {editing && (
-        <Alert variant="info">
+        <Alert variant="info" className={SOLID_INFO}>
           <ThemaIcon name="edit" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
             <span>{t("booking.agenda.editing", { name: personName(editing.person, state.customer) || t("booking.person.self") })}</span>
@@ -130,7 +133,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
       )}
 
       {heldCount > 0 && !editing && (
-        <Alert variant="info">
+        <Alert variant="info" className={SOLID_INFO}>
           <ThemaIcon name="plus" />
           <AlertDescription>{t("booking.agenda.addingAnother", { count: heldCount })}</AlertDescription>
         </Alert>

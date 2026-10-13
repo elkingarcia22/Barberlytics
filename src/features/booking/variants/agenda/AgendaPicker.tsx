@@ -75,8 +75,9 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     // Fondo de tarjeta, no de página: en claro el campo se despegaba del fondo solo por un filo.
     "group w-full rounded-xl border text-left shadow-xs outline-none transition-[border-color,box-shadow,background-color] duration-fast",
     "hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-    // Respondida: filo de marca y un tinte; la que falta, el campo de siempre.
-    selected ? "border-primary/60 bg-primary/5" : "border-input bg-surface"
+    // Siempre con fondo sólido (va sobre la foto). Respondida: filo de marca y un tinte encima del fondo, no en vez de él.
+    "bg-surface",
+    selected ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input"
   );
   // El número también cambia: lleno cuando la pregunta ya está respondida.
   const stepClass = selected ? "bg-primary [&>span]:text-primary-foreground" : undefined;

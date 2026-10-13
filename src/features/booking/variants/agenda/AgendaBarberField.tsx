@@ -114,13 +114,14 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step,
                 </Text>
               )}
               {visibleBarbers.map((barber) => {
-                const price = t("booking.services.from", { price: fmt.money(itemPrice({ serviceIds, barberId: barber.id }, catalog)) });
+                // El barbero se elige antes que el servicio: sin servicio aún no hay precio que decir.
+              const price = serviceIds.length > 0 ? t("booking.services.from", { price: fmt.money(itemPrice({ serviceIds, barberId: barber.id }, catalog)) }) : null;
                 return (
                   <PickerRow
                     key={barber.id}
                     role="radio"
                     checked={chosen?.id === barber.id}
-                    label={`${barber.name} · ${price}`}
+                    label={price ? `${barber.name} · ${price}` : barber.name}
                     imageUrl={barber.avatarUrl}
                     icon="users"
                     round
@@ -134,7 +135,13 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step,
                       {barber.id === usualId && <Badge variant="secondary">{t("booking.barber.lastTime")}</Badge>}
                     </span>
                     <Text as="span" size="xs" tone="muted" tabular className="truncate">
-                      {[barber.level, `★ ${barber.rating.toFixed(1)}`].filter(Boolean).join(" · ")} · <span className="font-medium text-text-primary">{price}</span>
+                      {[barber.level, `★ ${barber.rating.toFixed(1)}`].filter(Boolean).join(" · ")}
+                    {price && (
+                      <>
+                        {" · "}
+                        <span className="font-medium text-text-primary">{price}</span>
+                      </>
+                    )}
                     </Text>
                   </PickerRow>
                 );

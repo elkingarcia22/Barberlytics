@@ -367,7 +367,6 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: sin cuenta, sede y servicio abren sin nada elegido, el barbero en «Sin preferencia», y la sede va primero", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-select" />);
-    expect(await screen.findByText("Elige la sede para ver sus servicios y las horas libres.")).toBeInTheDocument();
     expect(await screen.findByTestId("agenda-branch-field")).toHaveTextContent("Elige la sede");
     expect(screen.getByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
     expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Sin preferencia");
@@ -380,7 +379,8 @@ describe("las otras dos experiencias", () => {
     const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
     expect(within(dialog).getAllByRole("radio").every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
     await user.click(within(dialog).getAllByRole("radio")[0]);
-    expect(await screen.findByText("Elige al menos un servicio para ver las horas libres.")).toBeInTheDocument();
+    // Con sede, barbero y servicios se encienden; el día sigue apagado hasta elegir un servicio.
+    await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toBeEnabled());
   });
 
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {

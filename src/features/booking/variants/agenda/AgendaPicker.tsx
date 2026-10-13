@@ -41,11 +41,11 @@ interface PickerFieldProps {
   step?: number;
 }
 
-/** El número de una pregunta de «Arma tu cita», como los de «Confirma tu cita»: círculo tenue con la cifra en el color de marca. */
+/** El número de una pregunta de «Arma tu cita»: círculo lleno del color de marca, bien visible en claro y en oscuro. */
 export function StepNumber({ value, className }: { value: number; className?: string }) {
   return (
-    <span aria-hidden className={cn("flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10", className)}>
-      <Text as="span" size="xs" weight="semibold" tone="primary" tabular>
+    <span aria-hidden className={cn("flex size-5 shrink-0 items-center justify-center rounded-full bg-primary [&>span]:text-primary-foreground", className)}>
+      <Text as="span" size="xs" weight="semibold" tabular>
         {value}
       </Text>
     </span>
@@ -83,8 +83,6 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     "disabled:cursor-not-allowed disabled:shadow-none disabled:hover:border-input [&:disabled>*]:opacity-50",
     selected && !disabled ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input"
   );
-  // El número también cambia: lleno cuando la pregunta ya está respondida.
-  const stepClass = selected && !disabled ? "bg-primary [&>span]:text-primary-foreground" : undefined;
 
   // Como tarjetas, una al lado de la otra. Dos franjas que se alinean entre las tres: arriba el número y el
   // nombre de la pregunta («1 · SEDE») con la flecha; debajo, el icono o la foto junto a lo elegido.
@@ -92,7 +90,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
     return (
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-labelledby={`${labelledBy} ${valueId}`} disabled={disabled} onClick={onOpen} data-testid={testId} className={cn(base, "flex h-full flex-col", layout === "wide" ? "gap-3 p-4" : "gap-2.5 p-3")}>
         <span className="flex w-full items-center gap-2">
-          {step !== undefined && <StepNumber value={step} className={cn("size-6", stepClass)} />}
+          {step !== undefined && <StepNumber value={step} className="size-6" />}
           {eyebrow && (
             <Text as="span" size="xs" weight="semibold" tone="muted" className="truncate uppercase tracking-wide">
               {eyebrow}
@@ -129,7 +127,7 @@ export function PickerField({ labelledBy, imageUrl, icon, round = false, value, 
       data-testid={testId}
       className={cn(base, "flex items-center gap-3 px-3", touch === "lg" ? "min-h-[4.5rem] py-3" : "min-h-16 py-2.5")}
     >
-      {step !== undefined && <StepNumber value={step} className={cn("size-6", stepClass)} />}
+      {step !== undefined && <StepNumber value={step} className="size-6" />}
       <IconTile size={touch === "lg" ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={value ? "primary" : "neutral"} />
       <span id={valueId} className="flex min-w-0 flex-1 flex-col">
         {eyebrow && <Eyebrow text={eyebrow} />}

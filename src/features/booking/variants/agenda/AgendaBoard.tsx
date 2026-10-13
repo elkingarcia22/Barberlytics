@@ -172,11 +172,8 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
       </section>
 
-      {!state.branchId ? (
-        <EmptyState icon="building" title={t("booking.agenda.pickBranch")} />
-      ) : serviceIds.length === 0 ? (
-        <EmptyState icon="scissors" title={t("booking.agenda.pickService")} />
-      ) : (
+      {/* Sin sede o sin servicio no hay aviso abajo: las tarjetas y el día apagado ya dicen qué falta. */}
+      {!isReady ? null : (
         <>
           {isWaiting ? (
             <div className={cn("grid grid-cols-1 gap-3", layout === "wide" && "grid-cols-2")}>

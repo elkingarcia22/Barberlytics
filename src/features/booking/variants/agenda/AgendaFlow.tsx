@@ -113,11 +113,10 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     setView("pay");
     dispatch({ type: "goTo", step: "payment" });
   };
-  // Otra cita: las de ahora se quedan y la agenda abre con lo mismo para elegir otra hora.
+  // Otra cita: las de ahora se quedan y la agenda vuelve a empezar (misma sede, sin barbero ni servicio), como en Paso a paso.
   const addAnother = () => {
     setHeldCount(state.items.length);
-    const last = state.items.at(-1);
-    dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : [], barberId: last?.barberId ?? null, barberChosen: last?.barberChosen });
+    dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null, barberChosen: false });
     toBoard();
   };
 

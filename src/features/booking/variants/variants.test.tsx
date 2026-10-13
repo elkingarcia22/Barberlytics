@@ -434,9 +434,11 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByRole("heading", { name: "Confirma tu cita" })).toBeInTheDocument();
     // El pago es la pantalla siguiente: aquí no hay propina ni formas de pago.
     expect(screen.queryByText("Propina para tu barbero")).toBeNull();
-    // Sumar otra: vuelve a la agenda con las de ahora guardadas y se elige otra hora.
+    // Sumar otra: vuelve a la agenda con las de ahora guardadas y empieza de cero (servicio y hora otra vez).
     await user.click(screen.getByRole("button", { name: /Agregar otra cita/ }));
     expect(await screen.findByText(/Ya tienes 1 cita lista/)).toBeInTheDocument();
+    expect(screen.getByText("Elige uno o varios servicios")).toBeInTheDocument();
+    await chooseAgendaService(user, /^Corte clásico/);
     await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[1]);
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Tus citas")).toBeInTheDocument();

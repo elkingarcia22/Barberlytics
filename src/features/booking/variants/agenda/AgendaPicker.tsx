@@ -37,11 +37,13 @@ interface PickerFieldProps {
   step?: number;
 }
 
-/** El número de una pregunta de «Arma tu cita»: un círculo pequeño con el color de marca. */
+/** El número de una pregunta de «Arma tu cita», como los de «Confirma tu cita»: círculo tenue con la cifra en el color de marca. */
 export function StepNumber({ value, className }: { value: number; className?: string }) {
   return (
-    <span aria-hidden className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-[0.625rem] font-semibold leading-none text-primary-foreground tabular-nums", className)}>
-      {value}
+    <span aria-hidden className={cn("flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10", className)}>
+      <Text as="span" size="xs" weight="semibold" tone="primary" tabular>
+        {value}
+      </Text>
     </span>
   );
 }

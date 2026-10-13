@@ -42,6 +42,8 @@ export const bookingVariantsEs = {
   "booking.agenda.productsTitle": "¿Llevas algo de la tienda?",
   "booking.agenda.productsLead": "Te lo tenemos listo en tu cita y lo pagas junto con ella.",
   "booking.agenda.productsPlaceholder": "Agrega productos ({count} disponibles)",
+  "booking.agenda.productsAdd": "Agregar productos",
+  "booking.agenda.productsHint": "Ceras, champús y más: {count} para llevar con tu cita.",
   "booking.agenda.productsCount": "{count} producto",
   "booking.agenda.productsCount_plural": "{count} productos",
   "booking.agenda.productsNone": "No llevas nada por ahora",

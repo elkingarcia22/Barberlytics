@@ -29,7 +29,7 @@ export function CoverEntry() {
           donde el halo aclara el fondo de debajo. */}
       <div
         // En claro la foto llega más abajo y se funde con más pasos (si no, el fondo crema la lavaba de blanco); en oscuro, como estaba.
-        className={cn("relative shrink-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_65%,rgb(0_0_0/0.75)_80%,rgb(0_0_0/0.3)_92%,transparent)] dark:[mask-image:linear-gradient(to_bottom,black_45%,transparent)]", isWide ? "h-80" : touch === "lg" ? "h-60" : "h-44")}
+        className={cn("relative shrink-0 overflow-hidden [mask-image:linear-gradient(to_bottom,black_60%,transparent)] dark:[mask-image:linear-gradient(to_bottom,black_45%,transparent)]", isWide ? "h-80" : touch === "lg" ? "h-60" : "h-44")}
         aria-hidden
       >
         {cover && <img src={cover} alt="" className={cn("size-full object-cover object-[50%_15%] motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700")} />}

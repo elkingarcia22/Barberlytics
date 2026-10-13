@@ -159,14 +159,20 @@ interface ReviewProps {
 
 /**
  * «Confirma tu cita» en la Agenda con selector: solo lo de la cita. Las citas
- * en sus tarjetas (con a nombre de quién), sumar otra, quién eres si aún no
- * ingresaste y los productos. El pago es la pantalla siguiente (`AgendaSelectPay`).
+ * en sus tarjetas (con a nombre de quién), sumar otra, los productos y, si aún no
+ * ingresó, quién es: al identificarse pasa solo al pago (`AgendaSelectPay`).
  */
 export function AgendaSelectCheckout({ onContinue, onAddAnother }: ReviewProps) {
   const t = useAppT();
   const { state } = useBookingFlow();
   const isSignedIn = Boolean(state.customer);
   const { footer, portal } = useAsideFooter(<ContinueFooter onContinue={onContinue} locked={!isSignedIn} />);
+  // Se identificó aquí (cliente de siempre, o nuevo al crear su ficha): sigue solo al pago.
+  const wasSignedIn = React.useRef(isSignedIn);
+  React.useEffect(() => {
+    if (isSignedIn && !wasSignedIn.current) onContinue();
+    wasSignedIn.current = isSignedIn;
+  }, [isSignedIn, onContinue]);
   let index = 0;
   const next = () => ++index;
   return (
@@ -177,14 +183,13 @@ export function AgendaSelectCheckout({ onContinue, onAddAnother }: ReviewProps) 
         ))}
         <AddAnotherCard onClick={onAddAnother} />
       </CheckoutSection>
+      {/* Los productos antes de quién eres: al identificarse ya pasa directo al pago. */}
+      <CheckoutSection index={next()} title={t("booking.agenda.checkout.products")}>
+        <Extras />
+      </CheckoutSection>
       {!isSignedIn && (
         <CheckoutSection index={next()} title={t("booking.agenda.checkout.yourDetails")}>
           {state.token ? <NewCustomerDetails /> : <AgendaIdentity />}
-        </CheckoutSection>
-      )}
-      {isSignedIn && (
-        <CheckoutSection index={next()} title={t("booking.agenda.checkout.products")}>
-          <Extras />
         </CheckoutSection>
       )}
       {portal}

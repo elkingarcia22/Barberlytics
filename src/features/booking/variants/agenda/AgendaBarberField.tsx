@@ -50,7 +50,8 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step,
     }
   };
   const choose = (barberId: string | null) => {
-    if (barberId !== (state.draft?.barberId ?? null)) dispatch({ type: "chooseBarber", barberId });
+    // También «Sin preferencia» cuando ya venía puesta: así cuenta como respondida (la Agenda en lista sigue al paso siguiente).
+    if (barberId !== (state.draft?.barberId ?? null) || !state.draft?.barberChosen) dispatch({ type: "chooseBarber", barberId });
     openChange(false);
   };
 

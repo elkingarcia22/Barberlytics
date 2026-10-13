@@ -1,5 +1,6 @@
 import type * as React from "react";
 import { Text } from "@/components/typography";
+import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
 import { cn } from "@/lib/utils";
 
@@ -15,14 +16,15 @@ export interface QuickAction {
   href?: string;
 }
 
+/** Tarjetas bajas, del estilo de las sedes, con todo en una línea. */
 const PILL =
-  "inline-flex h-9 min-w-0 items-center gap-1.5 rounded-full border border-border px-3 text-sm outline-none transition-colors duration-fast hover:border-primary/50 hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring/50";
+  "flex min-w-0 items-center gap-2.5 rounded-2xl border border-border bg-surface px-3 py-2.5 text-left outline-none transition-colors duration-fast hover:border-primary/50 hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-ring/50";
 
 function PillBody({ icon, label, hint, count }: Pick<QuickAction, "icon" | "label" | "hint" | "count">): React.ReactNode {
   return (
     <>
-      <ThemaIcon name={icon} size="sm" tone="muted" />
-      <Text as="span" size="sm" weight="medium" truncate>
+      <IconTile size="sm" shape="circle" tone="neutral" icon={<ThemaIcon name={icon} />} />
+      <Text as="span" size="sm" weight="semibold" className="shrink-0">
         {label}
       </Text>
       {hint && (
@@ -40,12 +42,12 @@ function PillBody({ icon, label, hint, count }: Pick<QuickAction, "icon" | "labe
 }
 
 /**
- * Lo que se puede hacer además de reservar (ver tus citas, llamar, paquetes, regalar): pastillas
- * pequeñas en una fila que baja de línea, para que no compitan con la cita.
+ * Lo que se puede hacer además de reservar (ver tus citas, llamar, paquetes, regalar): tarjetas bajas
+ * con todo en una línea, repartidas a lo ancho, para que no compitan con la cita.
  */
 export function QuickActions({ actions, label, className }: { actions: readonly QuickAction[]; label: string; className?: string }) {
   return (
-    <nav aria-label={label} className={cn("flex flex-wrap gap-2", className)}>
+    <nav aria-label={label} className={cn("grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-2", className)}>
       {actions.map((item) => {
         const aria = item.count ? `${item.label} · ${item.count}` : undefined;
         return item.href ? (

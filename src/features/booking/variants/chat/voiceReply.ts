@@ -14,6 +14,8 @@ export interface VoiceReplyLabels {
   someOf: (list: string) => string;
   /** «¿Cuándo quieres venir?»: el día y la hora en una sola pregunta abierta. */
   when: string;
+  /** «Tengo {list}. ¿Te sirve alguna?…»: unas pocas horas propuestas, dichas como lo haría una persona. */
+  propose: (list: string) => string;
 }
 
 /**
@@ -50,6 +52,9 @@ const VOICE_WORDING: Record<string, ReadonlyArray<[RegExp, string]>> = {
     [/\bescr[ií]bela\b/g, "dímela"],
     [/\bEscribe\b/g, "Di"],
     [/\bescribe\b/g, "di"],
+    // Dicho en voz, como lo pediría una persona (y sin cerrar en «tu…», que la voz alargaba).
+    [/Dime tu (\*{0,2})número de celular\1\./g, "¿Me das tu $1número de celular$1?"],
+    [/Dímelo (?:aquí )?abajo/g, "Dímelo"],
   ],
   en: [
     [/\s*(?:For example|E\.g)\.?:?\s[^.!?]*[.!?]?/g, ""],
@@ -242,8 +247,15 @@ export function voiceReplyFromTurns(turns: readonly ChatTurn[], locale: string, 
   const title = question?.kind === "day" ? labels.when : question?.kind === "home" && texts.length > 0 ? undefined : question?.title;
   if (title && !texts.some((text) => text.includes(title))) parts.push(title);
   const options = question?.options ?? [];
-  if (options.length > 0 && question && speaksOptions(question.kind, options.length)) {
-    const list = new Intl.ListFormat(locale, { type: "disjunction" });
+  const list = new Intl.ListFormat(locale, { type: "disjunction" });
+  if (question?.kind === "time" && options.length > 0 && speaksOptions(question.kind, options.length)) {
+    // Horas propuestas (la pedida no estaba libre): solo las horas, sin «Ver todas las horas», y la puerta abierta a otra.
+    const times = options.filter((option) => /\d/.test(option));
+    if (times.length > 0) {
+      if (title) parts.pop();
+      parts.push(labels.propose(list.format(times)));
+    }
+  } else if (options.length > 0 && question && speaksOptions(question.kind, options.length)) {
     parts.push(options.length <= SPOKEN_OPTIONS ? labels.oneOf(list.format(options)) : labels.someOf(list.format(options.slice(0, SAMPLE_OPTIONS))));
   }
   // Lo mismo dos veces seguidas (el mensaje y el título de su pregunta) se dice una vez.

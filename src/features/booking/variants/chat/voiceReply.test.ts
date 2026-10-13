@@ -2,20 +2,20 @@ import { describe, expect, test } from "vitest";
 import type { ChatTurn } from "./chatKit";
 import { forVoice, fromVoice, matchSpokenOption, saysOnlyOption, voiceReplyFromTurns } from "./voiceReply";
 
-const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}`, when: "¿Cuándo quieres venir?" };
+const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}`, when: "¿Cuándo quieres venir?", propose: (list: string) => `Tengo ${list}. ¿Te sirve alguna?` };
 const agent = (id: string, text?: string, question?: ChatTurn["question"]): ChatTurn => ({ id, from: "agent", text, question });
 const question = (title: string, options: string[], kind = "time") => ({ title, options, kind, values: {} }) as unknown as ChatTurn["question"];
 
 describe("voiceReplyFromTurns", () => {
-  test("says the agent's new messages, the question and its options, and offers them to tap", () => {
+  test("proposes a few times naturally, without the «see all» option, and offers them to tap", () => {
     const turns: ChatTurn[] = [
       { id: "u1", from: "user", text: "corte con barba mañana con Maicol" },
       agent("a1", "Perfecto, corte con barba con **Maicol**."),
-      agent("a2", undefined, question("¿A qué hora?", ["2:00 p. m.", "2:30 p. m.", "3:00 p. m."])),
+      agent("a2", undefined, question("¿Cuál te queda mejor?", ["2:00 p. m.", "2:30 p. m.", "Ver todas las horas"])),
     ];
     const reply = voiceReplyFromTurns(turns, "es-CO", LABELS);
-    expect(reply.text).toBe("Perfecto, corte con barba con **Maicol**. ¿A qué hora? Puedes decir a las 2 de la tarde, a las 2 y 30 de la tarde o a las 3 de la tarde.");
-    expect(reply.followups).toEqual(["2:00 p. m.", "2:30 p. m.", "3:00 p. m."]);
+    expect(reply.text).toBe("Perfecto, corte con barba con **Maicol**. Tengo a las 2 de la tarde o a las 2 y 30 de la tarde. ¿Te sirve alguna?");
+    expect(reply.followups).toEqual(["2:00 p. m.", "2:30 p. m.", "Ver todas las horas"]);
   });
 
   test("asks open questions without reading the list, which stays on screen", () => {
@@ -53,7 +53,7 @@ describe("voiceReplyFromTurns", () => {
 
 describe("forVoice", () => {
   test("turns typing instructions into speaking ones", () => {
-    expect(forVoice("Escríbeme tu número de celular, solo los números, sin espacios ni signos.", "es-CO")).toBe("Dime tu número de celular.");
+    expect(forVoice("Escríbeme tu número de celular, solo los números, sin espacios ni signos.", "es-CO")).toBe("¿Me das tu número de celular?");
     expect(forVoice("Mmm, ese número no se ve bien. Escríbelo con los 10 números.", "es-CO")).toBe("Mmm, ese número no se ve bien. Dímelo con los 10 números.");
     expect(forVoice("Escribe el código que te llegó.", "es-CO")).toBe("Di el código que te llegó.");
   });
@@ -63,7 +63,7 @@ describe("forVoice", () => {
   });
 
   test("drops the examples and formats meant for typing", () => {
-    expect(forVoice("Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.", "es-CO")).toBe("Primero necesito saber quién eres. Dime tu **número de celular**.");
+    expect(forVoice("Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.", "es-CO")).toBe("Primero necesito saber quién eres. ¿Me das tu **número de celular**?");
     expect(forVoice("Listo. Te acabo de mandar un **código de 6 números** por WhatsApp a ••••2738. **Escríbelo aquí** para confirmar que eres tú.\n\n¿No te llegó? Escribe **reenviar**. ¿El número está mal? Escribe **cambiar número**.", "es-CO")).toBe(
       "Listo. Te acabo de mandar un **código de 6 números** por mensaje de texto al número terminado en 27, 38. **Dímelo** para confirmar que eres tú."
     );

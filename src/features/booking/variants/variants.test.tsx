@@ -464,7 +464,7 @@ describe("las otras dos experiencias", () => {
     await user.type(input, "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
-    await screen.findByText(/Hola de nuevo, Marcela/);
+    await screen.findByText(/Hola, Marcela/);
     await user.type(screen.getByTestId("chat-input"), "quiero un corte{Enter}");
     const barbers = await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
     // La opción de abajo: escribir de quién se quiere ver el perfil.
@@ -508,7 +508,7 @@ describe("las otras dos experiencias", () => {
     await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
-    await screen.findByText(/Hola de nuevo, Marcela/);
+    await screen.findByText(/Hola, Marcela/);
     // Valeria está de vacaciones hasta el viernes en la demo.
     await user.type(screen.getByTestId("chat-input"), "corte con valeria el viernes{Enter}");
     expect(await screen.findByText(/Te recomiendo estos barberos/)).toBeInTheDocument();
@@ -563,7 +563,7 @@ describe("las otras dos experiencias", () => {
     await write("3202172738");
     await screen.findByText(/Te acabo de mandar un/);
     await write(DEMO_CODE);
-    await screen.findByText(/Hola de nuevo, Marcela/);
+    await screen.findByText(/Hola, Marcela/);
     await write("quiero un corte");
     await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
     // «Volver»: la pregunta anterior otra vez (los servicios).
@@ -594,7 +594,7 @@ describe("las otras dos experiencias", () => {
     await write("3202172738");
     await screen.findByText(/Te acabo de mandar un/);
     await write(DEMO_CODE);
-    await screen.findByText(/Hola de nuevo, Marcela/);
+    await screen.findByText(/Hola, Marcela/);
     await write("corte mañana a las 11 con quien sea");
     await screen.findByRole("group", { name: "¿Algo más?" });
     // Productos: cada uno con su − cantidad +.
@@ -641,7 +641,7 @@ describe("las otras dos experiencias", () => {
     await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
     await screen.findByText(/Te acabo de mandar un/);
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
-    await screen.findByText(/Hola de nuevo/);
+    await screen.findByText(/Hola, Marcela/);
     // Una hora en la mañana y otra en la tarde: una de las dos está libre y la otra no, o ambas; nunca el «no hay hueco» seco.
     for (const phrase of ["corte con Andrés mañana a las 10 de la mañana", "corte con Andrés mañana a las 3"]) {
       await user.type(screen.getByTestId("chat-input"), `${phrase}{Enter}`);
@@ -720,7 +720,7 @@ describe("las otras dos experiencias", () => {
     // El código no se repite en el hilo.
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     expect(screen.queryByText(DEMO_CODE)).toBeNull();
-    expect(await screen.findByText(/Hola de nuevo, Marcela/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hola, Marcela/)).toBeInTheDocument();
     // Lo que escribe se entiende: servicios y barbero de una vez; pregunta lo que falta (el día) en lista.
     await user.type(screen.getByTestId("chat-input"), "corte con Andrés{Enter}");
     const days = await screen.findByRole("group", { name: "¿Qué día te queda bien?" });

@@ -58,6 +58,8 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, step,
         icon="users"
         round={Boolean(chosen)}
         value={chosen ? chosen.name : t("booking.barber.any")}
+        // «Sin preferencia» viene puesto: cuenta como respondida solo si la persona la eligió.
+        selected={Boolean(chosen) || Boolean(state.draft?.barberChosen)}
         detail={chosen ? [chosen.level, `★ ${chosen.rating.toFixed(1)}`].filter(Boolean).join(" · ") : t("booking.barber.anyLead")}
         placeholder={t("booking.barber.any")}
         open={open}

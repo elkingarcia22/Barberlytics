@@ -377,6 +377,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaSelectFields.tsx** — Las preguntas de la Agenda con selector, en orden y numeradas: dónde, con quién y qué. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda con selector: un campo que se lee como un select —lo elegido, cuánto dura y… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Input, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **DayStrip.tsx** — La tira de días de la agenda: el día de la semana arriba y el número grande, en fila y deslizable. · `DayStrip` · piezas: Text · usa: @/app/i18n, @/hooks/useDragScroll, @/i18n, @/lib/utils
+- **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
 - **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`
 
 ### booking/variants/chat

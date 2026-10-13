@@ -20,6 +20,7 @@ import { useAvailabilityQuery, useEarliestQuery } from "../../queries";
 import { ableBarbers, timesByWindow } from "./agendaModel";
 import { TimeWindows } from "./AgendaLanes";
 import { StepNumber } from "./AgendaPicker";
+import { HeldAppointments } from "./HeldAppointments";
 import { AgendaSelectFields } from "./AgendaSelectFields";
 import { DayStrip } from "./DayStrip";
 
@@ -132,12 +133,8 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         </Alert>
       )}
 
-      {heldCount > 0 && !editing && (
-        <Alert variant="info" className={SOLID_INFO}>
-          <ThemaIcon name="plus" />
-          <AlertDescription>{t("booking.agenda.addingAnother", { count: heldCount })}</AlertDescription>
-        </Alert>
-      )}
+      {/* Las que ya apartó: se ven de un vistazo y se abren para ver el detalle. */}
+      {heldCount > 0 && !editing && <HeldAppointments count={heldCount} />}
 
       {/* Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo. */}
       <section className="flex flex-col gap-5">

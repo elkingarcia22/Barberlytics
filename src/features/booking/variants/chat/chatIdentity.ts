@@ -39,7 +39,8 @@ export function useChatIdentity(kit: IdentityKit) {
       apply({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel });
       expect("code");
       say({
-        text: `${t(sent.channel === "whatsapp" ? "booking.chat.codeWhatsapp" : "booking.chat.codeSms", { phone: sent.sentTo })}\n\n${t("booking.chat.codeHelp")}`,
+        // Siempre «por mensaje de texto», también en la conversación escrita (la voz ya lo decía así).
+        text: `${t("booking.chat.codeSms", { phone: sent.sentTo })}\n\n${t("booking.chat.codeHelp")}`,
       });
     } catch (error) {
       say({ text: describeError(error).description });

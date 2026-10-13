@@ -55,7 +55,7 @@ export function HeldAppointments({ count }: { count: number }) {
               <AppointmentCard
                 key={item.key}
                 data={{
-                  personName: personName(item.person, state.customer),
+                  personName: personName(item.person, state.customer) || t("booking.person.self"),
                   relation: item.person.kind === "self" ? null : item.person.relation,
                   services: serviceNames(item.serviceIds),
                   barberName: barber?.name ?? t("booking.review.noPreference"),

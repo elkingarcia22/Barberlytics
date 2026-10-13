@@ -30,6 +30,11 @@ describe("voiceReplyFromTurns", () => {
     expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿Cuándo quieres venir?");
   });
 
+  test("the greeting invites to say when, without reading its buttons' title", () => {
+    const turns = [agent("a1", "¡Hola de nuevo, Marcela!"), agent("a2", "¿Te agendamos tu **Ritual premium** de siempre? Dime qué día y a qué hora te queda bien, o si prefieres otra cosa.", question("¿Te sirve alguna de estas horas?", ["Mié, 4 de nov · 10:30 a. m.", "Algo distinto"], "home"))];
+    expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¡Hola de nuevo, Marcela! ¿Te agendamos tu **Ritual premium** de siempre? Dime qué día y a qué hora te queda bien, o si prefieres otra cosa.");
+  });
+
   test("does not read a full day of times", () => {
     const turns = [agent("a1", undefined, question("¿A qué hora el viernes?", ["9:00 a. m.", "9:30 a. m.", "10:00 a. m.", "10:30 a. m.", "Ver otro día"]))];
     expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿A qué hora el viernes?");

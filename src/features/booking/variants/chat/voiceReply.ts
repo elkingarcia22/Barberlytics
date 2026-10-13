@@ -238,7 +238,8 @@ export function voiceReplyFromTurns(turns: readonly ChatTurn[], locale: string, 
   const question = [...said].reverse().find((turn) => turn.question)?.question;
   const parts = [...texts];
   // El día se pregunta abierto: si dice día y hora, queda lista; si solo el día, después se pide la hora.
-  const title = question?.kind === "day" ? labels.when : question?.title;
+  // El saludo ya invita a decir cuándo; el título de sus botones («¿Te sirve alguna de estas horas?») sobra dicho.
+  const title = question?.kind === "day" ? labels.when : question?.kind === "home" && texts.length > 0 ? undefined : question?.title;
   if (title && !texts.some((text) => text.includes(title))) parts.push(title);
   const options = question?.options ?? [];
   if (options.length > 0 && question && speaksOptions(question.kind, options.length)) {

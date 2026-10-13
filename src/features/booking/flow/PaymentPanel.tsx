@@ -2,6 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Spinner } from "@/components/feedback/Spinner";
 import { Heading, Text } from "@/components/typography";
+import { ModalShell } from "@/components/overlays";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { OptionTile } from "@/components/selection";
@@ -14,6 +15,7 @@ import type { PayMethod } from "../types";
 import { draftOrderLines } from "../useBookingTotals";
 import { useBookingFlow } from "./BookingContext";
 import { BookingSheet } from "./BookingSheet";
+import { sheetSide } from "./drawerFit";
 import { GiftCardField } from "./GiftCardField";
 import { MembershipPerk } from "./MembershipPerk";
 import { NewCardSheet } from "./NewCardSheet";
@@ -274,38 +276,48 @@ export function PaymentSheets({ payment }: { payment: PaymentController }) {
   );
 }
 
-/** La propina para el barbero: se elige después de pulsar «Pagar» y al elegir se cobra. */
+/**
+ * La propina para el barbero: se elige después de pulsar «Pagar» y al elegir se cobra.
+ * En el celular sube como hoja desde abajo; en tablet y monitor es un modal centrado.
+ */
 function TipSheet({ payment }: { payment: PaymentController }) {
   const t = useAppT();
-  const { state, shop, fmt } = useBookingFlow();
+  const { state, shop, fmt, layout, touch } = useBookingFlow();
   const [tipId, setTipId] = React.useState<string>(state.tipId ?? NO_TIP);
   React.useEffect(() => {
     if (payment.tipOpen) setTipId(state.tipId ?? NO_TIP);
   }, [payment.tipOpen, state.tipId]);
   const options = [{ value: NO_TIP, label: t("booking.payment.tipNone") }, ...shop.tipOptions.map((option) => ({ value: option.id, label: option.type === "percent" ? `${option.value} %` : fmt.money(option.value) }))];
+  const title = t("booking.payment.tip");
+  const description = t("booking.payment.tipHint");
+  const actions = (
+    <Button type="button" size="lg" className="w-full" disabled={payment.reserve.isPending} onClick={() => payment.confirmTip(tipId === NO_TIP ? null : tipId)}>
+      {payment.reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+      {tipId === NO_TIP ? t("booking.payment.tipSkipPay") : t("booking.payment.tipAndPay")}
+    </Button>
+  );
+  const choices = (
+    <div role="radiogroup" aria-label={title} className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const selected = tipId === option.value;
+        return (
+          <Button key={option.value} type="button" role="radio" aria-checked={selected} variant={selected ? "default" : "outline"} className="min-w-[5rem] rounded-full tabular-nums" onClick={() => setTipId(option.value)}>
+            {option.label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+  if (sheetSide({ layout, touch }) === "bottom") {
+    return (
+      <BookingSheet open={payment.tipOpen} onOpenChange={payment.setTipOpen} title={title} description={description} actions={actions}>
+        {choices}
+      </BookingSheet>
+    );
+  }
   return (
-    <BookingSheet
-      open={payment.tipOpen}
-      onOpenChange={payment.setTipOpen}
-      title={t("booking.payment.tip")}
-      description={t("booking.payment.tipHint")}
-      actions={
-        <Button type="button" size="lg" className="w-full" disabled={payment.reserve.isPending} onClick={() => payment.confirmTip(tipId === NO_TIP ? null : tipId)}>
-          {payment.reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
-          {tipId === NO_TIP ? t("booking.payment.tipSkipPay") : t("booking.payment.tipAndPay")}
-        </Button>
-      }
-    >
-      <div role="radiogroup" aria-label={t("booking.payment.tip")} className="flex flex-wrap gap-2">
-        {options.map((option) => {
-          const selected = tipId === option.value;
-          return (
-            <Button key={option.value} type="button" role="radio" aria-checked={selected} variant={selected ? "default" : "outline"} className="min-w-[5rem] rounded-full tabular-nums" onClick={() => setTipId(option.value)}>
-              {option.label}
-            </Button>
-          );
-        })}
-      </div>
-    </BookingSheet>
+    <ModalShell open={payment.tipOpen} onOpenChange={payment.setTipOpen} title={title} description={description} actions={actions} size="md">
+      {choices}
+    </ModalShell>
   );
 }

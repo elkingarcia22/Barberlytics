@@ -4,7 +4,7 @@ import { Spinner } from "@/components/feedback/Spinner";
 import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { OptionTile, type SelectionOption } from "@/components/selection";
+import { OptionTile } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { describeError } from "@/lib/api";
@@ -41,7 +41,7 @@ export function PayButton({ payment, className }: { payment: PaymentController; 
   const t = useAppT();
   const { method, deposit, reserve, payLabel, pay } = payment;
   return (
-    <Button type="button" size="lg" className={className ?? "w-full"} disabled={!method || reserve.isPending} onClick={pay}>
+    <Button type="button" size="lg" className={className ?? "w-full"} disabled={!method || reserve.isPending} onClick={() => pay()}>
       {reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name={method === "shop" && deposit === 0 ? "calendar" : "lock"} />}
       {reserve.isPending ? t("booking.payment.processing") : method ? payLabel : t("booking.payment.choose")}
     </Button>
@@ -53,15 +53,14 @@ interface PaymentPanelProps {
   /** El resumen del pedido al final; la conversación lo enseña en su propia tarjeta. */
   showOrder?: boolean;
   /**
-   * Menos alto, para el cierre de la Agenda con selector: sin la nota de la
-   * propina, el cupón detrás de un enlace y las formas de pago en filas cortas
+   * Menos alto, para el cierre de la Agenda con selector: el cupón detrás de un enlace y las formas de pago en filas cortas
    * con el detalle solo de la elegida.
    */
   compact?: boolean;
 }
 
 /**
- * La propina para el barbero, un cupón y cómo se paga. Si la barbería deja pagar en
+ * Un cupón y cómo se paga (la propina se pregunta en un modal al pulsar «Pagar»). Si la barbería deja pagar en
  * el local, esa opción está; si el cliente es «solo en línea», no.
  */
 export function PaymentPanel({ payment, showOrder = true, compact = false }: PaymentPanelProps) {
@@ -74,11 +73,6 @@ export function PaymentPanel({ payment, showOrder = true, compact = false }: Pay
   const chosenMethod = methods.find((option) => option.value === method);
   const methodCards = compact && !isPhone;
 
-  const tipOptions: SelectionOption[] = [
-    { value: NO_TIP, label: t("booking.payment.tipNone") },
-    ...shop.tipOptions.map((option) => ({ value: option.id, label: option.type === "percent" ? `${option.value} %` : fmt.money(option.value) })),
-  ];
-
   const lines = draftOrderLines(state, catalog, (item) => {
     const barber = catalog?.barbers.find((entry) => entry.id === item.barberId)?.name ?? t("booking.review.noPreference");
     return `${personName(item.person, customer)} · ${barber}${item.start ? ` · ${fmt.when(parseStart(item.start))}` : ""}`;
@@ -86,36 +80,6 @@ export function PaymentPanel({ payment, showOrder = true, compact = false }: Pay
 
   return (
     <>
-      <section className="flex flex-col gap-2">
-        <SubHeading compact={compact}>{t("booking.payment.tip")}</SubHeading>
-        {/* Pastillas que bajan de línea si no caben: en un segmentado de 5, «Sin propina» y «US$ 5» se salían. */}
-        <div role="radiogroup" aria-label={t("booking.payment.tip")} className={cn("flex flex-wrap", compact ? "gap-1.5" : "gap-2")}>
-          {tipOptions.map((option) => {
-            const selected = (state.tipId ?? NO_TIP) === option.value;
-            return (
-              <Button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                size="sm"
-                variant={selected ? "default" : "outline"}
-                // Compacto caben las cinco en una fila de celular.
-                className={cn("rounded-full tabular-nums", compact ? "px-2" : "min-w-[4.5rem]")}
-                onClick={() => dispatch({ type: "setTip", tipId: option.value === NO_TIP ? null : option.value })}
-              >
-                {option.label}
-              </Button>
-            );
-          })}
-        </div>
-        {!compact && (
-          <Text size="xs" tone="muted">
-            {t("booking.payment.tipHint")}
-          </Text>
-        )}
-      </section>
-
       <div className="flex flex-col gap-4">
         <PackagesToggle />
         <MembershipPerk />
@@ -288,6 +252,7 @@ export function PaymentSheets({ payment }: { payment: PaymentController }) {
           <Text tone="secondary">{t("booking.payment.shopMulti.bye")}</Text>
         </div>
       </BookingSheet>
+      <TipSheet payment={payment} />
       {payment.cardManager.sheets}
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}
@@ -306,5 +271,41 @@ export function PaymentSheets({ payment }: { payment: PaymentController }) {
         }}
       />
     </>
+  );
+}
+
+/** La propina para el barbero: se elige después de pulsar «Pagar» y al elegir se cobra. */
+function TipSheet({ payment }: { payment: PaymentController }) {
+  const t = useAppT();
+  const { state, shop, fmt } = useBookingFlow();
+  const [tipId, setTipId] = React.useState<string>(state.tipId ?? NO_TIP);
+  React.useEffect(() => {
+    if (payment.tipOpen) setTipId(state.tipId ?? NO_TIP);
+  }, [payment.tipOpen, state.tipId]);
+  const options = [{ value: NO_TIP, label: t("booking.payment.tipNone") }, ...shop.tipOptions.map((option) => ({ value: option.id, label: option.type === "percent" ? `${option.value} %` : fmt.money(option.value) }))];
+  return (
+    <BookingSheet
+      open={payment.tipOpen}
+      onOpenChange={payment.setTipOpen}
+      title={t("booking.payment.tip")}
+      description={t("booking.payment.tipHint")}
+      actions={
+        <Button type="button" size="lg" className="w-full" disabled={payment.reserve.isPending} onClick={() => payment.confirmTip(tipId === NO_TIP ? null : tipId)}>
+          {payment.reserve.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+          {tipId === NO_TIP ? t("booking.payment.tipSkipPay") : t("booking.payment.tipAndPay")}
+        </Button>
+      }
+    >
+      <div role="radiogroup" aria-label={t("booking.payment.tip")} className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = tipId === option.value;
+          return (
+            <Button key={option.value} type="button" role="radio" aria-checked={selected} variant={selected ? "default" : "outline"} className="min-w-[5rem] rounded-full tabular-nums" onClick={() => setTipId(option.value)}>
+              {option.label}
+            </Button>
+          );
+        })}
+      </div>
+    </BookingSheet>
   );
 }

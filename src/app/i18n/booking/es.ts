@@ -348,6 +348,8 @@ export const bookingEs = {
   "booking.payment.lead": "Asegura tu hora. Te mandamos el recibo al instante.",
   "booking.payment.tip": "Propina para tu barbero",
   "booking.payment.tipNone": "Sin propina",
+  "booking.payment.tipSkipPay": "Pagar sin propina",
+  "booking.payment.tipAndPay": "Dar propina y pagar",
   "booking.payment.tipHint": "La propina va íntegra al barbero.",
   "booking.payment.promoAsk": "¿Tienes un cupón?",
   "booking.payment.promo": "Cupón",

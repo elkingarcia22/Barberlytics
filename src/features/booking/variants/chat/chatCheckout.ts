@@ -347,7 +347,7 @@ export function useChatCheckout(kit: CheckoutKit) {
         return say({ text: t("booking.chat.askCvc", { card: card ? `${card.brand} •••• ${card.last4}` : "" }) });
       }
       case "confirm":
-        return value === "pay" ? payment.current?.pay() : askMore();
+        return value === "pay" ? payment.current?.pay({ askTip: false }) : askMore();
       case "after":
         return onAfter(value);
       case "receiptTo":

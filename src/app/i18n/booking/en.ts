@@ -328,6 +328,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.payment.lead": "Secure your time. We send the receipt instantly.",
   "booking.payment.tip": "Tip for your barber",
   "booking.payment.tipNone": "No tip",
+  "booking.payment.tipSkipPay": "Pay without a tip",
+  "booking.payment.tipAndPay": "Tip and pay",
   "booking.payment.tipHint": "The whole tip goes to your barber.",
   "booking.payment.promoAsk": "Have a coupon?",
   "booking.payment.promo": "Coupon",

@@ -63,10 +63,9 @@ function NumberedTile({ step, children }: { step?: number; children: React.React
   return (
     <span className="relative shrink-0">
       {children}
-      <span aria-hidden className="absolute -left-1.5 -top-1.5 grid size-[1.125rem] place-items-center rounded-full border border-primary/40 bg-surface shadow-xs">
-        <Text as="span" size="xs" weight="semibold" tone="primary" tabular className="text-[0.6875rem] leading-none">
-          {step}
-        </Text>
+      {/* El mismo círculo que el 4 de «¿Qué día y a qué hora?», sobre un fondo sólido para que no se transparente el icono. */}
+      <span className="absolute -left-2.5 -top-2.5 rounded-full bg-surface">
+        <StepNumber value={step} className="size-6" />
       </span>
     </span>
   );

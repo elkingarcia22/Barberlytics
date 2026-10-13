@@ -1,5 +1,6 @@
 import type { ChatReply } from "@/lib/chat";
 import type { ChatTurn } from "./chatKit";
+import type { QuestionKind } from "./chatQuestions";
 import { numberWordsToDigits } from "./spokenNumbers";
 
 /** Cuántas opciones se dicen en voz alta; con más, se dicen las primeras y se remite a la lista. */
@@ -11,11 +12,31 @@ export interface VoiceReplyLabels {
   oneOf: (list: string) => string;
   /** «Por ejemplo: {list}, o mira la lista»: se dicen algunas. */
   someOf: (list: string) => string;
+  /** «¿Cuándo quieres venir?»: el día y la hora en una sola pregunta abierta. */
+  when: string;
 }
+
+/**
+ * Preguntas que en voz se hacen abiertas, sin leer la lista: la persona ya sabe qué contestar
+ * («corte y barba», «con Andrés», «el viernes a las 5») y oír las opciones alarga la llamada.
+ * Siguen en pantalla para tocarlas. Las demás (sí o no, qué hacemos sin horas…) sí se leen.
+ */
+const OPEN_KINDS: ReadonlySet<QuestionKind> = new Set(["home", "branch", "person", "relation", "services", "barber", "day", "time", "products", "tip", "more", "editPick", "manage"]);
+
+/**
+ * ¿Se leen las opciones? Las de las preguntas abiertas, no; salvo las horas cuando son unas pocas
+ * propuestas (la pedida no estaba libre: «a las 4 y 30 o Andrés a las 5»), que sin decirlas no se sabe qué elegir.
+ */
+const speaksOptions = (kind: QuestionKind, count: number) => !OPEN_KINDS.has(kind) || (kind === "time" && count <= SPOKEN_OPTIONS);
 
 /** Instrucciones para escribir que, dichas, se vuelven para hablar; y lo que solo importa al teclear. */
 const VOICE_WORDING: Record<string, ReadonlyArray<[RegExp, string]>> = {
   es: [
+    // Los ejemplos y los formatos son para quien escribe: dichos, alargan y suenan a formulario.
+    [/\s*(?:Por ejemplo|Ej)\.?:?\s[^.!?]*[.!?]?/g, ""],
+    [/\s*Escr[ií]bel[oa] así:[^.!?]*[.!?]?/g, ""],
+    [/,? \*{0,2}solo los números\*{0,2}/g, ""],
+    [/:\s*\d{2}\/\d{2}(?=[.\s]|$)/g, ""],
     [/,? sin espacios ni signos/g, ""],
     [/\bEscr[ií]beme\b/g, "Dime"],
     [/\bescr[ií]beme\b/g, "dime"],
@@ -27,6 +48,9 @@ const VOICE_WORDING: Record<string, ReadonlyArray<[RegExp, string]>> = {
     [/\bescribe\b/g, "di"],
   ],
   en: [
+    [/\s*(?:For example|E\.g)\.?:?\s[^.!?]*[.!?]?/g, ""],
+    [/,? \*{0,2}digits only\*{0,2}/g, ""],
+    [/:\s*\d{2}\/\d{2}(?=[.\s]|$)/g, ""],
     [/,? no spaces or symbols/g, ""],
     [/\bType\b/g, "Tell me"],
     [/\btype\b/g, "tell me"],
@@ -195,17 +219,20 @@ const sentence = (text: string) => (endsSentence(text) ? text.trim() : `${text.t
 
 /**
  * Lo que Clipper dice en el modo voz tras lo que dijo la persona: sus mensajes nuevos de la
- * conversación (la misma que se escribe), la pregunta abierta y sus opciones dichas como frase
- * («las 2:00, las 2:30 o las 3:00»). Las opciones vuelven también para tocarlas en pantalla.
+ * conversación (la misma que se escribe) y la pregunta abierta, corta. Las listas que la persona
+ * ya sabe contestar (servicios, barberos, días, horas) no se leen; las demás sí, como frase
+ * («sí, con Andrés o ver los otros»). Las opciones vuelven siempre para tocarlas en pantalla.
  */
 export function voiceReplyFromTurns(turns: readonly ChatTurn[], locale: string, labels: VoiceReplyLabels): ChatReply {
   const said = turns.filter((turn) => turn.from === "agent");
   const texts = said.map((turn) => turn.text?.trim()).filter((text): text is string => Boolean(text));
   const question = [...said].reverse().find((turn) => turn.question)?.question;
   const parts = [...texts];
-  if (question?.title && !texts.some((text) => text.includes(question.title as string))) parts.push(question.title);
+  // El día se pregunta abierto: si dice día y hora, queda lista; si solo el día, después se pide la hora.
+  const title = question?.kind === "day" ? labels.when : question?.title;
+  if (title && !texts.some((text) => text.includes(title))) parts.push(title);
   const options = question?.options ?? [];
-  if (options.length > 0) {
+  if (options.length > 0 && question && speaksOptions(question.kind, options.length)) {
     const list = new Intl.ListFormat(locale, { type: "disjunction" });
     parts.push(options.length <= SPOKEN_OPTIONS ? labels.oneOf(list.format(options)) : labels.someOf(list.format(options.slice(0, SAMPLE_OPTIONS))));
   }

@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest";
 import type { ChatTurn } from "./chatKit";
 import { forVoice, fromVoice, matchSpokenOption, saysOnlyOption, voiceReplyFromTurns } from "./voiceReply";
 
-const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}` };
+const LABELS = { someOf: (list: string) => `Por ejemplo: ${list}, o mira la lista`, oneOf: (list: string) => `Puedes decir ${list}`, when: "¿Cuándo quieres venir?" };
 const agent = (id: string, text?: string, question?: ChatTurn["question"]): ChatTurn => ({ id, from: "agent", text, question });
-const question = (title: string, options: string[]) => ({ title, options, kind: "time", values: {} }) as unknown as ChatTurn["question"];
+const question = (title: string, options: string[], kind = "time") => ({ title, options, kind, values: {} }) as unknown as ChatTurn["question"];
 
 describe("voiceReplyFromTurns", () => {
   test("says the agent's new messages, the question and its options, and offers them to tap", () => {
@@ -18,15 +18,25 @@ describe("voiceReplyFromTurns", () => {
     expect(reply.followups).toEqual(["2:00 p. m.", "2:30 p. m.", "3:00 p. m."]);
   });
 
-  test("with a long list it reads three and points to the rest", () => {
-    const turns = [agent("a1", undefined, question("Elige tu barbero", ["Andrés", "Maicol", "Daniela", "Julián", "Sara"]))];
+  test("asks open questions without reading the list, which stays on screen", () => {
+    const turns = [agent("a1", undefined, question("¿Con quién quieres ir?", ["Andrés", "Maicol", "Daniela", "Julián", "Sara"], "barber"))];
     const reply = voiceReplyFromTurns(turns, "es-CO", LABELS);
-    expect(reply.text).toBe("Elige tu barbero. Por ejemplo: Andrés, Maicol o Daniela, o mira la lista.");
+    expect(reply.text).toBe("¿Con quién quieres ir?");
     expect(reply.followups).toHaveLength(5);
   });
 
-  test("does not repeat the question when the message already says it", () => {
-    const turns = [agent("a1", "¿Para cuándo?", question("¿Para cuándo?", ["Hoy", "Mañana"]))];
+  test("asks for the day and time in one open question", () => {
+    const turns = [agent("a1", undefined, question("¿Qué día te queda bien?", ["Lo antes posible: hoy", "Martes 13", "Miércoles 14"], "day"))];
+    expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿Cuándo quieres venir?");
+  });
+
+  test("does not read a full day of times", () => {
+    const turns = [agent("a1", undefined, question("¿A qué hora el viernes?", ["9:00 a. m.", "9:30 a. m.", "10:00 a. m.", "10:30 a. m.", "Ver otro día"]))];
+    expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿A qué hora el viernes?");
+  });
+
+  test("still reads short choices like yes or no", () => {
+    const turns = [agent("a1", "¿Para cuándo?", question("¿Para cuándo?", ["Hoy", "Mañana"], "noTimes"))];
     expect(voiceReplyFromTurns(turns, "es-CO", LABELS).text).toBe("¿Para cuándo? Puedes decir Hoy o Mañana.");
   });
 
@@ -38,13 +48,19 @@ describe("voiceReplyFromTurns", () => {
 
 describe("forVoice", () => {
   test("turns typing instructions into speaking ones", () => {
-    expect(forVoice("Escríbeme tu número de celular, solo los números, sin espacios ni signos.", "es-CO")).toBe("Dime tu número de celular, solo los números.");
+    expect(forVoice("Escríbeme tu número de celular, solo los números, sin espacios ni signos.", "es-CO")).toBe("Dime tu número de celular.");
     expect(forVoice("Mmm, ese número no se ve bien. Escríbelo con los 10 números.", "es-CO")).toBe("Mmm, ese número no se ve bien. Dímelo con los 10 números.");
     expect(forVoice("Escribe el código que te llegó.", "es-CO")).toBe("Di el código que te llegó.");
   });
 
   test("does the same in English", () => {
-    expect(forVoice("Type your phone number, digits only, no spaces or symbols.", "en-US")).toBe("Tell me your phone number, digits only.");
+    expect(forVoice("Type your phone number, digits only, no spaces or symbols.", "en-US")).toBe("Tell me your phone number.");
+  });
+
+  test("drops the examples and formats meant for typing", () => {
+    expect(forVoice("Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.", "es-CO")).toBe("Primero necesito saber quién eres. Dime tu **número de celular**.");
+    expect(forVoice("No entendí esa fecha. Escríbela así: **20 de octubre** o **el viernes**.", "es-CO")).toBe("No entendí esa fecha.");
+    expect(forVoice("¿Cuándo **vence**? Escríbelo como **mes y año**: 08/29.", "es-CO")).toBe("¿Cuándo **vence**? Dímelo como **mes y año**.");
   });
 });
 
@@ -125,7 +141,7 @@ describe("forVoice: fechas, horas y precios como se dicen", () => {
 
 describe("forVoice: números de teléfono y códigos como se dictan", () => {
   test("un celular: los tres primeros juntos y luego de a tres, dos y dos", () => {
-    expect(forVoice("Por ejemplo: 3001234567.", "es-CO")).toBe("Por ejemplo: 300, 123, 45, 67.");
+    expect(forVoice("Tu número es 3001234567.", "es-CO")).toBe("Tu número es 300, 123, 45, 67.");
     expect(forVoice("Llama al 6012345678", "es-CO")).toBe("Llama al 601, 234, 56, 78");
   });
 
@@ -140,7 +156,7 @@ describe("forVoice: números de teléfono y códigos como se dictan", () => {
   });
 
   test("en inglés, igual", () => {
-    expect(forVoice("For example: 3001234567.", "en-US")).toBe("For example: 300, 123, 45, 67.");
+    expect(forVoice("Your number is 3001234567.", "en-US")).toBe("Your number is 300, 123, 45, 67.");
     expect(forVoice("to •••• 2738", "en-US")).toBe("to the number ending in 27, 38");
   });
 });

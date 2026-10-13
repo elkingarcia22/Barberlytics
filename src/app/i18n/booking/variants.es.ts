@@ -171,6 +171,7 @@ export const bookingVariantsEs = {
   "booking.chat.homeTitleDue": "¿Te sirve alguna de estas horas?",
   "booking.chat.agentName": "Clipper",
   "booking.chat.voiceOneOf": "Puedes decir {list}",
+  "booking.chat.voiceWhen": "¿Cuándo quieres venir?",
   "booking.chat.voiceSomeOf": "Por ejemplo: {list}, o mira la lista",
   "booking.chat.voiceMenu": "¡Hola! Soy Clipper, de {shop}. ¿Qué cita quieres agendar hoy? También puedo mostrarte tus citas, ayudarte a regalarle algo a alguien o venderte un paquete de citas.",
   "booking.chat.voiceMenuNoPackages": "¡Hola! Soy Clipper, de {shop}. ¿Qué cita quieres agendar hoy? También puedo mostrarte tus citas o ayudarte a regalarle algo a alguien.",

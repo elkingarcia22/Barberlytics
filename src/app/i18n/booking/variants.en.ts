@@ -2,7 +2,7 @@ import type { bookingVariantsEs } from "./variants.es";
 
 /** Open schedule, Conversation and the version picker, in English. Full translation of the Spanish source. */
 export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, string>> = {
-  "booking.entry.coverLead": "Enter your phone and we'll text you a code.",
+  "booking.entry.coverLead": "Enter your phone and let's book. We'll ask for the code when you pay.",
   "booking.entry.branches": "Our locations",
   "booking.entry.branch": "Our location",
   "booking.entry.branchesWhere": "{count} locations · {cities}",
@@ -140,7 +140,8 @@ export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, 
   "booking.chat.hello": "Hi! I'm **Clipper**, the **{shop}** assistant. I'll help you book in a minute.",
   "booking.chat.helloLast": "Hi! I'm **Clipper**, the **{shop}** assistant. Let's put your appointment together; I'll ask for your details at the end.",
   "booking.chat.phoneToFinish": "Almost done: to book it I need to know who you are. Type your **phone number**, **digits only**. For example: 3001234567.",
-  "booking.chat.askPhone": "First I need to know who you are. Type your **phone number**, **digits only**, no spaces or symbols. For example: 3001234567.",
+  "booking.chat.askPhone": "To start, type your **phone number**, **digits only**, no spaces or symbols. For example: 3001234567.",
+  "booking.chat.phoneSaved": "Got it! Let's put your appointment together. I'll ask for the code to confirm it's you when you pay.",
   "booking.chat.badPhone": "Hmm, that number doesn't look right. Type the **10 digits**, no spaces or symbols. For example: 3001234567.",
   "booking.chat.needPhone": "Before we go on I need your **phone number**. Type it below, **digits only**.",
   "booking.chat.codeSms": "Done. I just sent a **6-digit code** by text message to {phone}. **Type it here** to confirm it's you.",

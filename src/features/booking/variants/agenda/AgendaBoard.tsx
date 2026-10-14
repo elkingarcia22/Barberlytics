@@ -39,7 +39,7 @@ const SKELETON_LANES = 3;
  * franja. Una hora se aparta con un toque y cae en «Tu reserva»; quién es el
  * cliente se pregunta después, al confirmar.
  */
-export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean; /** Citas ya confirmadas antes de sumar otra: la hora que se aparta es la siguiente a ellas. */ heldCount?: number }) {
+export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, onBackToHeld }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean; /** Citas ya confirmadas antes de sumar otra: la hora que se aparta es la siguiente a ellas. */ heldCount?: number; /** Volver a «Confirma tu cita» sin sumar la otra. */ onBackToHeld?: () => void }) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, fmt, layout, touch } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
@@ -133,7 +133,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
       )}
 
       {/* Las que ya apartó: se ven de un vistazo y se abren para ver el detalle. */}
-      {heldCount > 0 && !editing && <HeldAppointments count={heldCount} />}
+      {heldCount > 0 && !editing && <HeldAppointments count={heldCount} onBack={onBackToHeld} />}
 
       {/* Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo. */}
       <section className="flex flex-col gap-5">

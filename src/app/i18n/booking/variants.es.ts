@@ -17,6 +17,7 @@ export const bookingVariantsEs = {
   "booking.version.label": "Versión de la experiencia",
   "booking.version.guided": "Paso a paso",
   "booking.version.agendaList": "Agenda en lista",
+  "booking.version.mixed": "Según el cliente",
   "booking.version.chat": "Clipper",
 
   // ── Agenda ──
@@ -105,6 +106,7 @@ export const bookingVariantsEs = {
   "booking.agenda.heldTitle": "Ya tienes {count} cita lista",
   "booking.agenda.heldTitle_plural": "Ya tienes {count} citas listas",
   "booking.agenda.heldSee": "Ver",
+  "booking.agenda.heldBack": "Volver a confirmar sin agregar otra",
   "booking.agenda.heldLead": "Quedan guardadas mientras armas la otra. Las pagas juntas al final.",
   "booking.agenda.checkout.payLocked": "Confirma tu celular para pagar",
   "booking.agenda.id.phoneHint": "Te mandamos un código por mensaje de texto para confirmar que eres tú.",
@@ -166,7 +168,6 @@ export const bookingVariantsEs = {
   "booking.chat.consentYes": "Sí, quiero recibirlas",
   "booking.chat.consentNo": "No, gracias",
   "booking.chat.niceToMeet": "¡Mucho gusto, {name}! Ya tienes tu ficha.",
-  "booking.chat.niceToMeetOffer": "¡Mucho gusto, {name}! Ya tienes tu ficha. Por ser tu primera visita tienes **{offer} de descuento**; se aplica solo al pagar.",
   "booking.chat.knownHello": "¡Hola, {name}!",
   "booking.chat.dueAsk": "¿Te agendamos tu **{service}** de siempre? Dime qué día y a qué hora te queda bien, o si prefieres otra cosa.",
   "booking.chat.homeTitle": "¿Qué hacemos hoy?",

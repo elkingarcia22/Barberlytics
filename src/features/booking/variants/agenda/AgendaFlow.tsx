@@ -10,6 +10,7 @@ import { AsideSlotProvider } from "../../flow/asideSlot";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
+import { InPlaceIdentity } from "../../flow/InPlaceIdentity";
 import { toastMissing } from "../../flow/missingData";
 import { BlockedStep } from "../../steps/BlockedStep";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
@@ -24,7 +25,6 @@ import { defaultServiceId } from "./agendaModel";
 import { AgendaBoard } from "./AgendaBoard";
 import { AgendaCartBar } from "./AgendaCart";
 import { AgendaHeader } from "./AgendaHeader";
-import { AgendaIdentity } from "./AgendaIdentity";
 import { AgendaSelectCheckout, AgendaSelectPay } from "./AgendaSelectCheckout";
 
 interface AgendaFlowProps {
@@ -146,6 +146,12 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: [], barberId: null, barberChosen: false });
     toBoard();
   };
+  // Se arrepiente de sumar otra: la que estaba armando se suelta y vuelve a «Confirma tu cita» con las de antes.
+  // `heldCount` no se toca: son las citas guardadas, y bajarlo borraría las que sobran.
+  const keepHeld = () => {
+    if (state.items.length > held) dispatch({ type: "removeItem", index: held });
+    toCheckout();
+  };
 
   const back: (() => void) | null =
     state.step === "phone"
@@ -160,11 +166,13 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       ? toCheckout
       : view === "checkout"
         ? toBoard
-        : null;
+        : held > 0
+          ? keepHeld
+          : null;
 
   const content =
     state.step === "phone" ? (
-      <PhoneStep />
+      <PhoneStep askProfile={false} />
     ) : state.step === "verify" ? (
       <VerifyStep />
     ) : state.step === "profile" ? (
@@ -187,7 +195,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : view === "checkout" ? (
       <AgendaSelectCheckout onContinue={toPay} onAddAnother={addAnother} />
     ) : (
-      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} heldCount={held} />
+      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} heldCount={held} onBackToHeld={keepHeld} />
     );
 
   return (
@@ -235,8 +243,15 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
             actionSlot
           )}
       </div>
-      <BookingSheet open={signInOpen} onOpenChange={setSignInOpen} title={t("booking.agenda.signInTitle")} description={t("booking.agenda.signInLead")}>
-        <AgendaIdentity />
+      <BookingSheet
+        open={signInOpen}
+        onOpenChange={setSignInOpen}
+        // Con el celular ya dado (en la portada) la hoja solo confirma con el código.
+        title={t(state.phone ? "booking.payIdentity.title" : "booking.agenda.signInTitle")}
+        description={t(state.phone ? "booking.payIdentity.codeLead" : "booking.agenda.signInLead")}
+      >
+        {/* El código se resuelve en la hoja: la agenda de detrás no pasa a «Escribe el código». */}
+        <InPlaceIdentity />
       </BookingSheet>
     </>
   );

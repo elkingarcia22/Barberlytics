@@ -500,6 +500,38 @@ describe("las otras dos experiencias", () => {
     expect(screen.queryByRole("button", { name: /^Entrar/ })).toBeNull();
   });
 
+  test("según el cliente: quien vuelve entra a la Agenda en lista, sin código", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="mixed" />);
+    await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3202172738");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
+    expect(screen.queryByText("Hola de nuevo, Marcela")).toBeNull();
+    expect(await screen.findByTestId("agenda-branch-field")).not.toHaveTextContent("Elige la sede");
+  });
+
+  test("según el cliente: el nuevo va Paso a paso y cierra con «Confirma tu cita» de la Agenda", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="mixed" />);
+    await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3001112233");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    // Paso a paso: «Conozcámonos» sin código y luego la sede.
+    expect(await screen.findByText("Conozcámonos")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: /^nombre/i }), "Carlos");
+    await user.type(screen.getByRole("textbox", { name: /^apellido/i }), "Pérez");
+    await user.type(screen.getByRole("textbox", { name: /correo/i }), "carlos@correo.com");
+    await user.click(screen.getByRole("button", { name: /crear perfil/i }));
+    await screen.findByText("¿A qué sede vas?");
+    await user.click(screen.getAllByRole("radio")[0]);
+    await user.click(await screen.findByRole("checkbox", { name: /^Corte clásico/ }));
+    await user.click(screen.getByRole("button", { name: "Elegir barbero" }));
+    await user.click(await screen.findByRole("radio", { name: "Sin preferencia" }));
+    const times = await screen.findAllByRole("radio", { name: /^\d{1,2}:\d\d/ });
+    await user.click(times[0]);
+    // El cierre es el de la Agenda.
+    expect(await screen.findByText("Confirma tu cita")).toBeInTheDocument();
+  }, LONG_CONVERSATION_MS);
+
   test("agenda en lista: «Confirma tu cita» ya no pide tus datos; el código se pide al pagar y, si es nuevo, su ficha", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);

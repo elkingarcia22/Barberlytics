@@ -14,10 +14,10 @@ import { usePhoneEntry } from "./usePhoneEntry";
  * Entrada «Portada»: la foto de la barbería arriba, como la vitrina, y encima una tarjeta con su
  * marca y el celular. Debajo, las sedes en una tarjeta (`ShopBranchesCard`) que abre su detalle. Se siente como llegar al local.
  */
-export function CoverEntry() {
+export function CoverEntry({ askProfile }: { askProfile: boolean }) {
   const t = useAppT();
   const { shop, layout, touch } = useBookingFlow();
-  const entry = usePhoneEntry();
+  const entry = usePhoneEntry({ askProfile });
   const cover = shop.coverUrl ?? shop.branches.find((branch) => branch.imageUrl)?.imageUrl ?? null;
   const isWide = layout === "wide";
 

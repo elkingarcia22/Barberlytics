@@ -70,16 +70,17 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
     const atPayment = state.step === "payment";
     const tip = atPayment ? (shop?.tipOptions.find((option) => option.id === state.tipId) ?? null) : null;
     const method = atPayment ? (state.method ?? (shop?.payment.card ? "card" : "shop")) : null;
+    // Igual los descuentos (cupón y cortesía de la membresía): antes del pago, el total es el de lista.
     return computeTotals({
       services,
       products,
-      discount: promoDiscount(state.promo, services + products),
+      discount: atPayment ? promoDiscount(state.promo, services + products) : 0,
       taxPercent: shop?.taxPercent ?? 0,
       tip: tipAmount(tip, services),
       cardFee: method && chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
       giftBalance: state.gift?.balance ?? 0,
       prepaid: packageCoverage(state, catalog),
-      reward: rewardAmount(state, catalog),
+      reward: atPayment ? rewardAmount(state, catalog) : 0,
     });
   }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.usePackages, state.customer, state.step]);
 }

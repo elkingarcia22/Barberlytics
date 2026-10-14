@@ -6,12 +6,22 @@ import { ThemaIcon } from "@/icons";
 import { defineEntry, definePlayground } from "../types";
 import { Stage } from "./fixtures";
 
+/** Alto del header de la demo (el `h-14` de la reserva en celular): las tijeras cortan su borde. */
+const DEMO_HEADER_PX = 56;
+
 /** La demo suelta el pelo con un botón: cada clic cambia la `key` y vuelve a caer. */
 function BurstDemo({ density = 10, scissors = false, sound = false }: { density?: number; scissors?: boolean; sound?: boolean }) {
   const [shot, setShot] = React.useState(0);
   return (
     <Stage className="min-h-[320px]">
-      {shot > 0 && <HairBurst key={`${shot}-${density}-${scissors}-${sound}`} density={density} scissors={scissors} sound={sound} />}
+      {shot > 0 && <HairBurst key={`${shot}-${density}-${scissors}-${sound}`} density={density} scissors={scissors} sound={sound} cutY={scissors ? DEMO_HEADER_PX : undefined} />}
+      {scissors && (
+        <div className="relative flex h-14 items-center justify-center border-b border-border">
+          <Text size="sm" weight="semibold">
+            Barberlytics
+          </Text>
+        </div>
+      )}
       <div className="relative flex min-h-[320px] flex-col items-center justify-center gap-3 p-section text-center">
         <Heading level={3}>¡Listo, tu cita quedó agendada!</Heading>
         <Text tone="secondary">Cae una vez y se apaga sola.</Text>
@@ -51,9 +61,9 @@ export const hairBurstEntry = defineEntry({
     {
       id: "reserved",
       title: "Cita creada",
-      description: "Así sale en la reserva en línea al confirmar la cita: las tijeras cortan con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
+      description: "Así sale en la reserva en línea al confirmar la cita: las tijeras cortan la línea del header con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
       layout: "stretch",
-      code: `<HairBurst key={reservation.id} scissors sound className="z-toast" onDone={() => setBurstId(null)} />`,
+      code: `<HairBurst key={reservation.id} scissors sound cutY={headerBottom} className="z-toast" onDone={() => setBurstId(null)} />`,
       render: () => <BurstDemo scissors sound />,
     },
     {
@@ -69,6 +79,7 @@ export const hairBurstEntry = defineEntry({
     { name: "density", type: "number", default: "10", description: "Pelos por cada 100 px de ancho: unos 37 en un celular y unos 120 en un monitor, entre 14 y 300." },
     { name: "scissors", type: "boolean", default: "false", description: "Unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte, en vez de llover desde el borde." },
     { name: "sound", type: "boolean", default: "false", description: "Con `scissors`, el «chas» de cada corte (Web Audio, sin archivos). Si el navegador aún no permite audio, no suena y la animación sigue." },
+    { name: "cutY", type: "number", description: "Con `scissors`, la línea que cortan, en px desde arriba del contenedor (en la reserva, el borde de abajo del header): cruzan rectas sobre ella y el pelo sale de ahí. Sin ella van por arriba ondulando." },
     { name: "onDone", type: "() => void", description: "Al terminar la caída; con «reducir movimiento», enseguida." },
     { name: "className", type: "string", description: "Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero." },
   ],

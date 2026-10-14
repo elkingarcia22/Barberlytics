@@ -46,4 +46,13 @@ describe("scissorsPath", () => {
     expect(cut.x).toBeGreaterThan(pivot.x);
     expect(cut.y).toBe(pivot.y);
   });
+
+  test("con una línea que cortar, van rectas sobre ella", () => {
+    // Act
+    const ys = [0, 500, 1000, SWEEP_MS].map((elapsed) => scissorsAt(elapsed, 400, 700, 56.5).y);
+
+    // Assert
+    expect(ys.every((y) => y === 56.5)).toBe(true);
+    expect(cutPointAt(800, 400, 700, 56.5).y).toBe(56.5);
+  });
 });

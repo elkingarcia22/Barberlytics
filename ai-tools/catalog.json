@@ -1,5 +1,5 @@
 {
-  "sourceHash": "5ba916026a05240c",
+  "sourceHash": "de5f6c08839a2504",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -2864,6 +2864,12 @@
           "description": "Con `scissors`, el «chas» de cada corte (Web Audio, sin archivos). Si el navegador aún no permite audio, no suena y la animación sigue."
         },
         {
+          "name": "cutY",
+          "type": "number",
+          "default": null,
+          "description": "Con `scissors`, la línea que cortan, en px desde arriba del contenedor (en la reserva, el borde de abajo del header): cruzan rectas sobre ella y el pelo sale de ahí. Sin ella van por arriba ondulando."
+        },
+        {
           "name": "onDone",
           "type": "() => void",
           "default": null,
@@ -2896,8 +2902,8 @@
         {
           "id": "reserved",
           "title": "Cita creada",
-          "description": "Así sale en la reserva en línea al confirmar la cita: las tijeras cortan con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
-          "code": "<HairBurst key={reservation.id} scissors sound className=\"z-toast\" onDone={() => setBurstId(null)} />"
+          "description": "Así sale en la reserva en línea al confirmar la cita: las tijeras cortan la línea del header con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
+          "code": "<HairBurst key={reservation.id} scissors sound cutY={headerBottom} className=\"z-toast\" onDone={() => setBurstId(null)} />"
         },
         {
           "id": "rain",

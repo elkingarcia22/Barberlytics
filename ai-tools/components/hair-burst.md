@@ -15,6 +15,7 @@ import { HairBurst } from "@/components/atmosphere"
 | `density` | `number` | `10` | Pelos por cada 100 px de ancho: unos 37 en un celular y unos 120 en un monitor, entre 14 y 300. |
 | `scissors` | `boolean` | `false` | Unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte, en vez de llover desde el borde. |
 | `sound` | `boolean` | `false` | Con `scissors`, el «chas» de cada corte (Web Audio, sin archivos). Si el navegador aún no permite audio, no suena y la animación sigue. |
+| `cutY` | `number` |  | Con `scissors`, la línea que cortan, en px desde arriba del contenedor (en la reserva, el borde de abajo del header): cruzan rectas sobre ella y el pelo sale de ahí. Sin ella van por arriba ondulando. |
 | `onDone` | `() => void` |  | Al terminar la caída; con «reducir movimiento», enseguida. |
 | `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
 
@@ -33,10 +34,10 @@ Relacionados: hair-canvas, halo
 
 ### Cita creada
 
-Así sale en la reserva en línea al confirmar la cita: las tijeras cortan con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.
+Así sale en la reserva en línea al confirmar la cita: las tijeras cortan la línea del header con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.
 
 ```tsx
-<HairBurst key={reservation.id} scissors sound className="z-toast" onDone={() => setBurstId(null)} />
+<HairBurst key={reservation.id} scissors sound cutY={headerBottom} className="z-toast" onDone={() => setBurstId(null)} />
 ```
 
 ### Solo el pelo

@@ -112,7 +112,7 @@
 
 .clipper-orb__stripes-band {
   fill: var(--clipper-orb-stripe);
-  animation: clipper-orb-spin 2.2s linear infinite;
+  animation: clipper-orb-spin 1.6s linear infinite;
 }
 
 /*
@@ -132,7 +132,7 @@
   position: absolute;
   inset: 0 0 calc(var(--clipper-orb-size) * -0.4) 0;
   background-image: repeating-linear-gradient(135deg, var(--clipper-orb-stripe-small) 0 calc(var(--clipper-orb-size) * 0.12), transparent calc(var(--clipper-orb-size) * 0.12) calc(var(--clipper-orb-size) * 0.25));
-  animation: clipper-orb-rise-small 1.7s linear infinite;
+  animation: clipper-orb-rise-small 1.25s linear infinite;
 }
 
 .clipper-orb[data-small] {
@@ -150,7 +150,7 @@
 
 /* Escuchando: gira más rápido y la esfera late. */
 .clipper-orb[data-state="listening"] .clipper-orb__stripes-band {
-  animation-duration: 1.2s;
+  animation-duration: 0.9s;
 }
 
 .clipper-orb[data-state="listening"] {

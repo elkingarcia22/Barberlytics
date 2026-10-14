@@ -17,6 +17,7 @@ export const bookingVariantsEs = {
   "booking.version.label": "Versión de la experiencia",
   "booking.version.guided": "Paso a paso",
   "booking.version.agendaList": "Agenda en lista",
+  "booking.version.mixed": "Según el cliente",
   "booking.version.chat": "Clipper",
 
   // ── Agenda ──

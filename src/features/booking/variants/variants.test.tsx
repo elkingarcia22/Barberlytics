@@ -478,7 +478,7 @@ describe("las otras dos experiencias", () => {
     const barbers = await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
     // La opción de abajo: escribir de quién se quiere ver el perfil.
     await user.type(within(barbers).getByPlaceholderText("Escribe de quién"), "andrés{Enter}");
-    expect(await screen.findByText("Lo que dicen sus clientes")).toBeInTheDocument();
+    expect(await screen.findByText(/Lo que cobra:/)).toBeInTheDocument();
     const confirm = await screen.findByRole("group", { name: "¿Te agendo con Andrés?" });
     // Una sede, escrita en la caja: su detalle y la pregunta pendiente otra vez.
     await user.type(screen.getByTestId("chat-input"), "cómo es la sede massachusetts{Enter}");
@@ -586,7 +586,7 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByRole("group", { name: "¿Qué día te queda bien?" })).toBeInTheDocument();
     // El perfil del barbero que eligió, sin decir su nombre.
     await write("muéstrame el perfil del barbero que elegí");
-    expect(await screen.findByText("Lo que dicen sus clientes")).toBeInTheDocument();
+    expect(await screen.findByText(/Lo que cobra:/)).toBeInTheDocument();
     // Cambiar de barbero en cualquier momento.
     await write("mejor con otro barbero");
     expect(await screen.findByText(/cambiemos de/)).toBeInTheDocument();

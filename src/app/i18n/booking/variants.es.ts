@@ -208,7 +208,6 @@ export const bookingVariantsEs = {
   "booking.chat.barberConfirmYes": "Sí, con {name}",
   "booking.chat.barberCannot": "{name} no hace todo lo que elegiste. ¿Vemos a los demás?",
   "booking.chat.barberOthers": "Ver los otros barberos",
-  "booking.chat.theySay": "Lo que dicen sus clientes",
   "booking.chat.resume": "¿Seguimos donde íbamos?",
   "booking.chat.branchSwitchTitle": "¿Prefieres reservar en esta sede?",
   "booking.chat.branchStay": "No, sigo en mi sede",

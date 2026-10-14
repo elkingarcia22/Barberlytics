@@ -168,7 +168,6 @@ export const bookingVariantsEs = {
   "booking.chat.consentYes": "Sí, quiero recibirlas",
   "booking.chat.consentNo": "No, gracias",
   "booking.chat.niceToMeet": "¡Mucho gusto, {name}! Ya tienes tu ficha.",
-  "booking.chat.niceToMeetOffer": "¡Mucho gusto, {name}! Ya tienes tu ficha. Por ser tu primera visita tienes **{offer} de descuento**; se aplica solo al pagar.",
   "booking.chat.knownHello": "¡Hola, {name}!",
   "booking.chat.dueAsk": "¿Te agendamos tu **{service}** de siempre? Dime qué día y a qué hora te queda bien, o si prefieres otra cosa.",
   "booking.chat.homeTitle": "¿Qué hacemos hoy?",

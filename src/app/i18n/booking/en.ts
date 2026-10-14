@@ -563,8 +563,6 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.loyalty.leftShort_plural": "{count} more for your free {reward}",
   "booking.loyalty.earnsShort": "This booking earns you a free {reward}",
   "booking.loyalty.line": "Membership reward",
-  "booking.firstVisit.title": "{value} off your first visit",
-  "booking.firstVisit.hint": "Applied automatically at checkout.",
   "booking.receipt.title": "Receipt",
   "booking.receipt.sendTitle": "Send the receipt",
   "booking.receipt.sendLead": "By email, by SMS or both.",

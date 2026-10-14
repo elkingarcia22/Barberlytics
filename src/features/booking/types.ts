@@ -195,6 +195,14 @@ export const visitSuggestionSchema = z.object({
 export type VisitSuggestion = z.infer<typeof visitSuggestionSchema>;
 export const suggestionResponseSchema = z.object({ suggestion: visitSuggestionSchema.nullable() });
 
+/**
+ * Si el celular ya es de un cliente, sin nada de su perfil: decide si el código va al entrar (cliente
+ * de siempre, para su bienvenida) o al pagar (cliente nuevo). Un número bloqueado responde como
+ * cliente: se entera después del código.
+ */
+export const phoneCheckSchema = z.object({ returning: z.boolean() });
+export type PhoneCheck = z.infer<typeof phoneCheckSchema>;
+
 /** El código se manda a cualquier número: la respuesta no dice si es cliente. */
 export const otpSentSchema = z.object({ sentTo: z.string(), channel: z.enum(["whatsapp", "sms"]) });
 export type OtpSent = z.infer<typeof otpSentSchema>;

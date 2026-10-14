@@ -12,7 +12,7 @@ import { AlternativeBarbers } from "../flow/AlternativeBarbers";
 import { EarliestSlot } from "../flow/EarliestSlot";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
-import { WaitlistCard } from "../flow/WaitlistCard";
+import { WaitlistSignIn } from "../flow/WaitlistSignIn";
 import { useAvailabilityQuery } from "../queries";
 import { itemDuration } from "../useBookingTotals";
 
@@ -101,10 +101,8 @@ export function TimeStep() {
 
       {!isWaiting && free.size === 0 && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
-      {/* Siempre: aunque haya horas, puede que ninguna le sirva. */}
-      {!isWaiting && (
-        <WaitlistCard key={`${dayKeyOf(day)}|${draft.barberId ?? "any"}`} day={day} hasSlots={free.size > 0} />
-      )}
+      {/* Siempre: aunque haya horas, puede que ninguna le sirva. Sin cuenta, pide el celular y el código, como la Agenda. */}
+      {!isWaiting && <WaitlistSignIn key={`${dayKeyOf(day)}|${draft.barberId ?? "any"}`} day={day} hasSlots={free.size > 0} />}
 
       {/* Al final de todo: si aquí no hay horario o algo falla, se agenda por teléfono. */}
       {!isWaiting && (

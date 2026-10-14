@@ -310,8 +310,8 @@ describe("backend de la reserva", () => {
 
   test("el código dice si es alguien que vuelve, alguien nuevo o un número bloqueado; el celular solo no revela nada", async () => {
     // Pedir el código responde igual para cualquier número: no dice si es cliente ni da datos.
-    await expect(bookingApi.requestOtp(KNOWN_PHONE)).resolves.toEqual({ sentTo: expect.stringContaining("2738"), channel: "whatsapp" });
-    await expect(bookingApi.requestOtp("+573001112233")).resolves.toEqual({ sentTo: expect.stringContaining("2233"), channel: "whatsapp" });
+    await expect(bookingApi.requestOtp(KNOWN_PHONE)).resolves.toEqual({ sentTo: expect.stringContaining("2738"), channel: "sms" });
+    await expect(bookingApi.requestOtp("+573001112233")).resolves.toEqual({ sentTo: expect.stringContaining("2233"), channel: "sms" });
     await expect(bookingApi.verifyOtp(KNOWN_PHONE, DEMO_CODE)).resolves.toMatchObject({ status: "known", customer: { firstName: "Marcela" } });
     await expect(bookingApi.verifyOtp("+573001112233", DEMO_CODE)).resolves.toMatchObject({ status: "new", customer: null });
     await expect(bookingApi.verifyOtp("+573009999999", DEMO_CODE)).resolves.toEqual({ status: "blocked", token: null, customer: null });
@@ -660,6 +660,13 @@ describe("backend de la reserva", () => {
   });
 });
 
+/** Escribe el código de la demo en las casillas (como al pegarlo desde el mensaje). */
+async function typeCode(user: ReturnType<typeof userEvent.setup>) {
+  const cells = await screen.findAllByRole("textbox");
+  await user.click(cells[0]);
+  await user.paste(DEMO_CODE);
+}
+
 describe("pantalla de la reserva", () => {
   // Embla (el carrusel de productos) lo pide al montar; jsdom no lo trae.
   beforeEach(() => {
@@ -678,16 +685,32 @@ describe("pantalla de la reserva", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  test("el celular no pide código: lleva directo a armar la cita sin revelar quién es", async () => {
+  test("quien vuelve ve el día y la hora que le tocan y reserva en un toque", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow />);
     const phone = await screen.findByRole("textbox", { name: /celular/i });
     await user.type(phone, "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    // Sin código no se ve nada de su perfil: va a elegir la sede como cualquiera.
+    // Antes del código no se ve nada de su perfil.
+    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
+    expect(screen.queryByText(/Marcela/)).toBeNull();
+    await typeCode(user);
+    expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
+    // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
+    expect(await screen.findByText("Lo de siempre")).toBeInTheDocument();
+    expect(await screen.findByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /^Reservar .+·/ }));
+    expect(await screen.findByText("Revisa tu reserva")).toBeInTheDocument();
+  });
+
+  test("un número nuevo no pide código al entrar: arma la cita y el código va al pagar", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow />);
+    await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3001112233");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    // Nuevo: va directo a elegir la sede, sin código ni bienvenida.
     expect(await screen.findByText("¿A qué sede vas?")).toBeInTheDocument();
     expect(screen.queryByText("Escribe el código")).toBeNull();
-    expect(screen.queryByText(/Marcela/)).toBeNull();
   });
 
   test("con el celular anotado, el código se pide al llegar al pago", () => {

@@ -99,12 +99,16 @@ const CODE_LIMIT = 5;
 const CODE_WINDOW_MS = 10 * 60_000;
 const ATTEMPT_LIMIT = 5;
 const codeRequests = new Map<string, number[]>();
+/** Consultas de «¿ya es cliente?» por origen, para que no sirvan para recorrer números. */
+const CHECK_LIMIT = 20;
+let phoneChecks: number[] = [];
 const codeFailures = new Map<string, number>();
 const phoneKey = (phone: string) => phone.replace(/\D/g, "");
 /** Para las pruebas: cada prueba empieza sin intentos acumulados. */
 export function resetBookingLimits(): void {
   codeRequests.clear();
   codeFailures.clear();
+  phoneChecks = [];
 }
 
 /** Luhn: la misma comprobación que hace la pasarela antes de hablar con el banco. */
@@ -508,6 +512,19 @@ export const bookingHandlers = [
     return HttpResponse.json(reservationView(reservation), { status: 201 });
   }),
 
+  http.post(`${BASE}/phone/check`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const phone = text(asRecord(await request.json().catch(() => ({}))).phone);
+    if (phoneKey(phone).length < 8) return error(422, "validation", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    const now = Date.now();
+    phoneChecks = phoneChecks.filter((at) => now - at < CODE_WINDOW_MS);
+    if (phoneChecks.length >= CHECK_LIMIT) return error(429, "rate_limited", "Muchas consultas seguidas. Espera unos minutos e inténtalo otra vez.");
+    phoneChecks = [...phoneChecks, now];
+    const client = clientByPhone(phone);
+    // Solo si es cliente; nada de su perfil. Un número bloqueado responde como cliente: lo sabe tras el código.
+    return HttpResponse.json({ returning: Boolean(client) || isBlockedPhone(phone, client) });
+  }),
+
   http.post(`${BASE}/otp/request`, async ({ request }) => {
     await delay(LATENCY_MS);
     const phone = text(asRecord(await request.json().catch(() => ({}))).phone);
@@ -518,7 +535,8 @@ export const bookingHandlers = [
     codeRequests.set(phoneKey(phone), [...recent, now]);
     codeFailures.delete(phoneKey(phone));
     // Responde igual sea o no cliente: el número no revela nada hasta verificar el código.
-    return HttpResponse.json({ sentTo: `•••• ${phoneKey(phone).slice(-4)}`, channel: "whatsapp" });
+    // El código va por mensaje de texto (SMS), no por WhatsApp.
+    return HttpResponse.json({ sentTo: `•••• ${phoneKey(phone).slice(-4)}`, channel: "sms" });
   }),
 
   http.post(`${BASE}/otp/verify`, async ({ request }) => {

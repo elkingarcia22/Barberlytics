@@ -104,6 +104,11 @@ export function useVisitSuggestionQuery(token: string | null) {
   });
 }
 
+/** ¿Ya es cliente? Solo eso: el perfil llega con el código. */
+export function useCheckPhoneMutation() {
+  return useMutation({ mutationFn: (phone: string) => bookingApi.checkPhone(phone) });
+}
+
 export function useRequestCodeMutation() {
   return useMutation({ mutationFn: (phone: string) => bookingApi.requestOtp(phone) });
 }

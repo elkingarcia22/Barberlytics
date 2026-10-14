@@ -621,6 +621,7 @@ describe("las otras dos experiencias", () => {
   test("agenda: cambiar el barbero después de apartar una hora la suelta (el precio era de otro)", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     await chooseAgendaService(user, /^Corte clásico/);
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
     const jump = screen.queryByRole("button", { name: /^Ir al / });

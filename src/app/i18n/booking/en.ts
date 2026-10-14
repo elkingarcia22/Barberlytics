@@ -479,7 +479,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.confirmed.receipt": "Send receipt",
   "booking.confirmed.manage": "See my appointments",
   "booking.confirmed.again": "Book another appointment",
-  "booking.confirmed.done": "Finish",
+  "booking.confirmed.done": "Exit",
   "booking.confirmed.arrive": "Arrive 5 minutes early. If something comes up, change it from “My appointments” up to {hours} h before.",
 
   "booking.repeat.title": "Make it a standing appointment?",

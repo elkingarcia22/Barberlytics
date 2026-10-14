@@ -500,7 +500,7 @@ export const bookingEs = {
   "booking.confirmed.receipt": "Enviar recibo",
   "booking.confirmed.manage": "Ver mis citas",
   "booking.confirmed.again": "Reservar otra cita",
-  "booking.confirmed.done": "Terminar",
+  "booking.confirmed.done": "Salir",
   "booking.confirmed.arrive": "Llega 5 minutos antes. Si se te complica, cámbiala desde «Mis citas» hasta {hours} h antes.",
 
   // ── Recibo ──

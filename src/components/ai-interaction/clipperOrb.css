@@ -135,8 +135,9 @@
   animation: clipper-orb-rise-small 1.25s linear infinite;
 }
 
+/* Las franjas con la misma tinta que el orbe grande: a 0.35 se perdían y el botón no se leía como poste. */
 .clipper-orb[data-small] {
-  --clipper-orb-stripe-small: hsl(var(--background) / 0.35);
+  --clipper-orb-stripe-small: hsl(var(--background) / 0.78);
   perspective: none;
 }
 
@@ -193,7 +194,7 @@ html:not(.dark) .clipper-orb__glass {
 }
 
 html:not(.dark) .clipper-orb[data-small] {
-  --clipper-orb-stripe-small: hsl(var(--foreground) / 0.22);
+  --clipper-orb-stripe-small: hsl(var(--foreground) / 0.4);
 }
 
 html:not(.dark) .clipper-orb[data-small] .clipper-orb__glass {

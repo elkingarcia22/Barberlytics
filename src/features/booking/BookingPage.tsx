@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ListChecks, ListFilter, MessagesSquare, Monitor, PanelBottomOpen, Smartphone, Tablet } from "lucide-react";
+import { ListChecks, ListFilter, MessagesSquare, Monitor, PanelRightOpen, Smartphone, Tablet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -115,7 +115,7 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
     { value: "phone", label: t("booking.preview.phone"), icon: Smartphone },
     { value: "tablet", label: t("booking.preview.tablet"), icon: Tablet },
     { value: "monitor", label: t("booking.preview.monitor"), icon: Monitor },
-    { value: "widget", label: t("booking.preview.widget"), icon: PanelBottomOpen },
+    { value: "widget", label: t("booking.preview.widget"), icon: PanelRightOpen },
   ];
 
   return (

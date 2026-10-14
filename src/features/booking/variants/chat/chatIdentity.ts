@@ -2,7 +2,7 @@ import type { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
 import { bookingApi } from "../../api";
 import type { BookingAction, BookingState } from "../../bookingState";
-import type { BookingShop } from "../../types";
+import type { BookingShop, PhoneCheck } from "../../types";
 import { capitalize, EMAIL, type Expecting, type MessageInput } from "./chatKit";
 import { makeQuestion, type BookingQuestion } from "./chatQuestions";
 import { codeFromText, phoneFromText } from "./parseBookingText";
@@ -27,9 +27,9 @@ export interface IdentityKit {
 }
 
 /**
- * Quién es, conversando: el celular (solo números) al empezar. Si ya es cliente, el código va ya (para
- * saludarlo con lo de siempre); si es nuevo, se arma la cita sin código y este se pide al pagar (o al
- * pedir «Mis citas»). La primera vez, además, nombre y apellido, correo y el permiso de promociones.
+ * Quién es, conversando: el celular (solo números) al empezar. Si ya es cliente se le reconoce sin
+ * código (se le saluda con lo de siempre); si es nuevo, se arma la cita. A los dos se les pide el código
+ * al pagar, al pedir «Mis citas» o la lista de espera. La primera vez, además, nombre y apellido, correo y el permiso de promociones.
  * Todo se escribe en la caja; el código no se repite en el hilo.
  */
 export function useChatIdentity(kit: IdentityKit) {
@@ -55,14 +55,19 @@ export function useChatIdentity(kit: IdentityKit) {
     const phone = phoneFromText(text);
     if (!phone) return say({ text: t("booking.chat.badPhone") });
     if (needsCode()) return sendCode(phone);
-    // Solo si ya es cliente: al de siempre le llega el código ya (y su saludo con lo de siempre); el nuevo sigue sin código.
-    let returning: boolean;
+    // Si ya es cliente se le reconoce sin código (el saludo con lo de siempre); el nuevo sigue sin código.
+    let check: PhoneCheck;
     try {
-      returning = (await busy(() => bookingApi.checkPhone(phone))).returning;
+      check = await busy(() => bookingApi.checkPhone(phone));
     } catch (error) {
       return say({ text: describeError(error).description });
     }
-    if (returning) return sendCode(phone);
+    if (check.customer && check.token) {
+      expect(null);
+      return apply({ type: "customerPreview", phone, customer: check.customer, token: check.token });
+    }
+    // Cliente sin perfil que mostrar (bloqueado): lo sabe tras el código.
+    if (check.returning) return sendCode(phone);
     apply({ type: "phoneEntered", phone });
     expect(null);
     say({ text: t("booking.chat.phoneSaved") });
@@ -79,7 +84,7 @@ export function useChatIdentity(kit: IdentityKit) {
         return apply({ type: "customerFound", customer: result.customer, token: result.token });
       }
       if (result.status === "new") {
-        apply({ type: "customerIsNew", token: result.token });
+        apply({ type: "verifiedNew", token: result.token });
         expect("firstName");
         return say({ text: t("booking.chat.newHello", { shop: shop.name }) });
       }

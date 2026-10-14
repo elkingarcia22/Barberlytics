@@ -204,8 +204,8 @@ export function AgendaIdentity() {
       </Alert>
     );
   }
-  if (state.customer) return null;
-  if (state.token) return <ProfileForm />;
+  if (state.customer && state.verified) return null;
+  if (state.verified) return <ProfileForm />;
   if (state.codeSentTo) return <CodeForm onBlocked={() => setBlocked(true)} />;
   return <PhoneForm />;
 }

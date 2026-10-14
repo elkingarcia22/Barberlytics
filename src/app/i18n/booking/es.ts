@@ -343,6 +343,7 @@ export const bookingEs = {
   // ── Pago ──
   "booking.payIdentity.title": "Confirma que eres tú",
   "booking.payIdentity.lead": "Antes de pagar te mandamos un código al celular que escribiste.",
+  "booking.payIdentity.leadBuy": "Se paga con tu tarjeta: te mandamos un código al celular para confirmar que eres tú.",
   "booking.payIdentity.newTitle": "Tus datos",
   "booking.payIdentity.newLead": "Es tu primera vez: lo justo para tu ficha y seguimos al pago.",
   "booking.payIdentity.sending": "Te estamos mandando un código al {phone}.",

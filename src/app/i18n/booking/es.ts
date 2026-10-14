@@ -73,7 +73,7 @@ export const bookingEs = {
   "booking.phone.invalid": "Revisa el número: faltan dígitos.",
   "booking.verify.title": "Escribe el código",
   "booking.verify.leadWhatsapp": "Te lo mandamos por WhatsApp al {phone}.",
-  "booking.verify.leadSms": "Te lo mandamos por SMS al {phone}.",
+  "booking.verify.leadSms": "Te lo mandamos por mensaje de texto al {phone}.",
   "booking.verify.checking": "Revisando el código…",
   "booking.verify.wrong": "Ese código no es. Te queda {count} intento.",
   "booking.verify.wrong_plural": "Ese código no es. Te quedan {count} intentos.",

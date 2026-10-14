@@ -516,7 +516,8 @@ export const bookingHandlers = [
     codeRequests.set(phoneKey(phone), [...recent, now]);
     codeFailures.delete(phoneKey(phone));
     // Responde igual sea o no cliente: el número no revela nada hasta verificar el código.
-    return HttpResponse.json({ sentTo: `•••• ${phoneKey(phone).slice(-4)}`, channel: "whatsapp" });
+    // El código va por mensaje de texto (SMS), no por WhatsApp.
+    return HttpResponse.json({ sentTo: `•••• ${phoneKey(phone).slice(-4)}`, channel: "sms" });
   }),
 
   http.post(`${BASE}/otp/verify`, async ({ request }) => {

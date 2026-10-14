@@ -11,7 +11,7 @@ import { brandFromName, isCvcComplete } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
 import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
-import type { BookedAppointment, BookingBarber, BookingCatalog, Slot, VisitSuggestion } from "../../types";
+import type { Availability, BookedAppointment, BookingBarber, BookingCatalog, Slot, VisitSuggestion } from "../../types";
 import type { DayWindow } from "../agenda/agendaModel";
 import { EMPTY_CARD, isCardStep, maskCardInput, useChatNewCard, type CardDraft } from "./chatCard";
 import { useChatCheckout } from "./chatCheckout";
@@ -354,7 +354,10 @@ export function useChatBooking({
   const commitTime = async (start: string, lead?: string) => {
     const moving = rescheduling.current;
     if (!moving) {
-      apply({ type: "chooseTime", start });
+      // Sin preferencia, el precio es el de quien la agenda asigna a esa hora: el primero libre.
+      const current = stateRef.current;
+      const cached = current.branchId && current.draft ? queryClient.getQueryData<Availability>(bookingKeys.availability(current.branchId, start.slice(0, 10), current.draft.serviceIds, null)) : undefined;
+      apply({ type: "chooseTime", start, assignedBarberId: cached?.slots.find((slot) => slot.time === start.slice(11, 16))?.barberIds[0] ?? null });
       return askMore([lead, heldText()].filter(Boolean).join(" "));
     }
     const token = stateRef.current.token;

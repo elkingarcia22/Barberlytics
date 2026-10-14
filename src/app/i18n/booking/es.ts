@@ -263,6 +263,7 @@ export const bookingEs = {
   "booking.waitlist.title": "Avísame si se libera",
   "booking.waitlist.titleWith": "¿Prefieres esperar a {name}?",
   "booking.waitlist.lead": "Te apuntamos en la lista de espera del {day}. Si alguien cancela, te escribimos por WhatsApp y la hora es tuya si la tomas primero.",
+  "booking.waitlist.codeLead": "Para avisarte si se libera una hora, te mandamos un código al celular que escribiste.",
   "booking.waitlist.signInLead": "Para avisarte si se libera una hora, confirma que este celular es tuyo.",
   "booking.waitlist.prompt": "¿Ninguna de estas horas te sirve?",
   "booking.waitlist.promptHint": "Apúntate en la lista de espera y te avisamos si se libera otra.",

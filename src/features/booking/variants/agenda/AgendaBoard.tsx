@@ -79,11 +79,11 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
 
   const applyUsual = () => usual && dispatch({ type: "openDraft", person: draft?.person ?? { kind: "self" }, serviceIds: usual.serviceIds, barberId: null });
 
-  const pick = (time: string, barberId: string | null) => {
+  const pick = (time: string, barberId: string | null, freeIds: readonly string[] = []) => {
     if (!draft) return;
     const start = `${dayKey}T${time}`;
     dispatch({ type: "chooseBarber", barberId });
-    dispatch({ type: "chooseTime", start });
+    dispatch({ type: "chooseTime", start, assignedBarberId: barberId ? null : (freeIds[0] ?? null) });
   };
 
   // Una cita por elegir: lo apartado no se descuenta de las horas, se marca (y tocar otra la reemplaza).
@@ -191,7 +191,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
               }
             />
           ) : (
-            <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
+            <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time, freeIds) => pick(time, chosenBarber?.id ?? null, freeIds)} />
           )}
 
           {/* Un día sin horas, como en Paso a paso: otros barberos que sí tienen, con sus primeras horas
@@ -199,7 +199,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
           {!isWaiting && !hasSlots && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
           {!isWaiting &&
-            (state.customer ? (
+            (state.customer && state.verified ? (
               <WaitlistCard
                 key={`${dayKey}|${draft?.barberId ?? "any"}`}
                 day={day}

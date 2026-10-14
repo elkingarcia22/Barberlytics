@@ -13,7 +13,8 @@ import { fitWithin } from "./flow/referencePhoto";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, parseStart, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
-import type { BookingCustomer, BookedAppointment } from "./types";
+import type { BookingCatalog, BookingCustomer, BookedAppointment } from "./types";
+import { itemPrice } from "./useBookingTotals";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -84,6 +85,35 @@ describe("cuentas de la reserva", () => {
 
   test("la política se lee con los valores de Configuración", () => {
     expect(renderPolicy("Cancela con <<time_for_cancel>>; cargo <<fee_cancellation>>%; máximo <<max_cancellations>>.", { cancelHours: 3, lateFeePercent: 10, maxCancellations: 5 })).toBe("Cancela con 3 h; cargo 10%; máximo 5.");
+  });
+});
+
+describe("precio de una cita", () => {
+  const catalog = {
+    services: [{ id: "svc_corte", price: 35 }],
+    barbers: [
+      { id: "b_caro", prices: { svc_corte: 43 } },
+      { id: "b_barato", prices: { svc_corte: 26 } },
+    ],
+    products: [],
+  } as unknown as BookingCatalog;
+
+  test("con barbero elegido cobra lo suyo; sin preferencia y sin hora, el «desde»", () => {
+    expect(itemPrice({ serviceIds: ["svc_corte"], barberId: "b_caro" }, catalog)).toBe(43);
+    expect(itemPrice({ serviceIds: ["svc_corte"], barberId: null }, catalog)).toBe(26);
+  });
+
+  test("sin preferencia y con hora cobra lo del barbero que asigna la agenda", () => {
+    expect(itemPrice({ serviceIds: ["svc_corte"], barberId: null, assignedBarberId: "b_caro" }, catalog)).toBe(43);
+  });
+
+  test("la hora sin preferencia guarda a quién asigna la agenda; con barbero elegido, no", () => {
+    let state = bookingReducer(initialBookingState(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte"], barberId: null });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-30T13:30", assignedBarberId: "b_caro" });
+    expect(state.items[0]).toMatchObject({ barberId: null, assignedBarberId: "b_caro" });
+    state = bookingReducer(state, { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte"], barberId: "b_barato" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-30T14:30", assignedBarberId: "b_caro" });
+    expect(state.items[1]).toMatchObject({ barberId: "b_barato", assignedBarberId: null });
   });
 });
 

@@ -6,11 +6,11 @@ ordena el recorrido a partir de ella. Las tres comparten el motor (`useBookingEn
 catálogo, `bookingReducer`, cuentas) y el cobro (`usePaymentController` + `PaymentPanel`), así que el
 dinero, los cupones, la lealtad, los paquetes, las tarjetas guardadas y la reserva salen iguales.
 
-| | Paso a paso (`guided`) | Agenda con selector (`agenda-select`) | Conversación (`chat`) |
+| | Paso a paso (`guided`) | Agenda en lista (`agenda-list`) | Conversación (`chat`) |
 |---|---|---|---|
 | Pregunta de partida | ¿Quién eres? | Arma tu cita | Dime qué necesitas |
 | Identidad | Al entrar (celular + código) | Al final, al confirmar; opcional antes («Ya soy cliente») | Al entrar, como en WhatsApp |
-| Recorrido | Sede → servicios → barbero → hora → resumen → pago, una decisión por pantalla | Una sola pantalla: sede, servicios y barbero en campos que abren su lista; debajo el día en una tira y las horas por franja | Preguntas de a una, cada una con su tarjeta para responder tocando; también entiende texto libre |
+| Recorrido | Sede → servicios → barbero → hora → resumen → pago, una decisión por pantalla | Una sola pantalla: sede, servicios y barbero en filas que aparecen de a una y abren su lista (en tablet y monitor, en su sitio); debajo el día en una tira y las horas por franja | Preguntas de a una, cada una con su tarjeta para responder tocando; también entiende texto libre |
 | Para quién | Cliente que vuelve con «lo de siempre» | Quien busca hueco pronto, el monitor del local | Quien prefiere escribir o no sabe qué pedir |
 | Varias citas / personas | «Agregar otra cita» en el resumen | Una sola cita: tocar otra hora la reemplaza | «Otra cita» en el chat |
 | Código | `BookingFlow` › `GuidedFlow`, `steps/` | `variants/agenda/` | `variants/chat/` |
@@ -19,7 +19,12 @@ dinero, los cupones, la lealtad, los paquetes, las tarjetas guardadas y la reser
 barbero / por hora» y carrito con varias citas). Un enlace viejo con `?version=agenda` cae en la versión
 por defecto.
 
-## Terminar en la lista de espera (Paso a paso y Agenda con selector)
+2026-10-13: se quitó la **Agenda en lista** (`agenda-select`: sede, servicios y barbero como tres
+tarjetas numeradas en fila, con el día y la hora a la vista pero apagados). Queda la **Agenda en lista**,
+que usa el mismo código (`variants/agenda/`) sin el modo: las preguntas van siempre en filas y de a una.
+Un enlace viejo con `?version=agenda-select` cae en la versión por defecto.
+
+## Terminar en la lista de espera (Paso a paso y Agenda en lista)
 
 2026-10-09. Quien se apunta en la lista de espera y no aparta ninguna hora puede terminar ahí: lo
 apuntado vive en la reserva (`state.waitlist`, acciones `waitlistJoined` / `waitlistLeft`) y
@@ -30,7 +35,7 @@ barbero o «cualquiera», día y franja), que se avisa por WhatsApp y que no se 
 que se estaba cambiando), «Seguir con tu reserva» suelta la cita en curso y vuelve al resumen para
 pagarla; la entrada de la lista se queda.
 
-## Agenda con selector (`agenda-select`)
+## Agenda en lista (`agenda-list`)
 
 - Abre con el servicio más pedido para enseñar horas sin preguntar nada (`agendaModel.defaultServiceId`).
 - Una sola petición de disponibilidad por día (sin preferencia) trae quién puede a cada hora; el tablero

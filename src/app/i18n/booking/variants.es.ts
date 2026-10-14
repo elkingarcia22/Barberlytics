@@ -1,5 +1,5 @@
 /**
- * Las otras dos maneras de reservar (Agenda con selector y Conversación) y el
+ * Las otras dos maneras de reservar (Agenda y Conversación) y el
  * selector de versión de la vista previa. Mismo tono que la reserva: tú,
  * corto, sin jerga de la app.
  */
@@ -16,11 +16,10 @@ export const bookingVariantsEs = {
   "booking.chat.trigger": "Agenda con {name}",
   "booking.version.label": "Versión de la experiencia",
   "booking.version.guided": "Paso a paso",
-  "booking.version.agendaSelect": "Agenda con selector",
   "booking.version.agendaList": "Agenda en lista",
   "booking.version.chat": "Clipper",
 
-  // ── Agenda con selector ──
+  // ── Agenda ──
   "booking.agenda.whatSummary": "{minutes} min · desde {price}",
   "booking.agenda.usual": "Lo de siempre",
   "booking.agenda.whatPlaceholder": "Elige uno o varios servicios",

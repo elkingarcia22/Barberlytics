@@ -60,7 +60,7 @@ export function BarberAvatar({ barber }: { barber: BookingBarber }) {
 
 /**
  * Lo de adentro del perfil, sin la ventana: el cajón lo usa y también la lista
- * de barberos de la Agenda con selector, que lo abre sin salir de su modal.
+ * de barberos de la Agenda, que lo abre sin salir de su modal.
  */
 export function BarberProfileBody({ barber, serviceIds }: { barber: BookingBarber; serviceIds: readonly string[] }) {
   const t = useAppT();

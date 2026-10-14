@@ -15,7 +15,7 @@ import { detectAside } from "./chat/chatIntents";
 /** Un jueves a las 8:00. */
 const NOW = new Date(2026, 9, 8, 8, 0);
 
-/** En la Agenda con selector sin cuenta la sede viene vacía: se abre su lista y se toca la primera. */
+/** En la Agenda sin cuenta la sede viene vacía: se abre su lista y se toca la primera. */
 async function chooseAgendaBranch(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByTestId("agenda-branch-field"));
   const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
@@ -364,23 +364,17 @@ describe("las otras dos experiencias", () => {
     vi.unstubAllGlobals();
   });
 
-  test("agenda con selector: sin cuenta, sede y servicio abren sin nada elegido, el barbero en «Sin preferencia», y la sede va primero", async () => {
+  test("agenda: sin cuenta la sede va primero y abre sin nada elegido; sin sede no hay horas", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     expect(await screen.findByTestId("agenda-branch-field")).toHaveTextContent("Elige la sede");
-    expect(screen.getByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
-    expect(screen.getByTestId("agenda-barber-field")).toHaveTextContent("Sin preferencia");
     expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
-    // Sin sede no se puede elegir barbero ni servicios: los dos esperan apagados.
-    expect(screen.getByTestId("agenda-service-field")).toBeDisabled();
-    expect(screen.getByTestId("agenda-barber-field")).toBeDisabled();
-    // La sede se elige primero, sin ninguna marcada.
     await user.click(screen.getByTestId("agenda-branch-field"));
     const dialog = await screen.findByRole("dialog", { name: "¿Dónde quieres que te atendamos?" });
     expect(within(dialog).getAllByRole("radio").every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
     await user.click(within(dialog).getAllByRole("radio")[0]);
-    // Con sede, barbero y servicios se encienden; el día sigue apagado hasta elegir un servicio.
-    await waitFor(() => expect(screen.getByTestId("agenda-service-field")).toBeEnabled());
+    // Con sede aparecen los servicios, aún sin elegir.
+    expect(await screen.findByTestId("agenda-service-field")).toHaveTextContent("Elige uno o varios servicios");
   });
 
   test("agenda en lista: un paso a la vez (sede, servicios, barbero) y luego las horas", async () => {
@@ -402,7 +396,7 @@ describe("las otras dos experiencias", () => {
 
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     await chooseAgendaBranch(user);
     const field = await screen.findByTestId("agenda-service-field");
     await user.click(field);
@@ -420,7 +414,7 @@ describe("las otras dos experiencias", () => {
 
   test("agenda con selector: sin cuenta no pregunta para quién, una sola hora (la nueva reemplaza) y el cierre no repite la cita", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
     expect(screen.queryByText("¿Para quién es la cita?")).toBeNull();
     await chooseAgendaService(user, /^Corte clásico/);
@@ -443,7 +437,7 @@ describe("las otras dos experiencias", () => {
 
   test("agenda con selector: «Confirma tu cita» es solo la cita (sin pago) y permite sumar otra", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     await screen.findByText("Arma tu cita");
     await chooseAgendaService(user, /^Corte clásico/);
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
@@ -495,7 +489,7 @@ describe("las otras dos experiencias", () => {
 
   test("agenda con selector: la sede también se elige en la lista y sin citas cambia al tocarla", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     const field = await screen.findByTestId("agenda-branch-field");
     const before = field.textContent ?? "";
     await user.click(field);
@@ -534,7 +528,7 @@ describe("las otras dos experiencias", () => {
 
   test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<BookingFlow version="agenda-select" />);
+    renderWithProviders(<BookingFlow version="agenda-list" />);
     // Con un servicio elegido se sabe quién puede; el barbero viene en «Sin preferencia».
     await chooseAgendaService(user, /^Corte clásico/);
     const field = await screen.findByTestId("agenda-barber-field");
@@ -661,10 +655,10 @@ describe("las otras dos experiencias", () => {
     if (near) expect(within(near).getByRole("button", { name: /Ver todas las horas/ })).toBeInTheDocument();
   }, LONG_CONVERSATION_MS);
 
-  test("conversación desde la Agenda con selector: se arma la cita primero y el celular se pide al pagar", async () => {
+  test("conversación desde la Agenda: se arma la cita primero y el celular se pide al pagar", async () => {
     const user = userEvent.setup();
-    // Llegó con «Agenda con Clipper» desde la Agenda con selector: la voz se abre; aquí se sigue escribiendo.
-    requestVoiceOnArrival("agenda-select");
+    // Llegó con «Agenda con Clipper» desde la Agenda: la voz se abre; aquí se sigue escribiendo.
+    requestVoiceOnArrival("agenda-list");
     renderWithProviders(<BookingFlow version="chat" />);
     await user.click(await screen.findByRole("button", { name: "Volver al chat" }));
     await user.type(await screen.findByPlaceholderText(/Corte mañana en la tarde con Andrés/), "corte con Andrés{Enter}");

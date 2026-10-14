@@ -19,7 +19,6 @@ import { WaitlistCard } from "../../flow/WaitlistCard";
 import { useAvailabilityQuery, useEarliestQuery } from "../../queries";
 import { ableBarbers, timesByWindow } from "./agendaModel";
 import { TimeWindows } from "./AgendaLanes";
-import { StepNumber, useAgendaListMode } from "./AgendaPicker";
 import { HeldAppointments } from "./HeldAppointments";
 import { AgendaSelectFields } from "./AgendaSelectFields";
 import { DayStrip } from "./DayStrip";
@@ -35,7 +34,7 @@ const DAYS_AHEAD = 21;
 const SKELETON_LANES = 3;
 
 /**
- * El tablero de la Agenda con selector: sede, servicios y barbero arriba, como
+ * El tablero de la Agenda: sede, servicios y barbero arriba, como
  * campos que abren su lista; el día en una tira y, debajo, las horas libres por
  * franja. Una hora se aparta con un toque y cae en «Tu reserva»; quién es el
  * cliente se pregunta después, al confirmar.
@@ -51,7 +50,6 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
   const serviceIds = draft?.serviceIds ?? [];
   // Las tres respuestas de arriba: sede, servicios y barbero (que siempre tiene una, «Sin preferencia» de entrada).
   const isReady = Boolean(state.branchId) && serviceIds.length > 0;
-  const listMode = useAgendaListMode();
   const dayKey = dayKeyOf(day);
 
   // Al cambiar una cita del carrito, la agenda salta a su día.
@@ -145,19 +143,12 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
       </section>
 
-      {/* El día y la hora siempre a la vista, pero apagados hasta tener las tres respuestas de arriba.
-          En la Agenda en lista aparece solo cuando le toca, como cada paso. */}
-      {(!listMode || isReady) && (
-        <section
-          aria-labelledby="agenda-when"
-          aria-disabled={!isReady || undefined}
-          inert={!isReady}
-          className={cn("flex flex-col gap-3 transition-opacity duration-normal", !isReady && "select-none opacity-50")}
-        >
+      {/* El día y la hora aparecen cuando les toca, como cada pregunta: con sede y servicios ya respondidos. */}
+      {isReady && (
+        <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
           <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             {/* La última pregunta: después de sede, servicios y barbero. */}
             <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined} className="flex items-center gap-2.5">
-              {!listMode && <StepNumber value={shop.branches.length > 1 ? 4 : 3} className="size-6" />}
               {t("booking.agenda.whenLabel")}
             </Text>
             <Text size="sm" tone="muted" className="first-letter:uppercase">
@@ -171,7 +162,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
             </Text>
           )}
           {/* «Lo antes posible» se calcula con sede y servicio: hasta entonces solo se ven los días. */}
-          {!editing && isReady && <EarliestSlot />}
+          {!editing && <EarliestSlot />}
           <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
         </section>
       )}

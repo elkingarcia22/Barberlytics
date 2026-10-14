@@ -14,7 +14,7 @@ const nationalDigits = (e164: string): number => e164.replace(/\D/g, "").length 
  * pregunta si ya es cliente: al de siempre se le reconoce sin código (su bienvenida); el nuevo arma
  * su ficha («Conozcámonos») y la cita. A los dos se les pide el código al pagar, en la lista de espera o en «Mis citas».
  */
-export function usePhoneEntry() {
+export function usePhoneEntry({ askProfile }: { askProfile: boolean }) {
   const t = useAppT();
   const { state, dispatch, shop } = useBookingFlow();
   const check = useCheckPhoneMutation();
@@ -34,7 +34,7 @@ export function usePhoneEntry() {
       onSuccess: ({ returning, customer, token }) => {
         // El de siempre: su bienvenida sin código. El código se pide al pagar, en la lista de espera o en «Mis citas».
         if (customer && token) return dispatch({ type: "customerPreview", phone, customer, token });
-        if (!returning) return dispatch({ type: "startWithPhone", phone });
+        if (!returning) return dispatch({ type: "startWithPhone", phone, askProfile, onlyBranchId: shop.branches.length === 1 ? (shop.branches[0]?.id ?? null) : null });
         // Cliente sin perfil que mostrar (bloqueado): lo sabe tras el código, como siempre.
         request.mutate(phone, { onSuccess: (sent) => dispatch({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel }) });
       },

@@ -485,16 +485,17 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByText("Tus citas")).toBeInTheDocument();
   });
 
-  test("agenda en lista: la misma portada de Paso a paso; quien vuelve ve su bienvenida sin código", async () => {
+  test("agenda en lista: la misma portada de Paso a paso; quien vuelve entra directo a su agenda, sin código", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
     await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
-    expect(screen.queryByText("Escribe el código")).toBeNull();
-    // «Algo nuevo» lleva a la agenda, ya con su sede.
-    await user.click(screen.getAllByRole("button", { name: /Algo nuevo/ })[0]);
+    // Su agenda de siempre, no la bienvenida de Paso a paso: con su sede y su servicio ya puestos.
     expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
+    expect(screen.queryByText("Hola de nuevo, Marcela")).toBeNull();
+    expect(screen.queryByText("Escribe el código")).toBeNull();
+    expect(await screen.findByTestId("agenda-branch-field")).not.toHaveTextContent("Elige la sede");
+    expect(await screen.findByTestId("agenda-service-field")).not.toHaveTextContent("Elige uno o varios servicios");
     // Ya dio su celular: no hay «Entrar» en la cabecera.
     expect(screen.queryByRole("button", { name: /^Entrar/ })).toBeNull();
   });

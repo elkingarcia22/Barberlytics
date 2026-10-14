@@ -47,7 +47,7 @@ export function AgendaHeader({ onBack, onSignIn, trailing, showChat = false }: A
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {showChat && <ChatTrigger full />}
-          {/* Sin entrar, «Entrar»; ya dentro, en su lugar «Mis citas». */}
+          {/* Ya dentro, «Mis citas». «Entrar» solo si aún no dio su celular: la portada ya lo pide y el código va al pagar. */}
           {state.customer ? (
             <>
               <Text size="sm" weight="medium" className={cn("px-2", !isWide && "sr-only")}>
@@ -60,12 +60,12 @@ export function AgendaHeader({ onBack, onSignIn, trailing, showChat = false }: A
                 </Button>
               )}
             </>
-          ) : (
+          ) : !state.phone ? (
             <Button type="button" variant="outline" size="sm" onClick={onSignIn}>
               <ThemaIcon name="login" />
               {isWide ? t("booking.agenda.signIn") : t("booking.agenda.signInShort")}
             </Button>
-          )}
+          ) : null}
           {state.customer && extras.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

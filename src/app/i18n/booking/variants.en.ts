@@ -2,7 +2,7 @@ import type { bookingVariantsEs } from "./variants.es";
 
 /** Open schedule, Conversation and the version picker, in English. Full translation of the Spanish source. */
 export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, string>> = {
-  "booking.entry.coverLead": "Enter your phone and let's book. We'll ask for the code when you pay.",
+  "booking.entry.coverLead": "Enter your phone to start your booking.",
   "booking.entry.branches": "Our locations",
   "booking.entry.branch": "Our location",
   "booking.entry.branchesWhere": "{count} locations · {cities}",

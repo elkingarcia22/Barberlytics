@@ -22,15 +22,15 @@ export interface IdentityKit {
   askPhone: (text?: string) => void;
   /** Si el celular que escribe ya tiene que confirmarse con código (va a pagar o a «Mis citas»). */
   needsCode: () => boolean;
-  /** El celular quedó anotado sin código: se sigue armando la cita. */
+  /** El celular (de un cliente nuevo) quedó anotado sin código: se sigue armando la cita. */
   onPhoneSaved: () => void;
 }
 
 /**
- * Quién es, conversando: el celular (solo números) al empezar, sin código, para armar la cita de
- * una vez; el código que le llega, solo al pagar (o al pedir «Mis citas»); y, si es la primera vez,
- * nombre y apellido, correo y el permiso de promociones. Todo se escribe en la caja; el código no se
- * repite en el hilo.
+ * Quién es, conversando: el celular (solo números) al empezar. Si ya es cliente, el código va ya (para
+ * saludarlo con lo de siempre); si es nuevo, se arma la cita sin código y este se pide al pagar (o al
+ * pedir «Mis citas»). La primera vez, además, nombre y apellido, correo y el permiso de promociones.
+ * Todo se escribe en la caja; el código no se repite en el hilo.
  */
 export function useChatIdentity(kit: IdentityKit) {
   const { t, shop, apply, say, ask, busy, expect, expecting, stateRef, profile, askPhone, needsCode, onPhoneSaved } = kit;
@@ -55,6 +55,14 @@ export function useChatIdentity(kit: IdentityKit) {
     const phone = phoneFromText(text);
     if (!phone) return say({ text: t("booking.chat.badPhone") });
     if (needsCode()) return sendCode(phone);
+    // Solo si ya es cliente: al de siempre le llega el código ya (y su saludo con lo de siempre); el nuevo sigue sin código.
+    let returning: boolean;
+    try {
+      returning = (await busy(() => bookingApi.checkPhone(phone))).returning;
+    } catch (error) {
+      return say({ text: describeError(error).description });
+    }
+    if (returning) return sendCode(phone);
     apply({ type: "phoneEntered", phone });
     expect(null);
     say({ text: t("booking.chat.phoneSaved") });

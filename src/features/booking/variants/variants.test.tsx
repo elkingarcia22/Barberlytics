@@ -30,6 +30,13 @@ async function chatNewPhone(user: ReturnType<typeof userEvent.setup>, phone = "3
   await screen.findByRole("group", { name: "¿Qué te vas a hacer?" });
 }
 
+/** La Agenda entra por la portada de Paso a paso: un número nuevo pasa directo a la agenda, sin código. */
+async function agendaNewPhone(user: ReturnType<typeof userEvent.setup>, phone = "3001112233") {
+  await user.type(await screen.findByRole("textbox", { name: /celular/i }), phone);
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await screen.findByText("Arma tu cita");
+}
+
 /** En la Agenda sin cuenta la sede viene vacía: se abre su lista y se toca la primera. */
 async function chooseAgendaBranch(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByTestId("agenda-branch-field"));
@@ -382,6 +389,7 @@ describe("las otras dos experiencias", () => {
   test("agenda: sin cuenta la sede va primero y abre sin nada elegido; sin sede no hay horas", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     expect(await screen.findByTestId("agenda-branch-field")).toHaveTextContent("Elige la sede");
     expect(screen.queryAllByRole("button", { name: /^Apartar a las / })).toHaveLength(0);
     await user.click(screen.getByTestId("agenda-branch-field"));
@@ -395,6 +403,7 @@ describe("las otras dos experiencias", () => {
   test("agenda en lista: un paso a la vez (sede, servicios, barbero) y luego las horas", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     await screen.findByText("Arma tu cita");
     // Un paso a la vez: sin sede no hay servicios; sin servicio, no hay barbero.
     expect(screen.queryByTestId("agenda-service-field")).toBeNull();
@@ -412,6 +421,7 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: los servicios se eligen en un modal y se aplican con «Ver horas»", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     await chooseAgendaBranch(user);
     const field = await screen.findByTestId("agenda-service-field");
     await user.click(field);
@@ -430,6 +440,7 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: sin cuenta no pregunta para quién, una sola hora (la nueva reemplaza) y el cierre no repite la cita", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
     expect(screen.queryByText("¿Para quién es la cita?")).toBeNull();
     await chooseAgendaService(user, /^Corte clásico/);
@@ -453,6 +464,7 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: «Confirma tu cita» es solo la cita (sin pago) y permite sumar otra", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     await screen.findByText("Arma tu cita");
     await chooseAgendaService(user, /^Corte clásico/);
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
@@ -471,6 +483,44 @@ describe("las otras dos experiencias", () => {
     await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[1]);
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Tus citas")).toBeInTheDocument();
+  });
+
+  test("agenda en lista: la misma portada de Paso a paso; quien vuelve entra directo a su agenda, sin código", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-list" />);
+    await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3202172738");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    // Su agenda de siempre, no la bienvenida de Paso a paso: con su sede y su servicio ya puestos.
+    expect(await screen.findByText("Arma tu cita")).toBeInTheDocument();
+    expect(screen.queryByText("Hola de nuevo, Marcela")).toBeNull();
+    expect(screen.queryByText("Escribe el código")).toBeNull();
+    expect(await screen.findByTestId("agenda-branch-field")).not.toHaveTextContent("Elige la sede");
+    expect(await screen.findByTestId("agenda-service-field")).not.toHaveTextContent("Elige uno o varios servicios");
+    // Ya dio su celular: no hay «Entrar» en la cabecera.
+    expect(screen.queryByRole("button", { name: /^Entrar/ })).toBeNull();
+  });
+
+  test("agenda en lista: «Confirma tu cita» ya no pide tus datos; el código se pide al pagar y, si es nuevo, su ficha", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
+    await chooseAgendaService(user, /^Corte clásico/);
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[0]);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByRole("heading", { name: "Confirma tu cita" })).toBeInTheDocument();
+    expect(screen.queryByText("Tus datos")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /Continuar al pago/ }));
+    // El pago empieza por el código, mandado solo al celular de la portada.
+    expect(await screen.findByRole("heading", { name: "Confirma que eres tú" })).toBeInTheDocument();
+    expect(screen.queryByText("Propina para tu barbero")).toBeNull();
+    await waitFor(() => expect(screen.getAllByRole("textbox")[0]).toBeEnabled());
+    await user.click(screen.getAllByRole("textbox")[0]);
+    await user.keyboard(DEMO_CODE);
+    // Número nuevo: su ficha, sin salir del pago.
+    expect(await screen.findByRole("heading", { name: "Tus datos" })).toBeInTheDocument();
   });
 
   test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
@@ -503,6 +553,7 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: la sede también se elige en la lista y sin citas cambia al tocarla", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     const field = await screen.findByTestId("agenda-branch-field");
     const before = field.textContent ?? "";
     await user.click(field);
@@ -540,6 +591,7 @@ describe("las otras dos experiencias", () => {
   test("agenda con selector: el barbero se elige en su tarjeta, su perfil se abre dentro y las horas quedan con él", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     // Con un servicio elegido se sabe quién puede; el barbero viene en «Sin preferencia».
     await chooseAgendaService(user, /^Corte clásico/);
     const field = await screen.findByTestId("agenda-barber-field");
@@ -570,6 +622,7 @@ describe("las otras dos experiencias", () => {
   test("agenda: cambiar el barbero después de apartar una hora la suelta (el precio era de otro)", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
+    await agendaNewPhone(user);
     await chooseAgendaService(user, /^Corte clásico/);
     await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
     const jump = screen.queryByRole("button", { name: /^Ir al / });

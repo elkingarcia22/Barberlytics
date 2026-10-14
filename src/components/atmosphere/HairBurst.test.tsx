@@ -94,6 +94,35 @@ describe("HairBurst", () => {
     expect(Math.max(...positions.map(([x]) => x)) - Math.min(...positions.map(([x]) => x))).toBeGreaterThan(400);
   });
 
+  test("con tijeras, el pelo sale de los cortes y las tijeras cruzan encima", () => {
+    // Arrange
+    stubMatchMedia(false);
+    const context = stubCanvas(1000, 700);
+    let frame: FrameRequestCallback | null = null;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frame = callback;
+      return 1;
+    });
+    const tick = (now: number) => (frame as FrameRequestCallback | null)?.(now);
+
+    // Act: a los 2,1 s ya cortaron las seis veces.
+    const { container } = render(
+      <div className="relative">
+        <HairBurst density={2} scissors />
+      </div>
+    );
+    tick(0);
+    context.translate.mockClear();
+    tick(2100);
+
+    // Assert: las tijeras están montadas y los veinte pelos salieron de la franja de arriba, a lo ancho.
+    expect(container.querySelector('[data-slot="cutting-scissors"]')).not.toBeNull();
+    const positions = context.translate.mock.calls.map(([x, y]) => [x as number, y as number]);
+    expect(positions).toHaveLength(20);
+    expect(positions.every(([, y]) => y < 350)).toBe(true);
+    expect(Math.max(...positions.map(([x]) => x)) - Math.min(...positions.map(([x]) => x))).toBeGreaterThan(400);
+  });
+
   test("con prefers-reduced-motion no se monta y termina enseguida", () => {
     // Arrange
     stubMatchMedia(true);

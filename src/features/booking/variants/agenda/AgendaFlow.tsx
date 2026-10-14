@@ -235,7 +235,13 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
             actionSlot
           )}
       </div>
-      <BookingSheet open={signInOpen} onOpenChange={setSignInOpen} title={t("booking.agenda.signInTitle")} description={t("booking.agenda.signInLead")}>
+      <BookingSheet
+        open={signInOpen}
+        onOpenChange={setSignInOpen}
+        // Con el celular ya dado (en la portada) la hoja solo confirma con el código.
+        title={t(state.phone ? "booking.payIdentity.title" : "booking.agenda.signInTitle")}
+        description={t(state.phone ? "booking.payIdentity.codeLead" : "booking.agenda.signInLead")}
+      >
         {/* El código se resuelve en la hoja: la agenda de detrás no pasa a «Escribe el código». */}
         <InPlaceIdentity />
       </BookingSheet>

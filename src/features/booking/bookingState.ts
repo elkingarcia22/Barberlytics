@@ -108,7 +108,7 @@ export type BookingAction =
    * El celular de un cliente nuevo, sin código: «Conozcámonos» y a armar la cita; el código se pide al
    * pagar (`PaymentStep`), en la lista de espera o en «Mis citas».
    */
-  | { type: "startWithPhone"; phone: string }
+  | { type: "startWithPhone"; phone: string; askProfile: boolean; onlyBranchId: string | null }
   /** El cliente de siempre, reconocido por su celular sin código: su bienvenida, con una sesión de vista previa. */
   | { type: "customerPreview"; phone: string; customer: BookingCustomer; token: string }
   /** «Conozcámonos» sin código: se guardan sus datos y sigue a armar la cita. */
@@ -194,8 +194,11 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "phoneEntered":
       return { ...state, phone: action.phone };
     case "startWithPhone":
-      // El nuevo empieza por «Conozcámonos» (sin código); la sede y lo demás, después.
-      return { ...state, phone: action.phone, codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null, step: "profile" };
+      // En Paso a paso el nuevo empieza por «Conozcámonos» (sin código); en la Agenda va directo a la cita
+      // y sus datos se piden con el código.
+      return action.askProfile
+        ? { ...state, phone: action.phone, codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null, step: "profile" }
+        : afterIdentity({ ...state, phone: action.phone, codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null }, action.onlyBranchId);
     case "profileDrafted":
       return afterIdentity({ ...state, pendingProfile: action.profile }, action.onlyBranchId);
     case "customerPreview":

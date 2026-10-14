@@ -20,7 +20,6 @@ import { PhoneStep } from "../../steps/PhoneStep";
 import { ProfileStep } from "../../steps/ProfileStep";
 import { VerifyStep } from "../../steps/VerifyStep";
 import { WaitlistedStep } from "../../steps/WaitlistedStep";
-import { WelcomeStep } from "../../steps/WelcomeStep";
 import { defaultServiceId } from "./agendaModel";
 import { AgendaBoard } from "./AgendaBoard";
 import { AgendaCartBar } from "./AgendaCart";
@@ -34,10 +33,11 @@ interface AgendaFlowProps {
 }
 
 /**
- * La entrada, la misma de Paso a paso: la portada con el celular y, para quien vuelve, su bienvenida
- * (sin código). El número bloqueado va a su aviso.
+ * La entrada: la portada de Paso a paso con el celular. Quien vuelve no pasa por la bienvenida de
+ * Paso a paso: entra directo a su agenda (su sede, su servicio y «Lo de siempre»). El número
+ * bloqueado va a su aviso.
  */
-const ENTRY_SCREENS: ReadonlySet<BookingStep> = new Set(["phone", "verify", "welcome", "profile", "blocked"]);
+const ENTRY_SCREENS: ReadonlySet<BookingStep> = new Set(["phone", "verify", "profile", "blocked"]);
 /** Lo que se abre aparte y vuelve a donde estaba: «Mis citas» y lo que se compra aparte. */
 const SIDE_SCREENS: ReadonlySet<BookingStep> = new Set(["manage", "gift", "packages"]);
 /** Pantallas que no son la agenda: la entrada, el final, «Mis citas» y lo que se compra aparte. */
@@ -45,7 +45,7 @@ const OWN_SCREENS: ReadonlySet<BookingStep> = new Set([...ENTRY_SCREENS, ...SIDE
 
 /**
  * Agenda: la reserva que parte del «¿cuándo?». Entra por la portada de Paso a
- * paso (el celular; a quien vuelve, su bienvenida). Sede, servicios y
+ * paso (el celular; quien vuelve va directo a su agenda). Sede, servicios y
  * barbero se eligen en campos que abren su lista (sin cuenta abren vacíos: nada
  * elegido por la persona, y la sede va primero); luego se aparta una hora con un
  * toque; en «Confirma tu cita» se revisa y se suman productos u otra cita, y el
@@ -67,21 +67,11 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const ownScreen = OWN_SCREENS.has(state.step);
   const isEntry = ENTRY_SCREENS.has(state.step);
 
-  // De dónde se abrió «Mis citas» (o un regalo, un paquete): «Atrás» vuelve allí, a la bienvenida o a la agenda.
-  // La hora que se acepta en la bienvenida ya es una cita armada: va directo a «Confirma tu cita».
-  const previousStep = React.useRef(state.step);
-  const sideReturn = React.useRef<BookingStep>("services");
-  React.useEffect(() => {
-    const from = previousStep.current;
-    previousStep.current = state.step;
-    if (SIDE_SCREENS.has(state.step) && !SIDE_SCREENS.has(from)) sideReturn.current = from === "welcome" ? "welcome" : "services";
-    if (from === "welcome" && state.step === "review") setView("checkout");
-  }, [state.step]);
 
   // La sede: con cuenta, la de siempre o la primera; sin cuenta y con varias, la elige la persona (abre vacía).
   // Con una sola sede no hay nada que elegir.
   React.useEffect(() => {
-    // En la entrada todavía no: elegir sede mueve el paso y sacaría de la bienvenida.
+    // En la portada todavía no: elegir sede mueve el paso. Quien vuelve sale de ella con su sede de siempre.
     if (isEntry || state.branchId || shop.branches.length === 0) return;
     if (!state.customer && shop.branches.length > 1) return;
     dispatch({ type: "chooseBranch", branchId: defaultBranchId(state.customer, shop.branches.map((item) => item.id)) ?? shop.branches[0].id });
@@ -165,7 +155,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
         : isEntry
           ? () => dispatch({ type: "restart" })
           : ownScreen
-            ? () => dispatch({ type: "goTo", step: state.step === "manage" && state.reservation ? "confirmed" : SIDE_SCREENS.has(state.step) ? sideReturn.current : "services" })
+            ? () => dispatch({ type: "goTo", step: state.step === "manage" && state.reservation ? "confirmed" : "services" })
             : view === "pay"
       ? toCheckout
       : view === "checkout"
@@ -177,8 +167,6 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       <PhoneStep />
     ) : state.step === "verify" ? (
       <VerifyStep />
-    ) : state.step === "welcome" ? (
-      <WelcomeStep />
     ) : state.step === "profile" ? (
       <ProfileStep />
     ) : state.step === "blocked" ? (

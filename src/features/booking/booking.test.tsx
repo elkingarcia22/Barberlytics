@@ -13,8 +13,9 @@ import { fitWithin } from "./flow/referencePhoto";
 import { buildIcs, firstBookableDay, isTodayOver, openStateOf, parseStart, toStart } from "./bookingFormat";
 import { bookingReducer, defaultBranchId, initialBookingState, progressIndex, progressSteps, type BookingState } from "./bookingState";
 import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, findPromo, promoDiscount, renderPolicy, tipAmount, PROMOS } from "./pricing";
-import type { BookingCatalog, BookingCustomer, BookedAppointment } from "./types";
-import { itemPrice } from "./useBookingTotals";
+import type { BookingCatalog, BookingCustomer, BookedAppointment, BookingShop } from "./types";
+import { renderHook } from "@testing-library/react";
+import { itemPrice, useBookingTotals } from "./useBookingTotals";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -105,6 +106,21 @@ describe("precio de una cita", () => {
 
   test("sin preferencia y con hora cobra lo del barbero que asigna la agenda", () => {
     expect(itemPrice({ serviceIds: ["svc_corte"], barberId: null, assignedBarberId: "b_caro" }, catalog)).toBe(43);
+  });
+
+  test("propina y recargo por tarjeta solo cuentan en el pago, donde se eligen", () => {
+    const shop = { taxPercent: 6.25, tipOptions: [{ id: "tip_2", type: "percent", value: 20 }], payment: { card: true }, cardFee: { name: "Recargo por tarjeta", rate: 3, type: "percent" } } as unknown as BookingShop;
+    let state = bookingReducer(initialBookingState("tip_2"), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte"], barberId: "b_caro" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-30T13:30" });
+    // En el resumen: servicios e impuesto, nada más (43 + 2,69).
+    const review = renderHook(() => useBookingTotals(state, catalog, shop)).result.current;
+    expect(review).toMatchObject({ tip: 0, fee: 0, total: 45.69 });
+    // En el pago: la propina marcada (20 %) y la tarjeta, con su recargo (3 %).
+    const paying = bookingReducer(state, { type: "goTo", step: "payment" });
+    expect(renderHook(() => useBookingTotals(paying, catalog, shop)).result.current).toMatchObject({ tip: 8.6, fee: 1.29, total: 55.58 });
+    // Pagando en la barbería no hay recargo.
+    const atShop = bookingReducer(paying, { type: "setMethod", method: "shop" });
+    expect(renderHook(() => useBookingTotals(atShop, catalog, shop)).result.current).toMatchObject({ fee: 0, total: 54.29 });
   });
 
   test("la hora sin preferencia guarda a quién asigna la agenda; con barbero elegido, no", () => {
@@ -729,16 +745,30 @@ describe("pantalla de la reserva", () => {
     renderWithProviders(<BookingFlow />);
     await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3001112233");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    // Nuevo: va directo a elegir la sede, sin código ni bienvenida.
-    expect(await screen.findByText("¿A qué sede vas?")).toBeInTheDocument();
+    // Nuevo: «Conozcámonos» sin código; con sus datos sigue a elegir la sede.
+    expect(await screen.findByText("Conozcámonos")).toBeInTheDocument();
     expect(screen.queryByText("Escribe el código")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /crear perfil/i }));
+    // El error queda junto a su campo (que se marca inválido) y el toast, dentro de la reserva, dice cuántos faltan.
+    expect(screen.getByRole("textbox", { name: /^nombre/i })).toHaveAttribute("aria-invalid", "true");
+    expect(await screen.findByText("Te faltan 3 datos por completar.")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: /^nombre/i }), "Carlos");
+    await user.type(screen.getByRole("textbox", { name: /^apellido/i }), "Pérez");
+    await user.type(screen.getByRole("textbox", { name: /correo/i }), "carlos@correo.com");
+    await user.click(screen.getByRole("button", { name: /crear perfil/i }));
+    expect(await screen.findByText("¿A qué sede vas?")).toBeInTheDocument();
   });
 
-  test("con el celular anotado, el código se pide al llegar al pago", () => {
-    const started = bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", onlyBranchId: null });
-    expect(started).toMatchObject({ step: "branch", phone: "+573202172738", token: null, customer: null, codeSentTo: null });
+  test("el nuevo deja sus datos sin código y el código se pide al llegar al pago", () => {
+    const phoned = bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738" });
+    expect(phoned).toMatchObject({ step: "profile", phone: "+573202172738", token: null, customer: null, verified: false });
+    const profile = { firstName: "Carlos", lastName: "Pérez", email: "carlos@correo.com", marketing: false };
+    const started = bookingReducer(phoned, { type: "profileDrafted", profile, onlyBranchId: null });
+    expect(started).toMatchObject({ step: "branch", pendingProfile: profile, customer: null });
     // Con una sola sede se elige sola y empieza en los servicios.
-    expect(bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", onlyBranchId: "br_1" })).toMatchObject({ step: "services", branchId: "br_1" });
+    expect(bookingReducer(phoned, { type: "profileDrafted", profile, onlyBranchId: "br_1" })).toMatchObject({ step: "services", branchId: "br_1" });
+    // Al crearse su ficha (tras el código) los datos guardados ya no hacen falta.
+    expect(bookingReducer(started, { type: "customerUpdated", customer: { id: "cli_new" } as BookingCustomer }).pendingProfile).toBeNull();
     // Al verificar el código en el pago se sabe quién es sin moverse de pantalla.
     const atPayment = bookingReducer(started, { type: "goTo", step: "payment" });
     expect(bookingReducer(atPayment, { type: "signedIn", customer: { phone: "+57 320 217 2738" } as BookingCustomer, token: "t" })).toMatchObject({ step: "payment", token: "t" });

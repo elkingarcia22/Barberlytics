@@ -59,6 +59,11 @@ export interface BookingState {
    * paquetes y las tarjetas de regalo piden el código.
    */
   verified: boolean;
+  /**
+   * Los datos de «Conozcámonos» del cliente nuevo, escritos sin código: su ficha se crea sola al
+   * confirmar el código (al pagar, en la lista de espera o en «Mis citas»), sin volver a pedirlos.
+   */
+  pendingProfile: PendingProfile | null;
   branchId: string | null;
   items: DraftItem[];
   /** La cita que se está armando; `editingIndex` dice si reemplaza una del carrito. */
@@ -90,15 +95,24 @@ export interface BookingState {
   waitlist: readonly WaitlistEntry[];
 }
 
+export interface PendingProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  marketing: boolean;
+}
+
 export type BookingAction =
   | { type: "phoneEntered"; phone: string }
   /**
-   * El celular de la portada, sin código: se arma la cita de una vez y el código se pide al pagar
-   * (`PaymentStep`). Hasta entonces no se sabe si es cliente, para no revelar nada de un número ajeno.
+   * El celular de un cliente nuevo, sin código: «Conozcámonos» y a armar la cita; el código se pide al
+   * pagar (`PaymentStep`), en la lista de espera o en «Mis citas».
    */
-  | { type: "startWithPhone"; phone: string; onlyBranchId: string | null }
+  | { type: "startWithPhone"; phone: string }
   /** El cliente de siempre, reconocido por su celular sin código: su bienvenida, con una sesión de vista previa. */
   | { type: "customerPreview"; phone: string; customer: BookingCustomer; token: string }
+  /** «Conozcámonos» sin código: se guardan sus datos y sigue a armar la cita. */
+  | { type: "profileDrafted"; profile: PendingProfile; onlyBranchId: string | null }
   /** Verificó el código siendo nuevo, sin moverse de pantalla (en el pago): falta su ficha. */
   | { type: "verifiedNew"; token: string }
   | { type: "codeSent"; phone: string; sentTo: string; channel: "whatsapp" | "sms" }
@@ -162,7 +176,7 @@ const nextKey = (): string => {
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
 
 export function initialBookingState(defaultTipId: string | null = null): BookingState {
-  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, verified: false, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null, payCard: null, waitlist: [] };
+  return { step: "phone", phone: "", codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null, branchId: null, items: [], draft: null, editingIndex: null, fromReview: false, products: {}, tipId: defaultTipId, promo: null, gift: null, useReward: true, usePackages: true, method: null, notes: "", referencePhotos: [], reservation: null, payCard: null, waitlist: [] };
 }
 
 /** Con una sola sede se salta el paso: se elige sola. */
@@ -180,7 +194,10 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "phoneEntered":
       return { ...state, phone: action.phone };
     case "startWithPhone":
-      return afterIdentity({ ...state, phone: action.phone, codeSentTo: null, token: null, customer: null, verified: false }, action.onlyBranchId);
+      // El nuevo empieza por «Conozcámonos» (sin código); la sede y lo demás, después.
+      return { ...state, phone: action.phone, codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null, step: "profile" };
+    case "profileDrafted":
+      return afterIdentity({ ...state, pendingProfile: action.profile }, action.onlyBranchId);
     case "customerPreview":
       return { ...state, phone: action.phone, customer: action.customer, token: action.token, verified: false, codeSentTo: null, step: "welcome" };
     case "verifiedNew":
@@ -295,9 +312,9 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       // Entró a «Mis citas» con su código: ya se sabe quién es, sin moverlo de pantalla.
       return { ...state, customer: action.customer, token: action.token, verified: true, phone: action.customer.phone.replace(/[^\d+]/g, "") || state.phone };
     case "customerUpdated":
-      return { ...state, customer: action.customer };
+      return { ...state, customer: action.customer, pendingProfile: null };
     case "signOut":
-      return { ...state, phone: "", codeSentTo: null, token: null, customer: null, verified: false, method: null, useReward: true, usePackages: true };
+      return { ...state, phone: "", codeSentTo: null, token: null, customer: null, verified: false, pendingProfile: null, method: null, useReward: true, usePackages: true };
     case "waitlistJoined":
       // Apuntarse va directo a su confirmación: desde allí se sale de la lista, se buscan otras horas o,
       // si ya había una reserva armada, se vuelve a ella para pagarla.

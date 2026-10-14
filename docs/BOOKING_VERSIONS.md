@@ -78,6 +78,14 @@ pagarla; la entrada de la lista se queda.
 - El foco al abrir va a la primera fila elegida, no al buscador: en táctil el teclado taparía la lista.
 - Las dos ventanas se abren dentro de la reserva (el marco del dispositivo), no en la ventana.
 
+## Según el cliente (`mixed`)
+
+2026-10-13. Una mezcla de las dos anteriores que decide la portada: con el celular se sabe si es
+cliente (`POST /booking/phone/check`, sin código). Quien vuelve entra a la **Agenda en lista** con su
+sede y «Lo de siempre»; el cliente nuevo va **Paso a paso** («Conozcámonos», sede, servicios, barbero,
+hora). Los dos cierran igual: «Confirma tu cita» y el pago de la Agenda (`AgendaSelectCheckout`,
+`AgendaSelectPay`), que antes de cobrar pide el código. Código: `MixedFlow` en `BookingFlow.tsx`.
+
 ## Conversación
 
 - Se siente como un chat, sin formularios dentro del hilo: lo que se escribe (el celular **solo con

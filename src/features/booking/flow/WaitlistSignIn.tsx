@@ -18,8 +18,8 @@ interface WaitlistSignInProps {
 
 /**
  * La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para
- * apuntarse; sin cuenta, «Avísame si se libera una hora» abre la hoja del celular y el
- * código (`AgendaIdentity`). Entrar desde aquí no mueve de la pantalla de horas y, ya
+ * apuntarse; sin confirmar, «Avísame si se libera una hora» abre la hoja del código
+ * (`AgendaIdentity`), que va directo al celular ya escrito (o lo pide si no lo hay). Entrar desde aquí no mueve de la pantalla de horas y, ya
  * dentro, la tarjeta queda abierta para elegir la franja.
  */
 export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
@@ -56,7 +56,7 @@ export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
         <ThemaIcon name="notification" />
         {t("booking.agenda.waitlistSignIn")}
       </Button>
-      <BookingSheet open={open} onOpenChange={setOpen} title={t("booking.agenda.signInTitle")} description={t("booking.waitlist.signInLead")}>
+      <BookingSheet open={open} onOpenChange={setOpen} title={t(state.phone ? "booking.payIdentity.title" : "booking.agenda.signInTitle")} description={t(state.phone ? "booking.waitlist.codeLead" : "booking.waitlist.signInLead")}>
         <BookingFlowProvider value={inPlace}>
           <AgendaIdentity />
         </BookingFlowProvider>

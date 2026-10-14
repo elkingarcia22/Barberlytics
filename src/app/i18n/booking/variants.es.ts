@@ -145,6 +145,8 @@ export const bookingVariantsEs = {
   "booking.chat.helloLast": "¡Hola! Soy **Clipper**, el asistente de **{shop}**. Armemos tu cita; tus datos te los pido al final.",
   "booking.chat.phoneToFinish": "Ya casi: para reservarla necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**. Por ejemplo: 3001234567.",
   "booking.chat.askPhone": "Para empezar escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.",
+  "booking.chat.codeOk": "¡Listo, confirmado!",
+  "booking.chat.waitlistNeedsPhone": "Para apuntarte en la lista de espera necesito tu **celular**, **solo los números**.",
   "booking.chat.phoneSaved": "¡Anotado! Armemos tu cita. El código para confirmar que eres tú te lo pido al pagar.",
   "booking.chat.badPhone": "Mmm, ese número no se ve bien. Escríbelo con los **10 números**, sin espacios ni signos. Por ejemplo: 3001234567.",
   "booking.chat.needPhone": "Antes de seguir necesito tu **celular**. Escríbelo aquí abajo, **solo los números**.",

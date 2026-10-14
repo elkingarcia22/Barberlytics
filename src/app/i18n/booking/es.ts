@@ -583,8 +583,6 @@ export const bookingEs = {
   "booking.loyalty.leftShort_plural": "Faltan {count} para tu {reward} gratis",
   "booking.loyalty.earnsShort": "Con esta cita ganas tu {reward} gratis",
   "booking.loyalty.line": "Cortesía de tu membresía",
-  "booking.firstVisit.title": "{value} de descuento en tu primera visita",
-  "booking.firstVisit.hint": "Se aplica solo al pagar.",
   "booking.receipt.title": "Recibo",
   "booking.receipt.sendTitle": "Enviar el recibo",
   "booking.receipt.sendLead": "Por correo, por SMS o por los dos.",

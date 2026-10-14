@@ -9,7 +9,7 @@ import { dayKeyOf, firstBookableDay, formatPhone, parseStart } from "../../booki
 import { useBookingFlow } from "../../flow/BookingContext";
 import { brandFromName, isCvcComplete } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
-import { FIRST_VISIT_PROMO, type Totals } from "../../pricing";
+import type { Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
 import type { Availability, BookedAppointment, BookingBarber, BookingCatalog, Slot, VisitSuggestion } from "../../types";
 import type { DayWindow } from "../agenda/agendaModel";
@@ -536,8 +536,8 @@ export function useChatBooking({
       return;
     }
     if (customer.isNew) {
-      const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
-      say({ text: offer ? t("booking.chat.niceToMeetOffer", { name: customer.firstName, offer }) : t("booking.chat.niceToMeet", { name: customer.firstName }) });
+      // El descuento de primera visita no se anuncia aquí: se ve y se aplica solo en el pago.
+      say({ text: t("booking.chat.niceToMeet", { name: customer.firstName }) });
       if (pendingManage.current) return manage();
       if (takeIntent()) return;
       return startBooking();

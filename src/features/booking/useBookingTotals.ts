@@ -67,18 +67,20 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
     const tip = shop?.tipOptions.find((option) => option.id === state.tipId) ?? null;
     // Sin método elegido, el pago abre en tarjeta si la barbería cobra en línea (como el paso de pago).
     const method = state.method ?? (shop?.payment.card ? "card" : "shop");
+    // Los descuentos (cupón y cortesía de la membresía) solo se cuentan en el pago: antes, el total es el de lista.
+    const atPayment = state.step === "payment";
     return computeTotals({
       services,
       products,
-      discount: promoDiscount(state.promo, services + products),
+      discount: atPayment ? promoDiscount(state.promo, services + products) : 0,
       taxPercent: shop?.taxPercent ?? 0,
       tip: tipAmount(tip, services),
       cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
       giftBalance: state.gift?.balance ?? 0,
       prepaid: packageCoverage(state, catalog),
-      reward: rewardAmount(state, catalog),
+      reward: atPayment ? rewardAmount(state, catalog) : 0,
     });
-  }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.usePackages, state.customer]);
+  }, [catalog, shop, state.step, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.usePackages, state.customer]);
 }
 
 export interface DraftOrderLine {

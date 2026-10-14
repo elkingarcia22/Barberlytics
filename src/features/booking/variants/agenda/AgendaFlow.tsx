@@ -66,6 +66,12 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const isWide = layout === "wide";
   const ownScreen = OWN_SCREENS.has(state.step);
   const isEntry = ENTRY_SCREENS.has(state.step);
+  // El número nuevo no pasa por «Conozcámonos» (eso es de Paso a paso): va directo a la agenda y su ficha
+  // se pide en el pago, tras el código. «profile» solo se queda si ya verificó (el camino del código).
+  const skipsProfile = state.step === "profile" && !state.verified;
+  React.useEffect(() => {
+    if (skipsProfile) dispatch({ type: "startFresh", onlyBranchId: shop.branches.length === 1 ? (shop.branches[0]?.id ?? null) : null });
+  }, [skipsProfile, shop.branches, dispatch]);
 
 
   // La sede: con cuenta, la de siempre o la primera; sin cuenta y con varias, la elige la persona (abre vacía).
@@ -168,7 +174,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : state.step === "verify" ? (
       <VerifyStep />
     ) : state.step === "profile" ? (
-      <ProfileStep />
+      skipsProfile ? null : <ProfileStep />
     ) : state.step === "blocked" ? (
       <BlockedStep />
     ) : state.step === "confirmed" ? (

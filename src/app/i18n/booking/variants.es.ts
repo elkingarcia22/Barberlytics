@@ -7,6 +7,10 @@ export const bookingVariantsEs = {
   // ── Selector de versión (lo ve solo quien administra) ──
   "booking.entry.coverLead": "Escribe tu celular y te mandamos un código.",
   "booking.entry.branches": "Nuestras sedes",
+  "booking.entry.branch": "Nuestra sede",
+  "booking.entry.branchesWhere": "{count} sedes · {cities}",
+  "booking.entry.viewBranch": "Ver sede",
+  "booking.entry.viewBranches": "Ver sedes",
   "booking.entry.manageHint": "Cambiar o cancelar",
   "booking.entry.call": "Llamar",
   "booking.chat.trigger": "Agenda con {name}",

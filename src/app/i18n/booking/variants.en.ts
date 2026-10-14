@@ -4,6 +4,10 @@ import type { bookingVariantsEs } from "./variants.es";
 export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, string>> = {
   "booking.entry.coverLead": "Enter your phone and we'll text you a code.",
   "booking.entry.branches": "Our locations",
+  "booking.entry.branch": "Our location",
+  "booking.entry.branchesWhere": "{count} locations · {cities}",
+  "booking.entry.viewBranch": "View location",
+  "booking.entry.viewBranches": "View locations",
   "booking.entry.manageHint": "Change or cancel",
   "booking.entry.call": "Call",
   "booking.chat.trigger": "Book with {name}",

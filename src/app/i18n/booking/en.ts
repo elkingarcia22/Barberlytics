@@ -323,6 +323,12 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.products.none": "No products added yet.",
   "booking.products.done": "Done",
 
+  "booking.payIdentity.title": "Confirm it's you",
+  "booking.payIdentity.lead": "Before paying we'll text a code to the phone you entered.",
+  "booking.payIdentity.newTitle": "Your details",
+  "booking.payIdentity.newLead": "It's your first time: just what we need for your profile, then on to payment.",
+  "booking.payIdentity.sending": "We're texting a code to {phone}.",
+  "booking.payIdentity.sendingShort": "Sending the code…",
   "booking.payment.title": "Payment",
   "booking.payment.lead": "Secure your time. We send the receipt instantly.",
   "booking.payment.tip": "Tip for your barber",

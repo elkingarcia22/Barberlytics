@@ -5,7 +5,7 @@
  */
 export const bookingVariantsEs = {
   // ── Selector de versión (lo ve solo quien administra) ──
-  "booking.entry.coverLead": "Escribe tu celular y te mandamos un código.",
+  "booking.entry.coverLead": "Escribe tu celular y armamos tu cita. El código te lo pedimos al pagar.",
   "booking.entry.branches": "Nuestras sedes",
   "booking.entry.branch": "Nuestra sede",
   "booking.entry.branchesWhere": "{count} sedes · {cities}",
@@ -145,7 +145,8 @@ export const bookingVariantsEs = {
   "booking.chat.hello": "¡Hola! Soy **Clipper**, el asistente de **{shop}**. Te ayudo a reservar tu cita en un minuto.",
   "booking.chat.helloLast": "¡Hola! Soy **Clipper**, el asistente de **{shop}**. Armemos tu cita; tus datos te los pido al final.",
   "booking.chat.phoneToFinish": "Ya casi: para reservarla necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**. Por ejemplo: 3001234567.",
-  "booking.chat.askPhone": "Primero necesito saber quién eres. Escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.",
+  "booking.chat.askPhone": "Para empezar escríbeme tu **número de celular**, **solo los números**, sin espacios ni signos. Por ejemplo: 3001234567.",
+  "booking.chat.phoneSaved": "¡Anotado! Armemos tu cita. El código para confirmar que eres tú te lo pido al pagar.",
   "booking.chat.badPhone": "Mmm, ese número no se ve bien. Escríbelo con los **10 números**, sin espacios ni signos. Por ejemplo: 3001234567.",
   "booking.chat.needPhone": "Antes de seguir necesito tu **celular**. Escríbelo aquí abajo, **solo los números**.",
   "booking.chat.codeSms": "Listo. Te acabo de mandar un **código de 6 números** por mensaje de texto a {phone}. **Escríbelo aquí** para confirmar que eres tú.",

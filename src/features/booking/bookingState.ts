@@ -81,6 +81,11 @@ export interface BookingState {
 
 export type BookingAction =
   | { type: "phoneEntered"; phone: string }
+  /**
+   * El celular de la portada, sin código: se arma la cita de una vez y el código se pide al pagar
+   * (`PaymentStep`). Hasta entonces no se sabe si es cliente, para no revelar nada de un número ajeno.
+   */
+  | { type: "startWithPhone"; phone: string; onlyBranchId: string | null }
   | { type: "codeSent"; phone: string; sentTo: string; channel: "whatsapp" | "sms" }
   | { type: "setToken"; token: string | null }
   | { type: "customerFound"; customer: BookingCustomer; token: string }
@@ -159,6 +164,8 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
   switch (action.type) {
     case "phoneEntered":
       return { ...state, phone: action.phone };
+    case "startWithPhone":
+      return afterIdentity({ ...state, phone: action.phone, codeSentTo: null, token: null, customer: null }, action.onlyBranchId);
     case "codeSent":
       return { ...state, phone: action.phone, codeSentTo: { sentTo: action.sentTo, channel: action.channel }, step: "verify" };
     case "setToken":

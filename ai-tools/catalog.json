@@ -1,5 +1,5 @@
 {
-  "sourceHash": "d4c19a6d34a07b99",
+  "sourceHash": "5ba916026a05240c",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -2833,7 +2833,7 @@
       "id": "hair-burst",
       "name": "HairBurst",
       "group": "atmosphere",
-      "description": "Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Cae desde arriba del contenedor y a todo su ancho: se van soltando escalonados, cada uno con su peso, y una brisa los lleva de lado. Se apaga en unos 4,5 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
+      "description": "Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Cae desde arriba del contenedor y a todo su ancho: se van soltando escalonados, cada uno con su peso, y una brisa los lleva de lado. Se apaga en unos 4,5 s. Con `scissors`, unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte; con `sound`, cada corte suena (un «chas» hecho con Web Audio, sin archivos). Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.",
       "import": "import { HairBurst } from \"@/components/atmosphere\"",
       "source": "src/components/atmosphere/HairBurst.tsx",
       "status": "stable",
@@ -2850,6 +2850,18 @@
           "type": "number",
           "default": "10",
           "description": "Pelos por cada 100 px de ancho: unos 37 en un celular y unos 120 en un monitor, entre 14 y 300."
+        },
+        {
+          "name": "scissors",
+          "type": "boolean",
+          "default": "false",
+          "description": "Unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte, en vez de llover desde el borde."
+        },
+        {
+          "name": "sound",
+          "type": "boolean",
+          "default": "false",
+          "description": "Con `scissors`, el «chas» de cada corte (Web Audio, sin archivos). Si el navegador aún no permite audio, no suena y la animación sigue."
         },
         {
           "name": "onDone",
@@ -2884,8 +2896,14 @@
         {
           "id": "reserved",
           "title": "Cita creada",
-          "description": "Así sale en la reserva en línea al confirmar la cita: encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
-          "code": "<HairBurst key={reservation.id} className=\"z-toast\" onDone={() => setBurstId(null)} />"
+          "description": "Así sale en la reserva en línea al confirmar la cita: las tijeras cortan con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.",
+          "code": "<HairBurst key={reservation.id} scissors sound className=\"z-toast\" onDone={() => setBurstId(null)} />"
+        },
+        {
+          "id": "rain",
+          "title": "Solo el pelo",
+          "description": "Sin tijeras: el pelo cae desde el borde de arriba, a todo lo ancho.",
+          "code": "<HairBurst key={id} onDone={() => setBurstId(null)} />"
         }
       ],
       "docs": "/docs#/components/hair-burst",

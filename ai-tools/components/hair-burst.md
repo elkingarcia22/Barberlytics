@@ -1,6 +1,6 @@
 # HairBurst
 
-Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Cae desde arriba del contenedor y a todo su ancho: se van soltando escalonados, cada uno con su peso, y una brisa los lleva de lado. Se apaga en unos 4,5 s. Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.
+Pelo de barba que cae para celebrar: como el confeti, pero con los pelos finos que quedan tras un arreglo de barba, largos, con una curva suave y afinándose hacia la punta, en negros, castaños y alguna cana. Cae desde arriba del contenedor y a todo su ancho: se van soltando escalonados, cada uno con su peso, y una brisa los lleva de lado. Se apaga en unos 4,5 s. Con `scissors`, unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte; con `sound`, cada corte suena (un «chas» hecho con Web Audio, sin archivos). Es la celebración de la cita recién creada en la reserva en línea. Con prefers-reduced-motion no se monta.
 
 Familia: Atmósfera y marca · Doc: `/docs#/components/hair-burst` · Fuente: `src/components/atmosphere/HairBurst.tsx`
 
@@ -13,6 +13,8 @@ import { HairBurst } from "@/components/atmosphere"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `density` | `number` | `10` | Pelos por cada 100 px de ancho: unos 37 en un celular y unos 120 en un monitor, entre 14 y 300. |
+| `scissors` | `boolean` | `false` | Unas tijeras cruzan por arriba dando seis cortes y el pelo sale de cada corte, en vez de llover desde el borde. |
+| `sound` | `boolean` | `false` | Con `scissors`, el «chas» de cada corte (Web Audio, sin archivos). Si el navegador aún no permite audio, no suena y la animación sigue. |
 | `onDone` | `() => void` |  | Al terminar la caída; con «reducir movimiento», enseguida. |
 | `className` | `string` |  | Clases extra para el <canvas>, que ya es absolute inset-0 y no intercepta el puntero. |
 
@@ -31,8 +33,16 @@ Relacionados: hair-canvas, halo
 
 ### Cita creada
 
-Así sale en la reserva en línea al confirmar la cita: encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.
+Así sale en la reserva en línea al confirmar la cita: las tijeras cortan con sonido, encima de todo (`z-toast`), sin interceptar el puntero, y se desmonta en `onDone`.
 
 ```tsx
-<HairBurst key={reservation.id} className="z-toast" onDone={() => setBurstId(null)} />
+<HairBurst key={reservation.id} scissors sound className="z-toast" onDone={() => setBurstId(null)} />
+```
+
+### Solo el pelo
+
+Sin tijeras: el pelo cae desde el borde de arriba, a todo lo ancho.
+
+```tsx
+<HairBurst key={id} onDone={() => setBurstId(null)} />
 ```

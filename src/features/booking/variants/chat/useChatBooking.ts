@@ -52,7 +52,7 @@ export function useChatBooking({
   deferStart?: boolean;
   /**
    * Cuándo se pide quién eres. `first` (como en WhatsApp): el celular y el código al empezar. `last`
-   * (como en la Agenda con selector): se arma la cita y el celular se pide al pagar.
+   * (como en la Agenda): se arma la cita y el celular se pide al pagar.
    */
   identityAt?: "first" | "last";
 }) {

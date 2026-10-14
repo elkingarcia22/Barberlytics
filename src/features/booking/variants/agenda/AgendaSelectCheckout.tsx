@@ -157,7 +157,7 @@ interface ReviewProps {
 }
 
 /**
- * «Confirma tu cita» en la Agenda con selector: solo lo de la cita. Las citas
+ * «Confirma tu cita» en la Agenda: solo lo de la cita. Las citas
  * en sus tarjetas (con a nombre de quién), sumar otra, los productos y, si aún no
  * ingresó, quién es: al identificarse pasa solo al pago (`AgendaSelectPay`).
  */
@@ -211,7 +211,7 @@ function PayBody({ payment, onChangeTime }: { payment: PaymentController; onChan
 }
 
 /**
- * «Pago» en la Agenda con selector: solo cómo se paga (propina, descuentos,
+ * «Pago» en la Agenda: solo cómo se paga (propina, descuentos,
  * método y tarjeta) y el botón que cobra. Aquí ya se sabe quién es: sin cuenta
  * se vuelve a «Confirma tu cita».
  */

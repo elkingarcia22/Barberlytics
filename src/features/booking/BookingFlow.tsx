@@ -35,7 +35,6 @@ import { WelcomeStep } from "./steps/WelcomeStep";
 import type { BookingShop } from "./types";
 import { useBookingEngine } from "./useBookingEngine";
 import { AgendaFlow } from "./variants/agenda/AgendaFlow";
-import { AgendaListModeProvider } from "./variants/agenda/AgendaPicker";
 import { ChatFlow } from "./variants/chat/ChatFlow";
 import type { BookingVersion } from "./versions";
 
@@ -190,7 +189,7 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
   // Las ventanas (drawers, modales) se abren dentro de la reserva, no en la
   // ventana: en el marco del celular o en el panel del widget no se salen.
   const [portalRoot, setPortalRoot] = React.useState<HTMLElement | null>(null);
-  // Desde Paso a paso y la Agenda con selector se puede pasar a la Conversación sin salir.
+  // Desde Paso a paso y la Agenda se puede pasar a la Conversación sin salir.
   const [switched, setSwitched] = React.useState<BookingVersion | null>(null);
   const active = switched ?? version;
   const switchToChat = React.useCallback(() => {
@@ -231,10 +230,8 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
           <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
           <Grain scope="container" />
           <SwitchToChatProvider value={active !== "chat" ? switchToChat : null}>
-            {active === "agenda-select" || active === "agenda-list" ? (
-              <AgendaListModeProvider value={active === "agenda-list"}>
-                <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} />
-              </AgendaListModeProvider>
+            {active === "agenda-list" ? (
+              <AgendaFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             ) : active === "chat" ? (
               <ChatFlow headerTrailing={headerTrailing} onFinish={onFinish} />
             ) : (

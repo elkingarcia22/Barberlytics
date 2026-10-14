@@ -187,7 +187,7 @@ Router, providers, layout, navegación y páginas de error.
 - **en.ts** — Online booking in English. · `bookingEn`
 - **es.ts** — La reserva en línea: lo que lee el cliente de la barbería, no quien la administra. · `bookingEs`
 - **variants.en.ts** — Open schedule, Conversation and the version picker, in English. · `bookingVariantsEn`
-- **variants.es.ts** — Las otras dos maneras de reservar (Agenda con selector y Conversación) y el selector de versión de la vista p… · `bookingVariantsEs`
+- **variants.es.ts** — Las otras dos maneras de reservar (Agenda y Conversación) y el selector de versión de la vista previa. · `bookingVariantsEs`
 
 ### i18n
 
@@ -267,8 +267,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AlternativeBarbers.tsx** — Cuando el barbero elegido no tiene horas ese día: otros que hacen los mismos servicios, ordenados por cuánto… · `AlternativeBarbers` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AppointmentDetailSheet.tsx** — «Ver detalle»: la cita como una ficha — el día grande, la hora de inicio a fin, y debajo qué, con quién, para… · `AppointmentDetailSheet` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
-- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer`, `BarberAvatar`, `BarberProfileBody` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, Heading, Text · usa: @/app/i18n, @/icons
-- **BarberReviews.tsx** — Las últimas reseñas del barbero: solo de clientes que vinieron (una por cita), con su nombre y la inicial del… · `BarberReviews` · piezas: Heading, Rating, Skeleton, Text · usa: @/app/i18n
+- **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer`, `BarberAvatar`, `BarberProfileBody` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, Heading, Rating, Text · usa: @/app/i18n, @/icons
 - **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
 - **BookingHeader.tsx** — La cabecera de la reserva: quién es la barbería (y en qué sede), volver y cuánto falta. · `BookingHeader` · piezas: Button, Progress, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **BookingOverlay.tsx** — Las ventanas de la reserva (elegir sede, barbero o servicios, el perfil de un barbero, los productos, cambiar… · `BookingOverlayProps`, `BookingOverlay` · piezas: Dialog, DialogContent, DialogDescription, DialogTitle, DrawerShell · usa: @/lib/utils
@@ -365,20 +364,20 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/variants/agenda
 
-- **AgendaBarberField.tsx** — «¿Con quién?» en la Agenda con selector, debajo de lo que se va a hacer: el mismo campo y la misma ventana qu… · `AgendaBarberField` · piezas: Badge, Button, Text · usa: @/app/i18n
-- **AgendaBoard.tsx** — El tablero de la Agenda con selector: sede, servicios y barbero arriba, como campos que abren su lista; el dí… · `AgendaBoard` · piezas: Alert, AlertDescription, Button, EmptyState, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaBranchField.tsx** — La sede en la Agenda con selector: el mismo campo que los servicios (foto del local, nombre y dirección) y la… · `AgendaBranchField` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
+- **AgendaBarberField.tsx** — «¿Con quién?» en la Agenda, debajo de lo que se va a hacer: el mismo campo y la misma ventana que la sede. · `AgendaBarberField` · piezas: Badge, Button, Text · usa: @/app/i18n
+- **AgendaBoard.tsx** — El tablero de la Agenda: sede, servicios y barbero arriba, como campos que abren su lista; el día en una tira… · `AgendaBoard` · piezas: Alert, AlertDescription, Button, EmptyState, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaBranchField.tsx** — La sede en la Agenda: el mismo campo que los servicios (foto del local, nombre y dirección) y la lista de sed… · `AgendaBranchField` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
 - **AgendaCart.tsx** — Las citas apartadas, una por fila: quién, qué, con quién y cuándo, con cambiar y quitar. · `AgendaCartLines`, `AgendaCartBar` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaCheckout.tsx** — Una parte del cierre: número, título y lo que va dentro. · `CheckoutSection`, `CheckoutFooter`, `AgendaCheckout` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
-- **AgendaFlow.tsx** — Agenda con selector: la reserva que parte del «¿cuándo?». · `AgendaFlow` · piezas: Button · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaFlow.tsx** — Agenda: la reserva que parte del «¿cuándo?». · `AgendaFlow` · piezas: Button · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaHeader.tsx** — La cabecera de la agenda: la barbería y su sede, entrar como cliente (no hace falta para mirar horas), «Mis c… · `AgendaHeader` · piezas: Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaIdentity.tsx** — Primera vez: lo justo para su ficha. · `ProfileForm`, `AgendaIdentity` · piezas: Alert, AlertDescription, AlertTitle, Button, Checkbox, Field, Input, InputOtp, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **AgendaLanes.tsx** — Las horas del día sin pensar en quién: por franja, cada hora con las caras de quienes pueden; en el celular,… · `TimeWindows` · piezas: Avatar, AvatarFallback, AvatarGroup, AvatarImage, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaPicker.tsx** — ¿Las listas se abren en su sitio? En la Agenda en lista, fuera del celular y el widget. · `AgendaListModeProvider`, `useAgendaListMode`, `useInlineLists`, `StepNumber`, `PickerField`, `PickerOverlay`, `PICKER_SEARCH_FROM`, `plainText`, `PickerSearch`, `PickerRow` · piezas: Button, IconTile, Input, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaProductField.tsx** — Lo que se lleva de la tienda en la Agenda con selector: el mismo campo y la misma ventana que los servicios. · `AgendaProductField` · piezas: Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons
-- **AgendaSelectCheckout.tsx** — «Confirma tu cita» en la Agenda con selector: solo lo de la cita. · `AgendaSelectCheckout`, `AgendaSelectPay` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
-- **AgendaSelectFields.tsx** — Las preguntas de la Agenda con selector, en orden y numeradas: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda con selector: un campo que se lee como un select —lo elegido, cuánto dura y… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Skeleton, Text · usa: @/app/i18n, @/lib/utils
+- **AgendaPicker.tsx** — ¿Las listas se abren en su sitio? Fuera del celular y el widget: debajo de su fila, en vez de en una hoja o u… · `useInlineLists`, `PickerField`, `PickerOverlay`, `PICKER_SEARCH_FROM`, `plainText`, `PickerSearch`, `PickerRow` · piezas: Button, IconTile, Input, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaProductField.tsx** — Lo que se lleva de la tienda en la Agenda: el mismo campo y la misma ventana que los servicios. · `AgendaProductField` · piezas: Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons
+- **AgendaSelectCheckout.tsx** — «Confirma tu cita» en la Agenda: solo lo de la cita. · `AgendaSelectCheckout`, `AgendaSelectPay` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
+- **AgendaSelectFields.tsx** — Las preguntas de la Agenda, en filas y de a una: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda: un campo que se lee como un select —lo elegido, cuánto dura y desde cuánto… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Skeleton, Text · usa: @/app/i18n, @/lib/utils
 - **DayStrip.tsx** — La tira de días de la agenda: el día de la semana arriba y el número grande, en fila y deslizable. · `DayStrip` · piezas: Text · usa: @/app/i18n, @/hooks/useDragScroll, @/i18n, @/lib/utils
 - **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
 - **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`

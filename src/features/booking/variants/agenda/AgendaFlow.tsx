@@ -32,7 +32,7 @@ interface AgendaFlowProps {
 const OWN_SCREENS: ReadonlySet<BookingStep> = new Set(["confirmed", "waitlisted", "manage", "gift", "packages"]);
 
 /**
- * Agenda con selector: la reserva que parte del «¿cuándo?». Sede, servicios y
+ * Agenda: la reserva que parte del «¿cuándo?». Sede, servicios y
  * barbero se eligen en campos que abren su lista (sin cuenta abren vacíos: nada
  * elegido por la persona, y la sede va primero); luego se aparta una hora con un
  * toque; en «Confirma tu cita» se revisa, se suman productos u otra cita y se

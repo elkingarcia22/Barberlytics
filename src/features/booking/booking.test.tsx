@@ -310,8 +310,8 @@ describe("backend de la reserva", () => {
 
   test("el código dice si es alguien que vuelve, alguien nuevo o un número bloqueado; el celular solo no revela nada", async () => {
     // Pedir el código responde igual para cualquier número: no dice si es cliente ni da datos.
-    await expect(bookingApi.requestOtp(KNOWN_PHONE)).resolves.toEqual({ sentTo: expect.stringContaining("2738"), channel: "whatsapp" });
-    await expect(bookingApi.requestOtp("+573001112233")).resolves.toEqual({ sentTo: expect.stringContaining("2233"), channel: "whatsapp" });
+    await expect(bookingApi.requestOtp(KNOWN_PHONE)).resolves.toEqual({ sentTo: expect.stringContaining("2738"), channel: "sms" });
+    await expect(bookingApi.requestOtp("+573001112233")).resolves.toEqual({ sentTo: expect.stringContaining("2233"), channel: "sms" });
     await expect(bookingApi.verifyOtp(KNOWN_PHONE, DEMO_CODE)).resolves.toMatchObject({ status: "known", customer: { firstName: "Marcela" } });
     await expect(bookingApi.verifyOtp("+573001112233", DEMO_CODE)).resolves.toMatchObject({ status: "new", customer: null });
     await expect(bookingApi.verifyOtp("+573009999999", DEMO_CODE)).resolves.toEqual({ status: "blocked", token: null, customer: null });

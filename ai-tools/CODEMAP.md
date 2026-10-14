@@ -314,6 +314,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
+- **WaitlistSignIn.tsx** — La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para apuntarse; sin cuenta,… · `WaitlistSignIn` · piezas: Button · usa: @/app/i18n, @/icons
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
 - **bookingToast.ts** — Los avisos de la reserva salen dentro de su propia pantalla (el marco del celular, la tablet o el monitor de… · `BOOKING_TOASTER_ID`, `toast`
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`

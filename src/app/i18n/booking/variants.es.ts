@@ -107,7 +107,7 @@ export const bookingVariantsEs = {
   "booking.agenda.heldSee": "Ver",
   "booking.agenda.heldLead": "Quedan guardadas mientras armas la otra. Las pagas juntas al final.",
   "booking.agenda.checkout.payLocked": "Confirma tu celular para pagar",
-  "booking.agenda.id.phoneHint": "Te mandamos un código por WhatsApp para confirmar que eres tú.",
+  "booking.agenda.id.phoneHint": "Te mandamos un código por mensaje de texto para confirmar que eres tú.",
   "booking.agenda.id.sendCode": "Enviar código",
   "booking.agenda.id.completeCta": "Completar mis datos",
   "booking.agenda.id.newLead": "Es tu primera vez aquí: cuéntanos cómo te llamas.",

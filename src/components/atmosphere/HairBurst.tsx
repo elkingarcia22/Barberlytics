@@ -185,6 +185,11 @@ export interface HairBurstProps {
   scissors?: boolean;
   /** Con `scissors`, suena el «chas» de cada corte (Web Audio, sin archivos). */
   sound?: boolean;
+  /**
+   * Con `scissors`, la línea que cortan, en px desde arriba del contenedor (el borde del header):
+   * cruzan rectas sobre ella y el pelo sale de ahí. Sin ella, van por arriba ondulando.
+   */
+  cutY?: number;
   /** Al terminar la caída (o enseguida, con «reducir movimiento»). */
   onDone?: () => void;
 }
@@ -198,7 +203,7 @@ export interface HairBurstProps {
  * los lleva de lado. Se apaga en unos 4,5 s. Para repetirla, cambia su `key`.
  * Con `prefers-reduced-motion` no se monta.
  */
-export function HairBurst({ className, density = 10, scissors = false, sound = false, onDone }: HairBurstProps) {
+export function HairBurst({ className, density = 10, scissors = false, sound = false, cutY, onDone }: HairBurstProps) {
   const ref = React.useRef<HTMLCanvasElement>(null);
   const scissorsRef = React.useRef<CuttingScissorsHandle>(null);
   const reducedMotion = useReducedMotion();
@@ -231,7 +236,7 @@ export function HairBurst({ className, density = 10, scissors = false, sound = f
     let clippings = Array.from({ length: total }, (_, index) => {
       if (!scissors) return spawnClipping(rect.width, fallScale, palette);
       const at = snips[index % snips.length];
-      return spawnCutClipping(cutPointAt(at, rect.width, rect.height), at + Math.random() * CUT_SPREAD_MS, fallScale, palette);
+      return spawnCutClipping(cutPointAt(at, rect.width, rect.height, cutY), at + Math.random() * CUT_SPREAD_MS, fallScale, palette);
     });
     const duration = scissors ? CUT_DURATION_MS : DURATION_MS;
     const fadeStart = scissors ? CUT_FADE_START_MS : FADE_START_MS;
@@ -253,7 +258,7 @@ export function HairBurst({ className, density = 10, scissors = false, sound = f
       last = now;
       const fade = elapsed < fadeStart ? 1 : Math.max(0, 1 - (elapsed - fadeStart) / (duration - fadeStart));
       if (scissors) {
-        const { x, y } = scissorsAt(elapsed, rect.width, rect.height);
+        const { x, y } = scissorsAt(elapsed, rect.width, rect.height, cutY);
         scissorsRef.current?.place(x, y, openingAt(elapsed, snips));
       }
       const wind = windAt(elapsed, windPhase);
@@ -286,7 +291,7 @@ export function HairBurst({ className, density = 10, scissors = false, sound = f
       cancelAnimationFrame(frame);
       player?.stop();
     };
-  }, [density, scissors, sound, reducedMotion]);
+  }, [density, scissors, sound, cutY, reducedMotion]);
 
   if (reducedMotion) return null;
 

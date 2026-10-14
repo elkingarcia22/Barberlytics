@@ -25,16 +25,21 @@ export const OFFSCREEN_PX = 70;
 /** Los momentos (ms desde que empiezan a cruzar) en que se cierran las hojas, repartidos a lo ancho. */
 export const snipTimes = (): number[] => Array.from({ length: SNIP_COUNT }, (_, index) => ((index + 0.6) / SNIP_COUNT) * SWEEP_MS);
 
-/** Dónde va el tornillo a los `elapsed` ms: cruza de izquierda a derecha por arriba, ondulando un poco. */
-export function scissorsAt(elapsed: number, width: number, height: number): { x: number; y: number } {
+/**
+ * Dónde va el tornillo a los `elapsed` ms: cruza de izquierda a derecha por arriba, ondulando un
+ * poco. Con `lineY` (una línea que cortar, como el borde del header) va recto sobre ella.
+ */
+export function scissorsAt(elapsed: number, width: number, height: number, lineY?: number): { x: number; y: number } {
   const progress = Math.min(1, Math.max(0, elapsed / SWEEP_MS));
+  const x = -OFFSCREEN_PX + progress * (width + OFFSCREEN_PX * 2);
+  if (lineY !== undefined) return { x, y: lineY };
   const baseY = Math.min(150, Math.max(70, height * 0.16));
-  return { x: -OFFSCREEN_PX + progress * (width + OFFSCREEN_PX * 2), y: baseY + Math.sin(progress * Math.PI * 2) * 10 };
+  return { x, y: baseY + Math.sin(progress * Math.PI * 2) * 10 };
 }
 
 /** El punto del corte (donde salen los pelos) a los `elapsed` ms. */
-export function cutPointAt(elapsed: number, width: number, height: number): { x: number; y: number } {
-  const { x, y } = scissorsAt(elapsed, width, height);
+export function cutPointAt(elapsed: number, width: number, height: number, lineY?: number): { x: number; y: number } {
+  const { x, y } = scissorsAt(elapsed, width, height, lineY);
   return { x: x + CUT_POINT_PX, y };
 }
 

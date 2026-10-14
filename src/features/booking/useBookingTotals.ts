@@ -43,6 +43,17 @@ export function packageCoverage(state: BookingState, catalog: BookingCatalog | u
   return coverByPackages(state.items.map((item) => servicePrices(item, catalog)), owned).amount;
 }
 
+/** La cortesía de cliente frecuente: el servicio de cortesía a lo que lo cobra quien lo hace en esta reserva. */
+function rewardAmount(state: BookingState, catalog: BookingCatalog | undefined): number {
+  const loyalty = state.customer?.loyalty;
+  if (!state.useReward || !loyalty || loyalty.available <= 0) return 0;
+  for (const item of state.items) {
+    const line = servicePrices(item, catalog).find((entry) => entry.serviceId === loyalty.rewardServiceId);
+    if (line) return line.price;
+  }
+  return loyalty.rewardValue;
+}
+
 export function useBookingTotals(state: BookingState, catalog: BookingCatalog | undefined, shop: BookingShop | undefined): Totals {
   return React.useMemo(() => {
     const services = state.items.reduce((sum, item) => sum + itemPrice(item, catalog), 0);
@@ -59,7 +70,7 @@ export function useBookingTotals(state: BookingState, catalog: BookingCatalog | 
       cardFee: chargesCardFee(method) ? (shop?.cardFee ?? null) : null,
       giftBalance: state.gift?.balance ?? 0,
       prepaid: packageCoverage(state, catalog),
-      reward: state.useReward && (state.customer?.loyalty?.available ?? 0) > 0 ? (state.customer?.loyalty?.rewardValue ?? 0) : 0,
+      reward: rewardAmount(state, catalog),
     });
   }, [catalog, shop, state.items, state.products, state.promo, state.tipId, state.method, state.gift, state.useReward, state.usePackages, state.customer]);
 }

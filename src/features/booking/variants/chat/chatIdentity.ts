@@ -20,20 +20,23 @@ export interface IdentityKit {
   /** El perfil del cliente nuevo mientras lo escribe (nombre, apellido, correo). */
   profile: { current: { firstName: string; lastName: string; email: string } };
   askPhone: (text?: string) => void;
+  /** Si el celular que escribe ya tiene que confirmarse con código (va a pagar o a «Mis citas»). */
+  needsCode: () => boolean;
+  /** El celular quedó anotado sin código: se sigue armando la cita. */
+  onPhoneSaved: () => void;
 }
 
 /**
- * Quién es, conversando: el celular (solo números), el código que le llega y,
- * si es la primera vez, nombre y apellido, correo y el permiso de promociones.
- * Todo se escribe en la caja; el código no se repite en el hilo.
+ * Quién es, conversando: el celular (solo números) al empezar, sin código, para armar la cita de
+ * una vez; el código que le llega, solo al pagar (o al pedir «Mis citas»); y, si es la primera vez,
+ * nombre y apellido, correo y el permiso de promociones. Todo se escribe en la caja; el código no se
+ * repite en el hilo.
  */
 export function useChatIdentity(kit: IdentityKit) {
-  const { t, shop, apply, say, ask, busy, expect, expecting, stateRef, profile, askPhone } = kit;
+  const { t, shop, apply, say, ask, busy, expect, expecting, stateRef, profile, askPhone, needsCode, onPhoneSaved } = kit;
 
-  const submitPhone = async (text: string) => {
-    // Con palabras alrededor («mi número es 320 217 27 38»), guiones o espacios: solo cuentan las cifras.
-    const phone = phoneFromText(text);
-    if (!phone) return say({ text: t("booking.chat.badPhone") });
+  /** Manda el código al celular y queda esperándolo. */
+  const sendCode = async (phone: string) => {
     try {
       const sent = await busy(() => bookingApi.requestOtp(phone));
       apply({ type: "codeSent", phone, sentTo: sent.sentTo, channel: sent.channel });
@@ -45,6 +48,17 @@ export function useChatIdentity(kit: IdentityKit) {
     } catch (error) {
       say({ text: describeError(error).description });
     }
+  };
+
+  const submitPhone = async (text: string) => {
+    // Con palabras alrededor («mi número es 320 217 27 38»), guiones o espacios: solo cuentan las cifras.
+    const phone = phoneFromText(text);
+    if (!phone) return say({ text: t("booking.chat.badPhone") });
+    if (needsCode()) return sendCode(phone);
+    apply({ type: "phoneEntered", phone });
+    expect(null);
+    say({ text: t("booking.chat.phoneSaved") });
+    onPhoneSaved();
   };
 
   const submitCode = async (text: string) => {
@@ -105,5 +119,5 @@ export function useChatIdentity(kit: IdentityKit) {
     }
   };
 
-  return { submitPhone, submitCode, submitProfileText, createProfile };
+  return { submitPhone, sendCode, submitCode, submitProfileText, createProfile };
 }

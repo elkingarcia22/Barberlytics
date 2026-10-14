@@ -412,9 +412,11 @@ export const bookingHandlers = [
     const promo = promoResult && "promo" in promoResult ? promoResult.promo : null;
     const tip = tipOptions().options.find((option) => option.id === text(input.tipId)) ?? null;
     const method = text(input.method) as MockReservation["payment"]["method"];
-    // Cortesía de cliente frecuente: si la pide y tiene una por usar, se descuenta el servicio de cortesía.
+    // Cortesía de cliente frecuente: si la pide y tiene una por usar, se descuenta el servicio de cortesía
+    // a lo que cobra el barbero de la cita que lo lleva (cada barbero tiene su precio).
     const loyalty = input.useReward === true ? customer.loyalty : null;
-    const rewardValue = loyalty && loyalty.available > 0 ? loyalty.rewardValue : 0;
+    const rewardItem = loyalty ? plan.planned.find((item) => item.serviceIds.includes(loyalty.rewardServiceId)) : undefined;
+    const rewardValue = loyalty && loyalty.available > 0 ? ((rewardItem && barberPrice(rewardItem.barberId, loyalty.rewardServiceId)) ?? loyalty.rewardValue) : 0;
     // Paquetes: cada cita con un servicio que tiene visitas por usar se paga con una.
     const coverage = input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
     // Tarjeta de regalo: paga primero; lo que sobra queda en ella.

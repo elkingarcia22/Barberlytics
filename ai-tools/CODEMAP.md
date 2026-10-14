@@ -831,6 +831,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### team
 
 - **handlers.ts** · `teamHandlers`
+- **pricing.ts** — Demo: cada barbero cobra lo suyo por cada servicio, según su nivel y un matiz propio. · `withBarberPrices`
 - **seed.ts** — El equipo del backend simulado: las personas de las cuatro sucursales con todo lo que guarda su ficha (perfil… · `MockTeamRole`, `MockTeamStatus`, `MockWorkingRange`, `MockLevel`, `MockServiceOverride`, `MockCompensationType`, `MockCompensation`, `MockPayments`, `MockPermissionColumn`, `MockPermissions`, `MockReminderChannel`, `MockMemberOptions`, `MockTeamMember`, `MockLineupEntry`, `MockBranchOrder`, `MockScheduleOverride`, `PERMISSION_ROWS`, `ROLE_PERMISSION_DEFAULTS`, `LEVELS`, `seedTeam`, `isBarberRole`, `barbersOf`, `seedOrders`, `seedOverrides`, `memberName`
 
 ### transactions

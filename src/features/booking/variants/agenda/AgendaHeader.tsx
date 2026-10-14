@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { ChatTrigger } from "../../flow/ChatTrigger";
 import { ShopBrand } from "../../flow/ShopBrand";
+import { useAgendaListMode } from "./AgendaPicker";
 
 interface AgendaHeaderProps {
   onBack: (() => void) | null;
@@ -25,7 +26,10 @@ interface AgendaHeaderProps {
 export function AgendaHeader({ onBack, onSignIn, trailing, showChat = false }: AgendaHeaderProps) {
   const t = useAppT();
   const { shop, state, dispatch, layout, touch } = useBookingFlow();
+  const listMode = useAgendaListMode();
   const isWide = layout === "wide";
+  // En la Agenda en lista, «Mis citas» solo con texto (monitor); el botón de solo icono no va.
+  const showMyAppointments = state.step !== "manage" && (isWide || !listMode);
   const extras = [
     ...(shop.payment.card ? [{ id: "gift" as const, label: t("booking.gift.cta") }] : []),
     ...(shop.packages.length > 0 ? [{ id: "packages" as const, label: t("booking.packages.cta") }] : []),
@@ -51,7 +55,7 @@ export function AgendaHeader({ onBack, onSignIn, trailing, showChat = false }: A
               <Text size="sm" weight="medium" className={cn("px-2", !isWide && "sr-only")}>
                 {t("booking.agenda.signedAs", { name: state.customer.firstName })}
               </Text>
-              {state.step !== "manage" && (
+              {showMyAppointments && (
                 <Button type="button" variant="outline" size={isWide ? "sm" : "icon-sm"} onClick={() => dispatch({ type: "openManage" })} aria-label={t("booking.header.myAppointments")}>
                   <ThemaIcon name="calendar" />
                   {isWide && t("booking.header.myAppointments")}

@@ -660,13 +660,6 @@ describe("backend de la reserva", () => {
   });
 });
 
-/** Escribe el código de la demo en las casillas (como al pegarlo desde el mensaje). */
-async function typeCode(user: ReturnType<typeof userEvent.setup>) {
-  const cells = await screen.findAllByRole("textbox");
-  await user.click(cells[0]);
-  await user.paste(DEMO_CODE);
-}
-
 describe("pantalla de la reserva", () => {
   // Embla (el carrusel de productos) lo pide al montar; jsdom no lo trae.
   beforeEach(() => {
@@ -685,37 +678,25 @@ describe("pantalla de la reserva", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  test("quien vuelve ve el día y la hora que le tocan y reserva en un toque", async () => {
+  test("el celular no pide código: lleva directo a armar la cita sin revelar quién es", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow />);
     const phone = await screen.findByRole("textbox", { name: /celular/i });
     await user.type(phone, "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    // Antes del código no se ve nada de su perfil.
-    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
+    // Sin código no se ve nada de su perfil: va a elegir la sede como cualquiera.
+    expect(await screen.findByText("¿A qué sede vas?")).toBeInTheDocument();
+    expect(screen.queryByText("Escribe el código")).toBeNull();
     expect(screen.queryByText(/Marcela/)).toBeNull();
-    await typeCode(user);
-    expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
-    // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
-    expect(await screen.findByText("Lo de siempre")).toBeInTheDocument();
-    expect(await screen.findByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: /^Reservar .+·/ }));
-    expect(await screen.findByText("Revisa tu reserva")).toBeInTheDocument();
   });
 
-  test("un número nuevo pide nombre, apellido y correo", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<BookingFlow />);
-    await user.type(await screen.findByRole("textbox", { name: /celular/i }), "3001112233");
-    await user.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
-    await typeCode(user);
-    expect(await screen.findByText("Conozcámonos")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /crear perfil/i }));
-    // El error queda junto a su campo (que se marca inválido) y el toast, dentro de la reserva, dice cuántos faltan.
-    expect(screen.getByRole("textbox", { name: /^nombre/i })).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getAllByText("Escribe tu nombre.").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Revisa el correo.")).toBeInTheDocument();
-    expect(await screen.findByText("Te faltan 3 datos por completar.")).toBeInTheDocument();
+  test("con el celular anotado, el código se pide al llegar al pago", () => {
+    const started = bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", onlyBranchId: null });
+    expect(started).toMatchObject({ step: "branch", phone: "+573202172738", token: null, customer: null, codeSentTo: null });
+    // Con una sola sede se elige sola y empieza en los servicios.
+    expect(bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", onlyBranchId: "br_1" })).toMatchObject({ step: "services", branchId: "br_1" });
+    // Al verificar el código en el pago se sabe quién es sin moverse de pantalla.
+    const atPayment = bookingReducer(started, { type: "goTo", step: "payment" });
+    expect(bookingReducer(atPayment, { type: "signedIn", customer: { phone: "+57 320 217 2738" } as BookingCustomer, token: "t" })).toMatchObject({ step: "payment", token: "t" });
   });
 });

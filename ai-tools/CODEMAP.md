@@ -293,6 +293,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **NewCardSheet.tsx** — Agregar una tarjeta en su propia hoja, como el catálogo de productos o el perfil del barbero: la tarjeta dibu… · `NewCardSheet` · piezas: Button · usa: @/app/i18n, @/icons
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina, los cargos (recargo por tarjeta) y el total,… · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
 - **PackagesToggle.tsx** — En el pago: si sus paquetes cubren algo de esta reserva, lo dice y deja usarlos o guardarlos para otra vez. · `PackagesToggle` · piezas: Switch, Text · usa: @/app/i18n, @/icons
+- **PayIdentity.tsx** — Quién paga, justo antes de pagar: el código y, si es la primera vez, su ficha. · `PayIdentity` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **PaymentPanel.tsx** — El botón que cobra: dice exactamente lo que va a pasar («Pagar $64»). · `PayButton`, `PaymentPanel`, `PaymentSheets` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, ModalShell, OptionTile, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
 - **PersonPicker.tsx** — La hoja de «¿Para quién más?»: la gente ya ligada a su perfil (su hijo, su pareja, un amigo que trajo antes)… · `PersonSheet`, `PersonPicker` · piezas: Avatar, AvatarFallback, Button, Chip, Field, Heading, Input, ListItem, ListItemGroup, Text · usa: @/app/i18n, @/icons
 - **PhotoStrip.tsx** — Una tira de fotos que se recorre arrastrando —con el dedo o con el mouse— o con las flechas, sin tener que ab… · `PhotoStrip` · piezas: Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious · usa: @/app/i18n, @/icons, @/lib/utils
@@ -313,6 +314,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
+- **WaitlistSignIn.tsx** — La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para apuntarse; sin cuenta,… · `WaitlistSignIn` · piezas: Button · usa: @/app/i18n, @/icons
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
 - **bookingToast.ts** — Los avisos de la reserva salen dentro de su propia pantalla (el marco del celular, la tablet o el monitor de… · `BOOKING_TOASTER_ID`, `toast`
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`
@@ -359,7 +361,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **EntryShortcuts.tsx** — Los dos atajos de la entrada que no pasan por el código: ver las citas que ya tiene y llamar a la barbería. · `EntryShortcuts` · usa: @/app/i18n
 - **PhoneEntryParts.tsx** — El campo del celular, igual en los tres diseños. · `PhoneEntryField`, `PhoneEntryActions` · piezas: Button, Field, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons
 - **ShopBranchesCard.tsx** — Las sedes en la portada, agrupadas en una sola tarjeta: el logo de la barbería, dónde queda y a qué hora atie… · `ShopBranchesCard` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
-- **usePhoneEntry.ts** — Lo que comparten los tres diseños de la entrada: el celular, su validación y el envío del código. · `usePhoneEntry`, `PhoneEntry` · usa: @/app/i18n, @/lib/api
+- **usePhoneEntry.ts** — Lo que comparten los diseños de la entrada: el celular y su validación. · `usePhoneEntry`, `PhoneEntry` · usa: @/app/i18n
 
 ### booking/variants/agenda
 
@@ -389,7 +391,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `ExpiryProblem`, `expiryProblem`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
 - **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `adjustmentRows`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
 - **chatExtras.ts** — Lo que se suma a la reserva después de apartar: productos de la tienda (cada uno con su cantidad, − 1 + en la… · `ExtrasKit`, `useChatExtras` · usa: @/app/i18n, @/lib/chat
-- **chatIdentity.ts** — Quién es, conversando: el celular (solo números), el código que le llega y, si es la primera vez, nombre y ap… · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/lib/api
+- **chatIdentity.ts** — Quién es, conversando: el celular (solo números) al empezar, sin código, para armar la cita de una vez; el có… · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/lib/api
 - **chatIntents.ts** — Lo que se pide «de pasada» en cualquier momento de la conversación, como se le hablaría a una persona: volver… · `ChatAside`, `detectAside`, `IntentsKit`, `useChatIntents` · usa: @/app/i18n
 - **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
 - **chatProfiles.ts** — Si lo escrito pide conocer a un barbero o una sede antes de elegir. · `looksLikeDetail`, `ProfilesKit`, `useChatProfiles` · usa: @/app/i18n, @/lib/api

@@ -49,10 +49,11 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
   );
   const end = (
     <div className="flex shrink-0 items-center justify-end gap-1">
-      {state.customer && state.step !== "manage" && state.step !== "confirmed" && (
-        <Button type="button" variant="ghost" size={isWide ? "sm" : "icon-sm"} onClick={() => dispatch({ type: "openManage" })} aria-label={t("booking.header.myAppointments")}>
+      {/* «Mis citas» solo en monitor, con texto; en celular y tablet se llega desde la bienvenida. */}
+      {isWide && state.customer && state.step !== "manage" && state.step !== "confirmed" && (
+        <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "openManage" })}>
           <ThemaIcon name="calendar" />
-          {isWide && t("booking.header.myAppointments")}
+          {t("booking.header.myAppointments")}
         </Button>
       )}
       {trailing}

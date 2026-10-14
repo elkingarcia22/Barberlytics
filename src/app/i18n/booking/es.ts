@@ -345,6 +345,12 @@ export const bookingEs = {
   "booking.products.done": "Listo",
 
   // ── Pago ──
+  "booking.payIdentity.title": "Confirma que eres tú",
+  "booking.payIdentity.lead": "Antes de pagar te mandamos un código al celular que escribiste.",
+  "booking.payIdentity.newTitle": "Tus datos",
+  "booking.payIdentity.newLead": "Es tu primera vez: lo justo para tu ficha y seguimos al pago.",
+  "booking.payIdentity.sending": "Te estamos mandando un código al {phone}.",
+  "booking.payIdentity.sendingShort": "Enviando el código…",
   "booking.payment.title": "Pago",
   "booking.payment.lead": "Asegura tu hora. Te mandamos el recibo al instante.",
   "booking.payment.tip": "Propina para tu barbero",

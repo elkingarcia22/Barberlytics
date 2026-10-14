@@ -54,6 +54,41 @@ function PhoneForm() {
   );
 }
 
+/**
+ * El celular ya se dio (en la portada, o el cliente de siempre reconocido por él): el código se manda
+ * solo a ese número, sin volver a pedirlo. «Cambiar número» en el paso del código lo deja escribir otro.
+ */
+function SendToKnownPhone() {
+  const t = useAppT();
+  const { state, dispatch } = useBookingFlow();
+  const request = useRequestCodeMutation();
+  const sent = React.useRef(false);
+  React.useEffect(() => {
+    if (sent.current) return;
+    sent.current = true;
+    request.mutate(state.phone, { onSuccess: (next) => dispatch({ type: "codeSent", phone: state.phone, sentTo: next.sentTo, channel: next.channel }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al abrir
+  }, []);
+  if (request.isError) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Text size="sm" tone="negative" role="alert">
+          {describeError(request.error).description}
+        </Text>
+        <Button type="button" variant="link" size="sm" className="self-start px-0" onClick={() => dispatch({ type: "signOut" })}>
+          {t("booking.verify.changePhone")}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <Text size="sm" tone="muted" className="flex items-center gap-2">
+      <Spinner size="sm" />
+      {t("booking.payIdentity.sending", { phone: formatPhone(state.phone) })}
+    </Text>
+  );
+}
+
 /** El código que llegó: al completarlo se sabe si vuelve, si es nuevo o si está bloqueado. */
 function CodeForm({ onBlocked }: { onBlocked: () => void }) {
   const t = useAppT();
@@ -165,8 +200,8 @@ export function ProfileForm() {
 }
 
 /**
- * Quién reserva, preguntado al final y en el mismo sitio: el celular, el código
- * y —si es la primera vez— nombre y correo. No cambia de pantalla ni toca lo
+ * Quién reserva, preguntado al final y en el mismo sitio: el celular (si aún no
+ * lo dio), el código y —si es la primera vez— nombre y correo. No cambia de pantalla ni toca lo
  * que ya se apartó en la agenda.
  */
 export function AgendaIdentity() {
@@ -207,5 +242,6 @@ export function AgendaIdentity() {
   if (state.customer && state.verified) return null;
   if (state.verified) return <ProfileForm />;
   if (state.codeSentTo) return <CodeForm onBlocked={() => setBlocked(true)} />;
-  return <PhoneForm />;
+  // Con el celular ya dado, directo al código; si no, primero el celular.
+  return state.phone ? <SendToKnownPhone /> : <PhoneForm />;
 }

@@ -222,12 +222,14 @@ export function BookingFlow({ version = "guided", layout = "compact", touch = "d
   return (
     <BookingFlowProvider value={engine.value}>
       <PortalContainerProvider value={portalRoot}>
-        {/* `translateZ(0)` hace de esta sección el bloque contenedor de lo `fixed`: las ventanas se miden contra ella. */}
+        {/* `translateZ(0)` hace de esta sección el bloque contenedor de lo `fixed`: las ventanas se miden contra ella.
+            `overflow-clip`, no `hidden`: una sección `hidden` se puede desplazar por código, y el navegador la movía al
+            enfocar un campo de una hoja que aún subía (la pantalla saltaba al abrir «Confirma que eres tú»). */}
         <section
           ref={setPortalRoot}
           aria-label={t("booking.phone.title")}
           data-version={active}
-          className={cn("relative isolate flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground [transform:translateZ(0)]", className)}
+          className={cn("relative isolate flex h-full min-h-0 flex-col overflow-clip bg-background text-foreground [transform:translateZ(0)]", className)}
         >
           <Halo x="85%" y="0%" size="60% 40%" strength={0.12} />
           <Grain scope="container" />

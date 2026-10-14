@@ -13,7 +13,7 @@ import { describeError, isApiError } from "@/lib/api";
 import { formatPhone } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { toastMissing } from "../../flow/missingData";
-import { useCreateCustomerMutation, useRequestCodeMutation, useVerifyCodeMutation } from "../../queries";
+import { useCreateCustomerMutation, useRecentCode, useRequestCodeMutation, useVerifyCodeMutation } from "../../queries";
 
 const MIN_DIGITS = 10;
 const CODE_LENGTH = 6;
@@ -62,10 +62,14 @@ function SendToKnownPhone() {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
   const request = useRequestCodeMutation();
+  const recentCode = useRecentCode();
   const sent = React.useRef(false);
   React.useEffect(() => {
     if (sent.current) return;
     sent.current = true;
+    // Si ya se le mandó uno hace poco, sirve el mismo: no se pide otro solo por abrir esta hoja.
+    const recent = recentCode(state.phone);
+    if (recent) return dispatch({ type: "codeSent", phone: state.phone, sentTo: recent.sentTo, channel: recent.channel });
     request.mutate(state.phone, { onSuccess: (next) => dispatch({ type: "codeSent", phone: state.phone, sentTo: next.sentTo, channel: next.channel }) });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al abrir
   }, []);

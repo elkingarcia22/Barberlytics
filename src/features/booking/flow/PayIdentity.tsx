@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
 import { describeError } from "@/lib/api";
 import { formatPhone } from "../bookingFormat";
-import { useRequestCodeMutation, useVerifyCodeMutation } from "../queries";
+import { useRecentCode, useRequestCodeMutation, useVerifyCodeMutation } from "../queries";
+import type { OtpSent } from "../types";
 import { ProfileForm } from "../variants/agenda/AgendaIdentity";
 import { useBookingFlow } from "./BookingContext";
 import { toastMissing } from "./missingData";
@@ -53,6 +54,9 @@ function CodeGate() {
   const { state, dispatch } = useBookingFlow();
   const request = useRequestCodeMutation();
   const verify = useVerifyCodeMutation();
+  const recentCode = useRecentCode();
+  // El código que ya tenía (mandado hace poco a este celular), mientras no se pida otro aquí.
+  const [reused, setReused] = React.useState<OtpSent | null>(() => (state.phone ? recentCode(state.phone) : null));
   const [code, setCode] = React.useState("");
   const [isChanging, setIsChanging] = React.useState(false);
   const sentFor = React.useRef<string | null>(null);
@@ -60,6 +64,7 @@ function CodeGate() {
   const send = React.useCallback(
     (phone: string) => {
       sentFor.current = phone;
+      setReused(null);
       setCode("");
       verify.reset();
       request.mutate(phone, { onSuccess: () => dispatch({ type: "phoneEntered", phone }) });
@@ -68,10 +73,16 @@ function CodeGate() {
     [dispatch]
   );
 
-  // Al llegar al pago se manda solo, una vez, al celular de la portada.
+  // Al llegar al pago se manda solo, una vez, al celular de la portada; si ya se le mandó uno hace poco
+  // (volvió atrás y entró otra vez, o lo pidió la lista de espera), sirve ese.
   React.useEffect(() => {
-    if (state.phone && sentFor.current === null) send(state.phone);
-  }, [send, state.phone]);
+    if (!state.phone || sentFor.current !== null) return;
+    const phone = state.phone;
+    sentFor.current = phone;
+    if (reused) return;
+    request.mutate(phone, { onSuccess: () => dispatch({ type: "phoneEntered", phone }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- las mutaciones son estables
+  }, [dispatch, state.phone, reused]);
 
   const check = (value: string) =>
     verify.mutate(
@@ -97,7 +108,7 @@ function CodeGate() {
     );
   }
 
-  const sent = request.data;
+  const sent = request.data ?? reused;
   const error = verify.isError ? describeError(verify.error).description : request.isError ? describeError(request.error).description : undefined;
 
   return (

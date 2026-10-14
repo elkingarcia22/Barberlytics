@@ -105,6 +105,7 @@ export const bookingVariantsEs = {
   "booking.agenda.heldTitle": "Ya tienes {count} cita lista",
   "booking.agenda.heldTitle_plural": "Ya tienes {count} citas listas",
   "booking.agenda.heldSee": "Ver",
+  "booking.agenda.heldBack": "Volver a confirmar sin agregar otra",
   "booking.agenda.heldLead": "Quedan guardadas mientras armas la otra. Las pagas juntas al final.",
   "booking.agenda.checkout.payLocked": "Confirma tu celular para pagar",
   "booking.agenda.id.phoneHint": "Te mandamos un código por mensaje de texto para confirmar que eres tú.",

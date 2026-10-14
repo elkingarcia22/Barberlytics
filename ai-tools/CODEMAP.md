@@ -372,7 +372,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaCart.tsx** — Las citas apartadas, una por fila: quién, qué, con quién y cuándo, con cambiar y quitar. · `AgendaCartLines`, `AgendaCartBar` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaCheckout.tsx** — Una parte del cierre: número, título y lo que va dentro. · `CheckoutSection`, `CheckoutFooter`, `AgendaCheckout` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
 - **AgendaFlow.tsx** — Agenda: la reserva que parte del «¿cuándo?». · `AgendaFlow` · piezas: Button · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaHeader.tsx** — La cabecera de la agenda: la barbería y su sede, entrar como cliente (no hace falta para mirar horas), «Mis c… · `AgendaHeader` · piezas: Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AgendaHeader.tsx** — La cabecera de la agenda: la barbería, «Agenda con Clipper», entrar como cliente (no hace falta para mirar ho… · `AgendaHeader` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaIdentity.tsx** — Primera vez: lo justo para su ficha. · `ProfileForm`, `AgendaIdentity` · piezas: Alert, AlertDescription, AlertTitle, Button, Checkbox, Field, Input, InputOtp, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **AgendaLanes.tsx** — Las horas del día sin pensar en quién: por franja, cada hora con las caras de quienes pueden; en el celular,… · `TimeWindows` · piezas: Avatar, AvatarFallback, AvatarGroup, AvatarImage, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaPicker.tsx** — ¿Las listas se abren en su sitio? Fuera del celular y el widget: debajo de su fila, en vez de en una hoja o u… · `useInlineLists`, `PickerField`, `PickerOverlay`, `PICKER_SEARCH_FROM`, `plainText`, `PickerSearch`, `PickerRow` · piezas: Button, IconTile, Input, Text · usa: @/app/i18n, @/icons, @/lib/utils
@@ -381,7 +381,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaSelectFields.tsx** — Las preguntas de la Agenda, en filas y de a una: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda: un campo que se lee como un select —lo elegido, cuánto dura y desde cuánto… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Skeleton, Text · usa: @/app/i18n, @/lib/utils
 - **DayStrip.tsx** — La tira de días de la agenda: el día de la semana arriba y el número grande, en fila y deslizable. · `DayStrip` · piezas: Text · usa: @/app/i18n, @/hooks/useDragScroll, @/i18n, @/lib/utils
-- **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
+- **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
 - **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`
 
 ### booking/variants/chat

@@ -74,7 +74,12 @@ export function TimeStep() {
 
       <TimeSlotPicker
         value={draft.start ? parseStart(draft.start) : null}
-        onChange={(date) => dispatch({ type: "chooseTime", start: toStart(date) })}
+        onChange={(date) => {
+          const start = toStart(date);
+          // Sin preferencia, el precio es el de quien la agenda asigna a esa hora: el primero libre.
+          const assignedBarberId = availability.data?.slots.find((slot) => slot.time === start.slice(11, 16))?.barberIds[0] ?? null;
+          dispatch({ type: "chooseTime", start, assignedBarberId });
+        }}
         day={day}
         onDayChange={setDay}
         daysCount={BOOKING_WINDOW_DAYS}

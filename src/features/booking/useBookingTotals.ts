@@ -3,14 +3,19 @@ import { chargesCardFee, computeTotals, coverByPackages, promoDiscount, tipAmoun
 import type { BookingState, DraftItem } from "./bookingState";
 import type { BookingCatalog, BookingService, BookingShop } from "./types";
 
+type PricedItem = Pick<DraftItem, "serviceIds" | "barberId" | "assignedBarberId">;
+
+/** Quién cobra la cita: el elegido o, sin preferencia y con hora, el que asigna la agenda. */
+const pricedBarberId = (item: PricedItem): string | null => item.barberId ?? item.assignedBarberId ?? null;
+
 /**
- * Lo que vale una cita: con barbero elegido, su precio; sin preferencia, el
- * más bajo de quienes la pueden hacer (el que se ve como «desde»). El cobro
- * real lo calcula el servidor con el barbero que asigne.
+ * Lo que vale una cita: con barbero elegido (o, sin preferencia, el que la agenda asigna a esa
+ * hora), su precio; sin hora todavía, el más bajo de quienes la pueden hacer (el «desde»).
  */
-export function itemPrice(item: Pick<DraftItem, "serviceIds" | "barberId">, catalog: BookingCatalog | undefined): number {
+export function itemPrice(item: PricedItem, catalog: BookingCatalog | undefined): number {
   if (!catalog) return 0;
-  const barbers = item.barberId ? catalog.barbers.filter((barber) => barber.id === item.barberId) : catalog.barbers;
+  const barberId = pricedBarberId(item);
+  const barbers = barberId ? catalog.barbers.filter((barber) => barber.id === barberId) : catalog.barbers;
   const totals = barbers
     .filter((barber) => item.serviceIds.every((id) => barber.prices[id] !== undefined))
     .map((barber) => item.serviceIds.reduce((sum, id) => sum + (barber.prices[id] ?? 0), 0));
@@ -28,8 +33,9 @@ export const itemDuration = (serviceIds: readonly string[], catalog: BookingCata
   serviceIds.reduce((sum, id) => sum + (catalog?.services.find((service) => service.id === id)?.durationMin ?? 0), 0);
 
 /** Lo que vale cada servicio de una cita, con el mismo criterio que `itemPrice`. */
-function servicePrices(item: Pick<DraftItem, "serviceIds" | "barberId">, catalog: BookingCatalog | undefined): { serviceId: string; price: number }[] {
-  const barbers = (catalog?.barbers ?? []).filter((barber) => (item.barberId ? barber.id === item.barberId : item.serviceIds.every((id) => barber.prices[id] !== undefined)));
+function servicePrices(item: PricedItem, catalog: BookingCatalog | undefined): { serviceId: string; price: number }[] {
+  const barberId = pricedBarberId(item);
+  const barbers = (catalog?.barbers ?? []).filter((barber) => (barberId ? barber.id === barberId : item.serviceIds.every((id) => barber.prices[id] !== undefined)));
   return item.serviceIds.map((serviceId) => {
     const prices = barbers.map((barber) => barber.prices[serviceId]).filter((price): price is number => price !== undefined);
     return { serviceId, price: prices.length > 0 ? Math.min(...prices) : (catalog?.services.find((service) => service.id === serviceId)?.price ?? 0) };

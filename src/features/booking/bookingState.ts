@@ -27,6 +27,11 @@ export interface DraftItem {
   barberChosen?: boolean;
   /** «AAAA-MM-DDTHH:mm», o nada mientras no se elige. */
   start: string | null;
+  /**
+   * Sin preferencia: quién la hará según la agenda (el primero libre a esa hora, como asigna la
+   * barbería). Solo para cobrar lo que cobra esa persona; al reservar se sigue enviando sin preferencia.
+   */
+  assignedBarberId?: string | null;
 }
 
 /** Una entrada de la lista de espera: lo que devolvió el servidor y lo que se pidió. */
@@ -101,7 +106,7 @@ export type BookingAction =
   | { type: "setItemPerson"; key: string; person: BookingPerson }
   | { type: "toggleService"; serviceId: string }
   | { type: "chooseBarber"; barberId: string | null }
-  | { type: "chooseTime"; start: string }
+  | { type: "chooseTime"; start: string; /** Sin preferencia: el primero libre a esa hora. */ assignedBarberId?: string | null }
   | { type: "addAnother"; person: BookingPerson }
   /**
    * Abre una cita en borrador sin moverse de paso: la usan las versiones que no
@@ -210,12 +215,12 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       const has = state.draft.serviceIds.includes(action.serviceId);
       const serviceIds = has ? state.draft.serviceIds.filter((id) => id !== action.serviceId) : [...state.draft.serviceIds, action.serviceId];
       // Otros servicios pueden no hacerlos el mismo barbero ni caber en la misma hora: se vuelven a elegir.
-      return { ...state, draft: { ...state.draft, serviceIds, start: null } };
+      return { ...state, draft: { ...state.draft, serviceIds, start: null, assignedBarberId: null } };
     }
     case "chooseBarber":
-      return state.draft ? { ...state, draft: { ...state.draft, barberId: action.barberId, barberChosen: true, start: null }, step: "time" } : state;
+      return state.draft ? { ...state, draft: { ...state.draft, barberId: action.barberId, barberChosen: true, start: null, assignedBarberId: null }, step: "time" } : state;
     case "chooseTime":
-      return state.draft ? commitDraft(state, { ...state.draft, start: action.start }) : state;
+      return state.draft ? commitDraft(state, { ...state.draft, start: action.start, assignedBarberId: state.draft.barberId ? null : (action.assignedBarberId ?? null) }) : state;
     case "addAnother":
       return { ...state, draft: emptyDraft(action.person), editingIndex: null, fromReview: state.items.length > 0, step: "services" };
     case "openDraft":

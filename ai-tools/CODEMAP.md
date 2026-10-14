@@ -355,9 +355,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/steps/entry
 
-- **CoverEntry.tsx** — Entrada «Portada»: la foto de la barbería arriba, como la vitrina, y encima una tarjeta con su marca y el cel… · `CoverEntry` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **CoverEntry.tsx** — Entrada «Portada»: la foto de la barbería arriba, como la vitrina, y encima una tarjeta con su marca y el cel… · `CoverEntry` · piezas: Heading, Text · usa: @/app/i18n, @/lib/utils
 - **EntryShortcuts.tsx** — Los dos atajos de la entrada que no pasan por el código: ver las citas que ya tiene y llamar a la barbería. · `EntryShortcuts` · usa: @/app/i18n
 - **PhoneEntryParts.tsx** — El campo del celular, igual en los tres diseños. · `PhoneEntryField`, `PhoneEntryActions` · piezas: Button, Field, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons
+- **ShopBranchesCard.tsx** — Las sedes en la portada, agrupadas en una sola tarjeta: el logo de la barbería, dónde queda y a qué hora atie… · `ShopBranchesCard` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
 - **usePhoneEntry.ts** — Lo que comparten los tres diseños de la entrada: el celular, su validación y el envío del código. · `usePhoneEntry`, `PhoneEntry` · usa: @/app/i18n, @/lib/api
 
 ### booking/variants/agenda

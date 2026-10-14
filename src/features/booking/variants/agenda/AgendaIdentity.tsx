@@ -146,8 +146,18 @@ export function ProfileForm() {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
   const create = useCreateCustomerMutation(state.token);
-  const [values, setValues] = React.useState({ firstName: "", lastName: "", email: "", marketing: false });
+  const [values, setValues] = React.useState(() => state.pendingProfile ?? { firstName: "", lastName: "", email: "", marketing: false });
   const [touched, setTouched] = React.useState(false);
+  // Ya los escribió en «Conozcámonos» (sin código): al confirmar el código la ficha se crea sola. Si falla
+  // (un correo ya usado, p. ej.), queda el formulario con sus datos y el error a la vista.
+  const pending = state.pendingProfile;
+  const autoCreated = React.useRef(false);
+  React.useEffect(() => {
+    if (!pending || autoCreated.current) return;
+    autoCreated.current = true;
+    create.mutate(pending, { onSuccess: (customer) => dispatch({ type: "customerUpdated", customer }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al confirmar el código
+  }, []);
   const serverFields = isApiError(create.error) ? create.error.fieldErrors : undefined;
   const errors = {
     firstName: values.firstName.trim().length < MIN_NAME ? t("booking.profile.firstNameError") : serverFields?.firstName?.[0],
@@ -163,6 +173,15 @@ export function ProfileForm() {
     // El perfil se guarda sin moverse de la agenda: lo armado sigue en su sitio.
     create.mutate({ firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing }, { onSuccess: (customer) => dispatch({ type: "customerUpdated", customer }) });
   };
+
+  if (pending && !create.isError) {
+    return (
+      <Text size="sm" tone="muted" className="flex items-center gap-2" aria-live="polite">
+        <Spinner size="sm" />
+        {t("booking.payIdentity.saving")}
+      </Text>
+    );
+  }
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-3">

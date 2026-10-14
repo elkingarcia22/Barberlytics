@@ -58,7 +58,9 @@ export interface BookingFlowProps {
 
 /** A dónde lleva «Atrás» desde cada paso; `null` = no hay atrás. */
 function backAction(state: BookingState, shop: BookingShop): BookingAction | null {
-  const identity: BookingAction = state.customer && !state.customer.isNew ? { type: "goTo", step: "welcome" } : { type: "restart" };
+  // Antes de la cita: la bienvenida del de siempre, los datos del nuevo (aún sin ficha) o el inicio.
+  const identity: BookingAction =
+    state.customer && !state.customer.isNew ? { type: "goTo", step: "welcome" } : !state.customer && state.pendingProfile ? { type: "goTo", step: "profile" } : { type: "restart" };
   switch (state.step) {
     case "verify":
       return { type: "goTo", step: "phone" };

@@ -10,6 +10,7 @@ import { AsideSlotProvider } from "../../flow/asideSlot";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
+import { InPlaceIdentity } from "../../flow/InPlaceIdentity";
 import { toastMissing } from "../../flow/missingData";
 import { BlockedStep } from "../../steps/BlockedStep";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
@@ -24,7 +25,6 @@ import { defaultServiceId } from "./agendaModel";
 import { AgendaBoard } from "./AgendaBoard";
 import { AgendaCartBar } from "./AgendaCart";
 import { AgendaHeader } from "./AgendaHeader";
-import { AgendaIdentity } from "./AgendaIdentity";
 import { AgendaSelectCheckout, AgendaSelectPay } from "./AgendaSelectCheckout";
 
 interface AgendaFlowProps {
@@ -164,7 +164,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
 
   const content =
     state.step === "phone" ? (
-      <PhoneStep />
+      <PhoneStep askProfile={false} />
     ) : state.step === "verify" ? (
       <VerifyStep />
     ) : state.step === "profile" ? (
@@ -236,7 +236,8 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
           )}
       </div>
       <BookingSheet open={signInOpen} onOpenChange={setSignInOpen} title={t("booking.agenda.signInTitle")} description={t("booking.agenda.signInLead")}>
-        <AgendaIdentity />
+        {/* El código se resuelve en la hoja: la agenda de detrás no pasa a «Escribe el código». */}
+        <InPlaceIdentity />
       </BookingSheet>
     </>
   );

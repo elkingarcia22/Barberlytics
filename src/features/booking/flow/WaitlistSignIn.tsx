@@ -2,14 +2,10 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
-import type { BookingAction } from "../bookingState";
-import { AgendaIdentity } from "../variants/agenda/AgendaIdentity";
-import { BookingFlowProvider, useBookingFlow } from "./BookingContext";
+import { useBookingFlow } from "./BookingContext";
+import { InPlaceIdentity } from "./InPlaceIdentity";
 import { BookingSheet } from "./BookingSheet";
 import { WaitlistCard } from "./WaitlistCard";
-
-/** Las acciones de «quién eres» que, en Paso a paso, cambiarían de pantalla. */
-const IDENTITY_ACTIONS: ReadonlySet<BookingAction["type"]> = new Set(["codeSent", "customerFound", "customerIsNew", "customerBlocked", "signOut"]);
 
 interface WaitlistSignInProps {
   day: Date;
@@ -24,29 +20,15 @@ interface WaitlistSignInProps {
  */
 export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
   const t = useAppT();
-  const flow = useBookingFlow();
   const [open, setOpen] = React.useState(false);
   const [signedInHere, setSignedInHere] = React.useState(false);
-  const { state, dispatch } = flow;
-  const step = state.step;
+  const { state } = useBookingFlow();
 
   // Ya se sabe quién es: la hoja se cierra sola y la tarjeta se abre.
   if (open && state.customer && state.verified) {
     setOpen(false);
     setSignedInHere(true);
   }
-
-  // El celular, el código y la ficha se resuelven en la hoja: la pantalla de horas se queda donde está.
-  const inPlace = React.useMemo(
-    () => ({
-      ...flow,
-      dispatch: (action: BookingAction) => {
-        dispatch(action);
-        if (IDENTITY_ACTIONS.has(action.type)) dispatch({ type: "goTo", step });
-      },
-    }),
-    [flow, dispatch, step]
-  );
 
   if (state.customer && state.verified) return <WaitlistCard day={day} hasSlots={hasSlots} defaultOpen={signedInHere} />;
 
@@ -57,9 +39,7 @@ export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
         {t("booking.agenda.waitlistSignIn")}
       </Button>
       <BookingSheet open={open} onOpenChange={setOpen} title={t(state.phone ? "booking.payIdentity.title" : "booking.agenda.signInTitle")} description={t(state.phone ? "booking.waitlist.codeLead" : "booking.waitlist.signInLead")}>
-        <BookingFlowProvider value={inPlace}>
-          <AgendaIdentity />
-        </BookingFlowProvider>
+        <InPlaceIdentity />
       </BookingSheet>
     </>
   );

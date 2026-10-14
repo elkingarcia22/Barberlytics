@@ -62,7 +62,7 @@ export function WaitlistedStep({ onFinish }: { onFinish?: () => void }) {
         </Button>
         {/* Salir: el widget se cierra; en la página, vuelve al inicio sin la sesión. */}
         <Button type="button" variant="ghost" onClick={onFinish ?? (() => dispatch({ type: "restart" }))}>
-          <ThemaIcon name="home" />
+          <ThemaIcon name="logout" />
           {t("booking.confirmed.done")}
         </Button>
       </div>

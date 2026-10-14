@@ -91,6 +91,17 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     for (let extra = state.items.length - 1; extra > held; extra -= 1) dispatch({ type: "removeItem", index: held });
   }, [state.items.length, held, dispatch]);
 
+  // La hora apartada es de un barbero y unos servicios: si en la agenda se cambia cualquiera de los dos,
+  // esa hora ya no vale (ni su precio) y se suelta para elegir otra.
+  const pending = state.items[held];
+  const draftBarberId = state.draft?.barberId ?? null;
+  const draftServices = state.draft?.serviceIds;
+  React.useEffect(() => {
+    if (!pending || !draftServices || view !== "board" || ownScreen) return;
+    const sameServices = pending.serviceIds.length === draftServices.length && pending.serviceIds.every((id) => draftServices.includes(id));
+    if ((pending.barberId ?? null) !== draftBarberId || !sameServices) dispatch({ type: "removeItem", index: held });
+  }, [pending, draftBarberId, draftServices, view, ownScreen, held, dispatch]);
+
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
   if (signInOpen && state.customer && state.verified) setSignInOpen(false);
 

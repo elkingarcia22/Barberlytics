@@ -567,6 +567,27 @@ describe("las otras dos experiencias", () => {
     picks.forEach((pick) => expect(pick).toHaveAccessibleName(new RegExp(`con ${first}$`)));
   });
 
+  test("agenda: cambiar el barbero después de apartar una hora la suelta (el precio era de otro)", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BookingFlow version="agenda-list" />);
+    await chooseAgendaService(user, /^Corte clásico/);
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    // Sin preferencia: se aparta una hora.
+    await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[0]);
+    expect(await screen.findByText("1 cita")).toBeInTheDocument();
+    // Luego se elige un barbero: la hora apartada ya no es suya y se suelta.
+    await user.click(await screen.findByTestId("agenda-barber-field"));
+    const dialog = await screen.findByRole("dialog", { name: "¿Con quién te quieres atender?" });
+    const profile = within(dialog).getAllByRole("button", { name: /^Ver perfil: / })[0];
+    const first = (profile.getAttribute("aria-label") ?? "").replace("Ver perfil: ", "").split(" ")[0];
+    await user.click(profile);
+    await user.click(await within(dialog).findByRole("button", { name: `Elegir a ${first}` }));
+    await waitFor(() => expect(screen.queryByText("1 cita")).toBeNull());
+    expect(screen.queryAllByRole("button", { name: /^Apartar a las /, pressed: true })).toHaveLength(0);
+  });
+
   test("conversación: se vuelve atrás, se cambia el barbero y se pregunta de pasada sin perder el hilo", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);

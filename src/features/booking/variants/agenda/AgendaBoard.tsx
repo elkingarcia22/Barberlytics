@@ -194,8 +194,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
             <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time) => pick(time, chosenBarber?.id ?? null)} />
           )}
 
-          {/* El barbero elegido no tiene horas ese día: otros parecidos que sí, con sus primeras horas. */}
-          {!isWaiting && chosenBarber && !hasSlots && <AlternativeBarbers day={day} onDayChange={setDay} />}
+          {/* Un día sin horas, como en Paso a paso: otros barberos que sí tienen, con sus primeras horas
+              (parecidos al elegido o, sin preferencia, quién tiene horas más pronto). */}
+          {!isWaiting && !hasSlots && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
           {!isWaiting &&
             (state.customer ? (

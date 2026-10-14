@@ -92,7 +92,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   }, [state.items.length, held, dispatch]);
 
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
-  if (signInOpen && state.customer) setSignInOpen(false);
+  if (signInOpen && state.customer && state.verified) setSignInOpen(false);
 
   // Cada vista empieza arriba; apartar horas en la agenda (que mueve el paso por dentro) no la mueve.
   const screen = ownScreen ? state.step : view;

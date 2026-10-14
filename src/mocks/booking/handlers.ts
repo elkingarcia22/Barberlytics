@@ -72,6 +72,8 @@ const findClient = (id: string) => db.calendar.clients.find((client) => client.i
 
 /** Una sesión verificada es de un cliente (su id) o de un celular nuevo aún sin perfil (`phone:+57…`). */
 const PHONE_SESSION = "phone:";
+/** La sesión de vista previa (reconocido por su celular, sin código): solo sirve para su propuesta de visita. */
+const PREVIEW_SESSION = "preview:";
 const sessionValue = (request: Request): string | undefined => {
   const token = request.headers.get("x-booking-token");
   return token ? db.bookingSessions.get(token) : undefined;
@@ -79,7 +81,14 @@ const sessionValue = (request: Request): string | undefined => {
 
 function sessionClient(request: Request): MockClient | null {
   const value = sessionValue(request);
-  return value && !value.startsWith(PHONE_SESSION) ? findClient(value) ?? null : null;
+  return value && !value.startsWith(PHONE_SESSION) && !value.startsWith(PREVIEW_SESSION) ? findClient(value) ?? null : null;
+}
+
+/** El cliente de una sesión verificada o de vista previa: solo para lo que se ve sin código. */
+function previewClient(request: Request): MockClient | null {
+  const value = sessionValue(request);
+  if (value?.startsWith(PREVIEW_SESSION)) return findClient(value.slice(PREVIEW_SESSION.length)) ?? null;
+  return sessionClient(request);
 }
 
 /** El celular verificado de una sesión que todavía no tiene perfil. */
@@ -334,7 +343,7 @@ export const bookingHandlers = [
 
   http.get(`${BASE}/me/suggestion`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const client = sessionClient(request);
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
     // Sin ritmo de visitas todavía (cliente nuevo) no hay nada que proponer.
     return HttpResponse.json({ suggestion: visitSuggestion(client) });
@@ -521,8 +530,15 @@ export const bookingHandlers = [
     if (phoneChecks.length >= CHECK_LIMIT) return error(429, "rate_limited", "Muchas consultas seguidas. Espera unos minutos e inténtalo otra vez.");
     phoneChecks = [...phoneChecks, now];
     const client = clientByPhone(phone);
-    // Solo si es cliente; nada de su perfil. Un número bloqueado responde como cliente: lo sabe tras el código.
-    return HttpResponse.json({ returning: Boolean(client) || isBlockedPhone(phone, client) });
+    // Un número bloqueado responde como cliente, sin perfil: lo sabe tras el código.
+    if (isBlockedPhone(phone, client)) return HttpResponse.json({ returning: true, token: null, customer: null });
+    if (!client) return HttpResponse.json({ returning: false, token: null, customer: null });
+    seedDemoGuests(client);
+    const token = `bkp_${crypto.randomUUID()}`;
+    db.bookingSessions.set(token, `${PREVIEW_SESSION}${client.id}`);
+    // Lo justo para su bienvenida: nada de correo, tarjetas, saldo, paquetes ni membresía hasta el código.
+    const customer = { ...customerOf(client), email: "", cards: [], credit: 0, packages: [], loyalty: null };
+    return HttpResponse.json({ returning: true, token, customer });
   }),
 
   http.post(`${BASE}/otp/request`, async ({ request }) => {

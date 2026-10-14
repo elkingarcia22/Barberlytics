@@ -330,7 +330,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/preview
 
 - **DemoHints.tsx** — Los datos para probar la demo, agrupados: los celulares de cada tipo de cliente y el código, las tarjetas, y… · `DemoHints` · piezas: Button, Popover, PopoverContent, PopoverTrigger, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text, agentPanelTransition · usa: @/app/i18n, @/icons, @/lib/utils
 - **DeviceFrame.tsx** · `PreviewDevice`, `DeviceFrame` · piezas: Text · usa: @/icons, @/lib/utils
 - **portalSlot.tsx** — Pinta `children` dentro del nodo de `usePortalNode`, esté donde esté. · `PortalContent`, `PortalSlot`
 - **usePortalNode.ts** — Un nodo del DOM propio y estable: lo que se pinta en él con `createPortal` sigue en el mismo lugar del árbol… · `usePortalNode`
@@ -349,7 +349,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para crear su ficha en la barbería. · `ProfileStep` · piezas: Button, Checkbox, Field, Input, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Heading, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
-- **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
+- **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, EmptyState, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
 - **VerifyStep.tsx** — El código que llegó al celular. · `VerifyStep` · piezas: Button, Field, InputOtp, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **WaitlistedStep.tsx** — El final de quien no apartó hora pero se apuntó en la lista de espera: la certeza de que quedó apuntado, en q… · `WaitlistedStep` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **WelcomeStep.tsx** — El cliente que vuelve, pensado para el pulgar: arriba su ritmo; en medio, lo de siempre en una fila y las hor… · `WelcomeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils

@@ -76,6 +76,8 @@ export function useChatBooking({
   const pendingName = React.useRef("");
   const receiptPlan = React.useRef<ReceiptPlan | null>(null);
   const pendingManage = React.useRef(false);
+  /** Se pidió la lista de espera (con esta franja) sin el código: al confirmarlo se apunta. */
+  const pendingWaitlist = React.useRef<string | null>(null);
   /** Lo que pidió en la portada («corte mañana en la tarde»): se atiende en cuanto se sabe quién es. */
   const pendingIntent = React.useRef<string | null>(null);
   const timesDay = React.useRef<string | null>(null);
@@ -156,7 +158,7 @@ export function useChatBooking({
     profile,
     askPhone,
     // Con la identidad al final, o si ya va a pagar o a «Mis citas», el celular se confirma con código.
-    needsCode: () => identityLast || pendingCheckout.current || pendingManage.current,
+    needsCode: () => identityLast || pendingCheckout.current || pendingManage.current || pendingWaitlist.current !== null,
     onPhoneSaved: () => startBooking(),
   });
   const { submitPhone, sendCode, submitCode, submitProfileText, createProfile } = identity;
@@ -164,10 +166,13 @@ export function useChatBooking({
   /** Ya se puede armar la cita: sabe quién es, o dio su celular (el código va al pagar), o la identidad va al final. */
   const canBook = () => Boolean(stateRef.current.customer || stateRef.current.token || stateRef.current.phone || identityLast);
 
-  /** Confirmar quién es: con el celular ya dado, el código va directo a él; si no, se le pide el celular. */
+  /**
+   * Confirmar quién es (para pagar, «Mis citas» o la lista de espera): con el celular ya dado —también
+   * el del cliente reconocido sin código—, el código va directo a él; si no, se le pide el celular.
+   */
   const confirmIdentity = (text?: string) => {
     const phone = stateRef.current.phone;
-    if (phone && !stateRef.current.token) return void sendCode(phone);
+    if (phone && !stateRef.current.verified) return void sendCode(phone);
     askPhone(text);
   };
 
@@ -454,7 +459,7 @@ export function useChatBooking({
 
   /** Pagar: si aún no se sabe quién es, primero el código (o el celular, si no lo dio) y luego al pago. */
   const payOrIdentify = () => {
-    if (!stateRef.current.customer) {
+    if (!stateRef.current.verified || !stateRef.current.customer) {
       pendingCheckout.current = true;
       return confirmIdentity(t("booking.chat.phoneToFinish"));
     }
@@ -507,16 +512,28 @@ export function useChatBooking({
     return true;
   };
 
-  const greet = async () => {
+  const greet = async (again = false) => {
     const current = stateRef.current;
     const customer = current.customer;
     if (!customer) return;
     presetBranch();
+    // Ya se le saludó al reconocerlo por su celular: ahora solo se confirma el código y se sigue.
+    if (again) say({ text: t("booking.chat.codeOk") });
+    // Confirmó el código para la lista de espera: se apunta con la franja que había elegido.
+    if (pendingWaitlist.current) {
+      const window = pendingWaitlist.current;
+      pendingWaitlist.current = null;
+      return void joinWaitlist(window);
+    }
     // Se identificó para pagar lo que ya armó: un saludo corto y al pago, sin volver a empezar.
     if (pendingCheckout.current) {
       pendingCheckout.current = false;
-      say({ text: customer.isNew ? t("booking.chat.niceToMeet", { name: customer.firstName }) : t("booking.chat.knownHello", { name: customer.firstName }) });
+      if (!again) say({ text: customer.isNew ? t("booking.chat.niceToMeet", { name: customer.firstName }) : t("booking.chat.knownHello", { name: customer.firstName }) });
       return void checkout();
+    }
+    if (again) {
+      if (pendingManage.current) return manage();
+      return;
     }
     if (customer.isNew) {
       const offer = FIRST_VISIT_PROMO ? (FIRST_VISIT_PROMO.type === "percent" ? `${FIRST_VISIT_PROMO.value} %` : fmt.money(FIRST_VISIT_PROMO.value)) : null;
@@ -605,6 +622,21 @@ export function useChatBooking({
     );
   };
 
+  /** Se apunta a la lista de espera del día que miraba, con la franja elegida. */
+  const joinWaitlist = async (window: string) => {
+    const current = stateRef.current;
+    const draft = current.draft;
+    const day = timesDay.current;
+    if (!current.token || !current.branchId || !draft || !day) return;
+    try {
+      await busy(() => bookingApi.joinWaitlist(current.token as string, { branchId: current.branchId as string, date: day, serviceIds: draft.serviceIds, barberId: draft.barberId, window: window as DayWindow | "any" }));
+      say({ text: t("booking.chat.waitlistDone", { day: fmt.dayLong(parseStart(`${day}T00:00`)) }) });
+    } catch (error) {
+      say({ text: describeError(error).description });
+    }
+    return askDay(t("booking.chat.meanwhile"));
+  };
+
   const handle = async (question: BookingQuestion, label: string, isOther: boolean) => {
     const value = isOther ? null : (question.values[label] ?? null);
     if (await pay.answerCheckout(question, value, label, isOther)) return;
@@ -664,18 +696,14 @@ export function useChatBooking({
         if (value === "otherBarber") return askBarber();
         if (value === "waitlist") return ask(makeQuestion("waitlist", t("booking.chat.waitlistTitle"), (["morning", "afternoon", "evening", "any"] as const).map((window) => ({ label: t(`booking.waitlist.${window}`), value: window }))));
         return askDay();
-      case "waitlist": {
-        const draft = current.draft;
-        const day = timesDay.current;
-        if (!current.token || !current.branchId || !draft || !day || !value) return;
-        try {
-          await busy(() => bookingApi.joinWaitlist(current.token as string, { branchId: current.branchId as string, date: day, serviceIds: draft.serviceIds, barberId: draft.barberId, window: value as DayWindow | "any" }));
-          say({ text: t("booking.chat.waitlistDone", { day: fmt.dayLong(parseStart(`${day}T00:00`)) }) });
-        } catch (error) {
-          say({ text: describeError(error).description });
+      case "waitlist":
+        if (!value) return;
+        // Apuntarse pide el código: al confirmarlo se apunta solo (`greet`).
+        if (!current.verified) {
+          pendingWaitlist.current = value;
+          return confirmIdentity(t("booking.chat.waitlistNeedsPhone"));
         }
-        return askDay(t("booking.chat.meanwhile"));
-      }
+        return joinWaitlist(value);
       case "more":
         return onMore(value);
       case "editPick":
@@ -726,6 +754,7 @@ export function useChatBooking({
     expect(identityLast ? null : "phone");
     pendingManage.current = false;
     pendingCheckout.current = false;
+    pendingWaitlist.current = null;
     seenCustomer.current = null;
     rescheduling.current = null;
     setTurns([]);
@@ -856,7 +885,7 @@ export function useChatBooking({
     catalogRef.current = catalog;
     totalsRef.current = totals;
     turnsRef.current = turns;
-    handlers.current = { greet: () => void greet(), reserved: pay.reserved, takeIntent };
+    handlers.current = { greet: (again?: boolean) => void greet(again), reserved: pay.reserved, takeIntent };
   });
 
   // Al abrir: el saludo y quién eres (como en WhatsApp, primero se sabe quién escribe).
@@ -886,13 +915,18 @@ export function useChatBooking({
     say({ text: t("booking.chat.helloWithIntent", { shop: shop.name }) }, { text: t("booking.chat.askPhone") });
   };
 
-  // Cuando ya se sabe quién es (por el código o al crear su perfil), se le saluda por su nombre.
+  // Cuando ya se sabe quién es (reconocido por su celular, por el código o al crear su perfil), se le
+  // saluda por su nombre. Si ya se le había reconocido y ahora confirmó el código, se sigue sin saludar otra vez.
   const customerId = state.customer?.id ?? null;
+  const verified = state.verified;
   React.useEffect(() => {
-    if (!customerId || seenCustomer.current === customerId) return;
-    seenCustomer.current = customerId;
-    handlers.current?.greet();
-  }, [customerId]);
+    if (!customerId) return;
+    const key = `${customerId}:${verified}`;
+    if (seenCustomer.current === key) return;
+    const again = seenCustomer.current?.startsWith(`${customerId}:`) ?? false;
+    seenCustomer.current = key;
+    handlers.current?.greet(again);
+  }, [customerId, verified]);
 
   // La reserva hecha: el recibo en la conversación.
   const reservationId = state.reservation?.id ?? null;

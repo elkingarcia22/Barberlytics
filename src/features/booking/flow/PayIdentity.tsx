@@ -43,7 +43,8 @@ function PhoneChange({ onSent }: { onSent: (phone: string) => void }) {
 }
 
 /**
- * El código, pedido al pagar: llega solo al celular que escribió en la portada. Al completarlo se
+ * El código, pedido al pagar (o al apuntarse a la lista de espera, comprar un paquete…): llega solo al
+ * celular que escribió en la portada. Al completarlo se
  * sabe quién es —sin moverse de la pantalla de pago—: el cliente de siempre sigue a pagar con sus
  * tarjetas y su membresía, el nuevo deja su ficha y el número bloqueado va a su aviso.
  */
@@ -78,7 +79,7 @@ function CodeGate() {
       {
         onSuccess: (result) => {
           if (result.status === "known") dispatch({ type: "signedIn", customer: result.customer, token: result.token });
-          else if (result.status === "new") dispatch({ type: "setToken", token: result.token });
+          else if (result.status === "new") dispatch({ type: "verifiedNew", token: result.token });
           else dispatch({ type: "customerBlocked" });
         },
         onError: () => setCode(""),
@@ -130,6 +131,6 @@ function CodeGate() {
 /** Quién paga, justo antes de pagar: el código y, si es la primera vez, su ficha. */
 export function PayIdentity() {
   const { state } = useBookingFlow();
-  if (state.customer) return null;
-  return state.token ? <ProfileForm /> : <CodeGate />;
+  if (state.verified && state.customer) return null;
+  return state.verified ? <ProfileForm /> : <CodeGate />;
 }

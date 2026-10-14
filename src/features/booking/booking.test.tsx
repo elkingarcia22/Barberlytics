@@ -690,13 +690,6 @@ describe("backend de la reserva", () => {
   });
 });
 
-/** Escribe el código de la demo en las casillas (como al pegarlo desde el mensaje). */
-async function typeCode(user: ReturnType<typeof userEvent.setup>) {
-  const cells = await screen.findAllByRole("textbox");
-  await user.click(cells[0]);
-  await user.paste(DEMO_CODE);
-}
-
 describe("pantalla de la reserva", () => {
   // Embla (el carrusel de productos) lo pide al montar; jsdom no lo trae.
   beforeEach(() => {
@@ -715,17 +708,15 @@ describe("pantalla de la reserva", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  test("quien vuelve ve el día y la hora que le tocan y reserva en un toque", async () => {
+  test("quien vuelve ve sin código el día y la hora que le tocan y reserva en un toque", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow />);
     const phone = await screen.findByRole("textbox", { name: /celular/i });
     await user.type(phone, "3202172738");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    // Antes del código no se ve nada de su perfil.
-    expect(await screen.findByText("Escribe el código")).toBeInTheDocument();
-    expect(screen.queryByText(/Marcela/)).toBeNull();
-    await typeCode(user);
+    // Cliente de siempre: su bienvenida sin código (el código va al pagar, a la lista de espera o a «Mis citas»).
     expect(await screen.findByText("Hola de nuevo, Marcela")).toBeInTheDocument();
+    expect(screen.queryByText("Escribe el código")).toBeNull();
     // Viene cada tantas semanas: se le propone ya el día que le toca y una hora libre.
     expect(await screen.findByText("Lo de siempre")).toBeInTheDocument();
     expect(await screen.findByText(/^Te toca el|^Ya te toca/)).toBeInTheDocument();
@@ -751,5 +742,9 @@ describe("pantalla de la reserva", () => {
     // Al verificar el código en el pago se sabe quién es sin moverse de pantalla.
     const atPayment = bookingReducer(started, { type: "goTo", step: "payment" });
     expect(bookingReducer(atPayment, { type: "signedIn", customer: { phone: "+57 320 217 2738" } as BookingCustomer, token: "t" })).toMatchObject({ step: "payment", token: "t" });
+    // El de siempre se reconoce sin código: su bienvenida, pero sin verificar hasta el código.
+    const recognized = bookingReducer(initialBookingState(), { type: "customerPreview", phone: "+573202172738", customer: { id: "cli_001" } as BookingCustomer, token: "preview" });
+    expect(recognized).toMatchObject({ step: "welcome", verified: false });
+    expect(bookingReducer(recognized, { type: "signedIn", customer: { id: "cli_001", phone: "+57 320 217 2738" } as BookingCustomer, token: "t" })).toMatchObject({ verified: true, token: "t" });
   });
 });

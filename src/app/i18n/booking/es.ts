@@ -251,9 +251,6 @@ export const bookingEs = {
   "booking.time.call": "Llamar",
   "booking.time.callAria": "Llamar al {phone}",
   "booking.time.noSlots": "No quedan horas este día. Prueba otro día o sin preferencia de barbero.",
-  "booking.time.noSlotsTitle": "No quedan horas el {day}",
-  "booking.time.noSlotsWith": "{name} tiene la agenda llena ese día.",
-  "booking.time.noSlotsAny": "Nadie tiene horas libres ese día para lo que elegiste.",
   "booking.alt.title": "Otros barberos que pueden atenderte",
   "booking.alt.titleAny": "Quién tiene horas más pronto",
   "booking.alt.lead": "Hacen los mismos servicios y saben de lo mismo.",
@@ -346,6 +343,7 @@ export const bookingEs = {
   // ── Pago ──
   "booking.payIdentity.title": "Confirma que eres tú",
   "booking.payIdentity.lead": "Antes de pagar te mandamos un código al celular que escribiste.",
+  "booking.payIdentity.leadBuy": "Se paga con tu tarjeta: te mandamos un código al celular para confirmar que eres tú.",
   "booking.payIdentity.newTitle": "Tus datos",
   "booking.payIdentity.newLead": "Es tu primera vez: lo justo para tu ficha y seguimos al pago.",
   "booking.payIdentity.sending": "Te estamos mandando un código al {phone}.",

@@ -31,7 +31,7 @@ export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
   const step = state.step;
 
   // Ya se sabe quién es: la hoja se cierra sola y la tarjeta se abre.
-  if (open && state.customer) {
+  if (open && state.customer && state.verified) {
     setOpen(false);
     setSignedInHere(true);
   }
@@ -48,7 +48,7 @@ export function WaitlistSignIn({ day, hasSlots }: WaitlistSignInProps) {
     [flow, dispatch, step]
   );
 
-  if (state.customer) return <WaitlistCard day={day} hasSlots={hasSlots} defaultOpen={signedInHere} />;
+  if (state.customer && state.verified) return <WaitlistCard day={day} hasSlots={hasSlots} defaultOpen={signedInHere} />;
 
   return (
     <>

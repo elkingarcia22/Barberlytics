@@ -480,8 +480,6 @@ describe("las otras dos experiencias", () => {
     await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     const input = await screen.findByTestId("chat-input");
     await user.type(input, "3202172738{Enter}");
-    await screen.findByText(/Te acabo de mandar un/);
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     await screen.findByText(/Hola, Marcela/);
     await user.type(screen.getByTestId("chat-input"), "quiero un corte{Enter}");
     const barbers = await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
@@ -524,8 +522,6 @@ describe("las otras dos experiencias", () => {
     // La portada primero: «Ir a la conversación» entra sin decir nada.
     await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
-    await screen.findByText(/Te acabo de mandar un/);
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     await screen.findByText(/Hola, Marcela/);
     // Valeria está de vacaciones hasta el viernes en la demo.
     await user.type(screen.getByTestId("chat-input"), "corte con valeria el viernes{Enter}");
@@ -600,8 +596,6 @@ describe("las otras dos experiencias", () => {
     const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
     await screen.findByTestId("chat-input");
     await write("3202172738");
-    await screen.findByText(/Te acabo de mandar un/);
-    await write(DEMO_CODE);
     await screen.findByText(/Hola, Marcela/);
     await write("quiero un corte");
     await screen.findByRole("group", { name: "¿Con quién quieres ir?" });
@@ -631,8 +625,6 @@ describe("las otras dos experiencias", () => {
     const write = async (text: string) => user.type(screen.getByTestId("chat-input"), `${text}{Enter}`);
     await screen.findByTestId("chat-input");
     await write("3202172738");
-    await screen.findByText(/Te acabo de mandar un/);
-    await write(DEMO_CODE);
     await screen.findByText(/Hola, Marcela/);
     await write("corte mañana a las 11 con quien sea");
     await screen.findByRole("group", { name: "¿Algo más?" });
@@ -645,7 +637,11 @@ describe("las otras dos experiencias", () => {
     await user.click(within(products).getByRole("button", { name: /Agregar · 2/ }));
     expect(await screen.findByText(/× 2 a tu pedido/)).toBeInTheDocument();
     // Pagar en la barbería y reservar.
+    // Reconocida por su celular, sin código: el código llega al pagar.
     await write("confirmar y pagar");
+    await screen.findByText(/Te acabo de mandar un/);
+    await write(DEMO_CODE);
+    await screen.findByText("¡Listo, confirmado!");
     await screen.findByRole("group", { name: "¿Le dejas propina a tu barbero?" });
     await write("sin propina");
     await screen.findByRole("group", { name: "¿Tienes un cupón o una tarjeta de regalo?" });
@@ -678,8 +674,6 @@ describe("las otras dos experiencias", () => {
     renderWithProviders(<BookingFlow version="chat" />);
     await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
     await user.type(await screen.findByTestId("chat-input"), "3202172738{Enter}");
-    await screen.findByText(/Te acabo de mandar un/);
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     await screen.findByText(/Hola, Marcela/);
     // Una hora en la mañana y otra en la tarde: una de las dos está libre y la otra no, o ambas; nunca el «no hay hueco» seco.
     for (const phrase of ["corte con Andrés mañana a las 10 de la mañana", "corte con Andrés mañana a las 3"]) {
@@ -753,7 +747,7 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByText(/Cómo te llamas/)).toBeInTheDocument();
   }, LONG_CONVERSATION_MS);
 
-  test("conversación: el celular y el código se escriben, y cada elección llega como pregunta en lista", async () => {
+  test("conversación: al cliente de siempre lo reconoce su celular; el código llega solo al pagar", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
     // La portada primero: «Ir a la conversación» entra sin decir nada.
@@ -763,18 +757,25 @@ describe("las otras dos experiencias", () => {
     expect(screen.queryByRole("textbox", { name: /celular/i })).toBeNull();
     await user.type(await screen.findByTestId("chat-input"), "320-217{Enter}");
     expect(await screen.findByText(/ese número no se ve bien/)).toBeInTheDocument();
+    // Cliente de siempre: se le saluda por su nombre sin código.
     await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
-    expect(await screen.findByText(/Te acabo de mandar un/)).toBeInTheDocument();
-    // El código no se repite en el hilo.
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
-    expect(screen.queryByText(DEMO_CODE)).toBeNull();
     expect(await screen.findByText(/Hola, Marcela/)).toBeInTheDocument();
+    expect(screen.queryByText(/Te acabo de mandar un/)).toBeNull();
     // Lo que escribe se entiende: servicios y barbero de una vez; pregunta lo que falta (el día) en lista.
     await user.type(screen.getByTestId("chat-input"), "corte con Andrés{Enter}");
     const days = await screen.findByRole("group", { name: "¿Qué día te queda bien?" });
     expect(within(days).getByText("Te muestro los días de Andrés.")).toBeInTheDocument();
     // Se responde tocando una opción: queda como mensaje y llegan las horas de ese día.
     await user.click(within(days).getAllByRole("button", { name: /^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/ })[1]);
-    expect(await screen.findByRole("group", { name: /^¿A qué hora el / })).toBeInTheDocument();
-  });
+    const times = await screen.findByRole("group", { name: /^¿A qué hora el / });
+    await user.click(within(times).getAllByRole("button", { name: /\d:\d\d/ })[0]);
+    // Al pagar llega el código; no se repite en el hilo y no vuelve a saludar.
+    const more = await screen.findByRole("group", { name: /Algo más/ });
+    await user.click(within(more).getByRole("button", { name: /pagar/i }));
+    expect(await screen.findByText(/Te acabo de mandar un/)).toBeInTheDocument();
+    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
+    expect(screen.queryByText(DEMO_CODE)).toBeNull();
+    expect(await screen.findByText("¡Listo, confirmado!")).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: /propina/i })).toBeInTheDocument();
+  }, LONG_CONVERSATION_MS);
 });

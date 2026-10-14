@@ -235,9 +235,6 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.time.call": "Call",
   "booking.time.callAria": "Call {phone}",
   "booking.time.noSlots": "No times left this day. Try another day or no barber preference.",
-  "booking.time.noSlotsTitle": "No times left on {day}",
-  "booking.time.noSlotsWith": "{name} is fully booked that day.",
-  "booking.time.noSlotsAny": "Nobody has free times that day for what you picked.",
   "booking.alt.title": "Other barbers who can see you",
   "booking.alt.titleAny": "Who has times soonest",
   "booking.alt.lead": "They do the same services and have similar skills.",
@@ -326,6 +323,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
 
   "booking.payIdentity.title": "Confirm it's you",
   "booking.payIdentity.lead": "Before paying we'll text a code to the phone you entered.",
+  "booking.payIdentity.leadBuy": "You pay with your card: we'll text a code to your phone to confirm it's you.",
   "booking.payIdentity.newTitle": "Your details",
   "booking.payIdentity.newLead": "It's your first time: just what we need for your profile, then on to payment.",
   "booking.payIdentity.sending": "We're texting a code to {phone}.",

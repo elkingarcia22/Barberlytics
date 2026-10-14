@@ -13,7 +13,6 @@ export const bookingVariantsEn: Readonly<Record<keyof typeof bookingVariantsEs, 
   "booking.chat.trigger": "Book with {name}",
   "booking.version.label": "Experience version",
   "booking.version.guided": "Step by step",
-  "booking.version.agendaSelect": "Agenda with picker",
   "booking.version.agendaList": "Agenda as a list",
   "booking.version.chat": "Clipper",
 

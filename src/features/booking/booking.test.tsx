@@ -376,7 +376,7 @@ describe("visita en partes", () => {
     expect(state).toMatchObject({ step: "review", draft: null, items: before.items });
   });
 
-  test("la parte separada queda junto a su visita, con su barbero y su hora, y se agrupa en orden de hora", () => {
+  test("la parte separada lleva su barbero y su hora y se agrupa con su visita, en orden de hora", () => {
     let state = bookingReducer(withCombo(), { type: "addAnother", person: { kind: "new", name: "Santi", relation: "Hijo o hija" } });
     state = bookingReducer(state, { type: "toggleService", serviceId: "svc_nino" });
     state = bookingReducer(state, { type: "chooseBarber", barberId: null });
@@ -384,11 +384,12 @@ describe("visita en partes", () => {
     state = bookingReducer(state, { type: "splitService", index: 0, serviceId: "svc_barba" });
     state = bookingReducer(state, { type: "chooseBarber", barberId: "team-02" });
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T09:00" });
-    expect(state.items.map((item) => item.serviceIds)).toEqual([["svc_corte"], ["svc_barba"], ["svc_nino"]]);
+    // Se suma al final (la Agenda cuenta las guardadas por posición); el resumen la agrupa con su visita.
+    expect(state.items.map((item) => item.serviceIds)).toEqual([["svc_corte"], ["svc_nino"], ["svc_barba"]]);
     const groups = cartGroups(state.items);
     expect(groups).toHaveLength(2);
     expect(groups[0]).toMatchObject({ kind: "visit", parts: [{ item: { serviceIds: ["svc_barba"], barberId: "team-02" } }, { item: { serviceIds: ["svc_corte"] } }] });
-    expect(groups[1]).toMatchObject({ kind: "single", index: 2 });
+    expect(groups[1]).toMatchObject({ kind: "single", index: 1 });
   });
 
   test("una visita a la que se le quitó una parte se lee como una cita normal", () => {
@@ -424,6 +425,19 @@ describe("visita en partes", () => {
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
     expect(state).toMatchObject({ step: "review", draft: null, pendingParts: [] });
     expect(cartGroups(state.items)).toEqual([expect.objectContaining({ kind: "visit", visitId, parts: expect.arrayContaining([expect.anything(), expect.anything(), expect.anything()]) })]);
+  });
+
+  test("apagar el «por separado» en la primera parte vuelve a juntar los servicios sin cambiar de pantalla", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    const step = state.step;
+    state = bookingReducer(state, { type: "unsplitDraft" });
+    expect(state).toMatchObject({ step, pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba"], visitId: undefined } });
+  });
+
+  test("reabrir la cita que se elige sigue en la misma visita (la Agenda)", () => {
+    const state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_barba"], barberId: "team-02", visitId: "visit_9" });
+    expect(state.draft).toMatchObject({ serviceIds: ["svc_barba"], barberId: "team-02", visitId: "visit_9" });
   });
 
   test("una visita nueva no repite el id de otra que ya está en el carrito", () => {

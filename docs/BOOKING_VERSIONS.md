@@ -149,7 +149,7 @@ hora). Los dos cierran igual: «Confirma tu cita» y el pago de la Agenda (`Agen
 - Fuera de la conversación quedan la foto de referencia del corte y las compras de regalo y paquetes
   (se abren como pantalla aparte desde la bienvenida).
 
-## Una visita en partes (Paso a paso)
+## Una visita en partes (todas las versiones)
 
 Poco frecuente pero posible: en la misma visita, cada servicio con su barbero u hora (el corte con
 Emilio a las 10:00 y la barba con Andrés justo después). Hay dos entradas:
@@ -170,7 +170,19 @@ no salen (vale para cualquier cita, no solo las partes) y el servidor responde `
 Calendario las partes quedan enlazadas como toda cita de una misma reserva (`linkId`) y anotadas
 «Visita en N partes». La lógica pura vive en `src/features/booking/visit.ts`.
 
-Pendiente: llevarlo a Agenda en lista, Según el cliente y Conversación (el reductor ya lo soporta).
+En las demás versiones:
+
+- **Agenda en lista**: en «Confirma tu cita», «Separar» y «Juntar de nuevo» vuelven al tablero (la
+  parte se elige como otra cita; «Atrás» deja el carrito como estaba). En el tablero, con dos o más
+  servicios, el mismo interruptor; al apartar una parte, la siguiente se suma en vez de reemplazarla
+  (`AgendaFlow` sube `heldCount`). Las partes se añaden al final del carrito: la Agenda cuenta las
+  guardadas por posición, y el resumen las agrupa igual.
+- **Según el cliente**: usa el «Confirma tu cita» de la Agenda; separar y juntar siguen por los pasos
+  de Paso a paso.
+- **Conversación**: en «¿Con quién?» aparece «Cada servicio con alguien distinto» (con dos o más
+  servicios); al anotar una parte sigue con la siguiente. «Cambiar una cita» trae «Separar un
+  servicio», y frases como «la barba con otro barbero» o «por separado» hacen lo mismo. Las horas que
+  se cruzan con otra cita de la misma persona no se ofrecen.
 
 ## Pendiente
 

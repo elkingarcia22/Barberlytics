@@ -8,15 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
-import { personName } from "../../bookingState";
+import { isFirstPendingPart, personName } from "../../bookingState";
 import { dayKeyOf, firstBookableDay, parseStart } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { STEP_WIDTH } from "../../flow/stepWidth";
 import { AlternativeBarbers } from "../../flow/AlternativeBarbers";
 import { EarliestSlot } from "../../flow/EarliestSlot";
+import { NextToPart } from "../../flow/NextToPart";
+import { SeparateServicesSwitch } from "../../flow/SeparateServicesSwitch";
+import { VisitPartNote } from "../../flow/VisitPartNote";
 import { PersonPicker } from "../../flow/PersonPicker";
 import { WaitlistCard } from "../../flow/WaitlistCard";
 import { useAvailabilityQuery, useEarliestQuery } from "../../queries";
+import { itemDuration } from "../../useBookingTotals";
+import { busyRanges, overlapsBusy } from "../../visit";
 import { ableBarbers, timesByWindow } from "./agendaModel";
 import { TimeWindows } from "./AgendaLanes";
 import { HeldAppointments } from "./HeldAppointments";
@@ -24,6 +29,9 @@ import { AgendaSelectFields } from "./AgendaSelectFields";
 import { DayStrip } from "./DayStrip";
 
 /** Lo de siempre ya está puesto: el atajo sobra. */
+/** «HH:mm» de una hora del día, como la escriben las franjas. */
+const clockOf = (date: Date): string => `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
 const sameServices = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((id) => b.includes(id));
 
 /** Cuántos días se recorren en la tira. */
@@ -70,7 +78,22 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
   // El barbero se elige en su campo: las horas de abajo son solo las suyas.
   const chosenBarber = barbers.find((barber) => barber.id === draft?.barberId) ?? null;
   const editing = state.editingIndex !== null ? state.items[state.editingIndex] : null;
-  const slots = chosenBarber ? allSlots.filter((slot) => slot.barberIds.includes(chosenBarber.id)).map((slot) => ({ ...slot, barberIds: [chosenBarber.id] })) : allSlots;
+  // Lo que la misma persona ya tiene apartado (sin la hora que se está eligiendo, que se reemplaza):
+  // esas horas no salen, nadie puede estar en dos sillas.
+  const minutes = itemDuration(serviceIds, catalog);
+  const others = state.items.map((item, index) => (index === heldCount ? { ...item, start: null } : item));
+  const busy = draft ? busyRanges(others, draft, state.editingIndex, (item) => itemDuration(item.serviceIds, catalog)) : [];
+  const isBlocked = (date: Date) => overlapsBusy(date, minutes, busy);
+  const parts = draft?.visitId ? busy.filter((range) => range.item.visitId === draft.visitId) : [];
+  const barberSlots = chosenBarber ? allSlots.filter((slot) => slot.barberIds.includes(chosenBarber.id)).map((slot) => ({ ...slot, barberIds: [chosenBarber.id] })) : allSlots;
+  const slots = busy.length > 0 ? barberSlots.filter((slot) => !isBlocked(parseStart(`${dayKey}T${slot.time}`))) : barberSlots;
+  const hidesBusy = slots.length < barberSlots.length;
+  // Una parte nueva de la visita (aún sin hora apartada) abre en el día de la otra parte.
+  const [partSeen, setPartSeen] = React.useState(draft?.key);
+  if (draft && draft.key !== partSeen) {
+    setPartSeen(draft.key);
+    if (parts[0] && !state.items[heldCount]) setDay(startOfDay(new Date(parts[0].start)));
+  }
   const earliest = useEarliestQuery({ branchId: state.branchId, serviceIds, barberId: chosenBarber?.id ?? null });
   const timeLabel = (time: string) => fmt.clock(time);
   // «Lo de siempre»: lo de su última visita, si fue en esta sede y sigue en el catálogo.
@@ -138,9 +161,18 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
       {/* Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo. */}
       <section className="flex flex-col gap-5">
         {heading}
+        <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} />
         {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
         {state.customer && <PersonPicker />}
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
+        {/* Con dos o más servicios: cada uno con su barbero u hora. Se apaga mientras no se aparte la primera parte. */}
+        {!editing && ((serviceIds.length > 1 && !draft?.visitId) || isFirstPendingPart(state)) && (
+          <SeparateServicesSwitch
+            checked={isFirstPendingPart(state)}
+            onCheckedChange={(checked) => dispatch(checked ? { type: "bookSeparately" } : { type: "unsplitDraft" })}
+            count={serviceIds.length + (state.pendingParts?.length ?? 0)}
+          />
+        )}
       </section>
 
       {/* El día y la hora aparecen cuando les toca, como cada pregunta: con sede y servicios ya respondidos. */}
@@ -162,7 +194,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
             </Text>
           )}
           {/* «Lo antes posible» se calcula con sede y servicio: hasta entonces solo se ven los días. */}
-          {!editing && <EarliestSlot />}
+          {!editing && <EarliestSlot isBlocked={isBlocked} />}
           <DayStrip first={first} count={DAYS_AHEAD} value={day} onChange={setDay} marked={marked} size={touch} />
         </section>
       )}
@@ -191,7 +223,28 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
               }
             />
           ) : (
-            <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time, freeIds) => pick(time, chosenBarber?.id ?? null, freeIds)} />
+            <>
+              {parts.length > 0 && (
+                <NextToPart
+                  day={day}
+                  parts={parts}
+                  busy={busy}
+                  minutes={minutes}
+                  isFree={(date) => slots.some((slot) => slot.time === clockOf(date))}
+                  onPick={(date) => {
+                    const time = clockOf(date);
+                    pick(time, chosenBarber?.id ?? null, slots.find((slot) => slot.time === time)?.barberIds ?? []);
+                  }}
+                />
+              )}
+              <TimeWindows className={cn(timeMissing && "rounded-2xl outline outline-1 outline-offset-4 outline-destructive")} groups={windows} timeLabel={timeLabel} withName={chosenBarber?.name.split(" ")[0]} selectedTime={selectedTime} onPick={(time, freeIds) => pick(time, chosenBarber?.id ?? null, freeIds)} />
+              {hidesBusy && (
+                <Text size="xs" tone="muted" className="flex items-start gap-2">
+                  <ThemaIcon name="info" size="sm" />
+                  {t("booking.visit.busyHidden")}
+                </Text>
+              )}
+            </>
           )}
 
           {/* Un día sin horas, como en Paso a paso: otros barberos que sí tienen, con sus primeras horas

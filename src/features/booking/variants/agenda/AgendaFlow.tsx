@@ -81,13 +81,18 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   // Con cuenta abre con el servicio más pedido para enseñar horas desde el primer momento. Tras apartar
   // una hora, la siguiente sigue con lo mismo.
   const isSignedIn = Boolean(state.customer);
+  // Las citas ya confirmadas en el cierre: la que viene después de ellas es la que se está eligiendo.
+  const [heldCount, setHeldCount] = React.useState(0);
+  const held = Math.min(heldCount, state.items.length);
   React.useEffect(() => {
     if (!catalog || !state.branchId || ownScreen) return;
     if (!state.draft) {
       const last = state.items.at(-1);
       const fallback = isSignedIn ? defaultServiceId(catalog.services) : null;
       // El barbero es una elección propia: la siguiente cita sigue con el mismo.
-      dispatch({ type: "openDraft", person: { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: last?.barberId ?? null, barberChosen: last?.barberChosen });
+      // Si la última es la parte de una visita que se está eligiendo, la que se reabre sigue en esa visita.
+      const visitId = last && state.items.length - 1 >= held ? last.visitId : undefined;
+      dispatch({ type: "openDraft", person: visitId && last ? last.person : { kind: "self" }, serviceIds: last ? last.serviceIds : fallback ? [fallback] : [], barberId: last?.barberId ?? null, barberChosen: last?.barberChosen, visitId });
       return;
     }
     if (isSignedIn && state.draft.serviceIds.length === 0 && state.items.length === 0 && seededDraft.current !== state.draft.key) {
@@ -95,13 +100,11 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       const fallback = defaultServiceId(catalog.services);
       if (fallback) dispatch({ type: "toggleService", serviceId: fallback });
     }
-  }, [catalog, state.branchId, state.draft, state.items, ownScreen, isSignedIn, dispatch]);
+  }, [catalog, state.branchId, state.draft, state.items, ownScreen, isSignedIn, held, dispatch]);
 
   // Las citas ya confirmadas en el cierre (`held`) se quedan; la que se está eligiendo ahora es una sola:
   // la hora que se toca después reemplaza a la anterior. «Agregar otra cita» sube `held`.
   const [actionSlot, setActionSlot] = React.useState<HTMLElement | null>(null);
-  const [heldCount, setHeldCount] = React.useState(0);
-  const held = Math.min(heldCount, state.items.length);
   React.useEffect(() => {
     if (state.items.length <= held + 1) return;
     for (let extra = state.items.length - 1; extra > held; extra -= 1) dispatch({ type: "removeItem", index: held });
@@ -112,11 +115,14 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   const pending = state.items[held];
   const draftBarberId = state.draft?.barberId ?? null;
   const draftServices = state.draft?.serviceIds;
+  const sameAsPending = Boolean(pending && draftServices && pending.serviceIds.length === draftServices.length && pending.serviceIds.every((id) => draftServices.includes(id)));
+  // «Cada servicio con su barbero u hora»: la siguiente parte de la visita no reemplaza a la apartada, se suma.
+  const isNextPart = Boolean(pending && state.draft?.visitId && pending.visitId === state.draft.visitId && !sameAsPending);
+  if (isNextPart && heldCount !== state.items.length) setHeldCount(state.items.length);
   React.useEffect(() => {
-    if (!pending || !draftServices || view !== "board" || ownScreen) return;
-    const sameServices = pending.serviceIds.length === draftServices.length && pending.serviceIds.every((id) => draftServices.includes(id));
-    if ((pending.barberId ?? null) !== draftBarberId || !sameServices) dispatch({ type: "removeItem", index: held });
-  }, [pending, draftBarberId, draftServices, view, ownScreen, held, dispatch]);
+    if (!pending || !draftServices || view !== "board" || ownScreen || isNextPart) return;
+    if ((pending.barberId ?? null) !== draftBarberId || !sameAsPending) dispatch({ type: "removeItem", index: held });
+  }, [pending, draftBarberId, draftServices, sameAsPending, isNextPart, view, ownScreen, held, dispatch]);
 
   // Al entrar desde la cabecera, la hoja se cierra sola: ya se sabe quién es.
   if (signInOpen && state.customer && state.verified) setSignInOpen(false);
@@ -149,8 +155,21 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
   // Se arrepiente de sumar otra: la que estaba armando se suelta y vuelve a «Confirma tu cita» con las de antes.
   // `heldCount` no se toca: son las citas guardadas, y bajarlo borraría las que sobran.
   const keepHeld = () => {
-    if (state.items.length > held) dispatch({ type: "removeItem", index: held });
+    // Venía de separar o juntar una visita: el carrito vuelve como estaba.
+    if (state.undoItems) dispatch({ type: "discardDraft" });
+    else if (state.items.length > held) dispatch({ type: "removeItem", index: held });
     toCheckout();
+  };
+  // Separar o juntar desde «Confirma tu cita»: la parte se elige en la agenda, como otra cita más.
+  const splitService = (index: number, serviceId: string) => {
+    setHeldCount(state.items.length);
+    dispatch({ type: "splitService", index, serviceId });
+    setView("board");
+  };
+  const joinVisit = (visitId: string) => {
+    setHeldCount(state.items.length);
+    dispatch({ type: "joinVisit", visitId });
+    setView("board");
   };
 
   const back: (() => void) | null =
@@ -193,7 +212,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       // La hora ya no está: de vuelta a la agenda, donde la nueva reemplaza a la anterior.
       <AgendaSelectPay onChangeTime={toBoard} />
     ) : view === "checkout" ? (
-      <AgendaSelectCheckout onContinue={toPay} onAddAnother={addAnother} />
+      <AgendaSelectCheckout onContinue={toPay} onAddAnother={addAnother} onSplit={splitService} onJoin={joinVisit} />
     ) : (
       <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} heldCount={held} onBackToHeld={keepHeld} />
     );

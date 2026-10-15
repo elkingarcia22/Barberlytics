@@ -237,6 +237,14 @@ describe("preguntas de la conversación", () => {
 describe("lo que se pide de pasada en la conversación", () => {
   const kind = (text: string) => detectAside(text)?.kind ?? null;
 
+  test("cada servicio aparte, dicho de varias formas, sin tragarse «otro barbero»", () => {
+    expect(kind("la barba con otro barbero")).toBe("separate");
+    expect(kind("quiero cada servicio con un barbero distinto")).toBe("separate");
+    expect(kind("mejor por separado")).toBe("separate");
+    expect(kind("el corte a otra hora")).toBe("separate");
+    expect(kind("quiero otro barbero")).toBe("changeBarber");
+  });
+
   test("volver y cambiar algo ya elegido, dicho de varias formas", () => {
     expect(kind("volver")).toBe("back");
     expect(kind("me equivoqué")).toBe("back");

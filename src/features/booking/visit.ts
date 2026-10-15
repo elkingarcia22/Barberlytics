@@ -1,4 +1,4 @@
-import type { BookingPerson, DraftItem } from "./bookingState";
+import type { BookingPerson, BookingState, DraftItem } from "./bookingState";
 import { parseStart } from "./bookingFormat";
 
 const MINUTE_MS = 60_000;
@@ -56,4 +56,16 @@ export function cartGroups(items: readonly DraftItem[]): CartGroup[] {
     groups.push({ kind: "visit", visitId: item.visitId ?? "", parts: byTime });
   });
   return groups;
+}
+
+/**
+ * Qué parte de su visita se está armando («2 de 3»), o nada si la cita en curso no es una parte.
+ * `items`: el carrito sin la hora que se va a reemplazar (la Agenda).
+ */
+export function visitPartOf(state: BookingState, items: readonly DraftItem[] = state.items): { current: number; total: number } | null {
+  const draft = state.draft;
+  if (!draft?.visitId) return null;
+  const others = items.filter((item, index) => item.visitId === draft.visitId && index !== state.editingIndex).length;
+  const current = others + 1;
+  return { current, total: current + (state.pendingParts?.length ?? 0) };
 }

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { IconTile } from "@/components/utility/IconTile";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { ThemaIcon } from "@/icons";
@@ -16,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
 import { toastMissing } from "../flow/missingData";
 import { PersonPicker } from "../flow/PersonPicker";
+import { SeparateServicesSwitch } from "../flow/SeparateServicesSwitch";
 import { StepLayout } from "../flow/StepLayout";
 import { fromPrice, itemDuration, itemPrice } from "../useBookingTotals";
 
@@ -58,17 +58,7 @@ export function ServicesStep() {
       footer={
         <div className="flex flex-col gap-3">
           {canSeparate && (
-            <label className="flex cursor-pointer items-center gap-3">
-              <span className="flex min-w-0 flex-1 flex-col">
-                <Text as="span" size="sm" weight="medium">
-                  {t("booking.visit.separate")}
-                </Text>
-                <Text as="span" size="xs" tone="muted">
-                  {isSeparate ? t("booking.visit.separateOn", { count: selected.length }) : t("booking.visit.separateOff")}
-                </Text>
-              </span>
-              <Switch checked={isSeparate} onCheckedChange={setIsSeparate} aria-label={t("booking.visit.separate")} />
-            </label>
+            <SeparateServicesSwitch checked={isSeparate} onCheckedChange={setIsSeparate} count={selected.length} />
           )}
           <div className="flex items-center gap-3">
             <div className="flex min-w-0 flex-1 flex-col">

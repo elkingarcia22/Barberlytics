@@ -323,6 +323,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.visit.lastPart": "The last one of your visit",
   "booking.visit.doneLine": "Done: {service} · {time}",
   "booking.visit.doneLine_plural": "{count} done · {service} · {time}",
+  "booking.agenda.checkout.servicesCount": "{count} services",
   "booking.visit.split": "Split",
   "booking.visit.splitAria": "Split {service}: book it with another barber or at another time",
   "booking.visit.title": "Your visit in {count} parts",

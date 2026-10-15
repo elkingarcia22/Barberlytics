@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
-import { defaultBranchId, type BookingStep } from "../../bookingState";
+import { defaultBranchId, previousPartIndex, type BookingStep } from "../../bookingState";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { AsideSlotProvider } from "../../flow/asideSlot";
 import { BookingSummaryAside } from "../../flow/BookingSummaryAside";
 import { BookingSheet } from "../../flow/BookingSheet";
 import { HIDE_SCROLLBAR } from "../../flow/drawerFit";
 import { InPlaceIdentity } from "../../flow/InPlaceIdentity";
+import { toast } from "../../flow/bookingToast";
 import { toastMissing } from "../../flow/missingData";
 import { BlockedStep } from "../../steps/BlockedStep";
 import { ConfirmedStep } from "../../steps/ConfirmedStep";
@@ -42,6 +43,8 @@ const ENTRY_SCREENS: ReadonlySet<BookingStep> = new Set(["phone", "verify", "pro
 const SIDE_SCREENS: ReadonlySet<BookingStep> = new Set(["manage", "gift", "packages"]);
 /** Pantallas que no son la agenda: la entrada, el final, «Mis citas» y lo que se compra aparte. */
 const OWN_SCREENS: ReadonlySet<BookingStep> = new Set([...ENTRY_SCREENS, ...SIDE_SCREENS, "confirmed", "waitlisted"]);
+/** Más que un aviso normal: da tiempo a deshacer «Empezar de nuevo». */
+const UNDO_MS = 6000;
 
 /**
  * Agenda: la reserva que parte del «¿cuándo?». Entra por la portada de Paso a
@@ -160,6 +163,25 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     else if (state.items.length > held) dispatch({ type: "removeItem", index: held });
     toCheckout();
   };
+  // «Empezar de nuevo», como en Paso a paso: la reserva a cero (y la agenda vacía), con «Deshacer».
+  const hasBooking = state.items.length > 0 || (state.draft?.serviceIds.length ?? 0) > 0;
+  const startOver = () => {
+    const before = { state, heldCount, view: chosenView };
+    setHeldCount(0);
+    setView("board");
+    dispatch({ type: "startOver" });
+    toast(t("booking.header.startedOver"), {
+      duration: UNDO_MS,
+      action: {
+        label: t("booking.review.undo"),
+        onClick: () => {
+          dispatch({ type: "restoreState", state: before.state });
+          setHeldCount(before.heldCount);
+          setView(before.view);
+        },
+      },
+    });
+  };
   // Separar o juntar desde «Confirma tu cita»: la parte se elige en la agenda, como otra cita más.
   const splitService = (index: number, serviceId: string) => {
     setHeldCount(state.items.length);
@@ -185,9 +207,12 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
       ? toCheckout
       : view === "checkout"
         ? toBoard
-        : held > 0
-          ? keepHeld
-          : null;
+        : previousPartIndex(state) >= 0
+          ? // Por separado, como en Paso a paso: «Atrás» reabre la parte anterior para corregirla.
+            () => dispatch({ type: "previousPart" })
+          : held > 0
+            ? keepHeld
+            : null;
 
   const content =
     state.step === "phone" ? (
@@ -214,7 +239,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
     ) : view === "checkout" ? (
       <AgendaSelectCheckout onContinue={toPay} onAddAnother={addAnother} onSplit={splitService} onJoin={joinVisit} />
     ) : (
-      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} heldCount={held} onBackToHeld={keepHeld} />
+      <AgendaBoard onNeedSignIn={() => setSignInOpen(true)} timeMissing={timeMissing} heldCount={held} />
     );
 
   return (
@@ -224,7 +249,7 @@ export function AgendaFlow({ headerTrailing, onFinish }: AgendaFlowProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* La portada no lleva cabecera: la marca ya está en su tarjeta. El widget la conserva por su botón de cerrar. */}
           {(state.step !== "phone" || headerTrailing) && (
-            <AgendaHeader onBack={state.step === "confirmed" || state.step === "waitlisted" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} showChat={!ownScreen && view === "board"} />
+            <AgendaHeader onBack={state.step === "confirmed" || state.step === "waitlisted" ? null : back} onSignIn={() => setSignInOpen(true)} trailing={headerTrailing} showChat={!ownScreen && view === "board"} onStartOver={!ownScreen && hasBooking ? startOver : undefined} />
           )}
           <div ref={scrollRef} className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain", !isWide && HIDE_SCROLLBAR)}>
             <div className="flex min-h-full w-full flex-col">

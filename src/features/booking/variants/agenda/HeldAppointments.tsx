@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Text } from "@/components/typography";
-import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { parseStart } from "../../bookingFormat";
@@ -11,12 +10,12 @@ import { HeldCards } from "../../flow/HeldCards";
 
 /**
  * Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la
- * última, y al tocarla abre su detalle (desde abajo en celular y tablet, modal en monitor). Con
- * `onBack`, debajo va la salida: volver a «Confirma tu cita» sin sumar otra.
+ * última, y al tocarla abre su detalle (desde abajo en celular y tablet, modal en monitor), con
+ * «Editar» en cada una. Volver a «Confirma tu cita» sin sumar otra es «Atrás» de la cabecera.
  */
-export function HeldAppointments({ count, onBack }: { count: number; onBack?: () => void }) {
+export function HeldAppointments({ count }: { count: number }) {
   const t = useAppT();
-  const { state, catalog, fmt } = useBookingFlow();
+  const { state, dispatch, catalog, fmt } = useBookingFlow();
   const [open, setOpen] = React.useState(false);
   const held = state.items.slice(0, count);
   const last = held.at(-1);
@@ -46,15 +45,16 @@ export function HeldAppointments({ count, onBack }: { count: number; onBack?: ()
           <ThemaIcon name="chevronRight" size="xs" className="transition-transform duration-fast group-hover:translate-x-0.5" />
         </Text>
       </button>
-      {onBack && (
-        <Button type="button" variant="link" size="sm" className="-mt-4 self-start px-0" onClick={onBack}>
-          <ThemaIcon name="arrowLeft" />
-          {t("booking.agenda.heldBack")}
-        </Button>
-      )}
 
       <BookingOverlay open={open} onOpenChange={setOpen} title={t("booking.agenda.heldTitle", { count })} description={t("booking.agenda.heldLead")}>
-        <HeldCards items={held} />
+        <HeldCards
+          items={held}
+          onEdit={(item) => {
+            // La agenda se queda donde está: la cita se cambia aquí mismo («Estás cambiando…»).
+            setOpen(false);
+            dispatch({ type: "editItem", index: state.items.indexOf(item) });
+          }}
+        />
       </BookingOverlay>
     </>
   );

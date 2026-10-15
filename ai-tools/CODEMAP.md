@@ -289,7 +289,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **EarliestSlot.tsx** — «Lo antes posible»: el primer hueco libre desde hoy, arriba de todo y en un toque, para quien quiere cortarse… · `EarliestSlot` · piezas: Button, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons
 - **GalleryViewer.tsx** — La galería a pantalla completa: la foto ocupa el dispositivo, se pasa con el dedo (o con las flechas y el tec… · `GalleryViewer` · piezas: Button, Carousel, CarouselContent, CarouselItem, Dialog, DialogContent, DialogDescription, DialogTitle, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **GiftCardField.tsx** — Usar una tarjeta de regalo: se valida el código en el servidor y su saldo paga primero. · `GiftCardField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
-- **HeldCards.tsx** — Las citas ya apartadas, cada una en su tarjeta: la hoja de «las que ya apartaste» (Agenda y Paso a paso). · `HeldCards` · usa: @/app/i18n
+- **HeldCards.tsx** — Las citas ya apartadas, cada una en su tarjeta (y su «Editar»): la hoja de «las que ya apartaste» (Agenda y P… · `HeldCards` · piezas: Button · usa: @/app/i18n, @/icons
 - **InPlaceIdentity.tsx** — El celular, el código y la ficha (`AgendaIdentity`) resueltos dentro de una hoja: la pantalla de detrás (las… · `InPlaceIdentity`
 - **ManageSignIn.tsx** — Entrar a «Mis citas»: el celular y un código por SMS. · `ManageSignIn` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/lib/api
 - **MembershipPerk.tsx** — La membresía del cliente, en el pago: cada tantas visitas gana un servicio de cortesía. · `MembershipPerk` · piezas: ProgressRing, Switch, Text · usa: @/app/i18n, @/icons, @/lib/utils
@@ -339,11 +339,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **DemoHints.tsx** — Los datos para probar la demo, agrupados: los celulares de cada tipo de cliente y el código, las tarjetas, y… · `DemoHints` · piezas: Button, Popover, PopoverContent, PopoverTrigger, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text, agentPanelTransition · usa: @/app/i18n, @/icons, @/lib/utils
 - **DeviceFrame.tsx** · `PreviewDevice`, `DeviceFrame` · piezas: Text · usa: @/icons, @/lib/utils
-- **ProposalBits.tsx** — «¿Para quién?»: las mismas fichas en todas las propuestas, cada una con su elección propia. · `PersonChips`, `ExitButton` · piezas: Button, Chip · usa: @/lib/utils
-- **TicketVariants.tsx** — Las variaciones del talón, debajo de la propuesta 2: misma estructura, otra piel. · `TicketVariants` · piezas: Grain, Text · usa: @/lib/utils
-- **VisitCardProposals.tsx** — «Propuestas» en la vista previa: las cinco tarjetas una debajo de otra, con su nombre y en qué se distinguen,… · `VisitCardProposals` · piezas: Avatar, AvatarFallback, Heading, IconTile, ProgressRing, Text · usa: @/icons, @/lib/utils
 - **portalSlot.tsx** — Pinta `children` dentro del nodo de `usePortalNode`, esté donde esté. · `PortalContent`, `PortalSlot`
-- **proposalData.ts** · `PartState`, `DemoPart`, `PARTS`, `CURRENT`, `PEOPLE`
 - **usePortalNode.ts** — Un nodo del DOM propio y estable: lo que se pinta en él con `createPortal` sigue en el mismo lugar del árbol… · `usePortalNode`
 
 ### booking/steps
@@ -391,7 +387,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaSelectFields.tsx** — Las preguntas de la Agenda, en filas y de a una: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda: un campo que se lee como un select —lo elegido, cuánto dura y desde cuánto… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Skeleton, Text · usa: @/app/i18n, @/lib/utils
 - **DayStrip.tsx** — La tira de días de la agenda: el día de la semana arriba y el número grande, en fila y deslizable. · `DayStrip` · piezas: Text · usa: @/app/i18n, @/hooks/useDragScroll, @/i18n, @/lib/utils
-- **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
+- **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
 - **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`
 
 ### booking/variants/chat

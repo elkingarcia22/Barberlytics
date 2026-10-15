@@ -78,30 +78,41 @@ export function PersonSheet({ open, onOpenChange, person, onChoose }: { open: bo
       }
     >
       <div className="flex flex-col gap-6">
-        {known.length > 0 && (
-          <section className="flex flex-col gap-2" aria-labelledby="known-people">
-            <Heading level={6} id="known-people">
-              {t("booking.person.savedTitle")}
-            </Heading>
-            <ListItemGroup>
-              {known.map((entry) => (
-                <ListItem
-                  key={entry.key}
-                  leading={
-                    <Avatar>
-                      <AvatarFallback>{initialsOf(entry.person.name)}</AvatarFallback>
-                    </Avatar>
-                  }
-                  title={entry.person.name}
-                  description={entry.person.relation || undefined}
-                  meta={isPicked(entry) ? <ThemaIcon name="check" size="sm" tone="primary" /> : undefined}
-                  selected={isPicked(entry)}
-                  onClick={() => choose(entry.person)}
-                />
-              ))}
-            </ListItemGroup>
-          </section>
-        )}
+        {/* «Para mí» siempre arriba: desde una cita a nombre de otro se vuelve a poner para uno. */}
+        <section className="flex flex-col gap-2" aria-labelledby="known-people">
+          <Heading level={6} id="known-people">
+            {t("booking.person.savedTitle")}
+          </Heading>
+          <ListItemGroup>
+            <ListItem
+              leading={
+                <Avatar>
+                  <AvatarFallback>{initialsOf(state.customer?.name ?? t("booking.person.self"))}</AvatarFallback>
+                </Avatar>
+              }
+              title={t("booking.person.self")}
+              description={state.customer?.name || undefined}
+              meta={person.kind === "self" ? <ThemaIcon name="check" size="sm" tone="primary" /> : undefined}
+              selected={person.kind === "self"}
+              onClick={() => choose({ kind: "self" })}
+            />
+            {known.map((entry) => (
+              <ListItem
+                key={entry.key}
+                leading={
+                  <Avatar>
+                    <AvatarFallback>{initialsOf(entry.person.name)}</AvatarFallback>
+                  </Avatar>
+                }
+                title={entry.person.name}
+                description={entry.person.relation || undefined}
+                meta={isPicked(entry) ? <ThemaIcon name="check" size="sm" tone="primary" /> : undefined}
+                selected={isPicked(entry)}
+                onClick={() => choose(entry.person)}
+              />
+            ))}
+          </ListItemGroup>
+        </section>
 
         <section className="flex flex-col gap-4" aria-labelledby="new-person">
           <Heading level={6} id="new-person">

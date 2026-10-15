@@ -341,6 +341,7 @@ export const bookingEs = {
   "booking.visit.lastPart": "La última de tu visita",
   "booking.visit.doneLine": "Listo: {service} · {time}",
   "booking.visit.doneLine_plural": "{count} listas · {service} · {time}",
+  "booking.agenda.checkout.servicesCount": "{count} servicios",
   "booking.visit.split": "Separar",
   "booking.visit.splitAria": "Separar {service}: hacerlo con otro barbero u otra hora",
   "booking.visit.title": "Tu visita en {count} partes",

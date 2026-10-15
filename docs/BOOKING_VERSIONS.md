@@ -174,7 +174,13 @@ persona, la ficha lleva su nombre y la abre). En Paso a paso, una línea («List
 10:00 a. m. · Ver») abre la hoja con las partes ya apartadas, y «Atrás» desde el barbero reabre la
 parte anterior en su hora para corregirla: el servicio de ahora vuelve a la cola (acción
 `previousPart`). La cabecera trae «Empezar de nuevo» (a la derecha) mientras se arma la reserva:
-vuelve a cero sin olvidar quién es, con «Deshacer» (`startOver` / `restoreState`). En la Agenda el interruptor va pegado debajo de Servicios. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
+vuelve a cero sin olvidar quién es, con «Deshacer» (`startOver` / `restoreState`).
+«Cambiar» en «Revisa tu reserva» abre esa cita en su barbero (no todos los servicios); «Editar» en la
+hoja de las apartadas reabre esa parte (`reopenPart`). La hoja de «¿Para quién más?» trae «Para mí».
+En la Agenda, por separado, el talón reemplaza a «Ya tienes N citas listas», «Atrás» vuelve entre
+partes, la cabecera trae «Empezar de nuevo», no hay «Lo de siempre» y, al cambiar de parte, el
+talón, los campos y las horas entran en cascada. «Confirma tu cita» lleva arriba fecha, barbero y
+precio, y debajo la lista de servicios con su «Separar». En la Agenda el interruptor va pegado debajo de Servicios. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
 
 **Una misma persona no está en dos sillas**: las horas que se cruzan con otra cita suya del carrito
 no salen (vale para cualquier cita, no solo las partes) y el servidor responde `409` si llegan. En el

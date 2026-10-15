@@ -39,6 +39,9 @@ const sameServices = (a: readonly string[], b: readonly string[]): boolean => a.
 const SOLID_INFO = "bg-surface dark:bg-surface bg-[linear-gradient(hsl(var(--info)/0.08),hsl(var(--info)/0.08))]";
 
 const DAYS_AHEAD = 21;
+/** Entre una pieza y la siguiente de la cascada al cambiar de parte. */
+const CASCADE_STEP_MS = 180;
+const CASCADE = "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-4 motion-safe:duration-700 motion-safe:ease-out-expo motion-safe:[animation-fill-mode:both]";
 const SKELETON_LANES = 3;
 
 /**
@@ -47,7 +50,7 @@ const SKELETON_LANES = 3;
  * franja. Una hora se aparta con un toque y cae en «Tu reserva»; quién es el
  * cliente se pregunta después, al confirmar.
  */
-export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, onBackToHeld }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean; /** Citas ya confirmadas antes de sumar otra: la hora que se aparta es la siguiente a ellas. */ heldCount?: number; /** Volver a «Confirma tu cita» sin sumar la otra. */ onBackToHeld?: () => void }) {
+export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }: { onNeedSignIn: () => void; /** Tocó «Continuar» sin hora: la sección de día y hora se marca en rojo. */ timeMissing?: boolean; /** Citas ya confirmadas antes de sumar otra: la hora que se aparta es la siguiente a ellas. */ heldCount?: number }) {
   const t = useAppT();
   const { state, dispatch, shop, catalog, fmt, layout, touch } = useBookingFlow();
   const branch = shop.branches.find((item) => item.id === state.branchId);
@@ -88,6 +91,11 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
   const barberSlots = chosenBarber ? allSlots.filter((slot) => slot.barberIds.includes(chosenBarber.id)).map((slot) => ({ ...slot, barberIds: [chosenBarber.id] })) : allSlots;
   const slots = busy.length > 0 ? barberSlots.filter((slot) => !isBlocked(parseStart(`${dayKey}T${slot.time}`))) : barberSlots;
   const hidesBusy = slots.length < barberSlots.length;
+  // Al pasar de una parte a otra, la parte, los campos y las horas entran en cascada: se nota que cambió.
+  // Cada pieza con su clave propia (la misma en hermanos dejaba la parte vieja junto a la nueva).
+  const cascadeKey = draft?.visitId ? draft.key : "board";
+  const cascade = (position: number) => (draft?.visitId ? cn(CASCADE, position > 0 && "motion-safe:[animation-delay:var(--cascade-delay)]") : undefined);
+  const cascadeDelay = (position: number): React.CSSProperties | undefined => (draft?.visitId ? ({ "--cascade-delay": `${position * CASCADE_STEP_MS}ms` } as React.CSSProperties) : undefined);
   // Una parte nueva de la visita (aún sin hora apartada) abre en el día de la otra parte.
   const [partSeen, setPartSeen] = React.useState(draft?.key);
   if (draft && draft.key !== partSeen) {
@@ -155,33 +163,39 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
         </Alert>
       )}
 
-      {/* Las que ya apartó: se ven de un vistazo y se abren para ver el detalle. */}
-      {heldCount > 0 && !editing && <HeldAppointments count={heldCount} onBack={onBackToHeld} />}
+      {/* Las que ya apartó: se ven de un vistazo y se abren para ver el detalle (y editar). Por separado,
+          lo dice el talón de la parte, como en Paso a paso. Volver a «Confirma tu cita» es «Atrás». */}
+      {heldCount > 0 && !editing && !draft?.visitId && <HeldAppointments count={heldCount} />}
 
       {/* Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo. */}
       <section className="flex flex-col gap-5">
         {heading}
         {/* Por separado, la tarjeta de la parte dice cuál se elige y, con cuenta, para quién: reemplaza al selector de siempre. */}
-        <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} withPerson={Boolean(state.customer)} />
+        <div key={`${cascadeKey}-part`} className={cascade(0)} style={cascadeDelay(0)}>
+          <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} withPerson={Boolean(state.customer)} showDone />
+        </div>
         {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
         {state.customer && !draft?.visitId && <PersonPicker />}
-        <AgendaSelectFields
-          barbers={barbers}
-          usualId={usualId}
-          onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined}
-          afterServices={
-            // Con dos o más servicios, pegado a ellos: cada uno con su barbero u hora. Encendido desaparece
-            // (la tarjeta de la parte trae «Juntar todo»).
-            !editing && serviceIds.length > 1 && !draft?.visitId ? (
-              <SeparateServicesSwitch checked={false} onCheckedChange={(checked) => checked && dispatch({ type: "bookSeparately" })} count={serviceIds.length} />
-            ) : undefined
-          }
-        />
+        <div key={`${cascadeKey}-fields`} className={cascade(1)} style={cascadeDelay(1)}>
+          <AgendaSelectFields
+            barbers={barbers}
+            usualId={usualId}
+            // Por separado no hay «Lo de siempre»: cada parte es un servicio, el atajo armaría otra cosa.
+            onUsual={usual && !editing && !draft?.visitId && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined}
+            afterServices={
+              // Con dos o más servicios, pegado a ellos: cada uno con su barbero u hora. Encendido desaparece
+              // (la tarjeta de la parte trae «Juntar todo»).
+              !editing && serviceIds.length > 1 && !draft?.visitId ? (
+                <SeparateServicesSwitch checked={false} onCheckedChange={(checked) => checked && dispatch({ type: "bookSeparately" })} count={serviceIds.length} />
+              ) : undefined
+            }
+          />
+        </div>
       </section>
 
       {/* El día y la hora aparecen cuando les toca, como cada pregunta: con sede y servicios ya respondidos. */}
       {isReady && (
-        <section aria-labelledby="agenda-when" className="flex flex-col gap-3">
+        <section key={`${cascadeKey}-when`} aria-labelledby="agenda-when" className={cn("flex flex-col gap-3", cascade(2))} style={cascadeDelay(2)}>
           <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             {/* La última pregunta: después de sede, servicios y barbero. */}
             <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined} className="flex items-center gap-2.5">

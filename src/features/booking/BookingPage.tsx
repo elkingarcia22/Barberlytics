@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LayoutGrid, ListChecks, ListFilter, MessagesSquare, Split, Monitor, PanelRightOpen, Smartphone, Tablet } from "lucide-react";
+import { ListChecks, ListFilter, MessagesSquare, Split, Monitor, PanelRightOpen, Smartphone, Tablet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -16,12 +16,9 @@ import { DemoSite } from "./preview/DemoSite";
 import { DeviceFrame } from "./preview/DeviceFrame";
 import { PortalContent, PortalSlot } from "./preview/portalSlot";
 import { usePortalNode } from "./preview/usePortalNode";
-import { VisitCardProposals } from "./preview/VisitCardProposals";
 import { isBookingVersion, type BookingVersion } from "./versions";
 
 type PreviewMode = "phone" | "tablet" | "monitor" | "widget";
-/** Una pestaña de la vista previa que no es una versión: la exploración de diseño de la tarjeta de cada parte. */
-const PROPOSALS = "proposals";
 const MODES: readonly PreviewMode[] = ["phone", "tablet", "monitor", "widget"];
 const PUBLIC_PATH = "/reservar";
 /** Por debajo de esto no caben los marcos: la reserva va a pantalla completa. */
@@ -56,7 +53,6 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
   const requested = params.get("vista") as PreviewMode | null;
   const mode: PreviewMode = requested && MODES.includes(requested) ? requested : "tablet";
   const requestedVersion = params.get("version");
-  const isProposals = requestedVersion === PROPOSALS;
   const version: BookingVersion = isBookingVersion(requestedVersion) ? requestedVersion : "guided";
   // El enlace público lleva la versión elegida (la guiada es la de siempre y no la necesita).
   const publicUrl = `${window.location.origin}${PUBLIC_PATH}?embed=1${version === "guided" ? "" : `&version=${version}`}`;
@@ -86,7 +82,6 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
 
   const versions = [
     { value: "guided", label: t("booking.version.guided"), icon: ListChecks },
-    { value: PROPOSALS, label: t("booking.version.proposals"), icon: LayoutGrid },
     { value: "agenda-list", label: t("booking.version.agendaList"), icon: ListFilter },
     { value: "mixed", label: t("booking.version.mixed"), icon: Split },
     { value: "chat", label: t("booking.version.chat"), icon: MessagesSquare },
@@ -159,21 +154,12 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
         {/* Los controles de la vista previa, centrados bajo la cabecera: la experiencia y, si hay marcos, el dispositivo. */}
         <div className="relative z-raised flex shrink-0 flex-col items-center gap-2 px-4 pb-1 pt-4">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            <SegmentedControl className="w-auto" options={versions} value={isProposals ? PROPOSALS : version} onChange={(value) => setParam("version", value)} size="sm" fullWidth={isNarrow} ariaLabel={t("booking.version.label")} />
+            <SegmentedControl className="w-auto" options={versions} value={version} onChange={(value) => setParam("version", value)} size="sm" fullWidth={isNarrow} ariaLabel={t("booking.version.label")} />
             {!isNarrow && <SegmentedControl className="w-auto" options={modes} value={mode} onChange={selectMode} size="sm" ariaLabel={t("booking.preview.mode")} />}
           </div>
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center p-0 md:p-6 md:pt-3">
-          {isProposals ? (
-            // Las propuestas ocupan el marco; la reserva sigue viva aparte y vuelve donde estaba.
-            isNarrow ? (
-              <VisitCardProposals />
-            ) : (
-              <DeviceFrame device={mode === "widget" ? "monitor" : mode} address={publicUrl.replace(/^https?:\/\//, "")}>
-                <VisitCardProposals />
-              </DeviceFrame>
-            )
-          ) : isNarrow ? (
+          {isNarrow ? (
             <PortalSlot node={flowNode} className="h-full w-full" />
           ) : isWidget ? (
             <DeviceFrame device="monitor" address="barberia.example.com">

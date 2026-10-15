@@ -283,6 +283,8 @@ describe("recorrido de la reserva", () => {
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
     expect(bookingReducer(state, { type: "addAnother", person: { kind: "self" } }).fromReview).toBe(true);
     expect(bookingReducer(state, { type: "editItem", index: 0 }).fromReview).toBe(true);
+    // Cambiar una cita abre esa cita en su barbero, no todos los servicios.
+    expect(bookingReducer(state, { type: "editItem", index: 0 })).toMatchObject({ step: "barber", editingIndex: 0, draft: { serviceIds: ["svc_corte"], barberId: "team-04" } });
     expect(bookingReducer(bookingReducer(state, { type: "editItem", index: 0 }), { type: "discardDraft" })).toMatchObject({ step: "review", fromReview: false });
   });
 
@@ -450,6 +452,19 @@ describe("visita en partes", () => {
     expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_tratamiento"], draft: { serviceIds: ["svc_barba"] }, items: [expect.objectContaining({ serviceIds: ["svc_corte"], start: "2026-10-09T11:00" })] });
   });
 
+  test("«Editar» en la hoja reabre esa parte desde el barbero; la de ahora vuelve a la cola", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-04" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-02" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:30" });
+    const corte = state.items[0];
+    state = bookingReducer(state, { type: "reopenPart", key: corte.key });
+    expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_tratamiento"], draft: { key: corte.key, serviceIds: ["svc_corte"], barberId: "team-04" } });
+    expect(state.items.map((item) => item.serviceIds)).toEqual([["svc_barba"]]);
+  });
+
   test("«Empezar de nuevo» vacía la reserva sin olvidar quién es; deshacer la deja como estaba", () => {
     const before = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
     const state = bookingReducer(before, { type: "startOver" });
@@ -461,6 +476,12 @@ describe("visita en partes", () => {
   test("separando desde el resumen no hay «parte anterior»: «Atrás» descarta como siempre", () => {
     const state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
     expect(bookingReducer(state, { type: "previousPart" })).toBe(state);
+  });
+
+  test("separando desde el resumen, «Editar» en la hoja también reabre la otra parte", () => {
+    const state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    const next = bookingReducer(state, { type: "reopenPart", key: state.items[0].key });
+    expect(next).toMatchObject({ step: "barber", items: [], pendingParts: ["svc_barba"], partQueue: true, draft: { serviceIds: ["svc_corte"] } });
   });
 
   test("reabrir la cita que se elige sigue en la misma visita (la Agenda)", () => {

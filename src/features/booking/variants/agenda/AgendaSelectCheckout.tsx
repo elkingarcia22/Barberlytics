@@ -38,28 +38,14 @@ function AppointmentCard({ item, onSplit }: { item: DraftItem; /** Saca ese serv
   };
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-surface">
+      {/* Cuándo, con quién y cuánto arriba; con varios servicios, la lista debajo (cada uno con su «Separar»),
+          así el precio no compite con los enlaces. */}
       <div className="flex items-start gap-3 p-3">
         <IconTile size="lg" src={services[0]?.imageUrl} icon={<ThemaIcon name="scissors" />} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          {services.length > 1 ? (
-            // Cada servicio con su «Separar»: otro barbero u otra hora, como otra parte de la visita.
-            <ul className="flex flex-col gap-0.5">
-              {services.map((service) => (
-                <li key={service.id} className="flex items-center gap-2">
-                  <Text weight="semibold" className="min-w-0 flex-1 truncate">
-                    {service.name}
-                  </Text>
-                  <Button type="button" variant="link" size="sm" className="h-auto shrink-0 px-0" onClick={() => onSplit(service.id)} aria-label={t("booking.visit.splitAria", { service: service.name })}>
-                    {t("booking.visit.split")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Text weight="semibold" className="truncate">
-              {services.map((service) => service.name).join(" + ")}
-            </Text>
-          )}
+          <Text weight="semibold" className="truncate">
+            {services.length > 1 ? t("booking.agenda.checkout.servicesCount", { count: services.length }) : services[0]?.name}
+          </Text>
           {item.start && (
             <Text size="sm" tabular className="first-letter:uppercase">
               {fmt.when(parseStart(item.start))}
@@ -69,10 +55,27 @@ function AppointmentCard({ item, onSplit }: { item: DraftItem; /** Saca ese serv
             {[barber?.name ?? t("booking.review.noPreference"), branch?.name].filter(Boolean).join(" · ")}
           </Text>
         </div>
-        <Text weight="semibold" tabular>
+        <Text weight="semibold" tabular className="shrink-0">
           {fmt.money(itemPrice(item, catalog))}
         </Text>
       </div>
+      {services.length > 1 && (
+        <ul className="flex flex-col divide-y divide-border border-t border-border px-3">
+          {services.map((service) => (
+            <li key={service.id} className="flex items-center gap-3 py-2">
+              <Text size="sm" className="min-w-0 flex-1 truncate">
+                {service.name}
+              </Text>
+              <Text size="xs" tone="muted" tabular className="shrink-0">
+                {t("booking.review.minutes", { count: service.durationMin })}
+              </Text>
+              <Button type="button" variant="link" size="sm" className="h-auto shrink-0 px-0" onClick={() => onSplit(service.id)} aria-label={t("booking.visit.splitAria", { service: service.name })}>
+                {t("booking.visit.split")}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex items-center gap-2 border-t border-border px-3 py-2">
         <ThemaIcon name="users" size="sm" tone="muted" />
         <Text size="sm" className="min-w-0 flex-1 truncate">

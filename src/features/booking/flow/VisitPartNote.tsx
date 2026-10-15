@@ -98,7 +98,13 @@ export function VisitPartNote({ items, withPerson = false, showDone = false }: V
       </div>
       {showDone && (
         <BookingOverlay open={isDoneOpen} onOpenChange={setIsDoneOpen} title={t("booking.agenda.heldTitle", { count: done.length })} description={t("booking.agenda.heldLead")}>
-          <HeldCards items={done} />
+          <HeldCards
+            items={done}
+            onEdit={(item) => {
+              setIsDoneOpen(false);
+              dispatch({ type: "reopenPart", key: item.key });
+            }}
+          />
         </BookingOverlay>
       )}
     </section>

@@ -193,6 +193,8 @@ export type BookingAction =
   | { type: "exitVisit" }
   /** Desde una parte del «por separado», reabre la anterior (ya apartada) para corregirla. */
   | { type: "previousPart" }
+  /** Desde una parte del «por separado», reabre una ya apartada en concreto («Editar» en su hoja). */
+  | { type: "reopenPart"; key: string }
   /** «Empezar de nuevo» desde la cabecera: la reserva vuelve a cero, sin olvidar quién es ni la sede. */
   | { type: "startOver" }
   /** Deshacer el «empezar de nuevo»: la reserva como estaba. */
@@ -285,10 +287,19 @@ export function previousPartIndex(state: BookingState): number {
  */
 function previousPart(state: BookingState): BookingState {
   const index = previousPartIndex(state);
+  return index < 0 ? state : reopenPartAt(state, index, "time");
+}
+
+/**
+ * Saca del carrito una parte ya apartada y la abre para cambiarla; la de ahora vuelve a la cola, la
+ * primera, y se arma al guardarla otra vez. Las demás partes apartadas se quedan como están.
+ */
+function reopenPartAt(state: BookingState, index: number, step: BookingStep): BookingState {
   const draft = state.draft;
-  if (index < 0 || !draft) return state;
-  const previous = state.items[index];
-  return { ...state, items: state.items.filter((_, at) => at !== index), draft: { ...previous }, editingIndex: null, pendingParts: [...draft.serviceIds, ...(state.pendingParts ?? [])], step: "time" };
+  const part = state.items[index];
+  if (!draft?.visitId || !part || part.visitId !== draft.visitId) return state;
+  // Desde aquí se sigue parte por parte (también si la visita salió de «Separar»): «Atrás» vuelve entre ellas.
+  return { ...state, items: state.items.filter((_, at) => at !== index), draft: { ...part }, editingIndex: null, pendingParts: [...draft.serviceIds, ...(state.pendingParts ?? [])], partQueue: true, step };
 }
 
 /** Volver a Servicios desde la primera parte deshace el «por separado». */
@@ -388,7 +399,9 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, draft: { ...emptyDraft(action.person), serviceIds: [...action.serviceIds], barberId: action.barberId, barberChosen: action.barberChosen ?? action.barberId !== null, visitId: action.visitId }, editingIndex: null, fromReview: false };
     case "editItem": {
       const item = state.items[action.index];
-      return item ? { ...state, draft: { ...item }, editingIndex: action.index, fromReview: true, step: "services" } : state;
+      // Cambiar esa cita puntual, no volver a todos los servicios: abre en su barbero (con el suyo marcado)
+      // y sigue a la hora; desde la hora, «Cambiar» lleva a los servicios si hace falta.
+      return item ? { ...state, draft: { ...item }, editingIndex: action.index, fromReview: true, step: "barber" } : state;
     }
     case "reopenLast": {
       const index = state.items.length - 1;
@@ -414,6 +427,9 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return exitVisit(state);
     case "previousPart":
       return previousPart(state);
+    case "reopenPart":
+      // Desde la hoja de las apartadas: se cambia desde el barbero (con el suyo ya marcado) y la hora.
+      return reopenPartAt(state, state.items.findIndex((item) => item.key === action.key), "barber");
     case "startOver": {
       // Quien ya es cliente vuelve a su bienvenida; el nuevo, a elegir servicios (con su sede, si ya la tiene).
       const kept = { ...initialBookingState(state.tipId), phone: state.phone, token: state.token, customer: state.customer, verified: state.verified, pendingProfile: state.pendingProfile, branchId: state.branchId };

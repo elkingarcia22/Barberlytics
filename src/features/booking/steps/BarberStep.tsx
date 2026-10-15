@@ -34,7 +34,7 @@ export function BarberStep() {
   const choose = (barberId: string | null) => dispatch({ type: "chooseBarber", barberId });
 
   return (
-    <StepLayout title={t("booking.barber.title")} lead={t("booking.barber.lead")}>
+    <StepLayout title={t("booking.barber.title")} lead={t("booking.barber.lead")} cover>
       {/* Cada parte de una visita: cuál es y, aquí mismo, para quién (puede ser otra persona). */}
       <VisitPartNote withPerson showDone />
       {able.length === 0 ? (

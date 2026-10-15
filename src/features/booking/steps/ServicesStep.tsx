@@ -53,6 +53,7 @@ export function ServicesStep() {
 
   return (
     <StepLayout
+      cover
       title={t("booking.services.title")}
       lead={canSeparate && isSeparate ? t("booking.visit.servicesLead") : t("booking.services.lead")}
       footer={

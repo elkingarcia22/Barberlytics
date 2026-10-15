@@ -86,6 +86,13 @@ sede y «Lo de siempre»; el cliente nuevo va **Paso a paso** («Conozcámonos»
 hora). Los dos cierran igual: «Confirma tu cita» y el pago de la Agenda (`AgendaSelectCheckout`,
 `AgendaSelectPay`), que antes de cobrar pide el código. Código: `MixedFlow` en `BookingFlow.tsx`.
 
+
+**Una sola cara.** Los pasos del cliente nuevo se pintan con la de la Agenda (`BookingSkinContext` =
+«agenda», que pone `GuidedFlow` en esta versión): la cabecera con el logo a la izquierda, «Agenda con
+Clipper» en los primeros pasos, «Empezar de nuevo» y el progreso fino debajo; los pasos de elegir
+(sede, servicios, barbero, hora) sobre la foto con el título en vidrio (`AgendaCover`, la misma pieza
+del tablero), y la hora con la tira de días grande y las horas por franja. El orden de los pasos no
+cambia. Paso a paso, por sí sola, sigue con su cara.
 ## Conversación
 
 - Se siente como un chat, sin formularios dentro del hilo: lo que se escribe (el celular **solo con

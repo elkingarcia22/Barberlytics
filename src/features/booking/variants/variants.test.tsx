@@ -534,8 +534,11 @@ describe("las otras dos experiencias", () => {
     await user.click(await screen.findByRole("checkbox", { name: /^Corte clásico/ }));
     await user.click(screen.getByRole("button", { name: "Elegir barbero" }));
     await user.click(await screen.findByRole("radio", { name: "Sin preferencia" }));
-    const times = await screen.findAllByRole("radio", { name: /^\d{1,2}:\d\d/ });
-    await user.click(times[0]);
+    // La hora con la cara de la Agenda: la tira de días y las horas por franja («Apartar a las …»).
+    await waitFor(() => expect(screen.queryAllByRole("button", { name: /^Apartar a las / }).length + screen.queryAllByRole("button", { name: /^Ir al / }).length).toBeGreaterThan(0));
+    const jump = screen.queryByRole("button", { name: /^Ir al / });
+    if (jump) await user.click(jump);
+    await user.click((await screen.findAllByRole("button", { name: /^Apartar a las / }))[0]);
     // El cierre es el de la Agenda.
     expect(await screen.findByText("Confirma tu cita")).toBeInTheDocument();
   }, LONG_CONVERSATION_MS);

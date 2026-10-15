@@ -10,6 +10,7 @@ import { defaultBranchId, previousPartIndex, type BookingAction, type BookingSta
 import { BookingFlowProvider, useBookingFlow, type BookingLayout } from "./flow/BookingContext";
 import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
+import { BookingSkinContext } from "./flow/bookingSkin";
 import { AsideSlotProvider } from "./flow/asideSlot";
 import { BOOKING_TOASTER_ID } from "./flow/bookingToast";
 import { ReservedHairBurst } from "./flow/ReservedHairBurst";
@@ -162,7 +163,9 @@ function GuidedFlow({ headerTrailing, onFinish, agendaCheckout = false }: Pick<B
   const showAside = layout === "wide" && ["branch", "services", "barber", "time", "review", "payment"].includes(state.step);
 
   return (
-    // El resumen ocupa todo el alto, de arriba abajo: la cabecera llega hasta él.
+    // «Según el cliente» (`agendaCheckout`) pinta estos pasos con la cara de la Agenda.
+    <BookingSkinContext.Provider value={agendaCheckout ? "agenda" : "guided"}>
+    {/* El resumen ocupa todo el alto, de arriba abajo: la cabecera llega hasta él. */}
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* El inicio no lleva cabecera: la marca ya está en su tarjeta. El widget la conserva por su botón de cerrar. */}
@@ -182,6 +185,7 @@ function GuidedFlow({ headerTrailing, onFinish, agendaCheckout = false }: Pick<B
         </div>
       )}
     </div>
+    </BookingSkinContext.Provider>
   );
 }
 

@@ -20,7 +20,7 @@ export function BranchStep() {
   const { shop, state, dispatch, fmt, layout } = useBookingFlow();
   const [viewing, setViewing] = React.useState<string | null>(null);
   return (
-    <StepLayout title={t("booking.branch.title")} lead={t("booking.branch.lead")}>
+    <StepLayout title={t("booking.branch.title")} lead={t("booking.branch.lead")} cover>
       {state.items.length > 0 && (
         <Alert variant="warning">
           <ThemaIcon name="warning" />

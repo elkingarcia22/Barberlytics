@@ -149,6 +149,29 @@ hora). Los dos cierran igual: «Confirma tu cita» y el pago de la Agenda (`Agen
 - Fuera de la conversación quedan la foto de referencia del corte y las compras de regalo y paquetes
   (se abren como pantalla aparte desde la bienvenida).
 
+## Una visita en partes (Paso a paso)
+
+Poco frecuente pero posible: en la misma visita, cada servicio con su barbero u hora (el corte con
+Emilio a las 10:00 y la barba con Andrés justo después). Hay dos entradas:
+
+- **Desde Servicios**: con dos o más marcados, el pie trae «Cada servicio con su barbero u hora».
+  Encendido, «Elegir barbero» arma una parte por servicio, una tras otra (barbero → hora → la
+  siguiente); Barbero y Hora dicen «Parte N de M de tu visita · servicio». Volver a Servicios desde
+  la primera parte los junta otra vez.
+- **Desde el resumen**: en una cita con varios servicios, cada uno trae «Separar». Sale a su propia
+  parte (la cita conserva barbero y hora) y se abre desde el barbero; echarse atrás lo devuelve.
+
+Las partes comparten `visitId` (`DraftItem`), se agrupan en el resumen bajo «Tu visita en N partes»
+con «Juntar de nuevo» (vuelve una sola cita y pide la hora) y son de una sola persona: cambiarla en
+una la cambia en todas. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
+
+**Una misma persona no está en dos sillas**: las horas que se cruzan con otra cita suya del carrito
+no salen (vale para cualquier cita, no solo las partes) y el servidor responde `409` si llegan. En el
+Calendario las partes quedan enlazadas como toda cita de una misma reserva (`linkId`) y anotadas
+«Visita en N partes». La lógica pura vive en `src/features/booking/visit.ts`.
+
+Pendiente: llevarlo a Agenda en lista, Según el cliente y Conversación (el reductor ya lo soporta).
+
 ## Pendiente
 
 - Elegir una versión por barbería (Configuración › Reservas) en lugar de solo en la vista previa; hoy

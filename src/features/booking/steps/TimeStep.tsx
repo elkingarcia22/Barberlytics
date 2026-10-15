@@ -11,11 +11,15 @@ import { ThemaIcon } from "@/icons";
 import { clockMinutes, dayKeyOf, firstBookableDay, initialsOf, isSameDayAs, isTodayOver, parseStart, toStart } from "../bookingFormat";
 import { AlternativeBarbers } from "../flow/AlternativeBarbers";
 import { EarliestSlot } from "../flow/EarliestSlot";
+import { NextToPart } from "../flow/NextToPart";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
+import { VisitPartNote } from "../flow/VisitPartNote";
 import { WaitlistSignIn } from "../flow/WaitlistSignIn";
 import { useAvailabilityQuery, useEarliestQuery } from "../queries";
+import type { DraftItem } from "../bookingState";
 import { itemDuration } from "../useBookingTotals";
+import { busyRanges, overlapsBusy } from "../visit";
 
 /** Cuántos días hacia delante se puede reservar. */
 const BOOKING_WINDOW_DAYS = 42;
@@ -36,7 +40,13 @@ export function TimeStep() {
   const draft = state.draft;
   const branch = shop.branches.find((item) => item.id === state.branchId);
   const todayOver = branch ? isTodayOver(branch.closesAt, shop.minNoticeMinutes) : false;
-  const [day, setDay] = React.useState<Date>(() => (draft?.start ? startOfDay(parseStart(draft.start)) : branch ? firstBookableDay(branch.closesAt, shop.minNoticeMinutes) : startOfDay(new Date())));
+  // Lo que la misma persona ya tiene en el carrito: esas horas no se ofrecen (no puede estar en dos sillas).
+  const busy = draft ? busyRanges(state.items, draft, state.editingIndex, (item: DraftItem) => itemDuration(item.serviceIds, catalog)) : [];
+  // Las otras partes de su visita: la tira abre en su día y se propone encadenarla.
+  const parts = draft?.visitId ? busy.filter((range) => range.item.visitId === draft.visitId) : [];
+  const [day, setDay] = React.useState<Date>(() =>
+    draft?.start ? startOfDay(parseStart(draft.start)) : parts[0] ? startOfDay(new Date(parts[0].start)) : branch ? firstBookableDay(branch.closesAt, shop.minNoticeMinutes) : startOfDay(new Date())
+  );
   const availability = useAvailabilityQuery({ branchId: state.branchId, date: dayKeyOf(day), serviceIds: draft?.serviceIds ?? [], barberId: draft?.barberId ?? null });
   const free = React.useMemo(() => new Set((availability.data?.date === dayKeyOf(day) ? availability.data.slots : []).map((slot) => slot.time)), [availability.data, day]);
   // El primer hueco libre (la misma consulta que «Lo antes posible»): el aviso del día vacío salta a él.
@@ -48,8 +58,18 @@ export function TimeStep() {
 
   if (!draft || !branch) return null;
 
+  const isBlocked = (date: Date) => overlapsBusy(date, minutes, busy);
+  const pick = (date: Date) => {
+    const start = toStart(date);
+    // Sin preferencia, el precio es el de quien la agenda asigna a esa hora: el primero libre.
+    const assignedBarberId = availability.data?.slots.find((slot) => slot.time === start.slice(11, 16))?.barberIds[0] ?? null;
+    dispatch({ type: "chooseTime", start, assignedBarberId });
+  };
+  const hidesBusy = busy.some((range) => isSameDayAs(new Date(range.start), day));
+
   return (
     <StepLayout title={t("booking.time.title")} lead={t("booking.time.lead")}>
+      <VisitPartNote />
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-subtle p-3">
         {barber ? (
           <Avatar>
@@ -73,16 +93,13 @@ export function TimeStep() {
         </Button>
       </div>
 
-      <EarliestSlot />
+      {parts.length > 0 && !isWaiting && <NextToPart day={day} parts={parts} busy={busy} minutes={minutes} isFree={(date) => free.has(clockOf(date))} onPick={pick} />}
+
+      <EarliestSlot isBlocked={isBlocked} />
 
       <TimeSlotPicker
         value={draft.start ? parseStart(draft.start) : null}
-        onChange={(date) => {
-          const start = toStart(date);
-          // Sin preferencia, el precio es el de quien la agenda asigna a esa hora: el primero libre.
-          const assignedBarberId = availability.data?.slots.find((slot) => slot.time === start.slice(11, 16))?.barberIds[0] ?? null;
-          dispatch({ type: "chooseTime", start, assignedBarberId });
-        }}
+        onChange={pick}
         day={day}
         onDayChange={setDay}
         daysCount={BOOKING_WINDOW_DAYS}
@@ -90,7 +107,7 @@ export function TimeStep() {
         endHour={Math.ceil(clockMinutes(branch.closesAt) / HOUR)}
         slotMinutes={shop.slotMinutes}
         isDayDisabled={(date) => todayOver && isSameDayAs(date, new Date())}
-        isSlotDisabled={(date) => !free.has(clockOf(date))}
+        isSlotDisabled={(date) => !free.has(clockOf(date)) || isBlocked(date)}
         hideUnavailable
         emptyDay={
           // El mismo aviso que la Agenda en lista: qué día no tiene horas y un salto al primero que sí.
@@ -111,6 +128,13 @@ export function TimeStep() {
         loading={isWaiting}
         size={touch}
       />
+
+      {hidesBusy && !isWaiting && (
+        <Text size="xs" tone="muted" className="flex items-start gap-2">
+          <ThemaIcon name="info" size="sm" />
+          {t("booking.visit.busyHidden")}
+        </Text>
+      )}
 
       {!isWaiting && free.size === 0 && <AlternativeBarbers day={day} onDayChange={setDay} />}
 

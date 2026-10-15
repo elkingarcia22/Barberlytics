@@ -12,6 +12,7 @@ import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { BarberProfileDrawer } from "../flow/BarberProfileDrawer";
 import { StepLayout } from "../flow/StepLayout";
+import { VisitPartNote } from "../flow/VisitPartNote";
 import type { BookingBarber } from "../types";
 import { itemPrice } from "../useBookingTotals";
 
@@ -34,6 +35,7 @@ export function BarberStep() {
 
   return (
     <StepLayout title={t("booking.barber.title")} lead={t("booking.barber.lead")}>
+      <VisitPartNote />
       {able.length === 0 ? (
         <Alert variant="warning">
           <ThemaIcon name="warning" />

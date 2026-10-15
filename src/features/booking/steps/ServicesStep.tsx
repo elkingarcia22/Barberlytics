@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { IconTile } from "@/components/utility/IconTile";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { ThemaIcon } from "@/icons";
@@ -41,10 +42,13 @@ export function ServicesStep() {
   // Tocó «Siguiente» sin elegir nada: la lista y el pie se marcan hasta que elija uno.
   const [triedNext, setTriedNext] = React.useState(false);
   const missingService = triedNext && selected.length === 0;
+  // Poco frecuente pero posible: cada servicio con su barbero u hora. Solo con dos o más, y no dentro de una parte.
+  const [isSeparate, setIsSeparate] = React.useState(false);
+  const canSeparate = selected.length > 1 && !state.draft?.visitId;
   const next = () => {
     setTriedNext(true);
     if (toastMissing(t, [selected.length === 0 && t("booking.services.pick")])) return;
-    dispatch({ type: "goTo", step: "barber" });
+    dispatch(canSeparate && isSeparate ? { type: "bookSeparately" } : { type: "goTo", step: "barber" });
   };
 
   return (
@@ -52,27 +56,42 @@ export function ServicesStep() {
       title={t("booking.services.title")}
       lead={t("booking.services.lead")}
       footer={
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-col">
-            {selected.length > 0 ? (
-              <>
-                <Text size="xs" tone="muted">
-                  {t("booking.services.selected", { count: selected.length, minutes })}
+        <div className="flex flex-col gap-3">
+          {canSeparate && (
+            <label className="flex cursor-pointer items-center gap-3">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <Text as="span" size="sm" weight="medium">
+                  {t("booking.visit.separate")}
                 </Text>
-                <Text size="lg" weight="semibold" tabular>
-                  {fmt.money(itemPrice({ serviceIds: selected, barberId: state.draft?.barberId ?? null }, catalog))}
+                <Text as="span" size="xs" tone="muted">
+                  {isSeparate ? t("booking.visit.separateOn", { count: selected.length }) : t("booking.visit.separateOff")}
                 </Text>
-              </>
-            ) : (
-              <Text size="sm" tone={missingService ? "negative" : "muted"} weight={missingService ? "medium" : undefined}>
-                {t("booking.services.pick")}
-              </Text>
-            )}
+              </span>
+              <Switch checked={isSeparate} onCheckedChange={setIsSeparate} aria-label={t("booking.visit.separate")} />
+            </label>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 flex-col">
+              {selected.length > 0 ? (
+                <>
+                  <Text size="xs" tone="muted">
+                    {t("booking.services.selected", { count: selected.length, minutes })}
+                  </Text>
+                  <Text size="lg" weight="semibold" tabular>
+                    {fmt.money(itemPrice({ serviceIds: selected, barberId: state.draft?.barberId ?? null }, catalog))}
+                  </Text>
+                </>
+              ) : (
+                <Text size="sm" tone={missingService ? "negative" : "muted"} weight={missingService ? "medium" : undefined}>
+                  {t("booking.services.pick")}
+                </Text>
+              )}
+            </div>
+            <Button type="button" size="lg" onClick={next}>
+              {t("booking.services.next")}
+              <ThemaIcon name="arrowRight" />
+            </Button>
           </div>
-          <Button type="button" size="lg" onClick={next}>
-            {t("booking.services.next")}
-            <ThemaIcon name="arrowRight" />
-          </Button>
         </div>
       }
     >

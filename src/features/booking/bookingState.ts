@@ -32,6 +32,11 @@ export interface DraftItem {
    * barbería). Solo para cobrar lo que cobra esa persona; al reservar se sigue enviando sin preferencia.
    */
   assignedBarberId?: string | null;
+  /**
+   * Las partes de una misma visita: un servicio separado de la cita para hacerlo con otro barbero
+   * u otra hora. Una sola parte con `visitId` (se quitó la otra) se lee como una cita normal.
+   */
+  visitId?: string;
 }
 
 /** Una entrada de la lista de espera: lo que devolvió el servidor y lo que se pidió. */
@@ -93,6 +98,16 @@ export interface BookingState {
   payCard: string | null;
   /** Dónde se apuntó en la lista de espera durante esta reserva. Apuntarse lleva a su confirmación. */
   waitlist: readonly WaitlistEntry[];
+  /**
+   * El carrito antes de separar o juntar una visita: si la cita en curso se descarta, vuelve tal
+   * cual (el servicio separado regresa a su cita). Se olvida al guardar la cita.
+   */
+  undoItems?: DraftItem[] | null;
+  /**
+   * «Cada servicio con su barbero u hora», elegido en Servicios: los que faltan por armar, en
+   * orden. Al guardar una parte se abre la siguiente, desde el barbero.
+   */
+  pendingParts?: string[];
 }
 
 export interface PendingProfile {
@@ -165,12 +180,27 @@ export type BookingAction =
   | { type: "signOut" }
   | { type: "waitlistJoined"; entry: WaitlistEntry }
   | { type: "waitlistLeft"; id: string }
-  | { type: "restart" };
+  | { type: "restart" }
+  /** Saca un servicio de su cita a una parte propia de la visita, con su barbero y su hora. */
+  | { type: "splitService"; index: number; serviceId: string }
+  /** Junta las partes de una visita en una sola cita, y pide la hora de nuevo. */
+  | { type: "joinVisit"; visitId: string }
+  /** Desde Servicios: cada servicio elegido va en su propia parte de la visita, uno tras otro. */
+  | { type: "bookSeparately" };
 
 let keySeed = 0;
 const nextKey = (): string => {
   keySeed += 1;
   return `item_${keySeed}`;
+};
+
+let visitSeed = 0;
+/** Un id de visita que no use ninguna cita del carrito (el contador se reinicia al recargar el módulo). */
+const nextVisitId = (items: readonly DraftItem[]): string => {
+  const used = new Set(items.map((item) => item.visitId));
+  do visitSeed += 1;
+  while (used.has(`visit_${visitSeed}`));
+  return `visit_${visitSeed}`;
 };
 
 const emptyDraft = (person: BookingPerson = { kind: "self" }): DraftItem => ({ key: nextKey(), person, serviceIds: [], barberId: null, start: null });
@@ -185,8 +215,58 @@ const afterIdentity = (state: BookingState, onlyBranchId: string | null): Bookin
 
 /** Guarda la cita armada en el carrito (o reemplaza la que se editaba) y va al resumen. */
 function commitDraft(state: BookingState, draft: DraftItem): BookingState {
-  const items = state.editingIndex === null ? [...state.items, draft] : state.items.map((item, index) => (index === state.editingIndex ? draft : item));
-  return { ...state, items, draft: null, editingIndex: null, fromReview: false, step: "review" };
+  const items = state.editingIndex === null ? insertItem(state.items, draft) : state.items.map((item, index) => (index === state.editingIndex ? draft : item));
+  const [nextService, ...rest] = state.pendingParts ?? [];
+  if (nextService && draft.visitId) {
+    // Quedan servicios por armar: la siguiente parte, para la misma persona, desde el barbero.
+    const next: DraftItem = { ...emptyDraft(draft.person), serviceIds: [nextService], visitId: draft.visitId };
+    return { ...state, items, draft: next, editingIndex: null, fromReview: true, undoItems: null, pendingParts: rest, step: "barber" };
+  }
+  return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], step: "review" };
+}
+
+/** Cada servicio elegido, su parte: se arma la primera y las demás esperan en `pendingParts`. */
+function bookSeparately(state: BookingState): BookingState {
+  const draft = state.draft;
+  if (!draft || draft.serviceIds.length < 2) return state;
+  const [first, ...rest] = draft.serviceIds;
+  const part: DraftItem = { ...draft, serviceIds: [first], visitId: nextVisitId(state.items), barberId: null, barberChosen: false, start: null, assignedBarberId: null };
+  return { ...state, draft: part, pendingParts: rest, step: "barber" };
+}
+
+/** Volver a Servicios desde la primera parte deshace el «por separado»: los servicios vuelven a estar juntos. */
+function backToServices(state: BookingState): BookingState {
+  const draft = state.draft;
+  const isFirstPart = draft?.visitId && (state.pendingParts?.length ?? 0) > 0 && !state.items.some((item) => item.visitId === draft.visitId);
+  if (!draft || !isFirstPart) return { ...state, step: "services" };
+  return { ...state, draft: { ...draft, serviceIds: [...draft.serviceIds, ...(state.pendingParts ?? [])], visitId: undefined }, pendingParts: [], step: "services" };
+}
+
+/** Una parte nueva de una visita va junto a las otras partes; lo demás, al final. */
+function insertItem(items: readonly DraftItem[], draft: DraftItem): DraftItem[] {
+  const last = draft.visitId ? items.findLastIndex((item) => item.visitId === draft.visitId) : -1;
+  return last === -1 ? [...items, draft] : [...items.slice(0, last + 1), draft, ...items.slice(last + 1)];
+}
+
+/** Separa un servicio: sale de su cita (que conserva barbero y hora) y abre su propia parte desde el barbero. */
+function splitService(state: BookingState, index: number, serviceId: string): BookingState {
+  const origin = state.items[index];
+  if (!origin || origin.serviceIds.length < 2 || !origin.serviceIds.includes(serviceId)) return state;
+  const visitId = origin.visitId ?? nextVisitId(state.items);
+  const items = state.items.map((item, at) => (at === index ? { ...item, visitId, serviceIds: item.serviceIds.filter((id) => id !== serviceId) } : item));
+  const draft: DraftItem = { ...emptyDraft(origin.person), serviceIds: [serviceId], visitId };
+  return { ...state, items, draft, editingIndex: null, fromReview: true, undoItems: state.items, step: "barber" };
+}
+
+/** Junta las partes en la primera (con su barbero) y pide la hora: la cita ahora dura más. */
+function joinVisit(state: BookingState, visitId: string): BookingState {
+  const parts = state.items.filter((item) => item.visitId === visitId);
+  const [first] = parts;
+  if (!first || parts.length < 2) return state;
+  const serviceIds = [...new Set(parts.flatMap((item) => item.serviceIds))];
+  const items = state.items.filter((item) => item === first || item.visitId !== visitId);
+  const draft: DraftItem = { ...first, serviceIds, visitId: undefined, start: null, assignedBarberId: null };
+  return { ...state, items, draft, editingIndex: items.indexOf(first), fromReview: true, undoItems: state.items, step: "time" };
 }
 
 export function bookingReducer(state: BookingState, action: BookingAction): BookingState {
@@ -242,8 +322,11 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return { ...state, branchId: action.branchId, items: action.branchId === state.branchId ? state.items : [], products: action.branchId === state.branchId ? state.products : {}, draft: state.draft ?? emptyDraft(), step: "services" };
     case "setPerson":
       return state.draft ? { ...state, draft: { ...state.draft, person: action.person } } : state;
-    case "setItemPerson":
-      return { ...state, items: state.items.map((item) => (item.key === action.key ? { ...item, person: action.person } : item)) };
+    case "setItemPerson": {
+      // Una visita es de una sola persona: cambiarla en una parte la cambia en todas.
+      const visitId = state.items.find((item) => item.key === action.key)?.visitId;
+      return { ...state, items: state.items.map((item) => (item.key === action.key || (visitId && item.visitId === visitId) ? { ...item, person: action.person } : item)) };
+    }
     case "toggleService": {
       if (!state.draft) return state;
       const has = state.draft.serviceIds.includes(action.serviceId);
@@ -276,8 +359,17 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       const items = [...state.items.slice(0, action.index), action.item, ...state.items.slice(action.index)];
       return { ...state, items };
     }
-    case "discardDraft":
-      return { ...state, draft: null, editingIndex: null, fromReview: false, step: state.items.length > 0 ? "review" : state.step };
+    case "discardDraft": {
+      // Al separar o juntar, descartar devuelve el carrito como estaba.
+      const items = state.undoItems ?? state.items;
+      return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], step: items.length > 0 ? "review" : state.step };
+    }
+    case "bookSeparately":
+      return bookSeparately(state);
+    case "splitService":
+      return splitService(state, action.index, action.serviceId);
+    case "joinVisit":
+      return joinVisit(state, action.visitId);
     case "setProduct": {
       const rest = Object.fromEntries(Object.entries(state.products).filter(([id]) => id !== action.productId));
       return { ...state, products: action.qty > 0 ? { ...rest, [action.productId]: action.qty } : rest };
@@ -303,7 +395,7 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "removeReferencePhoto":
       return { ...state, referencePhotos: state.referencePhotos.filter((_, index) => index !== action.index) };
     case "goTo":
-      return { ...state, step: action.step };
+      return action.step === "services" ? backToServices(state) : { ...state, step: action.step };
     case "reserved":
       return { ...state, reservation: action.reservation, step: "confirmed" };
     case "bookAgain":

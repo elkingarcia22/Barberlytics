@@ -16,6 +16,7 @@ import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, find
 import type { BookingCatalog, BookingCustomer, BookedAppointment, BookingShop } from "./types";
 import { renderHook } from "@testing-library/react";
 import { itemPrice, useBookingTotals } from "./useBookingTotals";
+import { busyRanges, cartGroups, overlapsBusy } from "./visit";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -346,6 +347,122 @@ async function signIn(phone = KNOWN_PHONE): Promise<{ token: string; customer: B
   return { token: result.token, customer: result.customer };
 }
 
+describe("visita en partes", () => {
+  const known = (): BookingState => bookingReducer(initialBookingState(), { type: "customerFound", customer: customer(), token: "bk_test" });
+  /** Corte + barba con Emilio a las 10:00, ya en el carrito. */
+  const withCombo = (): BookingState => {
+    let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: { ...customer().lastVisit!, serviceIds: ["svc_corte", "svc_barba"] } });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    return state;
+  };
+
+  test("separar un servicio lo saca de su cita y abre su propia parte desde el barbero", () => {
+    const state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    expect(state.step).toBe("barber");
+    expect(state.items).toEqual([expect.objectContaining({ serviceIds: ["svc_corte"], barberId: "team-04", start: "2026-10-09T10:00", visitId: expect.any(String) })]);
+    expect(state.draft).toMatchObject({ serviceIds: ["svc_barba"], barberId: null, start: null, visitId: state.items[0].visitId, person: { kind: "self" } });
+  });
+
+  test("con un solo servicio no hay nada que separar", () => {
+    let state = bookingReducer(known(), { type: "repeatLastVisit", lastVisit: customer().lastVisit! });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    expect(bookingReducer(state, { type: "splitService", index: 0, serviceId: "svc_corte" })).toBe(state);
+  });
+
+  test("echarse atrás al separar devuelve el servicio a su cita", () => {
+    const before = withCombo();
+    let state = bookingReducer(before, { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "discardDraft" });
+    expect(state).toMatchObject({ step: "review", draft: null, items: before.items });
+  });
+
+  test("la parte separada queda junto a su visita, con su barbero y su hora, y se agrupa en orden de hora", () => {
+    let state = bookingReducer(withCombo(), { type: "addAnother", person: { kind: "new", name: "Santi", relation: "Hijo o hija" } });
+    state = bookingReducer(state, { type: "toggleService", serviceId: "svc_nino" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: null });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    state = bookingReducer(state, { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-02" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T09:00" });
+    expect(state.items.map((item) => item.serviceIds)).toEqual([["svc_corte"], ["svc_barba"], ["svc_nino"]]);
+    const groups = cartGroups(state.items);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({ kind: "visit", parts: [{ item: { serviceIds: ["svc_barba"], barberId: "team-02" } }, { item: { serviceIds: ["svc_corte"] } }] });
+    expect(groups[1]).toMatchObject({ kind: "single", index: 2 });
+  });
+
+  test("una visita a la que se le quitó una parte se lee como una cita normal", () => {
+    let state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    state = bookingReducer(state, { type: "removeItem", index: 1 });
+    expect(cartGroups(state.items)).toEqual([expect.objectContaining({ kind: "single", index: 0 })]);
+  });
+
+  test("juntar de nuevo vuelve una sola cita con todos los servicios y pide la hora; atrás lo deshace", () => {
+    let state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    const split = state;
+    state = bookingReducer(state, { type: "joinVisit", visitId: state.items[0].visitId! });
+    expect(state).toMatchObject({ step: "time", editingIndex: 0, items: [expect.objectContaining({ serviceIds: ["svc_corte"] })] });
+    expect(state.draft).toMatchObject({ serviceIds: ["svc_corte", "svc_barba"], barberId: "team-04", start: null, visitId: undefined });
+    expect(bookingReducer(state, { type: "discardDraft" }).items).toEqual(split.items);
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T15:00" });
+    expect(state.items).toEqual([expect.objectContaining({ serviceIds: ["svc_corte", "svc_barba"], start: "2026-10-09T15:00", visitId: undefined })]);
+  });
+
+  test("desde Servicios, «por separado» arma una parte por servicio, una tras otra, y todas quedan en la visita", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_barba", "svc_tratamiento"], draft: { serviceIds: ["svc_corte"], barberId: null } });
+    const visitId = state.draft!.visitId;
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-04" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_tratamiento"], draft: { serviceIds: ["svc_barba"], visitId } });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-02" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:30" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: null });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    expect(state).toMatchObject({ step: "review", draft: null, pendingParts: [] });
+    expect(cartGroups(state.items)).toEqual([expect.objectContaining({ kind: "visit", visitId, parts: expect.arrayContaining([expect.anything(), expect.anything(), expect.anything()]) })]);
+  });
+
+  test("una visita nueva no repite el id de otra que ya está en el carrito", () => {
+    let state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    state = bookingReducer(state, { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    expect(state.items.some((item) => item.visitId === state.draft?.visitId)).toBe(false);
+  });
+
+  test("volver a Servicios desde la primera parte junta otra vez los servicios", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    state = bookingReducer(state, { type: "goTo", step: "services" });
+    expect(state).toMatchObject({ step: "services", pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba"], visitId: undefined } });
+  });
+
+  test("cambiar para quién es una parte cambia toda la visita: es de una sola persona", () => {
+    let state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    const person = { kind: "new" as const, name: "Santi", relation: "Hijo o hija" };
+    state = bookingReducer(state, { type: "setItemPerson", key: state.items[1].key, person });
+    expect(state.items.map((item) => item.person)).toEqual([person, person]);
+  });
+
+  test("una misma persona no puede estar en dos sillas: sus otras citas tapan esas horas, las de otros no", () => {
+    let state = bookingReducer(withCombo(), { type: "addAnother", person: { kind: "new", name: "Santi", relation: "Hijo o hija" } });
+    state = bookingReducer(state, { type: "toggleService", serviceId: "svc_nino" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: null });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    state = bookingReducer(state, { type: "splitService", index: 0, serviceId: "svc_barba" });
+    const busy = busyRanges(state.items, state.draft!, state.editingIndex, () => 30);
+    expect(busy).toHaveLength(1);
+    expect(overlapsBusy(new Date(2026, 9, 9, 10, 15), 30, busy)).toBe(true);
+    expect(overlapsBusy(new Date(2026, 9, 9, 9, 30), 30, busy)).toBe(false);
+    expect(overlapsBusy(new Date(2026, 9, 9, 10, 30), 30, busy)).toBe(false);
+  });
+});
+
 describe("backend de la reserva", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -383,7 +500,7 @@ describe("backend de la reserva", () => {
   });
 
   test("pagar en la barbería no pide anticipo mientras esté apagado en Configuración", async () => {
-    const items = [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 15, 0)) }];
+    const items = [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 11, 30)) }];
     const base = { branchId: "ma", items, products: [], tipId: null, promoCode: null, method: "shop" as const };
     // Marcela viene seguido y no ha faltado: reserva en la barbería sin anticipo.
     const regular = await signIn();
@@ -621,6 +738,25 @@ describe("backend de la reserva", () => {
     expect(reservation.totals.discount).toBeGreaterThan(0);
     expect(reservation.payment).toMatchObject({ status: "paid", last4: "4242" });
     expect(db.calendar.appointments.filter((item) => item.createdBy === "Reserva en línea" && item.clientId === "cli_001")).toHaveLength(2);
+  });
+
+  test("una visita en partes se reserva con un barbero por parte, enlazada y anotada; la misma persona no se cruza", async () => {
+    const token = (await signIn()).token;
+    const card = { number: "4242 4242 4242 4242", name: "Marcela Gómez", expiry: "12/30", save: false };
+    const base = { branchId: "ma", products: [], tipId: null, promoCode: null, method: "card" as const, card };
+    const overlap = [
+      { guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 11, 0)), visitId: "visit_1" },
+      { guestId: null, serviceIds: ["svc_barba"], barberId: null, start: toStart(new Date(2026, 9, 9, 11, 15)), visitId: "visit_1" },
+    ];
+    await expect(bookingApi.reserve(token, { ...base, items: overlap })).rejects.toMatchObject({ status: 409 });
+    const chained = [overlap[0], { ...overlap[1], start: toStart(new Date(2026, 9, 9, 11, 30)) }];
+    const reservation = await bookingApi.reserve(token, { ...base, items: chained });
+    expect(reservation.appointments).toHaveLength(2);
+    const created = db.calendar.appointments.filter((item) => reservation.appointments.some((appointment) => appointment.id === item.id));
+    expect(created).toHaveLength(2);
+    expect(new Set(created.map((item) => item.linkId)).size).toBe(1);
+    expect(created[0].linkId).toBeTruthy();
+    expect(created.every((item) => item.notes?.includes("Visita en 2 partes"))).toBe(true);
   });
 
   test("la tarjeta rechazada no reserva nada", async () => {

@@ -261,12 +261,13 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **useBookingEngine.ts** — El motor de la reserva, sin interfaz: la barbería, el catálogo de la sede, el estado (quién reserva, el carri… · `useBookingEngine`
 - **useBookingTotals.ts** — Lo que vale una cita: con barbero elegido (o, sin preferencia, el que la agenda asigna a esa hora), su precio… · `itemPrice`, `fromPrice`, `itemDuration`, `packageCoverage`, `useBookingTotals`, `DraftOrderLine`, `draftOrderLines`
 - **versions.ts** — Las maneras de reservar que se pueden ver en la vista previa. · `BookingVersion`, `BOOKING_VERSIONS`, `isBookingVersion`
+- **visit.ts** — Quién va a la cita: una misma persona no puede estar en dos sillas a la vez. · `personKey`, `BusyRange`, `busyRanges`, `overlapsBusy`, `CartGroup`, `cartGroups`
 
 ### booking/flow
 
 - **AddCard.tsx** — Las tarjetas que suman algo a la reserva («Agregar otra cita», «Agregar productos»): secundarias, sin botón,… · `ADD_CARD_CLASS`, `AddCardArrow`, `AddCard` · piezas: IconTile, Text · usa: @/icons
 - **AlternativeBarbers.tsx** — Cuando el barbero elegido no tiene horas ese día: otros que hacen los mismos servicios, ordenados por cuánto… · `AlternativeBarbers` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AppointmentCard.tsx** — Una cita como la lee el cliente, la misma en el resumen, en la confirmación y en «Mis citas». · `AppointmentCardData`, `AppointmentCard` · piezas: Avatar, AvatarFallback, AvatarImage, Button, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AppointmentDetailSheet.tsx** — «Ver detalle»: la cita como una ficha — el día grande, la hora de inicio a fin, y debajo qué, con quién, para… · `AppointmentDetailSheet` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
 - **BarberProfileDrawer.tsx** — El perfil de un barbero: quién es, sus trabajos y lo que cobra por cada servicio. · `BarberProfileDrawer`, `BarberAvatar`, `BarberProfileBody` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Chip, Heading, Rating, Text · usa: @/app/i18n, @/icons
 - **BookingContext.ts** — Lo que comparten los pasos de la reserva: el estado, la barbería, el catálogo de la sede elegida, los formato… · `BookingLayout`, `BookingFlowValue`, `BookingFlowProvider`, `useBookingFlow`
@@ -292,6 +293,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ManageSignIn.tsx** — Entrar a «Mis citas»: el celular y un código por SMS. · `ManageSignIn` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/lib/api
 - **MembershipPerk.tsx** — La membresía del cliente, en el pago: cada tantas visitas gana un servicio de cortesía. · `MembershipPerk` · piezas: ProgressRing, Switch, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **NewCardSheet.tsx** — Agregar una tarjeta en su propia hoja, como el catálogo de productos o el perfil del barbero: la tarjeta dibu… · `NewCardSheet` · piezas: Button · usa: @/app/i18n, @/icons
+- **NextToPart.tsx** — Al separar un servicio, lo natural es encadenarlo: justo después (o justo antes) de la otra parte de la visit… · `NextToPart` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/icons
 - **OrderSummary.tsx** — «Tu orden»: lo comprado, el descuento, el impuesto, la propina, los cargos (recargo por tarjeta) y el total,… · `OrderLine`, `OrderSummary` · piezas: Separator, Text · usa: @/app/i18n
 - **PackagesToggle.tsx** — En el pago: si sus paquetes cubren algo de esta reserva, lo dice y deja usarlos o guardarlos para otra vez. · `PackagesToggle` · piezas: Switch, Text · usa: @/app/i18n, @/icons
 - **PayIdentity.tsx** — Quién paga, justo antes de pagar: el código y, si es la primera vez, su ficha. · `PayIdentity` · piezas: Button, Field, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
@@ -314,6 +316,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **SendReceiptDialog.tsx** — Enviar el recibo por correo, por SMS o por los dos a la vez. · `SendReceiptDialog` · piezas: Button, Checkbox, Field, Input, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/useResetOnChange, @/lib/utils
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
+- **VisitGroup.tsx** — Las partes de una misma visita (un servicio separado para otro barbero u otra hora), juntas y unidas por una… · `VisitGroup` · piezas: Button, Text · usa: @/app/i18n, @/icons
+- **VisitPartNote.tsx** — Al armar una parte de una visita, en Barbero y en Hora: cuál de las partes es y de qué servicio, para que se… · `VisitPartNote` · piezas: Text · usa: @/app/i18n, @/icons
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **WaitlistSignIn.tsx** — La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para apuntarse; sin confirm… · `WaitlistSignIn` · piezas: Button · usa: @/app/i18n, @/icons
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
@@ -349,7 +353,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PhoneStep.tsx** — La puerta: el celular. · `PhoneStep`
 - **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para su ficha en la barbería. · `ProfileStep` · piezas: Button, Checkbox, Field, Input, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Heading, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
+- **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, Skeleton, Switch, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, EmptyState, IconTile, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
 - **VerifyStep.tsx** — El código que llegó al celular. · `VerifyStep` · piezas: Button, Field, InputOtp, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **WaitlistedStep.tsx** — El final de quien no apartó hora pero se apuntó en la lista de espera: la certeza de que quedó apuntado, en q… · `WaitlistedStep` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils

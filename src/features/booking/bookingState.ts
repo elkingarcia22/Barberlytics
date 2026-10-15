@@ -192,7 +192,11 @@ export type BookingAction =
   /** «Juntar todo» desde la parte en curso: la visita entera vuelve a ser una sola cita, desde el barbero. */
   | { type: "exitVisit" }
   /** Desde una parte del «por separado», reabre la anterior (ya apartada) para corregirla. */
-  | { type: "previousPart" };
+  | { type: "previousPart" }
+  /** «Empezar de nuevo» desde la cabecera: la reserva vuelve a cero, sin olvidar quién es ni la sede. */
+  | { type: "startOver" }
+  /** Deshacer el «empezar de nuevo»: la reserva como estaba. */
+  | { type: "restoreState"; state: BookingState };
 
 let keySeed = 0;
 const nextKey = (): string => {
@@ -410,6 +414,13 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
       return exitVisit(state);
     case "previousPart":
       return previousPart(state);
+    case "startOver": {
+      // Quien ya es cliente vuelve a su bienvenida; el nuevo, a elegir servicios (con su sede, si ya la tiene).
+      const kept = { ...initialBookingState(state.tipId), phone: state.phone, token: state.token, customer: state.customer, verified: state.verified, pendingProfile: state.pendingProfile, branchId: state.branchId };
+      return state.customer && !state.customer.isNew ? { ...kept, step: "welcome" } : { ...kept, draft: emptyDraft(), step: state.branchId ? "services" : "branch" };
+    }
+    case "restoreState":
+      return action.state;
     case "splitService":
       return splitService(state, action.index, action.serviceId);
     case "joinVisit":

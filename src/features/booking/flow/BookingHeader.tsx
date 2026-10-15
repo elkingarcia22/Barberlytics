@@ -5,8 +5,12 @@ import { Progress } from "@/components/ui/progress";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { defaultBranchId, PROGRESS_STEPS, progressIndex, progressSteps } from "../bookingState";
+import { toast } from "./bookingToast";
 import { useBookingFlow } from "./BookingContext";
 import { ShopBrand } from "./ShopBrand";
+
+/** Más que un aviso normal: da tiempo a deshacer «Empezar de nuevo». */
+const UNDO_MS = 6000;
 
 const STEP_LABELS: Record<(typeof PROGRESS_STEPS)[number], AppMessageKey> = {
   branch: "booking.step.branch",
@@ -46,8 +50,20 @@ export function BookingHeader({ onBack, trailing }: BookingHeaderProps) {
       )}
     </div>
   );
+  // Mientras se arma la reserva: empezar de cero, con «Deshacer» por si fue sin querer.
+  const startOver = () => {
+    const before = state;
+    dispatch({ type: "startOver" });
+    toast(t("booking.header.startedOver"), { duration: UNDO_MS, action: { label: t("booking.review.undo"), onClick: () => dispatch({ type: "restoreState", state: before }) } });
+  };
   const end = (
-    <div className="flex shrink-0 items-center justify-end gap-1">
+    <div className={cn("flex shrink-0 items-center justify-end gap-1", !isWide && "w-10")}>
+      {showProgress && (
+        <Button type="button" variant="ghost" size={isWide ? "sm" : "icon-sm"} onClick={startOver} aria-label={t("booking.header.startOver")}>
+          <ThemaIcon name="refresh" />
+          {isWide && t("booking.header.startOver")}
+        </Button>
+      )}
       {/* «Mis citas» solo en monitor, con texto; en celular y tablet se llega desde la bienvenida. */}
       {isWide && state.customer && state.step !== "manage" && state.step !== "confirmed" && (
         <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "openManage" })}>

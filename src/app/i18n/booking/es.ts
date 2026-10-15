@@ -51,6 +51,8 @@ export const bookingEs = {
 
   // ── Cabecera del flujo ──
   "booking.header.back": "Atrás",
+  "booking.header.startOver": "Empezar de nuevo",
+  "booking.header.startedOver": "Empezamos de cero.",
   "booking.header.stepOf": "Paso {current} de {total}",
   "booking.header.myAppointments": "Mis citas",
   "booking.header.call": "Llamar a la barbería",
@@ -337,9 +339,8 @@ export const bookingEs = {
   "booking.visit.stubOf": "de {total}",
   "booking.visit.next": "Luego: {services}",
   "booking.visit.lastPart": "La última de tu visita",
-  "booking.visit.doneLine": "Ya apartaste {service} · {time}",
-  "booking.visit.doneLine_plural": "Ya apartaste {count} · la última, {service} · {time}",
-  "booking.visit.previous": "Parte anterior",
+  "booking.visit.doneLine": "Listo: {service} · {time}",
+  "booking.visit.doneLine_plural": "{count} listas · {service} · {time}",
   "booking.visit.split": "Separar",
   "booking.visit.splitAria": "Separar {service}: hacerlo con otro barbero u otra hora",
   "booking.visit.title": "Tu visita en {count} partes",

@@ -46,6 +46,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
 
 
   "booking.header.back": "Back",
+  "booking.header.startOver": "Start over",
+  "booking.header.startedOver": "Started from scratch.",
   "booking.header.stepOf": "Step {current} of {total}",
   "booking.header.myAppointments": "My appointments",
   "booking.header.call": "Call the shop",
@@ -319,9 +321,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.visit.stubOf": "of {total}",
   "booking.visit.next": "Next: {services}",
   "booking.visit.lastPart": "The last one of your visit",
-  "booking.visit.doneLine": "Already booked: {service} · {time}",
-  "booking.visit.doneLine_plural": "Already booked {count} · last, {service} · {time}",
-  "booking.visit.previous": "Previous part",
+  "booking.visit.doneLine": "Done: {service} · {time}",
+  "booking.visit.doneLine_plural": "{count} done · {service} · {time}",
   "booking.visit.split": "Split",
   "booking.visit.splitAria": "Split {service}: book it with another barber or at another time",
   "booking.visit.title": "Your visit in {count} parts",

@@ -126,26 +126,48 @@ export function PersonSheet({ open, onOpenChange, person, onChoose }: { open: bo
   );
 }
 
+interface PersonPickerProps {
+  /** La pregunta; por defecto «¿Para quién es la cita?». */
+  label?: string;
+  /**
+   * En una sola fila y sin título a la vista (el talón de cada parte): «Para mí» y otra ficha que es
+   * «Otra persona» o, ya elegida, su nombre; tocarla abre la hoja para cambiarla.
+   */
+  compact?: boolean;
+}
+
 /**
  * «¿Para quién es la cita?». Para mí, o para otra persona: ver `PersonSheet`.
  */
-export function PersonPicker({ label }: { /** La pregunta; por defecto «¿Para quién es la cita?». */ label?: string } = {}) {
+export function PersonPicker({ label, compact = false }: PersonPickerProps = {}) {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
   const [isOpen, setIsOpen] = React.useState(false);
   const person = state.draft?.person ?? { kind: "self" };
+  const question = label ?? t("booking.person.title");
+  const sheet = <PersonSheet open={isOpen} onOpenChange={setIsOpen} person={person} onChoose={(next) => dispatch({ type: "setPerson", person: next })} />;
+
+  if (compact) {
+    return (
+      <section aria-label={question} className="flex min-w-0 flex-nowrap gap-2">
+        <Chip label={t("booking.person.self")} icon="users" size="sm" selected={person.kind === "self"} onClick={() => dispatch({ type: "setPerson", person: { kind: "self" } })} />
+        <Chip label={person.kind === "self" ? t("booking.person.add") : person.name} icon="userAdd" size="sm" tone={person.kind === "self" ? "primary" : "default"} selected={person.kind !== "self"} onClick={() => setIsOpen(true)} className="min-w-0" />
+        {sheet}
+      </section>
+    );
+  }
 
   return (
-    <section aria-label={label ?? t("booking.person.title")} className="flex flex-col gap-2">
+    <section aria-label={question} className="flex flex-col gap-2">
       <Text size="sm" weight="medium">
-        {label ?? t("booking.person.title")}
+        {question}
       </Text>
       <div className="flex flex-wrap gap-2">
         <Chip label={t("booking.person.self")} icon="users" selected={person.kind === "self"} onClick={() => dispatch({ type: "setPerson", person: { kind: "self" } })} />
         {person.kind !== "self" && <Chip label={person.relation ? `${person.name} · ${person.relation}` : person.name} selected onClick={() => setIsOpen(true)} />}
         <Chip label={person.kind === "self" ? t("booking.person.add") : t("booking.person.change")} icon="userAdd" tone="primary" onClick={() => setIsOpen(true)} />
       </div>
-      <PersonSheet open={isOpen} onOpenChange={setIsOpen} person={person} onChoose={(next) => dispatch({ type: "setPerson", person: next })} />
+      {sheet}
     </section>
   );
 }

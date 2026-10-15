@@ -4,7 +4,7 @@ import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
-import { previousPartIndex, type DraftItem } from "../bookingState";
+import type { DraftItem } from "../bookingState";
 import { parseStart } from "../bookingFormat";
 import { visitPartOf } from "../visit";
 import { useBookingFlow } from "./BookingContext";
@@ -53,7 +53,6 @@ export function VisitPartNote({ items, withPerson = false, showDone = false }: V
   const pending = (state.pendingParts ?? []).map((id) => nameOf([id]));
   const done = (items ?? state.items).filter((item, index) => item.visitId === draft.visitId && index !== state.editingIndex && item.start);
   const lastDone = done.at(-1);
-  const canGoBack = previousPartIndex(state) >= 0;
 
   return (
     <section
@@ -71,7 +70,7 @@ export function VisitPartNote({ items, withPerson = false, showDone = false }: V
       <span className={cn("absolute -top-2 size-4 rounded-full bg-background", NOTCH_AT)} aria-hidden />
       <span className={cn("absolute -bottom-2 size-4 rounded-full bg-background", NOTCH_AT)} aria-hidden />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3.5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col">
             {/* Hasta dos líneas: con «Juntar todo» al lado, «Arreglo de barba» no cabía en una. */}
@@ -86,28 +85,16 @@ export function VisitPartNote({ items, withPerson = false, showDone = false }: V
             {t("booking.visit.exit")}
           </Button>
         </div>
-        {withPerson && <PersonPicker label={t("booking.visit.forWho")} />}
+        {withPerson && <PersonPicker label={t("booking.visit.forWho")} compact />}
 
-        {(showDone && lastDone) || canGoBack ? (
-          <div className="-mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-border pt-2.5">
-            {/* Lo ya apartado, discreto: una línea que abre la hoja con esas citas. */}
-            {showDone && lastDone?.start && (
-              <button type="button" onClick={() => setIsDoneOpen(true)} aria-haspopup="dialog" className="flex min-w-0 items-center gap-1.5 rounded-md text-left text-xs text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none">
-                <ThemaIcon name="check" size="xs" tone="positive" />
-                <span className="truncate">
-                  {t("booking.visit.doneLine", { count: done.length, service: nameOf(lastDone.serviceIds), time: fmt.time(parseStart(lastDone.start)) })}
-                </span>
-                <span className="shrink-0 font-medium text-primary">{t("booking.agenda.heldSee")}</span>
-              </button>
-            )}
-            {canGoBack && (
-              <Button type="button" variant="link" size="sm" className="ml-auto h-auto px-0 text-xs" onClick={() => dispatch({ type: "previousPart" })}>
-                <ThemaIcon name="arrowLeft" size="xs" />
-                {t("booking.visit.previous")}
-              </Button>
-            )}
-          </div>
-        ) : null}
+        {showDone && lastDone?.start && (
+          // Lo ya apartado, discreto: una línea que abre la hoja con esas citas. Volver a la anterior es «Atrás».
+          <button type="button" onClick={() => setIsDoneOpen(true)} aria-haspopup="dialog" className="-mb-1 flex min-w-0 items-center gap-1.5 border-t border-border pt-2.5 text-left text-xs text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none">
+            <ThemaIcon name="check" size="xs" tone="positive" />
+            <span className="min-w-0 flex-1 truncate">{t("booking.visit.doneLine", { count: done.length, service: nameOf(lastDone.serviceIds), time: fmt.time(parseStart(lastDone.start)) })}</span>
+            <span className="shrink-0 font-medium text-primary">{t("booking.agenda.heldSee")}</span>
+          </button>
+        )}
       </div>
       {showDone && (
         <BookingOverlay open={isDoneOpen} onOpenChange={setIsDoneOpen} title={t("booking.agenda.heldTitle", { count: done.length })} description={t("booking.agenda.heldLead")}>

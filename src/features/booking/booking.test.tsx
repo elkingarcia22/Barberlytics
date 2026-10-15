@@ -450,6 +450,14 @@ describe("visita en partes", () => {
     expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_tratamiento"], draft: { serviceIds: ["svc_barba"] }, items: [expect.objectContaining({ serviceIds: ["svc_corte"], start: "2026-10-09T11:00" })] });
   });
 
+  test("«Empezar de nuevo» vacía la reserva sin olvidar quién es; deshacer la deja como estaba", () => {
+    const before = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    const state = bookingReducer(before, { type: "startOver" });
+    expect(state).toMatchObject({ step: "welcome", items: [], draft: null, token: "bk_test", customer: { firstName: "Marcela" }, branchId: "ma" });
+    expect(state.pendingParts ?? []).toEqual([]);
+    expect(bookingReducer(state, { type: "restoreState", state: before })).toBe(before);
+  });
+
   test("separando desde el resumen no hay «parte anterior»: «Atrás» descarta como siempre", () => {
     const state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
     expect(bookingReducer(state, { type: "previousPart" })).toBe(state);

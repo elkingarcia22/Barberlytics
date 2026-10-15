@@ -14,7 +14,7 @@ describe("TicketCard", () => {
     expect(container.querySelector('[data-slot="ticket-body"]')).toHaveTextContent("Fade");
   });
 
-  test("las dos muescas llevan filo para conservar la forma", () => {
+  test("las dos muescas llevan su arco con filo para conservar la forma", () => {
     const { container } = render(<TicketCard stub="1">Cuerpo</TicketCard>);
     const notches = container.querySelectorAll("span[aria-hidden].rounded-full");
     expect(notches).toHaveLength(2);

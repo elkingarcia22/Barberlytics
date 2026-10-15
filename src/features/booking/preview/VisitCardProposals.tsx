@@ -1,55 +1,18 @@
 import * as React from "react";
-import { Chip } from "@/components/ai-interaction";
 import { ProgressRing } from "@/components/data-display/ProgressRing";
 import { Heading, Text } from "@/components/typography";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
+import { ExitButton, PersonChips } from "./ProposalBits";
+import { CURRENT, PARTS } from "./proposalData";
+import { TicketVariants } from "./TicketVariants";
 
 /*
  * Exploración de diseño (solo en la vista previa): cinco formas de la tarjeta de la parte de una
  * visita «por separado». Mismos datos en todas: la parte 2 de 3, con el corte ya apartado.
  */
-
-type PartState = "done" | "current" | "pending";
-
-interface DemoPart {
-  service: string;
-  state: PartState;
-  /** Lo apartado: hora y barbero. */
-  detail?: string;
-}
-
-const PARTS: readonly DemoPart[] = [
-  { service: "Corte clásico", state: "done", detail: "10:00 a. m. · Emilio · Para mí" },
-  { service: "Fade", state: "current" },
-  { service: "Corte niño", state: "pending" },
-];
-const CURRENT = PARTS.findIndex((part) => part.state === "current");
-const PEOPLE = ["Para mí", "Santiago · Hijo"] as const;
-
-/** «¿Para quién?»: las mismas fichas en todas, con su elección propia. */
-function PersonChips({ size = "md" }: { size?: "sm" | "md" }) {
-  const [person, setPerson] = React.useState<string>(PEOPLE[0]);
-  return (
-    <div className="flex flex-wrap gap-2">
-      {PEOPLE.map((name) => (
-        <Chip key={name} label={name} icon={name === PEOPLE[0] ? "users" : undefined} size={size} selected={person === name} onClick={() => setPerson(name)} />
-      ))}
-      <Chip label="Otra persona" icon="userAdd" tone="primary" size={size} onClick={() => setPerson(PEOPLE[0])} />
-    </div>
-  );
-}
-
-function ExitButton({ className }: { className?: string }) {
-  return (
-    <Button type="button" variant="ghost" size="sm" className={cn("h-7 shrink-0", className)}>
-      Juntar todo
-    </Button>
-  );
-}
 
 /** 1 · Tira de pasos: sin caja, como el progreso de la reserva; los servicios son las etapas. */
 function StripProposal() {
@@ -266,6 +229,8 @@ export function VisitCardProposals() {
               </Text>
             </div>
             {proposal.render()}
+            {/* La que gustó: sus variaciones, ahí mismo. */}
+            {proposal.id === "ticket" && <TicketVariants />}
           </section>
         ))}
       </div>

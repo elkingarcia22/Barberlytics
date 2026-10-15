@@ -6,7 +6,7 @@ import { ErrorState } from "@/lib/query";
 import { PortalContainerProvider } from "@/components/ui/portal-container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { defaultBranchId, type BookingAction, type BookingState } from "./bookingState";
+import { defaultBranchId, previousPartIndex, type BookingAction, type BookingState } from "./bookingState";
 import { BookingFlowProvider, useBookingFlow, type BookingLayout } from "./flow/BookingContext";
 import { BookingHeader } from "./flow/BookingHeader";
 import { BookingSummaryAside } from "./flow/BookingSummaryAside";
@@ -82,7 +82,8 @@ function backAction(state: BookingState, shop: BookingShop): BookingAction | nul
       // Con la sede ya dada (única, o la de siempre del cliente) no hay paso de sede al que volver.
       return defaultBranchId(state.customer, shop.branches.map((branch) => branch.id)) === null ? { type: "goTo", step: "branch" } : identity;
     case "barber":
-      return { type: "goTo", step: "services" };
+      // Parte por parte: «Atrás» reabre la parte anterior para corregirla, no los servicios.
+      return previousPartIndex(state) >= 0 ? { type: "previousPart" } : { type: "goTo", step: "services" };
     case "time":
       return { type: "goTo", step: "barber" };
     case "review":

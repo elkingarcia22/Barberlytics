@@ -165,11 +165,18 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
         <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} withPerson={Boolean(state.customer)} />
         {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
         {state.customer && !draft?.visitId && <PersonPicker />}
-        <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
-        {/* Con dos o más servicios: cada uno con su barbero u hora. Encendido, desaparece: la tarjeta de la parte trae «Juntar todo». */}
-        {!editing && serviceIds.length > 1 && !draft?.visitId && (
-          <SeparateServicesSwitch checked={false} onCheckedChange={(checked) => checked && dispatch({ type: "bookSeparately" })} count={serviceIds.length} />
-        )}
+        <AgendaSelectFields
+          barbers={barbers}
+          usualId={usualId}
+          onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined}
+          afterServices={
+            // Con dos o más servicios, pegado a ellos: cada uno con su barbero u hora. Encendido desaparece
+            // (la tarjeta de la parte trae «Juntar todo»).
+            !editing && serviceIds.length > 1 && !draft?.visitId ? (
+              <SeparateServicesSwitch checked={false} onCheckedChange={(checked) => checked && dispatch({ type: "bookSeparately" })} count={serviceIds.length} />
+            ) : undefined
+          }
+        />
       </section>
 
       {/* El día y la hora aparecen cuando les toca, como cada pregunta: con sede y servicios ya respondidos. */}

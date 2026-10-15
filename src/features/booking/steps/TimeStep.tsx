@@ -69,7 +69,7 @@ export function TimeStep() {
 
   return (
     <StepLayout title={t("booking.time.title")} lead={t("booking.time.lead")}>
-      <VisitPartNote />
+      <VisitPartNote showDone />
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-subtle p-3">
         {barber ? (
           <Avatar>

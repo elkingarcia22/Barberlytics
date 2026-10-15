@@ -108,6 +108,8 @@ export interface BookingState {
    * orden. Al guardar una parte se abre la siguiente, desde el barbero.
    */
   pendingParts?: string[];
+  /** Se va armando parte por parte desde «por separado»: «Atrás» desde una parte vuelve a la anterior. */
+  partQueue?: boolean;
 }
 
 export interface PendingProfile {
@@ -188,7 +190,9 @@ export type BookingAction =
   /** Desde Servicios: cada servicio elegido va en su propia parte de la visita, uno tras otro. */
   | { type: "bookSeparately" }
   /** «Juntar todo» desde la parte en curso: la visita entera vuelve a ser una sola cita, desde el barbero. */
-  | { type: "exitVisit" };
+  | { type: "exitVisit" }
+  /** Desde una parte del «por separado», reabre la anterior (ya apartada) para corregirla. */
+  | { type: "previousPart" };
 
 let keySeed = 0;
 const nextKey = (): string => {
@@ -226,7 +230,7 @@ function commitDraft(state: BookingState, draft: DraftItem): BookingState {
     const next: DraftItem = { ...emptyDraft(), serviceIds: [nextService], visitId: draft.visitId };
     return { ...state, items, draft: next, editingIndex: null, fromReview: true, undoItems: null, pendingParts: rest, step: "barber" };
   }
-  return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], step: "review" };
+  return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], partQueue: false, step: "review" };
 }
 
 /** Cada servicio elegido, su parte: se arma la primera y las demás esperan en `pendingParts`. */
@@ -235,7 +239,7 @@ function bookSeparately(state: BookingState): BookingState {
   if (!draft || draft.serviceIds.length < 2) return state;
   const [first, ...rest] = draft.serviceIds;
   const part: DraftItem = { ...draft, serviceIds: [first], visitId: nextVisitId(state.items), barberId: null, barberChosen: false, start: null, assignedBarberId: null };
-  return { ...state, draft: part, pendingParts: rest, step: "barber" };
+  return { ...state, draft: part, pendingParts: rest, partQueue: true, step: "barber" };
 }
 
 /** Es la primera parte de un «por separado» y aún no se guardó ninguna: se puede deshacer. */
@@ -247,7 +251,7 @@ function isFirstPendingPart(state: BookingState): boolean {
 /** Deshace el «por separado» desde la primera parte: los servicios vuelven a estar juntos en una cita. */
 function unsplitDraft(state: BookingState): BookingState {
   if (!state.draft || !isFirstPendingPart(state)) return state;
-  return { ...state, draft: { ...state.draft, serviceIds: [...state.draft.serviceIds, ...(state.pendingParts ?? [])], visitId: undefined }, pendingParts: [] };
+  return { ...state, draft: { ...state.draft, serviceIds: [...state.draft.serviceIds, ...(state.pendingParts ?? [])], visitId: undefined }, pendingParts: [], partQueue: false };
 }
 
 /**
@@ -261,7 +265,26 @@ function exitVisit(state: BookingState): BookingState {
   const serviceIds = [...new Set([...parts.flatMap((item) => item.serviceIds), ...draft.serviceIds, ...(state.pendingParts ?? [])])];
   const items = state.items.filter((item) => item.visitId !== draft.visitId);
   const together: DraftItem = { ...draft, serviceIds, person: parts[0]?.person ?? draft.person, visitId: undefined, barberId: null, barberChosen: false, start: null, assignedBarberId: null };
-  return { ...state, items, draft: together, editingIndex: null, pendingParts: [], undoItems: null, step: state.step === "time" ? "barber" : state.step };
+  return { ...state, items, draft: together, editingIndex: null, pendingParts: [], partQueue: false, undoItems: null, step: state.step === "time" ? "barber" : state.step };
+}
+
+/** La parte anterior ya apartada de esta visita, si se viene armando parte por parte. */
+export function previousPartIndex(state: BookingState): number {
+  const draft = state.draft;
+  if (!draft?.visitId || !state.partQueue) return -1;
+  return state.items.findLastIndex((item) => item.visitId === draft.visitId);
+}
+
+/**
+ * Vuelve a la parte anterior para corregirla: sale del carrito y se reabre en su hora (con su barbero
+ * y su persona); el servicio de ahora vuelve a la cola, el primero, y se arma al guardarla otra vez.
+ */
+function previousPart(state: BookingState): BookingState {
+  const index = previousPartIndex(state);
+  const draft = state.draft;
+  if (index < 0 || !draft) return state;
+  const previous = state.items[index];
+  return { ...state, items: state.items.filter((_, at) => at !== index), draft: { ...previous }, editingIndex: null, pendingParts: [...draft.serviceIds, ...(state.pendingParts ?? [])], step: "time" };
 }
 
 /** Volver a Servicios desde la primera parte deshace el «por separado». */
@@ -379,12 +402,14 @@ export function bookingReducer(state: BookingState, action: BookingAction): Book
     case "discardDraft": {
       // Al separar o juntar, descartar devuelve el carrito como estaba.
       const items = state.undoItems ?? state.items;
-      return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], step: items.length > 0 ? "review" : state.step };
+      return { ...state, items, draft: null, editingIndex: null, fromReview: false, undoItems: null, pendingParts: [], partQueue: false, step: items.length > 0 ? "review" : state.step };
     }
     case "bookSeparately":
       return bookSeparately(state);
     case "exitVisit":
       return exitVisit(state);
+    case "previousPart":
+      return previousPart(state);
     case "splitService":
       return splitService(state, action.index, action.serviceId);
     case "joinVisit":

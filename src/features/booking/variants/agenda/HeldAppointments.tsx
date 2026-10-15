@@ -4,12 +4,10 @@ import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
-import { personName } from "../../bookingState";
 import { parseStart } from "../../bookingFormat";
-import { AppointmentCard } from "../../flow/AppointmentCard";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { BookingOverlay } from "../../flow/BookingOverlay";
-import { itemDuration, itemPrice } from "../../useBookingTotals";
+import { HeldCards } from "../../flow/HeldCards";
 
 /**
  * Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la
@@ -56,27 +54,7 @@ export function HeldAppointments({ count, onBack }: { count: number; onBack?: ()
       )}
 
       <BookingOverlay open={open} onOpenChange={setOpen} title={t("booking.agenda.heldTitle", { count })} description={t("booking.agenda.heldLead")}>
-        <div className="flex flex-col gap-3">
-          {held.map((item) => {
-            const barber = catalog?.barbers.find((entry) => entry.id === item.barberId);
-            return (
-              <AppointmentCard
-                key={item.key}
-                data={{
-                  personName: personName(item.person, state.customer) || t("booking.person.self"),
-                  relation: item.person.kind === "self" ? null : item.person.relation,
-                  services: serviceNames(item.serviceIds),
-                  barberName: barber?.name ?? t("booking.review.noPreference"),
-                  barberAvatarUrl: barber?.avatarUrl,
-                  day: item.start ? fmt.day(parseStart(item.start)) : "",
-                  time: item.start ? fmt.time(parseStart(item.start)) : "",
-                  duration: t("booking.review.minutes", { count: itemDuration(item.serviceIds, catalog) }),
-                  price: fmt.money(itemPrice(item, catalog)),
-                }}
-              />
-            );
-          })}
-        </div>
+        <HeldCards items={held} />
       </BookingOverlay>
     </>
   );

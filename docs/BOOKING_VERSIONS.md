@@ -168,7 +168,11 @@ quién es la cita?» y cada parte lo pregunta en su tarjeta (`VisitPartNote`: un
 2a de la pestaña «Propuestas»— con «Parte N de M», el servicio, lo que sigue, «Juntar todo» y
 «¿Para quién es este servicio?»). «Juntar
 todo» sale del «por separado» a mitad de camino: todas las partes vuelven a una sola cita (acción
-`exitVisit`). Mientras se está por separado, el interruptor no se muestra. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
+`exitVisit`). Mientras se está por separado, el interruptor no se muestra.
+El cuerpo del talón va en grafito. En Paso a paso, una línea discreta («Ya apartaste Corte clásico
+· 10:00 a. m. · Ver») abre la hoja con las partes ya apartadas, y «Parte anterior» (o «Atrás» desde
+el barbero) reabre la parte anterior en su hora para corregirla: el servicio de ahora vuelve a la
+cola (acción `previousPart`). En la Agenda el interruptor va pegado debajo de Servicios. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
 
 **Una misma persona no está en dos sillas**: las horas que se cruzan con otra cita suya del carrito
 no salen (vale para cualquier cita, no solo las partes) y el servidor responde `409` si llegan. En el

@@ -437,6 +437,24 @@ describe("visita en partes", () => {
     expect(state).toMatchObject({ step: "barber", items: [], pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, start: null, visitId: undefined } });
   });
 
+  test("parte por parte, «Atrás» reabre la anterior en su hora y el servicio de ahora vuelve a la cola", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-04" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    expect(state.draft?.serviceIds).toEqual(["svc_barba"]);
+    state = bookingReducer(state, { type: "previousPart" });
+    expect(state).toMatchObject({ step: "time", items: [], pendingParts: ["svc_barba", "svc_tratamiento"], draft: { serviceIds: ["svc_corte"], barberId: "team-04", start: "2026-10-09T10:00" } });
+    // Corregida la hora, sigue con la barba como antes.
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
+    expect(state).toMatchObject({ step: "barber", pendingParts: ["svc_tratamiento"], draft: { serviceIds: ["svc_barba"] }, items: [expect.objectContaining({ serviceIds: ["svc_corte"], start: "2026-10-09T11:00" })] });
+  });
+
+  test("separando desde el resumen no hay «parte anterior»: «Atrás» descarta como siempre", () => {
+    const state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
+    expect(bookingReducer(state, { type: "previousPart" })).toBe(state);
+  });
+
   test("reabrir la cita que se elige sigue en la misma visita (la Agenda)", () => {
     const state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_barba"], barberId: "team-02", visitId: "visit_9" });
     expect(state.draft).toMatchObject({ serviceIds: ["svc_barba"], barberId: "team-02", visitId: "visit_9" });

@@ -339,7 +339,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **DemoSite.tsx** — Un sitio de barbería de ejemplo con el widget puesto: el botón flotante abajo a la derecha abre la reserva en… · `DemoSite` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Grain, Halo, Heading, IconTile, Text, agentPanelTransition · usa: @/app/i18n, @/icons, @/lib/utils
 - **DeviceFrame.tsx** · `PreviewDevice`, `DeviceFrame` · piezas: Text · usa: @/icons, @/lib/utils
 - **ProposalBits.tsx** — «¿Para quién?»: las mismas fichas en todas las propuestas, cada una con su elección propia. · `PersonChips`, `ExitButton` · piezas: Button, Chip · usa: @/lib/utils
-- **TicketVariants.tsx** — Las variaciones del talón, debajo de la propuesta 2, con su nombre y en qué cambian. · `TicketVariants` · piezas: Avatar, AvatarFallback, Button, Text · usa: @/icons, @/lib/utils
+- **TicketVariants.tsx** — Las variaciones del talón, debajo de la propuesta 2: misma estructura, otra piel. · `TicketVariants` · piezas: Grain, Text · usa: @/lib/utils
 - **VisitCardProposals.tsx** — «Propuestas» en la vista previa: las cinco tarjetas una debajo de otra, con su nombre y en qué se distinguen,… · `VisitCardProposals` · piezas: Avatar, AvatarFallback, Heading, IconTile, ProgressRing, Text · usa: @/icons, @/lib/utils
 - **portalSlot.tsx** — Pinta `children` dentro del nodo de `usePortalNode`, esté donde esté. · `PortalContent`, `PortalSlot`
 - **proposalData.ts** · `PartState`, `DemoPart`, `PARTS`, `CURRENT`, `PEOPLE`

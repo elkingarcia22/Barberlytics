@@ -318,7 +318,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ShopBrand.tsx** — La marca de la barbería en la reserva: la misma pieza del menú lateral de la app. · `ShopBrand` · piezas: BrandSlot
 - **StepLayout.tsx** — El molde de cada paso: título que dice qué se decide aquí, el contenido y un pie pegado abajo con el botón pr… · `StepLayout` · piezas: Heading, Text · usa: @/lib/utils
 - **VisitGroup.tsx** — Las partes de una misma visita (un servicio separado para otro barbero u otra hora), juntas y unidas por una… · `VisitGroup` · piezas: Button, Text · usa: @/app/i18n, @/icons
-- **VisitPartNote.tsx** — Al armar una parte de una visita: qué parte es («1 de 3»), de qué servicio, cómo va la visita (las hechas, es… · `VisitPartNote` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **VisitPartNote.tsx** — Al armar una parte de una visita, un talón (la piel «dorada» de las propuestas): qué parte es («2 de 3»), de… · `VisitPartNote` · piezas: Button, Text · usa: @/app/i18n, @/lib/utils
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **WaitlistSignIn.tsx** — La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para apuntarse; sin confirm… · `WaitlistSignIn` · piezas: Button · usa: @/app/i18n, @/icons
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`

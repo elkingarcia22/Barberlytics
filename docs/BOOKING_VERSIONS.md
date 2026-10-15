@@ -164,8 +164,9 @@ Emilio a las 10:00 y la barba con Andrés justo después). Hay dos entradas:
 Las partes comparten `visitId` (`DraftItem`) y se agrupan en el resumen bajo «Tu visita en N partes»
 con «Juntar de nuevo» (vuelve una sola cita y pide la hora). **Cada parte puede ser de alguien
 distinto** (yo el corte, mi hijo el suyo): con el interruptor encendido, Servicios esconde «¿Para
-quién es la cita?» y cada parte lo pregunta en su tarjeta (`VisitPartNote`: una franja de color con
-«Parte N de M» y «Juntar todo», los servicios numerados y «¿Para quién es este servicio?»). «Juntar
+quién es la cita?» y cada parte lo pregunta en su tarjeta (`VisitPartNote`: un talón dorado —la piel
+2a de la pestaña «Propuestas»— con «Parte N de M», el servicio, lo que sigue, «Juntar todo» y
+«¿Para quién es este servicio?»). «Juntar
 todo» sale del «por separado» a mitad de camino: todas las partes vuelven a una sola cita (acción
 `exitVisit`). Mientras se está por separado, el interruptor no se muestra. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
 

@@ -19,7 +19,7 @@ import { useBookingSkin } from "../flow/bookingSkin";
 import { CallCard, ScheduleHeading } from "../flow/ScheduleParts";
 import { timesByWindow } from "../variants/agenda/agendaModel";
 import { TimeWindows } from "../variants/agenda/AgendaLanes";
-import { DayStrip } from "../variants/agenda/DayStrip";
+import { DayStrip } from "@/components/scheduling";
 import { VisitPartNote } from "../flow/VisitPartNote";
 import { WaitlistSignIn } from "../flow/WaitlistSignIn";
 import { useAvailabilityQuery, useEarliestQuery } from "../queries";

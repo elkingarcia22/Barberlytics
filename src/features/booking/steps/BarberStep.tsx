@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { initialsOf } from "../bookingFormat";
 import { useBookingFlow } from "../flow/BookingContext";
 import { BarberProfileDrawer } from "../flow/BarberProfileDrawer";
-import { SelectMark } from "../flow/SelectMark";
+import { SelectMark } from "@/components/selection";
 import { StepLayout } from "../flow/StepLayout";
 import { VisitPartNote } from "../flow/VisitPartNote";
 import type { BookingBarber } from "../types";

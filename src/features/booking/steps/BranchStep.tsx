@@ -9,7 +9,7 @@ import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
 import { BranchProfileSheet } from "../flow/BranchProfileSheet";
-import { SelectMark } from "../flow/SelectMark";
+import { SelectMark } from "@/components/selection";
 import { StepLayout } from "../flow/StepLayout";
 
 /**

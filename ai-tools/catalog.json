@@ -1,5 +1,5 @@
 {
-  "sourceHash": "de5f6c08839a2504",
+  "sourceHash": "574c5c73665c155e",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -6780,6 +6780,72 @@
       "ficha": "ai-tools/components/table-shell.md"
     },
     {
+      "id": "ticket-card",
+      "name": "TicketCard",
+      "group": "data-display",
+      "description": "Una entrada: a la izquierda el talón —un número, una etiqueta— y, tras una línea de puntos con sus dos muescas, el cuerpo con lo que importa. Sirve para decir «en qué parte vas» sin parecer otra tarjeta más; la reserva la usa para marcar cada parte de una visita en la que cada servicio va con su barbero. En oscuro el cuerpo es grafito; en claro, una superficie blanca con filo: el gris suave se confundía con el fondo.",
+      "import": "import { TicketCard } from \"@/components/data-display\"",
+      "source": "src/components/data-display/TicketCard.tsx",
+      "status": "stable",
+      "tags": [
+        "card",
+        "ticket",
+        "step",
+        "booking"
+      ],
+      "props": [
+        {
+          "name": "stub",
+          "type": "ReactNode",
+          "default": null,
+          "description": "El talón: número y etiqueta. Es decorativo para el lector de pantalla: repite lo importante en el cuerpo o en `aria-label`."
+        },
+        {
+          "name": "tone",
+          "type": "\"brand\" | \"neutral\"",
+          "default": "\"brand\"",
+          "description": "Talón relleno de marca o gris suave."
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "default": null,
+          "description": "El cuerpo: título, lo que sigue y las acciones."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Solo para el layout de afuera."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Dale un `aria-label` que diga lo que dice el talón («Parte 2 de 3 de tu visita»).",
+          "Mantén el cuerpo corto: dos o tres líneas; es una marca, no un formulario."
+        ],
+        "dont": [
+          "No lo repitas en una lista larga: pierde su gracia y se vuelve una tarjeta más.",
+          "No cambies el borde ni el radio con `className`: las muescas dependen de ellos."
+        ]
+      },
+      "related": [
+        "card",
+        "timeline",
+        "progress-ring"
+      ],
+      "examples": [
+        {
+          "id": "neutral",
+          "title": "Talón neutro",
+          "description": "Con `tone=\"neutral\"` el talón es un gris suave: para cuando el dorado ya está en otra parte de la pantalla.",
+          "code": "<TicketCard tone=\"neutral\" stub={<Stub current={1} total={2} />}>…</TicketCard>"
+        }
+      ],
+      "docs": "/docs#/components/ticket-card",
+      "ficha": "ai-tools/components/ticket-card.md"
+    },
+    {
       "id": "timeline",
       "name": "Timeline",
       "group": "data-display",
@@ -11140,6 +11206,71 @@
       "ficha": "ai-tools/components/company-menu.md"
     },
     {
+      "id": "cover-hero",
+      "name": "CoverHero",
+      "group": "layout",
+      "description": "La portada de una pantalla: la foto arriba, encuadrada donde está la cara y fundida hacia abajo, con la columna del contenido montada sobre ella, y CoverTitle para el título encima. En claro la foto va entera y algo más clara y el título en vidrio ahumado; en oscuro un velo la cubre. Es el arranque de los pasos de elegir de la reserva en línea.",
+      "import": "import { CoverHero, CoverTitle } from \"@/components/layout\"",
+      "source": "src/components/layout/CoverHero.tsx",
+      "status": "stable",
+      "tags": [
+        "hero",
+        "cover",
+        "photo",
+        "booking"
+      ],
+      "props": [
+        {
+          "name": "imageUrl",
+          "type": "string | null",
+          "default": null,
+          "description": "La foto de fondo."
+        },
+        {
+          "name": "wide",
+          "type": "boolean",
+          "default": "false",
+          "description": "Más alta, para pantallas anchas."
+        },
+        {
+          "name": "columnClassName",
+          "type": "string",
+          "default": null,
+          "description": "El ancho de la columna (lo pone el marco: `max-w-…`)."
+        },
+        {
+          "name": "title / lead / aside",
+          "type": "CoverTitle",
+          "default": null,
+          "description": "CoverTitle: el título en vidrio, su bajada y lo que va a la derecha."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsala una vez por pantalla, arriba de todo.",
+          "Pon el título con CoverTitle: sobre la foto el texto normal no contrasta."
+        ],
+        "dont": [
+          "No la uses en pantallas de datos: es para pasos de elegir con imagen de marca.",
+          "No pongas una foto con texto o logos: el título ya va encima."
+        ]
+      },
+      "related": [
+        "page-shell",
+        "header"
+      ],
+      "examples": [
+        {
+          "id": "no-image",
+          "title": "Sin foto",
+          "description": "Sin `imageUrl` solo queda el espacio: el contenido no salta cuando la foto tarda.",
+          "code": "<CoverHero columnClassName=\"max-w-md\"><CoverTitle title=\"Elige tus servicios\" /></CoverHero>"
+        }
+      ],
+      "docs": "/docs#/components/cover-hero",
+      "ficha": "ai-tools/components/cover-hero.md"
+    },
+    {
       "id": "header",
       "name": "Header",
       "group": "layout",
@@ -13873,6 +14004,90 @@
       "ficha": "ai-tools/components/template-catalog-drawer.md"
     },
     {
+      "id": "day-strip",
+      "name": "DayStrip",
+      "group": "scheduling",
+      "description": "La tira de días de la reserva: el día de la semana arriba y el número grande, en fila y deslizable con el dedo, arrastrando con el ratón o con la rueda. Elegir uno cambia lo de debajo —las horas libres de ese día—. El de hoy se llama «Hoy» y un punto señala los días con algo ya apartado.",
+      "import": "import { DayStrip } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/DayStrip.tsx",
+      "status": "stable",
+      "tags": [
+        "calendar",
+        "day",
+        "booking",
+        "strip"
+      ],
+      "props": [
+        {
+          "name": "first",
+          "type": "Date",
+          "default": null,
+          "description": "El primer día que se ofrece (hoy, o mañana si hoy ya cerró)."
+        },
+        {
+          "name": "count",
+          "type": "number",
+          "default": null,
+          "description": "Cuántos días hacia delante."
+        },
+        {
+          "name": "value",
+          "type": "Date",
+          "default": null,
+          "description": "El día elegido."
+        },
+        {
+          "name": "onChange",
+          "type": "(day: Date) => void",
+          "default": null,
+          "description": "Se llama con el día tocado."
+        },
+        {
+          "name": "marked",
+          "type": "ReadonlySet<string>",
+          "default": null,
+          "description": "Fechas AAAA-MM-DD que llevan un punto."
+        },
+        {
+          "name": "size",
+          "type": "\"default\" | \"lg\"",
+          "default": "\"default\"",
+          "description": "`lg` para el dedo (tablet, kiosco)."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "default": null,
+          "description": "El nombre del grupo para el lector de pantalla; por defecto «Elige el día»."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pon debajo lo que depende del día (las horas libres) y recárgalo al cambiar.",
+          "Dale a `first` el primer día reservable: si hoy ya cerró, mañana."
+        ],
+        "dont": [
+          "No lo uses para meses ni rangos: para eso están DatePicker y Calendar.",
+          "No lo metas dentro de otra tira con scroll horizontal."
+        ]
+      },
+      "related": [
+        "time-slot-groups",
+        "time-slot-picker",
+        "date-picker"
+      ],
+      "examples": [
+        {
+          "id": "marked",
+          "title": "Con días marcados",
+          "description": "`marked` lleva las fechas (AAAA-MM-DD) que ya tienen una cita en el carrito: un punto bajo el número.",
+          "code": "<DayStrip first={firstBookableDay} count={21} value={day} onChange={setDay} marked={daysWithAppointments} />"
+        }
+      ],
+      "docs": "/docs#/components/day-strip",
+      "ficha": "ai-tools/components/day-strip.md"
+    },
+    {
       "id": "month-occupancy-grid",
       "name": "MonthOccupancyGrid",
       "group": "scheduling",
@@ -14146,6 +14361,71 @@
       ],
       "docs": "/docs#/components/resource-day-grid",
       "ficha": "ai-tools/components/resource-day-grid.md"
+    },
+    {
+      "id": "time-slot-groups",
+      "name": "TimeSlotGroups",
+      "group": "scheduling",
+      "description": "Las horas libres de un día repartidas por franja —mañana, tarde, noche—, cada una una pastilla que se toca para elegirla. La elegida se queda a la vista con su check y cada hora puede llevar algo a la derecha, como las caras de los barberos que pueden atender. Quien llama arma las franjas; el componente solo las pinta.",
+      "import": "import { TimeSlotGroups } from \"@/components/scheduling\"",
+      "source": "src/components/scheduling/TimeSlotGroups.tsx",
+      "status": "stable",
+      "tags": [
+        "calendar",
+        "time",
+        "booking",
+        "slots"
+      ],
+      "props": [
+        {
+          "name": "groups",
+          "type": "TimeSlotGroup[]",
+          "default": null,
+          "description": "Las franjas: `id`, `label` y sus `options`."
+        },
+        {
+          "name": "groups[].options",
+          "type": "TimeSlotOption[]",
+          "default": null,
+          "description": "Cada hora: `time` (lo que vuelve), `label` (lo que se lee), `selected`, `disabled`, `ariaLabel` y `trailing`."
+        },
+        {
+          "name": "onPick",
+          "type": "(time: string) => void",
+          "default": null,
+          "description": "Se llama con el `time` de la hora tocada."
+        },
+        {
+          "name": "size",
+          "type": "\"default\" | \"lg\"",
+          "default": "\"default\"",
+          "description": "`lg` para el dedo (tablet, kiosco)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Pásale solo las franjas que tienen horas: una franja vacía no se dibuja.",
+          "Usa `ariaLabel` cuando la hora necesita contexto («9:00 a. m. con Emilio»)."
+        ],
+        "dont": [
+          "No lo uses para elegir fecha: para eso, DayStrip.",
+          "No pongas texto largo en `trailing`: es para caras o iconos."
+        ]
+      },
+      "related": [
+        "day-strip",
+        "time-slot-picker"
+      ],
+      "examples": [
+        {
+          "id": "plain",
+          "title": "Solo horas",
+          "description": "Sin `trailing`, la pastilla es solo la hora.",
+          "code": "<TimeSlotGroups groups={groups} onPick={setPicked} />"
+        }
+      ],
+      "docs": "/docs#/components/time-slot-groups",
+      "ficha": "ai-tools/components/time-slot-groups.md"
     },
     {
       "id": "time-slot-picker",
@@ -14920,6 +15200,182 @@
       ],
       "docs": "/docs#/components/selectable-card",
       "ficha": "ai-tools/components/selectable-card.md"
+    },
+    {
+      "id": "selectable-row",
+      "name": "SelectableRow",
+      "group": "selection",
+      "description": "Una fila de lista para elegir, con foto, texto y la marca de elegir a la derecha (SelectMark). El fondo —puntero y elegido— es de la fila entera, también cuando lleva un enlace o algo más debajo. Es la fila de las hojas de sede, servicios y barbero de la reserva en línea.",
+      "import": "import { SelectableRow } from \"@/components/selection\"",
+      "source": "src/components/selection/SelectableRow.tsx",
+      "status": "stable",
+      "tags": [
+        "selection",
+        "list",
+        "radio",
+        "checkbox"
+      ],
+      "props": [
+        {
+          "name": "role",
+          "type": "\"radio\" | \"checkbox\"",
+          "default": null,
+          "description": "Una sola opción o varias: pone el rol, `aria-checked` y la forma de la marca."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "default": null,
+          "description": "Elegida: fondo de marca y marca rellena."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": null,
+          "description": "El nombre completo de la opción para el lector de pantalla."
+        },
+        {
+          "name": "leading",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Lo de la izquierda: foto, avatar o IconTile."
+        },
+        {
+          "name": "onClick",
+          "type": "() => void",
+          "default": null,
+          "description": "Se llama al elegir."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": "false",
+          "description": "Atenuada y sin respuesta."
+        },
+        {
+          "name": "size",
+          "type": "\"default\" | \"lg\"",
+          "default": "\"default\"",
+          "description": "`lg` sube el alto mínimo para el dedo (tablet, kiosco)."
+        },
+        {
+          "name": "action",
+          "type": "{ label; ariaLabel; onClick }",
+          "default": null,
+          "description": "Un enlace bajo el texto («Ver perfil»), como botón aparte."
+        },
+        {
+          "name": "below",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Algo más bajo el texto, dentro de la misma tarjeta."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Para el layout de afuera."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsala en listas dentro de hojas y paneles, con el rol de grupo en el contenedor.",
+          "Pon la foto en `leading` con IconTile: sin imagen cae a su icono."
+        ],
+        "dont": [
+          "No metas un botón dentro del texto: usa `action`.",
+          "No la uses para acciones: elegir no navega ni ejecuta."
+        ]
+      },
+      "related": [
+        "select-mark",
+        "option-tile",
+        "list-item",
+        "selectable-card"
+      ],
+      "examples": [
+        {
+          "id": "radio",
+          "title": "Elegir una: sedes",
+          "description": "Con role=\"radio\" la marca es un círculo; el contenedor pone role=\"radiogroup\". «Ver detalle» es otro botón al lado de la fila, no dentro.",
+          "code": "<div role=\"radiogroup\" aria-label=\"Sede\" className=\"flex flex-col gap-0.5\">\n  {branches.map((branch) => (\n    <SelectableRow key={branch.id} role=\"radio\" checked={value === branch.id} label={`${branch.name}, ${branch.address}`} leading={<IconTile … />} onClick={() => setValue(branch.id)} action={{ label: \"Ver detalle\", ariaLabel: …, onClick: … }}>\n      …\n    </SelectableRow>\n  ))}\n</div>"
+        },
+        {
+          "id": "checkbox",
+          "title": "Elegir varias: servicios",
+          "description": "Con role=\"checkbox\" la marca es una casilla.",
+          "code": "<div role=\"group\" aria-label=\"Servicios\" className=\"flex flex-col gap-0.5\">\n  {services.map((service) => (\n    <SelectableRow key={service.id} role=\"checkbox\" checked={picked.includes(service.id)} label={service.name} leading={<IconTile … />} onClick={() => toggle(service.id)}>\n      …\n    </SelectableRow>\n  ))}\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/selectable-row",
+      "ficha": "ai-tools/components/selectable-row.md"
+    },
+    {
+      "id": "select-mark",
+      "name": "SelectMark",
+      "group": "selection",
+      "description": "La marca de elegir de las opciones que no son un control nativo —tarjetas y filas con foto, texto y acciones—: un círculo si se elige una opción y una casilla si se pueden varias, vacía mientras no se elige y rellena con su check al elegirla. Es lo que hace que sedes, servicios y barberos se lean como la misma familia, sean tarjetas o filas de una lista.",
+      "import": "import { SelectMark } from \"@/components/selection\"",
+      "source": "src/components/selection/SelectMark.tsx",
+      "status": "stable",
+      "tags": [
+        "primitive",
+        "selection",
+        "radio",
+        "checkbox"
+      ],
+      "props": [
+        {
+          "name": "kind",
+          "type": "\"radio\" | \"checkbox\"",
+          "default": "\"radio\"",
+          "description": "Círculo (una opción) o casilla (varias)."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "default": "false",
+          "description": "Elegida: relleno de marca con su check."
+        },
+        {
+          "name": "size",
+          "type": "\"default\" | \"sm\"",
+          "default": "\"default\"",
+          "description": "24 px o 20 px."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Solo para ubicarla (márgenes, posición)."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Ponla dentro del botón que ya lleva `role` y `aria-checked`: ella solo dibuja el estado.",
+          "Úsala igual en tarjetas y en filas: el cliente lee la misma marca en cada paso."
+        ],
+        "dont": [
+          "No la uses suelta como control: no es focusable ni anuncia nada.",
+          "No pongas un radio nativo al lado: la marca ya es el indicador."
+        ]
+      },
+      "related": [
+        "selectable-row",
+        "checkbox",
+        "radio-group",
+        "selectable-card"
+      ],
+      "examples": [
+        {
+          "id": "states",
+          "title": "Formas y estados",
+          "description": "Círculo para una sola opción (sede, barbero) y casilla para varias (servicios).",
+          "code": "<SelectMark kind=\"radio\" />\n<SelectMark kind=\"radio\" checked />\n<SelectMark kind=\"checkbox\" />\n<SelectMark kind=\"checkbox\" checked />"
+        }
+      ],
+      "docs": "/docs#/components/select-mark",
+      "ficha": "ai-tools/components/select-mark.md"
     },
     {
       "id": "template-tile",
@@ -20260,6 +20716,91 @@
       ],
       "docs": "/docs#/components/upload-zone",
       "ficha": "ai-tools/components/upload-zone.md"
+    },
+    {
+      "id": "action-tile",
+      "name": "ActionTile",
+      "group": "utility",
+      "description": "Una tarjeta pulsable con icono, título y una pista: «Agregar otra cita», «Enviar recibo», «Avísame si se libera una hora». Es la acción secundaria que ocupa su propio sitio sin ser un botón. Tres tonos —neutro, punteada y de marca— y dos disposiciones, en fila o apilada para ponerlas en rejilla.",
+      "import": "import { ActionTile } from \"@/components/utility\"",
+      "source": "src/components/utility/ActionTile.tsx",
+      "status": "stable",
+      "tags": [
+        "card",
+        "action",
+        "tile",
+        "booking"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Lo que hace."
+        },
+        {
+          "name": "description",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Una pista, o varias líneas apiladas."
+        },
+        {
+          "name": "leading",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Un IconTile (a la izquierda; arriba en `stacked`)."
+        },
+        {
+          "name": "tone",
+          "type": "\"default\" | \"dashed\" | \"accent\"",
+          "default": "\"default\"",
+          "description": "Neutro, punteada (opcional) o de marca (algo que se suma)."
+        },
+        {
+          "name": "layout",
+          "type": "\"row\" | \"stacked\"",
+          "default": "\"row\"",
+          "description": "En fila, o apilada para rejillas."
+        },
+        {
+          "name": "chevron",
+          "type": "boolean",
+          "default": null,
+          "description": "La flecha de la derecha; por defecto solo en `row`."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "default": null,
+          "description": "Si se pasa, es un enlace en vez de un botón."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsala para acciones secundarias que no deben competir con el botón principal.",
+          "Mantén el título en un verbo («Agregar», «Enviar») y la pista en una línea."
+        ],
+        "dont": [
+          "No la uses para elegir entre opciones: para eso, SelectableRow o MagicCard con SelectMark.",
+          "No pongas dos tonos de marca juntos: pierde su lugar."
+        ]
+      },
+      "related": [
+        "button",
+        "selectable-row",
+        "icon-tile",
+        "magic-card"
+      ],
+      "examples": [
+        {
+          "id": "grid",
+          "title": "En rejilla, apiladas",
+          "description": "Con `layout=\"stacked\"` el icono va arriba y no hay flecha: lo que se puede hacer con una cita ya confirmada.",
+          "code": "<div className=\"grid grid-cols-2 gap-2\">\n  {actions.map((action) => (\n    <ActionTile key={action.id} layout=\"stacked\" leading={<IconTile … />} title={action.title} description={action.description} onClick={action.onClick} />\n  ))}\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/action-tile",
+      "ficha": "ai-tools/components/action-tile.md"
     },
     {
       "id": "icon-tile",

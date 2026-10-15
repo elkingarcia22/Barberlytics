@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**205 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
+**212 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -101,7 +101,7 @@ Campos, secciones y selects compuestos.
 - **SearchableSelect** [searchable-select] — Un select de una sola opción con búsqueda integrada en el popover, filtrada por cmdk. `@/components/forms`
 - **SingleSelect** [single-select] — El select de una opción con el mismo trigger y lista que MultiSelect: fondo muted, filas redondeadas y check a la derecha. `@/components/forms/SingleSelect`
 
-## Selección · 7
+## Selección · 9
 
 Tarjetas, tiles y controles segmentados para elegir.
 
@@ -111,6 +111,8 @@ Tarjetas, tiles y controles segmentados para elegir.
 - **RadioCardGroup** [radio-card-group] — Las mismas tarjetas de CardSelection, pero montadas sobre Radix RadioGroup: navegación con flechas, roving tabindex y un input oculto con n… `@/components/selection`
 - **SegmentedControl** [segmented-control] — Un grupo de botones pegados para alternar entre pocas opciones excluyentes, en tres variantes (sólido, contorno y subrayado) y dos tamaños. `@/components/selection`
 - **SelectableCard** [selectable-card] — La tarjeta individual que usan CardSelection y CheckboxCardGroup, expuesta como pieza suelta con `selected` y `onSelect`. `@/components/selection`
+- **SelectableRow** [selectable-row] — Una fila de lista para elegir, con foto, texto y la marca de elegir a la derecha (SelectMark). `@/components/selection`
+- **SelectMark** [select-mark] — La marca de elegir de las opciones que no son un control nativo —tarjetas y filas con foto, texto y acciones—: un círculo si se elige una o… `@/components/selection`
 - **TemplateTile** [template-tile] — La ficha de una plantilla: fondo degradado en su tono, una miniatura que dibuja las líneas que trae con sus barras de peso, la insignia cla… `@/components/templates`
 
 ## Navegación · 9
@@ -157,7 +159,7 @@ Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flota
 - **FeedbackLauncher** [feedback-launcher] (beta) — El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). `@/components/feedback-loop`
 - **GuidedTour** [guided-tour] (beta) — Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por… `@/components/feedback-loop`
 
-## Datos · 13
+## Datos · 14
 
 Tablas configurables y badges de estado.
 
@@ -172,6 +174,7 @@ Tablas configurables y badges de estado.
 - **Tabla configurable** [table-config] — El kit para que una tabla recuerde cómo quiere verla cada persona: qué columnas, en qué orden, cuáles quedan fijadas al desplazar de lado y… `@/components/data-display/table-config`
 - **TableHeaderControls** [table-header-controls] — Los controles que viven en los encabezados de toda tabla seleccionable: el menú de selección masiva, el encabezado que ordena y filtra por… `@/components/data-display/TableHeaderControls`
 - **TableShell** [table-shell] — La tarjeta que envuelve una tabla: título, descripción y acciones en la cabecera, y el estado vacío resuelto por defecto. `@/components/data-display/TableShell`
+- **TicketCard** [ticket-card] — Una entrada: a la izquierda el talón —un número, una etiqueta— y, tras una línea de puntos con sus dos muescas, el cuerpo con lo que import… `@/components/data-display`
 - **Timeline** [timeline] — Línea de tiempo de eventos: un punto o icono de 24px sobre una línea vertical continua, con título, hora y una descripción o cuerpo opciona… `@/components/data-display/Timeline`
 - **Tree** [tree] — Árbol jerárquico con expansión y selección: empresa → áreas → equipos, o cualquier estructura anidada que haya que recorrer o elegir. `@/components/data-display/Tree`
 
@@ -191,12 +194,14 @@ Pickers de fecha, rango, mes, trimestre, periodo y slider de rango.
 - **RangeSlider** [range-slider] — Slider de dos manejadores para acotar un rango numérico, con etiqueta, valores visibles y formateador propio. `@/components/range`
 - **Utilidades de fecha** [date-utils] — Funciones puras sobre Date nativo e Intl.DateTimeFormat que usan todos los pickers: formateo por locale, rangos, comparación sin hora y lím… `@/components/date`
 
-## Agenda · 3
+## Agenda · 5
 
 La rejilla del día por barbero, la ocupación del mes y el selector de fecha y hora.
 
+- **DayStrip** [day-strip] — La tira de días de la reserva: el día de la semana arriba y el número grande, en fila y deslizable con el dedo, arrastrando con el ratón o… `@/components/scheduling`
 - **MonthOccupancyGrid** [month-occupancy-grid] (beta) — El mes de un barbero (o del equipo) día por día: cuánta de la jornada está reservada, en porcentaje y en barra, y cuántas citas hay. `@/components/scheduling`
 - **ResourceDayGrid** [resource-day-grid] (beta) — El día de una barbería: una columna por barbero, las horas hacia abajo y cada cita como tarjeta en la columna de quien la atiende. `@/components/scheduling`
+- **TimeSlotGroups** [time-slot-groups] — Las horas libres de un día repartidas por franja —mañana, tarde, noche—, cada una una pastilla que se toca para elegirla. `@/components/scheduling`
 - **TimeSlotPicker** [time-slot-picker] (beta) — Elegir cuándo: una tira de días para la fecha y, debajo, las horas repartidas en mañana, tarde y noche como chips. `@/components/scheduling`
 
 ## Archivos · 7
@@ -268,7 +273,7 @@ La barra de acciones flotante y sus piezas.
 - **RailSelectionChip** [rail-selection-chip] — «N seleccionadas ✕»: el lector de selección que toda barra flotante muestra mientras una tabla tiene filas marcadas. `@/components/action-rail`
 - **RailSettingsMenu** [rail-settings-menu] — Los ajustes propios de la barra —en qué eje se tiende y si se oculta sola— detrás de un solo botón, para no gastar dos huecos de icono en c… `@/components/action-rail`
 
-## Layout y shell · 12
+## Layout y shell · 13
 
 Sidebar, header, shell de administración y páginas.
 
@@ -278,6 +283,7 @@ Sidebar, header, shell de administración y páginas.
 - **AppHeader** [app-header] — La franja de 56px del AdminShell. `@/components/app-shell/AppHeader`
 - **AppSidebar** [app-sidebar] — El sidebar del AdminShell, en dos capas: un rail de iconos de 64px que está siempre y no se mueve, y un panel de 240px que se desliza por e… `@/components/app-shell/AppSidebar`
 - **CompanyMenu** [company-menu] — El espacio de trabajo activo y su cambio. `@/components/app-shell/CompanyMenu`
+- **CoverHero** [cover-hero] — La portada de una pantalla: la foto arriba, encuadrada donde está la cara y fundida hacia abajo, con la columna del contenido montada sobre… `@/components/layout`
 - **Header** [header] — La franja superior de 80px del shell: migas, título y descripción a la izquierda; buscador y notificaciones a la derecha. `@/components/layout`
 - **PageShell** [page-shell] — El `<main>` de una página: hace scroll por su cuenta, pone el padding de página y centra el contenido en una columna con ancho máximo. `@/components/layout`
 - **ProcessCenter** [process-center] (beta) — El Centro de procesos de la cabecera: lo que sigue trabajando aunque la persona cambie de pantalla —importaciones, subidas, exportaciones—… `@/components/app-shell`
@@ -296,10 +302,11 @@ Carrusel, galerías y previsualizaciones.
 - **PreviewCard** [preview-card] — La tarjeta individual de un `MediaItem`: imagen 16:9 o icono por tipo, badge, título, metadato y descripción, con un pie opcional de accion… `@/components/media`
 - **ThemaCarousel** [thema-carousel] — Envoltorio del Carousel de shadcn con cabecera de sección, flechas y puntos de paginación resueltos. `@/components/media`
 
-## Utilidades · 4
+## Utilidades · 5
 
 Encabezados de página y sección, tags.
 
+- **ActionTile** [action-tile] — Una tarjeta pulsable con icono, título y una pista: «Agregar otra cita», «Enviar recibo», «Avísame si se libera una hora». `@/components/utility`
 - **IconTile** [icon-tile] — Un icono sobre una baldosa tintada: fondo al 10 % del tono y glifo en el color pleno, en cuatro tamaños (28, 36, 48 y 64px) y dos formas. `@/components/utility/IconTile`
 - **PageHeader** [page-header] — El encabezado de nivel superior de una pantalla: breadcrumbs, título h1 con descripción, acciones primarias a la derecha y una fila de meta… `@/components/utility`
 - **SectionHeader** [section-header] — El encabezado de una sección interna de página: eyebrow, título en 18px, descripción y un slot de acciones alineado abajo a la derecha, cer… `@/components/utility`

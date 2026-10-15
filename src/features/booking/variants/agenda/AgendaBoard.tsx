@@ -27,7 +27,7 @@ import { ableBarbers, timesByWindow } from "./agendaModel";
 import { TimeWindows } from "./AgendaLanes";
 import { HeldAppointments } from "./HeldAppointments";
 import { AgendaSelectFields } from "./AgendaSelectFields";
-import { DayStrip } from "./DayStrip";
+import { DayStrip } from "@/components/scheduling";
 
 /** Lo de siempre ya está puesto: el atajo sobra. */
 /** «HH:mm» de una hora del día, como la escriben las franjas. */

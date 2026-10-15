@@ -95,7 +95,7 @@ del tablero), y la hora con la tira de días grande y las horas por franja. El o
 cambia. Paso a paso, por sí sola, sigue con su cara.
 
 **Un solo lenguaje de elegir.** Toda opción —tarjeta o fila de lista— lleva al lado la misma marca
-(`SelectMark`): círculo si se elige una (sede, barbero), casilla si se pueden varias (servicios), vacía
+(`SelectMark`, del sistema): círculo si se elige una (sede, barbero), casilla si se pueden varias (servicios), vacía
 mientras no se elige y rellena con su check al elegirla. La usan las tarjetas de Paso a paso y las
 filas de las hojas de la Agenda (`PickerRow`). El perfil del barbero y de la sede es un enlace bajo el
 texto, igual en las dos. El calendario trae lo mismo en Agenda en lista y en «Según el cliente»:
@@ -222,3 +222,23 @@ En las demás versiones:
   el enlace público la lleva en `?version=`.
 - El intérprete de la conversación es por reglas; un modelo real entraría detrás de `interpret`.
 - Medir en el embudo qué versión convierte mejor (hoy todas cuentan en los mismos pasos).
+
+
+## Piezas del sistema que usa la reserva
+
+Todo lo genérico vive en `src/components` y tiene su ficha en `/docs` (nada de piezas propias de la
+reserva que el producto pueda querer en otra pantalla):
+
+| Pieza | Familia | Qué hace en la reserva |
+|---|---|---|
+| `SelectMark`, `SelectableRow` | Selección | La marca de elegir y las filas de las hojas de sede, servicios y barbero. |
+| `DayStrip`, `TimeSlotGroups` | Agenda | La tira de días y las horas por franja (con las caras de los barberos a la derecha). |
+| `TicketCard` | Datos | El talón de cada parte de una visita (`VisitPartNote`). |
+| `CoverHero`, `CoverTitle` | Layout | La foto de portada con el título en vidrio (`AgendaCover`). |
+| `ActionTile` | Utilidades | «Agregar otra cita», las acciones de la cita confirmada, «Avísame si se libera» y las sedes de la portada. |
+
+En `src/features/booking` quedan adaptadores finos (`PickerRow`, `TimeWindows`, `AgendaCover`, `AddCard`)
+que solo ponen los datos de la reserva. Pendiente de pasar al sistema, con su razón: las tarjetas de
+tarjeta guardada (`SavedCardPicker`: eligen y además editan o borran), el visor de fotos
+(`PhotoStrip`, `GalleryViewer`), el resumen plegable de `CheckoutRecap` y los atajos de `QuickActions`
+(llevan contador).

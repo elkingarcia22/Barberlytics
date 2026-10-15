@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
 import { toastMissing } from "../flow/missingData";
 import { PersonPicker } from "../flow/PersonPicker";
-import { SelectMark } from "../flow/SelectMark";
+import { SelectMark } from "@/components/selection";
 import { SeparateServicesSwitch } from "../flow/SeparateServicesSwitch";
 import { StepLayout } from "../flow/StepLayout";
 import { fromPrice, itemDuration, itemPrice } from "../useBookingTotals";

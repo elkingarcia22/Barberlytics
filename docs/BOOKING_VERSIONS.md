@@ -93,6 +93,14 @@ Clipper» en los primeros pasos, «Empezar de nuevo» y el progreso fino debajo;
 (sede, servicios, barbero, hora) sobre la foto con el título en vidrio (`AgendaCover`, la misma pieza
 del tablero), y la hora con la tira de días grande y las horas por franja. El orden de los pasos no
 cambia. Paso a paso, por sí sola, sigue con su cara.
+
+**Un solo lenguaje de elegir.** Toda opción —tarjeta o fila de lista— lleva al lado la misma marca
+(`SelectMark`): círculo si se elige una (sede, barbero), casilla si se pueden varias (servicios), vacía
+mientras no se elige y rellena con su check al elegirla. La usan las tarjetas de Paso a paso y las
+filas de las hojas de la Agenda (`PickerRow`). El perfil del barbero y de la sede es un enlace bajo el
+texto, igual en las dos. El calendario trae lo mismo en Agenda en lista y en «Según el cliente»:
+título del día (`ScheduleHeading`), «Lo antes posible», la tira de días, las horas por franja con la
+cara del barbero, «Avísame si se libera una hora» y «¿No encuentras horario?» (`CallCard`).
 ## Conversación
 
 - Se siente como un chat, sin formularios dentro del hilo: lo que se escribe (el celular **solo con

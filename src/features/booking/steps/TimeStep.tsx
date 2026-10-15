@@ -16,6 +16,7 @@ import { NextToPart } from "../flow/NextToPart";
 import { useBookingFlow } from "../flow/BookingContext";
 import { StepLayout } from "../flow/StepLayout";
 import { useBookingSkin } from "../flow/bookingSkin";
+import { CallCard, ScheduleHeading } from "../flow/ScheduleParts";
 import { timesByWindow } from "../variants/agenda/agendaModel";
 import { TimeWindows } from "../variants/agenda/AgendaLanes";
 import { DayStrip } from "../variants/agenda/DayStrip";
@@ -119,6 +120,9 @@ export function TimeStep() {
         </Button>
       </div>
 
+      {/* Mismo orden que la Agenda: el título del día, «Lo antes posible» y la tira. */}
+      {skin === "agenda" && <ScheduleHeading day={day} />}
+
       {parts.length > 0 && !isWaiting && <NextToPart day={day} parts={parts} busy={busy} minutes={minutes} isFree={(date) => free.has(clockOf(date))} onPick={pick} />}
 
       <EarliestSlot isBlocked={isBlocked} />
@@ -161,25 +165,7 @@ export function TimeStep() {
       {!isWaiting && <WaitlistSignIn key={`${dayKeyOf(day)}|${draft.barberId ?? "any"}`} day={day} hasSlots={free.size > 0} />}
 
       {/* Al final de todo: si aquí no hay horario o algo falla, se agenda por teléfono. */}
-      {!isWaiting && (
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-subtle p-3">
-          <IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="phone" />} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Text size="sm" weight="medium">
-              {t("booking.time.callTitle")}
-            </Text>
-            <Text size="xs" tone="muted">
-              {t("booking.time.callLead")}
-            </Text>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <a href={`tel:${branch.phone}`} aria-label={t("booking.time.callAria", { phone: branch.phone })}>
-              <ThemaIcon name="phone" />
-              {t("booking.time.call")}
-            </a>
-          </Button>
-        </div>
-      )}
+      {!isWaiting && <CallCard phone={branch.phone} />}
     </StepLayout>
   );
 }

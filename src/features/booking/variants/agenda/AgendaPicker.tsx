@@ -7,6 +7,7 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon, type IconName } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../../flow/BookingContext";
+import { SelectMark } from "../../flow/SelectMark";
 import { BookingOverlay } from "../../flow/BookingOverlay";
 import { overlayKind } from "../../flow/drawerFit";
 
@@ -311,16 +312,7 @@ export function PickerRow({ role, checked, label, imageUrl, icon, round = false,
     >
       <IconTile size={isLarge ? "lg" : "md"} shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">{children}</span>
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-6 shrink-0 items-center justify-center border transition-colors duration-fast",
-          role === "radio" ? "rounded-full" : "rounded-md",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background group-hover/row:border-primary/50"
-        )}
-      >
-        {checked && <ThemaIcon name="check" size="xs" tone="inverse" />}
-      </span>
+      <SelectMark kind={role === "radio" ? "radio" : "checkbox"} checked={checked} />
     </button>
   );
   if (!hasBelow) return row;

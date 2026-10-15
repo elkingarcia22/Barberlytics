@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
 import { toastMissing } from "../flow/missingData";
 import { PersonPicker } from "../flow/PersonPicker";
+import { SelectMark } from "../flow/SelectMark";
 import { SeparateServicesSwitch } from "../flow/SeparateServicesSwitch";
 import { StepLayout } from "../flow/StepLayout";
 import { fromPrice, itemDuration, itemPrice } from "../useBookingTotals";
@@ -153,15 +154,7 @@ export function ServicesStep() {
                     {t("booking.services.minutes", { count: service.durationMin })} · <span className="font-medium text-text-primary">{t("booking.services.from", { price: fmt.money(fromPrice(service, catalog)) })}</span>
                   </Text>
                 </span>
-                <span
-                  aria-hidden
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors duration-fast",
-                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border text-text-muted"
-                  )}
-                >
-                  <ThemaIcon name={isSelected ? "check" : "plus"} size="xs" tone={isSelected ? "inverse" : "muted"} />
-                </span>
+                <SelectMark kind="checkbox" checked={isSelected} />
               </MagicCard>
             );
           })}

@@ -15,6 +15,7 @@ import { AgendaCover, AgendaCoverTitle } from "../../flow/AgendaCover";
 import { AlternativeBarbers } from "../../flow/AlternativeBarbers";
 import { EarliestSlot } from "../../flow/EarliestSlot";
 import { NextToPart } from "../../flow/NextToPart";
+import { CallCard, ScheduleHeading } from "../../flow/ScheduleParts";
 import { SeparateServicesSwitch } from "../../flow/SeparateServicesSwitch";
 import { VisitPartNote } from "../../flow/VisitPartNote";
 import { PersonPicker } from "../../flow/PersonPicker";
@@ -173,16 +174,8 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
       {/* El día y la hora aparecen cuando les toca, como cada pregunta: con sede y servicios ya respondidos. */}
       {isReady && (
         <section key={`${cascadeKey}-when`} aria-labelledby="agenda-when" className={cn("flex flex-col gap-3", cascade(2))} style={cascadeDelay(2)}>
-          <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            {/* La última pregunta: después de sede, servicios y barbero. */}
-            <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined} className="flex items-center gap-2.5">
-              {/* Por separado: de qué servicio es la hora que se elige. */}
-              {draft?.visitId ? t("booking.visit.whenFor", { service: services.filter((service) => serviceIds.includes(service.id)).map((service) => service.name).join(" + ") }) : t("booking.agenda.whenLabel")}
-            </Text>
-            <Text size="sm" tone="muted" className="first-letter:uppercase">
-              {fmt.dayLong(day)}
-            </Text>
-          </div>
+          {/* La última pregunta: después de sede, servicios y barbero. Por separado: de qué servicio es la hora. */}
+          <ScheduleHeading id="agenda-when" day={day} missing={timeMissing} label={draft?.visitId ? t("booking.visit.whenFor", { service: services.filter((service) => serviceIds.includes(service.id)).map((service) => service.name).join(" + ") }) : undefined} />
           {timeMissing && (
             <Text role="alert" size="sm" tone="negative" weight="medium" className="flex items-center gap-1.5">
               <ThemaIcon name="error" size="sm" tone="negative" />
@@ -260,6 +253,9 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
                 {t("booking.agenda.waitlistSignIn")}
               </Button>
             ))}
+
+          {/* Al final de todo, igual que en Paso a paso: si aquí no hay horario o algo falla, se agenda por teléfono. */}
+          {!isWaiting && branch && <CallCard phone={branch.phone} />}
         </>
       )}
     </AgendaCover>

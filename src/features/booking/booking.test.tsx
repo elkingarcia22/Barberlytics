@@ -427,12 +427,14 @@ describe("visita en partes", () => {
     expect(cartGroups(state.items)).toEqual([expect.objectContaining({ kind: "visit", visitId, parts: expect.arrayContaining([expect.anything(), expect.anything(), expect.anything()]) })]);
   });
 
-  test("apagar el «por separado» en la primera parte vuelve a juntar los servicios sin cambiar de pantalla", () => {
-    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba"], barberId: null, barberChosen: false });
+  test("«Juntar todo» a mitad de camino vuelve una sola cita con todos los servicios, desde el barbero", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, barberChosen: false });
     state = bookingReducer(state, { type: "bookSeparately" });
-    const step = state.step;
-    state = bookingReducer(state, { type: "unsplitDraft" });
-    expect(state).toMatchObject({ step, pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba"], visitId: undefined } });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-04" });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: "team-02" });
+    state = bookingReducer(state, { type: "exitVisit" });
+    expect(state).toMatchObject({ step: "barber", items: [], pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba", "svc_tratamiento"], barberId: null, start: null, visitId: undefined } });
   });
 
   test("reabrir la cita que se elige sigue en la misma visita (la Agenda)", () => {
@@ -455,12 +457,22 @@ describe("visita en partes", () => {
     expect(state).toMatchObject({ step: "services", pendingParts: [], draft: { serviceIds: ["svc_corte", "svc_barba"], visitId: undefined } });
   });
 
-  test("cambiar para quién es una parte cambia toda la visita: es de una sola persona", () => {
+  test("cada parte de una visita puede ser de alguien distinto: yo el corte, mi hijo el suyo", () => {
     let state = bookingReducer(withCombo(), { type: "splitService", index: 0, serviceId: "svc_barba" });
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T11:00" });
     const person = { kind: "new" as const, name: "Santi", relation: "Hijo o hija" };
     state = bookingReducer(state, { type: "setItemPerson", key: state.items[1].key, person });
-    expect(state.items.map((item) => item.person)).toEqual([person, person]);
+    expect(state.items.map((item) => item.person)).toEqual([{ kind: "self" }, person]);
+  });
+
+  test("por separado, cada parte arranca en «Para mí» y se puede poner a nombre de otro; a la misma hora no choca", () => {
+    let state = bookingReducer(known(), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte", "svc_nino"], barberId: null, barberChosen: false });
+    state = bookingReducer(state, { type: "bookSeparately" });
+    state = bookingReducer(state, { type: "chooseBarber", barberId: null });
+    state = bookingReducer(state, { type: "chooseTime", start: "2026-10-09T10:00" });
+    expect(state.draft).toMatchObject({ serviceIds: ["svc_nino"], person: { kind: "self" } });
+    state = bookingReducer(state, { type: "setPerson", person: { kind: "new", name: "Santi", relation: "Hijo o hija" } });
+    expect(busyRanges(state.items, state.draft!, state.editingIndex, () => 30)).toEqual([]);
   });
 
   test("una misma persona no puede estar en dos sillas: sus otras citas tapan esas horas, las de otros no", () => {

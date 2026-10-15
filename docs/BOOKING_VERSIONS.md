@@ -161,9 +161,13 @@ Emilio a las 10:00 y la barba con Andrés justo después). Hay dos entradas:
 - **Desde el resumen**: en una cita con varios servicios, cada uno trae «Separar». Sale a su propia
   parte (la cita conserva barbero y hora) y se abre desde el barbero; echarse atrás lo devuelve.
 
-Las partes comparten `visitId` (`DraftItem`), se agrupan en el resumen bajo «Tu visita en N partes»
-con «Juntar de nuevo» (vuelve una sola cita y pide la hora) y son de una sola persona: cambiarla en
-una la cambia en todas. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
+Las partes comparten `visitId` (`DraftItem`) y se agrupan en el resumen bajo «Tu visita en N partes»
+con «Juntar de nuevo» (vuelve una sola cita y pide la hora). **Cada parte puede ser de alguien
+distinto** (yo el corte, mi hijo el suyo): con el interruptor encendido, Servicios esconde «¿Para
+quién es la cita?» y cada parte lo pregunta en su tarjeta (`VisitPartNote`: una franja de color con
+«Parte N de M» y «Juntar todo», los servicios numerados y «¿Para quién es este servicio?»). «Juntar
+todo» sale del «por separado» a mitad de camino: todas las partes vuelven a una sola cita (acción
+`exitVisit`). Mientras se está por separado, el interruptor no se muestra. Al elegir la hora se propone «justo después / justo antes» de la otra parte.
 
 **Una misma persona no está en dos sillas**: las horas que se cruzan con otra cita suya del carrito
 no salen (vale para cualquier cita, no solo las partes) y el servidor responde `409` si llegan. En el

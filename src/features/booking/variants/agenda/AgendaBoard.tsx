@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
-import { isFirstPendingPart, personName } from "../../bookingState";
+import { personName } from "../../bookingState";
 import { dayKeyOf, firstBookableDay, parseStart } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { STEP_WIDTH } from "../../flow/stepWidth";
@@ -161,17 +161,14 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
       {/* Título y lo que se elige sobre la foto de fondo, sin caja; las horas van debajo. */}
       <section className="flex flex-col gap-5">
         {heading}
-        <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} />
+        {/* Por separado, la tarjeta de la parte dice cuál se elige y, con cuenta, para quién: reemplaza al selector de siempre. */}
+        <VisitPartNote items={state.items.filter((_, index) => index !== heldCount)} withPerson={Boolean(state.customer)} />
         {/* Sin cuenta no hay a quién más elegir: el nombre de quien viene se pide al final, con sus datos. */}
-        {state.customer && <PersonPicker />}
+        {state.customer && !draft?.visitId && <PersonPicker />}
         <AgendaSelectFields barbers={barbers} usualId={usualId} onUsual={usual && !editing && !sameServices(usual.serviceIds, serviceIds) ? applyUsual : undefined} />
-        {/* Con dos o más servicios: cada uno con su barbero u hora. Se apaga mientras no se aparte la primera parte. */}
-        {!editing && ((serviceIds.length > 1 && !draft?.visitId) || isFirstPendingPart(state)) && (
-          <SeparateServicesSwitch
-            checked={isFirstPendingPart(state)}
-            onCheckedChange={(checked) => dispatch(checked ? { type: "bookSeparately" } : { type: "unsplitDraft" })}
-            count={serviceIds.length + (state.pendingParts?.length ?? 0)}
-          />
+        {/* Con dos o más servicios: cada uno con su barbero u hora. Encendido, desaparece: la tarjeta de la parte trae «Juntar todo». */}
+        {!editing && serviceIds.length > 1 && !draft?.visitId && (
+          <SeparateServicesSwitch checked={false} onCheckedChange={(checked) => checked && dispatch({ type: "bookSeparately" })} count={serviceIds.length} />
         )}
       </section>
 
@@ -181,7 +178,8 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0, 
           <div className="flex min-h-8 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             {/* La última pregunta: después de sede, servicios y barbero. */}
             <Text id="agenda-when" size="sm" weight="medium" tone={timeMissing ? "negative" : undefined} className="flex items-center gap-2.5">
-              {t("booking.agenda.whenLabel")}
+              {/* Por separado: de qué servicio es la hora que se elige. */}
+              {draft?.visitId ? t("booking.visit.whenFor", { service: services.filter((service) => serviceIds.includes(service.id)).map((service) => service.name).join(" + ") }) : t("booking.agenda.whenLabel")}
             </Text>
             <Text size="sm" tone="muted" className="first-letter:uppercase">
               {fmt.dayLong(day)}

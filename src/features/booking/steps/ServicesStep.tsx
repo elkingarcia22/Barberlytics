@@ -54,7 +54,7 @@ export function ServicesStep() {
   return (
     <StepLayout
       title={t("booking.services.title")}
-      lead={t("booking.services.lead")}
+      lead={canSeparate && isSeparate ? t("booking.visit.servicesLead") : t("booking.services.lead")}
       footer={
         <div className="flex flex-col gap-3">
           {canSeparate && (
@@ -85,7 +85,8 @@ export function ServicesStep() {
         </div>
       }
     >
-      <PersonPicker />
+      {/* Por separado, para quién se elige en cada parte (puede ser otra persona en cada una). */}
+      {!(canSeparate && isSeparate) && <PersonPicker />}
 
       <div className="flex flex-col gap-3">
         <div className="relative">

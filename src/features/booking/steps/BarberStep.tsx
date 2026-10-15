@@ -35,7 +35,8 @@ export function BarberStep() {
 
   return (
     <StepLayout title={t("booking.barber.title")} lead={t("booking.barber.lead")}>
-      <VisitPartNote />
+      {/* Cada parte de una visita: cuál es y, aquí mismo, para quién (puede ser otra persona). */}
+      <VisitPartNote withPerson />
       {able.length === 0 ? (
         <Alert variant="warning">
           <ThemaIcon name="warning" />

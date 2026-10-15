@@ -129,16 +129,16 @@ export function PersonSheet({ open, onOpenChange, person, onChoose }: { open: bo
 /**
  * «¿Para quién es la cita?». Para mí, o para otra persona: ver `PersonSheet`.
  */
-export function PersonPicker() {
+export function PersonPicker({ label }: { /** La pregunta; por defecto «¿Para quién es la cita?». */ label?: string } = {}) {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
   const [isOpen, setIsOpen] = React.useState(false);
   const person = state.draft?.person ?? { kind: "self" };
 
   return (
-    <section aria-label={t("booking.person.title")} className="flex flex-col gap-2">
+    <section aria-label={label ?? t("booking.person.title")} className="flex flex-col gap-2">
       <Text size="sm" weight="medium">
-        {t("booking.person.title")}
+        {label ?? t("booking.person.title")}
       </Text>
       <div className="flex flex-wrap gap-2">
         <Chip label={t("booking.person.self")} icon="users" selected={person.kind === "self"} onClick={() => dispatch({ type: "setPerson", person: { kind: "self" } })} />

@@ -33,8 +33,9 @@ export function PhotoStrip({ photos, onOpen, className, featured = false }: Phot
               className="group relative block h-44 w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <img src={src} alt="" loading={position < 2 ? "eager" : "lazy"} draggable={false} className="size-full select-none object-cover transition-transform duration-slow ease-out-expo group-hover:scale-105 motion-reduce:transition-none" />
-              <span className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white" aria-hidden>
-                <ThemaIcon name="expand" size="xs" tone="inverse" />
+              <span className="absolute bottom-2 right-2 flex size-7 items-center justify-center rounded-full bg-white/90 shadow-md ring-1 ring-black/10 transition-colors group-hover:bg-white" aria-hidden>
+                {/* Claro con icono oscuro: se lee igual sobre una foto oscura y en modo oscuro (el tono «inverse» se vuelve oscuro ahí). */}
+                <ThemaIcon name="expand" size="xs" className="text-neutral-900" />
               </span>
             </button>
           </CarouselItem>

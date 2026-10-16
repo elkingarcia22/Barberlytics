@@ -2,9 +2,10 @@ import { describe, expect, test, vi } from "vitest";
 import type { CommentEvent } from "../../src/features/booking/comments/commentEvents.js";
 import type { CommentsServerConfig } from "./config.js";
 import { createCommentsService } from "./service.js";
-import { fromRow, toRow, type CommentsStore } from "./sheetStore.js";
+import type { GoogleClient } from "../feedback/google.js";
+import { createSheetStore, fromRow, toRow, type CommentsStore } from "./sheetStore.js";
 
-const config: CommentsServerConfig = { googleServiceAccount: undefined, shareWith: [], sheetId: undefined };
+const config: CommentsServerConfig = { googleServiceAccount: undefined, shareWith: [], linkAccess: undefined, sheetId: undefined };
 const event = (overrides: Partial<CommentEvent> = {}): CommentEvent => ({ id: "e1", at: "2026-10-16T10:00:00.000Z", action: "create", threadId: "t1", messageId: "m1", authorId: "a", authorName: "Ana", body: "Hola", x: 10, y: 20, ...overrides });
 
 function memoryStore(initial: CommentEvent[] = []): CommentsStore & { rows: CommentEvent[] } {
@@ -64,5 +65,31 @@ describe("filas de la hoja", () => {
   test("una fila rota o con una acción desconocida se descarta", () => {
     expect(fromRow(["", "create"])).toBeNull();
     expect(fromRow(["2026-10-16", "inventar", "t1", "", "a", "Ana", "", "", "", "", "", "e1"])).toBeNull();
+  });
+});
+
+describe("abrir la hoja al enlace", () => {
+  const fakeClient = (calls: { url: string; body: unknown }[]): GoogleClient => ({
+    raw: async () => new Response(),
+    json: async <T,>(url: string, init?: { method?: string; body?: unknown }) => {
+      calls.push({ url, body: init?.body });
+      return { values: [["cabecera"]], files: [] } as T;
+    },
+  });
+
+  test("con linkAccess da permiso «anyone» a la hoja, una vez por instancia", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    const store = createSheetStore(fakeClient(calls), { sheetId: "hoja1", linkAccess: "reader" });
+    await store.read();
+    await store.read();
+    const permissions = calls.filter((call) => call.url.includes("/permissions"));
+    expect(permissions).toHaveLength(1);
+    expect(permissions[0].body).toEqual({ type: "anyone", role: "reader" });
+  });
+
+  test("sin linkAccess no cambia los permisos", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    await createSheetStore(fakeClient(calls), { sheetId: "hoja1" }).read();
+    expect(calls.some((call) => call.url.includes("/permissions"))).toBe(false);
   });
 });

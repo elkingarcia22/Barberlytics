@@ -24,7 +24,8 @@ Usa la misma cuenta de servicio del feedback (`docs/FEEDBACK_LOOP.md`):
 | Variable | Para qué |
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | La clave de la cuenta de servicio. |
-| `FEEDBACK_SHARE_WITH` | Correos que reciben edición sobre la hoja al crearla. **Sin esto nadie puede abrirla.** |
+| `FEEDBACK_SHARE_WITH` | Correos que reciben edición sobre la hoja al crearla. **Sin esto ni `COMMENTS_SHEET_LINK_ACCESS`, nadie puede abrirla.** |
+| `COMMENTS_SHEET_LINK_ACCESS` | Opcional: `reader` o `writer` abre la hoja a cualquiera que tenga el enlace (sin listar correos). Se aplica también a una hoja que ya existía. Si la organización de Google bloquea los enlaces públicos, no se aplica y queda solo para `FEEDBACK_SHARE_WITH`. |
 | `COMMENTS_SHEET_ID` | Opcional: el id de una hoja ya existente (compartida con la cuenta de servicio). |
 
 La primera vez que alguien comenta, la función crea «Comentarios · Agendamiento online» (se encuentra

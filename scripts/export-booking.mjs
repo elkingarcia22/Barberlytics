@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRY = "src/booking-app/main.tsx";
-const SERVER_ENTRIES = ["api/tts/index.ts"];
+const SERVER_ENTRIES = ["api/tts/index.ts", "api/comments/index.ts"];
 const CONFIG_FILES = ["vite.config.ts", "tailwind.config.js", "postcss.config.js", "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json", "src/vite-env.d.ts"];
 const PUBLIC_FILES = ["public/mockServiceWorker.js", "public/favicon.svg", "public/apple-touch-icon.png"];
 /** Lo mínimo para compilar y escribir el proyecto; el resto de devDependencies es de pruebas y del sistema. */
@@ -191,7 +191,7 @@ const VERCEL_JSON = (source) => {
     outputDirectory: "dist",
     rewrites: config.rewrites,
     headers,
-    functions: { "api/tts/index.ts": { maxDuration: 30 } },
+    functions: { "api/tts/index.ts": { maxDuration: 30 }, "api/comments/index.ts": { maxDuration: 15 } },
   };
 };
 
@@ -242,12 +242,13 @@ siempre. Para probar: celular \`320 217 2738\` (cliente que vuelve) y código \`
 2. Opcional, la voz natural de Clipper: en *Settings → Environment Variables* agrega
    \`GEMINI_API_KEY\` (gratis en aistudio.google.com; o \`ELEVENLABS_API_KEY\`, \`AZURE_SPEECH_KEY\` + \`AZURE_SPEECH_REGION\`, u \`OPENAI_API_KEY\`).
    Sin ninguna, Clipper usa la voz del navegador. Detalle en \`.env.example\`.
-3. Despliega. Las rutas del cliente caen en \`index.html\`; \`/api/tts\` es la función de la voz.
+3. Opcional, los comentarios de revisión compartidos: \`GOOGLE_SERVICE_ACCOUNT_JSON\` y \`FEEDBACK_SHARE_WITH\` (ver \`.env.example\`). Sin ellos los comentarios solo viven en el navegador.
+4. Despliega. Las rutas del cliente caen en \`index.html\`; \`/api/tts\` es la función de la voz y \`/api/comments\`, la de los comentarios.
 `;
 
 const ENV_EXAMPLE = (source) => {
   const start = source.indexOf("# Voz de Clipper");
-  return `# Solo servidor (función de Vercel api/tts), sin prefijo VITE_.\n${start >= 0 ? source.slice(start) : ""}`;
+  return `# Solo servidor (funciones de Vercel api/tts y api/comments), sin prefijo VITE_.\n${start >= 0 ? source.slice(start) : ""}`;
 };
 
 const NPMRC = "# React 19 con el paquete único radix-ui: las dependencias declaran peers viejos.\nlegacy-peer-deps=true\n";

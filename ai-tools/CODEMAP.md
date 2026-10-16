@@ -265,7 +265,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### booking/comments
 
-- **bookingComments.ts** — Quien comenta en la demo. · `BOOKING_REVIEWER`, `bookingCommentsSeed`
+- **commentEvents.ts** — Los comentarios de revisión se guardan como un registro de acciones, no como el estado final: cada comentario… · `COMMENT_ACTIONS`, `CommentAction`, `MAX_COMMENT_BODY`, `commentEventSchema`, `CommentEvent`, `commentEventsRequestSchema`, `reduceEvents`, `CommentActor`, `newEventId`, `diffThreads`
+- **useSharedComments.ts** — Quién comenta. · `useReviewer`, `useSharedComments`
 
 ### booking/flow
 

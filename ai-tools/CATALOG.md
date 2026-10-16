@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**212 componentes** en 21 familias · 101 iconos en el registro · 113 tokens.
+**215 componentes** en 22 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -158,6 +158,14 @@ Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flota
 - **FeedbackDialog** [feedback-dialog] (beta) — El único diálogo donde se deja feedback, lo abra el menú lateral o el botón de una campaña: tipo (mejora, error o idea), comentario y, si a… `@/components/feedback-loop`
 - **FeedbackLauncher** [feedback-launcher] (beta) — El botón flotante que abre el panel de feedback, fijo en la esquina inferior derecha (`z-rail`). `@/components/feedback-loop`
 - **GuidedTour** [guided-tour] (beta) — Recorrido de coachmarks: una tarjeta por paso con «Paso N de M», barra de progreso y el elemento del paso recortado del velo y rodeado por… `@/components/feedback-loop`
+
+## Comentarios · 3
+
+Comentar sobre la pantalla al estilo Figma: pins en cualquier punto, hilos con respuestas y un panel lateral con filtros.
+
+- **CommentLayer** [comment-layer] — Capa envolvente que superpone los marcadores (pines) interactivos sobre la interfaz. `@/components/comments`
+- **CommentsPanel** [comments-panel] — Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. `@/components/comments`
+- **CommentsToggle** [comments-toggle] — Botón para la cabecera o barra de herramientas que abre o cierra el panel de comentarios. `@/components/comments`
 
 ## Datos · 14
 

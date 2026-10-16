@@ -250,7 +250,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking
 
 - **BookingFlow.tsx** · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, PortalContainerProvider, Skeleton, ThemaToaster · usa: @/app/i18n, @/lib/query, @/lib/utils
-- **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
+- **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, CommentLayer, CommentsPanel, CommentsProvider, CommentsToggle, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
 - **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/branches/${branchId}, GET /booking/catalog, GET /booking/availability, GET /booking/alternatives, GET /booking/earliest, POST /booking/waitlist, DELETE /booking/waitlist/${id}, GET /booking/me/suggestion, POST /booking/customers, PATCH /booking/me/cards/${id}, DELETE /booking/me/cards/${id}, POST /booking/promo, POST /booking/reservations, POST /booking/phone/check, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, GET /booking/barbers/${barberId}/reviews, POST /booking/appointments/${id}/review, POST /booking/events, GET /booking/funnel, POST /booking/packages/buy, POST /booking/gift-cards/check, POST /booking/gift-cards, POST /booking/appointments/${id}/repeat, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/details, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
 - **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `CalendarProvider`, `calendarUrl`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs`, `formatPhone`, `DayHours`, `OpenState`, `openStateOf`, `WEEK_ORDER` · usa: @/i18n
 - **bookingState.ts** — El recorrido de la reserva como datos: en qué paso está, quién reserva, la cita que se está armando y las que… · `BookingStep`, `BookingPerson`, `DraftItem`, `WaitlistEntry`, `BookingState`, `PendingProfile`, `BookingAction`, `initialBookingState`, `previousPartIndex`, `bookingReducer`, `PROGRESS_STEPS`, `ProgressStep`, `progressSteps`, `progressIndex`, `personName`, `defaultBranchId`
@@ -262,6 +262,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **useBookingTotals.ts** — Lo que vale una cita: con barbero elegido (o, sin preferencia, el que la agenda asigna a esa hora), su precio… · `itemPrice`, `fromPrice`, `itemDuration`, `packageCoverage`, `useBookingTotals`, `DraftOrderLine`, `draftOrderLines`
 - **versions.ts** — Las maneras de reservar que se pueden ver en la vista previa. · `BookingVersion`, `BOOKING_VERSIONS`, `isBookingVersion`, `HIDDEN_BOOKING_VERSIONS`, `DEFAULT_BOOKING_VERSION`, `isOfferedBookingVersion`
 - **visit.ts** — Quién va a la cita: una misma persona no puede estar en dos sillas a la vez. · `personKey`, `BusyRange`, `busyRanges`, `overlapsBusy`, `CartGroup`, `cartGroups`, `visitPartOf`
+
+### booking/comments
+
+- **bookingComments.ts** — Quien comenta en la demo. · `BOOKING_REVIEWER`, `bookingCommentsSeed`
 
 ### booking/flow
 
@@ -287,7 +291,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CheckoutRecap.tsx** — En el cierre, los productos que se lleva: junto a la cita, en la parte de arriba del panel. · `CheckoutProducts`, `CheckoutSummary`, `OrderEstimate` · piezas: Text · usa: @/app/i18n, @/icons
 - **ConfirmedActions.tsx** — Lo que se hace con la cita ya confirmada: enviar el recibo, agregarla al calendario, dejarla fija y ver su de… · `ConfirmedActions` · piezas: ActionTile, IconTile · usa: @/app/i18n, @/icons
 - **ConfirmedBarberNote.tsx** — Nota y foto para el barbero, ya con la cita confirmada: se escriben aquí y se mandan a la reserva. · `ConfirmedBarberNote` · piezas: Button, Field, Text, Textarea · usa: @/app/i18n, @/icons
-- **EarliestSlot.tsx** — «Lo antes posible»: el primer hueco libre desde hoy, arriba de todo y en un toque, para quien quiere cortarse… · `EarliestSlot` · piezas: Button, IconTile, Skeleton, Text · usa: @/app/i18n, @/icons
+- **EarliestSlot.tsx** — «Lo antes posible»: deshabilitado por requerimiento de diseño. · `EarliestSlot`
 - **GalleryViewer.tsx** — La galería a pantalla completa: la foto ocupa el dispositivo, se pasa con el dedo (o con las flechas y el tec… · `GalleryViewer` · piezas: Button, Carousel, CarouselContent, CarouselItem, Dialog, DialogContent, DialogDescription, DialogTitle, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **GiftCardField.tsx** — Usar una tarjeta de regalo: se valida el código en el servidor y su saldo paga primero. · `GiftCardField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
 - **HeldCards.tsx** — Las citas ya apartadas, cada una en su tarjeta (y su «Editar»): la hoja de «las que ya apartaste» (Agenda y P… · `HeldCards` · piezas: Button · usa: @/app/i18n, @/icons

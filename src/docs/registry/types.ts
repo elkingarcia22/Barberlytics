@@ -21,6 +21,7 @@ export type DocGroupId =
   | "overlays"
   | "feedback"
   | "feedback-loop"
+  | "comments"
   | "data-display"
   | "date"
   | "scheduling"
@@ -83,6 +84,14 @@ export const DOC_GROUPS: readonly DocGroup[] = [
     description: {
       es: "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios.",
       en: "Collect feedback at scale on something just launched: guided tour, floating button and comment panel.",
+    },
+  },
+  {
+    id: "comments",
+    label: { es: "Comentarios", en: "Comments" },
+    description: {
+      es: "Comentar sobre la pantalla al estilo Figma: pins en cualquier punto, hilos con respuestas y un panel lateral con filtros.",
+      en: "Figma-style comments on the screen: pins anywhere, threads with replies and a side panel with filters.",
     },
   },
   {

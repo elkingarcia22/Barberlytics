@@ -1,5 +1,5 @@
 {
-  "sourceHash": "574c5c73665c155e",
+  "sourceHash": "33e0436dc5bb215c",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -42,6 +42,11 @@
       "id": "feedback-loop",
       "label": "Feedback de usuarios",
       "description": "Pedir opinión masiva sobre algo recién lanzado: recorrido guiado, botón flotante y panel de comentarios."
+    },
+    {
+      "id": "comments",
+      "label": "Comentarios",
+      "description": "Comentar sobre la pantalla al estilo Figma: pins en cualquier punto, hilos con respuestas y un panel lateral con filtros."
     },
     {
       "id": "data-display",
@@ -5550,6 +5555,163 @@
       ],
       "docs": "/docs#/components/sparkline-chart",
       "ficha": "ai-tools/components/sparkline-chart.md"
+    },
+    {
+      "id": "comment-layer",
+      "name": "CommentLayer",
+      "group": "comments",
+      "description": "Capa envolvente que superpone los marcadores (pines) interactivos sobre la interfaz. Al activar el modo comentar (vía atajo C o botón), intercepta los clics para posicionar un borrador de comentario en coordenadas porcentuales.",
+      "import": "import { CommentLayer } from \"@/components/comments\"",
+      "source": "src/components/comments/CommentLayer.tsx",
+      "status": "stable",
+      "tags": [
+        "comentarios",
+        "canvas",
+        "pines",
+        "figma",
+        "capa"
+      ],
+      "props": [
+        {
+          "name": "hideHint",
+          "type": "boolean",
+          "default": "false",
+          "description": "Oculta el pill flotante inferior 'Haz clic donde quieras comentar' en modo comentar."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases para el contenedor relativo envolvente."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Envuelve el contenedor principal de la vista o marco de trabajo que se desea revisar.",
+          "Asegúrate de que el contenedor tenga dimensiones definidas relativas para calcular correctamente los porcentajes."
+        ],
+        "dont": [
+          "No bloquees eventos de puntero esenciales si la persona está en modo navegar ('browse')."
+        ]
+      },
+      "related": [
+        "comments-panel",
+        "comments-toggle"
+      ],
+      "examples": [
+        {
+          "id": "basic",
+          "title": "Superficie comentable",
+          "description": "Los pines se sitúan con precisión de porcentaje y admiten hover, clic y selección.",
+          "code": "<CommentLayer>\n  <div className=\"p-8\">\n    <h1>Título</h1>\n    <p>Texto</p>\n  </div>\n</CommentLayer>"
+        }
+      ],
+      "docs": "/docs#/components/comment-layer",
+      "ficha": "ai-tools/components/comment-layer.md"
+    },
+    {
+      "id": "comments-panel",
+      "name": "CommentsPanel",
+      "group": "comments",
+      "description": "Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.",
+      "import": "import { CommentsPanel } from \"@/components/comments\"",
+      "source": "src/components/comments/CommentsPanel.tsx",
+      "status": "stable",
+      "tags": [
+        "comentarios",
+        "panel",
+        "figma",
+        "colaboración",
+        "hilos"
+      ],
+      "props": [
+        {
+          "name": "onNavigate",
+          "type": "(thread: CommentThread) => void",
+          "default": null,
+          "description": "Se ejecuta al seleccionar un hilo de otro contexto/dispositivo para navegar a él."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases adicionales para el contenedor del panel lateral."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Combínalo con CommentsProvider, CommentLayer y CommentsToggle para una experiencia completa.",
+          "Usa la propiedad context si los comentarios aplican a diferentes vistas o dispositivos."
+        ],
+        "dont": [
+          "No utilices coordenadas absolutas en px para los pines; el sistema usa porcentajes para responder a cambios de pantalla."
+        ]
+      },
+      "related": [
+        "comment-layer",
+        "comments-toggle"
+      ],
+      "examples": [
+        {
+          "id": "full-workflow",
+          "title": "Flujo colaborativo completo",
+          "description": "Hilos anclados a posiciones en porcentaje, modo comentar con tecla C o botón, y panel con filtrado reactivo.",
+          "code": "<CommentsProvider currentUser={{ id: \"1\", name: \"Tú\" }} defaultThreads={hilos}>\n  <div className=\"flex h-[400px]\">\n    <div className=\"flex-1\">\n      <CommentsToggle />\n      <CommentLayer>\n        <Contenido />\n      </CommentLayer>\n    </div>\n    <CommentsPanel />\n  </div>\n</CommentsProvider>"
+        }
+      ],
+      "docs": "/docs#/components/comments-panel",
+      "ficha": "ai-tools/components/comments-panel.md"
+    },
+    {
+      "id": "comments-toggle",
+      "name": "CommentsToggle",
+      "group": "comments",
+      "description": "Botón para la cabecera o barra de herramientas que abre o cierra el panel de comentarios. Incluye un indicador con la cantidad de hilos no leídos pendientes.",
+      "import": "import { CommentsToggle } from \"@/components/comments\"",
+      "source": "src/components/comments/CommentsToggle.tsx",
+      "status": "stable",
+      "tags": [
+        "comentarios",
+        "toggle",
+        "botón",
+        "badge"
+      ],
+      "props": [
+        {
+          "name": "iconOnly",
+          "type": "boolean",
+          "default": "false",
+          "description": "Muestra únicamente el icono de chat con el badge flotante."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Clases adicionales para el botón."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Ubícalo en el header o barra de acciones de la página para que siempre esté accesible."
+        ],
+        "dont": [
+          "No coloques un badge duplicado por fuera; el componente gestiona el contador automáticamente."
+        ]
+      },
+      "related": [
+        "comments-panel",
+        "comment-layer"
+      ],
+      "examples": [
+        {
+          "id": "variations",
+          "title": "Con texto y solo icono",
+          "description": "En pantallas compactas o barras densas se puede usar `iconOnly` sin perder el badge de no leídos.",
+          "code": "<CommentsToggle />\n<CommentsToggle iconOnly />"
+        }
+      ],
+      "docs": "/docs#/components/comments-toggle",
+      "ficha": "ai-tools/components/comments-toggle.md"
     },
     {
       "id": "kanban",

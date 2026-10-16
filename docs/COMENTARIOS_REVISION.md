@@ -28,8 +28,18 @@ Usa la misma cuenta de servicio del feedback (`docs/FEEDBACK_LOOP.md`):
 | `COMMENTS_SHEET_LINK_ACCESS` | Opcional: `reader` o `writer` abre la hoja a cualquiera que tenga el enlace (sin listar correos). Se aplica también a una hoja que ya existía. Si la organización de Google bloquea los enlaces públicos, no se aplica y queda solo para `FEEDBACK_SHARE_WITH`. |
 | `COMMENTS_SHEET_ID` | Opcional: el id de una hoja ya existente (compartida con la cuenta de servicio). |
 
-La primera vez que alguien comenta, la función crea «Comentarios · Agendamiento online» (se encuentra
-después por una propiedad de Drive, sin guardar su id). Código: `server/comments/`, `api/comments/`.
+**Lo normal es crear la hoja a mano** (una cuenta de servicio no tiene espacio en Drive, y al intentar
+crearla Google responde «storage quota has been exceeded»):
+
+1. Crea una hoja de cálculo en tu Drive (en blanco, con cualquier nombre).
+2. Compártela como **Editor** con el correo de la cuenta de servicio (`...@...iam.gserviceaccount.com`).
+3. Pon su id (lo que va entre `/d/` y `/edit` en la URL) en `COMMENTS_SHEET_ID`.
+4. Para abrirla a quien tenga el enlace, hazlo tú en Drive (*Compartir → Cualquier persona con el enlace*):
+   la cuenta de servicio, siendo solo editora, normalmente no puede cambiar el acceso general.
+
+La primera vez la función agrega la pestaña «Acciones» con su cabecera, sin tocar lo que ya tengas.
+Si no pones `COMMENTS_SHEET_ID`, intenta crear la hoja (solo funciona en una unidad compartida o con una
+cuenta con espacio). Código: `server/comments/`, `api/comments/`.
 
 La reserva exportada a `booking-flow` (`npm run export:booking`) incluye la función; allí se ponen las
 mismas variables en Vercel.

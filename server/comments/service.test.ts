@@ -56,6 +56,14 @@ describe("servicio de comentarios", () => {
   });
 });
 
+describe("cuota de Drive", () => {
+  test("explica que la hoja la debe crear una persona", async () => {
+    const store: CommentsStore = { read: async () => Promise.reject(new Error("The user's Drive storage quota has been exceeded.")), append: async () => undefined };
+    const reply = await createCommentsService({ config, store, log: () => undefined }).list();
+    expect(String(reply.body.message)).toContain("COMMENTS_SHEET_ID");
+  });
+});
+
 describe("cuenta de Google inválida", () => {
   test("responde 502 diciendo qué falló, en vez de un 500 mudo", async () => {
     const log = vi.fn();
@@ -97,6 +105,38 @@ describe("abrir la hoja al enlace", () => {
     const permissions = calls.filter((call) => call.url.includes("/permissions"));
     expect(permissions).toHaveLength(1);
     expect(permissions[0].body).toEqual({ type: "anyone", role: "reader" });
+  });
+
+  test("en una hoja ya creada por una persona agrega la pestaña «Acciones» con su cabecera, una vez", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    const client: GoogleClient = {
+      raw: async () => new Response(),
+      json: async <T,>(url: string, init?: { method?: string; body?: unknown }) => {
+        calls.push({ url, body: init?.body });
+        if (url.includes("fields=sheets.properties")) return { sheets: [{ properties: { sheetId: 0, title: "Hoja 1" } }] } as T;
+        if (url.endsWith(":batchUpdate")) return { replies: [{ addSheet: { properties: { sheetId: 7 } } }] } as T;
+        return { values: [["cabecera"]] } as T;
+      },
+    };
+    const store = createSheetStore(client, { sheetId: "hoja1" });
+    await store.read();
+    await store.read();
+    expect(calls.filter((call) => JSON.stringify(call.body ?? "").includes("addSheet"))).toHaveLength(1);
+    expect(calls.some((call) => call.url.includes("Acciones!A1") && JSON.stringify(call.body).includes("evento_id"))).toBe(true);
+  });
+
+  test("si la pestaña ya existe no la vuelve a crear", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    const client: GoogleClient = {
+      raw: async () => new Response(),
+      json: async <T,>(url: string, init?: { method?: string; body?: unknown }) => {
+        calls.push({ url, body: init?.body });
+        if (url.includes("fields=sheets.properties")) return { sheets: [{ properties: { sheetId: 3, title: "Acciones" } }] } as T;
+        return { values: [["cabecera"]] } as T;
+      },
+    };
+    await createSheetStore(client, { sheetId: "hoja1" }).read();
+    expect(calls.some((call) => JSON.stringify(call.body ?? "").includes("addSheet"))).toBe(false);
   });
 
   test("sin linkAccess no cambia los permisos", async () => {

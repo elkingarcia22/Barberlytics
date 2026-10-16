@@ -119,9 +119,9 @@ describe("precio de una cita", () => {
     // En el pago: la propina marcada (20 %) y la tarjeta, con su recargo (3 %).
     const paying = bookingReducer(state, { type: "goTo", step: "payment" });
     expect(renderHook(() => useBookingTotals(paying, catalog, shop)).result.current).toMatchObject({ tip: 8.6, fee: 1.29, total: 55.58 });
-    // Pagando en la barbería no hay recargo.
+    // Pagando en la barbería no hay recargo ni propina (se deja allá).
     const atShop = bookingReducer(paying, { type: "setMethod", method: "shop" });
-    expect(renderHook(() => useBookingTotals(atShop, catalog, shop)).result.current).toMatchObject({ fee: 0, total: 54.29 });
+    expect(renderHook(() => useBookingTotals(atShop, catalog, shop)).result.current).toMatchObject({ tip: 0, fee: 0, total: 45.69 });
   });
 
   test("la hora sin preferencia guarda a quién asigna la agenda; con barbero elegido, no", () => {

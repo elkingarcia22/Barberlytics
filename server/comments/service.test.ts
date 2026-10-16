@@ -56,6 +56,18 @@ describe("servicio de comentarios", () => {
   });
 });
 
+describe("cuenta de Google inválida", () => {
+  test("responde 502 diciendo qué falló, en vez de un 500 mudo", async () => {
+    const log = vi.fn();
+    const service = createCommentsService({ config: { ...config, googleServiceAccount: "esto no es json" }, log });
+    const reply = await service.list();
+    expect(reply.status).toBe(502);
+    expect(String(reply.body.message)).toContain("GOOGLE_SERVICE_ACCOUNT_JSON");
+    expect((await service.record({ events: [event()] })).status).toBe(502);
+    expect(log).toHaveBeenCalled();
+  });
+});
+
 describe("filas de la hoja", () => {
   test("una acción se guarda como fila y se lee igual", () => {
     const original = event({ context: "mixed:tablet", contextLabel: "Según el cliente · Tablet" });

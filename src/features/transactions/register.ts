@@ -16,6 +16,8 @@ export const registerExpectedSchema = z.object({
   refundsCash: z.number(),
   refundsCard: z.number(),
   accounts: z.number(),
+  /** El efectivo que cobraron los barberos de renta: es de ellos y no entra al cajón. */
+  renterCash: z.number().optional(),
 });
 export type RegisterExpected = z.infer<typeof registerExpectedSchema>;
 

@@ -1,5 +1,7 @@
 import { db, seededRandom } from "./db";
-import { WALK_IN_CLIENT } from "./calendar/seed";
+import { WALK_IN_CLIENT, dateKey } from "./calendar/seed";
+import { appointmentsOn } from "./calendar/handlers";
+import { payrollOf } from "./payroll/compute";
 import { profileOf } from "./customers/handlers";
 import { lifecycleOf } from "./customers/seed";
 import { isOverdue } from "@/features/customers/overdue";
@@ -114,14 +116,26 @@ export function buildCustomersMetrics(query: MetricsQuery): MetricsCustomers {
 
 // ── Barberos ────────────────────────────────────────────────────────────────
 
-/** La comisión de referencia si la persona no tiene una en su ficha (o es de renta o salario). */
-const COMMISSION = 0.4;
 const CHAIR_SLOTS_PER_DAY = 10;
+const DAYS_PER_WEEK = 7;
+
+/**
+ * El neto del barbero en el periodo, con el mismo cálculo que Nómina y «Lo que llevo» (reglas,
+ * productos, escala, salario o renta y ajustes): el barbero no debe ver dos cifras distintas.
+ */
+function payrollNet(id: string, sim: SimulatedPeriod): number {
+  const member = db.team.members.find((item) => item.id === id);
+  if (!member) return 0;
+  const days = daysOf(sim.range);
+  const appointments = days.flatMap((date) => appointmentsOn(sim.branchId, dateKey(date)));
+  const from = dateKey(days[0] ?? new Date());
+  const to = dateKey(days[days.length - 1] ?? new Date());
+  const adjustments = db.payroll.adjustments.filter((item) => item.branchId === sim.branchId && item.from >= from && item.to <= to);
+  return payrollOf(member, appointments, round2(days.length / DAYS_PER_WEEK), sim.branchId, adjustments).net;
+}
 
 function barberOf(id: string, name: string, sim: SimulatedPeriod) {
   const days = daysOf(sim.range).map((date) => dayRecord(date, id, sim.branchId));
-  const basic = db.team.members.find((member) => member.id === id)?.compensation?.basic;
-  const commission = basic !== undefined ? basic / 100 : COMMISSION;
   const appointments = appointmentsOf(days);
   const completed = completedOf(days);
   const services = sum(completed.map((item) => item.service.price));
@@ -131,7 +145,7 @@ function barberOf(id: string, name: string, sim: SimulatedPeriod) {
   return {
     id,
     name,
-    net: round2(services * commission + tips),
+    net: payrollNet(id, sim),
     services: completed.length,
     occupancy: openDays ? Math.min(100, round2((appointments.length / (openDays * CHAIR_SLOTS_PER_DAY)) * 100)) : 0,
     cancellationRate: pct(lost, appointments.length),
@@ -150,9 +164,13 @@ export function buildBarbersMetrics(query: MetricsQuery): MetricsBarbers {
     const totals = totalsOf(days);
     return totals.transactions ? round2(totals.sales / totals.transactions) : 0;
   };
-  const rand = seedOf(sim, "loyalty");
-  const loyalty = round2(58 + rand() * 24);
-  const previousLoyalty = round2(loyalty - 4 + rand() * 8);
+  // Fidelidad: de las citas atendidas, cuántas fueron de clientes que pidieron a ese barbero.
+  const loyaltyOf = (range: SimulatedPeriod["range"]) => {
+    const completed = wanted.flatMap((barber) => completedOf(daysOf(range).map((date) => dayRecord(date, barber.id, sim.branchId))));
+    return pct(completed.filter((item) => item.requested).length, completed.length);
+  };
+  const loyalty = loyaltyOf(sim.range);
+  const previousLoyalty = loyaltyOf(sim.previous);
 
   return {
     period: periodOf(sim),

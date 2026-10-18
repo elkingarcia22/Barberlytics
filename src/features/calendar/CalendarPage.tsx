@@ -776,6 +776,13 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         }
       />
 
+      {/* En el celular la fila de la barra no cabe el cobrado: al barbero se le dice aparte cuánto lleva hoy. */}
+      {revenue && isDayView && can.showTotals && ownBarberId && (
+        <Text variant="muted" className="-mt-2 tabular-nums lg:hidden" data-testid="calendar-pulse-mine">
+          {t("calendar.pulse.todayMine", revenue)}
+        </Text>
+      )}
+
       {showReflow && reflow && ctx && <ReflowBanner plan={reflow.plan} ctx={ctx} busy={update.isPending} onApply={() => void applyReflow()} onDiscard={() => setReflow(null)} />}
 
       <QueryBoundary query={catalog} loading={<GridSkeleton />}>

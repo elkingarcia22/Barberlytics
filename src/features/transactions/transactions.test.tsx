@@ -207,9 +207,10 @@ describe("contrato de transacciones (mock)", () => {
     await withSession();
     await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
     const day = await registerApi.day("ma", PAST_DAY);
-    // El efectivo esperado es lo cobrado en efectivo ese día en la sucursal.
+    // El efectivo esperado es lo cobrado en efectivo ese día en la sucursal, sin el de los barberos de renta (es suyo).
+    const renter = (barberId: string) => db.team.members.find((member) => member.id === barberId)?.role === "barbero-renta";
     const cash = db.calendar.appointments
-      .filter((item) => item.branchId === "ma" && item.status === "paid" && item.payment?.method === "cash" && dateKey(new Date(item.payment.paidAt)) === PAST_DAY)
+      .filter((item) => item.branchId === "ma" && item.status === "paid" && item.payment?.method === "cash" && !renter(item.barberId) && dateKey(new Date(item.payment.paidAt)) === PAST_DAY)
       .reduce((total, item) => total + item.payment!.total - (item.payment!.prepaid ?? 0), 0);
     expect(day.expected.cash).toBeCloseTo(cash, 2);
     expect(day.closure).toBeNull();

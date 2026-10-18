@@ -189,6 +189,9 @@ export const payrollHandlers = [
     const period = periodOf(branchId, from, to);
     if (period instanceof Response) return period;
     if (runOf(branchId, from, to)) return error(409, "conflict", "Ese periodo ya está aprobado.");
+    // Un periodo que se cruza con otro ya aprobado pagaría dos veces el mismo trabajo.
+    const overlapping = db.payroll.runs.find((run) => run.branchId === branchId && run.from <= to && run.to >= from);
+    if (overlapping) return error(409, "overlap", `Se cruza con el periodo ya aprobado del ${overlapping.from} al ${overlapping.to}. Reábrelo o elige otras fechas.`);
     const run: MockPayrollRun = {
       id: `prun_${Date.now().toString(36)}`,
       branchId,

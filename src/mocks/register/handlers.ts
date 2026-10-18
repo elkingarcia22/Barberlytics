@@ -10,6 +10,9 @@ import type { MockRegisterClosure } from "./state";
  * Lo esperado sale de las cuentas del día: en efectivo, lo cobrado en caja (la parte en efectivo
  * de un pago mixto incluida) y las ventas de mostrador, menos lo devuelto en efectivo. Tarjeta y
  * enlace se informan para cuadrar con el datáfono; lo pagado en línea no pasa por la caja.
+ *
+ * El efectivo que cobra un barbero de renta es suyo y no entra al cajón (la misma regla que usa la
+ * nómina: `collectedBy: "barber"`). Se informa aparte, en `renterCash`, para que nadie lo busque.
  */
 
 const BASE = "*/api";
@@ -43,11 +46,15 @@ export interface RegisterExpected {
   refundsCard: number;
   /** Cuentas cobradas en el día (citas y ventas). */
   accounts: number;
+  /** El efectivo que cobraron los barberos de renta: es de ellos y no entra al cajón. */
+  renterCash: number;
 }
+
+const isRenter = (barberId: string): boolean => db.team.members.find((member) => member.id === barberId)?.role === "barbero-renta";
 
 /** Lo que debió moverse en la caja ese día, por medio de pago. */
 export function expectedOf(branchId: string, date: string): RegisterExpected {
-  const totals = { cash: 0, card: 0, link: 0, online: 0, refundsCash: 0, refundsCard: 0, accounts: 0 };
+  const totals = { cash: 0, card: 0, link: 0, online: 0, refundsCash: 0, refundsCard: 0, accounts: 0, renterCash: 0 };
   for (const item of appointmentsOn(branchId, date)) {
     const payment = item.payment;
     if (item.status === "paid" && payment && dateKey(new Date(payment.paidAt)) === date) {
@@ -55,10 +62,15 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
       const atCounter = round(payment.total - (payment.prepaid ?? 0));
       totals.online += payment.prepaid ?? 0;
       totals.accounts += 1;
+      const renter = isRenter(item.barberId);
       if (payment.method === "mixed" && payment.split) {
-        totals.cash += payment.split.cash;
+        if (renter) totals.renterCash += payment.split.cash;
+        else totals.cash += payment.split.cash;
         totals.card += payment.split.card;
-      } else if (payment.method === "cash") totals.cash += atCounter;
+      } else if (payment.method === "cash") {
+        if (renter) totals.renterCash += atCounter;
+        else totals.cash += atCounter;
+      }
       else if (payment.method === "link") totals.link += atCounter;
       else totals.card += atCounter;
     }
@@ -82,6 +94,7 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
     refundsCash: round(totals.refundsCash),
     refundsCard: round(totals.refundsCard),
     accounts: totals.accounts,
+    renterCash: round(totals.renterCash),
   };
 }
 

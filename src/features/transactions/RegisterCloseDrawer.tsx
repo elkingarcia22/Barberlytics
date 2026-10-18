@@ -70,6 +70,7 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
           <Line label={t("transactions.register.link")} value={formatMoney(expected.link)} />
           <Line label={t("transactions.register.online")} value={formatMoney(expected.online)} muted />
           {expected.refundsCash > 0 && <Line label={t("transactions.register.refundsCash")} value={`−${formatMoney(expected.refundsCash)}`} muted />}
+          {(expected.renterCash ?? 0) > 0 && <Line label={t("transactions.register.renterCash")} value={formatMoney(expected.renterCash ?? 0)} muted testId="register-renter-cash" />}
         </dl>
         <Text variant="muted">{t("transactions.register.inflowHint")}</Text>
       </section>

@@ -1,94 +1,40 @@
-import { db, seededRandom } from "./db";
+import { db } from "./db";
+import { appointmentAccount } from "./calendar/account";
+import { barberServicePrice, productPriceIn } from "./catalogPrices";
+import { appointmentsOn, barbersIn } from "./calendar/handlers";
+import { dateKey, type MockAppointment } from "./calendar/seed";
 import { fromIsoDate, periodRange, previousPeriodRange, toIsoDate, type PeriodGranularity, type PeriodRange } from "@/components/date/periodRange";
 import type { AppointmentStatus, BookingMethod, Daypart, IncomeLine, MetricsBusiness, PaymentMethod } from "@/features/metrics/types";
 
 /**
- * Las métricas del negocio, simuladas.
+ * Las métricas del negocio, leídas de lo que pasó en la sucursal.
  *
- * Deterministas por periodo y barbero: la misma semana devuelve siempre las
- * mismas cifras, así que una captura o una prueba no cambian de un día para
- * otro. El periodo anterior sale del mismo generador, con lo que las
- * variaciones son coherentes con lo que se ve al pulsar «anterior».
+ * Cada día sale de la agenda (`appointmentsOn`), de las ventas de mostrador y de las devoluciones
+ * de esa sucursal, al precio del barbero y con el impuesto registrado: las cifras de Métricas son
+ * las mismas que Calendario y Transacciones para el mismo día. La agenda de la demo se siembra de
+ * forma determinista, así que una captura o una prueba no cambian de un día para otro.
  */
-
-export const BARBERS = [
-  { id: "b4", name: "Andrés Beltrán" },
-  { id: "b5", name: "Nicolás Duarte" },
-  { id: "b6", name: "Valeria Marín" },
-  { id: "b7", name: "Tomás Peña" },
-  { id: "b8", name: "Daniela Osorio" },
-] as const;
-
-/**
- * Las métricas nacieron con ids propios (`b4`…`b8`) antes que el equipo
- * (`team-04`…). Mientras el simulador no se rehaga sobre el seed del equipo,
- * el barbero que pide «lo suyo» con su id de equipo se traduce aquí:
- * - los cinco del tablero son las mismas personas con el mismo número en los
- *   dos seeds (`team-04` ↔ `b4`…);
- * - cualquier otro barbero del equipo (p. ej. Paola Zuluaga, `team-30`, de
- *   renta) se simula aparte con su id de equipo y no suma a «todo el equipo».
- */
-const TEAM_ALIASES: Readonly<Record<string, string>> = { "team-04": "b4", "team-05": "b5", "team-06": "b6", "team-07": "b7", "team-08": "b8" };
-
-/** El barbero que pide la consulta (id de métricas o de equipo), o `null` si no es nadie conocido. */
-export function resolveMetricsBarber(id: string | null | undefined): { id: string; name: string } | null {
-  if (!id) return null;
-  const alias = TEAM_ALIASES[id] ?? id;
-  const known = BARBERS.find((barber) => barber.id === alias);
-  if (known) return { ...known };
-  const member = db.team.members.find((item) => item.id === id && (item.role === "barbero-comision" || item.role === "barbero-renta" || item.isAlsoBarber));
-  return member ? { id: member.id, name: `${member.firstName} ${member.lastName}` } : null;
-}
-
-const SERVICES = [
-  { id: "maintenance", name: "Corte de mantenimiento", price: 45, weight: 34 },
-  { id: "cut-beard", name: "Corte + barba", price: 65, weight: 19 },
-  { id: "kids", name: "Corte infantil", price: 32, weight: 5 },
-  { id: "beard", name: "Arreglo de barba o afeitado", price: 30, weight: 2 },
-  { id: "extended", name: "Corte extendido", price: 80, weight: 1 },
-  { id: "first-visit", name: "Primera visita", price: 55, weight: 1 },
-] as const;
-
-const PRODUCTS = [
-  { id: "pomade", name: "Pomada mate", price: 22, weight: 5 },
-  { id: "beard-oil", name: "Aceite de barba", price: 18, weight: 3 },
-  { id: "shampoo", name: "Champú", price: 15, weight: 2 },
-] as const;
-
-/** Peso de cada hora del día: la barbería abre de 8 a 20 con dos picos. */
-const HOUR_WEIGHTS: readonly number[] = [0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 8, 10, 7, 5, 6, 8, 9, 11, 9, 6, 3, 0, 0, 0];
 
 const DAY_MS = 86_400_000;
 
-function hashSeed(text: string): number {
-  let hash = 2166136261;
-  for (const char of text) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-  return hash >>> 0;
+/** Lo que el tablero sabe de un servicio o producto. */
+export interface CatalogItem {
+  id: string;
+  name: string;
+  price: number;
+}
+
+/** Los barberos de la sucursal, en su orden de la agenda. */
+export const barbersOfBranch = (branchId: string): { id: string; name: string }[] => barbersIn(branchId).map((barber) => ({ id: barber.id, name: barber.name }));
+
+/** El barbero que pide la consulta, si atiende en esa sucursal; `null` es «todo el equipo». */
+export function resolveMetricsBarber(id: string | null | undefined, branchId: string): { id: string; name: string } | null {
+  if (!id || id === "all") return null;
+  return barbersOfBranch(branchId).find((barber) => barber.id === id) ?? null;
 }
 
 export const daysOf = ({ from, to }: PeriodRange): Date[] =>
   Array.from({ length: Math.round((to.getTime() - from.getTime()) / DAY_MS) + 1 }, (_, index) => new Date(from.getTime() + index * DAY_MS));
-
-function pickWeighted<T extends { weight: number }>(items: readonly T[], roll: number): T {
-  const total = items.reduce((sum, item) => sum + item.weight, 0);
-  let cursor = roll * total;
-  for (const item of items) {
-    cursor -= item.weight;
-    if (cursor <= 0) return item;
-  }
-  return items[items.length - 1];
-}
-
-/** La hora de una cita, tirada con el peso de cada franja. */
-function pickHour(roll: number): number {
-  const total = sum(HOUR_WEIGHTS);
-  let cursor = roll * total;
-  for (let hour = 0; hour < HOUR_WEIGHTS.length; hour += 1) {
-    cursor -= HOUR_WEIGHTS[hour];
-    if (cursor <= 0 && HOUR_WEIGHTS[hour] > 0) return hour;
-  }
-  return 12;
-}
 
 export const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
 export const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -97,50 +43,70 @@ export interface Appointment {
   hour: number;
   status: AppointmentStatus;
   method: BookingMethod;
-  service: (typeof SERVICES)[number];
+  /** El servicio de la cita (si son varios, juntos), al precio del barbero. */
+  service: CatalogItem;
   tip: number;
+  tax: number;
   payment: PaymentMethod;
   discount: number;
+  clientId: string;
+  barberId: string;
+  /** El cliente pidió a ese barbero (no «sin preferencia»). */
+  requested: boolean;
 }
 
 export interface DayRecord {
   date: Date;
   appointments: Appointment[];
-  products: { product: (typeof PRODUCTS)[number]; units: number }[];
+  products: { product: CatalogItem; units: number }[];
+  /** El impuesto de las ventas de mostrador del día. */
+  salesTax: number;
   refunds: number;
 }
 
-/** Un día de trabajo: cerrado los domingos, más flojo el lunes, lleno el sábado. */
-export function simulateDay(date: Date, barberId: string): DayRecord {
-  const rand = seededRandom(hashSeed(`${toIsoDate(date)}|${barberId}`));
-  const weekday = date.getDay();
-  const share = barberId === "all" ? 1 : 0.22;
-  const base = weekday === 0 ? 0 : weekday === 6 ? 16 : weekday === 1 ? 8 : 12;
-  const count = Math.round((base + rand() * 4) * share);
+const STATUS: Record<MockAppointment["status"], AppointmentStatus> = {
+  paid: "completed",
+  scheduled: "pendingCollection",
+  arrived: "pendingCollection",
+  seated: "pendingCollection",
+  cancelled: "cancelled",
+  no_show: "noShow",
+};
+const METHOD: Record<MockAppointment["source"], BookingMethod> = { internal: "internal", online: "online", walkin: "walkIn" };
+const PAYMENT: Record<string, PaymentMethod> = { cash: "cash", card: "card", link: "transfer", mixed: "card" };
 
-  const appointments = Array.from({ length: count }, (): Appointment => {
-    const hour = pickHour(rand());
-    const roll = rand();
-    const status: AppointmentStatus = roll < 0.68 ? "completed" : roll < 0.74 ? "pendingCollection" : roll < 0.95 ? "cancelled" : "noShow";
-    const methodRoll = rand();
-    const method: BookingMethod = methodRoll < 0.86 ? "internal" : methodRoll < 0.97 ? "online" : "walkIn";
-    const paymentRoll = rand();
-    const payment: PaymentMethod = paymentRoll < 0.78 ? "card" : paymentRoll < 0.94 ? "cash" : paymentRoll < 0.99 ? "transfer" : "giftCard";
-    const service = pickWeighted(SERVICES, rand());
+const productOf = (id: string, branchId: string): CatalogItem => ({ id, name: db.products.items.find((item) => item.id === id)?.name ?? id, price: productPriceIn(id, branchId) });
+
+/** Un día de la sucursal tal como pasó: sus citas (de un barbero o de todos), sus ventas y sus devoluciones. */
+export function dayRecord(date: Date, barberId: string, branchId: string): DayRecord {
+  const key = dateKey(date);
+  const mine = appointmentsOn(branchId, key).filter((item) => barberId === "all" || item.barberId === barberId);
+  const appointments = mine.map((item): Appointment => {
+    const account = appointmentAccount(item);
+    const names = item.serviceIds.map((id) => db.services.items.find((service) => service.id === id)?.name ?? id);
+    const servicePrice = item.serviceIds.reduce((total, id) => total + barberServicePrice(item.barberId, id, branchId), 0);
     return {
-      hour,
-      status,
-      method,
-      service,
-      tip: status === "completed" ? Math.round(service.price * (0.12 + rand() * 0.16)) : 0,
-      payment,
-      discount: rand() < 0.08 ? 5 : 0,
+      hour: Number(item.start.slice(11, 13)),
+      status: STATUS[item.status],
+      method: METHOD[item.source],
+      service: { id: item.serviceIds.join("+"), name: names.join(" + "), price: servicePrice },
+      tip: item.payment?.tip ?? 0,
+      tax: item.status === "paid" ? account.tax : 0,
+      payment: item.payment ? (PAYMENT[item.payment.method] ?? "card") : item.online ? "card" : "cash",
+      discount: account.discount,
+      clientId: item.clientId,
+      barberId: item.barberId,
+      requested: item.requestedBarberId !== null,
     };
   });
-
-  const products = PRODUCTS.filter(() => rand() < 0.35 * share).map((product) => ({ product, units: 1 + Math.floor(rand() * 2) }));
-  const refunds = rand() < 0.06 ? 45 : 0;
-  return { date, appointments, products, refunds };
+  // Los productos que se llevaron en las citas cobradas y, para todo el equipo, los de mostrador.
+  const sales = barberId === "all" ? db.calendar.sales.filter((sale) => sale.branchId === branchId && dateKey(new Date(sale.paidAt)) === key) : [];
+  const products = [
+    ...mine.filter((item) => item.status === "paid").flatMap((item) => item.products.map((row) => ({ product: productOf(row.productId, branchId), units: row.qty }))),
+    ...sales.flatMap((sale) => sale.items.map((row) => ({ product: productOf(row.productId, branchId), units: row.qty }))),
+  ];
+  const refunds = sum(mine.flatMap((item) => (item.refunds ?? []).map((refund) => refund.amount)));
+  return { date, appointments, products, salesTax: sum(sales.map((sale) => sale.tax ?? 0)), refunds };
 }
 
 export interface PeriodTotals {
@@ -164,11 +130,13 @@ export function totalsOf(days: readonly DayRecord[]): PeriodTotals {
   const services = sum(completed.map((item) => item.service.price));
   const products = sum(days.flatMap((day) => day.products.map((row) => row.product.price * row.units)));
   const tips = sum(completed.map((item) => item.tip));
-  const noShowFees = appointments.filter((item) => item.status === "noShow").length * 15;
+  // La agenda no cobra inasistencias todavía: sin cargo inventado.
+  const noShowFees = 0;
   const discounts = sum(completed.map((item) => item.discount));
   const gross = services + products + noShowFees - discounts;
-  const fees = round2(gross * 0.029);
-  const taxes = round2(products * 0.07);
+  // La tarifa de la pasarela, estimada sobre lo que se pagó con tarjeta; no entra en ventas.
+  const fees = round2(sum(completed.filter((item) => item.payment === "card").map((item) => item.service.price - item.discount + item.tip)) * 0.029);
+  const taxes = round2(sum(completed.map((item) => item.tax)) + sum(days.map((day) => day.salesTax)));
   const sales = round2(gross + tips + taxes);
   const lost = appointments.filter((item) => item.status === "cancelled" || item.status === "noShow").length;
   const transactions = completed.length + days.reduce((count, day) => count + day.products.length, 0);
@@ -205,25 +173,28 @@ function trendOf(days: readonly DayRecord[], granularity: PeriodGranularity, loc
   return days.map((day) => ({ label: formatter.format(day.date), sales: totalsOf([day]).sales, appointments: day.appointments.length }));
 }
 
-function catalogOf<T extends { id: string; name: string; price: number }>(rows: readonly { item: T; units: number }[], catalog: readonly T[]) {
-  return catalog
-    .map((entry) => {
-      const matching = rows.filter((row) => row.item.id === entry.id);
-      return { id: entry.id, name: entry.name, count: sum(matching.map((row) => row.units)), amount: sum(matching.map((row) => row.item.price * row.units)) };
-    })
-    .filter((row) => row.count > 0);
+/** Lo vendido por artículo, de lo que más deja a lo que menos. */
+function catalogOf(rows: readonly { item: CatalogItem; units: number }[]) {
+  const byId = new Map<string, { id: string; name: string; count: number; amount: number }>();
+  for (const { item, units } of rows) {
+    const current = byId.get(item.id) ?? { id: item.id, name: item.name, count: 0, amount: 0 };
+    byId.set(item.id, { ...current, count: current.count + units, amount: round2(current.amount + item.price * units) });
+  }
+  return [...byId.values()].sort((a, b) => b.amount - a.amount);
 }
 
 export interface MetricsQuery {
   granularity?: string | null;
   date?: string | null;
   barberId?: string | null;
+  branchId?: string | null;
 }
 
 export interface SimulatedPeriod {
   granularity: PeriodGranularity;
   anchor: Date;
   barberId: string;
+  branchId: string;
   range: PeriodRange;
   previous: PeriodRange;
   days: DayRecord[];
@@ -234,17 +205,19 @@ export interface SimulatedPeriod {
 export function simulatePeriod(query: MetricsQuery): SimulatedPeriod {
   const granularity: PeriodGranularity = query.granularity === "day" || query.granularity === "week" ? query.granularity : "month";
   const anchor = fromIsoDate(query.date) ?? new Date();
-  const barberId = resolveMetricsBarber(query.barberId)?.id ?? "all";
+  const branchId = query.branchId || "ma";
+  const barberId = resolveMetricsBarber(query.barberId, branchId)?.id ?? "all";
   const range = periodRange(anchor, granularity);
   const previous = previousPeriodRange(anchor, granularity);
   return {
     granularity,
     anchor,
     barberId,
+    branchId,
     range,
     previous,
-    days: daysOf(range).map((date) => simulateDay(date, barberId)),
-    previousDays: daysOf(previous).map((date) => simulateDay(date, barberId)),
+    days: daysOf(range).map((date) => dayRecord(date, barberId, branchId)),
+    previousDays: daysOf(previous).map((date) => dayRecord(date, barberId, branchId)),
   };
 }
 
@@ -286,7 +259,7 @@ export function buildBusinessMetrics(query: MetricsQuery): MetricsBusiness {
   return {
     period: periodOf(sim),
     previous: previousOf(sim),
-    barbers: BARBERS.map((barber) => ({ ...barber })),
+    barbers: barbersOfBranch(sim.branchId),
     kpis: {
       sales: { value: now.sales, previous: before.sales },
       averageTicket: { value: ticket(now), previous: ticket(before) },
@@ -301,14 +274,14 @@ export function buildBusinessMetrics(query: MetricsQuery): MetricsBusiness {
     income,
     appointments: {
       total: appointments.length,
-      clients: Math.round(appointments.length * 0.82),
+      clients: new Set(appointments.map((item) => item.clientId)).size,
       byStatus: countBy<AppointmentStatus>(["completed", "pendingCollection", "cancelled", "noShow"], appointments.map((item) => ({ key: item.status }))),
       byMethod: countBy<BookingMethod>(["internal", "online", "walkIn"], appointments.map((item) => ({ key: item.method }))),
       byDaypart: countBy<Daypart>(["morning", "afternoon", "evening"], appointments.map((item) => ({ key: daypartOf(item.hour) }))),
-      byHour: HOUR_WEIGHTS.map((_, hour) => ({ hour, count: appointments.filter((item) => item.hour === hour).length })).filter((row) => row.hour >= 7 && row.hour <= 21),
+      byHour: Array.from({ length: 15 }, (_, index) => index + 7).map((hour) => ({ hour, count: appointments.filter((item) => item.hour === hour).length })),
     },
     payments,
-    services: catalogOf(completed.map((item) => ({ item: item.service, units: 1 })), SERVICES),
-    products: catalogOf(days.flatMap((day) => day.products.map((row) => ({ item: row.product, units: row.units }))), PRODUCTS),
+    services: catalogOf(completed.map((item) => ({ item: item.service, units: 1 }))),
+    products: catalogOf(days.flatMap((day) => day.products.map((row) => ({ item: row.product, units: row.units })))),
   };
 }

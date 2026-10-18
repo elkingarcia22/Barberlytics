@@ -126,11 +126,11 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
     <div className={cn("flex min-h-0 flex-1 flex-col", fetching && "opacity-80 transition-opacity motion-reduce:transition-none")}>
       <section aria-label={t("payroll.mine.summaryAria")} className="mb-section shrink-0 space-y-stack">
         <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">{isRent ? <RentCards member={member} formatMoney={formatMoney} /> : <CommissionCards member={member} formatMoney={formatMoney} />}</div>
-        {isRent && member.net < 0 && (
+        {isRent && (member.balance ?? member.net) < 0 && (
           <Alert variant="warning" data-testid="my-pay-owes">
             <HandCoins />
-            <AlertTitle>{t("payroll.mine.owesTitle", { amount: formatMoney(-member.net) })}</AlertTitle>
-            <AlertDescription>{t("payroll.mine.owesDetail", { rent: formatMoney(member.rent), deductions: formatMoney(member.deductions), tips: formatMoney(member.tips) })}</AlertDescription>
+            <AlertTitle>{t("payroll.mine.owesTitle", { amount: formatMoney(-(member.balance ?? member.net)) })}</AlertTitle>
+            <AlertDescription>{t("payroll.mine.owesDetail", { rent: formatMoney(member.rent), deductions: formatMoney(member.deductions), held: formatMoney(member.held ?? 0), paid: formatMoney(member.rentPaid ?? 0) })}</AlertDescription>
           </Alert>
         )}
       </section>
@@ -194,7 +194,9 @@ function CommissionCards({ member, formatMoney }: CardsProps) {
 /** Renta: lo que vendió, lo que le paga a la barbería y lo que le queda (o debe). */
 function RentCards({ member, formatMoney }: CardsProps) {
   const t = useAppT();
-  const owes = member.net < 0;
+  // Cómo queda contando lo que ya pagó de renta.
+  const balance = member.balance ?? member.net;
+  const owes = balance < 0;
   return (
     <>
       <MetricCard
@@ -205,7 +207,7 @@ function RentCards({ member, formatMoney }: CardsProps) {
         tone="brand"
         icon="chart"
       />
-      <MetricCard label={t("payroll.column.tips")} value={formatMoney(member.tips)} caption={t("payroll.mine.tipsCaption")} tone="positive" icon="award" />
+      <MetricCard label={t("payroll.rent.held")} value={formatMoney(member.held ?? 0)} caption={t("payroll.mine.heldCaption")} hint={t("payroll.mine.heldHint")} tone="positive" icon="award" />
       <MetricCard
         label={t("payroll.mine.toBarbershop")}
         value={formatMoney(member.rent + member.deductions)}
@@ -216,8 +218,8 @@ function RentCards({ member, formatMoney }: CardsProps) {
       />
       <MetricCard
         label={t("payroll.column.net")}
-        value={owes ? t("payroll.mine.netOwes", { amount: formatMoney(-member.net) }) : formatMoney(member.net)}
-        caption={t(owes ? "payroll.mine.netCaptionNegative" : "payroll.mine.netCaptionPositive")}
+        value={owes ? t("payroll.mine.netOwes", { amount: formatMoney(-balance) }) : balance === 0 ? t("payroll.rent.upToDate") : formatMoney(balance)}
+        caption={(member.rentPaid ?? 0) > 0 ? t("payroll.mine.rentPaidCaption", { amount: formatMoney(member.rentPaid ?? 0) }) : t(owes ? "payroll.mine.netCaptionNegative" : "payroll.mine.netCaptionPositive")}
         hint={t("payroll.mine.netHint")}
         tone={owes ? "warning" : "positive"}
         icon="users"

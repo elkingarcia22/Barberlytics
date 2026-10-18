@@ -63,7 +63,7 @@ describe("Métricas", () => {
 
     await user.click(screen.getByTestId("metrics-barber"));
     await user.click(await screen.findByRole("option", { name: "Valeria Marín" }));
-    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("barber=b6"));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("barber=team-06"));
   });
 
   test("cada pestaña trae su tablero con el mismo periodo", async () => {
@@ -115,13 +115,21 @@ describe("Métricas de un barbero", () => {
     expect(screen.queryByRole("cell", { name: "Valeria Marín" })).toBeNull();
   });
 
-  test("el id del equipo se traduce al de las métricas o se simula aparte", () => {
-    expect(resolveMetricsBarber("team-04")).toEqual({ id: "b4", name: "Andrés Beltrán" });
-    expect(resolveMetricsBarber("team-30")).toEqual({ id: "team-30", name: "Paola Zuluaga" });
-    expect(resolveMetricsBarber("team-01")).toBeNull();
-    const team = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all" });
-    const paola = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-30" });
-    expect(paola.appointments.total).toBeLessThan(team.appointments.total);
+  test("el barbero es el del equipo de la sucursal; sus cifras son una parte de las del equipo", () => {
+    expect(resolveMetricsBarber("team-04", "ma")).toEqual({ id: "team-04", name: "Andrés Beltrán" });
+    expect(resolveMetricsBarber("team-01", "ma")).toBeNull();
+    const team = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all", branchId: "ma" });
+    const andres = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-04", branchId: "ma" });
+    expect(andres.appointments.total).toBeLessThan(team.appointments.total);
+  });
+
+  test("las ventas de Métricas son las de Transacciones para el mismo día", async () => {
+    const day = "2026-09-22";
+    const metrics = buildBusinessMetrics({ granularity: "day", date: day, barberId: "all", branchId: "ma" });
+    db.sessions.set("mock-acc_admin-test", "acc_admin");
+    const accounts = (await (await fetch(`http://localhost/api/transactions?branchId=ma&from=${day}&to=${day}`, { headers: { authorization: "Bearer mock-acc_admin-test" } })).json()) as { items: { status: string; total: number; tip: number }[] };
+    const paid = accounts.items.filter((item) => item.status === "paid");
+    expect(metrics.kpis.sales.value).toBeCloseTo(paid.reduce((total, item) => total + item.total + item.tip, 0), 1);
   });
 });
 
@@ -165,8 +173,8 @@ describe("buildBusinessMetrics", () => {
   });
 
   test("un barbero ve una parte de las citas del equipo", () => {
-    const team = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all" });
-    const one = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "b6" });
+    const team = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all", branchId: "ma" });
+    const one = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-06", branchId: "ma" });
     expect(one.appointments.total).toBeGreaterThan(0);
     expect(one.appointments.total).toBeLessThan(team.appointments.total);
     expect(one.barbers).toEqual(team.barbers);

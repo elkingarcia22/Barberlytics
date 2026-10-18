@@ -3,6 +3,7 @@ import { ACCOUNTS, db } from "../db";
 import { barbersOf, memberName, type MockServiceOverride, type MockTeamMember } from "../team/seed";
 import { imageOrNull } from "../media";
 import { UNCATEGORIZED_ID, type MockCatalogService, type MockServiceCategory } from "./seed";
+import { servicePriceIn, withBranchPrice } from "../catalogPrices";
 
 /**
  * Los endpoints del catálogo de servicios del backend simulado. Reproducen
@@ -40,8 +41,8 @@ const offers = (member: MockTeamMember, serviceId: string): boolean => overrideO
 
 function view(service: MockCatalogService, branchId: string) {
   const barbers = barbersOf(db.team.members, db.team.orders, branchId);
-  const { activeBranchIds, ...rest } = service;
-  return { ...rest, active: activeBranchIds.includes(branchId), offeredBy: barbers.filter((member) => offers(member, service.id)).length, teamSize: barbers.length };
+  const { activeBranchIds, branchPrices, ...rest } = service;
+  return { ...rest, branchPrice: branchPrices?.[branchId] ?? null, active: activeBranchIds.includes(branchId), offeredBy: barbers.filter((member) => offers(member, service.id)).length, teamSize: barbers.length };
 }
 
 function detail(service: MockCatalogService, branchId: string) {
@@ -55,7 +56,7 @@ function detail(service: MockCatalogService, branchId: string) {
         name: memberName(member),
         avatarUrl: member.avatarUrl,
         offered: override?.offered ?? true,
-        price: override?.price ?? service.price,
+        price: override?.price ?? servicePriceIn(service.id, branchId),
         durationMin: override?.durationMin ?? service.durationMin,
         custom: Boolean(override && (override.price !== null || override.durationMin !== null || override.newClientPrice !== null || override.loyaltyPrice !== null)),
       };
@@ -89,6 +90,8 @@ function validateService(input: Record<string, unknown>, currentId: string | nul
   if (name.length < 2) fields.name = ["Escribe el nombre."];
   else if (db.services.items.some((item) => item.id !== currentId && item.name.toLowerCase() === name.toLowerCase())) fields.name = ["Ya hay un servicio con ese nombre."];
   if (price === null || price < 0) fields.price = ["Escribe el precio."];
+  const branchPrice = numberOrNull(input.branchPrice);
+  if (branchPrice !== null && branchPrice < 0) fields.branchPrice = ["El precio no puede ser negativo."];
   if (cost !== null && cost < 0) fields.cost = ["El costo no puede ser negativo."];
   if (durationMin === null || durationMin < 5 || durationMin > MAX_DURATION_MIN) fields.durationMin = [`La duración va de 5 a ${MAX_DURATION_MIN} minutos.`];
   if (taxRate !== null && (taxRate < 0 || taxRate > 100)) fields.taxRate = ["El impuesto va de 0 a 100 %."];
@@ -181,7 +184,7 @@ export const servicesHandlers = [
     const { fields, values } = validateService(input, null);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     const branchId = text(input.branchId) || "ma";
-    const service: MockCatalogService = { ...values, id: `svc_${Date.now().toString(36)}`, activeBranchIds: [branchId], createdAt: new Date().toISOString() };
+    const service: MockCatalogService = { ...values, branchPrices: withBranchPrice(undefined, branchId, input.branchPrice), id: `svc_${Date.now().toString(36)}`, activeBranchIds: [branchId], createdAt: new Date().toISOString() };
     db.services = { ...db.services, items: [...db.services.items, service] };
     db.persist();
     return HttpResponse.json(detail(service, branchId), { status: 201 });
@@ -195,7 +198,8 @@ export const servicesHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const { fields, values } = validateService({ ...input, kind: service.kind }, service.id);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const updated: MockCatalogService = { ...service, ...values };
+    // El precio propio de la sucursal desde la que se edita; las demás quedan como estaban.
+    const updated: MockCatalogService = { ...service, ...values, branchPrices: withBranchPrice(service.branchPrices, branchOf(request), input.branchPrice) };
     saveService(updated);
     return HttpResponse.json(detail(updated, branchOf(request)));
   }),

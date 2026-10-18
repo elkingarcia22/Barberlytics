@@ -328,7 +328,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
             }
             title={row.name}
             description={[categoryName(categories, row.categoryId), row.brand].filter(Boolean).join(" · ")}
-            meta={<span className="font-medium tabular-nums text-text-primary">{formatMoney(row.price)}</span>}
+            meta={<span className="font-medium tabular-nums text-text-primary">{formatMoney(row.branchPrice ?? row.price)}</span>}
             actions={
               <>
                 <ProductActiveBadge active={row.active} />

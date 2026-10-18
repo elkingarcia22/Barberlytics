@@ -1,5 +1,6 @@
 import { db } from "../db";
-import { appointmentAccount, barberServicePrice } from "../calendar/account";
+import { appointmentAccount } from "../calendar/account";
+import { barberServicePrice, productPriceIn } from "../catalogPrices";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
 import { taxInclusive } from "../settings/branchRules";
@@ -15,6 +16,9 @@ import type { MockPayrollAdjustment } from "./state";
  * - En escala, el tramo sale de lo vendido en el **ciclo de pago** (Configuración › Nómina), no del
  *   rango que se esté mirando: el mismo barbero cae en el mismo tramo en el día, la semana o el mes.
  * - Las deducciones de la renta son un porcentaje de la venta, como las pide su ficha.
+ * - Con renta, importa quién tiene el dinero: lo que entró por la caja de la barbería (tarjeta,
+ *   enlace, pago en línea) es del barbero y la barbería se lo guarda; lo que cobró él en efectivo ya
+ *   lo tiene. Su neto es lo guardado menos la renta y las deducciones.
  * - Lo devuelto al cliente no comisiona: la base baja en la misma proporción.
  * - Los ajustes del periodo (bono, descuento, adelanto) entran en el neto.
  */
@@ -86,8 +90,8 @@ const isPaid = (item: MockAppointment) => item.status === "paid" && item.payment
  * precio del barbero menos lo que Configuración › Comisiones manda descontar.
  */
 function basesOf(item: MockAppointment, settings: CommissionSettings): { service: number; product: number } {
-  const serviceGross = item.serviceIds.reduce((sum, id) => sum + barberServicePrice(item.barberId, id), 0);
-  const productGross = item.products.reduce((sum, row) => sum + (db.products.items.find((product) => product.id === row.productId)?.price ?? 0) * row.qty, 0);
+  const serviceGross = item.serviceIds.reduce((sum, id) => sum + barberServicePrice(item.barberId, id, item.branchId), 0);
+  const productGross = item.products.reduce((sum, row) => sum + productPriceIn(row.productId, item.branchId) * row.qty, 0);
   const gross = serviceGross + productGross;
   const account = appointmentAccount(item);
   const share = (part: number) => (gross > 0 ? part / gross : 0);
@@ -124,6 +128,21 @@ function cycleSalesFor(branchId: string, settings: CommissionSettings) {
   };
 }
 
+/**
+ * Qué parte de lo cobrado de una cita entró por la caja de la barbería (0 a 1): todo con tarjeta o
+ * enlace; en efectivo, solo lo pagado en línea; en mixto, la parte de tarjeta.
+ */
+function shopShareOf(item: MockAppointment, total: number): number {
+  const prepaid = item.payment?.prepaid ?? 0;
+  const method = item.payment?.method;
+  if (method === "mixed" && item.payment?.split) {
+    const { cash, card } = item.payment.split;
+    return Math.min(1, (card + prepaid) / Math.max(0.01, cash + card + prepaid));
+  }
+  if (method === "cash") return total > 0 ? Math.min(1, prepaid / total) : 0;
+  return 1;
+}
+
 const ADJUSTMENT_SIGN: Record<MockPayrollAdjustment["kind"], 1 | -1> = { bonus: 1, deduction: -1, advance: -1 };
 
 export function payrollOf(member: MockTeamMember, appointments: readonly MockAppointment[], weeks: number, branchId: string, adjustments: readonly MockPayrollAdjustment[]) {
@@ -143,6 +162,9 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
       const percent = payout === "rent" && payments ? (rule === "walkIn" ? payments.walkInDeduction : rule === "noPreference" ? payments.noPreferenceDeduction : rule === "newClient" ? payments.newClientDeduction : 0) : 0;
       const client = db.calendar.clients.find((entry) => entry.id === item.clientId);
       const service = item.serviceIds.map((id) => db.services.items.find((entry) => entry.id === id)?.name ?? id).join(" + ");
+      // Con renta: cuánto de lo que pagó el cliente (con propina) entró por la caja de la barbería.
+      const charged = appointmentAccount(item).total + (item.payment?.tip ?? 0);
+      const held = payout === "rent" ? round(charged * shopShareOf(item, charged)) : 0;
       const line = {
         appointmentId: item.id,
         date: item.start,
@@ -154,6 +176,8 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
         commission: rate === null ? 0 : round((sale * rate) / 100),
         tip: item.payment?.tip ?? 0,
         deduction: round((sale * percent) / 100),
+        collectedBy: payout === "rent" ? (held > 0 ? ("shop" as const) : ("barber" as const)) : null,
+        held,
       };
       return { line, productSale: bases.product };
     })
@@ -171,8 +195,13 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
   const deductions = round(lines.reduce((sum, line) => sum + line.deduction, 0));
   const mineAdjustments = adjustments.filter((item) => item.memberId === member.id);
   const adjustmentsTotal = round(mineAdjustments.reduce((sum, item) => sum + ADJUSTMENT_SIGN[item.kind] * item.amount, 0));
-  /* Positivo: la barbería le paga. Negativo: el barbero le debe a la barbería. */
-  const net = round(serviceCommission + productCommission + tips + salary - rent - deductions + adjustmentsTotal);
+  const held = round(lines.reduce((sum, line) => sum + line.held, 0));
+  /*
+   * Positivo: la barbería le paga. Negativo: el barbero le debe a la barbería. Con renta, el neto es
+   * lo que la barbería le guarda (lo que entró por su caja) menos la renta y las deducciones; las
+   * propinas que cobró él en efectivo ya las tiene.
+   */
+  const net = payout === "rent" ? round(held - rent - deductions + adjustmentsTotal) : round(serviceCommission + productCommission + tips + salary - rent - deductions + adjustmentsTotal);
 
   return {
     memberId: member.id,
@@ -194,6 +223,7 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
     salary,
     rent,
     deductions,
+    held,
     adjustments: mineAdjustments.map(({ id, kind, amount, note, createdAt, createdBy }) => ({ id, kind, amount, note, createdAt, createdBy })),
     adjustmentsTotal,
     net,

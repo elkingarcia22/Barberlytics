@@ -3,6 +3,7 @@ import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
 import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { appointmentAccount } from "./account";
+import { productPriceIn, servicePriceIn } from "../catalogPrices";
 import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
 import type { MockCatalogService } from "../services/seed";
 import type { MockCatalogProduct } from "../products/seed";
@@ -208,8 +209,8 @@ export const catalogServices = (): MockService[] => db.services.items.map(toAgen
 const toSale = (item: MockCatalogProduct): MockProduct => ({ id: item.id, name: item.name, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, imageUrl: item.imageUrl });
 const catalogProducts = (): MockProduct[] => db.products.items.map(toSale);
 // El catálogo de una sucursal lleva la tasa con la que se cobra ahí: la del artículo o la de la sucursal.
-const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map((item) => ({ ...toSale(item), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
-const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map((item) => ({ ...toAgenda(item), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
+const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map((item) => ({ ...toSale(item), price: productPriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
+const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map((item) => ({ ...toAgenda(item), price: servicePriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
 
 export const calendarHandlers = [
   http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
@@ -584,7 +585,7 @@ export const calendarHandlers = [
     const { tax, total } = cartTotals(
       items.map((item) => {
         const product = db.products.items.find((row) => row.id === item.productId);
-        return { amount: (product?.price ?? 0) * item.qty, percent: itemTaxPercent(product?.taxRate, branchId) };
+        return { amount: productPriceIn(item.productId, branchId) * item.qty, percent: itemTaxPercent(product?.taxRate, branchId) };
       }),
       0,
       taxInclusive()

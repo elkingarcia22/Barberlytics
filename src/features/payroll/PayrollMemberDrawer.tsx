@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/typography";
 import { PayrollAdjustments } from "./PayrollAdjustments";
+import { RentPayments } from "./RentPayments";
 import { PAYOUT_KEYS, RULE_KEYS, ruleSchema, type CommissionRule, type PayrollMember } from "./types";
 
 export interface PayrollMemberDrawerProps {
@@ -64,7 +65,7 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
               {member.payout !== "rent" && member.serviceCommission > 0 && <Row label={t("payroll.column.serviceCommission")} value={`+${formatMoney(member.serviceCommission)}`} />}
               {member.productCommission > 0 && <Row label={t("payroll.column.productCommission")} value={`+${formatMoney(member.productCommission)}`} />}
               {member.salary > 0 && <Row label={t("payroll.column.salary")} value={`+${formatMoney(member.salary)}`} />}
-              <Row label={t("payroll.column.tips")} value={`+${formatMoney(member.tips)}`} />
+              {member.payout === "rent" ? <Row label={t("payroll.rent.held")} value={`+${formatMoney(member.held ?? 0)}`} /> : <Row label={t("payroll.column.tips")} value={`+${formatMoney(member.tips)}`} />}
               {member.rent > 0 && <Row label={t("payroll.column.rent")} value={`−${formatMoney(member.rent)}`} negative />}
               {member.deductions > 0 && <Row label={t("payroll.column.deductions")} value={`−${formatMoney(member.deductions)}`} negative />}
               {(member.adjustmentsTotal ?? 0) !== 0 && (
@@ -74,9 +75,21 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
                 <dt className="font-semibold text-text-primary">{member.net < 0 ? t("payroll.detail.owes") : t("payroll.detail.toPay")}</dt>
                 <dd className={member.net < 0 ? "text-lg font-semibold tabular-nums text-status-warning" : "text-lg font-semibold tabular-nums text-text-primary"}>{formatMoney(Math.abs(member.net))}</dd>
               </div>
+              {member.payout === "rent" && member.balance !== undefined && (
+                <>
+                  <Row label={t("payroll.rent.paid")} value={`+${formatMoney(member.rentPaid ?? 0)}`} />
+                  <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-2" data-testid="payroll-rent-balance">
+                    <dt className="font-semibold text-text-primary">{t("payroll.rent.balance")}</dt>
+                    <dd className={member.balance < 0 ? "font-semibold tabular-nums text-status-warning" : "font-semibold tabular-nums text-status-positive"}>
+                      {member.balance < 0 ? t("payroll.rent.owes", { amount: formatMoney(-member.balance) }) : member.balance === 0 ? t("payroll.rent.upToDate") : t("payroll.rent.shopOwes", { amount: formatMoney(member.balance) })}
+                    </dd>
+                  </div>
+                </>
+              )}
             </dl>
           </section>
 
+          {adjustments && member.payout === "rent" && <RentPayments member={member} period={adjustments.period} canManage={adjustments.canManage} formatMoney={formatMoney} />}
           {adjustments && <PayrollAdjustments member={member} period={adjustments.period} locked={adjustments.locked} canManage={adjustments.canManage} formatMoney={formatMoney} />}
 
           <section aria-label={t("payroll.detail.lines")} className="space-y-2">
@@ -106,6 +119,7 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
                         <TableCell className="whitespace-nowrap text-text-secondary">
                           {t(RULE_KEYS[line.rule])}
                           {line.rate !== null && <span className="text-text-muted"> · {line.rate}%</span>}
+                          {line.collectedBy && <span className="text-text-muted"> · {t(line.collectedBy === "shop" ? "payroll.rent.collectedShop" : "payroll.rent.collectedBarber")}</span>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatMoney(line.sale)}</TableCell>
                         <TableCell className="text-right tabular-nums">{member.payout === "rent" ? (line.deduction > 0 ? `−${formatMoney(line.deduction)}` : "—") : formatMoney(line.commission)}</TableCell>

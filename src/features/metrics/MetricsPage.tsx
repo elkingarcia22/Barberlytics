@@ -6,6 +6,7 @@ import { ShellHeaderSlot } from "@/components/app-shell";
 import { QueryBoundary } from "@/lib/query";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
+import { useBranchId } from "@/features/team/teamUtils";
 import { MetricsFilters } from "./MetricsFilters";
 import { useBarbersMetrics, useBusinessMetrics, useCustomersMetrics, useInsightsMetrics, useMarketingMetrics } from "./queries";
 import { useMetricsFilters, type MetricsTab } from "./useMetricsFilters";
@@ -116,7 +117,7 @@ function MarketingTab({ params }: { params: MetricsParams }) {
 }
 
 function InsightsTab() {
-  const query = useInsightsMetrics();
+  const query = useInsightsMetrics(useBranchId());
   return (
     <Fading stale={false}>
       <QueryBoundary query={query} loading={<MetricsLoading />}>

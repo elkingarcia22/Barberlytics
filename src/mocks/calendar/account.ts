@@ -1,5 +1,6 @@
 import { cartTotals } from "@/features/branches/tax";
 import { db } from "../db";
+import { barberServicePrice, productPriceIn } from "../catalogPrices";
 import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import type { MockAppointment } from "./seed";
 
@@ -31,18 +32,14 @@ const round2 = (value: number): number => Math.round(value * 100) / 100;
 
 const serviceOf = (id: string) => db.services.items.find((item) => item.id === id);
 
-/** Lo que cobra ese barbero por el servicio (su precio en Equipo) o, si no tiene uno propio, el de la carta. */
-export function barberServicePrice(barberId: string, serviceId: string): number {
-  const own = db.team.members.find((member) => member.id === barberId)?.services.find((item) => item.serviceId === serviceId)?.price;
-  return own ?? serviceOf(serviceId)?.price ?? 0;
-}
+export { barberServicePrice };
 const productOf = (id: string) => db.products.items.find((item) => item.id === id);
 
 export function appointmentAccount(appointment: MockAppointment, serviceIds: readonly string[] = appointment.serviceIds, products: readonly { productId: string; qty: number }[] = appointment.products): AppointmentAccount {
   const branchId = appointment.branchId;
   const lines = [
-    ...serviceIds.map((id) => ({ amount: barberServicePrice(appointment.barberId, id), percent: itemTaxPercent(serviceOf(id)?.taxRate, branchId) })),
-    ...products.map((line) => ({ amount: (productOf(line.productId)?.price ?? 0) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
+    ...serviceIds.map((id) => ({ amount: barberServicePrice(appointment.barberId, id, branchId), percent: itemTaxPercent(serviceOf(id)?.taxRate, branchId) })),
+    ...products.map((line) => ({ amount: productPriceIn(line.productId, branchId) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
   ];
   const online = appointment.online ?? null;
   const computed = cartTotals(lines, online?.discount ?? 0, taxInclusive());

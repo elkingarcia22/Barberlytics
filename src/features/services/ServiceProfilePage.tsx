@@ -158,7 +158,7 @@ function ServiceProfile({ service, categories, items, branchId }: ServiceProfile
             </span>
           </span>
         }
-        description={[t(service.kind === "combo" ? "services.kind.combo" : "services.kind.service"), categoryName(categories, service.categoryId), formatDuration(service.durationMin), formatMoney(service.price)].join(" · ")}
+        description={[t(service.kind === "combo" ? "services.kind.combo" : "services.kind.service"), categoryName(categories, service.categoryId), formatDuration(service.durationMin), formatMoney(service.branchPrice ?? service.price)].join(" · ")}
         actions={
           <Button variant="ghost" size="sm" onClick={() => navigate("/servicios")}>
             <ArrowLeft /> {t("services.profile.back")}
@@ -222,7 +222,7 @@ function ServiceOverview({ service, categories, items, formatMoney, showMoney }:
   return (
     <div className="space-y-section">
       <section aria-label={t("services.overview.numbersAria")} className={showMoney ? "grid gap-stack sm:grid-cols-2 xl:grid-cols-4" : "grid gap-stack sm:grid-cols-2"}>
-        <MetricCard label={t("services.column.price")} value={formatMoney(service.price)} caption={service.taxRate === null ? t("services.overview.noTax") : t("services.overview.plusTax", { rate: percent(service.taxRate) })} tone="brand" icon="chart" />
+        <MetricCard label={t("services.column.price")} value={formatMoney(service.branchPrice ?? service.price)} caption={service.taxRate === null ? t("services.overview.noTax") : t("services.overview.plusTax", { rate: percent(service.taxRate) })} tone="brand" icon="chart" />
         <MetricCard
           label={t("services.column.duration")}
           value={formatDuration(service.durationMin)}

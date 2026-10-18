@@ -14,6 +14,8 @@ export const catalogProductSchema = z.object({
   categoryId: z.string(),
   /** Precio de venta. */
   price: z.number(),
+  /** El precio en la sucursal activa si no es el general; `null` = el general. */
+  branchPrice: z.number().nullable().optional(),
   /** Precio de compra; `null` si no se ha registrado. */
   cost: z.number().nullable(),
   taxRate: z.number().nullable(),
@@ -44,6 +46,7 @@ export const productInputSchema = z.object({
   description: z.string().trim(),
   categoryId: z.string().min(1, "products.form.error.category"),
   price: z.number({ error: "products.form.error.price" }).min(0, "products.form.error.price"),
+  branchPrice: z.number().min(0, "products.form.error.price").nullable(),
   cost: z.number().min(0, "products.form.error.cost").nullable(),
   taxRate: z.number().min(0, "products.form.error.tax").max(100, "products.form.error.tax").nullable(),
   sku: z.string().trim(),
@@ -56,10 +59,10 @@ export const productInputSchema = z.object({
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
 
-export const emptyProductInput = (categoryId: string): ProductInput => ({ name: "", description: "", categoryId, price: Number.NaN, cost: null, taxRate: null, sku: "", brand: "", distributor: "", visibility: "public", sellable: true, imageUrl: null });
+export const emptyProductInput = (categoryId: string): ProductInput => ({ name: "", description: "", categoryId, price: Number.NaN, branchPrice: null, cost: null, taxRate: null, sku: "", brand: "", distributor: "", visibility: "public", sellable: true, imageUrl: null });
 
 export function inputFromProduct(product: CatalogProduct): ProductInput {
-  return { name: product.name, description: product.description, categoryId: product.categoryId, price: product.price, cost: product.cost, taxRate: product.taxRate, sku: product.sku ?? "", brand: product.brand ?? "", distributor: product.distributor ?? "", visibility: product.visibility, sellable: product.sellable, imageUrl: product.imageUrl ?? null };
+  return { name: product.name, description: product.description, categoryId: product.categoryId, price: product.price, branchPrice: product.branchPrice ?? null, cost: product.cost, taxRate: product.taxRate, sku: product.sku ?? "", brand: product.brand ?? "", distributor: product.distributor ?? "", visibility: product.visibility, sellable: product.sellable, imageUrl: product.imageUrl ?? null };
 }
 
 export interface ProductCategoryInput {

@@ -14,6 +14,8 @@ import { TransactionsPage } from "./TransactionsPage";
 import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
 import { calendarApi } from "@/features/calendar/api";
 import { transactionsApi } from "./api";
+import { registerApi } from "./register";
+import { dateKey } from "@/mocks/calendar/seed";
 import { countByStatus, summarize } from "./transactionsHome";
 import type { Account } from "./types";
 
@@ -199,6 +201,23 @@ describe("contrato de transacciones (mock)", () => {
     await expect(calendarApi.checkout(seeded.id, { ...input, split: { cash: 1, card: 1 } })).rejects.toMatchObject({ status: 422 });
     const charged = await calendarApi.checkout(seeded.id, { ...input, split: { cash: 10, card: Math.round((open.balance - 10) * 100) / 100 } });
     expect(charged.payment?.split).toEqual({ cash: 10, card: Math.round((open.balance - 10) * 100) / 100 });
+  });
+
+  test("el cierre de caja espera el efectivo del día y pide explicar una diferencia", async () => {
+    await withSession();
+    await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const day = await registerApi.day("ma", PAST_DAY);
+    // El efectivo esperado es lo cobrado en efectivo ese día en la sucursal.
+    const cash = db.calendar.appointments
+      .filter((item) => item.branchId === "ma" && item.status === "paid" && item.payment?.method === "cash" && dateKey(new Date(item.payment.paidAt)) === PAST_DAY)
+      .reduce((total, item) => total + item.payment!.total - (item.payment!.prepaid ?? 0), 0);
+    expect(day.expected.cash).toBeCloseTo(cash, 2);
+    expect(day.closure).toBeNull();
+    await expect(registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + day.expected.cash - 5, note: "" })).rejects.toMatchObject({ status: 422 });
+    const closure = await registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + day.expected.cash - 5, note: "Vuelto mal dado" });
+    expect(closure.difference).toBe(-5);
+    expect((await registerApi.day("ma", PAST_DAY)).closure).toMatchObject({ difference: -5, note: "Vuelto mal dado" });
+    await expect(registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 0, counted: 0, note: "otra vez" })).rejects.toMatchObject({ status: 409 });
   });
 
   test("una venta de mostrador también es una cuenta, sin cliente ni cita", async () => {

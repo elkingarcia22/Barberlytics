@@ -163,6 +163,8 @@ export interface MetricsParams {
   date: string;
   /** `all` o el id de un barbero. */
   barberId: string;
+  /** La sucursal de la cabecera: cada una tiene sus cifras. */
+  branchId: string;
 }
 
 export const ALL_BARBERS = "all";

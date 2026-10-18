@@ -4,6 +4,7 @@ import { WALK_IN_CLIENT, clockOf, dateKey, parseClock, type MockAppointment, typ
 import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/handlers";
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
+import { productPriceIn, servicePriceIn } from "../catalogPrices";
 import { accountTaxPercent, branchCurrency, branchOnlineMethods, branchTaxPercent, itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
@@ -54,13 +55,14 @@ export const bookableBarbers = (branchId: string) => barbersIn(branchId).filter(
 const memberOf = (id: string) => db.team.members.find((member) => member.id === id);
 
 /** Lo que cobra un barbero por un servicio, o `null` si no lo hace. */
-export function barberPrice(barberId: string, serviceId: string): number | null {
+export function barberPrice(barberId: string, serviceId: string, branchId?: string): number | null {
   const member = memberOf(barberId);
   const service = db.services.items.find((item) => item.id === serviceId);
   if (!member || !service) return null;
   const override = member.services.find((item) => item.serviceId === serviceId);
   if (override && !override.offered) return null;
-  return override?.price ?? service.price;
+  // Su precio en Equipo; si no tiene, el de la sucursal (la que se pide o la suya) o el general.
+  return override?.price ?? servicePriceIn(serviceId, branchId ?? member.homeBranchId);
 }
 
 export const publicServicesIn = (branchId: string) =>
@@ -145,7 +147,7 @@ export function catalog(branchId: string) {
   const barbers = bookableBarbers(branchId).map((barber) => {
     const member = memberOf(barber.id);
     const prices = Object.fromEntries(services.flatMap((service) => {
-      const price = barberPrice(barber.id, service.id);
+      const price = barberPrice(barber.id, service.id, branchId);
       return price === null ? [] : [[service.id, price]];
     }));
     return {
@@ -165,7 +167,7 @@ export function catalog(branchId: string) {
   });
   const products = db.products.items
     .filter((item) => item.visibility === "public" && item.sellable && item.activeBranchIds.includes(branchId))
-    .map((item) => ({ id: item.id, name: item.name, description: item.description, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, taxPercent: itemTaxPercent(item.taxRate, branchId), imageUrl: item.imageUrl }));
+    .map((item) => ({ id: item.id, name: item.name, description: item.description, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: productPriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId), imageUrl: item.imageUrl }));
   return {
     services: services.map((item) => ({
       id: item.id,
@@ -173,7 +175,7 @@ export function catalog(branchId: string) {
       description: item.description,
       category: db.services.categories.find((category) => category.id === item.categoryId)?.name ?? "",
       durationMin: item.durationMin,
-      price: item.price,
+      price: servicePriceIn(item.id, branchId),
       // La tasa con la que se cobra en esta sucursal: la del servicio o, si no tiene, la de la sucursal.
       taxPercent: itemTaxPercent(item.taxRate, branchId),
       imageUrl: item.imageUrl,
@@ -341,7 +343,7 @@ export function bookedOf(item: MockAppointment) {
   const link = reservationOf(item.id);
   const member = memberOf(item.barberId);
   const branch = (db.settings.lists.branches as unknown as { id: string; name: string }[]).find((entry) => entry.id === item.branchId);
-  const price = link?.line.price ?? item.serviceIds.reduce((sum, id) => sum + (barberPrice(item.barberId, id) ?? 0), 0);
+  const price = link?.line.price ?? item.serviceIds.reduce((sum, id) => sum + (barberPrice(item.barberId, id, item.branchId) ?? 0), 0);
   const status = item.status === "cancelled" ? "cancelled" : item.status === "no_show" ? "no_show" : item.status === "paid" ? "completed" : new Date(item.start).getTime() + item.durationMin * 60_000 < Date.now() ? "completed" : "scheduled";
   return {
     review: reviewOfAppointment(item.id) ? { rating: reviewOfAppointment(item.id)?.rating ?? 0 } : null,
@@ -521,7 +523,7 @@ export function branchDetail(branchId: string) {
 /** La tasa media de una reserva en su sucursal: cada servicio (al precio de su barbero) y cada producto con la suya. */
 export function reservationTaxPercent(branchId: string, planned: readonly { barberId: string; serviceIds: readonly string[] }[], products: readonly { productId: string; price: number; qty: number }[]): number {
   return accountTaxPercent(branchId, {
-    services: planned.flatMap((item) => item.serviceIds.map((serviceId) => ({ id: serviceId, amount: barberPrice(item.barberId, serviceId) ?? 0 }))),
+    services: planned.flatMap((item) => item.serviceIds.map((serviceId) => ({ id: serviceId, amount: barberPrice(item.barberId, serviceId, branchId) ?? 0 }))),
     products: products.map((line) => ({ id: line.productId, amount: line.price * line.qty })),
   });
 }

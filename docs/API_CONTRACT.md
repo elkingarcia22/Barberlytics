@@ -84,11 +84,16 @@ Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSit
 
 ## Métricas (`/metrics`)
 
-`GET /metrics/business?granularity=day|week|month&date=YYYY-MM-DD&barberId=all|<id>` → cómo le fue a la
-sucursal activa en el periodo que contiene `date`. `day` es ese día, `week` su semana de lunes a domingo y
-`month` su mes natural. `previous` es el periodo justo anterior, con el que se calculan las variaciones. La
-sucursal la fija la sesión (cabecera), no la consulta. `barbers` es la lista completa para el filtro y no
-cambia con `barberId`.
+`GET /metrics/business?granularity=day|week|month&date=YYYY-MM-DD&barberId=all|<id>&branchId` → cómo le fue a la
+sucursal `branchId` (la de la cabecera) en el periodo que contiene `date`. `day` es ese día, `week` su semana de
+lunes a domingo y `month` su mes natural. `previous` es el periodo justo anterior, con el que se calculan las
+variaciones. `barbers` son los barberos de esa sucursal (ids del equipo) y no cambian con `barberId`.
+
+**Las cifras salen de lo que pasó**: las citas de la agenda de esa sucursal, al precio del barbero y con el
+impuesto registrado, sus ventas de mostrador y sus devoluciones. Para el mismo día, «Ventas» es lo cobrado en
+Transacciones (total + propina). Lo que la agenda no registra todavía (canal de llegada, campañas, tipo de
+cliente a lo largo del tiempo, ocupación sobre el horario real) se reparte sobre los totales reales.
+`GET /metrics/insights?branchId` mira los últimos tres meses de esa sucursal.
 
 ```json
 {
@@ -226,7 +231,9 @@ Las notas se crean, corrigen y borran con `/clients/:id/notes` (sección Calenda
 El catálogo de lo que se ofrece. Es la **fuente de lo que la agenda puede agendar**: `GET /calendar/catalog` devuelve como `services` los de aquí que están activos en la sucursal (servicios y combos, con el nombre de su categoría en `category`). Un servicio se crea una vez y cada sucursal decide si lo ofrece.
 
 `category`: `{ id, name, description, visibility: "public" | "private" }`. `cat_none` («Sin categoría») existe siempre y no se puede borrar.
-`service`: `{ id, kind: "service" | "combo", name, description, categoryId, price, cost (\| null), durationMin, taxRate (0–100 \| null), visibility, active, multiservice, prep: { enabled, minutes, position: "start" | "end" }, giftCards, includes: string[] (solo combos), createdAt, offeredBy, teamSize }`. `active` es relativo al `branchId` de la petición; `offeredBy` / `teamSize` cuentan los barberos de esa sucursal que lo ofrecen.
+`service`: `{ id, kind: "service" | "combo", name, description, categoryId, price, branchPrice (\| null), cost (\| null), durationMin, taxRate (0–100 \| null), visibility, active, multiservice, prep: { enabled, minutes, position: "start" | "end" }, giftCards, includes: string[] (solo combos), createdAt, offeredBy, teamSize }`. `active` y `branchPrice` son relativos al `branchId` de la petición; `offeredBy` / `teamSize` cuentan los barberos de esa sucursal que lo ofrecen.
+
+**Precio por sucursal.** `price` es el general; `branchPrice` el de la sucursal de la petición si tiene uno propio (otra tarifa u otra moneda). `POST` y `PATCH` aceptan `branchPrice` (número para fijarlo, `null` para volver al general) y solo tocan esa sucursal. Lo que se cobra es, en orden: el precio del barbero en Equipo, el de la sucursal, el general. Así cobran la agenda, la caja, la reserva, Transacciones, Nómina y Métricas.
 `serviceDetail`: `service` + `team: [{ memberId, name, avatarUrl, offered, price, durationMin, custom }]`. `price` y `durationMin` son los efectivos de esa persona (los suyos o los del catálogo); `custom` dice si tiene valores propios. Los valores propios se editan en la ficha del miembro (`PATCH /team/members/:id`, `services`).
 
 | Método | Ruta | Notas |
@@ -248,7 +255,7 @@ El catálogo de lo que se ofrece. Es la **fuente de lo que la agenda puede agend
 El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuente de lo que la caja puede cobrar**: `GET /calendar/catalog` devuelve como `products` los de aquí que están activos en la sucursal **y** a la venta (`sellable`). No hay inventario: el contrato no lleva existencias.
 
 `category`: `{ id, name, description }`. `pcat_none` («Sin categoría») existe siempre y no se puede borrar.
-`product`: `{ id, name, description, categoryId, price (venta), cost (compra \| null), taxRate (0–100 \| null), sku (\| null), brand (\| null), distributor (\| null), visibility: "public" | "private", sellable, active, createdAt }`. `visibility` dice si el cliente lo ve al reservar en línea; `sellable`, si el equipo puede venderlo (uno de uso interno va en `false`); `active` es relativo al `branchId` de la petición.
+`product`: `{ id, name, description, categoryId, price (venta), branchPrice (venta en la sucursal de la petición \| null), cost (compra \| null), taxRate (0–100 \| null), sku (\| null), brand (\| null), distributor (\| null), visibility: "public" | "private", sellable, active, createdAt }`. `visibility` dice si el cliente lo ve al reservar en línea; `sellable`, si el equipo puede venderlo (uno de uso interno va en `false`); `active` es relativo al `branchId` de la petición.
 
 | Método | Ruta | Notas |
 |---|---|---|
@@ -277,6 +284,18 @@ Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí �
 
 Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, devuelto) se calculan en el front sobre `items`; si el backend real pagina, tendrá que devolverlas en un `summary` aparte.
 
+## Caja (`/register`)
+
+El cierre de caja de una sucursal y un día: lo que debía haber en efectivo según las cuentas frente a lo que se contó.
+
+`expected`: `{ cash, card, link, online, refundsCash, refundsCard, accounts }`. En efectivo: lo cobrado en caja ese día (la parte en efectivo de un pago mixto incluida, sin lo que ya estaba pagado en línea) y las ventas de mostrador en efectivo, menos lo devuelto en efectivo. Tarjeta y enlace se informan para cuadrar con el datáfono y la pasarela; `online` no pasa por la caja.
+`closure`: `{ id, date, opening, expectedCash, counted, difference, note, closedAt, closedBy }`. `difference` = `counted − (opening + expectedCash)`: positivo sobra, negativo falta.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/register?branchId&date=AAAA-MM-DD` | `{ branchId, date, expected, closure (\| null) }`. `422` sin sucursal o con fecha inválida. |
+| POST | `/register/close` | `{ branchId, date, opening, counted, note }` → `201 closure`. `422` con `fields` (valores negativos, o una diferencia sin `note`); `409` si ese día ya está cerrado. |
+
 ## Gastos (`/expenses`)
 
 Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuencia; uno **variable** pasó una vez.
@@ -301,6 +320,7 @@ Cómo se calcula (para que cuadre con la caja):
 - La base de la comisión (`line.sale`) es lo cobrado de los servicios **al precio del barbero que los hizo** (el mismo de la reserva y de la caja), menos lo que pide Configuración › Comisiones: el descuento que se le hizo al cliente (`deductDiscounts`), el impuesto si va incluido en el precio (`deductTaxes`), el costo del servicio (`deductServiceCost`). La de productos, igual con `deductProductCost`.
 - En escala, el tramo sale de lo vendido en el **ciclo de pago** que contiene la cita (Configuración › Nómina: semanal o quincenal desde un día de la semana, o mensual desde un día del mes), no del rango consultado.
 - Las deducciones de la renta (`payments.*Deduction`) son un **porcentaje** de la venta de esa cita.
+- **Renta**: importa quién tiene el dinero. Lo que entró por la caja de la barbería (tarjeta, enlace, la parte de tarjeta de un pago mixto, lo pagado en línea) es del barbero y la barbería se lo guarda (`line.collectedBy: "shop"`, `line.held`); lo que cobró él en efectivo ya lo tiene (`"barber"`). Su `net` = `held − rent − deductions + adjustmentsTotal`. Además llegan `rentPaid` (lo que pagó de renta en el periodo), `rentPayments` y `balance` = `net + rentPaid` (negativo: debe; positivo: la barbería le debe).
 
 `member`: `{ memberId, name, avatarUrl, payout: "commission" | "rent" | "salary", rules (\| null), rentBase (\| null), salaryBase (\| null), services, serviceSales, productSales, serviceCommission, productCommission, tips, salary, rent, deductions, adjustments: adjustment[], adjustmentsTotal, net, lines }`
 `rules` (solo comisión): `{ type: "commission" | "scale", basic, recurring, walkIn, noPreference, newClient, productPercent, scale: [{ from, percent }] }` en porcentajes; una regla `null` usa la básica.
@@ -315,6 +335,8 @@ Cómo se calcula (para que cuadre con la caja):
 | POST | `/payroll/adjustments` | `{ branchId, from, to, memberId, kind, amount, note }` → `201 adjustment`. `422` con `fields` (valor ≤ 0, motivo corto, persona que no existe); `409` si el periodo ya está aprobado. |
 | DELETE | `/payroll/adjustments/:id` | `204`. `409` si el periodo ya está aprobado; `404`. |
 | POST | `/payroll/runs` | `{ branchId, from, to }`: aprueba el periodo y guarda la foto. `201 run`. `409` si ya estaba aprobado. |
+| POST | `/payroll/rent-payments` | `{ branchId, memberId, amount, method, date?, note? }`: un pago de renta de un barbero de renta. `201`. `422` si la persona no paga renta, el valor no es mayor que cero o falta el medio. Se cuenta en el periodo de su `date` aunque la nómina esté aprobada. |
+| DELETE | `/payroll/rent-payments/:id` | `204`. `404`. |
 | POST | `/payroll/runs/:id/pay` | `{ method, reference? }` → `run` pagado. `409` si ya estaba pagado. |
 | POST | `/payroll/runs/:id/reopen` | `{ reason }` (5+ caracteres): vuelve a abierto y queda en `history`. `204`. `409` si ya está pagado (se corrige con un ajuste en el siguiente periodo); `422` sin motivo. |
 

@@ -8,7 +8,7 @@ export const metricsKeys = {
   customers: (params: MetricsParams) => [...metricsKeys.all, "customers", params] as const,
   barbers: (params: MetricsParams) => [...metricsKeys.all, "barbers", params] as const,
   marketing: (params: MetricsParams) => [...metricsKeys.all, "marketing", params] as const,
-  insights: () => [...metricsKeys.all, "insights"] as const,
+  insights: (branchId: string) => [...metricsKeys.all, "insights", branchId] as const,
 };
 
 /*
@@ -48,6 +48,6 @@ export function useMarketingMetrics(params: MetricsParams) {
   });
 }
 
-export function useInsightsMetrics() {
-  return useQuery({ queryKey: metricsKeys.insights(), queryFn: ({ signal }) => metricsApi.insights(signal) });
+export function useInsightsMetrics(branchId: string) {
+  return useQuery({ queryKey: metricsKeys.insights(branchId), queryFn: ({ signal }) => metricsApi.insights(branchId, signal) });
 }

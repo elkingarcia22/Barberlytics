@@ -352,7 +352,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
             }
             title={row.name}
             description={`${categoryName(categories, row.categoryId)} · ${formatDuration(row.durationMin)}`}
-            meta={<span className="font-medium tabular-nums text-text-primary">{formatMoney(row.price)}</span>}
+            meta={<span className="font-medium tabular-nums text-text-primary">{formatMoney(row.branchPrice ?? row.price)}</span>}
             actions={
               <>
                 <ActiveBadge active={row.active} />

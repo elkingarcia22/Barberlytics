@@ -75,7 +75,7 @@ export function productCells(t: Translate, { categories, formatMoney, formatPerc
     },
     category: { head: t("products.column.category"), cell: (row) => categoryName(categories, row.categoryId), cellClassName: "text-text-secondary" },
     sku: { head: t("products.column.sku"), cell: (row) => row.sku ?? muted, cellClassName: "font-mono text-xs text-text-secondary" },
-    price: { head: t("products.column.price"), headClassName: "text-right", cell: (row) => formatMoney(row.price), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
+    price: { head: t("products.column.price"), headClassName: "text-right", cell: (row) => formatMoney(row.branchPrice ?? row.price), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
     cost: { head: t("products.column.cost"), headClassName: "text-right", cell: (row) => (row.cost === null ? muted : formatMoney(row.cost)), cellClassName: "text-right tabular-nums text-text-secondary" },
     margin: {
       head: t("products.column.margin"),

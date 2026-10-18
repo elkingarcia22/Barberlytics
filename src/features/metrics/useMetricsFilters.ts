@@ -2,6 +2,7 @@ import * as React from "react";
 import { useSearchParams } from "react-router";
 import { fromIsoDate, toIsoDate, type PeriodGranularity } from "@/components/date";
 import { useAccess } from "@/features/access";
+import { useBranchId } from "@/features/team/teamUtils";
 import type { TeamRole } from "@/features/team/types";
 import { ALL_BARBERS, periodGranularitySchema, type MetricsParams } from "./types";
 
@@ -67,7 +68,9 @@ export function useMetricsFilters() {
     [setSearchParams]
   );
 
-  const params: MetricsParams = { granularity, date: toIsoDate(date), barberId };
+  // La sucursal de la cabecera viaja en la consulta: cada una tiene sus cifras.
+  const branchId = useBranchId();
+  const params: MetricsParams = { granularity, date: toIsoDate(date), barberId, branchId };
   const today = toIsoDate(new Date());
 
   return {

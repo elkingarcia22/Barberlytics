@@ -11,6 +11,7 @@ import { seedProducts, type MockProductsState } from "./products/seed";
 import { seedExpenses, type MockExpense } from "./expenses/seed";
 import { seedSettings, type MockSettingsState } from "./settings/seed";
 import { emptyPayroll, type MockPayrollState } from "./payroll/state";
+import { emptyRegister, type MockRegisterState } from "./register/state";
 import { emptyBooking, type MockBookingState } from "./booking/state";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { withBarberPrices } from "./team/pricing";
@@ -164,6 +165,8 @@ export interface MockDb {
   booking: MockBookingState;
   /** Los periodos de nómina aprobados o pagados y los ajustes del periodo abierto. */
   payroll: MockPayrollState;
+  /** Los cierres de caja de cada sucursal y día. */
+  register: MockRegisterState;
   /** token de «Mis citas» → id de cliente. Solo en memoria. */
   bookingSessions: Map<string, string>;
   /** token → id de cuenta */
@@ -181,7 +184,7 @@ export interface MockDb {
 
 const STORAGE_KEY = "thema.mock.db";
 /** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
-const SCHEMA_VERSION = 27;
+const SCHEMA_VERSION = 29;
 
 interface PersistedDb {
   version?: number;
@@ -197,6 +200,7 @@ interface PersistedDb {
   settings?: MockSettingsState;
   booking?: MockBookingState;
   payroll?: MockPayrollState;
+  register?: MockRegisterState;
   backupEmails?: Record<string, string>;
 }
 
@@ -237,6 +241,7 @@ export function createDb(): MockDb {
     settings: saved?.settings ?? seedSettings(),
     booking: saved?.booking ?? emptyBooking(),
     payroll: saved?.payroll ?? emptyPayroll(),
+    register: saved?.register ?? emptyRegister(),
     bookingSessions: new Map(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
@@ -248,7 +253,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, payroll: db.payroll, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -266,6 +271,7 @@ export function createDb(): MockDb {
       db.settings = seedSettings();
       db.booking = emptyBooking();
       db.payroll = emptyPayroll();
+      db.register = emptyRegister();
       db.bookingSessions.clear();
       db.sessions.clear();
       db.loginFailures.clear();

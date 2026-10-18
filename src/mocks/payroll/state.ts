@@ -51,10 +51,24 @@ export interface MockPayrollHistoryEntry {
   reason: string | null;
 }
 
+/** Un pago de renta de un barbero de renta: cuándo, cuánto y con qué. Se cuenta en el periodo de su fecha. */
+export interface MockRentPayment {
+  id: string;
+  branchId: string;
+  memberId: string;
+  amount: number;
+  method: string;
+  /** AAAA-MM-DD. */
+  date: string;
+  note: string;
+  by: string;
+}
+
 export interface MockPayrollState {
   runs: MockPayrollRun[];
   adjustments: MockPayrollAdjustment[];
   history: MockPayrollHistoryEntry[];
+  rentPayments: MockRentPayment[];
 }
 
-export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [] });
+export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [], rentPayments: [] });

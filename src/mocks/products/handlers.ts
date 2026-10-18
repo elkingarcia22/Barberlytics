@@ -2,6 +2,7 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { imageOrNull } from "../media";
 import { UNCATEGORIZED_PRODUCT_ID, type MockCatalogProduct, type MockProductCategory } from "./seed";
+import { withBranchPrice } from "../catalogPrices";
 
 /**
  * Los endpoints del catálogo de productos del backend simulado. Reproducen
@@ -34,8 +35,8 @@ const findProduct = (id: string | readonly string[] | undefined) => db.products.
 const findCategory = (id: string | readonly string[] | undefined) => db.products.categories.find((item) => item.id === id);
 
 function view(product: MockCatalogProduct, branchId: string) {
-  const { activeBranchIds, ...rest } = product;
-  return { ...rest, active: activeBranchIds.includes(branchId) };
+  const { activeBranchIds, branchPrices, ...rest } = product;
+  return { ...rest, branchPrice: branchPrices?.[branchId] ?? null, active: activeBranchIds.includes(branchId) };
 }
 
 const catalog = (branchId: string) => ({ categories: db.products.categories, items: db.products.items.map((item) => view(item, branchId)) });
@@ -52,6 +53,8 @@ function validateProduct(input: Record<string, unknown>, currentId: string | nul
   if (name.length < 2) fields.name = ["Escribe el nombre."];
   else if (db.products.items.some((item) => item.id !== currentId && item.name.toLowerCase() === name.toLowerCase())) fields.name = ["Ya hay un producto con ese nombre."];
   if (price === null || price < 0) fields.price = ["Escribe el precio de venta."];
+  const branchPrice = numberOrNull(input.branchPrice);
+  if (branchPrice !== null && branchPrice < 0) fields.branchPrice = ["El precio no puede ser negativo."];
   if (cost !== null && cost < 0) fields.cost = ["El precio de compra no puede ser negativo."];
   if (taxRate !== null && (taxRate < 0 || taxRate > 100)) fields.taxRate = ["El impuesto va de 0 a 100 %."];
   if (!findCategory(categoryId)) fields.categoryId = ["Elige una categoría."];
@@ -123,7 +126,7 @@ export const productsHandlers = [
     const { fields, values } = validateProduct(input, null);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     const branchId = text(input.branchId) || "ma";
-    const product: MockCatalogProduct = { ...values, id: `prd_${Date.now().toString(36)}`, activeBranchIds: [branchId], createdAt: new Date().toISOString() };
+    const product: MockCatalogProduct = { ...values, branchPrices: withBranchPrice(undefined, branchId, input.branchPrice), id: `prd_${Date.now().toString(36)}`, activeBranchIds: [branchId], createdAt: new Date().toISOString() };
     db.products = { ...db.products, items: [...db.products.items, product] };
     db.persist();
     return HttpResponse.json(view(product, branchId), { status: 201 });
@@ -134,9 +137,11 @@ export const productsHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const product = findProduct(params.id);
     if (!product) return error(404, "not_found", "Ese producto no existe.");
-    const { fields, values } = validateProduct(asRecord(await request.json().catch(() => ({}))), product.id);
+    const input = asRecord(await request.json().catch(() => ({})));
+    const { fields, values } = validateProduct(input, product.id);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const updated: MockCatalogProduct = { ...product, ...values };
+    // El precio propio de la sucursal desde la que se edita; las demás quedan como estaban.
+    const updated: MockCatalogProduct = { ...product, ...values, branchPrices: withBranchPrice(product.branchPrices, branchOf(request), input.branchPrice) };
     db.products = { ...db.products, items: db.products.items.map((item) => (item.id === updated.id ? updated : item)) };
     db.persist();
     return HttpResponse.json(view(updated, branchOf(request)));

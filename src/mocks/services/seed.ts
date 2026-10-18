@@ -31,6 +31,8 @@ export interface MockCatalogService {
   durationMin: number;
   /** Porcentaje (0–100) o `null` si no lleva impuesto. */
   taxRate: number | null;
+  /** El precio en cada sucursal que no usa el general (id de sucursal → precio). */
+  branchPrices?: Record<string, number>;
   visibility: MockVisibility;
   /** Sucursales en las que se ofrece. */
   activeBranchIds: string[];

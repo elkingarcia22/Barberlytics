@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { Download, LayoutGrid, Loader2, RefreshCw } from "lucide-react";
+import { Download, LayoutGrid, Loader2, Lock, RefreshCw } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -22,6 +22,7 @@ import { useAccess } from "@/features/access";
 import { maskPhone } from "@/features/customers/customersUtils";
 import { useBranchId } from "@/features/team/teamUtils";
 import { AccountDrawer } from "./AccountDrawer";
+import { RegisterCloseDrawer } from "./RegisterCloseDrawer";
 import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
 import { useTransactionsQuery } from "./queries";
 import { countByStatus, describeLines, summarize, transactionCells, transactionColumns } from "./transactionsHome";
@@ -68,8 +69,8 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  *
  * Según el rol (docs/roles/02-metricas-caja-nomina.md): el barbero de renta
  * ve solo sus cuentas (las que atendió; sin ventas de mostrador) y recepción
- * ve las cuentas sin los totales del periodo. Devolver un pago o reasignar
- * el crédito todavía no existen; cuando lleguen, van con `transactions`·edit.
+ * ve las cuentas sin los totales del periodo. Devolver un pago va con
+ * `transactions`·edit; el cierre de caja del día, con quien ve todas las cuentas.
  */
 export function TransactionsPage() {
   const t = useAppT();
@@ -79,6 +80,10 @@ export function TransactionsPage() {
   const filters = useTransactionsFilters();
   const query = useTransactionsQuery({ branchId, from: filters.from, to: filters.to });
   const access = useAccess();
+  const [registerOpen, setRegisterOpen] = React.useState(false);
+  const formatMoney = useMoney();
+  // El cierre es de un día: en la vista de día, para quien ve todas las cuentas (dueño, administración, recepción).
+  const canCloseRegister = access.scope === "all" && filters.granularity === "day";
   const description = access.scope === "own" ? t("transactions.descriptionOwn") : showsPeriodTotals(access) ? t("transactions.description") : t("transactions.descriptionNoTotals");
 
   return (
@@ -91,9 +96,16 @@ export function TransactionsPage() {
         title={t("transactions.title")}
         description={description}
         actions={
-          <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching} data-testid="transactions-refresh">
-            {query.isFetching ? <Loader2 className="animate-spin" /> : <RefreshCw />} {t("transactions.refresh")}
-          </Button>
+          <>
+            {canCloseRegister && (
+              <Button variant="outline" size="sm" onClick={() => setRegisterOpen(true)} data-testid="transactions-register">
+                <Lock /> {t("transactions.register.action")}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching} data-testid="transactions-refresh">
+              {query.isFetching ? <Loader2 className="animate-spin" /> : <RefreshCw />} {t("transactions.refresh")}
+            </Button>
+          </>
         }
       />
 
@@ -145,6 +157,7 @@ export function TransactionsPage() {
       >
         {(data) => <TransactionsHome accounts={accountsFor(access, data.items)} showTotals={showsPeriodTotals(access)} filters={filters} fetching={query.isFetching} canRefund={access.can("transactions", "edit")} />}
       </QueryBoundary>
+      {canCloseRegister && <RegisterCloseDrawer open={registerOpen} onOpenChange={setRegisterOpen} branchId={branchId} date={filters.from} formatMoney={formatMoney} />}
     </div>
   );
 }

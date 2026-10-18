@@ -1,6 +1,6 @@
 # Investigación por módulo — resumen transversal
 
-2026-10-17. Diez investigaciones en paralelo, una por módulo. Cada una cubre cuatro análisis: qué tiene el módulo
+2026-10-17 (y 11–14 el 2026-10-18). Catorce investigaciones, una por módulo. Cada una cubre cuatro análisis: qué tiene el módulo
 hoy, qué le falta, cómo está frente a la competencia y el mercado, y qué IA de **cualquier industria** se aplica ahí.
 Este archivo cruza las diez: lo que se repite, lo que hay que decidir antes y en qué orden atacarlo.
 
@@ -16,6 +16,10 @@ Este archivo cruza las diez: lo que se repite, lo que hay que decidir antes y en
 | 08 | Equipo | [08-equipo.md](08-equipo.md) | La ficha más completa del producto; la portada `/usuarios` es de datos fijos |
 | 09 | Configuración | [09-configuracion.md](09-configuracion.md) | 20 ajustes bien hechos que en buena parte no llegan al resto del sistema |
 | 10 | Reserva en línea | [10-reserva-en-linea.md](10-reserva-en-linea.md) | Casi todo lo de BOOKING_RESEARCH hecho; falta el mundo real (pagos, WhatsApp, zona horaria) |
+| 11 | Agente IA (Clipper) | [11-agente-ia.md](11-agente-ia.md) | Buena interfaz sin modelo detrás; respondía con un guion de otro producto y prometía lo que no hace |
+| 12 | Acceso y puesta en marcha | [12-acceso-y-puesta-en-marcha.md](12-acceso-y-puesta-en-marcha.md) | Toda la autorización vivía en la interfaz; sin puesta en marcha ni importación |
+| 13 | Avisos y ayuda | [13-avisos-y-ayuda.md](13-avisos-y-ayuda.md) | La campana y Novedades eran de demo; el sistema sabía lo que pasaba y no avisaba a nadie |
+| 14 | Experiencia del barbero | [14-experiencia-del-barbero.md](14-experiencia-del-barbero.md) | Dos «netos» distintos, sin estado del pago y la caja descuadraba con la renta |
 
 ---
 
@@ -161,3 +165,33 @@ rotación de personal, prueba virtual de cortes (datos biométricos) y precios d
   (de primera mano), Uber/Rappi/Airbnb/Resy, las tarifas de IVA vigentes y el artículo exacto de la Ley 2466 sobre estilistas.
 - El análisis del código se hizo sobre `main` en `90722e0`. Las tareas en otras copias que `main` aún no tiene no
   se revisaron.
+
+---
+
+## Estado de la hoja de ruta (2026-10-18)
+
+Lo implementado desde la investigación, todo en `main` con pruebas:
+
+- **Fase 1 — que los números cuadren**: moneda, impuesto y pasarela por sucursal; la reserva llega a la caja (sin
+  doble cobro); devoluciones reales; pago mixto; precio por sucursal; nómina con periodos (abierto, aprobado, pagado),
+  ajustes y renta de silla completa; cierre de caja; Métricas sobre la agenda real.
+- **Fase 2 — operación conectada**: WhatsApp real (cola, plantillas de la Cloud API, confirmación por enlace y en la
+  cita, mensajes 1 a 1 desde la ficha con permiso); ficha 360; estado de resultados con punto de equilibrio; gastos con
+  fecha, categoría, proveedor y comprobantes; inventario ligero; importación de clientes por CSV; puesta en marcha.
+- **De los informes 11–14**: «ver como» solo hacia abajo y rol desconocido sin acceso; código de entrada endurecido
+  (respuesta única, bloqueo de 15 minutos, tope de envíos); `/api/tts` y `/api/whatsapp/send` con origen obligatorio y
+  tope por IP; CSV sin fórmulas; Clipper sin guion de demo, sin adjuntos que descarta y con historial que se borra al
+  salir; bandeja de avisos real por rol; «Mi pago» con estado y movimientos; un solo neto del barbero; la caja no
+  espera el efectivo del barbero de renta; no se aprueban periodos de nómina cruzados.
+
+Pendiente, por orden:
+
+1. **Autorización en el servidor**: `teamRole` y `memberId` en la sesión y cada endpoint recortado por rol (hoy el mock
+   recibe el rol por parámetro en avisos y recorta en el navegador en nómina y calendario).
+2. **WhatsApp en producción**: plantillas aprobadas en Meta, claves en Vercel y la cola corriendo en el servidor (cron),
+   no en el navegador; leer las respuestas (webhook).
+3. **Equipo**: ausencias con aprobación, fila de walk-ins en vivo, pestaña Rendimiento y portada con datos reales.
+4. **Fase 3 — IA** en el orden de §4: ritmo del cliente, hechos → narración, margen por hora de silla, revisión antes de
+   cerrar, Clipper con modelo y herramientas de solo lectura, reservable por agentes.
+5. Integraciones que no se hacen en el mock: factura y documento soporte DIAN (Alegra o Siigo), Bre-B, push web (PWA).
+

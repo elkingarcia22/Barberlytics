@@ -38,6 +38,8 @@ export interface MockCustomerProfile {
   marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" };
   /** Borrado del directorio; la agenda conserva sus citas. */
   deleted?: boolean;
+  /** La tanda de importación que lo trajo (para poder deshacerla). */
+  importBatch?: string;
 }
 
 /** Solo lo que cambió o se creó; el resto se deriva al vuelo. */

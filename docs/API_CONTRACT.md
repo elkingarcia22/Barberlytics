@@ -89,6 +89,12 @@ hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payroll
 (`client`, `day`, `time`, `product`, `count`, `amount`, `from`, `to`…); `href` abre lo que lo causó. El mock recibe
 `role` y `memberId` por parámetro porque la sesión aún no trae el rol del equipo; el backend real los sacará de la sesión.
 
+## Puesta en marcha (`/onboarding`)
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/onboarding?branchId` | `{ steps: [{ id, done, href }], done, total }`. Pasos: `company` (nombre y teléfono), `branch` (moneda, impuesto y zona horaria), `hours` (horario), `services` (alguno activo con precio), `team` (algún barbero), `payments` (pasarela conectada en la sucursal), `booking` (algún medio de pago en la reserva), `clients` (algún cliente). Nadie los marca: cada uno se da por hecho cuando el dato existe. |
+
 ## Dashboard
 
 `GET /dashboard/summary` →
@@ -261,6 +267,8 @@ El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `cl
 | POST | `/customers` | `{ firstName, lastName, phone, email, branchId, country?, state?, city?, address?, zipcode?, birthDate?, onlineOnly? }`. `201 customerDetail`. `422` con `fields` si falta nombre, apellido, celular o correo válidos, si el celular ya es de otro cliente o si la fecha de nacimiento es futura. |
 | PATCH | `/customers/:id` | Los mismos campos del alta, o solo `{ blocked: boolean }` para bloquear y desbloquear sin reenviar la ficha. Devuelve `customerDetail`. `422` · `404`. |
 | POST | `/customers/:id/messages` | `{ purpose: "thanks" \| "rebook" \| "birthday" \| "free", body }`. Anota un mensaje que el equipo abrió en WhatsApp (`wa.me`) desde la ficha; queda en su historial (`kind: "manual"`). `rebook` y `birthday` son promoción: `409 no_consent` si el cliente no aceptó promociones. `201` con la relación. |
+| POST | `/customers/import` | `{ branchId, rows: [{ name, phone, email?, birthDate? (AAAA-MM-DD), note? }] (1–2.000), dryRun? }`. El celular se lleva a E.164 con el indicativo del país de la sucursal (+57 Colombia, +1 por defecto). `{ batchId, created, rejected: [{ row, name, reason: "name" \| "phone" \| "email" \| "birthDate" \| "duplicate" }] }`; con `dryRun` revisa sin crear (`batchId: null`). Repetido = mismo celular que un cliente o que otra fila del archivo. `201`. |
+| DELETE | `/customers/import/:batchId` | Deshace la tanda: borra sus clientes que aún no tienen citas. `{ removed, kept }`. `404`. |
 | POST | `/customers/:id/guests` | `{ name, relation? }`. `201 customerDetail`. Un invitado solo necesita nombre: la cita queda a nombre del titular. |
 | DELETE | `/customers/:id/guests/:guestId` | `customerDetail` sin ese invitado. `404`. |
 
@@ -348,7 +356,7 @@ Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, d
 
 El cierre de caja de una sucursal y un día: lo que debía haber en efectivo según las cuentas frente a lo que se contó.
 
-`expected`: `{ cash, card, link, online, refundsCash, refundsCard, accounts }`. En efectivo: lo cobrado en caja ese día (la parte en efectivo de un pago mixto incluida, sin lo que ya estaba pagado en línea) y las ventas de mostrador en efectivo, menos lo devuelto en efectivo. Tarjeta y enlace se informan para cuadrar con el datáfono y la pasarela; `online` no pasa por la caja.
+`expected`: `{ cash, card, link, online, refundsCash, refundsCard, accounts, renterCash }`. El efectivo que cobra un barbero de renta es suyo y no se espera en el cajón: va en `renterCash` (la misma regla que la nómina, `collectedBy: "barber"`). En efectivo: lo cobrado en caja ese día (la parte en efectivo de un pago mixto incluida, sin lo que ya estaba pagado en línea) y las ventas de mostrador en efectivo, menos lo devuelto en efectivo. Tarjeta y enlace se informan para cuadrar con el datáfono y la pasarela; `online` no pasa por la caja.
 `closure`: `{ id, date, opening, expectedCash, counted, difference, note, closedAt, closedBy }`. `difference` = `counted − (opening + expectedCash)`: positivo sobra, negativo falta.
 
 | Método | Ruta | Notas |
@@ -403,7 +411,7 @@ Cómo se calcula (para que cuadre con la caja):
 | GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD&memberId?` | `{ from, to, weeks, run, history, members: member[] }` con los barberos de la sucursal en su orden de calendario; aprobado o pagado, la foto fija. Con `memberId`, solo esa persona («Lo que llevo» / «Mi negocio» del barbero). `422` si el rango es inválido, va al revés o pasa de 62 días. |
 | POST | `/payroll/adjustments` | `{ branchId, from, to, memberId, kind, amount, note }` → `201 adjustment`. `422` con `fields` (valor ≤ 0, motivo corto, persona que no existe); `409` si el periodo ya está aprobado. |
 | DELETE | `/payroll/adjustments/:id` | `204`. `409` si el periodo ya está aprobado; `404`. |
-| POST | `/payroll/runs` | `{ branchId, from, to }`: aprueba el periodo y guarda la foto. `201 run`. `409` si ya estaba aprobado. |
+| POST | `/payroll/runs` | `{ branchId, from, to }`: aprueba el periodo y guarda la foto. `201 run`. `409` si ya estaba aprobado o `409 overlap` si se cruza con otro periodo aprobado (pagaría dos veces el mismo trabajo). |
 | POST | `/payroll/rent-payments` | `{ branchId, memberId, amount, method, date?, note? }`: un pago de renta de un barbero de renta. `201`. `422` si la persona no paga renta, el valor no es mayor que cero o falta el medio. Se cuenta en el periodo de su `date` aunque la nómina esté aprobada. |
 | DELETE | `/payroll/rent-payments/:id` | `204`. `404`. |
 | POST | `/payroll/runs/:id/pay` | `{ method, reference? }` → `run` pagado. `409` si ya estaba pagado. |

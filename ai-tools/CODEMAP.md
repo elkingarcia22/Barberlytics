@@ -97,6 +97,8 @@ Lo que responde MSW hoy.
 - `DELETE /customers/:id` · src/mocks/customers/handlers.ts
 - `POST /customers/:id/guests` · src/mocks/customers/handlers.ts
 - `DELETE /customers/:id/guests/:guestId` · src/mocks/customers/handlers.ts
+- `POST /customers/import` · src/mocks/customers/import.ts
+- `DELETE /customers/import/:batchId` · src/mocks/customers/import.ts
 - `GET /customers/:id/relationship` · src/mocks/customers/relationship.ts
 - `POST /customers/:id/messages` · src/mocks/customers/relationship.ts
 - `PATCH /customers/:id/consent` · src/mocks/customers/relationship.ts
@@ -139,6 +141,7 @@ Lo que responde MSW hoy.
 - `POST */api/booking/confirm` · src/mocks/messages/handlers.ts
 - `GET /notifications` · src/mocks/notifications/handlers.ts
 - `POST /notifications/read` · src/mocks/notifications/handlers.ts
+- `GET /onboarding` · src/mocks/onboarding/handlers.ts
 - `GET /payroll` · src/mocks/payroll/handlers.ts
 - `POST /payroll/adjustments` · src/mocks/payroll/handlers.ts
 - `DELETE /payroll/adjustments/:id` · src/mocks/payroll/handlers.ts
@@ -564,6 +567,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **CustomerFormDrawer.tsx** — Crear o editar un cliente sin salir de donde se está. · `CustomerFormDrawerProps`, `CustomerFormDrawer` · piezas: Alert, AlertDescription, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DrawerShell, Field, Input, PhoneInput, Switch, Text · usa: @/app/i18n, @/lib/api, @/lib/utils
 - **CustomerHistoryTabs.tsx** · `CustomerAppointmentsTab`, `CustomerPaymentsTab`, `CustomerProductsTab`, `CustomerGuestsTab` · piezas: Badge, Button, ConfirmDialog, DrawerShell, EmptyState, Field, IconTile, Input, ListItem, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell · usa: @/app/i18n, @/i18n, @/lib/api
+- **CustomerImportDrawer.tsx** — Traer los clientes de otro software sin pedírselos a soporte: se sube el CSV, se revisa qué columna es cada d… · `CustomerImportDrawerProps`, `CustomerImportDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/lib/api, @/lib/csvParse
 - **CustomerNoteDrawer.tsx** — Una nota nueva del cliente: qué tipo es —una alergia no se lee igual que una preferencia— y el texto. · `CustomerNoteDrawerProps`, `CustomerNoteDrawer` · piezas: Button, DrawerShell, Field, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **CustomerOverview.tsx** — El resumen de un cliente: lo que hay que saber antes de atenderle arriba —alergias y medicamentos—, cuánto va… · `CustomerOverviewProps`, `CustomerOverview` · piezas: Alert, AlertDescription, AlertTitle, Button, MetricCard, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
@@ -576,6 +580,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **customersHome.tsx** — Qué columnas existen según quién mira (ver `customerAccess.ts`). · `ALL_SEGMENTS`, `SegmentFilter`, `parseSegment`, `countBySegment`, `CustomerColumnOptions`, `customerColumns`, `CustomerCellFormatters`, `customerCells`, `customersCsvRows`, `CustomerAlertId`, `CustomerAlertPreset`, `BIRTHDAY_WINDOW_DAYS`, `UNRELIABLE_MISSES`, `CUSTOMER_ALERTS`, `CustomerPulse`, `customerPulse` · piezas: Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n
 - **customersShared.tsx** — Las piezas chicas del módulo de clientes: el segmento con su color y su icono, y el avatar. · `SegmentBadge`, `CustomerAvatar` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, initialsOf · usa: @/app/i18n
 - **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `daysToBirthday`, `formatAgo`, `downloadCsv` · usa: @/features/branches, @/features/payroll
+- **importApi.ts** · `ImportReason`, `ImportResult`, `useImportCustomers`, `useUndoImport` · llama: POST /customers/import, DELETE /customers/import/${batchId} · usa: @/lib/api
+- **importColumns.ts** — Qué columna del archivo es cada dato: se adivina por el nombre de la cabecera (en español o inglés, con o sin… · `IMPORT_FIELDS`, `ImportField`, `ColumnMap`, `guessColumns`, `toIsoDate`, `ImportRow`, `rowsFrom`
 - **overdue.ts** · `OverdueFacts`, `isOverdue`
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
 - **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
@@ -617,7 +623,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### metrics
 
 - **MetricsFilters.tsx** — La fila de filtros del tablero: el periodo y el barbero. · `MetricsFilters` · piezas: PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue · usa: @/app/i18n, @/i18n
-- **MetricsPage.tsx** — Métricas: cómo le fue a la barbería, en cinco pestañas. · `MetricsPage` · piezas: Breadcrumbs, PageHeader, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/team, @/lib/query
+- **MetricsPage.tsx** — Métricas: cómo le fue a la barbería, en cinco pestañas. · `MetricsPage` · piezas: Breadcrumbs, PageHeader, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/onboarding, @/features/team, @/lib/query
 - **api.ts** · `metricsApi` · llama: GET /metrics/business, GET /metrics/customers, GET /metrics/barbers, GET /metrics/marketing, GET /metrics/insights · usa: @/lib/api
 - **metricsFormat.ts** — Cómo se escriben las cifras del tablero, con la convención del idioma activo. · `MetricsFormatters`, `useMetricsFormatters` · usa: @/features/branches, @/i18n
 - **queries.ts** · `metricsKeys`, `useBusinessMetrics`, `useCustomersMetrics`, `useBarbersMetrics`, `useMarketingMetrics`, `useInsightsMetrics`
@@ -638,6 +644,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomersDashboard.tsx** — Clientes: cuántos vuelven, cuánto deja cada uno, por dónde reservan y qué tipo de cliente llena la agenda. · `CustomersDashboard` · piezas: BarList, CompositionDonut, DistributionBar, MetricCard · usa: @/app/i18n
 - **InsightsDashboard.tsx** — IA: un diagnóstico de los últimos tres meses. · `InsightsDashboard` · piezas: AIInsightCard, AttentionAction, AttentionStrip, Card, ClipperIcon, HeatmapMatrix, MetricCard, MetricDial, PanelHeading · usa: @/app/i18n
 - **MarketingDashboard.tsx** — Marketing: por dónde llegan las reservas digitales, cuánto convierte cada canal y qué trajo cada campaña. · `MarketingDashboard` · piezas: BarList, EmptyState, MetricCard · usa: @/app/i18n
+
+### onboarding
+
+- **OnboardingChecklist.tsx** — Lo que le falta a la barbería para operar, en orden y con un toque a cada pantalla. · `OnboardingChecklist` · piezas: Button, Progress, Text · usa: @/app/i18n, @/features/team, @/lib/utils
+- **onboarding.ts** — «Ocultar por ahora» es una preferencia del navegador; si falla el almacenamiento, se vuelve a ver. · `OnboardingStepId`, `Onboarding`, `STEP_KEYS`, `useOnboarding`, `readHidden`, `writeHidden` · llama: GET /onboarding · usa: @/app/i18n, @/lib/api
 
 ### payroll
 
@@ -806,6 +817,7 @@ Cliente de API, consultas y utilidades sin interfaz.
 
 - **cascadeAnimation.ts** — Shared cascade reveal for accordion content: each line comes in on its own, not the whole block at once. · `CASCADE_EASE`, `CASCADE_ITEM_DURATION`, `CASCADE_STAGGER`, `CASCADE_DELAY_CHILDREN`, `CASCADE_CONTENT_GAP`, `cascadeContainer`, `cascadeItem`, `cascadeItemSettleTime`
 - **csv.ts** — Filas a CSV, con la cabecera primero. · `toCsv`, `downloadCsv`
+- **csvParse.ts** · `parseCsv`
 - **reorder.ts** — Returns a new array with the item at `from` moved to `to`. · `moveItem`, `moveItemById`
 - **sanitizeHtml.ts** — Whether the content is empty once markup is discounted. · `sanitizeHtml`, `isHtmlBlank`
 - **tone.ts** — The app's accent palette, as five named tones. · `Tone`, `NEUTRAL_ACCENT`, `toneAccent`, `toneText`, `toneChip`, `toneSolid`, `toneWash`, `ToneGradientOptions`, `toneGradient`, `toneBar`, `toneBorder`, `toneSelected`, `TONE_CYCLE`, `toneForIndex`
@@ -902,6 +914,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### customers
 
 - **handlers.ts** · `profileOf`, `barberName`, `saveProfile`, `customersHandlers`
+- **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers`
 - **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf`
 
@@ -923,6 +936,10 @@ MSW: implementa docs/API_CONTRACT.md.
 ### notifications
 
 - **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers`
+
+### onboarding
+
+- **handlers.ts** · `onboardingOf`, `onboardingHandlers`
 
 ### payroll
 

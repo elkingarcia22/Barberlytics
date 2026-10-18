@@ -20,6 +20,8 @@ import { BarbersDashboard } from "./tabs/BarbersDashboard";
 import { MarketingDashboard } from "./tabs/MarketingDashboard";
 import { InsightsDashboard } from "./tabs/InsightsDashboard";
 import type { MetricsBusiness, MetricsParams } from "./types";
+import { useAccess } from "@/features/access";
+import { OnboardingChecklist } from "@/features/onboarding/OnboardingChecklist";
 
 const TAB_LABELS: Readonly<Record<MetricsTab, AppMessageKey>> = {
   business: "metrics.tab.business",
@@ -147,6 +149,8 @@ export function MetricsPage() {
   const barbers = business.data?.barbers ?? [];
   const tabs = React.useMemo(() => filters.tabs.map((id) => ({ id, label: t(TAB_LABELS[id]) })), [t, filters.tabs]);
   const withPeriod = filters.tab !== "insights";
+  const access = useAccess();
+  const branchId = useBranchId();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -155,6 +159,8 @@ export function MetricsPage() {
       </ShellHeaderSlot>
 
       <PageHeader title={t("metrics.title")} description={t(filters.isOwn ? "metrics.ownDescription" : "metrics.description")} />
+      {/* La barbería recién creada ve aquí lo que le falta para operar; se va sola cuando está lista. */}
+      {(access.role === "owner" || access.role === "admin") && <OnboardingChecklist branchId={branchId} />}
 
       <ThemaTabs
         className="mb-stack"

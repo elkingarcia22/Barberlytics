@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CheckCircle2, TriangleAlert, UserPlus, Users } from "lucide-react";
+import { CheckCircle2, TriangleAlert, UserPlus, Users, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
+import { CustomerImportDrawer } from "./CustomerImportDrawer";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { useCustomerPermissions } from "./customerAccess";
 import { customerListActions } from "./customerActions";
@@ -115,6 +116,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
   const [drawer, setDrawer] = React.useState<"create" | "note" | null>(null);
   const [confirmBlock, setConfirmBlock] = React.useState<Customer | null>(null);
+  const [importing, setImporting] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState<Customer | null>(null);
   const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
   const railOwnsActions = actionsPlacement === "rail";
@@ -147,7 +149,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         {
           create: () => setDrawer("create"),
           exportList,
-          importList: () => toast.info(t("customers.import.soon")),
+          importList: () => setImporting(true),
           open: () => single && navigate(`/clientes/${single.id}`),
           book: () => single && navigate(`/calendario?cliente=${single.id}`),
           note: () => single && setDrawer("note"),
@@ -180,13 +182,21 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           description={t("customers.emptyHint")}
           action={
             perms.canCreate ? (
-              <Button onClick={() => setDrawer("create")}>
-                <UserPlus /> {t("customers.action.create")}
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setDrawer("create")}>
+                  <UserPlus /> {t("customers.action.create")}
+                </Button>
+                {perms.canImport && (
+                  <Button variant="outline" onClick={() => setImporting(true)}>
+                    <Upload /> {t("customers.action.import")}
+                  </Button>
+                )}
+              </div>
             ) : undefined
           }
         />
         <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
+      <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       </>
     );
   }
@@ -314,6 +324,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
       )}
 
       <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
+      <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 
       <ConfirmDialog

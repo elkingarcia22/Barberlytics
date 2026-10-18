@@ -4,9 +4,11 @@ import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
 import { customersHandlers } from "./customers/handlers";
 import { relationshipHandlers } from "./customers/relationship";
+import { customerImportHandlers } from "./customers/import";
 import { incomeHandlers } from "./reports/income";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
+import { onboardingHandlers } from "./onboarding/handlers";
 import { servicesHandlers } from "./services/handlers";
 import { productsHandlers } from "./products/handlers";
 import { transactionsHandlers } from "./transactions/handlers";
@@ -501,9 +503,11 @@ export const handlers = [
 
   // ---------- Clientes ----------
   ...relationshipHandlers,
+  ...customerImportHandlers,
   ...incomeHandlers,
   ...inventoryHandlers,
   ...notificationsHandlers,
+  ...onboardingHandlers,
   ...customersHandlers,
 
   // ---------- Servicios ----------

@@ -36,6 +36,12 @@ export const commissionRulesSchema = z.object({
 });
 export type CommissionRules = z.infer<typeof commissionRulesSchema>;
 
+/** Un ajuste del periodo: lo que no sale de las citas. El bono suma; el descuento y el adelanto restan. */
+export const adjustmentKindSchema = z.enum(["bonus", "deduction", "advance"]);
+export type AdjustmentKind = z.infer<typeof adjustmentKindSchema>;
+export const adjustmentSchema = z.object({ id: z.string(), kind: adjustmentKindSchema, amount: z.number(), note: z.string(), createdAt: z.string(), createdBy: z.string() });
+export type PayrollAdjustment = z.infer<typeof adjustmentSchema>;
+
 export const payrollMemberSchema = z.object({
   memberId: z.string(),
   name: z.string(),
@@ -55,13 +61,42 @@ export const payrollMemberSchema = z.object({
   salary: z.number(),
   rent: z.number(),
   deductions: z.number(),
+  adjustments: z.array(adjustmentSchema).optional(),
+  /** Lo que suman los ajustes: los bonos menos descuentos y adelantos. */
+  adjustmentsTotal: z.number().optional(),
   /** Positivo: la barbería le paga. Negativo: el barbero le debe a la barbería. */
   net: z.number(),
   lines: z.array(payrollLineSchema),
 });
 export type PayrollMember = z.infer<typeof payrollMemberSchema>;
 
-export const payrollResponseSchema = z.object({ from: z.string(), to: z.string(), weeks: z.number(), members: z.array(payrollMemberSchema) });
+/**
+ * El estado del periodo. Sin `run` está abierto: se calcula sobre las citas y admite ajustes.
+ * Aprobado, la nómina queda fija; pagado, además se sabe con qué y quién lo pagó.
+ */
+export const runStatusSchema = z.enum(["approved", "paid"]);
+export type RunStatus = z.infer<typeof runStatusSchema>;
+export const payrollRunSchema = z.object({
+  id: z.string(),
+  status: runStatusSchema,
+  approvedAt: z.string(),
+  approvedBy: z.string(),
+  paidAt: z.string().nullable(),
+  paidBy: z.string().nullable(),
+  method: z.string().nullable(),
+  reference: z.string().nullable(),
+});
+export type PayrollRun = z.infer<typeof payrollRunSchema>;
+export const payrollHistorySchema = z.object({ at: z.string(), actor: z.string(), event: z.enum(["approved", "paid", "reopened"]), reason: z.string().nullable() });
+
+export const payrollResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  weeks: z.number(),
+  run: payrollRunSchema.nullable().optional(),
+  history: z.array(payrollHistorySchema).optional(),
+  members: z.array(payrollMemberSchema),
+});
 export type PayrollResponse = z.infer<typeof payrollResponseSchema>;
 
 export interface PayrollParams {
@@ -81,4 +116,30 @@ export const RULE_KEYS: Readonly<Record<CommissionRule, AppMessageKey>> = {
   newClient: "payroll.rule.newClient",
   walkIn: "payroll.rule.walkIn",
   noPreference: "payroll.rule.noPreference",
+};
+
+export interface AdjustmentInput {
+  branchId: string;
+  from: string;
+  to: string;
+  memberId: string;
+  kind: AdjustmentKind;
+  amount: number;
+  note: string;
+}
+
+export const ADJUSTMENT_KEYS: Readonly<Record<AdjustmentKind, AppMessageKey>> = {
+  bonus: "payroll.adjustment.bonus",
+  deduction: "payroll.adjustment.deduction",
+  advance: "payroll.adjustment.advance",
+};
+
+/** Con qué se paga la nómina. */
+export const PAY_METHODS = ["cash", "transfer", "nequi", "breb"] as const;
+export type PayMethod = (typeof PAY_METHODS)[number];
+export const PAY_METHOD_KEYS: Readonly<Record<PayMethod, AppMessageKey>> = {
+  cash: "payroll.payMethod.cash",
+  transfer: "payroll.payMethod.transfer",
+  nequi: "payroll.payMethod.nequi",
+  breb: "payroll.payMethod.breb",
 };

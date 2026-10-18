@@ -12,7 +12,8 @@ export type AIInsightCardProps = {
   title: string
   description?: string
   type?: AIInsightType
-  confidence?: AIConfidence
+  /** Cuánto fiarse de la sugerencia. `null` la oculta: una regla calculada no es una predicción. */
+  confidence?: AIConfidence | null
   evidence?: string
   impact?: string
   actionLabel?: string
@@ -66,7 +67,7 @@ export function AIInsightCard({
 }: AIInsightCardProps) {
   const config = typeConfig[type]
   const Icon = config.icon
-  const confidenceData = confidenceConfig[confidence]
+  const confidenceData = confidence ? confidenceConfig[confidence] : null
 
   return (
     <Card className={cn("overflow-hidden border-border/60 shadow-card transition-all hover:shadow-drawer", className)}>
@@ -79,9 +80,11 @@ export function AIInsightCard({
             {config.label}
           </span>
         </div>
-        <Badge variant="outline" className={cn("text-[10px] font-bold h-5 px-1.5 border-none", confidenceData.className)}>
-          {confidenceData.label}
-        </Badge>
+        {confidenceData && (
+          <Badge variant="outline" className={cn("text-[10px] font-bold h-5 px-1.5 border-none", confidenceData.className)}>
+            {confidenceData.label}
+          </Badge>
+        )}
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         <CardTitle className="text-base font-semibold leading-snug">

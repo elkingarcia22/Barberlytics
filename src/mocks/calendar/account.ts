@@ -23,6 +23,8 @@ export interface AppointmentAccount {
   prepaidTip: number;
   /** Lo que falta cobrar en caja, sin propina nueva ni recargo. */
   due: number;
+  /** Lo devuelto: desde la caja o al cancelar la reserva en línea. */
+  refunded: number;
 }
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
@@ -43,7 +45,12 @@ export function appointmentAccount(appointment: MockAppointment, serviceIds: rea
     ...products.map((line) => ({ amount: (productOf(line.productId)?.price ?? 0) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
   ];
   const online = appointment.online ?? null;
-  const { subtotal, discount, tax, total } = cartTotals(lines, online?.discount ?? 0, taxInclusive());
+  const computed = cartTotals(lines, online?.discount ?? 0, taxInclusive());
+  // Ya cobrada, vale con el impuesto que se registró al cobrar (las sembradas no traen); si no, el de hoy.
+  const { subtotal, discount } = computed;
+  const tax = appointment.payment ? appointment.payment.tax : computed.tax;
+  const total = appointment.payment ? round2(subtotal - discount + (taxInclusive() ? 0 : tax)) : computed.total;
   const prepaid = round2(Math.min(total, online?.paid ?? 0));
-  return { subtotal, discount, tax, total, prepaid, prepaidTip: round2(online?.tip ?? 0), due: round2(total - prepaid) };
+  const refunded = round2((appointment.refunds ?? []).reduce((sum, item) => sum + item.amount, 0));
+  return { subtotal, discount, tax, total, prepaid, prepaidTip: round2(online?.tip ?? 0), due: round2(total - prepaid), refunded };
 }

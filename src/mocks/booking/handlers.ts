@@ -764,7 +764,9 @@ export const bookingHandlers = [
       db.booking.reservations = db.booking.reservations.map((item) => (item.id === reservation.id ? reservation : item));
     }
     cancelMessages(existing.id);
-    const updated: MockAppointment = { ...existing, status: "cancelled", history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
+    // Lo que se devuelve queda en la cita: Transacciones la muestra devuelta, no anulada.
+    const refunds = terms.refund > 0 ? [...(existing.refunds ?? []), { id: `rf_${Date.now().toString(36)}`, amount: terms.refund, to: refundTo === "credit" ? ("credit" as const) : ("card" as const), reason: "Cancelada en línea", at: new Date().toISOString(), by: client.name }] : existing.refunds;
+    const updated: MockAppointment = { ...existing, status: "cancelled", refunds, history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
     // El hueco no se pierde: se ofrece a la lista de espera de esa hora.
     offerFreedSlot(existing);

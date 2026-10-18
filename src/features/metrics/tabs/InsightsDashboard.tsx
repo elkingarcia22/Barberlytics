@@ -6,7 +6,6 @@ import { HeatmapMatrix, MetricCard, MetricDial, PanelHeading, type HeatmapColumn
 import { AIInsightCard } from "@/components/ai";
 import { AttentionAction, AttentionStrip } from "@/components/feedback";
 import { Card } from "@/components/ui/card";
-import { AiGeneratedBadge } from "@/components/ai-interaction";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { useMetricsFormatters } from "../metricsFormat";
@@ -17,6 +16,21 @@ const GROUPS: readonly { id: SuggestionGroup; labelKey: AppMessageKey; icon: Luc
   { id: "growth", labelKey: "metrics.insights.group.growth", icon: TrendingUp },
   { id: "operations", labelKey: "metrics.insights.group.operations", icon: Wrench },
 ];
+
+/** Cada riesgo abre esa misma lista en Clientes (segmento o aviso), con los parámetros que Clientes lee. */
+const RISK_LINKS: Readonly<Record<"churned" | "atRisk" | "overdue", string>> = {
+  churned: "/clientes?tipo=lost",
+  atRisk: "/clientes?tipo=atRisk",
+  overdue: "/clientes?aviso=overdue",
+};
+
+/** A dónde lleva cada sugerencia; las que no tienen pantalla todavía (una campaña) no muestran botón. */
+const SUGGESTION_LINKS: Readonly<Record<string, string | undefined>> = {
+  "never-booked": "/clientes?tipo=new",
+  overdue: "/clientes?aviso=overdue",
+  "peak-hour": "/calendario",
+  cancellations: "/configuracion/centro-notificaciones",
+};
 
 const RISKS: readonly { id: "churned" | "atRisk" | "overdue"; labelKey: AppMessageKey; hintKey: AppMessageKey; icon: LucideIcon; tone: "negative" | "warning" | "neutral" }[] = [
   { id: "churned", labelKey: "metrics.insights.churned", hintKey: "metrics.insights.churnedHint", icon: UserX, tone: "negative" },
@@ -87,7 +101,7 @@ export function InsightsDashboard({ data }: { data: MetricsInsights }) {
               hint={t(risk.hintKey)}
               value={count}
               tone={risk.tone}
-              onClick={() => navigate(`/clientes?risk=${risk.id}`)}
+              onClick={() => navigate(RISK_LINKS[risk.id])}
             />
           );
         })}
@@ -104,7 +118,6 @@ export function InsightsDashboard({ data }: { data: MetricsInsights }) {
           <h2 id="metrics-suggestions" className="text-base font-semibold text-text-primary">
             {t("metrics.insights.suggestions")}
           </h2>
-          <AiGeneratedBadge />
           <p className="basis-full text-sm text-text-secondary">{t("metrics.insights.suggestionsHint")}</p>
         </div>
         {GROUPS.map((group) => {
@@ -127,8 +140,11 @@ export function InsightsDashboard({ data }: { data: MetricsInsights }) {
                     description={item.description}
                     evidence={item.evidence}
                     impact={item.tag}
-                    actionLabel={item.action}
-                    confidence="high"
+                    // Son reglas sobre tus datos, no un modelo: sin confianza inventada. El botón solo
+                    // aparece si lleva a la pantalla donde se hace eso.
+                    confidence={null}
+                    actionLabel={SUGGESTION_LINKS[item.id] ? item.action : undefined}
+                    onAction={SUGGESTION_LINKS[item.id] ? () => navigate(SUGGESTION_LINKS[item.id]!) : undefined}
                   />
                 ))}
               </div>

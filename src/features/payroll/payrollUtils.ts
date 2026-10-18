@@ -36,13 +36,4 @@ export const countByPayout = (members: readonly PayrollMember[]): Readonly<Recor
   salary: members.filter((member) => member.payout === "salary").length,
 });
 
-/** Una celda CSV: entre comillas si lleva separador, comillas o salto de línea. */
-const csvCell = (value: string | number): string => {
-  const text = String(value);
-  return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-/** Filas a CSV, con la cabecera primero. Los números van sin formato para que la hoja de cálculo los sume. */
-export function toCsv(header: readonly string[], rows: readonly (readonly (string | number)[])[]): string {
-  return [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
-}
+export { toCsv } from "@/lib/csv";

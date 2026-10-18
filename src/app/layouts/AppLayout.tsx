@@ -18,7 +18,7 @@ import { AccessProvider, buildAccess, readViewAs, ROLE_HOME, teamRoleFromSession
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
-import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
+import { DEFAULT_BRANCH_ID, useBranches } from "@/features/branches";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
@@ -101,7 +101,10 @@ export function AppLayout() {
   );
   // La sucursal activa: mientras no haya endpoint, la recuerda la sesión de
   // navegación. Todo lo que se ve debajo es de esta sucursal.
-  const [branchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
+  const [chosenBranchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
+  // Las de Configuración: si la elegida se borra o se desactiva, se pasa a la primera que queda.
+  const branches = useBranches();
+  const branchId = branches.some((branch) => branch.id === chosenBranchId) ? chosenBranchId : (branches[0]?.id ?? DEFAULT_BRANCH_ID);
   const settings = React.useMemo(() => buildSettingsGroups(t, access), [t, access]);
   // La identidad que subió la barbería: su isologo, su nombre y debajo
   // «Barbería». Mientras carga (o si falla) va la flecha de Barberlytics con
@@ -219,7 +222,7 @@ export function AppLayout() {
       roles,
       // Aquí se trabaja por sucursal, no por empresa: el conmutador de la
       // cabecera dice en cuál estás y no vende licencias que enseñar.
-      companies: BRANCHES,
+      companies: branches,
       activeCompanyId: branchId,
       onSelectCompany: setBranchId,
       companyMenuLinks: [],
@@ -287,7 +290,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, effectiveRole, selectRole, branchId, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
+    [user, brand, roles, effectiveRole, selectRole, branchId, branches, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
   const openAgent = React.useCallback(() => {

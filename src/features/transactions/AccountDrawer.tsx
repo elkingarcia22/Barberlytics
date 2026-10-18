@@ -1,5 +1,6 @@
+import * as React from "react";
 import { useNavigate } from "react-router";
-import { CalendarDays, Package, Scissors, UserRound } from "lucide-react";
+import { CalendarDays, Package, RotateCcw, Scissors, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { DrawerShell } from "@/components/overlays";
@@ -9,14 +10,17 @@ import { IconTile } from "@/components/utility";
 import { STATUS_KEYS } from "@/features/calendar/types";
 import { maskPhone } from "@/features/customers/customersUtils";
 import { formatDuration } from "@/features/services/servicesUtils";
+import { RefundDialog } from "./RefundDialog";
 import { AccountStatusBadge } from "./transactionsShared";
-import { ACCOUNT_STATUS_HINT_KEYS, METHOD_KEYS, ONLINE_METHOD_KEYS, type Account } from "./types";
+import { ACCOUNT_STATUS_HINT_KEYS, METHOD_KEYS, ONLINE_METHOD_KEYS, REFUND_TO_KEYS, refundableOf, type Account } from "./types";
 
 export interface AccountDrawerProps {
   /** La cuenta abierta; `null` cierra el panel. */
   account: Account | null;
   onClose: () => void;
   formatMoney: (value: number) => string;
+  /** Quien puede devolver un pago (Transacciones · editar). */
+  canRefund?: boolean;
 }
 
 const DATE_TIME: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" };
@@ -27,10 +31,13 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric"
  * cobró, y los atajos a la cita y al cliente. Es de solo lectura: cobrar,
  * cancelar o mover una cita se hace en el calendario.
  */
-export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerProps) {
+export function AccountDrawer({ account, onClose, formatMoney, canRefund = false }: AccountDrawerProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
+  const [refunding, setRefunding] = React.useState(false);
+  // Se devuelve una cuenta de cita ya cobrada mientras quede algo por devolver.
+  const refundable = account !== null && canRefund && account.appointmentId !== null && account.method !== null && refundableOf(account) > 0;
 
   return (
     <DrawerShell
@@ -42,6 +49,11 @@ export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerPr
       actions={
         account && (
           <>
+            {refundable && (
+              <Button variant="outline" onClick={() => setRefunding(true)} data-testid="account-refund">
+                <RotateCcw /> {t("transactions.refund.action")}
+              </Button>
+            )}
             {account.client && (
               <Button variant="outline" onClick={() => navigate(`/clientes/${account.client?.id}`)}>
                 <UserRound /> {t("transactions.detail.seeClient")}
@@ -103,8 +115,8 @@ export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerPr
               />
             )}
             {account.tip > 0 && <Row label={t("transactions.column.tip")} value={formatMoney(account.tip)} />}
-            {account.status === "paid" && <Row label={t("transactions.column.collected")} value={formatMoney(account.collected)} tone="positive" />}
-            {account.status === "refunded" && <Row label={t("transactions.detail.refunded")} value={formatMoney(account.refunded)} tone="warning" />}
+            {(account.status === "paid" || (account.status === "refunded" && account.collected > 0)) && <Row label={t("transactions.column.collected")} value={formatMoney(account.collected)} tone="positive" />}
+            {account.refunded > 0 && <Row label={t("transactions.detail.refunded")} value={`−${formatMoney(account.refunded)}`} tone="warning" testId="account-refunded" />}
             {account.status === "open" && <Row label={t("transactions.detail.balance")} value={formatMoney(account.balance)} tone="warning" strong />}
           </dl>
 
@@ -112,14 +124,43 @@ export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerPr
             <Fact label={t("transactions.column.client")} value={account.client ? `${account.client.name} · ${maskPhone(account.client.phone)}` : t("transactions.counterSale")} />
             <Fact label={t("transactions.column.attended")} value={account.barber ?? "—"} />
             {account.appointmentStatus && <Fact label={t("transactions.column.appointment")} value={`${t(STATUS_KEYS[account.appointmentStatus])}${account.durationMin ? ` · ${formatDuration(account.durationMin)}` : ""}`} />}
-            <Fact label={t("transactions.column.method")} value={account.method ? t(METHOD_KEYS[account.method]) : "—"} />
+            <Fact
+              label={t("transactions.column.method")}
+              value={
+                account.method
+                  ? account.split
+                    ? t("transactions.detail.split", { cash: formatMoney(account.split.cash), card: formatMoney(account.split.card) })
+                    : t(METHOD_KEYS[account.method])
+                  : "—"
+              }
+            />
             <Fact label={t("transactions.detail.openedBy")} value={account.openedBy ?? "—"} />
             <Fact label={t("transactions.detail.chargedBy")} value={account.chargedBy ?? "—"} />
             {account.paidAt && <Fact label={t("transactions.detail.paidAt")} value={formatDate(new Date(account.paidAt), DATE_TIME)} />}
             <Fact label={t("transactions.detail.reference")} value={<span className="break-all font-mono text-xs">{account.reference}</span>} />
           </dl>
+
+          {(account.refunds ?? []).length > 0 && (
+            <section aria-label={t("transactions.refund.list")} className="space-y-2 border-t border-border/60 pt-4">
+              <Text variant="label">{t("transactions.refund.list")}</Text>
+              <ul className="space-y-2">
+                {(account.refunds ?? []).map((item) => (
+                  <li key={item.at} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="min-w-0">
+                      <span className="block text-text-primary">{item.reason}</span>
+                      <span className="block text-xs text-text-muted">
+                        {t(REFUND_TO_KEYS[item.to])} · {item.by} · {formatDate(new Date(item.at), DATE_TIME)}
+                      </span>
+                    </span>
+                    <span className="tabular-nums text-status-warning">−{formatMoney(item.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       )}
+      {account && refundable && <RefundDialog key={account.id} account={account} open={refunding} onOpenChange={setRefunding} formatMoney={formatMoney} />}
     </DrawerShell>
   );
 }

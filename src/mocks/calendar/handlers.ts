@@ -396,18 +396,48 @@ export const calendarHandlers = [
           .map((item) => ({ productId: item.productId as string, qty: Math.max(1, Number(item.qty) || 1) }))
       : existing.products;
     const tip = Math.max(0, Number(input.tip) || 0);
-    const surcharge = method === "card" ? Math.max(0, Number(input.surcharge) || 0) : 0;
+    const surcharge = method === "card" || method === "mixed" ? Math.max(0, Number(input.surcharge) || 0) : 0;
     // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
     const bill = appointmentAccount(existing, serviceIds, products);
     const paidAt = new Date().toISOString();
+    // Pago mixto: lo que entra en caja ahora se reparte entre efectivo y tarjeta, y tiene que cuadrar.
+    const dueNow = round2(bill.due + tip + surcharge);
+    const splitInput = asRecord(input.split as DefaultBodyType);
+    const split = method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
+    if (split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
     return replaceAppointment({
       ...existing,
       serviceIds,
       products,
       status: "paid",
-      payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt },
+      payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt, ...(split ? { split } : {}) },
       history: [...existing.history, entry(account.user.name, `paid:${method}`)],
     });
+  }),
+
+  // Devolver una cuenta cobrada, entera o en parte, a efectivo o a la tarjeta.
+  http.post(`${BASE}/appointments/:id/refund`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const existing = findAppointment(params.id);
+    if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    if (existing.status !== "paid" || !existing.payment) return error(409, "conflict", "Solo se devuelve una cuenta cobrada.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const amount = round2(Number(input.amount));
+    const reason = text(input.reason);
+    const to = text(input.to);
+    // Lo que se puede devolver: lo que vale la cuenta más la propina, menos lo ya devuelto (igual que en Transacciones).
+    const bill = appointmentAccount(existing);
+    const refundable = round2(bill.total + existing.payment.tip - bill.refunded);
+    const fields: Record<string, string[]> = {};
+    if (!Number.isFinite(amount) || amount <= 0) fields.amount = ["Escribe cuánto se devuelve."];
+    else if (amount > refundable) fields.amount = [`Se puede devolver hasta ${refundable}.`];
+    if (reason.length < 3) fields.reason = ["Di por qué se devuelve."];
+    if (to !== "cash" && to !== "card") fields.to = ["Elige a dónde vuelve el dinero."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const refund = { id: `rf_${Date.now().toString(36)}`, amount, to: to as "cash" | "card", reason, at: new Date().toISOString(), by: account.user.name };
+    return replaceAppointment({ ...existing, refunds: [...(existing.refunds ?? []), refund], history: [...existing.history, entry(account.user.name, `refund:${amount}`)] });
   }),
 
   http.post(`${BASE}/clients/:id/notes`, async ({ request, params }) => {

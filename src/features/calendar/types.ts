@@ -91,6 +91,8 @@ export const paymentSchema = z.object({
   paidAt: z.string(),
   /** Lo que de ese total ya estaba pagado en línea (propina incluida): en caja se cobró el resto. */
   prepaid: z.number().optional(),
+  /** Con `mixed`: cuánto fue en efectivo y cuánto con tarjeta. */
+  split: z.object({ cash: z.number(), card: z.number() }).optional(),
 });
 export type Payment = z.infer<typeof paymentSchema>;
 
@@ -101,6 +103,10 @@ export type Payment = z.infer<typeof paymentSchema>;
  */
 export const onlineSettlementSchema = z.object({ reservation: z.string(), method: z.string(), paid: z.number(), tip: z.number(), discount: z.number() });
 export type OnlineSettlement = z.infer<typeof onlineSettlementSchema>;
+
+/** Una devolución de la cuenta: desde la caja (efectivo o tarjeta) o al cancelar la reserva (tarjeta o saldo). */
+export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string() });
+export type Refund = z.infer<typeof refundSchema>;
 
 export const productLineSchema = z.object({ productId: z.string(), qty: z.number() });
 export type ProductLine = z.infer<typeof productLineSchema>;
@@ -130,6 +136,7 @@ export const appointmentSchema = z.object({
   history: z.array(historyEntrySchema),
   payment: paymentSchema.nullable(),
   online: onlineSettlementSchema.nullable().optional(),
+  refunds: z.array(refundSchema.extend({ id: z.string() })).optional(),
   /**
    * Las citas enlazadas comparten este id: las que salieron de un mismo
    * agendamiento (varias personas o varias citas de una vez) o las que se
@@ -236,6 +243,8 @@ export interface CheckoutInput {
   method: PaymentMethod;
   /** El recargo por tarjeta, si Configuración lo tiene encendido. */
   surcharge?: number;
+  /** Con `mixed`: el reparto entre efectivo y tarjeta de lo que se cobra ahora. */
+  split?: { cash: number; card: number };
 }
 
 export const blockInputSchema = z.object({

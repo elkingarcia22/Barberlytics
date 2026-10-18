@@ -83,3 +83,16 @@ export const sumBills = (bills: readonly AppointmentBill[]): AppointmentBill =>
     (sum, bill) => ({ subtotal: cents(sum.subtotal + bill.subtotal), discount: cents(sum.discount + bill.discount), tax: cents(sum.tax + bill.tax), total: cents(sum.total + bill.total), prepaid: cents(sum.prepaid + bill.prepaid), due: cents(sum.due + bill.due) }),
     { subtotal: 0, discount: 0, tax: 0, total: 0, prepaid: 0, due: 0 }
   );
+
+/**
+ * Un pago mixto repartido entre las citas que se cobran juntas: el efectivo cubre primero la cita
+ * abierta y luego las demás; el resto de cada una va con tarjeta. Cada cita cuadra por separado.
+ */
+export function splitAcross(cash: number, dues: readonly number[]): { cash: number; card: number }[] {
+  let left = Math.max(0, cash);
+  return dues.map((due) => {
+    const part = cents(Math.min(left, due));
+    left = cents(left - part);
+    return { cash: part, card: cents(due - part) };
+  });
+}

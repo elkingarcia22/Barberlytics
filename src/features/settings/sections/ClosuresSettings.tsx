@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility";
-import { BRANCHES } from "@/features/branches";
+import { useBranches } from "@/features/branches";
 import type { FieldErrors } from "../SettingsFormParts";
 import { SettingsList } from "../SettingsListParts";
 import { closureSchema, type Closure, type ClosureInput } from "../settingsTypes";
 import { closureDays } from "./settingsMath";
 
-const EMPTY: ClosureInput = { startDate: "", endDate: "", branchIds: BRANCHES.map((branch) => branch.id), description: "" };
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
 
 const asDate = (day: string) => new Date(`${day}T12:00:00`);
@@ -25,6 +24,9 @@ export function ClosuresSettings() {
   const t = useAppT();
   const { formatDate } = useLocale();
   const today = new Date().toISOString().slice(0, 10);
+  // Las sucursales de Configuración: un cierre nuevo las trae todas marcadas.
+  const branches = useBranches();
+  const empty: ClosureInput = { startDate: "", endDate: "", branchIds: branches.map((branch) => branch.id), description: "" };
 
   const validate = (draft: ClosureInput): FieldErrors => {
     const errors: FieldErrors = {};
@@ -43,7 +45,7 @@ export function ClosuresSettings() {
       labelOf={(item) => (item.startDate === item.endDate ? formatDate(asDate(item.startDate), DATE_OPTIONS) : `${formatDate(asDate(item.startDate), DATE_OPTIONS)} – ${formatDate(asDate(item.endDate), DATE_OPTIONS)}`)}
       renderRow={(item) => ({
         leading: <IconTile icon={<CalendarOff />} tone="warning" />,
-        description: [item.description, item.branchIds.length === BRANCHES.length ? t("cfg.closures.allBranches") : item.branchIds.map((id) => BRANCHES.find((branch) => branch.id === id)?.name ?? id).join(", ")].filter(Boolean).join(" · "),
+        description: [item.description, item.branchIds.length === branches.length ? t("cfg.closures.allBranches") : item.branchIds.map((id) => branches.find((branch) => branch.id === id)?.name ?? id).join(", ")].filter(Boolean).join(" · "),
         meta: (
           <span className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-xs text-text-muted">{t("cfg.days", { count: closureDays(item) })}</span>
@@ -51,7 +53,7 @@ export function ClosuresSettings() {
           </span>
         ),
       })}
-      emptyDraft={EMPTY}
+      emptyDraft={empty}
       toDraft={({ startDate, endDate, branchIds, description }) => ({ startDate, endDate, branchIds, description })}
       validate={validate}
       messages={{
@@ -81,7 +83,7 @@ export function ClosuresSettings() {
             </Field>
           </div>
           <Field label={t("cfg.closures.branches")} required error={errors.branchIds}>
-            <MultiSelect options={BRANCHES.map((branch) => ({ value: branch.id, label: branch.name }))} value={draft.branchIds} onValueChange={(value) => set("branchIds", value)} placeholder={t("cfg.closures.branchesPlaceholder")} searchPlaceholder={t("cfg.search")} emptyMessage={t("cfg.noResults")} />
+            <MultiSelect options={branches.map((branch) => ({ value: branch.id, label: branch.name }))} value={draft.branchIds} onValueChange={(value) => set("branchIds", value)} placeholder={t("cfg.closures.branchesPlaceholder")} searchPlaceholder={t("cfg.search")} emptyMessage={t("cfg.noResults")} />
           </Field>
           <Field label={t("cfg.description")} description={t("cfg.closures.descriptionHint")}>
             <Textarea value={draft.description} onChange={(event) => set("description", event.target.value)} rows={3} />

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AppMessageKey } from "@/app/i18n/types";
-import { appointmentSourceSchema, appointmentStatusSchema, paymentMethodSchema } from "@/features/calendar/types";
+import { appointmentSourceSchema, appointmentStatusSchema, paymentMethodSchema, refundSchema } from "@/features/calendar/types";
 
 /**
  * Una «cuenta» es lo que se le cobra a alguien: cada cita es una y cada
@@ -44,6 +44,10 @@ export const accountSchema = z.object({
   refunded: z.number(),
   balance: z.number(),
   method: paymentMethodSchema.nullable(),
+  /** Con pago mixto: cuánto fue en efectivo y cuánto con tarjeta. */
+  split: z.object({ cash: z.number(), card: z.number() }).nullable().optional(),
+  /** Las devoluciones, de la más antigua a la más reciente. */
+  refunds: z.array(refundSchema).optional(),
   paidAt: z.string().nullable(),
   reference: z.string(),
   appointmentId: z.string().nullable(),
@@ -91,3 +95,12 @@ export const ONLINE_METHOD_KEYS: Readonly<Record<string, AppMessageKey>> = {
   gift: "transactions.online.gift",
   shop: "transactions.online.shop",
 };
+
+export const REFUND_TO_KEYS: Readonly<Record<"cash" | "card" | "credit", AppMessageKey>> = {
+  cash: "transactions.refund.toCash",
+  card: "transactions.refund.toCard",
+  credit: "transactions.refund.toCredit",
+};
+
+/** Lo que aún se puede devolver de una cuenta: su total con la propina, menos lo ya devuelto. */
+export const refundableOf = (account: Pick<Account, "total" | "tip" | "refunded">): number => Math.round((account.total + account.tip - account.refunded) * 100) / 100;

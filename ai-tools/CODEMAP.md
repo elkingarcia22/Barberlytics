@@ -79,6 +79,7 @@ Lo que responde MSW hoy.
 - `POST /appointments` · src/mocks/calendar/handlers.ts
 - `PATCH /appointments/:id` · src/mocks/calendar/handlers.ts
 - `POST /appointments/:id/checkout` · src/mocks/calendar/handlers.ts
+- `POST /appointments/:id/refund` · src/mocks/calendar/handlers.ts
 - `POST /clients/:id/notes` · src/mocks/calendar/handlers.ts
 - `PATCH /clients/:id/notes/:noteId` · src/mocks/calendar/handlers.ts
 - `DELETE /clients/:id/notes/:noteId` · src/mocks/calendar/handlers.ts
@@ -125,6 +126,11 @@ Lo que responde MSW hoy.
 - `GET /company/branding` · src/mocks/handlers.ts
 - `PUT /company/branding` · src/mocks/handlers.ts
 - `GET /payroll` · src/mocks/payroll/handlers.ts
+- `POST /payroll/adjustments` · src/mocks/payroll/handlers.ts
+- `DELETE /payroll/adjustments/:id` · src/mocks/payroll/handlers.ts
+- `POST /payroll/runs` · src/mocks/payroll/handlers.ts
+- `POST /payroll/runs/:id/pay` · src/mocks/payroll/handlers.ts
+- `POST /payroll/runs/:id/reopen` · src/mocks/payroll/handlers.ts
 - `GET /products` · src/mocks/products/handlers.ts
 - `PUT /products/activation` · src/mocks/products/handlers.ts
 - `GET /products/:id` · src/mocks/products/handlers.ts
@@ -430,6 +436,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **branches.ts** — Las sucursales del negocio. · `BRANCHES`, `DEFAULT_BRANCH_ID`
 - **tax.ts** — El impuesto de una cuenta, igual en la reserva en línea, en el cobro de la agenda y en Transacciones. · `TaxedLine`, `linePercent`, `blendedPercent`, `taxOn`, `CartTotals`, `cartTotals`
 - **useBranchCurrency.ts** — La moneda de la sucursal activa (la de la cabecera). · `useBranchCurrency` · piezas: useShellConfig · usa: @/features/settings
+- **useBranches.ts** — Las sucursales activas de Configuración, en la forma que espera el shell. · `toCompany`, `useBranches` · usa: @/features/settings
 
 ### branding
 
@@ -478,14 +485,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **calendarModel.ts** — Del dominio a lo que se ve: convierte barberos y citas en recursos y eventos de la rejilla, decide el siguien… · `Translate`, `ModelContext`, `CalendarColorBy`, `CALENDAR_COLOR_BY`, `parseLocal`, `toLocalIso`, `appointmentStart`, `appointmentEnd`, `findClient`, `findBarber`, `priceFor`, `servicesOf`, `servicesPrice`, `servicesMinutes`, `workingHoursOn`, `applyDayHours`, `isWorkingOn`, `teamIds`, `visibleBarbers`, `isActive`, `isUnpaid`, `statusTone`, `clientTypeTone`, `CLIENT_TYPE_ORDER`, `JOURNEY`, `NextStep`, `nextStep`, `appointmentWarning`, `LATE_AFTER_MINUTES`, `lateMinutes`, `durationLabel`, `nextFreeMinute`, `clashingAppointments`, `clashingBlocks`, `PlacementProblem`, `placementProblem`, `placementReason`, `blockClashes`, `barberLoad`, `toResource`, `STAGES`, `AppointmentStage`, `appointmentStage`, `STAGE_TONE`, `STAGE_FILL`, `stageBadge`, `AgendaFilters`, `appointmentClientType`, `matchesFilters`, `hasFilters`, `productCount`, `appointmentTotal`, `serviceCategories`, `categoryTone`, `serviceColor`, `appointmentCategory`, `FIRST_VISIT_MAX_VISITS`, `isFirstVisit`, `appointmentMarkers`, `cardMarkers`, `isFlexible`, `appointmentGroups`, `visitContinuations`, `serviceSlots`, `linkedOf`, `newLinkId`, `toEvent`, `blockToEvent`, `appointmentRange`, `historyLabel`, `monthKey` · piezas: atMinutes, formatClock, formatClockRange, minutesOfDay, parseClock, rangesOverlap, workingMinutes · usa: @/app/i18n, @/i18n
 - **calendarRailActions.tsx** — Lo que se puede hacer desde el calendario, declarado una vez con su peso. · `CalendarRailHandlers`, `calendarRailActions` · piezas: ClipperIcon · usa: @/app/i18n
 - **calendarShared.tsx** — El avatar de un cliente: su foto o sus iniciales. · `AppointmentStatusBadge`, `ClientTypeBadge`, `PersonAvatar`, `ClientAvatar`, `ServiceThumb`, `ProductThumb`, `DetailRow` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, IconTile, StatusBadge, initialsOf · usa: @/app/i18n
-- **checkoutMath.ts** — Las cuentas del cobro, sin interfaz: cuánto es una propina sugerida, cuánto recarga la tarjeta y cuánto se de… · `TipChoice`, `CardSurcharge`, `FALLBACK_TIPS`, `tipAmount`, `surchargeAmount`, `changeDue`, `AppointmentBill`, `appointmentBill`, `sumBills` · usa: @/features/branches
+- **checkoutMath.ts** — Las cuentas del cobro, sin interfaz: cuánto es una propina sugerida, cuánto recarga la tarjeta y cuánto se de… · `TipChoice`, `CardSurcharge`, `FALLBACK_TIPS`, `tipAmount`, `surchargeAmount`, `changeDue`, `AppointmentBill`, `appointmentBill`, `sumBills`, `splitAcross` · usa: @/features/branches
 - **dayBrief.ts** — Lo que el día pide mirar, en pocas líneas: quién va tarde, a quién le sobra agenda, quién ya no da abasto y a… · `BriefLine`, `IDLE_LOAD`, `FULL_LOAD`, `dayBrief`, `WaitlistMatch`, `waitlistMatch` · piezas: atMinutes, minutesOfDay, parseClock, workingMinutes · usa: @/app/i18n
 - **gapsModel.ts** — Los huecos del día: los ratos libres de cada barbero dentro de su jornada, desde ahora. · `DayGap`, `DayGapsOptions`, `DEFAULT_MIN_GAP_MINUTES`, `dayGaps`, `GapsSummary`, `gapsSummary` · piezas: atMinutes, minutesOfDay, parseClock
 - **pulseModel.ts** — En qué va cada cita ahora mismo y cuánto dinero lleva la jornada. · `PULSE_FOCUSES`, `PulseFocus`, `pulseGroup`, `DayPulse`, `dayPulse`
 - **queries.ts** — Claves jerárquicas: invalidar `days()` refresca cualquier día abierto sin tocar el catálogo, y `month()` se r… · `calendarKeys`, `useCatalogQuery`, `useDayQuery`, `useMonthQuery`, `useWaitlistQuery`, `useCreateAppointment`, `useUpdateAppointment`, `useCheckoutAppointment`, `useAddClientNote`, `useUpdateClientNote`, `useRemoveClientNote`, `useCreateBlock`, `useRemoveBlock`, `useAddToWaitlist`, `useRemoveFromWaitlist`, `useCreateSale`
 - **reflowModel.ts** — Reacomodar la cola de un barbero cuando algo se alarga: la cita que viene después se corre hasta donde termin… · `ReflowMove`, `ReflowPlan`, `isMovable`, `reflowPlan`, `planShiftMinutes`, `moveStart` · piezas: atMinutes, minutesOfDay, parseClock
 - **slotSuggestions.ts** — Los huecos que conviene ofrecer para una cita: dónde cabe el servicio y, de esos sitios, cuáles dejan la agen… · `SlotSuggestion`, `SuggestSlotsOptions`, `SUGGESTION_STEP_MINUTES`, `suggestSlots` · piezas: atMinutes, minutesOfDay, parseClock · usa: @/app/i18n
-- **types.ts** — El contrato del calendario (docs/API_CONTRACT.md, «Calendario»): lo que el backend manda y lo que la pantalla… · `workingRangeSchema`, `WorkingRange`, `barberSchema`, `Barber`, `clientTypeSchema`, `ClientType`, `noteKindSchema`, `NoteKind`, `clientNoteSchema`, `ClientNote`, `clientSchema`, `Client`, `serviceSchema`, `Service`, `productSchema`, `Product`, `catalogSchema`, `CalendarCatalog`, `appointmentStatusSchema`, `AppointmentStatus`, `appointmentSourceSchema`, `repeatRuleSchema`, `RepeatRule`, `paymentMethodSchema`, `PaymentMethod`, `historyEntrySchema`, `HistoryEntry`, `paymentSchema`, `Payment`, `onlineSettlementSchema`, `OnlineSettlement`, `productLineSchema`, `ProductLine`, `appointmentSchema`, `Appointment`, `blockCategorySchema`, `BlockCategory`, `blockRepeatSchema`, `BlockRepeat`, `timeBlockSchema`, `TimeBlock`, `calendarDaySchema`, `CalendarDay`, `monthDaySchema`, `calendarMonthSchema`, `CalendarMonth`, `waitlistEntrySchema`, `WaitlistEntry`, `waitlistSchema`, `saleSchema`, `Sale`, `appointmentInputSchema`, `AppointmentInput`, `AppointmentPatch`, `CheckoutInput`, `blockInputSchema`, `BlockInput`, `WaitlistInput`, `SaleInput`, `NoteInput`, `CalendarView`, `CALENDAR_VIEWS`, `TeamFilter`, `STATUS_KEYS`, `CLIENT_TYPE_KEYS`, `REPEAT_KEYS`, `BLOCK_CATEGORY_KEYS`, `BLOCK_REPEAT_KEYS`, `PAYMENT_METHOD_KEYS`, `NOTE_KIND_KEYS` · usa: @/app/i18n
+- **types.ts** — El contrato del calendario (docs/API_CONTRACT.md, «Calendario»): lo que el backend manda y lo que la pantalla… · `workingRangeSchema`, `WorkingRange`, `barberSchema`, `Barber`, `clientTypeSchema`, `ClientType`, `noteKindSchema`, `NoteKind`, `clientNoteSchema`, `ClientNote`, `clientSchema`, `Client`, `serviceSchema`, `Service`, `productSchema`, `Product`, `catalogSchema`, `CalendarCatalog`, `appointmentStatusSchema`, `AppointmentStatus`, `appointmentSourceSchema`, `repeatRuleSchema`, `RepeatRule`, `paymentMethodSchema`, `PaymentMethod`, `historyEntrySchema`, `HistoryEntry`, `paymentSchema`, `Payment`, `onlineSettlementSchema`, `OnlineSettlement`, `refundSchema`, `Refund`, `productLineSchema`, `ProductLine`, `appointmentSchema`, `Appointment`, `blockCategorySchema`, `BlockCategory`, `blockRepeatSchema`, `BlockRepeat`, `timeBlockSchema`, `TimeBlock`, `calendarDaySchema`, `CalendarDay`, `monthDaySchema`, `calendarMonthSchema`, `CalendarMonth`, `waitlistEntrySchema`, `WaitlistEntry`, `waitlistSchema`, `saleSchema`, `Sale`, `appointmentInputSchema`, `AppointmentInput`, `AppointmentPatch`, `CheckoutInput`, `blockInputSchema`, `BlockInput`, `WaitlistInput`, `SaleInput`, `NoteInput`, `CalendarView`, `CALENDAR_VIEWS`, `TeamFilter`, `STATUS_KEYS`, `CLIENT_TYPE_KEYS`, `REPEAT_KEYS`, `BLOCK_CATEGORY_KEYS`, `BLOCK_REPEAT_KEYS`, `PAYMENT_METHOD_KEYS`, `NOTE_KIND_KEYS` · usa: @/app/i18n
 - **useCalendarShortcuts.ts** — Los atajos de una letra del calendario, los de cualquier calendario rápido: C crea una cita, T vuelve a hoy,… · `CalendarShortcutHandlers`, `useCalendarShortcuts`
 - **useCalendarState.ts** · `toDateKey`, `fromDateKey`, `useCalendarState`
 - **weekModel.ts** — Las cuentas de la vista Semana, sin interfaz. · `WEEK_DAYS`, `weekStartOf`, `WeekCell`, `weekCell`
@@ -538,6 +545,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **customersHome.tsx** — Qué columnas existen según quién mira (ver `customerAccess.ts`). · `ALL_SEGMENTS`, `SegmentFilter`, `parseSegment`, `countBySegment`, `CustomerColumnOptions`, `customerColumns`, `CustomerCellFormatters`, `customerCells`, `customersCsvRows`, `CustomerAlertId`, `CustomerAlertPreset`, `BIRTHDAY_WINDOW_DAYS`, `UNRELIABLE_MISSES`, `CUSTOMER_ALERTS`, `CustomerPulse`, `customerPulse` · piezas: Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n
 - **customersShared.tsx** — Las piezas chicas del módulo de clientes: el segmento con su color y su icono, y el avatar. · `SegmentBadge`, `CustomerAvatar` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, initialsOf · usa: @/app/i18n
 - **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `daysToBirthday`, `formatAgo`, `downloadCsv` · usa: @/features/branches, @/features/payroll
+- **overdue.ts** · `OverdueFacts`, `isOverdue`
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
 - **types.ts** — En qué momento de la relación está un cliente. · `customerSegmentSchema`, `CustomerSegment`, `customerSchema`, `Customer`, `customersResponseSchema`, `CustomersResponse`, `customerAppointmentStatusSchema`, `CustomerAppointmentStatus`, `customerAppointmentSchema`, `CustomerAppointment`, `customerPaymentSchema`, `CustomerPayment`, `customerGuestSchema`, `CustomerGuest`, `customerProductSchema`, `CustomerProduct`, `customerDetailSchema`, `CustomerDetail`, `customerInputSchema`, `CustomerInput`, `EMPTY_CUSTOMER_INPUT`, `GuestInput`, `SEGMENT_KEYS`, `SEGMENT_HINT_KEYS`, `APPOINTMENT_STATUS_KEYS`, `APPOINTMENT_SOURCE_KEYS`, `PAYMENT_METHOD_KEYS`, `splitName`, `inputFromDetail` · usa: @/app/i18n, @/features/calendar
 
@@ -593,21 +601,23 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **BarbersDashboard.tsx** — Barberos: lo que ganó el equipo y cómo se reparte, con la ocupación, la cancelación y las propinas de cada un… · `BarbersDashboard` · piezas: BarList, MetricCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell · usa: @/app/i18n
 - **CustomersDashboard.tsx** — Clientes: cuántos vuelven, cuánto deja cada uno, por dónde reservan y qué tipo de cliente llena la agenda. · `CustomersDashboard` · piezas: BarList, CompositionDonut, DistributionBar, MetricCard · usa: @/app/i18n
-- **InsightsDashboard.tsx** — IA: un diagnóstico de los últimos tres meses. · `InsightsDashboard` · piezas: AIInsightCard, AiGeneratedBadge, AttentionAction, AttentionStrip, Card, ClipperIcon, HeatmapMatrix, MetricCard, MetricDial, PanelHeading · usa: @/app/i18n
+- **InsightsDashboard.tsx** — IA: un diagnóstico de los últimos tres meses. · `InsightsDashboard` · piezas: AIInsightCard, AttentionAction, AttentionStrip, Card, ClipperIcon, HeatmapMatrix, MetricCard, MetricDial, PanelHeading · usa: @/app/i18n
 - **MarketingDashboard.tsx** — Marketing: por dónde llegan las reservas digitales, cuánto convierte cada canal y qué trajo cada campaña. · `MarketingDashboard` · piezas: BarList, EmptyState, MetricCard · usa: @/app/i18n
 
 ### payroll
 
 - **MyPayPage.tsx** — El pago del propio barbero, sobre la nómina recortada a su ficha: - «Lo que llevo» (comisión): cuánto lleva g… · `MyPayPage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, DataListBlock, EmptyState, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
+- **PayrollAdjustments.tsx** — Lo que no sale de las citas: un bono, un descuento (un faltante de caja, producto que usó) o un adelanto que… · `PayrollAdjustmentsProps`, `PayrollAdjustments` · piezas: Button, Field, Input, NumberField, SegmentedControl, Text · usa: @/app/i18n, @/i18n
 - **PayrollMemberDrawer.tsx** — Cómo se llega al pago de un barbero: su forma de pago y sus reglas, la cuenta —lo que suma y lo que resta— y… · `PayrollMemberDrawerProps`, `PayrollMemberDrawer` · piezas: Badge, Button, DrawerShell, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/i18n
-- **PayrollPage.tsx** — La nómina del periodo: cuánto se le paga a cada barbero y cuánto le deben a la barbería los que rentan su pue… · `PayrollPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
-- **api.ts** — Contrato de nómina; ver docs/API_CONTRACT.md. · `payrollApi` · llama: GET /payroll · usa: @/lib/api
+- **PayrollPage.tsx** — La nómina del periodo: cuánto se le paga a cada barbero y cuánto le deben a la barbería los que rentan su pue… · `PayrollPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
+- **PayrollRunBar.tsx** — El estado del periodo y lo siguiente que toca: abierto → aprobar; aprobado → marcar pagado (o reabrir con mot… · `PayrollRunBarProps`, `PayrollRunBar` · piezas: Button, ConfirmDialog, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Text, Textarea · usa: @/app/i18n, @/i18n
+- **api.ts** — Contrato de nómina; ver docs/API_CONTRACT.md. · `payrollApi` · llama: GET /payroll, POST /payroll/adjustments, DELETE /payroll/adjustments/${id}, POST /payroll/runs, POST /payroll/runs/${id}/pay, POST /payroll/runs/${id}/reopen · usa: @/lib/api
 - **myPayHome.tsx** · `myPayColumns`, `MyPayCellContext`, `myPayCells` · usa: @/app/i18n
 - **payrollHome.tsx** — El valor numérico de una columna, para la tabla y para exportar. · `columnIdsFor`, `columnLabel`, `payrollColumns`, `columnValue`, `PayrollCellContext`, `payrollCells` · piezas: Avatar, AvatarFallback, AvatarImage, initialsOf · usa: @/app/i18n
-- **payrollUtils.ts** — Las ayudas sin JSX de la nómina: el resumen y la exportación. · `PayrollSummary`, `summarizePayroll`, `countByPayout`, `toCsv`
-- **queries.ts** · `payrollKeys`, `usePayrollQuery`
-- **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `payrollMemberSchema`, `PayrollMember`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS` · usa: @/app/i18n
-- **usePayrollFilters.ts** — Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y el barbero abierto en el panel. · `usePayrollFilters` · piezas: fromIsoDate, periodRange, toIsoDate
+- **payrollUtils.ts** — Las ayudas sin JSX de la nómina: el resumen y la exportación. · `PayrollSummary`, `summarizePayroll`, `countByPayout`
+- **queries.ts** · `payrollKeys`, `usePayrollQuery`, `useAddAdjustment`, `useRemoveAdjustment`, `useApprovePayroll`, `usePayPayroll`, `useReopenPayroll` · usa: @/lib/api
+- **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `adjustmentKindSchema`, `AdjustmentKind`, `adjustmentSchema`, `PayrollAdjustment`, `payrollMemberSchema`, `PayrollMember`, `runStatusSchema`, `RunStatus`, `payrollRunSchema`, `PayrollRun`, `payrollHistorySchema`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS`, `AdjustmentInput`, `ADJUSTMENT_KEYS`, `PAY_METHODS`, `PayMethod`, `PAY_METHOD_KEYS` · usa: @/app/i18n
+- **usePayrollFilters.ts** — Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y el barbero abierto en el panel. · `usePayrollFilters` · piezas: fromIsoDate, periodRange, toIsoDate · usa: @/features/settings
 
 ### products
 
@@ -716,14 +726,15 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### transactions
 
 - **AccountDrawer.tsx** — El detalle de una cuenta, en un panel: qué se cobró línea por línea, las cuentas —subtotal, impuesto, total,… · `AccountDrawerProps`, `AccountDrawer` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/features/calendar, @/features/customers, @/features/services, @/i18n
-- **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/query, @/lib/utils
-- **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `transactionsApi` · llama: GET /transactions · usa: @/lib/api
-- **queries.ts** · `transactionKeys`, `useTransactionsQuery`
+- **RefundDialog.tsx** — Devolver una cuenta cobrada, entera o en parte: cuánto, a dónde vuelve (efectivo o la tarjeta) y por qué. · `RefundDialogProps`, `RefundDialog` · piezas: Button, Field, Input, ModalShell, NumberField, SegmentedControl · usa: @/app/i18n
+- **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
+- **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `RefundInput`, `transactionsApi` · llama: GET /transactions, POST /appointments/${appointmentId}/refund · usa: @/features/calendar, @/lib/api
+- **queries.ts** — Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. · `transactionKeys`, `useTransactionsQuery`, `useRefundAccount` · usa: @/lib/api
 - **transactionsAccess.ts** — Las cuentas que le tocan a quien mira: todas, o solo las que atendió el barbero. · `accountsFor`, `showsPeriodTotals` · usa: @/features/access
 - **transactionsHome.tsx** — Qué se cobró, en una línea: «2 servicios · 1 producto». · `TransactionsSummary`, `summarize`, `countByStatus`, `transactionColumns`, `TransactionCellContext`, `describeLines`, `transactionCells` · usa: @/app/i18n, @/features/calendar, @/features/customers
 - **transactionsShared.tsx** — El estado de una cuenta, con su color y su icono. · `AccountStatusBadge` · piezas: Badge · usa: @/app/i18n
 - **transactionsStyle.ts** — Un color y un icono por estado de cuenta: lo pendiente avisa, lo cobrado tranquiliza, lo anulado se apaga. · `STATUS_STYLE`
-- **types.ts** — Una «cuenta» es lo que se le cobra a alguien: cada cita es una y cada venta de mostrador es otra. · `accountStatusSchema`, `AccountStatus`, `accountLineSchema`, `AccountLine`, `accountSchema`, `Account`, `transactionsResponseSchema`, `TransactionsResponse`, `TransactionsParams`, `ACCOUNT_STATUS_KEYS`, `ACCOUNT_STATUS_HINT_KEYS`, `METHOD_KEYS`, `ONLINE_METHOD_KEYS` · usa: @/app/i18n, @/features/calendar
+- **types.ts** — Una «cuenta» es lo que se le cobra a alguien: cada cita es una y cada venta de mostrador es otra. · `accountStatusSchema`, `AccountStatus`, `accountLineSchema`, `AccountLine`, `accountSchema`, `Account`, `transactionsResponseSchema`, `TransactionsResponse`, `TransactionsParams`, `ACCOUNT_STATUS_KEYS`, `ACCOUNT_STATUS_HINT_KEYS`, `METHOD_KEYS`, `ONLINE_METHOD_KEYS`, `REFUND_TO_KEYS`, `refundableOf` · usa: @/app/i18n, @/features/calendar
 - **useTransactionsFilters.ts** — Lo que decide qué cuentas se ven, en la URL: el periodo (día, semana o mes alrededor de una fecha), el estado… · `ALL`, `StatusFilter`, `AppointmentFilter`, `useTransactionsFilters` · piezas: fromIsoDate, periodRange, toIsoDate · usa: @/features/calendar
 
 ### users
@@ -749,6 +760,7 @@ Cliente de API, consultas y utilidades sin interfaz.
 - **pagination.ts** — Sobre de paginación que devuelve cualquier listado de la API. · `paginationMetaSchema`, `PaginationMeta`, `paginatedSchema`, `Paginated`, `PageParams`, `DEFAULT_PAGE_SIZE`
 
 - **cascadeAnimation.ts** — Shared cascade reveal for accordion content: each line comes in on its own, not the whole block at once. · `CASCADE_EASE`, `CASCADE_ITEM_DURATION`, `CASCADE_STAGGER`, `CASCADE_DELAY_CHILDREN`, `CASCADE_CONTENT_GAP`, `cascadeContainer`, `cascadeItem`, `cascadeItemSettleTime`
+- **csv.ts** — Filas a CSV, con la cabecera primero. · `toCsv`, `downloadCsv`
 - **reorder.ts** — Returns a new array with the item at `from` moved to `to`. · `moveItem`, `moveItemById`
 - **sanitizeHtml.ts** — Whether the content is empty once markup is discounted. · `sanitizeHtml`, `isHtmlBlank`
 - **tone.ts** — The app's accent palette, as five named tones. · `Tone`, `NEUTRAL_ACCENT`, `toneAccent`, `toneText`, `toneChip`, `toneSolid`, `toneWash`, `ToneGradientOptions`, `toneGradient`, `toneBar`, `toneBorder`, `toneSelected`, `TONE_CYCLE`, `toneForIndex`
@@ -829,7 +841,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers`
 - **media.ts** — El retrato de cada persona del equipo. · `TEAM_PHOTOS`, `galleryFor`, `SERVICE_PHOTOS`, `PRODUCT_PHOTOS`, `clientPhoto`, `userPhoto`, `ACCOUNT_PHOTOS`, `imageOrNull`
 - **metrics.ts** — Las métricas del negocio, simuladas. · `BARBERS`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `simulateDay`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
-- **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/metrics
+- **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
 - **random.ts** — Generador pseudoaleatorio con semilla (mulberry32): la misma semilla, la misma serie. · `seededRandom`
 - **server.ts** — Servidor para Vitest (Node/jsdom); ver `src/test/setup.ts`. · `server`
 
@@ -837,7 +849,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **account.ts** — La cuenta de una cita, igual para el cobro de la agenda y para Transacciones: lo que vale (con el impuesto de… · `AppointmentAccount`, `barberServicePrice`, `appointmentAccount` · usa: @/features/branches
 - **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `blocksOn`, `clashMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/branches
-- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
+- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
 
 ### customers
 
@@ -851,7 +863,9 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### payroll
 
+- **compute.ts** — El cálculo de la nómina, sin HTTP. · `Rule`, `Payout`, `cycleWindow`, `payrollOf`
 - **handlers.ts** · `payrollHandlers`
+- **state.ts** — Lo que la nómina guarda. · `MockAdjustmentKind`, `MockPayrollAdjustment`, `MockRunStatus`, `MockPayrollRun`, `MockPayrollHistoryEntry`, `MockPayrollState`, `emptyPayroll`
 
 ### products
 

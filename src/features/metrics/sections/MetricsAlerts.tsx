@@ -23,7 +23,7 @@ const ALERTS: readonly {
 
 /**
  * Lo que del periodo pide una mano: cobros abiertos, cancelaciones y
- * no-shows. Cada aviso abre esas citas en el calendario, filtradas por su
+ * no-shows. Cada aviso abre esas cuentas en Transacciones, filtradas por su
  * estado y por el mismo periodo; producción las dejaba como una cifra muda
  * en la leyenda de un anillo.
  */
@@ -34,8 +34,14 @@ export function MetricsAlerts({ data }: MetricsAlertsProps) {
   const attention = ALERTS.reduce((sum, alert) => sum + countOf(alert.status), 0);
   const calm = attention === 0;
 
-  const open = (status: AppointmentStatus) =>
-    navigate(`/calendario?status=${status}&from=${data.period.from}&to=${data.period.to}`);
+  // Las cuentas de ese periodo en Transacciones, filtradas: por cobrar, o canceladas o sin presentarse.
+  const open = (status: AppointmentStatus) => {
+    const params = new URLSearchParams({ fecha: data.period.from });
+    if (data.period.granularity !== "day") params.set("periodo", data.period.granularity);
+    if (status === "pendingCollection") params.set("estado", "open");
+    else params.set("estadoCita", status === "noShow" ? "no_show" : "cancelled");
+    navigate(`/transacciones?${params.toString()}`);
+  };
 
   return (
     <AttentionStrip

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { LayoutGrid, Loader2, RefreshCw } from "lucide-react";
+import { Download, LayoutGrid, Loader2, RefreshCw } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -27,7 +27,28 @@ import { useTransactionsQuery } from "./queries";
 import { countByStatus, describeLines, summarize, transactionCells, transactionColumns } from "./transactionsHome";
 import { AccountStatusBadge } from "./transactionsShared";
 import { STATUS_STYLE } from "./transactionsStyle";
-import { ACCOUNT_STATUS_HINT_KEYS, ACCOUNT_STATUS_KEYS, accountStatusSchema, type Account } from "./types";
+import { ACCOUNT_STATUS_HINT_KEYS, ACCOUNT_STATUS_KEYS, METHOD_KEYS, accountStatusSchema, type Account } from "./types";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import type { AppMessageKey } from "@/app/i18n/types";
+
+/** Las columnas del CSV: todo lo que el contador necesita para cuadrar. */
+const CSV_COLUMNS: readonly AppMessageKey[] = [
+  "transactions.csv.date",
+  "transactions.csv.invoice",
+  "transactions.column.client",
+  "transactions.column.attended",
+  "transactions.csv.status",
+  "transactions.detail.subtotal",
+  "transactions.csv.discount",
+  "transactions.detail.tax",
+  "transactions.column.total",
+  "transactions.column.tip",
+  "transactions.csv.prepaid",
+  "transactions.column.collected",
+  "transactions.csv.refunded",
+  "transactions.detail.balance",
+  "transactions.column.method",
+];
 import { ALL, useTransactionsFilters } from "./useTransactionsFilters";
 
 const PAGE_SIZE = 15;
@@ -122,7 +143,7 @@ export function TransactionsPage() {
           </div>
         }
       >
-        {(data) => <TransactionsHome accounts={accountsFor(access, data.items)} showTotals={showsPeriodTotals(access)} filters={filters} fetching={query.isFetching} />}
+        {(data) => <TransactionsHome accounts={accountsFor(access, data.items)} showTotals={showsPeriodTotals(access)} filters={filters} fetching={query.isFetching} canRefund={access.can("transactions", "edit")} />}
       </QueryBoundary>
     </div>
   );
@@ -134,9 +155,11 @@ interface TransactionsHomeProps {
   showTotals: boolean;
   filters: ReturnType<typeof useTransactionsFilters>;
   fetching: boolean;
+  /** Quien puede devolver un pago (Transacciones · editar). */
+  canRefund: boolean;
 }
 
-function TransactionsHome({ accounts, showTotals, filters, fetching }: TransactionsHomeProps) {
+function TransactionsHome({ accounts, showTotals, filters, fetching, canRefund }: TransactionsHomeProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   const formatMoney = useMoney();
@@ -150,6 +173,16 @@ function TransactionsHome({ accounts, showTotals, filters, fetching }: Transacti
 
   const columns = React.useMemo(() => transactionColumns(t), [t]);
   const cells = React.useMemo(() => transactionCells(t, { formatMoney, formatDate, onOpen: (account) => openAccount(account.id) }), [t, formatMoney, formatDate, openAccount]);
+
+  // Lo que se ve (periodo y filtros), para el contador o la hoja de cálculo.
+  const download = () =>
+    downloadCsv(
+      `transacciones-${filters.from}-${filters.to}.csv`,
+      toCsv(
+        CSV_COLUMNS.map((key) => t(key)),
+        filtered.map((row) => [row.date, row.invoice ?? "", row.client?.name ?? t("transactions.counterSale"), row.barber ?? "", t(ACCOUNT_STATUS_KEYS[row.status]), row.subtotal, row.discount ?? 0, row.tax, row.total, row.tip, row.prepaid ?? 0, row.collected, row.refunded, row.balance, row.method ? t(METHOD_KEYS[row.method]) : ""])
+      )
+    );
 
   const statusHint = status === ALL ? t("transactions.status.allHint") : t(ACCOUNT_STATUS_HINT_KEYS[status]);
   const hasFilter = status !== ALL || appointment !== ALL;
@@ -195,9 +228,12 @@ function TransactionsHome({ accounts, showTotals, filters, fetching }: Transacti
       <section aria-label={t("transactions.statusAria")} className="mb-section shrink-0">
         <div className="mb-stack flex items-baseline gap-2">
           <h2 className="shrink-0 text-sm font-semibold text-text-secondary">{t("transactions.statusTitle")}</h2>
-          <p className="min-w-0 truncate text-xs text-text-muted" data-testid="transactions-status-hint">
+          <p className="min-w-0 flex-1 truncate text-xs text-text-muted" data-testid="transactions-status-hint">
             {statusHint}
           </p>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={download} disabled={filtered.length === 0} data-testid="transactions-download">
+            <Download /> {t("transactions.download")}
+          </Button>
         </div>
         <div role="radiogroup" aria-label={t("transactions.statusAria")} className="-mx-1 flex gap-stack overflow-x-auto px-1 pb-1 [scrollbar-width:thin] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:p-0 xl:grid-cols-5">
           <OptionTile compact className={TILE_CLASS} option={{ value: ALL, label: t("transactions.status.all"), badge: formatNumber(accounts.length), icon: LayoutGrid }} selected={status === ALL} onSelect={filters.setStatus} />
@@ -241,7 +277,7 @@ function TransactionsHome({ accounts, showTotals, filters, fetching }: Transacti
         )}
       />
 
-      <AccountDrawer account={opened} onClose={() => openAccount(null)} formatMoney={formatMoney} />
+      <AccountDrawer account={opened} onClose={() => openAccount(null)} formatMoney={formatMoney} canRefund={canRefund} />
     </div>
   );
 }

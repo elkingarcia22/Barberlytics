@@ -96,8 +96,73 @@ describe("contrato de nómina (mock)", () => {
     expect(renter).toBeDefined();
     expect(renter?.rent).toBe(renter?.rentBase);
     expect(renter?.serviceCommission).toBe(0);
-    expect(renter?.deductions).toBe(renter?.lines.reduce((sum, line) => sum + line.deduction, 0));
+    expect(renter?.deductions).toBeCloseTo(renter?.lines.reduce((sum, line) => sum + line.deduction, 0) ?? 0, 2);
     expect(renter?.net).toBeCloseTo((renter?.tips ?? 0) - (renter?.rent ?? 0) - (renter?.deductions ?? 0), 2);
+  });
+
+  test("las deducciones de la renta son un porcentaje de la venta, como las pide su ficha", async () => {
+    await withSession();
+    const { members } = await payrollApi.get({ branchId: "ma", from: PAST_FROM, to: PAST_TO });
+    const renter = members.find((item) => item.payout === "rent")!;
+    const payments = db.team.members.find((item) => item.id === renter.memberId)!.payments!;
+    const percentOf = { walkIn: payments.walkInDeduction, noPreference: payments.noPreferenceDeduction, newClient: payments.newClientDeduction, recurring: 0, basic: 0 };
+    for (const line of renter.lines) expect(line.deduction, line.appointmentId).toBeCloseTo((line.sale * percentOf[line.rule]) / 100, 2);
+  });
+
+  test("la base de la comisión es el precio del barbero, el mismo que se cobra", async () => {
+    await withSession();
+    const { members } = await payrollApi.get({ branchId: "ma", from: PAST_FROM, to: PAST_TO });
+    const earner = members.find((item) => item.payout === "commission" && item.lines.length > 0)!;
+    const overrides = db.team.members.find((item) => item.id === earner.memberId)!.services;
+    const line = earner.lines[0];
+    const appointment = db.calendar.appointments.find((item) => item.id === line.appointmentId)!;
+    const expected = appointment.serviceIds.reduce((sum, id) => sum + (overrides.find((item) => item.serviceId === id)?.price ?? db.services.items.find((item) => item.id === id)!.price), 0);
+    expect(line.sale).toBeCloseTo(expected, 2);
+  });
+
+  test("en escala, el tramo sale del ciclo de pago: el mismo en el día que en la semana", async () => {
+    await withSession();
+    const scaled = db.team.members.find((item) => item.compensation && item.role === "barbero-comision")!;
+    db.team.members = db.team.members.map((item) => (item.id === scaled.id ? { ...item, compensation: { ...item.compensation!, type: "scale", scale: [{ from: 0, percent: 30 }, { from: 300, percent: 50 }] } } : item));
+    const week = await payrollApi.get({ branchId: "ma", from: PAST_FROM, to: PAST_TO, memberId: scaled.id });
+    const line = week.members[0]?.lines.at(-1);
+    if (!line) return;
+    const day = await payrollApi.get({ branchId: "ma", from: line.date.slice(0, 10), to: line.date.slice(0, 10), memberId: scaled.id });
+    expect(day.members[0].lines.find((item) => item.appointmentId === line.appointmentId)?.rate).toBe(line.rate);
+  });
+
+  test("aprobar deja la nómina fija; pagada no se reabre; reabrir pide motivo", async () => {
+    await withSession();
+    const period = { branchId: "ma", from: PAST_FROM, to: PAST_TO };
+    const before = await payrollApi.get(period);
+    const run = await payrollApi.approve(period);
+    expect(run.status).toBe("approved");
+    // Una regla que cambia después ya no mueve lo aprobado.
+    db.team.members = db.team.members.map((item) => (item.compensation ? { ...item, compensation: { ...item.compensation, basic: 99, recurring: 99, walkIn: 99, noPreference: 99, newClient: 99 } } : item));
+    const frozen = await payrollApi.get(period);
+    expect(frozen.run?.status).toBe("approved");
+    expect(frozen.members.map((item) => item.net)).toEqual(before.members.map((item) => item.net));
+    await expect(payrollApi.reopen(run.id, "no")).rejects.toMatchObject({ status: 422 });
+    const paid = await payrollApi.pay(run.id, { method: "transfer", reference: "TRX-1" });
+    expect(paid).toMatchObject({ status: "paid", method: "transfer", reference: "TRX-1" });
+    await expect(payrollApi.reopen(run.id, "se pagó de más")).rejects.toMatchObject({ status: 409 });
+  });
+
+  test("un ajuste entra en el neto y no se puede tocar con el periodo aprobado", async () => {
+    await withSession();
+    const period = { branchId: "ma", from: PAST_FROM, to: PAST_TO };
+    const before = await payrollApi.get(period);
+    const target = before.members[0];
+    await payrollApi.addAdjustment({ ...period, memberId: target.memberId, kind: "advance", amount: 50, note: "Adelanto del martes" });
+    await payrollApi.addAdjustment({ ...period, memberId: target.memberId, kind: "bonus", amount: 20, note: "Meta de la semana" });
+    const after = await payrollApi.get(period);
+    const updated = after.members.find((item) => item.memberId === target.memberId)!;
+    expect(updated.adjustmentsTotal).toBe(-30);
+    expect(updated.net).toBeCloseTo(target.net - 30, 2);
+    const run = await payrollApi.approve(period);
+    await expect(payrollApi.addAdjustment({ ...period, memberId: target.memberId, kind: "bonus", amount: 5, note: "Otro bono" })).rejects.toMatchObject({ status: 409 });
+    await payrollApi.reopen(run.id, "faltó un adelanto");
+    expect((await payrollApi.get(period)).run).toBeNull();
   });
 
   test("el salario se cuenta por semanas del periodo", async () => {

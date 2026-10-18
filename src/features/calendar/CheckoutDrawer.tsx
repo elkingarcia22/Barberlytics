@@ -15,7 +15,7 @@ import { useOpenKey } from "./calendarFormat";
 import { useCheckoutAppointment } from "./queries";
 import { useSettingsSection } from "@/features/settings/settingsQueries";
 import { cardFeeSchema, tipsSchema } from "@/features/settings/settingsTypes";
-import { FALLBACK_TIPS, appointmentBill, changeDue, sumBills, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
+import { FALLBACK_TIPS, appointmentBill, changeDue, splitAcross, sumBills, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type Appointment, type PaymentMethod, type ProductLine } from "./types";
 import { ProductThumb, ServiceThumb } from "./calendarShared";
 
@@ -59,6 +59,8 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const tipOptions: readonly TipChoice[] = tipSettings.data?.options.length ? tipSettings.data.options : FALLBACK_TIPS;
   const [tipChoice, setTipChoice] = React.useState<string>("none");
   const [received, setReceived] = React.useState<number | null>(null);
+  // Pago mixto: cuánto entrega en efectivo; el resto va con tarjeta.
+  const [cashPart, setCashPart] = React.useState<number | null>(null);
   const [customTip, setCustomTip] = React.useState<number | null>(null);
   const [method, setMethod] = React.useState<PaymentMethod>("cash");
   // Las demás citas de la visita vienen marcadas: lo normal es cobrar la visita entera.
@@ -78,7 +80,10 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const subtotal = bill.subtotal;
   const chosenTip = tipOptions.find((option) => option.id === tipChoice);
   const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, subtotal) : 0;
-  const surcharge = surchargeAmount(cardFee.data, method, bill.due);
+  const mixed = method === "mixed";
+  const cash = mixed ? Math.min(Math.max(0, cashPart ?? 0), bill.due + tip) : 0;
+  // El recargo solo va sobre lo que se paga con tarjeta (en mixto, la parte de tarjeta).
+  const surcharge = mixed ? surchargeAmount(cardFee.data, "card", bill.due + tip - cash) : surchargeAmount(cardFee.data, method, bill.due);
   const total = bill.due + tip + surcharge;
   const change = method === "cash" ? changeDue(received, total) : null;
 
@@ -93,9 +98,12 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
 
   const pay = async () => {
     try {
+      // En mixto, cada cita lleva su parte de efectivo y de tarjeta; la abierta lleva propina y recargo.
+      const ownDue = Math.round((appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId).due + tip + surcharge) * 100) / 100;
+      const splits = mixed ? splitAcross(cash, [ownDue, ...companionBills.map((item) => item.due)]) : [];
       const [paid, ...others] = await Promise.all([
-        checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge } }),
-        ...chosenCompanions.map((item) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, method, surcharge: 0 } })),
+        checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge, ...(mixed ? { split: splits[0] } : {}) } }),
+        ...chosenCompanions.map((item, index) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, method, surcharge: 0, ...(mixed ? { split: splits[index + 1] } : {}) } })),
       ]);
       // Lo cobrado ahora: lo pagado en línea ya estaba cobrado.
       const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0) - (item.payment?.prepaid ?? 0), 0);
@@ -254,6 +262,16 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
                   {change < 0 ? t("calendar.checkout.missing", { amount: ctx.formatMoney(-change) }) : t("calendar.checkout.changeHint", { amount: ctx.formatMoney(change) })}
                 </Text>
               )}
+            </div>
+          )}
+          {mixed && (
+            <div className="mt-3 space-y-1">
+              <Field label={t("calendar.checkout.splitCash")}>
+                <NumberField value={cashPart} onValueChange={setCashPart} min={0} step={1} prefix="$" size="sm" data-testid="checkout-split-cash" />
+              </Field>
+              <Text variant="muted" data-testid="checkout-split-card">
+                {t("calendar.checkout.splitCard", { amount: ctx.formatMoney(Math.max(0, total - cash)) })}
+              </Text>
             </div>
           )}
           {surcharge > 0 && (

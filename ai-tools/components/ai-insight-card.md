@@ -15,7 +15,7 @@ import { AIInsightCard } from "@/components/ai"
 | `title` | `string` |  | Titular del hallazgo. Obligatorio. |
 | `description` | `string` |  | Explicación breve bajo el título. |
 | `type` | `"insight" \| "risk" \| "recommendation" \| "opportunity"` | `"insight"` | Naturaleza del hallazgo; define icono, etiqueta y color. |
-| `confidence` | `"low" \| "medium" \| "high"` | `"high"` | Nivel de confianza mostrado como badge en la esquina. |
+| `confidence` | `"low" \| "medium" \| "high" \| null` | `"high"` | Nivel de confianza mostrado como badge en la esquina. `null` lo oculta: úsalo cuando la sugerencia sale de una regla y no de un modelo. |
 | `evidence` | `string` |  | Dato que sustenta el hallazgo. |
 | `impact` | `string` |  | Consecuencia esperada. |
 | `actionLabel` | `string` |  | Texto del botón al pie. Sin él no hay pie. |

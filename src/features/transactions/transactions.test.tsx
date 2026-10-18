@@ -12,6 +12,7 @@ import { AccessProvider, buildAccess } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { TransactionsPage } from "./TransactionsPage";
 import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
+import { calendarApi } from "@/features/calendar/api";
 import { transactionsApi } from "./api";
 import { countByStatus, summarize } from "./transactionsHome";
 import type { Account } from "./types";
@@ -169,6 +170,35 @@ describe("contrato de transacciones (mock)", () => {
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === target.id ? { ...item, online: { reservation: "BL-1001", method: "card", paid: target.total, tip: 0, discount: 0 } } : item));
     const { items: paid } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
     expect(paid.find((item) => item.id === target.id)).toMatchObject({ prepaid: target.total, balance: 0 });
+  });
+
+  test("ya no hay devoluciones inventadas: solo las que se hacen de verdad", async () => {
+    await withSession();
+    const { items } = await transactionsApi.list({ branchId: "ma", from: "2026-09-01", to: "2026-09-30" });
+    expect(items.filter((item) => item.status === "refunded")).toEqual([]);
+  });
+
+  test("devolver una parte deja la cuenta devuelta, con lo cobrado neto y el motivo", async () => {
+    await withSession();
+    const { items } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const paid = items.find((item) => item.status === "paid" && item.appointmentId !== null)!;
+    await expect(transactionsApi.refund(paid.appointmentId!, { amount: paid.total + paid.tip + 1, reason: "error", to: "cash" })).rejects.toMatchObject({ status: 422 });
+    await transactionsApi.refund(paid.appointmentId!, { amount: 10, reason: "No quedó conforme", to: "card" });
+    const after = (await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY })).items.find((item) => item.id === paid.id)!;
+    expect(after).toMatchObject({ status: "refunded", refunded: 10, collected: Math.round((paid.total - 10) * 100) / 100 });
+    expect(after.refunds?.[0]).toMatchObject({ amount: 10, to: "card", reason: "No quedó conforme" });
+  });
+
+  test("el pago mixto tiene que sumar lo que se cobra y queda el reparto", async () => {
+    await withSession();
+    const { items } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const seeded = db.calendar.appointments.find((item) => item.id === items.find((account) => account.kind === "appointment")?.id)!;
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === seeded.id ? { ...item, status: "seated", payment: null, online: null, refunds: [] } : item));
+    const open = (await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY })).items.find((item) => item.id === seeded.id)!;
+    const input = { serviceIds: seeded.serviceIds, products: seeded.products, tip: 0, method: "mixed" as const, surcharge: 0 };
+    await expect(calendarApi.checkout(seeded.id, { ...input, split: { cash: 1, card: 1 } })).rejects.toMatchObject({ status: 422 });
+    const charged = await calendarApi.checkout(seeded.id, { ...input, split: { cash: 10, card: Math.round((open.balance - 10) * 100) / 100 } });
+    expect(charged.payment?.split).toEqual({ cash: 10, card: Math.round((open.balance - 10) * 100) / 100 });
   });
 
   test("una venta de mostrador también es una cuenta, sin cliente ni cita", async () => {

@@ -261,19 +261,27 @@ export function buildBusinessMetrics(query: MetricsQuery): MetricsBusiness {
   const completed = appointments.filter((item) => item.status === "completed");
   const ticket = (totals: PeriodTotals) => (totals.transactions ? round2(totals.sales / totals.transactions) : 0);
 
+  /*
+   * El origen del ingreso suma exactamente «Ventas»: servicios (ya con su descuento), productos,
+   * cargos por inasistencia, impuestos y propinas. La tarifa de la pasarela (`fees`) es un costo,
+   * no un ingreso: no va aquí (y llamarla «comisiones» se confundía con la del barbero).
+   */
   const income: { id: IncomeLine; amount: number }[] = [
-    { id: "services", amount: now.services },
+    { id: "services", amount: round2(now.services - now.discounts) },
     { id: "products", amount: now.products },
+    { id: "noShow", amount: now.noShowFees },
     { id: "taxes", amount: now.taxes },
     { id: "tips", amount: now.tips },
-    { id: "fees", amount: now.fees },
-    { id: "noShow", amount: now.noShowFees },
   ];
 
+  /*
+   * Cómo se pagaron las ventas: el reparto entre métodos sale de las citas cobradas y se aplica a
+   * todas las ventas (productos e impuestos incluidos), así la dona suma lo mismo que «Ventas».
+   */
   const paymentIds: readonly PaymentMethod[] = ["card", "cash", "transfer", "giftCard"];
-  const payments = paymentIds
-    .map((id) => ({ id, amount: sum(completed.filter((item) => item.payment === id).map((item) => item.service.price + item.tip)) }))
-    .filter((row) => row.amount > 0);
+  const paidBy = paymentIds.map((id) => ({ id, amount: sum(completed.filter((item) => item.payment === id).map((item) => item.service.price - item.discount + item.tip)) }));
+  const paidTotal = sum(paidBy.map((row) => row.amount));
+  const payments = paidBy.map((row) => ({ id: row.id, amount: paidTotal ? round2((now.sales * row.amount) / paidTotal) : 0 })).filter((row) => row.amount > 0);
 
   return {
     period: periodOf(sim),

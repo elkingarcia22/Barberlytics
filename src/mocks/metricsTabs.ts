@@ -1,4 +1,8 @@
-import { seededRandom } from "./db";
+import { db, seededRandom } from "./db";
+import { WALK_IN_CLIENT } from "./calendar/seed";
+import { profileOf } from "./customers/handlers";
+import { lifecycleOf } from "./customers/seed";
+import { isOverdue } from "@/features/customers/overdue";
 import {
   BARBERS,
   daysOf,
@@ -249,9 +253,8 @@ export function buildInsightsMetrics(today = new Date()): MetricsInsights {
   const worst = open.reduce((low, row) => (row.total < low.total ? row : low), open[0]);
   const gap = best.total ? Math.round(((best.total - worst.total) / best.total) * 100) : 0;
   const neverBooked = 180 + Math.round(rand() * 120);
-  const churned = Math.round(rand() * 6);
-  const atRisk = 4 + Math.round(rand() * 9);
-  const overdue = 10 + Math.round(rand() * 14);
+  // Los riesgos son los clientes de verdad, con las mismas reglas que Clientes: la cifra lleva a su lista.
+  const { churned, atRisk, overdue } = clientRisks();
   const peakHour = CAPACITY_HOURS[rows.flatMap((row) => row.values).reduce<{ index: number; value: number }>((top, value, index) => (value > top.value ? { index: index % CAPACITY_HOURS.length, value } : top), { index: 0, value: -1 }).index];
 
   return {
@@ -314,5 +317,17 @@ export function buildInsightsMetrics(today = new Date()): MetricsInsights {
           ]
         : []),
     ],
+  };
+}
+
+/** Perdidos, en riesgo y a los que ya les tocaba volver, entre los clientes de la barbería. */
+function clientRisks(): { churned: number; atRisk: number; overdue: number } {
+  const facts = db.calendar.clients
+    .filter((client) => client.id !== WALK_IN_CLIENT.id && !profileOf(client).deleted)
+    .map((client) => ({ ...lifecycleOf(client, profileOf(client).blocked), visitEveryDays: client.visitEveryDays ?? null }));
+  return {
+    churned: facts.filter((item) => item.segment === "lost").length,
+    atRisk: facts.filter((item) => item.segment === "atRisk").length,
+    overdue: facts.filter((item) => isOverdue(item)).length,
   };
 }

@@ -99,6 +99,19 @@ export interface MockPayment {
   paidAt: string;
   /** Lo que de ese total ya estaba pagado en línea (propina incluida): en caja se cobró el resto. */
   prepaid?: number;
+  /** Con `mixed`: cuánto fue en efectivo y cuánto con tarjeta. */
+  split?: { cash: number; card: number };
+}
+
+/** Una devolución: desde la caja, o la que hizo la reserva en línea al cancelar. */
+export interface MockRefund {
+  id: string;
+  amount: number;
+  /** A dónde volvió el dinero. */
+  to: "cash" | "card" | "credit";
+  reason: string;
+  at: string;
+  by: string;
 }
 
 /**
@@ -140,6 +153,8 @@ export interface MockAppointment {
   payment: MockPayment | null;
   /** Lo resuelto al reservar en línea; sin reserva en línea, nada. */
   online?: MockOnlineSettlement | null;
+  /** Lo devuelto de esta cuenta. */
+  refunds?: MockRefund[];
   linkId?: string | null;
 }
 

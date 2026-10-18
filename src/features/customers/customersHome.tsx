@@ -1,11 +1,12 @@
 import { Link } from "react-router";
-import { Cake, CalendarX, HeartPulse, Hourglass, type LucideIcon } from "lucide-react";
+import { Cake, CalendarClock, CalendarX, HeartPulse, Hourglass, type LucideIcon } from "lucide-react";
 import type { AppMessageKey } from "@/app/i18n/types";
 import type { AttentionTone } from "@/components/feedback";
 import type { TableColumnCells, TableColumnSpec } from "@/components/data-display/table-config";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
 import { branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
+import { isOverdue } from "./overdue";
 import { SEGMENT_KEYS, customerSegmentSchema, type Customer, type CustomerSegment } from "./types";
 
 /**
@@ -145,7 +146,7 @@ export function customersCsvRows(t: Translate, rows: readonly Customer[], { show
 
 /* ----------------------------------------------------------------- avisos */
 
-export type CustomerAlertId = "atRisk" | "birthday" | "unreliable";
+export type CustomerAlertId = "atRisk" | "overdue" | "birthday" | "unreliable";
 
 export interface CustomerAlertPreset {
   id: CustomerAlertId;
@@ -164,12 +165,13 @@ export const UNRELIABLE_MISSES = 3;
 const isActive = (customer: Customer) => customer.segment !== "blocked" && customer.segment !== "lost";
 
 /**
- * Tres motivos para hacer algo hoy con un cliente, en el orden en que duele
- * no hacerlo: se está yendo, cumple años esta semana, o falla tanto que
- * conviene pedirle pago por adelantado.
+ * Cuatro motivos para hacer algo hoy con un cliente, en el orden en que duele
+ * no hacerlo: se está yendo, ya le tocaba volver, cumple años esta semana, o
+ * falla tanto que conviene pedirle pago por adelantado.
  */
 export const CUSTOMER_ALERTS: readonly CustomerAlertPreset[] = [
   { id: "atRisk", icon: Hourglass, labelKey: "customers.alert.atRisk", hintKey: "customers.alert.atRiskHint", tone: "warning", matches: (customer) => customer.segment === "atRisk" },
+  { id: "overdue", icon: CalendarClock, labelKey: "customers.alert.overdue", hintKey: "customers.alert.overdueHint", tone: "brand", matches: (customer) => isOverdue(customer) },
   {
     id: "birthday",
     icon: Cake,

@@ -186,7 +186,7 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | GET | `/calendar/month?branchId&month=AAAA-MM&barberId?` | `{ month, days: [{ date, occupancy: 0–1 \| null, count }] }`. `occupancy` es minutos de cita sobre minutos de jornada; `null` si nadie trabaja. Sin `barberId`, todo el equipo. |
 | POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. `409 conflict` si el tramo pisa otra cita viva o un bloqueo del barbero (el mensaje dice con quién), salvo con `force: true`, que usan los roles que agendan sin reglas (dueño, administrador, recepción, barbero de renta). |
 | PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, reason?, actor? }`. Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión. `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, salvo con `force: true`. `422` · `404`. |
-| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge? }`. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`: `tax` es el de la sucursal y, si la cita vino de la reserva en línea, `payment.prepaid` es lo que ya estaba pagado (su `online.paid` + `online.tip`): en caja se cobra solo el resto. `409` si ya estaba cobrada o anulada. |
+| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge?, split? }`. Con `mixed`, `split: { cash, card }` tiene que sumar lo que se cobra ahora (saldo + propina + recargo): si no, `422`; el recargo va solo sobre la parte de tarjeta. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`: `tax` es el de la sucursal y, si la cita vino de la reserva en línea, `payment.prepaid` es lo que ya estaba pagado (su `online.paid` + `online.tip`): en caja se cobra solo el resto. `409` si ya estaba cobrada o anulada. |
 | POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
 | PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404`. |
 | DELETE | `/clients/:id/notes/:noteId` | `200 client` sin la nota. `404`. |
@@ -266,12 +266,13 @@ El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuen
 
 Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí —cada cita es una cuenta y cada venta de mostrador (`POST /sales`) es otra—, y cobrar, cancelar o mover una cita se hace por los endpoints del calendario.
 
-`account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, discount, tax, tip, total, prepaid, onlineMethod (\| null), collected, refunded, balance, method (\| null), paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
-`status`: `open` (cita agendada o en curso, sin cobrar) · `paid` (cobrada) · `refunded` (se cobró y se devolvió) · `void` (cita cancelada o a la que no se presentaron: no se factura).
-`total` = `subtotal − discount + tax` (con `pricing.taxInclusive`, el impuesto va dentro y no se suma), con el impuesto de la sucursal de la cita; la propina (`tip`) va aparte y no entra en `collected`. `prepaid` es lo que ya se pagó al reservar en línea (`onlineMethod` dice con qué). `collected` es `total` si está `paid` y `prepaid` si está `open`; `balance` es `total − prepaid` solo si está `open`; `refunded` es `total` solo si está `refunded`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`.
+`account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, discount, tax, tip, total, prepaid, onlineMethod (\| null), collected, refunded, balance, method (\| null), split ({ cash, card } \| null), refunds: [{ amount, to: "cash" | "card" | "credit", reason, at, by }], paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
+`status`: `open` (cita agendada o en curso, sin cobrar) · `paid` (cobrada) · `refunded` (se devolvió algo de verdad: desde la caja o al cancelar la reserva en línea; ya no hay devoluciones de muestra) · `void` (cita cancelada o a la que no se presentaron, sin devolución).
+`total` = `subtotal − discount + tax` (con `pricing.taxInclusive`, el impuesto va dentro y no se suma). La cuenta va al precio del barbero que atendió; cobrada, con el impuesto que se registró al cobrar, y abierta, con el de su sucursal hoy. La propina (`tip`) va aparte y no entra en `collected`. `prepaid` es lo que ya se pagó al reservar en línea (`onlineMethod` dice con qué). `collected` es lo que se quedó la barbería: `prepaid` si está `open`; si no, lo cobrado (o lo pagado en línea de una cita anulada) menos `refunded`. `balance` es `total − prepaid` solo si está `open`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`; lleva el impuesto de su sucursal.
 
 | Método | Ruta | Notas |
 |---|---|---|
+| POST | `/appointments/:id/refund` | `{ amount, reason, to: "cash" \| "card" }`: devuelve una cuenta cobrada, entera o en parte, hasta `total + tip − refunded`. Responde la cita con `refunds`. `409` si no está cobrada; `422` con `fields`. La nómina deja de comisionar lo devuelto. |
 | GET | `/transactions?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, items: account[] }`, de la más reciente a la más antigua. Sin paginar: el front resume, filtra por estado y busca en memoria. `422` si el rango es inválido, va al revés o pasa de 62 días. |
 
 Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, devuelto) se calculan en el front sobre `items`; si el backend real pagina, tendrá que devolverlas en un `summary` aparte.
@@ -293,18 +294,29 @@ El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes
 
 ## Nómina (`/payroll`)
 
-Lo que se le paga a cada barbero en un periodo. Es de **solo lectura** y no se guarda: se calcula sobre las citas **cobradas** del rango y la compensación de cada persona (su ficha en Equipo, `compensation` y `payments`). La renta y el salario son **por semana**; un rango de N días son N/7 semanas.
+Lo que se le paga a cada barbero en un periodo. **Abierto**, se calcula sobre las citas **cobradas** del rango y la compensación de cada persona (su ficha en Equipo, `compensation` y `payments`) y admite ajustes. **Aprobado**, queda una foto fija: lo que cambie después en citas o reglas ya no la mueve. **Pagado**, además se sabe con qué se pagó. La renta y el salario son **por semana**; un rango de N días son N/7 semanas.
 
-`member`: `{ memberId, name, avatarUrl, payout: "commission" | "rent" | "salary", rules (\| null), rentBase (\| null), salaryBase (\| null), services, serviceSales, productSales, serviceCommission, productCommission, tips, salary, rent, deductions, net, lines }`
+Cómo se calcula (para que cuadre con la caja):
+
+- La base de la comisión (`line.sale`) es lo cobrado de los servicios **al precio del barbero que los hizo** (el mismo de la reserva y de la caja), menos lo que pide Configuración › Comisiones: el descuento que se le hizo al cliente (`deductDiscounts`), el impuesto si va incluido en el precio (`deductTaxes`), el costo del servicio (`deductServiceCost`). La de productos, igual con `deductProductCost`.
+- En escala, el tramo sale de lo vendido en el **ciclo de pago** que contiene la cita (Configuración › Nómina: semanal o quincenal desde un día de la semana, o mensual desde un día del mes), no del rango consultado.
+- Las deducciones de la renta (`payments.*Deduction`) son un **porcentaje** de la venta de esa cita.
+
+`member`: `{ memberId, name, avatarUrl, payout: "commission" | "rent" | "salary", rules (\| null), rentBase (\| null), salaryBase (\| null), services, serviceSales, productSales, serviceCommission, productCommission, tips, salary, rent, deductions, adjustments: adjustment[], adjustmentsTotal, net, lines }`
 `rules` (solo comisión): `{ type: "commission" | "scale", basic, recurring, walkIn, noPreference, newClient, productPercent, scale: [{ from, percent }] }` en porcentajes; una regla `null` usa la básica.
 `line`: `{ appointmentId, date, client, service, rule: "walkIn" | "noPreference" | "newClient" | "recurring" | "basic", rate (\| null), sale, commission, tip, deduction }`. La regla sale de quién trajo al cliente, de la más específica a la menos: sin cita → sin preferencia → cliente nuevo → cliente que repite → básica.
-`net` = `serviceCommission + productCommission + tips + salary − rent − deductions`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
+`adjustment`: `{ id, kind: "bonus" | "deduction" | "advance", amount, note, createdAt, createdBy }`. El bono suma; el descuento y el adelanto restan.
+`net` = `serviceCommission + productCommission + tips + salary − rent − deductions + adjustmentsTotal`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
+`run`: `{ id, status: "approved" | "paid", approvedAt, approvedBy, paidAt, paidBy, method, reference } | null` (`null` = abierto). `history`: `[{ at, actor, event: "approved" | "paid" | "reopened", reason }]`.
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD&memberId?` | `{ from, to, weeks, members: member[] }` con los barberos de la sucursal en su orden de calendario; con `memberId`, solo esa persona («Lo que llevo» / «Mi negocio» del barbero). `422` si el rango es inválido, va al revés o pasa de 62 días. |
-
-Los impuestos que muestra producción no se modelan: el mock no los cobra.
+| GET | `/payroll?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD&memberId?` | `{ from, to, weeks, run, history, members: member[] }` con los barberos de la sucursal en su orden de calendario; aprobado o pagado, la foto fija. Con `memberId`, solo esa persona («Lo que llevo» / «Mi negocio» del barbero). `422` si el rango es inválido, va al revés o pasa de 62 días. |
+| POST | `/payroll/adjustments` | `{ branchId, from, to, memberId, kind, amount, note }` → `201 adjustment`. `422` con `fields` (valor ≤ 0, motivo corto, persona que no existe); `409` si el periodo ya está aprobado. |
+| DELETE | `/payroll/adjustments/:id` | `204`. `409` si el periodo ya está aprobado; `404`. |
+| POST | `/payroll/runs` | `{ branchId, from, to }`: aprueba el periodo y guarda la foto. `201 run`. `409` si ya estaba aprobado. |
+| POST | `/payroll/runs/:id/pay` | `{ method, reference? }` → `run` pagado. `409` si ya estaba pagado. |
+| POST | `/payroll/runs/:id/reopen` | `{ reason }` (5+ caracteres): vuelve a abierto y queda en `history`. `204`. `409` si ya está pagado (se corrige con un ajuste en el siguiente periodo); `422` sin motivo. |
 
 ## Configuración (`/settings`)
 

@@ -4,6 +4,7 @@ import { Armchair, Download, Percent, Wallet } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
+import { downloadCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 import { ShellHeaderSlot } from "@/components/app-shell";
 import { DataListBlock } from "@/components/blocks";
@@ -18,6 +19,7 @@ import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { PayrollMemberDrawer } from "./PayrollMemberDrawer";
+import { PayrollRunBar } from "./PayrollRunBar";
 import { columnIdsFor, columnLabel, columnValue, payrollCells, payrollColumns } from "./payrollHome";
 import { countByPayout, summarizePayroll, toCsv } from "./payrollUtils";
 import { usePayrollQuery } from "./queries";
@@ -25,8 +27,6 @@ import { PAYOUT_HINT_KEYS, PAYOUT_KEYS, type Payout, type PayrollResponse } from
 import { usePayrollFilters } from "./usePayrollFilters";
 
 const PAGE_SIZE = 15;
-/* Marca de orden de bytes: sin ella Excel abre el CSV con las tildes rotas. */
-const BOM = String.fromCharCode(0xfeff);
 const PAYOUT_ICONS: Readonly<Record<Payout, React.ReactNode>> = {
   commission: <Percent className="size-4" />,
   rent: <Armchair className="size-4" />,
@@ -37,15 +37,15 @@ const PAYOUT_ICONS: Readonly<Record<Payout, React.ReactNode>> = {
  * La nómina del periodo: cuánto se le paga a cada barbero y cuánto le deben
  * a la barbería los que rentan su puesto.
  *
- * Es de consulta, como el resto de reportes: las reglas se cambian en la
- * ficha de cada persona en Equipo. Las tres formas de pago siguen separadas
+ * Las reglas se cambian en la ficha de cada persona en Equipo. Las tres formas de pago siguen separadas
  * porque se liquidan distinto —cada una con sus columnas—, pero el resumen
  * de arriba las junta. El detalle de un barbero se abre en un panel y la
  * pestaña visible se descarga en CSV. Todo vive en la URL.
  *
  * Solo la abren dueño y administrador (la ruta lo guarda); el enlace a las
  * reglas de cada barbero, solo quien gestiona sus pagos (`barber-payments`).
- * No hay «marcar pagado» todavía: cuando exista irá con `payroll`·edit.
+ * El periodo se aprueba (queda fijo), se marca pagado o se reabre con motivo desde la barra de
+ * estado; los ajustes (bono, descuento, adelanto) se ponen en el panel de cada barbero.
  */
 export function PayrollPage() {
   const t = useAppT();
@@ -95,24 +95,28 @@ export function PayrollPage() {
           </div>
         }
       >
-        {(data) => <PayrollHome data={data} filters={filters} fetching={query.isFetching} />}
+        {(data) => <PayrollHome data={data} filters={filters} fetching={query.isFetching} branchId={branchId} />}
       </QueryBoundary>
     </div>
   );
 }
 
 interface PayrollHomeProps {
+  branchId: string;
   data: PayrollResponse;
   filters: ReturnType<typeof usePayrollFilters>;
   fetching: boolean;
 }
 
-function PayrollHome({ data, filters, fetching }: PayrollHomeProps) {
+function PayrollHome({ data, filters, fetching, branchId }: PayrollHomeProps) {
   const t = useAppT();
   const { formatNumber } = useLocale();
   const formatMoney = useMoney();
   const { payout, memberId, openMember } = filters;
   const access = useAccess();
+  const canManage = access.can("barber-payments");
+  const period = React.useMemo(() => ({ branchId, from: data.from, to: data.to }), [branchId, data.from, data.to]);
+  const run = data.run ?? null;
 
   const summary = React.useMemo(() => summarizePayroll(data.members), [data.members]);
   const counts = React.useMemo(() => countByPayout(data.members), [data.members]);
@@ -129,16 +133,12 @@ function PayrollHome({ data, filters, fetching }: PayrollHomeProps) {
       ids.map((id) => columnLabel(t, id)),
       rows.map((member) => ids.map((id) => (id === "member" ? member.name : columnValue(member, id))))
     );
-    const url = URL.createObjectURL(new Blob([`${BOM}${csv}`], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `nomina-${payout}-${data.from}-${data.to}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`nomina-${payout}-${data.from}-${data.to}.csv`, csv);
   };
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", fetching && "opacity-80 transition-opacity motion-reduce:transition-none")}>
+      <PayrollRunBar period={period} run={run} canManage={canManage} />
       <section aria-label={t("payroll.summaryAria")} className="mb-section shrink-0">
         <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label={t("payroll.summary.toPay")} value={formatMoney(summary.toPay)} caption={t("payroll.summary.toPayCaption", { count: summary.toPayCount })} hint={t("payroll.summary.toPayHint")} tone="brand" icon="users" />
@@ -189,7 +189,7 @@ function PayrollHome({ data, filters, fetching }: PayrollHomeProps) {
         )}
       />
 
-      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} showRulesLink={access.can("barber-payments")} />
+      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} showRulesLink={canManage} adjustments={{ period, locked: run !== null, canManage }} />
     </div>
   );
 }

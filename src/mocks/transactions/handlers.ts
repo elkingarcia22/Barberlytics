@@ -1,7 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { appointmentAccount, barberServicePrice } from "../calendar/account";
-import { taxInclusive } from "../settings/branchRules";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment, type MockSale } from "../calendar/seed";
 import { hashOf } from "../customers/seed";
@@ -20,8 +19,6 @@ const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
 /** Lo más que abarca una consulta: dos meses largos. */
 const MAX_RANGE_DAYS = 62;
-/** Una de cada tantas cuentas cobradas se devolvió, para que el estado exista en la lista. */
-const REFUND_ONE_IN = 45;
 
 function error(status: number, code: string, message: string, extra?: Record<string, unknown>) {
   return HttpResponse.json({ code, message, ...extra }, { status });
@@ -65,13 +62,15 @@ function fromAppointment(appointment: MockAppointment) {
   const payment = appointment.payment;
   // Lo que vale la cuenta con el impuesto de su sucursal y lo que ya se pagó al reservar en línea.
   const account = appointmentAccount(appointment);
-  // Cobrada, vale lo que se registró al cobrar (las sembradas no traen impuesto); abierta, lo de su sucursal hoy.
-  const tax = payment?.tax ?? account.tax;
-  const total = payment ? Math.round((account.subtotal - account.discount + (taxInclusive() ? 0 : tax)) * 100) / 100 : account.total;
+  const tax = account.tax;
+  const total = account.total;
   const isVoid = appointment.status === "cancelled" || appointment.status === "no_show";
   const paid = appointment.status === "paid" && payment !== null;
-  const refunded = paid && hashOf(appointment.id, 21) % REFUND_ONE_IN === 0;
-  const status = isVoid ? "void" : refunded ? "refunded" : paid ? "paid" : "open";
+  // Devuelta solo si de verdad se devolvió algo: desde la caja o al cancelar la reserva en línea.
+  const refunded = account.refunded > 0;
+  const status = refunded ? "refunded" : isVoid ? "void" : paid ? "paid" : "open";
+  // Lo que se quedó la barbería: lo cobrado (o lo pagado en línea de una cita anulada) menos lo devuelto.
+  const kept = paid ? total : isVoid ? account.prepaid : 0;
   const charged = [...appointment.history].reverse().find((item) => item.event.startsWith("paid:"));
   const barber = barberName(appointment.barberId);
   return {
@@ -91,15 +90,17 @@ function fromAppointment(appointment: MockAppointment) {
     subtotal: account.subtotal,
     discount: account.discount,
     tax,
-    tip: paid && !refunded ? (payment?.tip ?? 0) : status === "open" ? account.prepaidTip : 0,
+    tip: paid ? (payment?.tip ?? 0) : status === "open" ? account.prepaidTip : 0,
     total,
     // Lo pagado en línea cuenta como cobrado desde que se reservó: la caja solo cobra el resto.
-    prepaid: status === "void" ? 0 : account.prepaid,
+    prepaid: account.prepaid,
     onlineMethod: appointment.online?.method ?? null,
-    collected: status === "paid" ? total : status === "open" ? account.prepaid : 0,
-    refunded: refunded ? total : 0,
+    collected: status === "open" ? account.prepaid : Math.max(0, Math.round((kept - account.refunded) * 100) / 100),
+    refunded: account.refunded,
     balance: status === "open" ? account.due : 0,
     method: paid ? (payment?.method ?? null) : null,
+    split: paid ? (payment?.split ?? null) : null,
+    refunds: (appointment.refunds ?? []).map(({ amount, to, reason, at, by }) => ({ amount, to, reason, at, by })),
     paidAt: paid ? (payment?.paidAt ?? null) : null,
     reference: reference(appointment.id),
     appointmentId: appointment.id,

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/typography";
+import { PayrollAdjustments } from "./PayrollAdjustments";
 import { PAYOUT_KEYS, RULE_KEYS, ruleSchema, type CommissionRule, type PayrollMember } from "./types";
 
 export interface PayrollMemberDrawerProps {
@@ -19,6 +20,8 @@ export interface PayrollMemberDrawerProps {
    * equipo (`barber-payments`); el barbero que mira su propio pago no lo tiene.
    */
   showRulesLink?: boolean;
+  /** El periodo y si ya está aprobado: con él se ven y se añaden los ajustes. Sin él, no hay ajustes (el barbero mirando lo suyo). */
+  adjustments?: { period: { branchId: string; from: string; to: string }; locked: boolean; canManage: boolean };
 }
 
 const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" };
@@ -28,7 +31,7 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  * cuenta —lo que suma y lo que resta— y servicio por servicio qué regla se
  * aplicó. Las reglas se cambian en su ficha de Equipo, no aquí.
  */
-export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true }: PayrollMemberDrawerProps) {
+export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true, adjustments }: PayrollMemberDrawerProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
@@ -64,12 +67,17 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
               <Row label={t("payroll.column.tips")} value={`+${formatMoney(member.tips)}`} />
               {member.rent > 0 && <Row label={t("payroll.column.rent")} value={`−${formatMoney(member.rent)}`} negative />}
               {member.deductions > 0 && <Row label={t("payroll.column.deductions")} value={`−${formatMoney(member.deductions)}`} negative />}
+              {(member.adjustmentsTotal ?? 0) !== 0 && (
+                <Row label={t("payroll.column.adjustments")} value={`${(member.adjustmentsTotal ?? 0) > 0 ? "+" : "−"}${formatMoney(Math.abs(member.adjustmentsTotal ?? 0))}`} negative={(member.adjustmentsTotal ?? 0) < 0} />
+              )}
               <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-2">
                 <dt className="font-semibold text-text-primary">{member.net < 0 ? t("payroll.detail.owes") : t("payroll.detail.toPay")}</dt>
                 <dd className={member.net < 0 ? "text-lg font-semibold tabular-nums text-status-warning" : "text-lg font-semibold tabular-nums text-text-primary"}>{formatMoney(Math.abs(member.net))}</dd>
               </div>
             </dl>
           </section>
+
+          {adjustments && <PayrollAdjustments member={member} period={adjustments.period} locked={adjustments.locked} canManage={adjustments.canManage} formatMoney={formatMoney} />}
 
           <section aria-label={t("payroll.detail.lines")} className="space-y-2">
             <Text variant="label">{t("payroll.detail.linesCount", { count: member.lines.length })}</Text>

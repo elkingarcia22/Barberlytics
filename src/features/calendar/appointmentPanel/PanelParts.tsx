@@ -1,5 +1,4 @@
 import { Ellipsis, Pill, TriangleAlert } from "lucide-react";
-import { addWeeks } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { cn } from "@/lib/utils";
 import { Text } from "@/components/typography";
@@ -8,11 +7,9 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProgressRing } from "@/components/data-display/ProgressRing";
-import { Chip } from "@/components/ai-interaction";
 import { Tag } from "@/components/utility";
 import { ThemaIcon } from "@/icons";
 import { ACTION_ICON } from "../appointmentActions";
-import { appointmentStart } from "../calendarModel";
 import type { AppointmentActionId } from "../appointmentPlaybook";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 import { clientTags } from "./panelLogic";
@@ -21,7 +18,7 @@ import { PANEL_VERSIONS, PANEL_VERSION_HINT, PANEL_VERSION_LABEL, isPanelVersion
 /**
  * Las piezas que comparten las versiones del panel de una cita: el selector
  * de diseño, las etiquetas del cliente, las alertas, la membresía, las notas
- * y los botones de acción. Una alergia, un plantón o «Cobrar» se ven igual
+ * y los botones de acción. Una alergia, una inasistencia o «Cobrar» se ven igual
  * en todas; lo que cambia entre versiones es el orden y el peso.
  */
 
@@ -111,35 +108,6 @@ export function LoyaltyStrip({ model }: { model: AppointmentModel }) {
   );
 }
 
-/** La nota de esta visita aparte de las del cliente (Resy, Cliniko): no es lo mismo «viene con su hijo» que «piel sensible». */
-export function NotesSplit({ model }: { model: AppointmentModel }) {
-  const t = useAppT();
-  const visitNote = model.appointment.notes;
-  if (!visitNote && model.notes.length === 0) return null;
-  return (
-    <div className="grid gap-2" data-testid="panel-notes">
-      <div className="space-y-1 rounded-lg bg-surface-subtle px-3 py-2">
-        <Text variant="caption">{t("calendar.panel.visitNote")}</Text>
-        <Text size="sm">{visitNote ?? t("calendar.panel.noNotes")}</Text>
-      </div>
-      <div className="space-y-1 rounded-lg bg-surface-subtle px-3 py-2">
-        <Text variant="caption">{t("calendar.panel.clientNotes")}</Text>
-        {model.notes.length > 0 ? (
-          model.notes.map((note) => (
-            <Text key={note.id} size="sm">
-              {note.text}
-            </Text>
-          ))
-        ) : (
-          <Text size="sm" tone="muted">
-            {t("calendar.panel.noNotes")}
-          </Text>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /** Las fotos del corte que pidió al reservar en línea. */
 export function ReferencePhotos({ model, large = false }: { model: AppointmentModel; large?: boolean }) {
   const t = useAppT();
@@ -218,19 +186,3 @@ export function MoreActionsMenu({ model, actions, className }: { model: Appointm
   );
 }
 
-
-const REBOOK_WEEKS = [3, 4, 6] as const;
-
-/** Agendar la próxima en un toque: por su ritmo o a 3, 4 o 6 semanas (el «4w / 6w / 8w» de Boulevard). */
-export function RebookShortcuts({ model }: { model: AppointmentModel }) {
-  const t = useAppT();
-  const from = appointmentStart(model.appointment);
-  return (
-    <div className="flex flex-wrap gap-1.5" data-testid="panel-rebook">
-      {model.nextVisit && <Chip size="sm" tone="primary" icon="calendarAdd" label={t("calendar.panel.rebook.rhythm")} onClick={() => model.nextVisit && model.rebookOn(model.nextVisit)} />}
-      {REBOOK_WEEKS.map((weeks) => (
-        <Chip key={weeks} size="sm" label={t("calendar.panel.rebook.weeks", { count: weeks })} onClick={() => model.rebookOn(addWeeks(from, weeks))} />
-      ))}
-    </div>
-  );
-}

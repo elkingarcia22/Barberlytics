@@ -4,35 +4,36 @@ import type { AppMessageKey } from "@/app/i18n/types";
 /**
  * Con qué diseño se abre el panel de una cita. Son propuestas para comparar
  * (docs/investigacion-modulos/panel-de-cita.md): la de pestañas que había y
- * cinco maneras distintas de ordenar lo mismo. Es una preferencia de la
+ * cinco maneras de ordenar lo mismo según el momento de la cita (segunda
+ * ronda, 2026-10-18). Es una preferencia de la
  * persona, como la densidad: vive fuera de React y se guarda. Un enlace con
  * `?panel=<id>` la fija al cargar, para compartir una versión.
  */
 
-export const PANEL_VERSIONS = ["tabs", "booking", "desk", "client", "visit", "chair"] as const;
+export const PANEL_VERSIONS = ["tabs", "index", "cards", "tabsNow", "moment", "steps"] as const;
 export type PanelVersion = (typeof PANEL_VERSIONS)[number];
 
 export const DEFAULT_PANEL_VERSION: PanelVersion = "tabs";
 
 export const PANEL_VERSION_LABEL: Record<PanelVersion, AppMessageKey> = {
   tabs: "calendar.panel.version.tabs",
-  booking: "calendar.panel.version.booking",
-  desk: "calendar.panel.version.desk",
-  client: "calendar.panel.version.client",
-  visit: "calendar.panel.version.visit",
-  chair: "calendar.panel.version.chair",
+  index: "calendar.panel.version.index",
+  cards: "calendar.panel.version.cards",
+  tabsNow: "calendar.panel.version.tabsNow",
+  moment: "calendar.panel.version.moment",
+  steps: "calendar.panel.version.steps",
 };
 
 export const PANEL_VERSION_HINT: Record<PanelVersion, AppMessageKey> = {
   tabs: "calendar.panel.hint.tabs",
-  booking: "calendar.panel.hint.booking",
-  desk: "calendar.panel.hint.desk",
-  client: "calendar.panel.hint.client",
-  visit: "calendar.panel.hint.visit",
-  chair: "calendar.panel.hint.chair",
+  index: "calendar.panel.hint.index",
+  cards: "calendar.panel.hint.cards",
+  tabsNow: "calendar.panel.hint.tabsNow",
+  moment: "calendar.panel.hint.moment",
+  steps: "calendar.panel.hint.steps",
 };
 
-const STORAGE_KEY = "thema.calendar.panelVersion.v1";
+const STORAGE_KEY = "thema.calendar.panelVersion.v2";
 const URL_PARAM = "panel";
 
 export const isPanelVersion = (value: unknown): value is PanelVersion => typeof value === "string" && (PANEL_VERSIONS as readonly string[]).includes(value);

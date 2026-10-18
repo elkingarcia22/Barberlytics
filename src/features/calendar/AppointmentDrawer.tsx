@@ -20,11 +20,8 @@ import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
 import { usePanelVersion } from "./appointmentPanel/panelVersion";
 import { PanelVersionPicker } from "./appointmentPanel/PanelParts";
 import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
-import { BookingStyleFooter, BookingStylePanel } from "./appointmentPanel/BookingStylePanel";
-import { DeskFooter, DeskPanel } from "./appointmentPanel/DeskPanel";
-import { ClientFooter, ClientPanel } from "./appointmentPanel/ClientPanel";
-import { VisitFooter, VisitPanel } from "./appointmentPanel/VisitPanel";
-import { ChairFooter, ChairPanel } from "./appointmentPanel/ChairPanel";
+import { PanelFooter } from "./appointmentPanel/PanelShared";
+import { CardsVersion, IndexVersion, MomentVersion, StepsVersion, TabsVersion } from "./appointmentPanel/PanelVersions";
 
 /**
  * El panel de una cita. Se abre al lado de la agenda: en la cabecera, quién
@@ -71,42 +68,17 @@ export function AppointmentDrawer(props: AppointmentDrawerProps) {
   return <AppointmentVersionPanel key={`${key}-${version}`} {...props} appointment={props.appointment} />;
 }
 
-/** Las cinco propuestas: mismo marco y mismos datos; cambian el cuerpo y el pie. */
+/** Las cinco propuestas: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
 function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
-  const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook } = props;
+  const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch } = props;
   const { locale } = useLocale();
   const [version] = usePanelVersion();
   const model = useAppointmentModel(appointment, ctx, props);
   const day = capitalize(format(appointmentStart(appointment), "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
-
-  const body = (() => {
-    switch (version) {
-      case "booking":
-        return <BookingStylePanel model={model} ctx={ctx} onPatch={onPatch} onOpenClient={onOpenClient} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
-      case "client":
-        return <ClientPanel model={model} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />;
-      case "visit":
-        return <VisitPanel model={model} ctx={ctx} />;
-      case "chair":
-        return <ChairPanel model={model} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />;
-      default:
-        return <DeskPanel model={model} ctx={ctx} onPatch={onPatch} linked={props.linked} linkCandidates={props.linkCandidates} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onLink={props.onLink} onShowLinked={props.onShowLinked} />;
-    }
-  })();
-  const footer = (() => {
-    switch (version) {
-      case "booking":
-        return <BookingStyleFooter model={model} />;
-      case "client":
-        return <ClientFooter model={model} onOpenClient={onOpenClient} />;
-      case "visit":
-        return <VisitFooter model={model} />;
-      case "chair":
-        return <ChairFooter model={model} />;
-      default:
-        return <DeskFooter model={model} />;
-    }
-  })();
+  const versionProps = { model, ctx, onPatch, onOpenClient, linked: props.linked, linkCandidates: props.linkCandidates, onSelectAppointment: props.onSelectAppointment, onUnlink: props.onUnlink, onLink: props.onLink, onShowLinked: props.onShowLinked };
+  const stage = model.playbook.stage;
+  // Cobrada o cerrada sin atender, la próxima se agenda en el cuerpo; en «Tarjeta del momento» la acción vive en la tarjeta.
+  const hasFooter = version !== "moment" && stage !== "paid" && stage !== "noShow" && stage !== "cancelled";
 
   return (
     <SidePanelShell
@@ -114,13 +86,17 @@ function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: 
       onOpenChange={onOpenChange}
       size="lg"
       title={model.clientName}
-      description={version === "client" && model.known?.phone && model.phone ? model.known.phone : day}
+      description={day}
       leading={<ClientAvatar client={model.client} name={model.clientName} size="lg" />}
-      footer={footer ?? undefined}
+      footer={hasFooter ? <PanelFooter model={model} /> : undefined}
     >
       <div className="space-y-5" data-testid="appointment-drawer" data-panel-version={version}>
         <PanelVersionPicker />
-        {body}
+        {version === "index" && <IndexVersion {...versionProps} />}
+        {version === "cards" && <CardsVersion {...versionProps} />}
+        {version === "tabsNow" && <TabsVersion {...versionProps} />}
+        {version === "moment" && <MomentVersion {...versionProps} />}
+        {version === "steps" && <StepsVersion {...versionProps} />}
       </div>
     </SidePanelShell>
   );

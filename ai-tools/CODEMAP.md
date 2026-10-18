@@ -499,16 +499,22 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### calendar/appointmentPanel
 
-- **BookingStylePanel.tsx** — Versión «Como la reserva en línea». · `BookingStylePanelProps`, `BookingStylePanel`, `BookingStyleFooter` · piezas: IconTile, Text, calendarLocale, formatClock · usa: @/app/i18n, @/features/booking, @/i18n, @/icons
-- **ChairPanel.tsx** — Versión «Modo silla»: para el barbero con la tablet al lado y las manos ocupadas (el «Start → Finish» de Hous… · `ChairPanelProps`, `ChairPanel`, `ChairFooter` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons
-- **ClientPanel.tsx** — Versión «Ficha del cliente»: la persona antes que la cita (SevenRooms, Mews, la ficha de Jane). · `ClientPanelProps`, `ClientPanel`, `ClientFooter` · piezas: AIButton, Button, ListItem, Text · usa: @/app/i18n, @/i18n
-- **DeskPanel.tsx** — Versión «Mostrador»: para recepción con fila. · `DeskPanelProps`, `DeskPanel`, `DeskFooter` · piezas: Button, Heading, ScheduleColorDot, Stepper, Text, formatClock, formatClockRange · usa: @/app/i18n
-- **PanelParts.tsx** — El selector para comparar los diseños del panel, con una línea de qué propone cada uno. · `PanelVersionPicker`, `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `NotesSplit`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MoreActionsMenu`, `RebookShortcuts` · piezas: Alert, AlertDescription, AlertTitle, Button, Chip, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tag, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **AppointmentFields.tsx** · `AppointmentFieldsProps`, `AppointmentFields` · piezas: Button, SelectableRow, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n
+- **ClientPage.tsx** — La fila del cliente: tipo, visita de la membresía y ritmo; lleva a su página. · `ClientSummaryRow`, `ClientPageContent` · piezas: Button, ProgressRing, Text · usa: @/app/i18n, @/i18n
+- **HistoryTimeline.tsx** — La visita contada con horas reales: lo hecho, lo que va ahora y lo que falta. · `HistoryTimeline` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
+- **NextVisitBooker.tsx** · `NextVisitBooker` · piezas: Button, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons, @/lib/api
+- **PanelParts.tsx** — El selector para comparar los diseños del panel, con una línea de qué propone cada uno. · `PanelVersionPicker`, `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MoreActionsMenu` · piezas: Alert, AlertDescription, AlertTitle, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tag, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **PanelShared.tsx** — Lo que comparten las cinco versiones: el avance arriba (como en el panel de siempre) con la hora real de cada… · `PanelStepperProps`, `PanelStepper`, `StageBlock`, `LinkedBlock`, `PanelFooter` · piezas: Stepper, formatClock · usa: @/app/i18n
+- **PanelVersions.tsx** — Las cinco propuestas del panel de una cita. · `VersionProps`, `IndexVersion`, `CardsVersion`, `TabsVersion`, `MomentVersion`, `StepsVersion` · piezas: ActionTile, IconTile, Text, ThemaTabs, formatClock · usa: @/app/i18n, @/icons, @/lib/utils
 - **SourceLine.tsx** — De dónde salió la cita y cuándo: «Reservó en línea hace 2 días». · `SourceLine` · piezas: Text, calendarLocale · usa: @/app/i18n, @/i18n, @/icons
-- **VisitPanel.tsx** — El pie del recorrido es discreto: el paso en curso ya tiene su botón en la línea; aquí, lo raro. · `VisitPanel`, `VisitFooter` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
-- **panelLogic.ts** — Las etiquetas que van pegadas al nombre (SevenRooms, Mariana Tek): las que se calculan solas a partir de dato… · `TagTone`, `ClientTag`, `clientTags`, `clockRelation`, `restActions`, `mainAction` · usa: @/app/i18n
+- **StageParts.tsx** — El titular del momento y su línea: «Va 12 min tarde · Llámalo o escríbele». · `StageHeading`, `BookingRequest`, `TicketSummary`, `ClipperButton`, `QuickTilesProps`, `QuickTiles` · piezas: AIButton, ActionTile, Heading, IconTile, Text, formatClock · usa: @/app/i18n, @/features/booking, @/icons, @/lib/utils
+- **appointmentAgent.ts** — El foco que el panel de una cita le pasa a Clipper al abrirlo. · `topicOf`, `AppointmentAgentInput`, `appointmentAgentFocus` · piezas: formatClock · usa: @/app/i18n, @/lib/chat
+- **bookingStyle.tsx** — El campo de la reserva: foto, nombre del campo, lo elegido y un detalle; abre su lista. · `PanelFieldProps`, `PanelField`, `InlineList`, `PanelQuestion`, `NavRow`, `PanelSubpage` · piezas: ActionTile, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **panelHooks.ts** — Abre el panel de Clipper hablando de esta cita y este cliente. · `useAskClipper`, `usePanelPages` · usa: @/app/i18n, @/i18n, @/lib/chat
+- **panelLogic.ts** — Las etiquetas que van pegadas al nombre (SevenRooms, Mariana Tek): las que se calculan solas a partir de dato… · `TagTone`, `ClientTag`, `clientTags`, `clockRelation`, `restActions`, `mainAction`, `QuickId`, `quickActions`, `showsRequest`, `StageTitle`, `stageTitle`, `TRACK`, `trackIndexOf` · usa: @/app/i18n
 - **panelVersion.ts** — Con qué diseño se abre el panel de una cita. · `PANEL_VERSIONS`, `PanelVersion`, `DEFAULT_PANEL_VERSION`, `PANEL_VERSION_LABEL`, `PANEL_VERSION_HINT`, `isPanelVersion`, `setPanelVersion`, `usePanelVersion` · usa: @/app/i18n
 - **useAppointmentModel.ts** — Lo que todas las versiones del panel de una cita saben de ella: quién es, qué se hace, cuánto vale, qué alert… · `AppointmentHandlers`, `LOYALTY_EVERY`, `AppointmentModel`, `StepTimes`, `useAppointmentModel` · piezas: formatClock · usa: @/app/i18n
+- **useFreeSlots.ts** — Las horas libres de un barbero en un día, para el selector de día y hora: pide la agenda de ese día y apaga l… · `FreeSlots`, `useFreeSlots` · piezas: isWorkingAt, minutesOfDay
 
 ### calendar/appointmentTabs
 
@@ -773,6 +779,7 @@ Cliente de API, consultas y utilidades sin interfaz.
 
 ### chat
 
+- **agentFocus.ts** — De qué está hablando el agente cuando una pantalla lo abre con algo en la mano: una cita, un cliente. · `AgentFocus`, `agentFocus`, `withAgentFocus`
 - **demoBackend.ts** — Respuestas de ejemplo mientras no hay un modelo detrás. · `DemoBackendOptions`, `createDemoBackend` · usa: @/lib/help
 - **history.ts** — Las conversaciones por cuándo se tocaron: Hoy, Ayer, Últimos 7 días, Anteriores. · `ConversationGroupKey`, `ConversationGroup`, `groupConversations`
 - **question.ts** — Con `ChatQuestion.multiple`, la respuesta une las opciones elegidas con esto. · `CHAT_MULTIPLE_SEPARATOR`, `splitMultipleAnswer`, `CHAT_QUANTITY_MARK`, `splitQuantity`, `withQuantity`

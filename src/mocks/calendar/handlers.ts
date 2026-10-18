@@ -383,7 +383,7 @@ export const calendarHandlers = [
     const existing = findAppointment(params.id);
     if (!existing) return error(404, "not_found", "Esa cita no existe.");
     if (existing.status === "paid") return error(409, "conflict", "Esta cita ya está cobrada.");
-    if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o con plantón no se cobra.");
+    if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o a la que no asistió no se cobra.");
     const input = asRecord(await request.json().catch(() => ({})));
     const method = text(input.method) as MockPaymentMethod;
     if (!METHODS.includes(method)) return error(422, "validation", "Elige cómo paga el cliente.", { fields: { method: ["Elige un método de pago."] } });

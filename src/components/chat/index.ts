@@ -12,6 +12,7 @@ export { ChatFeedbackForm, type ChatFeedbackPayload } from "./ChatFeedbackForm";
 export { ChatMarkdown, type ChatMarkdownProps } from "./ChatMarkdown";
 export { ChatMark, type ChatMarkProps } from "./ChatMark";
 export { ChatGreeting, type ChatGreetingProps } from "./ChatGreeting";
+export { ChatIdeas, type ChatIdeasProps } from "./ChatIdeas";
 export { greetingKey } from "./greeting";
 export { ChatHistoryList, ChatStatusDot, type ChatHistoryListProps } from "./ChatHistoryList";
 export { ChatHistoryPanel, type ChatHistoryPanelProps } from "./ChatHistoryPanel";

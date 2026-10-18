@@ -337,6 +337,7 @@ export function AppLayout() {
           // Volver a escribir: el panel o la pantalla siguen abiertos con la caja lista.
         }}
         onSend={(text) => chatStore.send(text, chatBackend)}
+        appearance="page"
       />
     </ChatProvider>
     </AccessProvider>

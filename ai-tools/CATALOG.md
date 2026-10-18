@@ -261,7 +261,7 @@ Botones, loaders, badges y paneles con la identidad de IA.
 - **ChatQuestionCard** [chat-question-card] (beta) — Una pregunta del agente con opciones numeradas: se contesta tocando, con la tecla del número o escribiendo en «Otro». `@/components/chat`
 - **ChatScreen** [chat-screen] (beta) — El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. `@/components/chat`
 - **ChatThread** [chat-thread] (beta) — El hilo: las preguntas a la derecha (copiar, editar y reenviar desde ahí) y las respuestas con el destello del agente, que se escriben sola… `@/components/chat`
-- **ChatVoiceMode** [chat-voice-mode] (beta) — El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande… `@/components/chat`
+- **ChatVoiceMode** [chat-voice-mode] (beta) — El modo voz, a pantalla completa: en `immersive` siempre en oscuro con la malla de IA; en `page` (el de Clipper, lo usan la app y la reserv… `@/components/chat`
 - **Chip** [chip] — Pastilla compacta para filtros, etiquetas y sugerencias. `@/components/ai-interaction`
 - **ClipperOrb** [clipper-orb] — El símbolo de la IA en todo el sistema: el orbe de Clipper, un poste de barbería hecho esfera de vidrio con el gradiente de IA. `@/components/ai-interaction`
 - **SaveIndicator** [save-indicator] — Indicador discreto del estado de autoguardado: en la nube, guardando, guardado, error o sin conexión. `@/components/ai-interaction`

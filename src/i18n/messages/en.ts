@@ -151,6 +151,8 @@ export const en: MessageCatalog = {
   "chat.greeting.morning": "Good morning,",
   "chat.greeting.afternoon": "Good afternoon,",
   "chat.greeting.evening": "Good evening,",
+  "chat.screenLead": "Ask in your own words, typed or by voice.",
+  "chat.ideas": "Ideas to get started",
   "chat.placeholder.new": "Write a task or a question",
   "chat.placeholder.followup": "Ask for a change or continue with another task",
   "chat.placeholder.answer": "Pick an option or write your answer…",

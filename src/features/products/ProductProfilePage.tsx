@@ -135,7 +135,7 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
             </span>
           </span>
         }
-        description={[categoryName(categories, product.categoryId), product.brand, formatMoney(product.price)].filter(Boolean).join(" · ")}
+        description={[categoryName(categories, product.categoryId), product.brand, formatMoney(product.branchPrice ?? product.price)].filter(Boolean).join(" · ")}
         actions={
           <Button variant="ghost" size="sm" onClick={() => navigate("/productos")}>
             <ArrowLeft /> {t("products.profile.back")}
@@ -145,7 +145,7 @@ function ProductProfile({ product, categories, branchId }: { product: CatalogPro
 
       <div className="space-y-section">
         <section aria-label={t("products.profile.numbersAria")} className={seesMoney ? "grid gap-stack sm:grid-cols-2 xl:grid-cols-4" : "grid gap-stack sm:grid-cols-2"}>
-          <MetricCard label={t("products.column.price")} value={formatMoney(product.price)} caption={product.taxRate === null ? t("products.profile.noTax") : t("products.profile.plusTax", { rate: percent(product.taxRate) })} tone="brand" icon="chart" />
+          <MetricCard label={t("products.column.price")} value={formatMoney(product.branchPrice ?? product.price)} caption={product.taxRate === null ? t("products.profile.noTax") : t("products.profile.plusTax", { rate: percent(product.taxRate) })} tone="brand" icon="chart" />
           {seesMoney && (
             <>
           <MetricCard label={t("products.column.cost")} value={product.cost === null ? "—" : formatMoney(product.cost)} caption={product.cost === null ? t("products.profile.costMissing") : t("products.profile.costCaption")} hint={t("products.profile.costHint")} tone="warning" icon="file" />

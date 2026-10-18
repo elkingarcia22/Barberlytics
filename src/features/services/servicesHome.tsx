@@ -72,7 +72,7 @@ export function serviceCells(t: Translate, { categories, formatMoney, formatPerc
     },
     category: { head: t("services.column.category"), cell: (row) => categoryName(categories, row.categoryId), cellClassName: "text-text-secondary" },
     duration: { head: t("services.column.duration"), cell: (row) => formatDuration(row.durationMin), cellClassName: "tabular-nums text-text-secondary whitespace-nowrap" },
-    price: { head: t("services.column.price"), headClassName: "text-right", cell: (row) => formatMoney(row.price), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
+    price: { head: t("services.column.price"), headClassName: "text-right", cell: (row) => formatMoney(row.branchPrice ?? row.price), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
     cost: {
       head: t("services.column.cost"),
       headClassName: "text-right",

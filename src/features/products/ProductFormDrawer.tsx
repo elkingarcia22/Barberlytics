@@ -188,6 +188,9 @@ function ProductFormBody({ product, categories, branchId, defaultCategoryId, onS
         <Field label={t("products.form.price")} required error={message(errors.price)}>
           <NumberField value={hasPrice ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix="$" aria-invalid={!!errors.price} data-testid="product-form-price" />
         </Field>
+        <Field label={t("catalog.branchPrice")} error={message(errors.branchPrice)} description={t("catalog.branchPriceHint")}>
+          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix="$" data-testid="product-form-branch-price" />
+        </Field>
         <Field label={t("products.form.cost")} error={message(errors.cost)} description={costHint}>
           <NumberField value={draft.cost} onValueChange={(value) => set("cost", value)} min={0} precision={2} prefix="$" data-testid="product-form-cost" />
         </Field>

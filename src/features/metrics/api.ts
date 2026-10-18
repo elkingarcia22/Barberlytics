@@ -23,5 +23,5 @@ export const metricsApi = {
   marketing: (params: MetricsParams, signal?: AbortSignal) =>
     api.get<MetricsMarketing>("/metrics/marketing", { query: { ...params }, schema: metricsMarketingSchema, signal }),
   /** El diagnóstico mira los últimos tres meses: no lleva periodo. */
-  insights: (signal?: AbortSignal) => api.get<MetricsInsights>("/metrics/insights", { schema: metricsInsightsSchema, signal }),
+  insights: (branchId: string, signal?: AbortSignal) => api.get<MetricsInsights>("/metrics/insights", { query: { branchId }, schema: metricsInsightsSchema, signal }),
 };

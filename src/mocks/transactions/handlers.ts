@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { appointmentAccount, barberServicePrice } from "../calendar/account";
+import { appointmentAccount } from "../calendar/account";
+import { barberServicePrice, productPriceIn } from "../catalogPrices";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment, type MockSale } from "../calendar/seed";
 import { hashOf } from "../customers/seed";
@@ -43,22 +44,22 @@ const reference = (id: string): string => {
 
 const invoiceOf = (id: string): string => String(hashOf(id, 9) % 100_000_000).padStart(8, "0");
 
-function linesOf(serviceIds: readonly string[], products: readonly { productId: string; qty: number }[], barberId: string | null = null) {
+function linesOf(serviceIds: readonly string[], products: readonly { productId: string; qty: number }[], branchId: string, barberId: string | null = null) {
   const services = serviceIds.map((id) => {
     const service = db.services.items.find((item) => item.id === id);
     // Al precio del barbero que lo hizo, que es lo que se le cobra al cliente.
-    return { kind: "service" as const, name: service?.name ?? id, qty: 1, amount: barberId ? barberServicePrice(barberId, id) : (service?.price ?? 0) };
+    return { kind: "service" as const, name: service?.name ?? id, qty: 1, amount: barberId ? barberServicePrice(barberId, id, branchId) : (service?.price ?? 0) };
   });
   const goods = products.map((row) => {
     const product = db.products.items.find((item) => item.id === row.productId);
-    return { kind: "product" as const, name: product?.name ?? row.productId, qty: row.qty, amount: (product?.price ?? 0) * row.qty };
+    return { kind: "product" as const, name: product?.name ?? row.productId, qty: row.qty, amount: productPriceIn(row.productId, branchId) * row.qty };
   });
   return [...services, ...goods];
 }
 
 function fromAppointment(appointment: MockAppointment) {
   const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
-  const lines = linesOf(appointment.serviceIds, appointment.products, appointment.barberId);
+  const lines = linesOf(appointment.serviceIds, appointment.products, appointment.branchId, appointment.barberId);
   const payment = appointment.payment;
   // Lo que vale la cuenta con el impuesto de su sucursal y lo que ya se pagó al reservar en línea.
   const account = appointmentAccount(appointment);
@@ -109,7 +110,7 @@ function fromAppointment(appointment: MockAppointment) {
 }
 
 function fromSale(sale: MockSale) {
-  const lines = linesOf([], sale.items);
+  const lines = linesOf([], sale.items, sale.branchId);
   const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
   return {
     id: sale.id,

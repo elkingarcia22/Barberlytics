@@ -60,6 +60,16 @@ function computeMembers(branchId: string, from: string, days: number, weeks: num
   return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments));
 }
 
+type PayrollMemberRow = { memberId: string; payout: string; net: number };
+
+/** Con renta: lo que pagó de renta en el periodo y cómo queda (positivo: la barbería le debe; negativo: debe él). */
+function withRentPayments(member: PayrollMemberRow, branchId: string, from: string, to: string) {
+  if (member.payout !== "rent") return member;
+  const payments = (db.payroll.rentPayments ?? []).filter((item) => item.branchId === branchId && item.memberId === member.memberId && item.date >= from && item.date <= to);
+  const rentPaid = round(payments.reduce((sum, item) => sum + item.amount, 0));
+  return { ...member, rentPaid, balance: round(member.net + rentPaid), rentPayments: payments.map(({ id, amount, method, date, note, by }) => ({ id, amount, method, date, note, by })) };
+}
+
 const runView = (run: MockPayrollRun | undefined) =>
   run ? { id: run.id, status: run.status, approvedAt: run.approvedAt, approvedBy: run.approvedBy, paidAt: run.paidAt, paidBy: run.paidBy, method: run.method, reference: run.reference } : null;
 
@@ -89,7 +99,8 @@ export const payrollHandlers = [
     const all = (run ? run.members : computeMembers(branchId, from, period.days, period.weeks)) as { memberId: string }[];
     /* `memberId`: la nómina de una sola persona («Lo que llevo» / «Mi negocio» del barbero). */
     const memberId = params.get("memberId");
-    const members = all.filter((member) => !memberId || member.memberId === memberId);
+    // Los pagos de renta no se congelan al aprobar: se cuentan siempre, con la fecha en que se hicieron.
+    const members = all.filter((member) => !memberId || member.memberId === memberId).map((member) => withRentPayments(member as PayrollMemberRow, branchId, from, to));
     const history = db.payroll.history.filter((item) => item.branchId === branchId && item.from === from && item.to === to).map(({ at, actor, event, reason }) => ({ at, actor, event, reason }));
     return HttpResponse.json({ from, to, weeks: run?.weeks ?? period.weeks, run: runView(run), history, members });
   }),
@@ -128,6 +139,40 @@ export const payrollHandlers = [
     if (!adjustment) return error(404, "not_found", "Ese ajuste no existe.");
     if (runOf(adjustment.branchId, adjustment.from, adjustment.to)) return error(409, "conflict", "El periodo ya está aprobado. Reábrelo para cambiar sus ajustes.");
     db.payroll = { ...db.payroll, adjustments: db.payroll.adjustments.filter((item) => item.id !== adjustment.id) };
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Un pago de renta: lo que el barbero de renta le entregó a la barbería.
+  http.post(`${BASE}/payroll/rent-payments`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const branchId = text(input.branchId);
+    const memberId = text(input.memberId);
+    const amount = Number(input.amount);
+    const method = text(input.method);
+    const date = text(input.date) || new Date().toISOString().slice(0, 10);
+    const member = db.team.members.find((item) => item.id === memberId);
+    const fields: Record<string, string[]> = {};
+    if (!member || member.role !== "barbero-renta") fields.memberId = ["Esa persona no paga renta."];
+    if (!Number.isFinite(amount) || amount <= 0) fields.amount = ["Escribe cuánto pagó."];
+    if (method.length < 2) fields.method = ["Di con qué pagó."];
+    if (!DAY_KEY.test(date)) fields.date = ["La fecha no es válida."];
+    if (!branchId) fields.branchId = ["Falta la sucursal."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const payment = { id: `rent_${Date.now().toString(36)}`, branchId, memberId, amount: round(amount), method, date, note: text(input.note).slice(0, MAX_NOTE), by: account.user.name };
+    db.payroll = { ...db.payroll, rentPayments: [...(db.payroll.rentPayments ?? []), payment] };
+    db.persist();
+    return HttpResponse.json(payment, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/payroll/rent-payments/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!(db.payroll.rentPayments ?? []).some((item) => item.id === params.id)) return error(404, "not_found", "Ese pago no existe.");
+    db.payroll = { ...db.payroll, rentPayments: db.payroll.rentPayments.filter((item) => item.id !== params.id) };
     db.persist();
     return new HttpResponse(null, { status: 204 });
   }),

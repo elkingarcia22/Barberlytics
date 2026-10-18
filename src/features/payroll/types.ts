@@ -21,6 +21,10 @@ export const payrollLineSchema = z.object({
   commission: z.number(),
   tip: z.number(),
   deduction: z.number(),
+  /** Con renta: si el dinero entró por la caja de la barbería o lo cobró el barbero. */
+  collectedBy: z.enum(["shop", "barber"]).nullable().optional(),
+  /** Con renta: lo que la barbería le guarda de esa cita. */
+  held: z.number().optional(),
 });
 export type PayrollLine = z.infer<typeof payrollLineSchema>;
 
@@ -61,6 +65,12 @@ export const payrollMemberSchema = z.object({
   salary: z.number(),
   rent: z.number(),
   deductions: z.number(),
+  /** Con renta: lo que entró por la caja de la barbería y es del barbero. */
+  held: z.number().optional(),
+  /** Con renta: lo que pagó de renta en el periodo, cómo queda y los pagos. */
+  rentPaid: z.number().optional(),
+  balance: z.number().optional(),
+  rentPayments: z.array(z.object({ id: z.string(), amount: z.number(), method: z.string(), date: z.string(), note: z.string(), by: z.string() })).optional(),
   adjustments: z.array(adjustmentSchema).optional(),
   /** Lo que suman los ajustes: los bonos menos descuentos y adelantos. */
   adjustmentsTotal: z.number().optional(),
@@ -143,3 +153,12 @@ export const PAY_METHOD_KEYS: Readonly<Record<PayMethod, AppMessageKey>> = {
   nequi: "payroll.payMethod.nequi",
   breb: "payroll.payMethod.breb",
 };
+
+export interface RentPaymentInput {
+  branchId: string;
+  memberId: string;
+  amount: number;
+  method: string;
+  date?: string;
+  note?: string;
+}

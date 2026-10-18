@@ -97,7 +97,36 @@ describe("contrato de nómina (mock)", () => {
     expect(renter?.rent).toBe(renter?.rentBase);
     expect(renter?.serviceCommission).toBe(0);
     expect(renter?.deductions).toBeCloseTo(renter?.lines.reduce((sum, line) => sum + line.deduction, 0) ?? 0, 2);
-    expect(renter?.net).toBeCloseTo((renter?.tips ?? 0) - (renter?.rent ?? 0) - (renter?.deductions ?? 0), 2);
+    // Con renta: lo que la barbería le guarda (lo que entró por su caja) menos la renta y las deducciones.
+    expect(renter?.net).toBeCloseTo((renter?.held ?? 0) - (renter?.rent ?? 0) - (renter?.deductions ?? 0), 2);
+  });
+
+  test("con renta, el efectivo lo cobra el barbero y lo de tarjeta se lo guarda la barbería", async () => {
+    await withSession();
+    const { members } = await payrollApi.get({ branchId: "ma", from: PAST_FROM, to: PAST_TO });
+    const renter = members.find((item) => item.payout === "rent")!;
+    for (const line of renter.lines) {
+      const appointment = db.calendar.appointments.find((item) => item.id === line.appointmentId)!;
+      expect(line.collectedBy, line.appointmentId).toBe(appointment.payment?.method === "cash" ? "barber" : "shop");
+    }
+    expect(renter.held).toBeCloseTo(renter.lines.reduce((sum, line) => sum + (line.held ?? 0), 0), 2);
+  });
+
+  test("un pago de renta deja el saldo al día y se cuenta aunque la nómina esté aprobada", async () => {
+    await withSession();
+    const period = { branchId: "ma", from: PAST_FROM, to: PAST_TO };
+    const before = (await payrollApi.get(period)).members.find((item) => item.payout === "rent")!;
+    expect(before.balance).toBeCloseTo(before.net, 2);
+    await payrollApi.approve(period);
+    const owed = Math.max(1, -before.net);
+    await payrollApi.addRentPayment({ ...period, memberId: before.memberId, amount: owed, method: "cash", date: PAST_FROM });
+    const after = (await payrollApi.get(period)).members.find((item) => item.memberId === before.memberId)!;
+    expect(after.rentPaid).toBe(owed);
+    expect(after.balance).toBeCloseTo(before.net + owed, 2);
+    expect(after.rentPayments?.[0]).toMatchObject({ amount: owed, method: "cash" });
+    // Quien no paga renta no puede registrar un pago de renta.
+    const earner = (await payrollApi.get(period)).members.find((item) => item.payout === "commission")!;
+    await expect(payrollApi.addRentPayment({ ...period, memberId: earner.memberId, amount: 10, method: "cash" })).rejects.toMatchObject({ status: 422 });
   });
 
   test("las deducciones de la renta son un porcentaje de la venta, como las pide su ficha", async () => {
@@ -201,7 +230,13 @@ describe("pantalla de nómina", () => {
     db.sessions.set(TOKEN, "acc_admin");
   });
 
+  /** Una renta alta: lo que la barbería le guarda no alcanza y el barbero queda debiendo. */
+  const highRent = () => {
+    db.team.members = db.team.members.map((item) => (item.role === "barbero-renta" && item.payments ? { ...item, payments: { ...item.payments, rentBase: 100_000 } } : item));
+  };
+
   test("la forma de pago de la URL elige la pestaña y lo que explica", async () => {
+    highRent();
     renderApp(`/nomina?fecha=${PAST_FROM}&pago=rent`);
     expect(await screen.findByRole("heading", { name: "Nómina" })).toBeInTheDocument();
     expect(await screen.findByTestId("payroll-payout-hint")).toHaveTextContent(/paga su puesto por semana/i);
@@ -263,6 +298,7 @@ describe("el pago del propio barbero", () => {
   });
 
   test("«Mi negocio»: el de renta ve ventas, renta y deducciones, y un neto negativo explicado", async () => {
+    db.team.members = db.team.members.map((item) => (item.role === "barbero-renta" && item.payments ? { ...item, payments: { ...item.payments, rentBase: 100_000 } } : item));
     renderMyPay("barbero-renta");
     expect(await screen.findByRole("heading", { name: "Mi negocio" })).toBeInTheDocument();
     const summary = await screen.findByRole("region", { name: "Resumen de tu pago" });

@@ -8,6 +8,7 @@ import { productsHandlers } from "./products/handlers";
 import { transactionsHandlers } from "./transactions/handlers";
 import { expensesHandlers } from "./expenses/handlers";
 import { payrollHandlers } from "./payroll/handlers";
+import { registerHandlers } from "./register/handlers";
 import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
 import { buildBusinessMetrics } from "./metrics";
@@ -357,6 +358,7 @@ export const handlers = [
           granularity: url.searchParams.get("granularity"),
           date: url.searchParams.get("date"),
           barberId: url.searchParams.get("barberId"),
+          branchId: url.searchParams.get("branchId"),
         })
       );
     })
@@ -365,7 +367,7 @@ export const handlers = [
   http.get(`${BASE}/metrics/insights`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
-    return HttpResponse.json(buildInsightsMetrics());
+    return HttpResponse.json(buildInsightsMetrics(new Date(), new URL(request.url).searchParams.get("branchId") ?? "ma"));
   }),
 
   // ---------- Users ----------
@@ -485,6 +487,7 @@ export const handlers = [
 
   // ---------- Nómina ----------
   ...payrollHandlers,
+  ...registerHandlers,
 
   // ---------- Configuración ----------
   ...settingsHandlers,

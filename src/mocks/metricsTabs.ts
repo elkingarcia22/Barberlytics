@@ -4,13 +4,13 @@ import { profileOf } from "./customers/handlers";
 import { lifecycleOf } from "./customers/seed";
 import { isOverdue } from "@/features/customers/overdue";
 import {
-  BARBERS,
+  barbersOfBranch,
+  dayRecord,
   daysOf,
   periodOf,
   previousOf,
   resolveMetricsBarber,
   round2,
-  simulateDay,
   simulatePeriod,
   sum,
   totalsOf,
@@ -23,9 +23,11 @@ import { periodRange, toIsoDate } from "@/components/date/periodRange";
 import type { ClientType, MetricsBarbers, MetricsCustomers, MetricsInsights, MetricsMarketing, VisitFrequency } from "@/features/metrics/types";
 
 /**
- * Las otras cuatro pestañas de Métricas, derivadas de la misma simulación que
- * Negocio: clientes, barberos y marketing leen el periodo pedido; el
- * diagnóstico de IA mira los últimos tres meses y no lleva periodo.
+ * Las otras cuatro pestañas de Métricas, sobre los mismos días reales que
+ * Negocio (la agenda de la sucursal): clientes, barberos y marketing leen el
+ * periodo pedido; el diagnóstico mira los últimos tres meses. Lo que la agenda
+ * no registra (de qué canal llegó una reserva, el tipo de cliente a lo largo
+ * del tiempo) se reparte sobre los totales reales y está marcado así.
  */
 
 const seedOf = (sim: SimulatedPeriod, salt: string) => seededRandom(hashText(`${toIsoDate(sim.range.from)}|${sim.granularity}|${sim.barberId}|${salt}`));
@@ -57,11 +59,13 @@ function split(total: number, weights: readonly number[]): number[] {
 
 // ── Clientes ────────────────────────────────────────────────────────────────
 
-function customersOf(days: readonly DayRecord[], rand: () => number) {
+function customersOf(days: readonly DayRecord[]) {
   const appointments = appointmentsOf(days);
   const completed = completedOf(days);
-  const clients = Math.round(appointments.length * (0.78 + rand() * 0.08));
-  const returning = Math.round(clients * (0.52 + rand() * 0.14));
+  // Los clientes distintos del periodo; vuelve quien ya tenía más de una visita.
+  const ids = [...new Set(appointments.map((item) => item.clientId))];
+  const clients = ids.length;
+  const returning = ids.filter((id) => (db.calendar.clients.find((client) => client.id === id)?.visits ?? 0) > 1).length;
   const income = sum(completed.map((item) => item.service.price + item.tip));
   return {
     clients,
@@ -70,13 +74,14 @@ function customersOf(days: readonly DayRecord[], rand: () => number) {
     avgIncomePerClient: clients ? round2(income / clients) : 0,
     onlineBookings: pct(appointments.filter((item) => item.method === "online").length, appointments.length),
     walkInRate: pct(appointments.filter((item) => item.method === "walkIn").length, appointments.length),
+    withPreference: new Set(appointments.filter((item) => item.requested).map((item) => item.clientId)).size,
   };
 }
 
 export function buildCustomersMetrics(query: MetricsQuery): MetricsCustomers {
   const sim = simulatePeriod(query);
-  const now = customersOf(sim.days, seedOf(sim, "customers"));
-  const before = customersOf(sim.previousDays, seedOf({ ...sim, range: sim.previous }, "customers"));
+  const now = customersOf(sim.days);
+  const before = customersOf(sim.previousDays);
   const rand = seedOf(sim, "customers-split");
   const newClients = now.clients - now.returning;
   const [retainedNew, repeat, recovered] = split(now.returning, [2, 6, 1].map((weight) => weight + rand() * 0.5));
@@ -86,7 +91,7 @@ export function buildCustomersMetrics(query: MetricsQuery): MetricsCustomers {
     { id: "repeat", count: repeat },
     { id: "recovered", count: recovered },
   ];
-  const withPreference = Math.round(now.clients * (0.55 + rand() * 0.2));
+  const withPreference = now.withPreference;
   const frequencies: VisitFrequency[] = ["weekly", "biweekly", "monthly", "occasional"];
   const frequency = split(now.returning, [1, 3, 4, 2]).map((count, index) => ({ id: frequencies[index], count }));
 
@@ -109,11 +114,14 @@ export function buildCustomersMetrics(query: MetricsQuery): MetricsCustomers {
 
 // ── Barberos ────────────────────────────────────────────────────────────────
 
+/** La comisión de referencia si la persona no tiene una en su ficha (o es de renta o salario). */
 const COMMISSION = 0.4;
 const CHAIR_SLOTS_PER_DAY = 10;
 
 function barberOf(id: string, name: string, sim: SimulatedPeriod) {
-  const days = daysOf(sim.range).map((date) => simulateDay(date, id));
+  const days = daysOf(sim.range).map((date) => dayRecord(date, id, sim.branchId));
+  const basic = db.team.members.find((member) => member.id === id)?.compensation?.basic;
+  const commission = basic !== undefined ? basic / 100 : COMMISSION;
   const appointments = appointmentsOf(days);
   const completed = completedOf(days);
   const services = sum(completed.map((item) => item.service.price));
@@ -123,7 +131,7 @@ function barberOf(id: string, name: string, sim: SimulatedPeriod) {
   return {
     id,
     name,
-    net: round2(services * COMMISSION + tips),
+    net: round2(services * commission + tips),
     services: completed.length,
     occupancy: openDays ? Math.min(100, round2((appointments.length / (openDays * CHAIR_SLOTS_PER_DAY)) * 100)) : 0,
     cancellationRate: pct(lost, appointments.length),
@@ -133,8 +141,8 @@ function barberOf(id: string, name: string, sim: SimulatedPeriod) {
 
 export function buildBarbersMetrics(query: MetricsQuery): MetricsBarbers {
   const sim = simulatePeriod(query);
-  const one = resolveMetricsBarber(sim.barberId);
-  const wanted = sim.barberId === "all" || !one ? BARBERS : [one];
+  const one = resolveMetricsBarber(sim.barberId, sim.branchId);
+  const wanted = sim.barberId === "all" || !one ? barbersOfBranch(sim.branchId) : [one];
   const rows = wanted.map((barber) => barberOf(barber.id, barber.name, sim));
   const previousRows = wanted.map((barber) => barberOf(barber.id, barber.name, { ...sim, range: sim.previous }));
   const avg = (values: readonly number[]) => (values.length ? round2(sum(values) / values.length) : 0);
@@ -218,10 +226,10 @@ const CAPACITY_HOURS = Array.from({ length: 13 }, (_, index) => index + 8);
 const CHAIRS = 3;
 const WEEKDAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
 
-export function buildInsightsMetrics(today = new Date()): MetricsInsights {
+export function buildInsightsMetrics(today = new Date(), branchId = "ma"): MetricsInsights {
   const end = periodRange(today, "month").to;
   const start = new Date(end.getFullYear(), end.getMonth() - 2, 1);
-  const days = daysOf({ from: start, to: end }).map((date) => simulateDay(date, "all"));
+  const days = daysOf({ from: start, to: end }).map((date) => dayRecord(date, "all", branchId));
   const appointments = appointmentsOf(days);
   const completed = completedOf(days);
   const totals = totalsOf(days);

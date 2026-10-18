@@ -215,6 +215,9 @@ function ServiceFormBody({ service, kind, categories, items, branchId, defaultCa
         <Field label={t(isCombo ? "services.form.comboPrice" : "services.form.price")} required error={message(errors.price)} description={saving > 0 ? t("services.form.comboSaving", { amount: formatMoney(saving) }) : saving < 0 ? t("services.form.comboMoreExpensive") : undefined}>
           <NumberField value={Number.isFinite(draft.price) ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix="$" aria-invalid={!!errors.price} data-testid="service-form-price" />
         </Field>
+        <Field label={t("catalog.branchPrice")} error={message(errors.branchPrice)} description={t("catalog.branchPriceHint")}>
+          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix="$" data-testid="service-form-branch-price" />
+        </Field>
         <Field label={t("services.form.duration")} required error={message(errors.durationMin)}>
           <NumberField
             value={draft.durationMin}

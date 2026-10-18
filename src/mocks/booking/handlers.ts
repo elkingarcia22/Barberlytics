@@ -47,6 +47,7 @@ const GIFT_MAX = 500;
 import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
 import { branchOnlineMethods, taxInclusive } from "../settings/branchRules";
 import { settlementsOf } from "./settlement";
+import { productPriceIn } from "../catalogPrices";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -217,7 +218,7 @@ function planItems(branchId: string, items: unknown[], client: MockClient): { pl
       day,
       time,
       durationMin,
-      price: serviceIds.reduce((sum, id) => sum + (barberPrice(chosen.id, id) ?? 0), 0),
+      price: serviceIds.reduce((sum, id) => sum + (barberPrice(chosen.id, id, branchId) ?? 0), 0),
       visitId: text(item.visitId) || null,
     });
   }
@@ -415,7 +416,7 @@ export const bookingHandlers = [
     const productLines = (Array.isArray(input.products) ? input.products : []).map((raw) => asRecord(raw as DefaultBodyType)).flatMap((line) => {
       const product = db.products.items.find((item) => item.id === text(line.productId));
       const qty = Math.max(0, Math.floor(Number(line.qty) || 0));
-      return product && qty > 0 ? [{ productId: product.id, name: product.name, qty, price: product.price }] : [];
+      return product && qty > 0 ? [{ productId: product.id, name: product.name, qty, price: productPriceIn(product.id, branchId) }] : [];
     });
     const servicesTotal = plan.planned.reduce((sum, item) => sum + item.price, 0);
     const productsTotal = productLines.reduce((sum, line) => sum + line.price * line.qty, 0);
@@ -428,9 +429,9 @@ export const bookingHandlers = [
     // a lo que cobra el barbero de la cita que lo lleva (cada barbero tiene su precio).
     const loyalty = input.useReward === true ? customer.loyalty : null;
     const rewardItem = loyalty ? plan.planned.find((item) => item.serviceIds.includes(loyalty.rewardServiceId)) : undefined;
-    const rewardValue = loyalty && loyalty.available > 0 ? ((rewardItem && barberPrice(rewardItem.barberId, loyalty.rewardServiceId)) ?? loyalty.rewardValue) : 0;
+    const rewardValue = loyalty && loyalty.available > 0 ? ((rewardItem && barberPrice(rewardItem.barberId, loyalty.rewardServiceId, branchId)) ?? loyalty.rewardValue) : 0;
     // Paquetes: cada cita con un servicio que tiene visitas por usar se paga con una.
-    const coverage = input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
+    const coverage = input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId, branchId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
     // Tarjeta de regalo: paga primero; lo que sobra queda en ella.
     const giftCode = text(input.giftCode);
     const giftCard = giftCode ? findGiftCard(giftCode) : undefined;

@@ -118,3 +118,27 @@ export function diffThreads(previous: readonly CommentThread[], next: readonly C
   }
   return events;
 }
+
+export interface FreshThreads {
+  /** Los hilos que pasan a no leídos. */
+  fresh: string[];
+  /** Cuántos mensajes tiene cada hilo ahora: la referencia para la próxima vez. */
+  known: Map<string, number>;
+}
+
+/**
+ * Qué hilos quedan como no leídos al llegar comentarios: los nuevos o con más mensajes que la vez
+ * anterior cuyo último mensaje es de otra persona. Lo propio nunca queda sin leer. Mientras no
+ * haya llegado nada del servidor (`loaded` falso) solo se anota cuántos mensajes tiene cada hilo.
+ */
+export function freshThreadIds(threads: readonly CommentThread[], known: ReadonlyMap<string, number>, authorId: string, loaded: boolean): FreshThreads {
+  const next = new Map(known);
+  const fresh: string[] = [];
+  for (const thread of threads) {
+    const before = known.get(thread.id);
+    const last = thread.messages[thread.messages.length - 1];
+    if (loaded && last && last.author.id !== authorId && (before === undefined || thread.messages.length > before)) fresh.push(thread.id);
+    next.set(thread.id, thread.messages.length);
+  }
+  return { fresh, known: next };
+}

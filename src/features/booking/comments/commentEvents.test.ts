@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { CommentThread } from "@/components/comments";
-import { diffThreads, reduceEvents, type CommentEvent } from "./commentEvents";
+import { diffThreads, freshThreadIds, reduceEvents, type CommentEvent } from "./commentEvents";
 
 const ana = { id: "a", name: "Ana" };
 const luis = { id: "l", name: "Luis" };
@@ -60,5 +60,38 @@ describe("reduceEvents", () => {
     expect(reduceEvents([...created, ...removed])).toEqual([]);
     const orphan: CommentEvent = { id: "x", at: at(2), action: "reply", threadId: "nada", messageId: "m9", authorId: "l", authorName: "Luis", body: "¿?" };
     expect(reduceEvents([orphan])).toEqual([]);
+  });
+});
+
+describe("freshThreadIds", () => {
+  const reply = (author: typeof ana, id: string) => ({ id, author, body: "…", createdAt: at(5) });
+
+  test("lo que llega de otra persona queda sin leer; lo propio nunca", () => {
+    const { fresh } = freshThreadIds([thread({ id: "de-ana" }), thread({ id: "mio", messages: [reply(luis, "m9")] })], new Map(), luis.id, true);
+    expect(fresh).toEqual(["de-ana"]);
+  });
+
+  test("solo cuenta como nuevo si el hilo tiene más mensajes que la vez anterior", () => {
+    const first = freshThreadIds([thread()], new Map(), luis.id, true);
+    // La misma llegada otra vez: nada nuevo.
+    expect(freshThreadIds([thread()], first.known, luis.id, true).fresh).toEqual([]);
+    // Ana responde: vuelve a quedar sin leer.
+    const answered = thread({ messages: [...thread().messages, reply(ana, "m2")] });
+    expect(freshThreadIds([answered], first.known, luis.id, true).fresh).toEqual(["t1"]);
+    // Si el último mensaje es mío, no.
+    const mine = thread({ messages: [...thread().messages, reply(luis, "m3")] });
+    expect(freshThreadIds([mine], first.known, luis.id, true).fresh).toEqual([]);
+  });
+
+  test("antes de la primera llegada del servidor solo se anota el recuento", () => {
+    const { fresh, known } = freshThreadIds([thread()], new Map(), luis.id, false);
+    expect(fresh).toEqual([]);
+    expect(known.get("t1")).toBe(1);
+  });
+
+  test("no toca el recuento que recibe: devuelve uno nuevo", () => {
+    const known = new Map<string, number>();
+    freshThreadIds([thread()], known, luis.id, true);
+    expect(known.size).toBe(0);
   });
 });

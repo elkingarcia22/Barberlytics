@@ -6,6 +6,8 @@ interface EarliestSlotProps {
 /**
  * «Lo antes posible»: deshabilitado por requerimiento de diseño.
  */
-export function EarliestSlot(_props: EarliestSlotProps = {}) {
+export function EarliestSlot(props: EarliestSlotProps = {}) {
+  // La firma se conserva para quien lo monta; mientras esté apagado, `isBlocked` no se usa.
+  void props;
   return null;
 }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { CommentAuthor, CommentThread } from "@/components/comments";
-import { diffThreads, reduceEvents, type CommentEvent } from "./commentEvents";
+import { diffThreads, freshThreadIds, reduceEvents, type CommentEvent } from "./commentEvents";
 
 const ENDPOINT = "/api/comments";
 const POLL_MS = 15_000;
@@ -87,7 +87,7 @@ export function useSharedComments(author: CommentAuthor) {
   const [pending, setPending] = React.useState<CommentEvent[]>([]);
   const [unreadIds, setUnreadIds] = React.useState<ReadonlySet<string>>(new Set());
   const loaded = React.useRef(false);
-  const knownMessages = React.useRef(new Map<string, number>());
+  const knownMessages = React.useRef<ReadonlyMap<string, number>>(new Map());
   const sending = React.useRef(new Set<string>());
 
   const events = React.useMemo(() => {
@@ -101,17 +101,28 @@ export function useSharedComments(author: CommentAuthor) {
     threadsRef.current = threads;
   }, [threads]);
 
-  // Lo que llegó de otras personas desde la última vez queda como no leído.
-  React.useEffect(() => {
-    const fresh: string[] = [];
-    for (const thread of base) {
-      const before = knownMessages.current.get(thread.id);
-      const last = thread.messages[thread.messages.length - 1];
-      if (loaded.current && last && last.author.id !== author.id && (before === undefined || thread.messages.length > before)) fresh.push(thread.id);
-      knownMessages.current.set(thread.id, thread.messages.length);
-    }
+  const pendingRef = React.useRef(pending);
+  React.useLayoutEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  const authorIdRef = React.useRef(author.id);
+  React.useLayoutEffect(() => {
+    authorIdRef.current = author.id;
+  }, [author.id]);
+
+  /**
+   * Llegan los comentarios del servidor: se guardan y lo que trajeron de otras personas desde la
+   * última vez queda como no leído. Se calcula aquí, al recibirlos, y no en un efecto que mire los
+   * hilos: así el estado cambia una sola vez por llegada.
+   */
+  const receive = React.useCallback((next: CommentEvent[]) => {
+    setRemote(next);
+    const confirmed = new Set(next.map((event) => event.id));
+    const threadsNow = reduceEvents([...next, ...pendingRef.current.filter((event) => !confirmed.has(event.id))]);
+    const { fresh, known } = freshThreadIds(threadsNow, knownMessages.current, authorIdRef.current, loaded.current);
+    knownMessages.current = known;
     if (fresh.length > 0) setUnreadIds((current) => new Set([...current, ...fresh]));
-  }, [base, author.id]);
+  }, []);
 
   const flush = React.useCallback(async (batch: CommentEvent[]) => {
     const toSend = batch.filter((event) => !sending.current.has(event.id));
@@ -122,22 +133,17 @@ export function useSharedComments(author: CommentAuthor) {
     // Si no salió, sigue en `pending` y se reintenta en el próximo refresco.
     if (ok) {
       const refreshed = await fetchEvents();
-      if (refreshed) setRemote(refreshed);
+      if (refreshed) receive(refreshed);
     }
-  }, []);
-
-  const pendingRef = React.useRef(pending);
-  React.useLayoutEffect(() => {
-    pendingRef.current = pending;
-  }, [pending]);
+  }, [receive]);
 
   React.useEffect(() => {
     const controller = new AbortController();
     const refresh = async () => {
       const next = await fetchEvents(controller.signal);
       if (!next || controller.signal.aborted) return;
-      setRemote(next);
       loaded.current = true;
+      receive(next);
       const confirmed = new Set(next.map((event) => event.id));
       const stillPending = pendingRef.current.filter((event) => !confirmed.has(event.id));
       setPending(stillPending);
@@ -154,7 +160,7 @@ export function useSharedComments(author: CommentAuthor) {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [flush]);
+  }, [flush, receive]);
 
   const onThreadsChange = React.useCallback(
     (next: CommentThread[]) => {

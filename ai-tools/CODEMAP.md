@@ -271,7 +271,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### booking/comments
 
 - **ReviewerNameDialog.tsx** — Se pide una vez, al abrir los comentarios: es la firma de lo que esa persona escribe en la hoja. · `ReviewerNameDialog` · piezas: Button, Field, Input, ModalShell · usa: @/app/i18n
-- **commentEvents.ts** — Los comentarios de revisión se guardan como un registro de acciones, no como el estado final: cada comentario… · `COMMENT_ACTIONS`, `CommentAction`, `MAX_COMMENT_BODY`, `commentEventSchema`, `CommentEvent`, `commentEventsRequestSchema`, `reduceEvents`, `CommentActor`, `newEventId`, `diffThreads`
+- **commentEvents.ts** — Los comentarios de revisión se guardan como un registro de acciones, no como el estado final: cada comentario… · `COMMENT_ACTIONS`, `CommentAction`, `MAX_COMMENT_BODY`, `commentEventSchema`, `CommentEvent`, `commentEventsRequestSchema`, `reduceEvents`, `CommentActor`, `newEventId`, `diffThreads`, `FreshThreads`, `freshThreadIds`
 - **useSharedComments.ts** — Quién comenta. · `MAX_REVIEWER_NAME`, `useReviewer`, `useSharedComments`
 
 ### booking/flow

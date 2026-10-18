@@ -340,13 +340,14 @@ El cierre de caja de una sucursal y un día: lo que debía haber en efectivo seg
 
 Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuencia; uno **variable** pasó una vez.
 
-`expense`: `{ id, branchId, ownerMemberId (\| null), kind: "fixed" | "variable", name, amount, frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual" (\| null en los variables), description, createdAt }`. `amount` es lo que vale **cada vez que se paga**; en un variable, `createdAt` hace de fecha del gasto.
+`expense`: `{ id, branchId, ownerMemberId (\| null), kind: "fixed" | "variable", name, amount, frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual" (\| null en los variables), description, createdAt, date, endDate (\| null), categoryId, paymentMethod: "cash" | "bank" | "card" | "wallet" (\| null), supplier, attachments: [{ id, name, type, dataUrl }], createdBy }`. `amount` es lo que vale **cada vez que se paga**. `date` (AAAA-MM-DD) es, en un variable, cuándo se gastó (no puede ser futura) y, en un fijo, desde cuándo corre; un fijo con `endDate` deja de contar después de esa fecha. `categoryId`: `rent`, `utilities`, `internet`, `supplies`, `resale`, `cleaning`, `maintenance`, `advertising`, `software`, `taxes`, `other`. `attachments`: hasta 3 fotos (png, jpeg, webp, heic) o PDF de ~1 MB como data URL.
 
 | Método | Ruta | Notas |
 |---|---|---|
 | GET | `/expenses?branchId&ownerMemberId?` | `{ items: expense[] }`, del más reciente al más antiguo. Sin paginar. Sin `ownerMemberId`, los de la sucursal (`ownerMemberId: null`); con él, solo los de ese barbero de renta (lo que compra para su silla). Un gasto sin el campo cuenta como de la sucursal. |
-| POST | `/expenses` | `{ kind, name, amount, branchId, frequency? (obligatoria si es `fixed`), description?, ownerMemberId? }`. `201 expense`. `422` con `fields`: nombre corto, valor que no es mayor que cero, fijo sin frecuencia. |
+| POST | `/expenses` | `{ kind, name, amount, branchId, frequency? (obligatoria si es `fixed`), description?, ownerMemberId?, date?, categoryId?, paymentMethod?, supplier?, attachments? }`. `201 expense`. `422` con `fields`: nombre corto, valor que no es mayor que cero, fijo sin frecuencia. |
 | PATCH | `/expenses/:id` | `{ name, amount, frequency?, description? }`. `kind` no cambia aunque se mande. `expense`. `422` · `404`. |
+| POST | `/expenses/:id/end` | `{ endDate? }` (hoy por defecto; `null` lo reactiva). Solo fijos (`409` si no). Termina el gasto sin borrarlo: los meses pasados lo siguen contando. `422` si es antes de su `date`. |
 | DELETE | `/expenses/:id` | `204`. `404`. |
 
 El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes los calcula el front sobre `items`.

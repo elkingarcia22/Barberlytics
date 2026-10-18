@@ -1,10 +1,11 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CalendarSync, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { CalendarOff, CalendarSync, Download, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
+import { downloadCsv, toCsv } from "@/lib/csv";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
 import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
@@ -16,6 +17,7 @@ import { EmptyState } from "@/components/feedback";
 import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { ConfirmDialog } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
 import { useAccess } from "@/features/access";
@@ -24,11 +26,11 @@ import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { IncomeStatementView } from "./IncomeStatementView";
 import { monthKey } from "./income";
-import { ALL, expenseCells, expenseColumns, parseKind } from "./expensesHome";
+import { ALL, expenseCells, expenseColumns, expensesCsvRows, parseCategory, parseKind } from "./expensesHome";
 import { ExpenseGlyph, ExpenseKindBadge } from "./expensesShared";
 import { monthlyEquivalent, summarizeExpenses } from "./expensesUtils";
-import { useExpensesQuery, useRemoveExpense } from "./queries";
-import { FREQUENCY_KEYS, type Expense, type ExpenseKind } from "./types";
+import { useEndExpense, useExpensesQuery, useRemoveExpense } from "./queries";
+import { CATEGORY_KEYS, FREQUENCY_KEYS, expenseCategorySchema, isEnded, type Expense, type ExpenseKind } from "./types";
 
 const PAGE_SIZE = 10;
 const ringColor = getChartTheme().color[0];
@@ -128,8 +130,22 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   const formatMoney = useMoney();
   const [searchParams, setSearchParams] = useSearchParams();
   const remove = useRemoveExpense();
+  const end = useEndExpense();
 
   const kind = parseKind(searchParams.get("tipo"));
+  const category = parseCategory(searchParams.get("categoria"));
+  const pickCategory = (value: string) => {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (value === ALL) params.delete("categoria");
+        else params.set("categoria", value);
+        return params;
+      },
+      { replace: true }
+    );
+    setSelected(new Set());
+  };
   const pickKind = (value: string) => {
     setSearchParams(
       (current) => {
@@ -150,7 +166,7 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   const railOwnsActions = actionsPlacement === "rail";
 
   const summary = React.useMemo(() => summarizeExpenses(expenses), [expenses]);
-  const filtered = React.useMemo(() => (kind === ALL ? expenses : expenses.filter((expense) => expense.kind === kind)), [expenses, kind]);
+  const filtered = React.useMemo(() => expenses.filter((expense) => (kind === ALL || expense.kind === kind) && (category === null || (expense.categoryId ?? "other") === category)), [expenses, kind, category]);
   const countOf = (of: ExpenseKind) => expenses.filter((expense) => expense.kind === of).length;
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
 
@@ -162,14 +178,38 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   /* Al registrar, el tipo arranca en lo que se está mirando: en la pestaña de variables, un variable. */
   const createKind: ExpenseKind = kind === "variable" ? "variable" : "fixed";
 
+  /* Terminar un fijo: deja de contar desde mañana; los meses pasados lo conservan. */
+  const endFixed = React.useCallback(
+    (expense: Expense) =>
+      end.mutate(
+        { id: expense.id, endDate: new Date().toISOString().slice(0, 10) },
+        {
+          onSuccess: () => {
+            toast.success(t("expenses.end.done"), { description: expense.name });
+            setSelected(new Set());
+          },
+          onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+        }
+      ),
+    [end, t]
+  );
+  const exportCsv = React.useCallback(() => {
+    const csv = expensesCsvRows(t, filtered);
+    downloadCsv(`gastos-${branchId}-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(csv.header, csv.rows));
+  }, [t, filtered, branchId]);
+
   /* Cada acción, solo si el rol tiene esa casilla de `expenses`. */
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () => [
       ...(canCreate ? [{ id: "create", label: t("expenses.action.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDrawer({ kind: "create", of: createKind }) } satisfies RailActionSpec] : []),
       ...(canEdit ? [{ id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && setDrawer({ kind: "edit", expense: single }) } satisfies RailActionSpec] : []),
+      ...(canEdit && single?.kind === "fixed" && !isEnded(single)
+        ? [{ id: "end", label: t("expenses.action.end"), icon: <CalendarOff className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && endFixed(single) } satisfies RailActionSpec]
+        : []),
+      { id: "export", label: t("expenses.action.export"), icon: <Download className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: exportCsv } satisfies RailActionSpec,
       ...(canDelete ? [{ id: "delete", label: t("action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["single"], tone: "danger", onSelect: () => single && setRemoving(single) } satisfies RailActionSpec] : []),
     ],
-    [canCreate, canEdit, canDelete, createKind, single, t]
+    [canCreate, canEdit, canDelete, createKind, single, t, endFixed, exportCsv]
   );
 
   const formDrawer = (
@@ -231,7 +271,7 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
         </React.Suspense>
       </section>
 
-      <div className="shrink-0">
+      <div className="flex shrink-0 flex-wrap items-end justify-between gap-x-stack">
         <ThemaTabs
           className="mb-3"
           variant="page"
@@ -244,6 +284,19 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
           activeTabId={kind}
           onTabChange={pickKind}
         />
+        <Select value={category ?? ALL} onValueChange={pickCategory}>
+          <SelectTrigger className="mb-3 w-[220px]" aria-label={t("expenses.column.category")} data-testid="expenses-category">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t("expenses.category.all")}</SelectItem>
+            {expenseCategorySchema.options.map((option) => (
+              <SelectItem key={option} value={option}>
+                {t(CATEGORY_KEYS[option])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <DataListBlock
@@ -266,9 +319,16 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
         recordActions={actions}
         emptyState={
           <div className="flex flex-col items-center gap-3 py-6 text-center text-sm text-text-muted">
-            <p>{kind === ALL ? t("expenses.emptySearch") : t("expenses.emptyFiltered")}</p>
-            {kind !== ALL && (
-              <Button size="sm" variant="outline" onClick={() => pickKind(ALL)}>
+            <p>{kind === ALL && category === null ? t("expenses.emptySearch") : t("expenses.emptyFiltered")}</p>
+            {(kind !== ALL || category !== null) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  pickKind(ALL);
+                  pickCategory(ALL);
+                }}
+              >
                 {t("expenses.clearFilters")}
               </Button>
             )}

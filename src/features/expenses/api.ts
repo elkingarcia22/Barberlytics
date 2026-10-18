@@ -9,4 +9,6 @@ export const expensesApi = {
   create: (input: ExpenseInput, branchId: string, ownerMemberId: string | null = null) => api.post<Expense>("/expenses", { ...input, branchId, ownerMemberId }, { schema: expenseSchema }),
   update: (id: string, input: ExpenseInput) => api.patch<Expense>(`/expenses/${id}`, input, { schema: expenseSchema }),
   remove: (id: string) => api.delete<void>(`/expenses/${id}`),
+  /** Termina un fijo en esa fecha (hoy, por defecto); `null` lo reactiva. */
+  end: (id: string, endDate: string | null) => api.post<Expense>(`/expenses/${id}/end`, { endDate }, { schema: expenseSchema }),
 };

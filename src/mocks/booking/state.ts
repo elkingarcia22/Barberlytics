@@ -48,7 +48,8 @@ export interface MockOutboxMessage {
   clientId: string;
   to: string;
   channel: "whatsapp" | "sms";
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "slotFreed";
+  /** `manual`: lo escribió el equipo desde la ficha del cliente y salió por wa.me; no pasa por la cola. */
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "slotFreed" | "manual";
   sendAt: string;
   /** `failed`: WhatsApp lo rechazó; se ve con su motivo y no se reintenta solo. */
   status: "scheduled" | "sent" | "cancelled" | "failed";
@@ -59,6 +60,11 @@ export interface MockOutboxMessage {
   /** El id que da WhatsApp al mensaje enviado. */
   providerId?: string | null;
   error?: string;
+  /** El texto de un mensaje manual y para qué era (gracias, volver, cumpleaños, libre). */
+  body?: string;
+  purpose?: "thanks" | "rebook" | "birthday" | "free";
+  /** Quién lo escribió (mensajes manuales). */
+  by?: string;
   /** «Se liberó una hora»: cuál, para reservarla en un toque. */
   offer?: { start: string; barberId: string; branchId: string };
 }

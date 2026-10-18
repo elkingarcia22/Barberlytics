@@ -2,7 +2,8 @@ import type { AppMessageKey } from "@/app/i18n/types";
 import type { TableColumnCells, TableColumnSpec } from "@/components/data-display/table-config";
 import { ExpenseGlyph, ExpenseKindBadge } from "./expensesShared";
 import { monthlyEquivalent } from "./expensesUtils";
-import { FREQUENCY_KEYS, expenseKindSchema, type Expense, type ExpenseKind } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { CATEGORY_KEYS, FREQUENCY_KEYS, PAYMENT_METHOD_KEYS, expenseCategorySchema, expenseDateOf, expenseKindSchema, isEnded, type Expense, type ExpenseCategory, type ExpenseKind } from "./types";
 
 /** Lo que la lista de gastos sabe hacer con sus filas, sin JSX de pantalla: el filtro de la URL y las columnas. */
 
@@ -13,6 +14,29 @@ export type KindFilter = ExpenseKind | typeof ALL;
 
 export const parseKind = (value: string | null): KindFilter => (expenseKindSchema.safeParse(value).success ? (value as ExpenseKind) : ALL);
 
+/** La categoría de la URL, si es una de las conocidas. */
+export const parseCategory = (value: string | null): ExpenseCategory | null => (expenseCategorySchema.safeParse(value).success ? (value as ExpenseCategory) : null);
+
+/** Las filas del periodo para el contador: números sin formato y la fecha en AAAA-MM-DD. */
+export function expensesCsvRows(t: Translate, rows: readonly Expense[]): { header: string[]; rows: (string | number)[][] } {
+  return {
+    header: [t("expenses.column.date"), t("expenses.column.expense"), t("expenses.column.kind"), t("expenses.column.category"), t("expenses.column.supplier"), t("expenses.form.paymentMethod"), t("expenses.column.frequency"), t("expenses.column.amount"), t("expenses.column.monthly"), t("expenses.column.endDate"), t("expenses.form.description")],
+    rows: rows.map((row) => [
+      expenseDateOf(row),
+      row.name,
+      t(row.kind === "fixed" ? "expenses.kind.fixed" : "expenses.kind.variable"),
+      t(CATEGORY_KEYS[row.categoryId ?? "other"]),
+      row.supplier ?? "",
+      row.paymentMethod ? t(PAYMENT_METHOD_KEYS[row.paymentMethod]) : "",
+      row.frequency ? t(FREQUENCY_KEYS[row.frequency]) : "",
+      row.amount,
+      monthlyEquivalent(row) ?? "",
+      row.endDate ?? "",
+      row.description,
+    ]),
+  };
+}
+
 const EMPTY = "—";
 
 export function expenseColumns(t: Translate): readonly TableColumnSpec[] {
@@ -20,10 +44,12 @@ export function expenseColumns(t: Translate): readonly TableColumnSpec[] {
     { id: "select", label: t("column.selection"), fixed: true },
     { id: "expense", label: t("expenses.column.expense") },
     { id: "kind", label: t("expenses.column.kind") },
+    { id: "category", label: t("expenses.column.category") },
+    { id: "supplier", label: t("expenses.column.supplier"), hiddenByDefault: true },
     { id: "frequency", label: t("expenses.column.frequency") },
     { id: "amount", label: t("expenses.column.amount") },
     { id: "monthly", label: t("expenses.column.monthly") },
-    { id: "createdAt", label: t("expenses.column.createdAt") },
+    { id: "date", label: t("expenses.column.date") },
   ];
 }
 
@@ -53,7 +79,17 @@ export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen }: 
         </span>
       ),
     },
-    kind: { head: t("expenses.column.kind"), cell: (row) => <ExpenseKindBadge kind={row.kind} /> },
+    kind: {
+      head: t("expenses.column.kind"),
+      cell: (row) => (
+        <span className="flex items-center gap-1.5">
+          <ExpenseKindBadge kind={row.kind} />
+          {isEnded(row) && <Badge variant="neutral">{t("expenses.ended")}</Badge>}
+        </span>
+      ),
+    },
+    category: { head: t("expenses.column.category"), cell: (row) => t(CATEGORY_KEYS[row.categoryId ?? "other"]), cellClassName: "text-text-secondary" },
+    supplier: { head: t("expenses.column.supplier"), cell: (row) => row.supplier || muted, cellClassName: "text-text-secondary" },
     frequency: { head: t("expenses.column.frequency"), cell: (row) => (row.frequency ? t(FREQUENCY_KEYS[row.frequency]) : muted), cellClassName: "text-text-secondary" },
     amount: { head: t("expenses.column.amount"), headClassName: "text-right", cell: (row) => formatMoney(row.amount), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
     monthly: {
@@ -65,6 +101,6 @@ export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen }: 
       },
       cellClassName: "text-right tabular-nums text-text-secondary",
     },
-    createdAt: { head: t("expenses.column.createdAt"), cell: (row) => formatDate(new Date(row.createdAt), DATE_OPTIONS), cellClassName: "whitespace-nowrap tabular-nums text-text-secondary" },
+    date: { head: t("expenses.column.date"), cell: (row) => formatDate(new Date(`${expenseDateOf(row)}T12:00:00`), DATE_OPTIONS), cellClassName: "whitespace-nowrap tabular-nums text-text-secondary" },
   };
 }

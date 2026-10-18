@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Ban, CalendarPlus, NotebookPen, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, CalendarPlus, MessageCircle, NotebookPen, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -20,6 +20,7 @@ import { useCustomerPermissions } from "./customerAccess";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerAppointmentsTab, CustomerGuestsTab, CustomerPaymentsTab, CustomerProductsTab } from "./CustomerHistoryTabs";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
+import { CustomerWhatsAppDialog } from "./CustomerWhatsAppDialog";
 import { CustomerOverview } from "./CustomerOverview";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
 import { branchName, maskPhone } from "./customersUtils";
@@ -129,7 +130,7 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const setBlocked = useSetCustomerBlocked();
-  const [drawer, setDrawer] = React.useState<"edit" | "note" | null>(null);
+  const [drawer, setDrawer] = React.useState<"edit" | "note" | "whatsapp" | null>(null);
   const [confirmBlock, setConfirmBlock] = React.useState(false);
 
   const tabParam = searchParams.get("pestana");
@@ -148,6 +149,7 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
 
   const actions = React.useMemo<readonly RailActionSpec[]>(() => {
     const list: (RailActionSpec | false)[] = [
+      perms.showContact && Boolean(customer.phone) && { id: "whatsapp", label: t("customers.action.whatsapp"), icon: <MessageCircle className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("whatsapp") },
       { id: "note", label: t("customers.action.note"), icon: <NotebookPen className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("note") },
       perms.canEdit && { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer("edit") },
       perms.canEdit &&
@@ -158,7 +160,7 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
       { id: "book", label: t("customers.action.book"), icon: <CalendarPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, blockedReason: customer.blocked ? t("customers.action.bookBlocked") : null, onSelect: () => navigate(`/calendario?cliente=${customer.id}`) },
     ];
     return list.filter((action): action is RailActionSpec => action !== false);
-  }, [customer.blocked, customer.id, navigate, perms.canDelete, perms.canEdit, t]);
+  }, [customer.blocked, customer.id, customer.phone, navigate, perms.canDelete, perms.canEdit, perms.showContact, t]);
 
   const tabs = visibleTabs.map((item) => ({
     id: item,
@@ -207,6 +209,7 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
       </ShellRailSlot>
 
       {perms.canEdit && <CustomerFormDrawer open={drawer === "edit"} onOpenChange={(open) => !open && setDrawer(null)} customer={customer} branchId={customer.branchId} />}
+      {drawer === "whatsapp" && <CustomerWhatsAppDialog open onOpenChange={(open) => !open && setDrawer(null)} customer={customer} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={customer.id} customerName={customer.name} />
 
       <ConfirmDialog

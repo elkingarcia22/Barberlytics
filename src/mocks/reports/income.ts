@@ -6,7 +6,7 @@ import { dateKey, type MockAppointment } from "../calendar/seed";
 import { barberServicePrice, productPriceIn } from "../catalogPrices";
 import { payrollOf } from "../payroll/compute";
 import { barbersOf } from "../team/seed";
-import type { MockExpense } from "../expenses/seed";
+import { expenseDate, fixedActiveIn, type MockExpense } from "../expenses/seed";
 
 /**
  * El estado de resultados de una sucursal en un mes (docs/API_CONTRACT.md, «Reportes»): lo que entró
@@ -112,10 +112,11 @@ export function incomeStatement(branchId: string, month: string, now = new Date(
 
   // Gastos de la sucursal: los fijos llevados al mes (en proporción a los días vividos) y los variables del mes.
   const shopExpenses = db.expenses.filter((item) => item.branchId === branchId && (item.ownerMemberId ?? null) === null);
-  const fixedMonthly = sum(shopExpenses.filter((item) => item.kind === "fixed" && item.frequency).map((item) => (item.amount * PAYMENTS_PER_YEAR[item.frequency!]) / MONTHS_PER_YEAR));
+  // Un fijo cuenta si corrió en el mes (empezó antes de que acabara y no se terminó antes de que empezara).
+  const fixedMonthly = sum(shopExpenses.filter((item) => item.kind === "fixed" && item.frequency && fixedActiveIn(item, first, last)).map((item) => (item.amount * PAYMENTS_PER_YEAR[item.frequency!]) / MONTHS_PER_YEAR));
   const lived01 = range.days > 0 ? range.elapsed / range.days : 0;
   const expensesFixed = round(fixedMonthly * lived01);
-  const expensesVariable = sum(shopExpenses.filter((item) => item.kind === "variable" && dateKey(new Date(item.createdAt)) >= first && dateKey(new Date(item.createdAt)) <= last).map((item) => item.amount));
+  const expensesVariable = sum(shopExpenses.filter((item) => item.kind === "variable" && expenseDate(item) >= first && expenseDate(item) <= last).map((item) => item.amount));
 
   const revenue = round(services + products + rent - refunds);
   const variableCosts = round(cogs + commissions);

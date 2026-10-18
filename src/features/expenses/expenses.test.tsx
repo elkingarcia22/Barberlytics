@@ -174,7 +174,7 @@ describe("contrato de gastos (mock)", () => {
     const { items } = await expensesApi.list("ma");
     const fixed = items.find((item) => item.kind === "fixed");
     expect(fixed).toBeDefined();
-    const updated = await expensesApi.update(fixed?.id ?? "", { kind: "variable", name: "Renta nueva", amount: 3300, frequency: "monthly", description: "" });
+    const updated = await expensesApi.update(fixed?.id ?? "", { ...emptyExpenseInput("fixed"), kind: "variable", name: "Renta nueva", amount: 3300, frequency: "monthly" });
     expect(updated).toMatchObject({ kind: "fixed", name: "Renta nueva", amount: 3300, frequency: "monthly" });
   });
 

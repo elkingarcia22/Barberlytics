@@ -27,6 +27,11 @@ export function useUpdateExpense() {
   return useMutation({ mutationFn: ({ id, input }: { id: string; input: ExpenseInput }) => expensesApi.update(id, input), onSuccess: invalidate });
 }
 
+export function useEndExpense() {
+  const invalidate = useInvalidateExpenses();
+  return useMutation({ mutationFn: ({ id, endDate }: { id: string; endDate: string | null }) => expensesApi.end(id, endDate), onSuccess: invalidate });
+}
+
 export function useRemoveExpense() {
   const invalidate = useInvalidateExpenses();
   return useMutation({ mutationFn: (id: string) => expensesApi.remove(id), onSuccess: invalidate });

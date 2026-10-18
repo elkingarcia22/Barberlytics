@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -15,7 +15,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { monthlyEquivalent } from "./expensesUtils";
 import { useCreateExpense, useUpdateExpense } from "./queries";
-import { EXPENSE_KIND_KEYS, FREQUENCY_KEYS, emptyExpenseInput, expenseFrequencySchema, expenseInputSchema, expenseKindSchema, inputFromExpense, type Expense, type ExpenseFrequency, type ExpenseInput, type ExpenseKind } from "./types";
+import {
+  CATEGORY_KEYS,
+  EXPENSE_KIND_KEYS,
+  FREQUENCY_KEYS,
+  MAX_EXPENSE_ATTACHMENTS,
+  PAYMENT_METHOD_KEYS,
+  emptyExpenseInput,
+  expenseCategorySchema,
+  expenseFrequencySchema,
+  expenseInputSchema,
+  expenseKindSchema,
+  expensePaymentMethodSchema,
+  inputFromExpense,
+  type Expense,
+  type ExpenseAttachment,
+  type ExpenseCategory,
+  type ExpenseFrequency,
+  type ExpenseInput,
+  type ExpenseKind,
+  type ExpensePaymentMethod,
+} from "./types";
 
 export interface ExpenseFormDrawerProps {
   open: boolean;
@@ -29,6 +49,17 @@ export interface ExpenseFormDrawerProps {
 }
 
 const FORM_ID = "expense-form";
+const NO_METHOD = "none";
+const MAX_FILE_BYTES = 1_000_000;
+const ACCEPTED = "image/png,image/jpeg,image/webp,application/pdf";
+
+const readAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 const KIND_HINT_KEYS: Readonly<Record<ExpenseKind, AppMessageKey>> = { fixed: "expenses.kind.fixedHint", variable: "expenses.kind.variableHint" };
 
 /**
@@ -95,6 +126,20 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
   const pickKind = (value: ExpenseKind) => setDraft((current) => ({ ...current, kind: value, frequency: value === "fixed" ? (current.frequency ?? "monthly") : null }));
 
   const isFixed = draft.kind === "fixed";
+  const [fileError, setFileError] = React.useState<string | null>(null);
+  const addFiles = async (files: FileList | null) => {
+    setFileError(null);
+    const picked = Array.from(files ?? []);
+    if (picked.length === 0) return;
+    if (draft.attachments.length + picked.length > MAX_EXPENSE_ATTACHMENTS) return setFileError(t("expenses.form.attachmentsMax", { count: MAX_EXPENSE_ATTACHMENTS }));
+    if (picked.some((file) => file.size > MAX_FILE_BYTES)) return setFileError(t("expenses.form.attachmentsSize"));
+    try {
+      const added: ExpenseAttachment[] = await Promise.all(picked.map(async (file, index) => ({ id: `att_${Date.now().toString(36)}_${index}`, name: file.name, type: file.type, dataUrl: await readAsDataUrl(file) })));
+      set("attachments", [...draft.attachments, ...added]);
+    } catch {
+      setFileError(t("expenses.form.attachmentsRead"));
+    }
+  };
   const monthly = Number.isFinite(draft.amount) ? monthlyEquivalent(draft) : null;
   const frequencyHint = monthly === null || draft.frequency === "monthly" ? t("expenses.form.frequencyHint") : t("expenses.form.monthlyEquivalent", { amount: formatMoney(monthly) });
 
@@ -170,6 +215,63 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
           </Field>
         )}
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t(isFixed ? "expenses.form.startDate" : "expenses.form.date")} required error={message(errors.date)}>
+          <Input type="date" value={draft.date} onChange={(event) => set("date", event.target.value)} aria-invalid={!!errors.date} data-testid="expense-form-date" />
+        </Field>
+        <Field label={t("expenses.form.category")} required>
+          <Select value={draft.categoryId} onValueChange={(value) => set("categoryId", value as ExpenseCategory)}>
+            <SelectTrigger data-testid="expense-form-category">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {expenseCategorySchema.options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(CATEGORY_KEYS[option])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label={t("expenses.form.supplier")}>
+          <Input value={draft.supplier} onChange={(event) => set("supplier", event.target.value)} maxLength={80} autoComplete="off" data-testid="expense-form-supplier" />
+        </Field>
+        <Field label={t("expenses.form.paymentMethod")}>
+          <Select value={draft.paymentMethod ?? NO_METHOD} onValueChange={(value) => set("paymentMethod", value === NO_METHOD ? null : (value as ExpensePaymentMethod))}>
+            <SelectTrigger data-testid="expense-form-method">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_METHOD}>{t("expenses.method.none")}</SelectItem>
+              {expensePaymentMethodSchema.options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(PAYMENT_METHOD_KEYS[option])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
+
+      <Field label={t("expenses.form.attachments")} description={t("expenses.form.attachmentsHint", { count: MAX_EXPENSE_ATTACHMENTS })} error={fileError ?? message(errors.attachments)}>
+        <div className="space-y-2">
+          {draft.attachments.map((file) => (
+            <div key={file.id} className="flex items-center gap-2 text-sm">
+              <Paperclip className="size-4 shrink-0 text-text-muted" aria-hidden />
+              <a href={file.dataUrl} download={file.name} className="min-w-0 flex-1 truncate text-text-primary hover:underline">
+                {file.name}
+              </a>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={t("expenses.form.attachmentsRemove", { name: file.name })} onClick={() => set("attachments", draft.attachments.filter((item) => item.id !== file.id))}>
+                <X />
+              </Button>
+            </div>
+          ))}
+          {draft.attachments.length < MAX_EXPENSE_ATTACHMENTS && (
+            <Input type="file" accept={ACCEPTED} multiple onChange={(event) => void addFiles(event.target.files)} data-testid="expense-form-attachments" />
+          )}
+        </div>
+      </Field>
 
       <Field label={t("expenses.form.description")} description={t("expenses.form.descriptionHint")}>
         <Textarea value={draft.description} onChange={(event) => set("description", event.target.value)} rows={3} />

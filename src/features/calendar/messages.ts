@@ -9,7 +9,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * los que ya tocan. Contrato en docs/API_CONTRACT.md («Mensajes»).
  */
 
-export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "slotFreed"]);
+export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "slotFreed", "manual"]);
 export type MessageKind = z.infer<typeof messageKindSchema>;
 
 export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
@@ -18,6 +18,7 @@ export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
   reminder24h: "calendar.messages.kind.reminder24h",
   reminder2h: "calendar.messages.kind.reminder2h",
   slotFreed: "calendar.messages.kind.slotFreed",
+  manual: "calendar.messages.kind.manual",
 };
 
 export const appointmentMessageSchema = z.object({

@@ -98,10 +98,12 @@ Lo que responde MSW hoy.
 - `POST /customers/:id/guests` · src/mocks/customers/handlers.ts
 - `DELETE /customers/:id/guests/:guestId` · src/mocks/customers/handlers.ts
 - `GET /customers/:id/relationship` · src/mocks/customers/relationship.ts
+- `POST /customers/:id/messages` · src/mocks/customers/relationship.ts
 - `PATCH /customers/:id/consent` · src/mocks/customers/relationship.ts
 - `GET /expenses` · src/mocks/expenses/handlers.ts
 - `POST /expenses` · src/mocks/expenses/handlers.ts
 - `PATCH /expenses/:id` · src/mocks/expenses/handlers.ts
+- `POST /expenses/:id/end` · src/mocks/expenses/handlers.ts
 - `DELETE /expenses/:id` · src/mocks/expenses/handlers.ts
 - `POST /auth/otp/request` · src/mocks/handlers.ts
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
@@ -563,6 +565,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerOverview.tsx** — El resumen de un cliente: lo que hay que saber antes de atenderle arriba —alergias y medicamentos—, cuánto va… · `CustomerOverviewProps`, `CustomerOverview` · piezas: Alert, AlertDescription, AlertTitle, Button, MetricCard, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
 - **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api
+- **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/lib/api
 - **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de clientes; ver docs/API_CONTRACT.md. · `customersApi` · llama: GET /customers, GET /customers/${id}, POST /customers, PATCH /customers/${id}, DELETE /customers/${id}, POST /clients/${id}/notes, POST /customers/${id}/guests, DELETE /customers/${id}/guests/${guestId} · usa: @/features/calendar, @/lib/api
 - **customerAccess.ts** — Si quien mira puede ver a ese cliente: todo, o solo los suyos. · `isOwnCustomer`, `canSeeCustomer`, `CustomerPermissions`, `customerPermissions`, `useCustomerPermissions` · usa: @/features/access
@@ -572,8 +575,9 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `daysToBirthday`, `formatAgo`, `downloadCsv` · usa: @/features/branches, @/features/payroll
 - **overdue.ts** · `OverdueFacts`, `isOverdue`
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
-- **relationship.ts** · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `relationshipApi`, `useCustomerRelationship`, `useSetMarketingConsent` · llama: GET /customers/${id}/relationship, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
+- **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
 - **types.ts** — En qué momento de la relación está un cliente. · `customerSegmentSchema`, `CustomerSegment`, `customerSchema`, `Customer`, `customersResponseSchema`, `CustomersResponse`, `customerAppointmentStatusSchema`, `CustomerAppointmentStatus`, `customerAppointmentSchema`, `CustomerAppointment`, `customerPaymentSchema`, `CustomerPayment`, `customerGuestSchema`, `CustomerGuest`, `customerProductSchema`, `CustomerProduct`, `customerDetailSchema`, `CustomerDetail`, `customerInputSchema`, `CustomerInput`, `EMPTY_CUSTOMER_INPUT`, `GuestInput`, `SEGMENT_KEYS`, `SEGMENT_HINT_KEYS`, `APPOINTMENT_STATUS_KEYS`, `APPOINTMENT_SOURCE_KEYS`, `PAYMENT_METHOD_KEYS`, `splitName`, `inputFromDetail` · usa: @/app/i18n, @/features/calendar
+- **whatsappTemplates.ts** — El texto de partida para cada propósito; «libre» arranca con el saludo. · `PURPOSE_KEYS`, `TemplateContext`, `templateBody` · usa: @/app/i18n
 
 ### dashboard
 
@@ -586,15 +590,15 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### expenses
 
 - **ExpenseFormDrawer.tsx** — Registrar o editar un gasto sin salir de la lista. · `ExpenseFormDrawerProps`, `ExpenseFormDrawer` · piezas: Alert, AlertDescription, Button, CardSelection, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/features/calendar, @/lib/api
-- **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/csv, @/lib/query
 - **IncomeStatementView.tsx** — ¿Cuánto me gané? El mes de la sucursal en un estado de resultados —lo que entró, lo que costó ganarlo y lo fi… · `IncomeStatementViewProps`, `IncomeStatementView` · piezas: Button, MetricCard, Progress, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
-- **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id} · usa: @/lib/api
-- **expensesHome.tsx** · `ALL`, `KindFilter`, `parseKind`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · usa: @/app/i18n
+- **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id}, POST /expenses/${id}/end · usa: @/lib/api
+- **expensesHome.tsx** — La categoría de la URL, si es una de las conocidas. · `ALL`, `KindFilter`, `parseKind`, `parseCategory`, `expensesCsvRows`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · piezas: Badge · usa: @/app/i18n
 - **expensesShared.tsx** — Las piezas chicas del módulo de gastos: el icono y la insignia por tipo. · `ExpenseGlyph`, `ExpenseKindBadge` · piezas: Badge, IconTile · usa: @/app/i18n
 - **expensesUtils.ts** — Cuántas veces al año se paga cada frecuencia. · `PAYMENTS_PER_YEAR`, `monthlyEquivalent`, `ExpensesSummary`, `summarizeExpenses`
 - **income.ts** — El estado de resultados del mes de una sucursal y su punto de equilibrio. · `incomeStatementSchema`, `IncomeStatement`, `monthKey`, `shiftMonth`, `changePercent`, `useIncomeStatement` · llama: GET /reports/income?branchId=${encodeURIComponent(branchId)}&month=${month} · usa: @/lib/api
-- **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useRemoveExpense`
-- **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `emptyExpenseInput`, `inputFromExpense`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
+- **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useEndExpense`, `useRemoveExpense`
+- **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseCategorySchema`, `ExpenseCategory`, `expensePaymentMethodSchema`, `ExpensePaymentMethod`, `expenseAttachmentSchema`, `ExpenseAttachment`, `MAX_EXPENSE_ATTACHMENTS`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `expenseDateOf`, `isEnded`, `emptyExpenseInput`, `inputFromExpense`, `CATEGORY_KEYS`, `PAYMENT_METHOD_KEYS`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
 
 ### feedback
 
@@ -900,7 +904,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### expenses
 
 - **handlers.ts** · `expensesHandlers`
-- **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `MockExpense`, `seedExpenses`
+- **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`
 
 ### inventory
 

@@ -14,6 +14,10 @@ import { barberName, profileOf, saveProfile } from "./handlers";
 const BASE = "*/api";
 const LATENCY_MS = 150;
 const MESSAGES_SHOWN = 12;
+const MAX_BODY = 1_000;
+const PURPOSES = ["thanks", "rebook", "birthday", "free"] as const;
+/** Volver y cumpleaños son promoción: piden el permiso del cliente (Ley 1581 / 2300). */
+const PROMOTIONAL: ReadonlySet<string> = new Set(["rebook", "birthday"]);
 
 function error(status: number, code: string, message: string) {
   return HttpResponse.json({ code, message }, { status });
@@ -98,6 +102,8 @@ export function relationshipOf(client: MockClient, now = new Date()) {
         at: message.sentAt ?? message.sendAt,
         simulated: message.simulated === true,
         error: message.error ?? null,
+        body: message.body ?? null,
+        by: message.by ?? null,
       })),
     consent: { marketing: profile.marketingConsent ?? null },
   };
@@ -110,6 +116,28 @@ export const relationshipHandlers = [
     const client = findClient(params.id);
     if (!client) return error(404, "not_found", "Ese cliente no existe.");
     return HttpResponse.json(relationshipOf(client));
+  }),
+
+  /**
+   * Un mensaje escrito desde la ficha: el equipo lo abre en WhatsApp (wa.me) y aquí queda anotado en su
+   * historial. Volver y cumpleaños son promoción: sin permiso del cliente no se registran (409).
+   */
+  http.post(`${BASE}/customers/:id/messages`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = findClient(params.id);
+    if (!client) return error(404, "not_found", "Ese cliente no existe.");
+    const input = (await request.json().catch(() => null)) as { purpose?: unknown; body?: unknown } | null;
+    const purpose = PURPOSES.find((item) => item === input?.purpose);
+    const body = typeof input?.body === "string" ? input.body.trim() : "";
+    if (!purpose || body.length < 2 || body.length > MAX_BODY) return HttpResponse.json({ code: "validation", message: "Escribe el mensaje.", fields: { body: ["Escribe el mensaje."] } }, { status: 422 });
+    if (PROMOTIONAL.has(purpose) && profileOf(client).marketingConsent?.accepted !== true) return error(409, "no_consent", "Este cliente no aceptó recibir promociones. Pregúntale antes de escribirle.");
+    const now = new Date().toISOString();
+    const message = { id: `msg_${Date.now().toString(36)}`, appointmentId: "", clientId: client.id, to: client.phone, channel: "whatsapp" as const, kind: "manual" as const, sendAt: now, sentAt: now, status: "sent" as const, body, purpose, by: account.user.name };
+    db.booking.outbox = [message, ...(db.booking.outbox ?? [])];
+    db.persist();
+    return HttpResponse.json(relationshipOf(client), { status: 201 });
   }),
 
   /**

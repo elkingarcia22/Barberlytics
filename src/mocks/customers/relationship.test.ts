@@ -68,4 +68,13 @@ describe("ficha 360 del cliente", () => {
     ).toBe(422);
     expect((await api("/customers/nadie/relationship")).status).toBe(404);
   });
+
+  test("un mensaje de promoción sin permiso se rechaza; con permiso queda en el historial", async () => {
+    const promo = { method: "POST", body: JSON.stringify({ purpose: "rebook", body: "Hola, te toca volver" }) };
+    expect((await api("/customers/cli_001/messages", promo)).status).toBe(409);
+    const thanks = await (await api("/customers/cli_001/messages", { method: "POST", body: JSON.stringify({ purpose: "thanks", body: "Gracias por venir" }) })).json();
+    expect(thanks.messages[0]).toMatchObject({ kind: "manual", body: "Gracias por venir", status: "sent" });
+    await api("/customers/cli_001/consent", { method: "PATCH", body: JSON.stringify({ marketing: true }) });
+    expect((await api("/customers/cli_001/messages", promo)).status).toBe(201);
+  });
 });

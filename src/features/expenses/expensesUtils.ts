@@ -1,4 +1,4 @@
-import type { Expense, ExpenseFrequency } from "./types";
+import { expenseDateOf, isEnded, type Expense, type ExpenseFrequency } from "./types";
 
 /** Las ayudas sin JSX del módulo de gastos: llevar todo a «por mes» y resumir. */
 
@@ -19,10 +19,8 @@ export function monthlyEquivalent(expense: Pick<Expense, "kind" | "amount" | "fr
   return round((expense.amount * PAYMENTS_PER_YEAR[expense.frequency]) / MONTHS_PER_YEAR);
 }
 
-const sameMonth = (iso: string, reference: Date): boolean => {
-  const date = new Date(iso);
-  return date.getFullYear() === reference.getFullYear() && date.getMonth() === reference.getMonth();
-};
+/** «AAAA-MM-DD» cae en el mes de `reference`. */
+const sameMonth = (day: string, reference: Date): boolean => day.slice(0, 7) === `${reference.getFullYear()}-${String(reference.getMonth() + 1).padStart(2, "0")}`;
 
 export interface ExpensesSummary {
   /** Lo que suman los fijos llevados a un mes. */
@@ -40,10 +38,11 @@ export interface ExpensesSummary {
 }
 
 export function summarizeExpenses(expenses: readonly Expense[], now = new Date()): ExpensesSummary {
-  const fixed = expenses.filter((expense) => expense.kind === "fixed");
+  /* Un fijo terminado ya no pesa en el mes que viene. */
+  const fixed = expenses.filter((expense) => expense.kind === "fixed" && !isEnded(expense));
   const variable = expenses.filter((expense) => expense.kind === "variable");
   const fixedMonthly = round(fixed.reduce((sum, expense) => sum + (monthlyEquivalent(expense) ?? 0), 0));
-  const thisMonth = variable.filter((expense) => sameMonth(expense.createdAt, now));
+  const thisMonth = variable.filter((expense) => sameMonth(expenseDateOf(expense), now));
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const variableThisMonth = round(thisMonth.reduce((sum, expense) => sum + expense.amount, 0));
   const monthTotal = round(fixedMonthly + variableThisMonth);
@@ -53,7 +52,7 @@ export function summarizeExpenses(expenses: readonly Expense[], now = new Date()
     fixedCount: fixed.length,
     variableThisMonth,
     variableThisMonthCount: thisMonth.length,
-    variableLastMonth: round(variable.filter((expense) => sameMonth(expense.createdAt, lastMonthDate)).reduce((sum, expense) => sum + expense.amount, 0)),
+    variableLastMonth: round(variable.filter((expense) => sameMonth(expenseDateOf(expense), lastMonthDate)).reduce((sum, expense) => sum + expense.amount, 0)),
     monthTotal,
     fixedShare: monthTotal === 0 ? 0 : Math.round((fixedMonthly / monthTotal) * 1000) / 10,
   };

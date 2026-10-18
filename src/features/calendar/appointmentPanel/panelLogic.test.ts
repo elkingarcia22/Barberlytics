@@ -2,7 +2,8 @@ import { describe, expect, test } from "vitest";
 import type { useAppT } from "@/app/i18n";
 import type { AppointmentPlaybook } from "../appointmentPlaybook";
 import type { Appointment, Client } from "../types";
-import { clientTags, clockRelation, mainAction, restActions } from "./panelLogic";
+import { clientTags, clockRelation, mainAction, quickActions, restActions, showsRequest } from "./panelLogic";
+import { topicOf } from "./appointmentAgent";
 import { isPanelVersion } from "./panelVersion";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
@@ -22,8 +23,9 @@ const appointment = {
 const client = { id: "c1", name: "Marcela Gómez", type: "frequent", visits: 12, noShows: 2, notes: [] } as unknown as Client;
 
 function model(overrides: Partial<AppointmentModel> = {}): AppointmentModel {
+  // phone vacío: sin contacto, salvo que la prueba lo ponga.
   const playbook: AppointmentPlaybook = { stage: "late", primary: ["call", "whatsapp", "checkIn"], secondary: ["noShow", "edit"], more: ["cancel"] };
-  return { appointment, client, known: client, requested: undefined, playbook, loyaltyProgress: 3, stepTimes: { arrived: null, seated: null, paid: null }, ...overrides } as unknown as AppointmentModel;
+  return { appointment, client, known: client, requested: undefined, playbook, loyaltyProgress: 3, phone: "", stepTimes: { arrived: null, seated: null, paid: null }, ...overrides } as unknown as AppointmentModel;
 }
 
 describe("mainAction and restActions", () => {
@@ -64,8 +66,45 @@ describe("clockRelation", () => {
 
 describe("isPanelVersion", () => {
   test("accepts only the known versions", () => {
-    expect(isPanelVersion("desk")).toBe(true);
+    expect(isPanelVersion("moment")).toBe(true);
+    expect(isPanelVersion("desk")).toBe(false);
     expect(isPanelVersion("popover")).toBe(false);
     expect(isPanelVersion(null)).toBe(false);
+  });
+});
+
+describe("quickActions", () => {
+  test("a late client gets call, write, no-show and cancel, while check-in stays the main action", () => {
+    const late = model({ phone: "+573001112233" });
+    expect(quickActions(late)).toEqual(["call", "whatsapp", "noShow", "cancel"]);
+    expect(mainAction(late)).toBe("checkIn");
+  });
+
+  test("without a phone there are no contact shortcuts", () => {
+    expect(quickActions(model())).toEqual(["noShow", "cancel"]);
+  });
+
+  test("a paid visit offers writing and Clipper", () => {
+    const paid = model({ phone: "+573001112233", playbook: { stage: "paid", primary: ["rebook"], secondary: ["whatsapp"], more: [] } });
+    expect(quickActions(paid)).toEqual(["whatsapp", "clipper"]);
+  });
+});
+
+describe("showsRequest", () => {
+  test("keeps the booking note in view until the visit is charged", () => {
+    const withNote = { ...appointment, notes: "Degradado bajo" } as Appointment;
+    expect(showsRequest(model({ appointment: withNote }))).toBe(true);
+    expect(showsRequest(model({ appointment: withNote, playbook: { stage: "paid", primary: ["rebook"], secondary: [], more: [] } }))).toBe(false);
+    expect(showsRequest(model())).toBe(false);
+  });
+});
+
+describe("topicOf", () => {
+  test("reads the question without accents or case", () => {
+    expect(topicOf("¿Tiene ALÉRGIAS?")).toBe("alerts");
+    expect(topicOf("¿Qué tengo que saber de la cita?")).toBe("summary");
+    expect(topicOf("¿Cuándo le agendo la próxima?")).toBe("next");
+    expect(topicOf("¿Cada cuánto viene?")).toBe("rhythm");
+    expect(topicOf("hola")).toBe("unknown");
   });
 });

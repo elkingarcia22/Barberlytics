@@ -6,16 +6,13 @@ import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
 import { appointmentEnd, appointmentStart, durationLabel, historyLabel, type ModelContext } from "../calendarModel";
 import { PAYMENT_METHOD_KEYS } from "../types";
-import type { AppointmentActionId } from "../appointmentPlaybook";
-import { ActionButton, ClientTags, CriticalAlerts, MoreActionsMenu, RebookShortcuts } from "./PanelParts";
-import { restActions } from "./panelLogic";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
- * Versión «Recorrido de la visita»: la cita contada como una línea de tiempo
+ * El recorrido de la visita: la cita contada como una línea de tiempo
  * con horas reales (On my way → Start → Finish de Housecall Pro; llegada,
  * sentado y salida de Open Dental). Lo hecho, con su hora y cuánto tardó; el
- * paso en curso, abierto y con su botón; lo que falta, en gris con la hora en
+ * paso en curso, marcado «Ahora»; lo que falta, en gris con la hora en
  * que debería pasar; y al final, la próxima visita que toca por su ritmo. Los
  * cambios (movida, otro barbero) aparecen donde ocurrieron.
  */
@@ -30,7 +27,6 @@ interface Step {
   description?: string;
   tone: Tone;
   state: StepState;
-  actions?: AppointmentActionId[];
 }
 
 const minutesBetween = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / 60_000);
@@ -42,7 +38,6 @@ function visitSteps(model: AppointmentModel, ctx: ModelContext, t: ReturnType<ty
   const start = appointmentStart(appointment);
   const end = appointmentEnd(appointment);
   const clock = (date: Date) => formatClock(date, ctx.intl);
-  const contact: AppointmentActionId[] = model.phone ? ["call", "whatsapp"] : [];
   const closed = stage === "noShow" || stage === "cancelled";
 
   const booked: Step = {
@@ -79,8 +74,7 @@ function visitSteps(model: AppointmentModel, ctx: ModelContext, t: ReturnType<ty
         time: clock(start),
         description: stage === "late" ? model.headline : t("calendar.panel.visit.expected", { time: clock(start) }),
         tone: stage === "late" ? "negative" : "default",
-        state: stage === "upcoming" || stage === "late" ? "current" : "pending",
-        actions: stage === "late" ? [...contact, "checkIn"] : ["checkIn"],
+        state: stage === "upcoming" || stage === "late" ? "current" : "pending"
       };
 
   const seated: Step = hasSeated
@@ -92,7 +86,7 @@ function visitSteps(model: AppointmentModel, ctx: ModelContext, t: ReturnType<ty
         tone: "positive",
         state: "done",
       }
-    : { id: "seated", title: t("calendar.panel.visit.seat"), tone: "default", state: stage === "waiting" ? "current" : "pending", actions: ["seat"] };
+    : { id: "seated", title: t("calendar.panel.visit.seat"), tone: "default", state: stage === "waiting" ? "current" : "pending" };
 
   const finishing = stage === "seated" || stage === "toCollect";
   const finish: Step = {
@@ -113,15 +107,14 @@ function visitSteps(model: AppointmentModel, ctx: ModelContext, t: ReturnType<ty
         tone: "positive",
         state: "done",
       }
-    : { id: "pay", title: t("calendar.panel.visit.pay"), description: ctx.formatMoney(model.price), tone: finishing ? "warning" : "default", state: finishing ? "current" : "pending", actions: ["pay"] };
+    : { id: "pay", title: t("calendar.panel.visit.pay"), description: ctx.formatMoney(model.price), tone: finishing ? "warning" : "default", state: finishing ? "current" : "pending" };
 
   const next: Step = {
     id: "next",
     title: t("calendar.panel.visit.next"),
     description: model.nextVisit ? t("calendar.panel.visit.nextHint", { date: formatDate(model.nextVisit, { weekday: "long", day: "numeric", month: "long" }) }) : t("calendar.panel.visit.nextNoRhythm"),
     tone: stage === "paid" ? "primary" : "default",
-    state: stage === "paid" ? "current" : "pending",
-    actions: ["rebook"],
+    state: stage === "paid" ? "current" : "pending"
   };
 
   if (closed) {
@@ -131,78 +124,38 @@ function visitSteps(model: AppointmentModel, ctx: ModelContext, t: ReturnType<ty
   return [booked, ...changes, arrived, seated, finish, pay, next];
 }
 
-export function VisitPanel({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
+/** La visita contada con horas reales: lo hecho, lo que va ahora y lo que falta. */
+export function HistoryTimeline({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const formatDay = React.useCallback((date: Date) => formatDate(date, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }), [formatDate]);
   const steps = visitSteps(model, ctx, t, formatDay, formatDate);
-  const services = model.services.map((service) => service.name).join(" + ");
-
   return (
-    <div className="flex flex-col gap-5" data-testid="panel-visit">
-      <div className="space-y-1">
-        <Text weight="semibold">{services || "—"}</Text>
-        <Text size="sm" tone="secondary">
-          {[model.barber?.name, ctx.formatMoney(model.price)].filter(Boolean).join(" · ")}
-        </Text>
-      </div>
-      <ClientTags model={model} />
-      <CriticalAlerts model={model} compact />
-
-      <Timeline aria-label={t("calendar.history.title")}>
-        {steps.map((step) => {
-          const actions = step.state === "current" ? (step.actions ?? []) : [];
-          return (
-          <TimelineItem
-            key={step.id}
-            tone={step.state === "pending" ? "default" : step.tone}
-            time={step.time}
-            title={
-              step.state === "pending" ? (
-                <Text as="span" tone="muted">
-                  {step.title}
-                </Text>
-              ) : (
-                <span className="inline-flex items-center gap-2">
-                  {step.title}
-                  {step.state === "current" && (
-                    <Text as="span" size="xs" weight="semibold" tone="primary" className="uppercase tracking-wide">
-                      {t("calendar.panel.visit.now")}
-                    </Text>
-                  )}
-                </span>
-              )
-            }
-            description={step.state === "pending" && !step.description ? t("calendar.panel.visit.pending") : step.description}
-          >
-            {step.id === "next" && step.state === "current" && <RebookShortcuts model={model} />}
-            {actions.length > 0 && step.id !== "next" && (
-              <div className="flex flex-wrap gap-2 pt-2" data-testid={step.id === "next" ? undefined : "appointment-primary"}>
-                {actions.map((action, index) => (
-                  <ActionButton key={action} model={model} action={action} size="sm" variant={index === actions.length - 1 ? "default" : "outline"} />
-                ))}
-              </div>
-            )}
-          </TimelineItem>
-          );
-        })}
-      </Timeline>
-    </div>
-  );
-}
-
-/** El pie del recorrido es discreto: el paso en curso ya tiene su botón en la línea; aquí, lo raro. */
-export function VisitFooter({ model }: { model: AppointmentModel }) {
-  const rest = restActions(model).filter((action) => action === "noShow" || action === "cancel" || action === "ready");
-  if (rest.length === 0) return null;
-  return (
-    <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-border/60 px-5 py-3">
-      {rest
-        .filter((action) => action !== "cancel")
-        .map((action) => (
-          <ActionButton key={action} model={model} action={action} size="sm" variant="ghost" />
-        ))}
-      <MoreActionsMenu model={model} actions={rest.filter((action) => action === "cancel")} />
-    </footer>
+    <Timeline aria-label={t("calendar.history.title")} data-testid="panel-history">
+      {steps.map((step) => (
+        <TimelineItem
+          key={step.id}
+          tone={step.state === "pending" ? "default" : step.tone}
+          time={step.time}
+          title={
+            step.state === "pending" ? (
+              <Text as="span" tone="muted">
+                {step.title}
+              </Text>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                {step.title}
+                {step.state === "current" && (
+                  <Text as="span" size="xs" weight="semibold" tone="primary" className="uppercase tracking-wide">
+                    {t("calendar.panel.visit.now")}
+                  </Text>
+                )}
+              </span>
+            )
+          }
+          description={step.state === "pending" && !step.description ? t("calendar.panel.visit.pending") : step.description}
+        />
+      ))}
+    </Timeline>
   );
 }

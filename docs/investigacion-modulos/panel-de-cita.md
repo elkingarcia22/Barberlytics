@@ -6,8 +6,12 @@ de fitness y productos como Linear o Notion). Con eso se construyeron **cinco ve
 que se pueden comparar en la app, más la actual.
 
 **Cómo verlas:** abre una cita en `/calendario`; arriba del panel está el selector «Diseño del panel».
-La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=booking|desk|client|visit|chair`
+La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=index|cards|tabsNow|moment|steps`
 abre directo una versión. Código en `src/features/calendar/appointmentPanel/`.
+
+> **2026-10-18: segunda ronda.** Las cinco versiones de la sección 4 (Como la reserva, Mostrador, Ficha
+> del cliente, Recorrido y Modo silla) se reemplazaron por otras cinco que siguen las reglas del usuario.
+> Están en la sección 7; la 4 queda como historia.
 
 ---
 
@@ -121,3 +125,65 @@ de **Como la reserva**, la tarjeta y «La cuenta», para que recepción y client
 - **Gasto total y ticket medio** del cliente: tampoco están en el contrato; los números de la ficha usan
   visitas, ritmo, última vez y cumplimiento.
 - **Elegir la versión por rol** desde Configuración, en vez de por persona.
+
+---
+
+## 7. Segunda ronda (2026-10-18): lo que pidió el usuario
+
+Al ver la primera ronda, el usuario pidió:
+
+1. **La primera pantalla depende del estado.** Si ya se cobró, lo que se necesita en ese momento es
+   agendar la próxima para decírselo al cliente. Si aún no ha ingresado, la cita se cambia rápido, en
+   los mismos campos, con tarjetas como en la reserva en línea.
+2. **Clipper como botón que abre su panel lateral**, donde se escribe y se pregunta sobre la cita y el
+   cliente.
+3. **La nota y la foto de la reserva en línea a la vista** antes de ingresar y en la silla.
+4. **El avance (stepper) arriba**, como en el panel actual, y **navegar a otros elementos**, por ejemplo
+   un botón de cliente que abra su detalle.
+5. **La membresía va con el cliente.** La información tiene que estar ordenada y agrupada: primero lo
+   que se necesita en ese momento y estado de la cita, y luego opciones para ver más y entrar al detalle
+   sin salir del panel.
+6. **Acciones rápidas en tarjetas, como en la reserva en línea.** Si el cliente va tarde: llamar,
+   escribir, «No asistió» o cancelar, aunque la acción principal siga siendo Ingresar.
+7. **Revisar la traducción de «no show».** Ahora es «No asistió»; «Marcar plantón» desaparece y
+   «Plantones» pasa a «Inasistencias».
+8. **Parecerse de verdad a la reserva en línea.** La versión de la primera ronda no se parecía.
+
+### Lo que comparten las cinco
+
+| Pieza | Qué hace | Archivo |
+|---|---|---|
+| Avance con horas | Agendada · Llegó · En silla · Cobrada, con la hora real de cada paso | `PanelShared.tsx` (`PanelStepper`) |
+| Titular del momento | En la letra de la reserva: «Llega a las 9:30», «Va 12 min tarde», «Llegó hace 3 min», «En la silla con Paola», «Listo para cobrar», «Cobrada US$ 45», «No asistió» | `StageParts.tsx` + `stageTitle` |
+| Lo que pidió al reservar | Nota entre comillas y fotos del corte, con el origen («Reservó en línea hace 2 días»). Se ve antes de ingresar, esperando y en la silla | `BookingRequest` |
+| Ticket | «La cuenta» con el `OrderSummary` de la reserva, al terminar | `TicketSummary` |
+| ¿Le agendamos la próxima? | Cobrada o cerrada sin atender: abre en el día que toca por su ritmo (o a 4 semanas), muestra solo las horas libres de su barbero y la agenda con un toque | `NextVisitBooker` + `useFreeSlots` |
+| La cita en tarjetas | Servicios, barbero y día y hora como los campos de «Arma tu cita», que abren su lista en su sitio (título serif, filas con foto, pie con el botón). Antes de ingresar se cambia todo; después, barbero y hora llevan candado y los servicios se pueden sumar hasta cobrar | `AppointmentFields` + `bookingStyle.tsx` |
+| Atajos en tarjetas | `ActionTile` apiladas con icono en círculo, como «Lo que puedes hacer» de la confirmación. Tarde: llamar, WhatsApp, No asistió, cancelar. Por llegar: llamar, WhatsApp, cambiar, cancelar. Esperando: barbero listo, sumar servicio, WhatsApp, cancelar. Silla o por cobrar: sumar servicio, Clipper. Cobrada: WhatsApp, Clipper | `QuickTiles` + `quickActions` |
+| Cliente agrupado | Una fila con el anillo de la membresía lleva a su página: membresía, su ritmo (viene, última, próxima), ¿cumple? (visitas, inasistencias, cancelaciones), lo que hay que cuidar, preferencias y contacto, y «Abrir ficha» | `ClientPage.tsx` |
+| Historial | La línea de tiempo con horas reales de la primera ronda, ahora como página | `HistoryTimeline.tsx` |
+| Pregúntale a Clipper | Abre el panel del agente con la cita como foco. Llega con la primera pregunta hecha y contesta alertas, lo que pidió, ritmo, si cumple, membresía, próxima, barbero, qué ofrecer, contacto y precio. Lo que no es de la cita lo responde la ayuda | `appointmentAgent.ts`, `src/lib/chat/agentFocus.ts`, `AppLayout` |
+| Pie | La acción principal ancha y dorada, como «Continuar»; lo raro, al menú | `PanelFooter` |
+
+### Las cinco versiones
+
+| | 1 · Lo de ahora + índice | 2 · Arma la cita | 3 · Pestañas por estado | 4 · Tarjeta del momento | 5 · Paso a paso |
+|---|---|---|---|---|---|
+| **Idea** | Arriba solo lo del momento; debajo, un índice que abre cada cosa en su página con «Volver» (side peek de Notion, ajustes de iOS) | La cara de «Arma tu cita»: preguntas con su campo-tarjeta siempre a la vista | El panel de siempre, pero la primera pestaña es «Ahora» y cambia con el estado | Una tarjeta grande teñida por el estado, con lo esencial y el botón dentro | El avance es el menú: cada paso hecho y el actual se tocan y muestran lo suyo |
+| **Cambiar la cita** | En la página «La cita» | En su sitio, en la pantalla principal | Pestaña «La cita» | Página «La cita» | Paso «Agendada» (o «En silla» para sumar) |
+| **Cliente** | Fila del índice → página | Tarjeta «¿Quién viene?» → página | Pestaña «Cliente» | Tarjeta «Cliente» → página | Fila → página |
+| **Acción principal** | Pie | Pie | Pie | Dentro de la tarjeta | Pie |
+| **Para quién** | Recepción que quiere poco a la vista | Quien ya conoce la reserva en línea; cambiar citas por teléfono | Quien está acostumbrado al panel actual | Mostrador con prisa; tablet | Dueño o barbero que revisa cómo fue la visita |
+
+Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se agenda en el cuerpo.
+
+### Pendiente
+
+- La próxima agendada no se recuerda al reabrir el panel: si el cliente ya tiene una cita futura, el
+  panel debería decirlo en vez de ofrecer otra. El contrato del día no trae las citas futuras del
+  cliente.
+- En «Paso a paso», el stepper no marca qué paso se está mirando; una línea lo avisa.
+- Con el panel de Clipper y el de la cita abiertos a la vez, la agenda se estrecha mucho por debajo de
+  1280 px.
+- Clipper contesta con reglas por palabras (`topicOf`). Con un modelo detrás, el foco (`AgentFocus`) es
+  el mismo y solo cambia `answer`.

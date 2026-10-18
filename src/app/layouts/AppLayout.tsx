@@ -26,6 +26,7 @@ import { PageLoader } from "../components/PageLoader";
 import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
 import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
 import { chatStore, createAppChatBackend } from "../chat";
+import { agentFocus, withAgentFocus } from "@/lib/chat";
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
 const CHAT_SUGGESTION_KEYS = ["chat.suggestion1", "chat.suggestion2", "chat.suggestion3", "chat.suggestion4"] as const;
@@ -137,6 +138,31 @@ export function AppLayout() {
       }, toHelpLocale(locale)),
     [t, locale]
   );
+  // Lo que una pantalla le pidió al agente que mire (una cita): mientras esté, responde primero eso.
+  const { focus: agentFocusValue } = React.useSyncExternalStore(agentFocus.subscribe, agentFocus.getState, agentFocus.getState);
+  const answeringBackend = React.useMemo(() => (agentFocusValue ? withAgentFocus(chatBackend, agentFocusValue) : chatBackend), [agentFocusValue, chatBackend]);
+  // Una pantalla pide abrir el agente con su foco: conversación nueva, el panel abierto y la primera pregunta hecha.
+  const chatBackendRef = React.useRef(chatBackend);
+  React.useEffect(() => {
+    chatBackendRef.current = chatBackend;
+  }, [chatBackend]);
+  React.useEffect(() => {
+    let seen = agentFocus.getState().request;
+    return agentFocus.subscribe(() => {
+      const { focus, request } = agentFocus.getState();
+      if (!focus || request === seen) return;
+      seen = request;
+      setChatFrom("agent");
+      setShellMode("workspace");
+      setIsHelpOpen(true);
+      chatStore.setActive(null);
+      if (focus.opening) chatStore.send(focus.opening, withAgentFocus(chatBackendRef.current, focus));
+    });
+  }, []);
+  const setChatOpen = React.useCallback((open: boolean) => {
+    setIsHelpOpen(open);
+    if (!open) agentFocus.clear();
+  }, []);
   const openHelp = React.useCallback(() => {
     setChatFrom("help");
     setIsHelpOpen(true);
@@ -146,7 +172,7 @@ export function AppLayout() {
   const chatContext = React.useMemo<ChatContextValue>(
     () => ({
       store: chatStore,
-      backend: chatBackend,
+      backend: answeringBackend,
       user: { name: user?.name ?? "" },
       lang: locale === "en" ? "en-US" : "es-CO",
       onNavigate: (href) => {
@@ -154,7 +180,7 @@ export function AppLayout() {
         setShellMode("workspace");
         navigate(href);
       },
-      suggestions: (agentContext?.keys ?? CHAT_SUGGESTION_KEYS).map((key) => t(key)),
+      suggestions: agentFocusValue?.suggestions ?? (agentContext?.keys ?? CHAT_SUGGESTION_KEYS).map((key) => t(key)),
       news: { text: t("chat.news.help"), onOpen: () => navigate(helpPath()) },
       onOpenFull: (conversationId) => {
         chatStore.setActive(conversationId);
@@ -162,7 +188,7 @@ export function AppLayout() {
       },
       onOpenVoice: () => setIsVoiceOpen(true),
     }),
-    [agentContext, chatBackend, user?.name, locale, navigate, t]
+    [agentContext, agentFocusValue, answeringBackend, user?.name, locale, navigate, t]
   );
   // El historial de la barra lateral, con Hoy / Ayer / Últimos 7 días.
   const chatHistory = React.useMemo<readonly ChatHistoryGroup[]>(() => {
@@ -320,9 +346,9 @@ export function AppLayout() {
         </RailAgentProvider>
         <ChatPanel
           open={isHelpOpen && shellMode !== "agent"}
-          onOpenChange={setIsHelpOpen}
+          onOpenChange={setChatOpen}
           title={chatFrom === "agent" ? t("agent.name") : t("help.drawerTitle")}
-          subtitle={chatFrom === "agent" ? (agentContext ? t(agentContext.labelKey) : t("agent.subtitle")) : t("help.title")}
+          subtitle={chatFrom === "agent" ? (agentFocusValue?.title ?? (agentContext ? t(agentContext.labelKey) : t("agent.subtitle"))) : t("help.title")}
         />
         <HelpGuidesDrawer open={isGuidesOpen} onOpenChange={setIsGuidesOpen} />
         {/* El feedback: un solo diálogo, que abre «Enviar feedback» del menú y,
@@ -342,7 +368,7 @@ export function AppLayout() {
         onWrite={() => {
           // Volver a escribir: el panel o la pantalla siguen abiertos con la caja lista.
         }}
-        onSend={(text) => chatStore.send(text, chatBackend)}
+        onSend={(text) => chatStore.send(text, answeringBackend)}
         appearance="page"
       />
     </ChatProvider>

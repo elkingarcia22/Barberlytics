@@ -17,3 +17,4 @@ export { createChatStore, type ChatPersistence, type ChatStore, type ChatStoreOp
 export { createDemoBackend, type DemoBackendOptions } from "./demoBackend";
 export { createRecognizer, isSpeechRecognitionSupported, isSpeechSynthesisSupported, loadVoices, pickVoice, speak, toSpeech, type Recognizer, type RecognizerOptions, type SpeakOptions, type VoiceGender, type VoiceLike } from "./speech";
 export { groupConversations, type ConversationGroup, type ConversationGroupKey } from "./history";
+export { agentFocus, withAgentFocus, type AgentFocus } from "./agentFocus";

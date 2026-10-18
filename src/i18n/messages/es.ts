@@ -167,6 +167,8 @@ export const es = {
   "chat.greeting.morning": "¡Buenos días,",
   "chat.greeting.afternoon": "¡Buenas tardes,",
   "chat.greeting.evening": "¡Buenas noches,",
+  "chat.screenLead": "Pídemelo con tus palabras, por escrito o por voz.",
+  "chat.ideas": "Ideas para empezar",
   "chat.placeholder.new": "Escribe una tarea o una pregunta",
   "chat.placeholder.followup": "Pide un cambio o continúa con otra tarea",
   "chat.placeholder.answer": "Elige una opción o escribe tu respuesta…",

@@ -227,8 +227,8 @@ export const chatScreenEntry = defineEntry({
   name: "ChatScreen",
   group: "ai",
   description: {
-    es: "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
-    en: "The full-screen chat: what AdminShell shows in “AI Agent” mode when the app passes it in `config.agentView`. A new conversation starts centered with the greeting, the box and the starter questions; with a thread, the messages fill the screen and the box stays at the bottom. History lives in the sidebar (ChatHistoryList).",
+    es: "El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en la portada de Clipper —la misma de la reserva—: rejilla de puntos, orbe, nombre y saludo, la caja y las ideas numeradas debajo (ChatIdeas); con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.",
+    en: "The full-screen chat: what AdminShell shows in “AI Agent” mode when the app passes it in `config.agentView`. A new conversation starts on Clipper's cover —the same as online booking—: dot grid, orb, name and greeting, the box and numbered ideas below (ChatIdeas); with a thread, the messages fill the screen and the box stays at the bottom. History lives in the sidebar (ChatHistoryList).",
   },
   importPath: 'import { ChatScreen, ChatHistoryList } from "@/components/chat"',
   sourcePath: "src/components/chat/ChatScreen.tsx",
@@ -271,8 +271,8 @@ export const chatVoiceModeEntry = defineEntry({
   name: "ChatVoiceMode",
   group: "ai",
   description: {
-    es: "El modo voz, a pantalla completa y siempre en oscuro: las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
-    en: "Voice mode, full screen and always dark: the orb listens through the browser's speech recognition, what you said reads large, and after a pause the answer arrives with its two buttons (the detail and the first follow-up). The pill below pauses, goes back to typing or sends. Without a microphone it says so and lets you type.",
+    es: "El modo voz, a pantalla completa: en `immersive` siempre en oscuro con la malla de IA; en `page` (el de Clipper, lo usan la app y la reserva) sigue el tema sobre la rejilla de puntos. Las ondas escuchan con el reconocimiento de voz del navegador, lo dicho se lee grande, y al hacer una pausa llega la respuesta con sus dos botones (el detalle y la primera sugerencia). La píldora de abajo pausa, vuelve a escribir o envía. Sin micrófono lo dice y deja escribir.",
+    en: "Voice mode, full screen: `immersive` is always dark with the AI mesh; `page` (Clipper's, used by the app and online booking) follows the theme over the dot grid. The orb listens through the browser's speech recognition, what you said reads large, and after a pause the answer arrives with its two buttons (the detail and the first follow-up). The pill below pauses, goes back to typing or sends. Without a microphone it says so and lets you type.",
   },
   importPath: 'import { ChatVoiceMode } from "@/components/chat"',
   sourcePath: "src/components/chat/ChatVoiceMode.tsx",
@@ -292,6 +292,7 @@ export const chatVoiceModeEntry = defineEntry({
     { name: "open / onClose", type: "boolean / () => void", description: "Abierto o cerrado; Escape cierra." },
     { name: "onWrite", type: "(text) => void", description: "«Escribir»: volver al chat con lo dicho." },
     { name: "onSend", type: "(text) => void", description: "Terminar: lo dicho (o la sugerencia elegida) va al chat." },
+    { name: "appearance / backdrop", type: "\"immersive\" | \"page\" / ReactNode", default: "\"immersive\"", description: "`page` sigue el tema sobre la rejilla de puntos de Clipper; `backdrop` la sustituye." },
   ],
   guidelines: {
     do: ["Usa `lang` del ChatProvider (`es-CO`, `en-US`): es el idioma en que escucha y en que lee en voz alta."],

@@ -190,6 +190,11 @@ Router, providers, layout, navegación y páginas de error.
 - **variants.en.ts** — Open schedule, Conversation and the version picker, in English. · `bookingVariantsEn`
 - **variants.es.ts** — Las otras dos maneras de reservar (Agenda y Conversación) y el selector de versión de la vista previa. · `bookingVariantsEs`
 
+### i18n/calendar
+
+- **panel.en.ts** · `calendarPanelEn`
+- **panel.es.ts** — Las versiones del panel de una cita (docs/investigacion-modulos/panel-de-cita.md): el selector para compararl… · `calendarPanelEs`
+
 ### i18n
 
 - **en.ts** — Inglés de la aplicación. · `appEn`
@@ -484,6 +489,19 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **useCalendarShortcuts.ts** — Los atajos de una letra del calendario, los de cualquier calendario rápido: C crea una cita, T vuelve a hoy,… · `CalendarShortcutHandlers`, `useCalendarShortcuts`
 - **useCalendarState.ts** · `toDateKey`, `fromDateKey`, `useCalendarState`
 - **weekModel.ts** — Las cuentas de la vista Semana, sin interfaz. · `WEEK_DAYS`, `weekStartOf`, `WeekCell`, `weekCell`
+
+### calendar/appointmentPanel
+
+- **BookingStylePanel.tsx** — Versión «Como la reserva en línea». · `BookingStylePanelProps`, `BookingStylePanel`, `BookingStyleFooter` · piezas: IconTile, Text, calendarLocale, formatClock · usa: @/app/i18n, @/features/booking, @/i18n, @/icons
+- **ChairPanel.tsx** — Versión «Modo silla»: para el barbero con la tablet al lado y las manos ocupadas (el «Start → Finish» de Hous… · `ChairPanelProps`, `ChairPanel`, `ChairFooter` · piezas: Heading, IconTile, Text · usa: @/app/i18n, @/icons
+- **ClientPanel.tsx** — Versión «Ficha del cliente»: la persona antes que la cita (SevenRooms, Mews, la ficha de Jane). · `ClientPanelProps`, `ClientPanel`, `ClientFooter` · piezas: AIButton, Button, ListItem, Text · usa: @/app/i18n, @/i18n
+- **DeskPanel.tsx** — Versión «Mostrador»: para recepción con fila. · `DeskPanelProps`, `DeskPanel`, `DeskFooter` · piezas: Button, Heading, ScheduleColorDot, Stepper, Text, formatClock, formatClockRange · usa: @/app/i18n
+- **PanelParts.tsx** — El selector para comparar los diseños del panel, con una línea de qué propone cada uno. · `PanelVersionPicker`, `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `NotesSplit`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MoreActionsMenu`, `RebookShortcuts` · piezas: Alert, AlertDescription, AlertTitle, Button, Chip, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tag, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **SourceLine.tsx** — De dónde salió la cita y cuándo: «Reservó en línea hace 2 días». · `SourceLine` · piezas: Text, calendarLocale · usa: @/app/i18n, @/i18n, @/icons
+- **VisitPanel.tsx** — El pie del recorrido es discreto: el paso en curso ya tiene su botón en la línea; aquí, lo raro. · `VisitPanel`, `VisitFooter` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
+- **panelLogic.ts** — Las etiquetas que van pegadas al nombre (SevenRooms, Mariana Tek): las que se calculan solas a partir de dato… · `TagTone`, `ClientTag`, `clientTags`, `clockRelation`, `restActions`, `mainAction` · usa: @/app/i18n
+- **panelVersion.ts** — Con qué diseño se abre el panel de una cita. · `PANEL_VERSIONS`, `PanelVersion`, `DEFAULT_PANEL_VERSION`, `PANEL_VERSION_LABEL`, `PANEL_VERSION_HINT`, `isPanelVersion`, `setPanelVersion`, `usePanelVersion` · usa: @/app/i18n
+- **useAppointmentModel.ts** — Lo que todas las versiones del panel de una cita saben de ella: quién es, qué se hace, cuánto vale, qué alert… · `AppointmentHandlers`, `LOYALTY_EVERY`, `AppointmentModel`, `StepTimes`, `useAppointmentModel` · piezas: formatClock · usa: @/app/i18n
 
 ### calendar/appointmentTabs
 

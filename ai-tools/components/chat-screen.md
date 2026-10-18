@@ -1,6 +1,6 @@
 # ChatScreen (beta)
 
-El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en el centro con el saludo, la caja y las preguntas de arranque; con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.
+El chat a pantalla completa: lo que AdminShell enseña en modo «Agente IA» cuando la app lo pasa en `config.agentView`. A la izquierda, el historial con «Nuevo chat» (ChatHistoryPanel), que se pliega a una tira; una conversación nueva arranca en la portada de Clipper —la misma de la reserva—: rejilla de puntos, orbe, nombre y saludo, la caja y las ideas numeradas debajo (ChatIdeas); con hilo, los mensajes ocupan la pantalla y la caja se queda abajo.
 
 Familia: IA · Doc: `/docs#/components/chat-screen` · Fuente: `src/components/chat/ChatScreen.tsx`
 

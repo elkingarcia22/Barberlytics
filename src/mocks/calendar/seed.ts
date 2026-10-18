@@ -386,7 +386,7 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
           notes,
           createdAt,
           createdBy: walkIn ? barber.name : rand() < 0.5 ? "Lucía Bernal" : "Reserva online",
-          history: [{ id: `${id}_h0`, at: createdAt, actor: walkIn ? barber.name : "Lucía Bernal", event: walkIn ? "walkin" : "created" }],
+          history: [{ id: `${id}_h0`, at: createdAt, actor: walkIn ? barber.name : "Lucía Bernal", event: walkIn ? "walkin" : "created" }, ...visitSteps(id, day, startMinutes, endMinutes, status, barber.name)],
           payment: status === "paid" ? { method: pick(["cash", "card", "link"] as const), tip: rand() < 0.6 ? Math.round(service.price * 0.15) : 0, tax: 0, total: service.price + soldTotal, paidAt } : null,
         });
         cursor = endMinutes + (rand() < 0.4 ? 0 : 30);
@@ -394,6 +394,24 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
     }
   }
   return splitCombos(chainVisits(appointments));
+}
+
+/** Llega entre 8 min antes y 4 min después de su hora; pasa a la silla de 1 a 7 min después. Sale del id. */
+const ARRIVAL_SPREAD_MINUTES = 13;
+const ARRIVAL_EARLIEST_MINUTES = -8;
+const SEAT_WAIT_SPREAD_MINUTES = 7;
+
+/** Lo que pasó en la barbería con una cita ya empezada: llegó, se sentó y se cobró, con su hora. */
+function visitSteps(id: string, day: string, startMinutes: number, endMinutes: number, status: MockAppointment["status"], barberName: string): MockHistoryEntry[] {
+  if (status !== "arrived" && status !== "seated" && status !== "paid") return [];
+  const roll = hashKey(`${id}:visit`);
+  const arrived = startMinutes + ARRIVAL_EARLIEST_MINUTES + (roll % ARRIVAL_SPREAD_MINUTES);
+  const seated = Math.max(startMinutes, arrived) + 1 + (roll % SEAT_WAIT_SPREAD_MINUTES);
+  const at = (minutes: number) => new Date(`${day}T${clockOf(minutes)}:00`).toISOString();
+  const steps: MockHistoryEntry[] = [{ id: `${id}_h1`, at: at(arrived), actor: "Lucía Bernal", event: "status:arrived" }];
+  if (status === "seated" || status === "paid") steps.push({ id: `${id}_h2`, at: at(seated), actor: barberName, event: "status:seated" });
+  if (status === "paid") steps.push({ id: `${id}_h3`, at: at(endMinutes), actor: "Lucía Bernal", event: "status:paid" });
+  return steps;
 }
 
 /**

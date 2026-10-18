@@ -1,3 +1,4 @@
+import { calendarPanelEs } from "./calendar/panel.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
 /**
@@ -3041,4 +3042,5 @@ export const appEs = {
   // La reserva en línea, en su propio archivo (src/app/i18n/booking).
   ...bookingEs,
   ...bookingVariantsEs,
+  ...calendarPanelEs,
 } as const;

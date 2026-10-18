@@ -17,6 +17,14 @@ import { AppointmentNotesTab } from "./appointmentTabs/AppointmentNotesTab";
 import { AppointmentClientTab } from "./appointmentTabs/AppointmentClientTab";
 import { AppointmentHistoryTab } from "./appointmentTabs/AppointmentHistoryTab";
 import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
+import { usePanelVersion } from "./appointmentPanel/panelVersion";
+import { PanelVersionPicker } from "./appointmentPanel/PanelParts";
+import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
+import { BookingStyleFooter, BookingStylePanel } from "./appointmentPanel/BookingStylePanel";
+import { DeskFooter, DeskPanel } from "./appointmentPanel/DeskPanel";
+import { ClientFooter, ClientPanel } from "./appointmentPanel/ClientPanel";
+import { VisitFooter, VisitPanel } from "./appointmentPanel/VisitPanel";
+import { ChairFooter, ChairPanel } from "./appointmentPanel/ChairPanel";
 
 /**
  * El panel de una cita. Se abre al lado de la agenda: en la cabecera, quién
@@ -27,6 +35,10 @@ import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
  *   ingresar, sentar, cobrar, agendar la próxima).
  * - Clipper: lo que sugiere el agente, aparte para que se lea como IA.
  * - Notas, Cliente e Historial: el resto, por tema.
+ *
+ * Arriba, un selector deja comparar ese diseño con cinco propuestas
+ * (`appointmentPanel/`, docs/investigacion-modulos/panel-de-cita.md). Todas
+ * leen la misma cita con `useAppointmentModel` y corren las mismas acciones.
  */
 
 export interface AppointmentDrawerProps extends AppointmentLinkProps {
@@ -53,7 +65,65 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
 export function AppointmentDrawer(props: AppointmentDrawerProps) {
   // Pasar a otra cita del mismo grupo no remonta el panel: sigue en la misma pestaña.
   const panelKey = props.linked && props.linked.length > 1 && props.appointment?.linkId ? `link-${props.appointment.linkId}` : (props.appointment?.id ?? "");
-  return <AppointmentPanel key={`${useOpenKey(props.open)}-${panelKey}`} {...props} />;
+  const [version] = usePanelVersion();
+  const key = `${useOpenKey(props.open)}-${panelKey}`;
+  if (version === "tabs" || !props.appointment) return <AppointmentPanel key={key} {...props} />;
+  return <AppointmentVersionPanel key={`${key}-${version}`} {...props} appointment={props.appointment} />;
+}
+
+/** Las cinco propuestas: mismo marco y mismos datos; cambian el cuerpo y el pie. */
+function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
+  const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook } = props;
+  const { locale } = useLocale();
+  const [version] = usePanelVersion();
+  const model = useAppointmentModel(appointment, ctx, props);
+  const day = capitalize(format(appointmentStart(appointment), "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
+
+  const body = (() => {
+    switch (version) {
+      case "booking":
+        return <BookingStylePanel model={model} ctx={ctx} onPatch={onPatch} onOpenClient={onOpenClient} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+      case "client":
+        return <ClientPanel model={model} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />;
+      case "visit":
+        return <VisitPanel model={model} ctx={ctx} />;
+      case "chair":
+        return <ChairPanel model={model} ctx={ctx} onPatch={onPatch} onRebook={onRebook} />;
+      default:
+        return <DeskPanel model={model} ctx={ctx} onPatch={onPatch} linked={props.linked} linkCandidates={props.linkCandidates} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onLink={props.onLink} onShowLinked={props.onShowLinked} />;
+    }
+  })();
+  const footer = (() => {
+    switch (version) {
+      case "booking":
+        return <BookingStyleFooter model={model} />;
+      case "client":
+        return <ClientFooter model={model} onOpenClient={onOpenClient} />;
+      case "visit":
+        return <VisitFooter model={model} />;
+      case "chair":
+        return <ChairFooter model={model} />;
+      default:
+        return <DeskFooter model={model} />;
+    }
+  })();
+
+  return (
+    <SidePanelShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title={model.clientName}
+      description={version === "client" && model.known?.phone && model.phone ? model.known.phone : day}
+      leading={<ClientAvatar client={model.client} name={model.clientName} size="lg" />}
+      footer={footer ?? undefined}
+    >
+      <div className="space-y-5" data-testid="appointment-drawer" data-panel-version={version}>
+        <PanelVersionPicker />
+        {body}
+      </div>
+    </SidePanelShell>
+  );
 }
 
 function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, onPatch, onRebook, linked, linkCandidates, onSelectAppointment, onUnlink, onLink, onShowLinked, ...actions }: AppointmentDrawerProps) {
@@ -76,7 +146,8 @@ function AppointmentPanel({ appointment, open, onOpenChange, ctx, onOpenClient, 
       leading={appointment ? <ClientAvatar client={client} name={clientName} size="lg" /> : undefined}
     >
       {appointment && (
-        <div className="space-y-5" data-testid="appointment-drawer">
+        <div className="space-y-5" data-testid="appointment-drawer" data-panel-version="tabs">
+          <PanelVersionPicker />
           {/* Cinco pestañas caben en el panel de escritorio; en un teléfono se deslizan en vez de pisarse. */}
           <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ThemaTabs

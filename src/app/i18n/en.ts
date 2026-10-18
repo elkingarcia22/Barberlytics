@@ -1,3 +1,4 @@
+import { calendarPanelEn } from "./calendar/panel.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
 import { bookingVariantsEn } from "./booking/variants.en";
@@ -3004,4 +3005,5 @@ export const appEn: AppMessageCatalog = {
   "feedback.upload.failed": "They could not be uploaded. Your comment is still in the form.",
   ...bookingEn,
   ...bookingVariantsEn,
+  ...calendarPanelEn,
 };

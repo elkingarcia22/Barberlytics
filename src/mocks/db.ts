@@ -178,7 +178,7 @@ export interface MockDb {
 
 const STORAGE_KEY = "thema.mock.db";
 /** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
-const SCHEMA_VERSION = 25;
+const SCHEMA_VERSION = 26;
 
 interface PersistedDb {
   version?: number;

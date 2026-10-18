@@ -23,6 +23,7 @@ import { useLocale } from "@/i18n";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { useAccess } from "@/features/access";
+import { useBranchCurrency } from "@/features/branches";
 import { useBranchId } from "./teamUtils";
 import { creatableRoles, seesBarberMoney, seesManagers } from "./teamAccess";
 import { useMembersQuery } from "./queries";
@@ -124,9 +125,10 @@ export function TeamHomePage() {
   const { current, formatNumber } = useLocale();
 
   const formatCount = React.useCallback((value: number) => formatNumber(value), [formatNumber]);
+  const currency = useBranchCurrency();
   const formatMoney = React.useCallback(
-    (value: number) => formatNumber(value, { style: "currency", currency: "USD", maximumFractionDigits: 0 }),
-    [formatNumber]
+    (value: number) => formatNumber(value, { style: "currency", currency, maximumFractionDigits: 0 }),
+    [formatNumber, currency]
   );
   const formatPercent = React.useCallback(
     (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`,

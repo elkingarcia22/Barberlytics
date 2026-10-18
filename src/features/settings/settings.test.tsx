@@ -190,7 +190,7 @@ describe("pantallas de configuración", () => {
     await user.click(screen.getByTestId("taxGroups-submit"));
     const list = await screen.findByTestId("taxGroups-list");
     expect(await within(list).findByText("Impuesto local")).toBeInTheDocument();
-    expect(db.settings.lists.taxGroups).toHaveLength(2);
+    expect(db.settings.lists.taxGroups).toHaveLength(6);
   });
 
   test("un cierre con el fin antes del inicio no se guarda", async () => {
@@ -216,16 +216,32 @@ describe("pantallas de configuración", () => {
     expect(Object.keys(toggles).every((key) => key.startsWith("clients."))).toBe(true);
   });
 
-  test("la clave secreta de la pasarela se guarda pero nunca vuelve", async () => {
+  test("la clave secreta de una pasarela se guarda pero nunca vuelve", async () => {
     renderSection("pagos");
     const user = userEvent.setup();
-    await user.type(await screen.findByTestId("payments-public"), "pk_test_abc");
-    await user.type(screen.getByTestId("payments-secret"), "sk_test_xyz");
-    await user.click(screen.getByTestId("settings-save"));
-    await waitFor(() => expect(db.settings.sections.payments.connected).toBe(true));
-    expect(db.settings.secretKey).toBe("sk_test_xyz");
-    expect(JSON.stringify(db.settings.sections.payments)).not.toContain("sk_test_xyz");
-    expect(await screen.findByText("Conectada")).toBeInTheDocument();
+    await user.click(await screen.findByTestId("gateways-add"));
+    await user.clear(await screen.findByTestId("gateways-name"));
+    await user.type(screen.getByTestId("gateways-name"), "Stripe Utah");
+    await user.type(screen.getByTestId("gateways-public"), "pk_test_abc");
+    await user.type(screen.getByTestId("gateways-secret"), "sk_test_xyz");
+    await user.click(screen.getByTestId("gateways-submit"));
+    await waitFor(() => expect(db.settings.lists.gateways).toHaveLength(2));
+    const created = db.settings.lists.gateways[1];
+    expect(created.connected).toBe(true);
+    expect(db.settings.gatewaySecrets[created.id]).toBe("sk_test_xyz");
+    expect(JSON.stringify(db.settings.lists.gateways)).not.toContain("sk_test_xyz");
+    expect(within(await screen.findByTestId("gateways-list")).getAllByText("Conectada")).toHaveLength(2);
+  });
+
+  test("una clave con la forma de otro proveedor no conecta la pasarela", async () => {
+    renderSection("pagos");
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId("gateways-add"));
+    await user.type(await screen.findByTestId("gateways-public"), "pub_test_wompi");
+    await user.type(screen.getByTestId("gateways-secret"), "sk_test_xyz");
+    await user.click(screen.getByTestId("gateways-submit"));
+    expect(await screen.findByText("Esa no es una clave pública de este proveedor.")).toBeInTheDocument();
+    expect(db.settings.lists.gateways).toHaveLength(1);
   });
 
   test("el correo de respaldo se activa solo tras verificar el código que le llega", async () => {

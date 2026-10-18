@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useLocale } from "@/i18n";
 import { atMinutes, formatClock, parseClock } from "@/components/scheduling";
+import { useBranchCurrency } from "@/features/branches";
 
 /**
  * Formateadores y ayudas sin JSX del calendario: el dinero de la sucursal,
@@ -8,12 +9,13 @@ import { atMinutes, formatClock, parseClock } from "@/components/scheduling";
  * que se abre.
  */
 
-/** Dinero de la sucursal, con la convención del idioma activo. */
+/** Dinero de la sucursal activa, en su moneda y con la convención del idioma activo. */
 export function useMoney() {
   const { formatNumber } = useLocale();
+  const currency = useBranchCurrency();
   return React.useCallback(
-    (value: number) => formatNumber(value, { style: "currency", currency: "USD", maximumFractionDigits: value % 1 === 0 ? 0 : 2 }),
-    [formatNumber]
+    (value: number) => formatNumber(value, { style: "currency", currency, maximumFractionDigits: value % 1 === 0 ? 0 : 2 }),
+    [formatNumber, currency]
   );
 }
 

@@ -1,5 +1,7 @@
 import { delay, http, HttpResponse } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { appointmentAccount, barberServicePrice } from "../calendar/account";
+import { taxInclusive } from "../settings/branchRules";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment, type MockSale } from "../calendar/seed";
 import { hashOf } from "../customers/seed";
@@ -44,10 +46,11 @@ const reference = (id: string): string => {
 
 const invoiceOf = (id: string): string => String(hashOf(id, 9) % 100_000_000).padStart(8, "0");
 
-function linesOf(serviceIds: readonly string[], products: readonly { productId: string; qty: number }[]) {
+function linesOf(serviceIds: readonly string[], products: readonly { productId: string; qty: number }[], barberId: string | null = null) {
   const services = serviceIds.map((id) => {
     const service = db.services.items.find((item) => item.id === id);
-    return { kind: "service" as const, name: service?.name ?? id, qty: 1, amount: service?.price ?? 0 };
+    // Al precio del barbero que lo hizo, que es lo que se le cobra al cliente.
+    return { kind: "service" as const, name: service?.name ?? id, qty: 1, amount: barberId ? barberServicePrice(barberId, id) : (service?.price ?? 0) };
   });
   const goods = products.map((row) => {
     const product = db.products.items.find((item) => item.id === row.productId);
@@ -58,11 +61,13 @@ function linesOf(serviceIds: readonly string[], products: readonly { productId: 
 
 function fromAppointment(appointment: MockAppointment) {
   const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
-  const lines = linesOf(appointment.serviceIds, appointment.products);
-  const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
+  const lines = linesOf(appointment.serviceIds, appointment.products, appointment.barberId);
   const payment = appointment.payment;
-  const tax = payment?.tax ?? 0;
-  const total = subtotal + tax;
+  // Lo que vale la cuenta con el impuesto de su sucursal y lo que ya se pagó al reservar en línea.
+  const account = appointmentAccount(appointment);
+  // Cobrada, vale lo que se registró al cobrar (las sembradas no traen impuesto); abierta, lo de su sucursal hoy.
+  const tax = payment?.tax ?? account.tax;
+  const total = payment ? Math.round((account.subtotal - account.discount + (taxInclusive() ? 0 : tax)) * 100) / 100 : account.total;
   const isVoid = appointment.status === "cancelled" || appointment.status === "no_show";
   const paid = appointment.status === "paid" && payment !== null;
   const refunded = paid && hashOf(appointment.id, 21) % REFUND_ONE_IN === 0;
@@ -83,13 +88,17 @@ function fromAppointment(appointment: MockAppointment) {
     appointmentStatus: appointment.status,
     source: appointment.source,
     lines,
-    subtotal,
+    subtotal: account.subtotal,
+    discount: account.discount,
     tax,
-    tip: paid && !refunded ? (payment?.tip ?? 0) : 0,
+    tip: paid && !refunded ? (payment?.tip ?? 0) : status === "open" ? account.prepaidTip : 0,
     total,
-    collected: status === "paid" ? total : 0,
+    // Lo pagado en línea cuenta como cobrado desde que se reservó: la caja solo cobra el resto.
+    prepaid: status === "void" ? 0 : account.prepaid,
+    onlineMethod: appointment.online?.method ?? null,
+    collected: status === "paid" ? total : status === "open" ? account.prepaid : 0,
     refunded: refunded ? total : 0,
-    balance: status === "open" ? total : 0,
+    balance: status === "open" ? account.due : 0,
     method: paid ? (payment?.method ?? null) : null,
     paidAt: paid ? (payment?.paidAt ?? null) : null,
     reference: reference(appointment.id),
@@ -116,9 +125,12 @@ function fromSale(sale: MockSale) {
     source: null,
     lines,
     subtotal,
-    tax: 0,
+    discount: 0,
+    tax: sale.tax ?? 0,
     tip: 0,
     total: sale.total,
+    prepaid: 0,
+    onlineMethod: null,
     collected: sale.total,
     refunded: 0,
     balance: 0,

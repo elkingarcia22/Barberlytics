@@ -151,6 +151,26 @@ describe("contrato de transacciones (mock)", () => {
     }
   });
 
+  test("una cita pagada al reservar en línea no queda por cobrar: el saldo es solo lo que falta", async () => {
+    await withSession();
+    // Una cita del día (la agenda se siembra al pedirla), sentada y sin cobrar.
+    const { items: day } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const seeded = db.calendar.appointments.find((item) => item.id === day.find((account) => account.kind === "appointment")?.id);
+    expect(seeded).toBeDefined();
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === seeded!.id ? { ...item, status: "seated", payment: null, online: null } : item));
+    const { items: before } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    const target = before.find((item) => item.id === seeded!.id)!;
+    expect(target).toMatchObject({ status: "open", prepaid: 0, balance: target.total });
+    // Un anticipo de 10 al reservar: en caja se cobra el resto.
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === target.id ? { ...item, online: { reservation: "BL-1001", method: "shop", paid: 10, tip: 0, discount: 0 } } : item));
+    const { items: deposit } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    expect(deposit.find((item) => item.id === target.id)).toMatchObject({ prepaid: 10, collected: 10, balance: Math.round((target.total - 10) * 100) / 100, onlineMethod: "shop" });
+    // Pagada entera: nada por cobrar.
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === target.id ? { ...item, online: { reservation: "BL-1001", method: "card", paid: target.total, tip: 0, discount: 0 } } : item));
+    const { items: paid } = await transactionsApi.list({ branchId: "ma", from: PAST_DAY, to: PAST_DAY });
+    expect(paid.find((item) => item.id === target.id)).toMatchObject({ prepaid: target.total, balance: 0 });
+  });
+
   test("una venta de mostrador también es una cuenta, sin cliente ni cita", async () => {
     await withSession();
     const today = new Date();

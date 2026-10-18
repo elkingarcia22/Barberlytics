@@ -4,7 +4,7 @@ import { useBookingFormat } from "./bookingFormat";
 import type { BookingFlowValue, BookingLayout } from "./flow/BookingContext";
 import { useFunnelTracking, type BookingSurface } from "./funnel";
 import { useBookingCatalogQuery, useBookingShopQuery } from "./queries";
-import { useBookingTotals } from "./useBookingTotals";
+import { useBookingTotals, activeBranch } from "./useBookingTotals";
 
 interface BookingEngineOptions {
   layout: BookingLayout;
@@ -24,7 +24,8 @@ export function useBookingEngine({ layout, touch, surface, isPhone }: BookingEng
   const shop = shopQuery.data;
   const catalogQuery = useBookingCatalogQuery(state.branchId);
   const totals = useBookingTotals(state, catalogQuery.data, shop);
-  const fmt = useBookingFormat(shop?.currency);
+  // Cada sucursal cobra en su moneda; antes de elegirla, la de la barbería.
+  const fmt = useBookingFormat(activeBranch(shop, state.branchId)?.currency ?? shop?.currency);
 
   // La propina por defecto de la barbería, una vez que se sabe cuál es.
   const defaultTip = shop?.defaultTipId ?? null;

@@ -110,8 +110,9 @@ describe("precio de una cita", () => {
   });
 
   test("propina y recargo por tarjeta solo cuentan en el pago, donde se eligen", () => {
-    const shop = { taxPercent: 6.25, tipOptions: [{ id: "tip_2", type: "percent", value: 20 }], payment: { card: true }, cardFee: { name: "Recargo por tarjeta", rate: 3, type: "percent" } } as unknown as BookingShop;
-    let state = bookingReducer(initialBookingState("tip_2"), { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte"], barberId: "b_caro" });
+    // El impuesto es el de la sucursal elegida.
+    const shop = { branches: [{ id: "ma", taxPercent: 6.25 }], tipOptions: [{ id: "tip_2", type: "percent", value: 20 }], payment: { card: true }, cardFee: { name: "Recargo por tarjeta", rate: 3, type: "percent" } } as unknown as BookingShop;
+    let state = bookingReducer({ ...initialBookingState("tip_2"), branchId: "ma" }, { type: "openDraft", person: { kind: "self" }, serviceIds: ["svc_corte"], barberId: "b_caro" });
     state = bookingReducer(state, { type: "chooseTime", start: "2026-10-30T13:30" });
     // En el resumen: servicios e impuesto, nada más (43 + 2,69).
     const review = renderHook(() => useBookingTotals(state, catalog, shop)).result.current;

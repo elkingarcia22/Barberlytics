@@ -60,7 +60,7 @@ export function adjustmentRows(t: ReturnType<typeof useAppT>, fmt: { money: (val
     sums.prepaid > 0 ? `${t("booking.packages.line")}: −${fmt.money(sums.prepaid)}` : "",
     sums.reward > 0 ? `${t("booking.loyalty.line")}: −${fmt.money(sums.reward)}` : "",
     sums.discount > 0 ? `${t("booking.payment.discount")}: −${fmt.money(sums.discount)}` : "",
-    `${t("booking.payment.tax")}: ${fmt.money(sums.tax)}`,
+    `${t(sums.taxIncluded ? "booking.payment.taxIncluded" : "booking.payment.tax")}: ${fmt.money(sums.tax)}`,
     sums.tip > 0 ? `${t("booking.payment.tipLine")}: ${fmt.money(sums.tip)}` : "",
     sums.fee > 0 ? `${sums.feeName ?? t("booking.payment.fee")}: ${fmt.money(sums.fee)}` : "",
     sums.gift > 0 ? `${t("booking.gift.line")}: −${fmt.money(sums.gift)}` : "",

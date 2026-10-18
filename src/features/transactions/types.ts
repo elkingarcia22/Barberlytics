@@ -31,9 +31,15 @@ export const accountSchema = z.object({
   source: appointmentSourceSchema.nullable(),
   lines: z.array(accountLineSchema),
   subtotal: z.number(),
+  /** Lo descontado al reservar en línea (cupón, cortesía, paquete). */
+  discount: z.number().optional(),
   tax: z.number(),
   tip: z.number(),
   total: z.number(),
+  /** Lo que ya se pagó al reservar en línea: la caja cobra solo el resto. */
+  prepaid: z.number().optional(),
+  /** Con qué se pagó en línea («card», «pse», «nequi»…), si se pagó algo. */
+  onlineMethod: z.string().nullable().optional(),
   collected: z.number(),
   refunded: z.number(),
   balance: z.number(),
@@ -73,4 +79,15 @@ export const METHOD_KEYS: Readonly<Record<NonNullable<Account["method"]>, AppMes
   card: "transactions.method.card",
   link: "transactions.method.link",
   mixed: "transactions.method.mixed",
+};
+
+/** Con qué se pagó al reservar en línea; `shop` es el anticipo de quien paga el resto en la barbería. */
+export const ONLINE_METHOD_KEYS: Readonly<Record<string, AppMessageKey>> = {
+  card: "transactions.online.card",
+  wallet: "transactions.online.wallet",
+  pse: "transactions.online.pse",
+  nequi: "transactions.online.nequi",
+  credit: "transactions.online.credit",
+  gift: "transactions.online.gift",
+  shop: "transactions.online.shop",
 };

@@ -10,7 +10,7 @@ import { STATUS_KEYS } from "@/features/calendar/types";
 import { maskPhone } from "@/features/customers/customersUtils";
 import { formatDuration } from "@/features/services/servicesUtils";
 import { AccountStatusBadge } from "./transactionsShared";
-import { ACCOUNT_STATUS_HINT_KEYS, METHOD_KEYS, type Account } from "./types";
+import { ACCOUNT_STATUS_HINT_KEYS, METHOD_KEYS, ONLINE_METHOD_KEYS, type Account } from "./types";
 
 export interface AccountDrawerProps {
   /** La cuenta abierta; `null` cierra el panel. */
@@ -91,8 +91,17 @@ export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerPr
 
           <dl className="space-y-2 border-t border-border/60 pt-4 text-sm">
             <Row label={t("transactions.detail.subtotal")} value={formatMoney(account.subtotal)} />
+            {(account.discount ?? 0) > 0 && <Row label={t("transactions.detail.discount")} value={`−${formatMoney(account.discount ?? 0)}`} tone="positive" />}
             <Row label={t("transactions.detail.tax")} value={formatMoney(account.tax)} />
             <Row label={t("transactions.column.total")} value={formatMoney(account.total)} strong />
+            {(account.prepaid ?? 0) > 0 && (
+              <Row
+                label={t("transactions.detail.prepaid", { method: account.onlineMethod && ONLINE_METHOD_KEYS[account.onlineMethod] ? t(ONLINE_METHOD_KEYS[account.onlineMethod]) : "" })}
+                value={formatMoney(account.prepaid ?? 0)}
+                tone="positive"
+                testId="account-prepaid"
+              />
+            )}
             {account.tip > 0 && <Row label={t("transactions.column.tip")} value={formatMoney(account.tip)} />}
             {account.status === "paid" && <Row label={t("transactions.column.collected")} value={formatMoney(account.collected)} tone="positive" />}
             {account.status === "refunded" && <Row label={t("transactions.detail.refunded")} value={formatMoney(account.refunded)} tone="warning" />}
@@ -117,9 +126,9 @@ export function AccountDrawer({ account, onClose, formatMoney }: AccountDrawerPr
 
 const ROW_TONE = { default: "text-text-primary", positive: "text-status-positive", warning: "text-status-warning" } as const;
 
-function Row({ label, value, strong = false, tone = "default" }: { label: string; value: string; strong?: boolean; tone?: keyof typeof ROW_TONE }) {
+function Row({ label, value, strong = false, tone = "default", testId }: { label: string; value: string; strong?: boolean; tone?: keyof typeof ROW_TONE; testId?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    <div className="flex items-baseline justify-between gap-3" data-testid={testId}>
       <dt className={strong ? "font-semibold text-text-primary" : "text-text-secondary"}>{label}</dt>
       <dd className={`tabular-nums ${strong ? "font-semibold" : ""} ${ROW_TONE[tone]}`}>{value}</dd>
     </div>

@@ -35,15 +35,16 @@ const sum = (values: readonly number[]) => values.reduce((total, value) => total
 export function summarize(accounts: readonly Account[]): TransactionsSummary {
   const counted = accounts.filter((account) => account.status !== "void");
   const billed = sum(counted.map((account) => account.total));
-  const paid = accounts.filter((account) => account.status === "paid");
-  const collected = sum(paid.map((account) => account.collected));
-  const open = accounts.filter((account) => account.status === "open");
+  // Lo pagado al reservar en línea ya entró aunque la cita siga abierta: cuenta como cobrado, no como por cobrar.
+  const withMoney = accounts.filter((account) => (account.status === "paid" || account.status === "open") && account.collected > 0);
+  const collected = sum(withMoney.map((account) => account.collected));
+  const open = accounts.filter((account) => account.status === "open" && account.balance > 0);
   const refunded = accounts.filter((account) => account.status === "refunded");
   return {
     billed,
     billedCount: counted.length,
     collected,
-    collectedCount: paid.length,
+    collectedCount: withMoney.length,
     collectedRate: billed === 0 ? 0 : Math.round((collected / billed) * 1000) / 10,
     receivable: sum(open.map((account) => account.balance)),
     openCount: open.length,

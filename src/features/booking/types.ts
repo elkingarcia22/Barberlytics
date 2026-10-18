@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ONLINE_METHODS } from "@/features/settings/gatewayProviders";
 
 /**
  * El contrato de la reserva en línea (docs/API_CONTRACT.md, «Reserva en
@@ -20,6 +21,12 @@ export const bookingBranchSchema = z.object({
   closesAt: z.string(),
   imageUrl: z.string().nullable(),
   barbers: z.number(),
+  /** La moneda de la sucursal; sin ella, la de la barbería. */
+  currency: z.string().optional(),
+  /** El impuesto de la sucursal, para lo que no trae tasa propia. */
+  taxPercent: z.number().optional(),
+  /** Cómo se paga en línea ahí: lo que deja su pasarela. Vacío = solo en la barbería. */
+  onlineMethods: z.array(z.enum(ONLINE_METHODS)).optional(),
 });
 export type BookingBranch = z.infer<typeof bookingBranchSchema>;
 
@@ -31,7 +38,8 @@ export const bookingShopSchema = z.object({
   coverUrl: z.string().nullable(),
   phone: z.string(),
   currency: z.string(),
-  taxPercent: z.number(),
+  /** Los precios ya traen el impuesto (lo normal con IVA). */
+  taxInclusive: z.boolean().optional(),
   minNoticeMinutes: z.number(),
   slotMinutes: z.number(),
   cancelHours: z.number(),
@@ -81,6 +89,8 @@ export const bookingServiceSchema = z.object({
   durationMin: z.number(),
   /** El precio base; cada barbero puede cobrar distinto. */
   price: z.number(),
+  /** La tasa con la que se cobra en esta sucursal; sin ella, la de la sucursal. */
+  taxPercent: z.number().nullable().optional(),
   imageUrl: z.string().nullable(),
   isCombo: z.boolean(),
   popular: z.boolean(),
@@ -111,6 +121,7 @@ export const bookingProductSchema = z.object({
   description: z.string(),
   category: z.string(),
   price: z.number(),
+  taxPercent: z.number().nullable().optional(),
   imageUrl: z.string().nullable(),
 });
 export type BookingProduct = z.infer<typeof bookingProductSchema>;
@@ -316,6 +327,7 @@ export const totalsSchema = z.object({
   discount: z.number(),
   subtotal: z.number(),
   tax: z.number(),
+  taxIncluded: z.boolean().optional(),
   tip: z.number(),
   /** El recargo por pagar con tarjeta (0 si se paga en la barbería o no hay recargo). */
   fee: z.number().default(0),
@@ -327,7 +339,8 @@ export const totalsSchema = z.object({
 });
 
 /** `gift`: la tarjeta de regalo cubre todo y no hay nada más que cobrar. */
-export const payMethodSchema = z.enum(["card", "wallet", "shop", "credit", "gift"]);
+/** `pse` y `nequi`: los métodos de Colombia, cuando la pasarela de la sucursal los tiene. */
+export const payMethodSchema = z.enum(["card", "wallet", "shop", "credit", "gift", "pse", "nequi"]);
 export type PayMethod = z.infer<typeof payMethodSchema>;
 
 export const reservationSchema = z.object({

@@ -4,14 +4,14 @@
  * - **Documentos**: un ajuste que es un solo objeto y se guarda entero
  *   (perfil del negocio, reservas, propinas…). Viven en `sections`.
  * - **Listas**: ajustes que son una colección con alta, edición y borrado
- *   (sucursales, cierres, impuestos, datáfonos). Viven en `lists`.
+ *   (sucursales, cierres, impuestos, datáfonos, pasarelas). Viven en `lists`.
  *
  * Los enlaces y el identificador del widget son de mentira: los reales salen
  * de la cuenta y no se copian a un mock.
  */
 
-export type MockSettingsSection = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "payments" | "notifications" | "company" | "billing";
-export type MockSettingsList = "branches" | "closures" | "taxGroups" | "devices";
+export type MockSettingsSection = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing";
+export type MockSettingsList = "branches" | "closures" | "taxGroups" | "devices" | "gateways";
 
 export interface MockListItem {
   id: string;
@@ -21,8 +21,8 @@ export interface MockListItem {
 export interface MockSettingsState {
   sections: Record<MockSettingsSection, Record<string, unknown>>;
   lists: Record<MockSettingsList, MockListItem[]>;
-  /** La clave secreta de la pasarela: se guarda pero nunca se devuelve. */
-  secretKey: string | null;
+  /** La clave secreta de cada pasarela, por su id: se guarda pero nunca se devuelve. */
+  gatewaySecrets: Record<string, string>;
 }
 
 const DEMO_ACCOUNT = "demo-barberia";
@@ -37,7 +37,8 @@ export const DEFAULT_POLICY = [
 
 export function seedSettings(): MockSettingsState {
   return {
-    secretKey: null,
+    // La de la demo tiene forma de clave de prueba de Stripe; no es de ninguna cuenta.
+    gatewaySecrets: { gw_stripe: "sk_test_demo_barberia" },
     sections: {
       business: { timezone: "America/New_York", timeFormat: "12h", weekStart: "monday", openTime: "09:00", closeTime: "19:00", holidays: ["new-year", "independence", "thanksgiving", "christmas"], website: "https://barberia.example.com", instagram: "https://instagram.com/barberlytics", facebook: "https://facebook.com/barberlytics", googleMaps: "" },
       booking: {
@@ -69,7 +70,6 @@ export function seedSettings(): MockSettingsState {
       cardFee: { enabled: true, name: "Recargo por tarjeta", rate: 3, type: "percent" },
       commissions: { deductDiscounts: true, deductTaxes: true, deductServiceCost: false, deductProductCost: false },
       payrollCycle: { cycle: "weekly", startDay: 1 },
-      payments: { provider: "stripe", publicKey: "", secretKeySet: false, connected: false },
       notifications: { toggles: {}, thresholds: {} },
       company: { name: "Barbería Demo", legalName: "Barbería Demo LLC", identification: "12-3456789", website: "https://barberia.example.com", phone: "+16175550100", country: "Estados Unidos" },
       billing: {
@@ -84,14 +84,22 @@ export function seedSettings(): MockSettingsState {
     },
     lists: {
       branches: [
-        { id: "ma", name: "Massachusetts", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Massachusetts", city: "Boston", address: "88 Newbury St", zipcode: "02116", phone: "+16175550100", currency: "USD", language: "es", timezone: "America/New_York", description: "", status: "active", createdAt: "2026-01-06T12:00:00.000Z" },
-        { id: "nc", name: "North Carolina", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "North Carolina", city: "Charlotte", address: "210 W Trade St", zipcode: "28202", phone: "+17045550110", currency: "USD", language: "es", timezone: "America/New_York", description: "", status: "active", createdAt: "2026-02-10T12:00:00.000Z" },
-        { id: "ri", name: "Rhode Island", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Rhode Island", city: "Providence", address: "134 Thayer St", zipcode: "02906", phone: "+14015550120", currency: "USD", language: "es", timezone: "America/New_York", description: "", status: "active", createdAt: "2026-03-18T12:00:00.000Z" },
-        { id: "ut", name: "Utah", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Utah", city: "Salt Lake City", address: "55 W 200 S", zipcode: "84101", phone: "+18015550130", currency: "USD", language: "es", timezone: "America/Denver", description: "", status: "active", createdAt: "2026-04-22T12:00:00.000Z" },
+        { id: "ma", name: "Massachusetts", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Massachusetts", city: "Boston", address: "88 Newbury St", zipcode: "02116", phone: "+16175550100", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ma", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-01-06T12:00:00.000Z" },
+        { id: "nc", name: "North Carolina", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "North Carolina", city: "Charlotte", address: "210 W Trade St", zipcode: "28202", phone: "+17045550110", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_nc", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-02-10T12:00:00.000Z" },
+        { id: "ri", name: "Rhode Island", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Rhode Island", city: "Providence", address: "134 Thayer St", zipcode: "02906", phone: "+14015550120", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ri", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-03-18T12:00:00.000Z" },
+        { id: "ut", name: "Utah", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Utah", city: "Salt Lake City", address: "55 W 200 S", zipcode: "84101", phone: "+18015550130", currency: "USD", language: "es", timezone: "America/Denver", taxGroupId: "tax_ut", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-04-22T12:00:00.000Z" },
       ],
       closures: [{ id: "cls_001", startDate: "2026-12-24", endDate: "2026-12-26", branchIds: ["ma", "nc", "ri", "ut"], description: "Navidad" }],
-      taxGroups: [{ id: "tax_001", name: "Impuesto a las ventas", taxes: [{ name: "Estatal", percent: 6.25 }] }],
+      // Uno por estado (tasas de demostración, no de una declaración real) y el IVA para una sucursal en Colombia.
+      taxGroups: [
+        { id: "tax_ma", name: "Massachusetts", taxes: [{ name: "Estatal", percent: 6.25 }] },
+        { id: "tax_nc", name: "North Carolina", taxes: [{ name: "Estatal", percent: 4.75 }, { name: "Condado", percent: 2.5 }] },
+        { id: "tax_ri", name: "Rhode Island", taxes: [{ name: "Estatal", percent: 7 }] },
+        { id: "tax_ut", name: "Utah", taxes: [{ name: "Estatal", percent: 4.85 }, { name: "Local", percent: 2.4 }] },
+        { id: "tax_co_iva", name: "IVA Colombia", taxes: [{ name: "IVA", percent: 19 }] },
+      ],
       devices: [],
+      gateways: [{ id: "gw_stripe", provider: "stripe", name: "Stripe", publicKey: "pk_test_demo_barberia", hasSecret: true, connected: true }],
     },
   };
 }

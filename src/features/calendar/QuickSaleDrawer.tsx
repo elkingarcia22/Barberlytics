@@ -11,7 +11,7 @@ import { Text } from "@/components/typography";
 import type { ModelContext } from "./calendarModel";
 import { Field, NumberField } from "@/components/forms";
 import { Input } from "@/components/ui/input";
-import { changeDue } from "./checkoutMath";
+import { changeDue, appointmentBill } from "./checkoutMath";
 import { useOpenKey } from "./calendarFormat";
 import { useCreateSale } from "./queries";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type PaymentMethod, type ProductLine } from "./types";
@@ -53,7 +53,8 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
       if (qty <= 0) return current.filter((line) => line.productId !== productId);
       return current.some((line) => line.productId === productId) ? current.map((line) => (line.productId === productId ? { ...line, qty } : line)) : [...current, { productId, qty }];
     });
-  const total = items.reduce((sum, line) => sum + (ctx.catalog.products.find((product) => product.id === line.productId)?.price ?? 0) * line.qty, 0);
+  // Con el impuesto de la sucursal, igual que lo cobra el servidor.
+  const { tax, total } = appointmentBill(ctx.catalog, [], items);
 
   const change = method === "cash" ? changeDue(received, total) : null;
 
@@ -79,6 +80,12 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
       description={t("calendar.quickSale.hint")}
       footer={
         <div className="space-y-3 border-t border-border px-5 py-4">
+          {tax > 0 && (
+            <div className="flex items-center justify-between">
+              <Text variant="muted">{t(ctx.catalog.taxInclusive ? "calendar.checkout.taxIncluded" : "calendar.checkout.tax")}</Text>
+              <Text tabular>{ctx.formatMoney(tax)}</Text>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Text weight="semibold">{t("calendar.quickSale.total")}</Text>
             <Text weight="semibold" size="lg" tabular>

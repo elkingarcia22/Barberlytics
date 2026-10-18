@@ -21,9 +21,9 @@ import { CommissionSettings } from "./sections/CommissionSettings";
 import { CompanySettings } from "./sections/CompanySettings";
 import { DeleteAccountSettings } from "./sections/DeleteAccountSettings";
 import { DevicesSettings } from "./sections/DevicesSettings";
+import { GatewaysSettings } from "./sections/GatewaysSettings";
 import { LoginSettings } from "./sections/LoginSettings";
 import { NotificationSettings } from "./sections/NotificationSettings";
-import { PaymentsSettings } from "./sections/PaymentsSettings";
 import { PersonalSettings } from "./sections/PersonalSettings";
 import { RolePermissionsSettings } from "./sections/RolePermissionsSettings";
 import { PayrollCycleSettings } from "./sections/PayrollCycleSettings";
@@ -48,7 +48,7 @@ const SETTINGS_BODIES: Record<string, React.ComponentType | undefined> = {
   propinas: TipsSettings,
   "tarifa-tarjeta": CardFeeSettings,
   dispositivos: DevicesSettings,
-  pagos: PaymentsSettings,
+  pagos: GatewaysSettings,
   comisiones: CommissionSettings,
   nomina: PayrollCycleSettings,
   preferencias: PersonalSettings,

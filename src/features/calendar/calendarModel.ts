@@ -64,8 +64,16 @@ export const appointmentEnd = (appointment: Appointment): Date => addMinutes(app
 
 export const findClient = (catalog: CalendarCatalog, id: string): Client | undefined => catalog.clients.find((client) => client.id === id);
 export const findBarber = (catalog: CalendarCatalog, id: string | null): Barber | undefined => catalog.barbers.find((barber) => barber.id === id);
-export const servicesOf = (catalog: CalendarCatalog, appointment: Pick<Appointment, "serviceIds">): Service[] =>
-  appointment.serviceIds.map((id) => catalog.services.find((service) => service.id === id)).filter((service): service is Service => Boolean(service));
+/** Lo que cobra ese barbero por el servicio (su precio en Equipo) o, si no tiene uno propio, el de la carta. */
+export const priceFor = (catalog: Pick<CalendarCatalog, "barbers">, barberId: string | null | undefined, service: Pick<Service, "id" | "price">): number =>
+  (barberId ? catalog.barbers.find((barber) => barber.id === barberId)?.prices?.[service.id] : undefined) ?? service.price;
+
+/** Los servicios de una cita, cada uno al precio de su barbero: es lo que se le cobra al cliente. */
+export const servicesOf = (catalog: CalendarCatalog, appointment: Pick<Appointment, "serviceIds"> & { barberId?: string }): Service[] =>
+  appointment.serviceIds
+    .map((id) => catalog.services.find((service) => service.id === id))
+    .filter((service): service is Service => Boolean(service))
+    .map((service) => ({ ...service, price: priceFor(catalog, appointment.barberId, service) }));
 
 export const servicesPrice = (services: readonly Service[]): number => services.reduce((sum, service) => sum + service.price, 0);
 export const servicesMinutes = (services: readonly Service[]): number => services.reduce((sum, service) => sum + service.durationMin, 0);

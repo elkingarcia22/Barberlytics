@@ -1,9 +1,7 @@
 import * as React from "react";
 import { useLocale } from "@/i18n";
+import { useBranchCurrency } from "@/features/branches";
 import type { Compared } from "./types";
-
-/** La moneda de la sucursal; hasta que llegue del backend, dólares. */
-const CURRENCY = "USD";
 
 export interface MetricsFormatters {
   money: (value: number) => string;
@@ -22,9 +20,11 @@ export interface MetricsFormatters {
  */
 export function useMetricsFormatters(): MetricsFormatters {
   const { formatNumber } = useLocale();
+  // La moneda de la sucursal activa: cada una cobra en la suya.
+  const currency = useBranchCurrency();
   return React.useMemo(() => {
-    const money = (value: number) => formatNumber(value, { style: "currency", currency: CURRENCY, maximumFractionDigits: 2, minimumFractionDigits: 0 });
-    const moneyRound = (value: number) => formatNumber(value, { style: "currency", currency: CURRENCY, maximumFractionDigits: 0 });
+    const money = (value: number) => formatNumber(value, { style: "currency", currency, maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    const moneyRound = (value: number) => formatNumber(value, { style: "currency", currency, maximumFractionDigits: 0 });
     const percent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })} %`;
     const count = (value: number) => formatNumber(value, { maximumFractionDigits: 0 });
     const signed = (value: number, suffix: string) =>
@@ -44,5 +44,5 @@ export function useMetricsFormatters(): MetricsFormatters {
         return { value: change, label: signed(change, " %") };
       },
     };
-  }, [formatNumber]);
+  }, [formatNumber, currency]);
 }

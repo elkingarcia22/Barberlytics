@@ -173,7 +173,9 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 `barber`: `{ id, branchId, name, avatarUrl, level: "junior" | "senior" | "master", workingHours: { [díaDeLaSemana 0–6]: [{ start: "09:00", end: "19:00" }] }, acceptsWalkIns }`
 `client`: `{ id, name, phone, type: "walkin" | "new" | "retained" | "frequent" | "vip", visits, cancellations, noShows, lastVisitAt, preferredBarberId, visitEveryDays, notes: [{ id, kind: "note" | "medication" | "allergy", text, createdAt }] }`
 `service`: `{ id, name, category, durationMin, price }` · `product`: `{ id, name, category, price }`
-`appointment`: `{ id, branchId, clientId, barberId, requestedBarberId, serviceIds, products: [{ productId, qty }], start, durationMin, status, barberReady, walkIn, source: "internal" | "online" | "walkin", repeat, seriesId, notes, createdAt, createdBy, history: [{ id, at, actor, event }], payment: { method, tip, tax, total, paidAt } | null }`
+`appointment`: `{ id, branchId, clientId, barberId, requestedBarberId, serviceIds, products: [{ productId, qty }], start, durationMin, status, barberReady, walkIn, source: "internal" | "online" | "walkin", repeat, seriesId, notes, createdAt, createdBy, history: [{ id, at, actor, event }], payment: { method, tip, tax, total, paidAt, prepaid? } | null, online?: { reservation, method, paid, tip, discount } | null }`
+
+`online` es lo que dejó resuelto la reserva en línea (lo pagado —tarjeta, anticipo, saldo o tarjeta de regalo—, la propina y lo descontado —cupón, cortesía o paquete—), repartido entre sus citas. Una cita reservada y pagada no se vuelve a cobrar: la caja cobra `total − online.paid`.
 `status`: `scheduled` (agendada) → `arrived` (llegó) → `seated` (en silla) → `paid` (cobrada); fuera del camino, `no_show` y `cancelled`. Una cita `paid` ya no cambia de estado.
 `block`: `{ id, branchId, barberId, category: "sick" | "vacation" | "holiday" | "lunch" | "meeting" | "business" | "personal", repeat: "none" | "daily" | "weekly" | "monthly", startDate, endDate, startTime, endTime, description }`
 
@@ -184,7 +186,7 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | GET | `/calendar/month?branchId&month=AAAA-MM&barberId?` | `{ month, days: [{ date, occupancy: 0–1 \| null, count }] }`. `occupancy` es minutos de cita sobre minutos de jornada; `null` si nadie trabaja. Sin `barberId`, todo el equipo. |
 | POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. `409 conflict` si el tramo pisa otra cita viva o un bloqueo del barbero (el mensaje dice con quién), salvo con `force: true`, que usan los roles que agendan sin reglas (dueño, administrador, recepción, barbero de renta). |
 | PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, reason?, actor? }`. Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión. `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, salvo con `force: true`. `422` · `404`. |
-| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge? }`. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`. `409` si ya estaba cobrada o anulada. |
+| POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge? }`. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`: `tax` es el de la sucursal y, si la cita vino de la reserva en línea, `payment.prepaid` es lo que ya estaba pagado (su `online.paid` + `online.tip`): en caja se cobra solo el resto. `409` si ya estaba cobrada o anulada. |
 | POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
 | PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404`. |
 | DELETE | `/clients/:id/notes/:noteId` | `200 client` sin la nota. `404`. |
@@ -264,9 +266,9 @@ El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuen
 
 Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí —cada cita es una cuenta y cada venta de mostrador (`POST /sales`) es otra—, y cobrar, cancelar o mover una cita se hace por los endpoints del calendario.
 
-`account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, tax, tip, total, collected, refunded, balance, method (\| null), paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
+`account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, discount, tax, tip, total, prepaid, onlineMethod (\| null), collected, refunded, balance, method (\| null), paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
 `status`: `open` (cita agendada o en curso, sin cobrar) · `paid` (cobrada) · `refunded` (se cobró y se devolvió) · `void` (cita cancelada o a la que no se presentaron: no se factura).
-`total` = `subtotal + tax`; la propina (`tip`) va aparte y no entra en `collected`. `collected` es `total` solo si está `paid`; `balance` es `total` solo si está `open`; `refunded` es `total` solo si está `refunded`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`.
+`total` = `subtotal − discount + tax` (con `pricing.taxInclusive`, el impuesto va dentro y no se suma), con el impuesto de la sucursal de la cita; la propina (`tip`) va aparte y no entra en `collected`. `prepaid` es lo que ya se pagó al reservar en línea (`onlineMethod` dice con qué). `collected` es `total` si está `paid` y `prepaid` si está `open`; `balance` es `total − prepaid` solo si está `open`; `refunded` es `total` solo si está `refunded`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`.
 
 | Método | Ruta | Notas |
 |---|---|---|
@@ -317,30 +319,44 @@ Dos formas, y nada más: **documentos** (un objeto por sección, se lee y se gua
 | `POST` | `/settings/lists/:list` | Crea uno. `201`. |
 | `PATCH` | `/settings/lists/:list/:id` | Edita uno. |
 | `DELETE` | `/settings/lists/:list/:id` | Borra uno. `204`. |
-| `POST` | `/settings/payments/test` | Prueba la conexión con la pasarela. `200 { ok }` o `409` si faltan las claves. |
+| `POST` | `/settings/gateways/test` | `{ provider, publicKey, secretKey? }`: prueba las claves de una pasarela (sin `secretKey`, la guardada de la que tiene esa clave pública). `200 { ok, message }`. |
 | `POST` | `/account/delete` | Elimina la cuenta. Cuerpo `{ confirmation }`. `204`. |
 
 Secciones (`:section`): `business` (zona horaria, horario por día, festivos, enlaces), `booking`
 (reglas de la reserva en línea, política de cancelación, portal del cliente), `pricing` (precios
 por nivel, redondeo), `tips` (propinas sugeridas), `cardFee` (recargo por tarjeta), `commissions`
 (qué se descuenta antes de comisionar), `payrollCycle` (cada cuánto y desde qué día se paga),
-`payments` (pasarela), `notifications` (`toggles` por `destinatario.evento.canal` y `thresholds`),
+`notifications` (`toggles` por `destinatario.evento.canal` y `thresholds`),
 `company` (razón social, moneda, contacto) y `billing` (plan y datos de facturación).
 
-Listas (`:list`): `branches`, `closures`, `taxGroups`, `devices`.
+Listas (`:list`): `branches`, `closures`, `taxGroups`, `devices`, `gateways`.
+
+**Cada sucursal cobra con lo suyo.** Una barbería puede tener sucursales en Estados Unidos y en
+Colombia, así que la moneda, el impuesto y la pasarela son de la sucursal, no del negocio:
+
+- `branches[]` lleva `currency`, `taxGroupId` (su impuesto: el estatal, el IVA…; `null` = sin
+  impuesto) y `gatewayId` (con qué pasarela cobra en línea; `null` = solo se paga en la barbería).
+  `pricing.currency` es solo la moneda con la que nace una sucursal nueva.
+- Un servicio o producto con `taxRate` usa el suyo (`0` = exento); con `taxRate: null`, el de la
+  sucursal donde se cobra. Una cuenta con tasas distintas se grava con su tasa media ponderada.
+  `pricing.taxInclusive` dice si los precios ya traen el impuesto (se informa, no se suma).
+- `gateways[]`: `{ id, provider: "stripe" | "square" | "wompi" | "bold" | "mercadopago", name,
+  publicKey, hasSecret, connected }`. Los métodos que ofrece la reserva salen del proveedor:
+  tarjeta y billetera en todos; PSE y Nequi en Wompi y Bold; PSE en Mercado Pago.
 
 Reglas que el cliente da por hechas:
 
 - `booking.links` (enlace de reserva, del portal, del kiosco y el widget) lo pone el servidor: un
   `PUT` que lo traiga se ignora.
-- `payments` nunca devuelve la clave secreta: responde `{ provider, publicKey, secretKeySet,
-  connected }`. Un `PUT` sin `secretKey` conserva la que había.
+- `gateways` nunca devuelve la clave secreta: responde `hasSecret`. Un `PATCH` sin `secretKey`
+  conserva la que había; el proveedor no cambia al editar. Las claves deben tener la forma del
+  proveedor (`pk_`/`sk_` en Stripe, `pub_`/`prv_` en Wompi…): si no, `422`.
 - `devices` tampoco devuelve su clave de acceso: responde `hasAuthKey`.
 - `billing` solo acepta los datos de facturación; el plan y el medio de pago no se cambian por aquí.
 - `cardFee` exige nombre cuando está encendido; `closures` exige `endDate >= startDate`; un
   `taxGroup` necesita al menos una tasa con nombre.
 - `DELETE /settings/lists/branches/:id` responde `409 conflict` si es la última sucursal o si
-  todavía tiene equipo activo.
+  todavía tiene equipo activo. Borrar un `taxGroup` o una `gateway` que una sucursal usa también da `409`.
 - `POST /account/delete` responde `422` si `confirmation` no es exactamente el nombre de la empresa.
 
 Los permisos por rol no están aquí: viven en Equipo.
@@ -366,9 +382,9 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/booking/shop` | La barbería: nombre, logo, moneda, impuesto, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago, `cardFee` (el recargo por tarjeta encendido en Configuración, o `null`), `deposit` (`{ percent }` si la barbería pide anticipo para pagar en el local, o `null`) y sedes con su horario de hoy. Sale de Configuración. |
+| `GET` | `/booking/shop` | La barbería: nombre, logo, moneda por defecto, `taxInclusive`, anticipación mínima, franjas, política de cancelación (`cancelHours`, `lateFeePercent`, `maxCancellations`, `policy`), propinas, formas de pago, `cardFee` (el recargo por tarjeta encendido en Configuración, o `null`), `deposit` (`{ percent }` si la barbería pide anticipo para pagar en el local, o `null`) y sedes con su horario de hoy, su `currency`, su `taxPercent` y sus `onlineMethods` (`card`, `wallet`, `pse`, `nequi`: lo que deja su pasarela; vacío = solo pago en la barbería). Sale de Configuración. |
 | `GET` | `/booking/branches/:id` | El perfil de una sede: `description`, dirección completa, `phone`, `mapsUrl`, `gallery`, `hours` (siete entradas, `opensAt`/`closesAt` nulos si ese día cierra), número de barberos y los `closures` que vienen. La descripción, dirección y teléfono son los de Configuración › Sucursales; el horario de cada día sale del equipo que trabaja ese día. `404` si no existe o está inactiva. |
-| `GET` | `/booking/catalog?branchId` | Lo reservable en la sede: servicios públicos y activos, barberos visibles con lo que cobra cada uno por servicio (`prices`), galería y valoración, y productos visibles y vendibles. |
+| `GET` | `/booking/catalog?branchId` | Lo reservable en la sede: servicios públicos y activos, barberos visibles con lo que cobra cada uno por servicio (`prices`), galería y valoración, y productos visibles y vendibles. Cada servicio y producto trae `taxPercent`: la tasa con la que se cobra en esa sede. |
 | `GET` | `/booking/availability?branchId&date&serviceIds&barberId&exclude` | Las horas libres del día, `{ time, barberIds }`. Sin `barberId`, cualquier barbero que haga todos los servicios. `exclude` es la cita que se está moviendo. Respeta horario, citas, bloqueos, cierres y anticipación mínima. |
 | `GET` | `/booking/alternatives?branchId&date&serviceIds&barberId` | Cuando el barbero no tiene horas: hasta 3 barberos que hacen todos los servicios, saben de lo mismo (al menos una habilidad que cubre lo pedido o que comparten con el elegido) y tienen horas, `{ barberId, skills, date, times }`; sin eso no se recomiendan. Se ordenan por quién tiene hora ese día, luego por parecido (habilidades que cubren lo pedido ×3, las compartidas con el elegido ×2, menos la distancia de nivel). Si no tienen ese día, traen su próximo día libre (hasta 7). Las habilidades del equipo se leen en servicios (`SKILL_SERVICES`). |
 | `GET` | `/booking/earliest?branchId&serviceIds&barberId` | «Lo antes posible»: el primer hueco desde hoy (hasta 14 días) `{ slot: { date, time, barberId } \| null }`. Sin `barberId`, el primer barbero libre que haga todo. |
@@ -379,7 +395,7 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `GET` | `/booking/me/suggestion` | Con token. | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
 | `POST` | `/booking/customers` | Con el token de un celular nuevo. Crea el cliente `{ firstName, lastName, email, marketing }`; el celular es el verificado. Guarda el permiso de promociones con fecha (`marketingConsent`). La misma sesión pasa a ser la del cliente. `201`. |
 | `POST` | `/booking/promo` | Token opcional (para saber si es su primera visita). `{ code, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
-| `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start` y, opcional, `visitId`: las partes de una misma visita —un servicio separado para otro barbero u otra hora— comparten ese id y quedan anotadas «Visita en N partes» en la agenda), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `shop`, `credit`) y `card` (`number`, `name`, `expiry`, `save`) o `savedCardId` (una tarjeta guardada). El CVC nunca viaja a este servidor (va a la pasarela); `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. `utm` (opcional, `{ source, medium, campaign }` del enlace) queda en la reserva. `useReward: true` usa una cortesía de la membresía (`customer.loyalty: { every, progress, available, rewardServiceId, rewardName, rewardValue }`, de Ajustes › Reservas › Membresía): se descuenta `rewardValue` de los servicios (`totals.reward`) y queda una menos. `referencePhotos` (opcional, hasta 3): las fotos del corte que quiere, cada una como data URL JPEG/PNG/WebP de hasta ~1,5 MB (el celular las reduce a 1024 px); quedan en la cita (`referencePhotos`) y el barbero la ve en el panel del Calendario; si no es una imagen válida, `422`. Con `giftCode`, la tarjeta de regalo paga primero (`totals.gift`; `total` es lo que queda) y lo que sobra queda en ella; si cubre todo, `payment.method` es `gift`. Una misma persona (quien reserva o cada invitado) no puede tener dos citas que se crucen: `409 conflict`. Con `method: "shop"` y `customer.depositRequired` (cliente nuevo o con inasistencias, según Ajustes › Reservas › Anticipo), hay que mandar `card` o `savedCardId`: se cobra el anticipo (el porcentaje de subtotal + impuesto) y `payment` queda `pending` con `paid` = anticipo; sin tarjeta, `422 card_required`. |
+| `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start` y, opcional, `visitId`: las partes de una misma visita —un servicio separado para otro barbero u otra hora— comparten ese id y quedan anotadas «Visita en N partes» en la agenda), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `pse`, `nequi`, `shop`, `credit`; los en línea, solo si la pasarela de la sede los tiene: si no, `422`) y `card` (`number`, `name`, `expiry`, `save`) o `savedCardId` (una tarjeta guardada). El CVC nunca viaja a este servidor (va a la pasarela); `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. `utm` (opcional, `{ source, medium, campaign }` del enlace) queda en la reserva. `useReward: true` usa una cortesía de la membresía (`customer.loyalty: { every, progress, available, rewardServiceId, rewardName, rewardValue }`, de Ajustes › Reservas › Membresía): se descuenta `rewardValue` de los servicios (`totals.reward`) y queda una menos. `referencePhotos` (opcional, hasta 3): las fotos del corte que quiere, cada una como data URL JPEG/PNG/WebP de hasta ~1,5 MB (el celular las reduce a 1024 px); quedan en la cita (`referencePhotos`) y el barbero la ve en el panel del Calendario; si no es una imagen válida, `422`. Con `giftCode`, la tarjeta de regalo paga primero (`totals.gift`; `total` es lo que queda) y lo que sobra queda en ella; si cubre todo, `payment.method` es `gift`. Una misma persona (quien reserva o cada invitado) no puede tener dos citas que se crucen: `409 conflict`. Con `method: "shop"` y `customer.depositRequired` (cliente nuevo o con inasistencias, según Ajustes › Reservas › Anticipo), hay que mandar `card` o `savedCardId`: se cobra el anticipo (el porcentaje de subtotal + impuesto) y `payment` queda `pending` con `paid` = anticipo; sin tarjeta, `422 card_required`. |
 | `POST` | `/booking/phone/check` | `{ phone }` → `{ returning, token, customer }`. Cliente nuevo: `{ returning: false, token: null, customer: null }` y arma la cita sin código. Cliente de siempre: se le reconoce sin código para su bienvenida: `customer` sin lo sensible (`email` vacío, sin `cards`, `credit` 0, sin `packages` ni `loyalty`) y un `token` de **vista previa** que solo vale para `GET /booking/me/suggestion`; todo lo demás con sesión (pagar, lista de espera, «Mis citas», paquetes, tarjetas de regalo) responde `403` hasta verificar el código (`otp/verify` devuelve el perfil completo y la sesión de verdad). Un número bloqueado responde `{ returning: true, token: null, customer: null }` y lo sabe tras el código. `429 rate_limited` tras 20 consultas en 10 minutos desde el mismo origen. |
 | `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo, channel }` (enmascarado), igual para cualquier número. `429 rate_limited` tras 5 en 10 minutos. |
 | `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ status: "known", token, customer }`, `{ status: "new", token, customer: null }` o `{ status: "blocked", token: null, customer: null }`. `422 otp_invalid` con `attemptsLeft`; `429 otp_locked` tras 5 fallos (hay que pedir otro). |

@@ -4,6 +4,7 @@ import { WALK_IN_CLIENT, clockOf, dateKey, parseClock, type MockAppointment, typ
 import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/handlers";
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
+import { accountTaxPercent, branchCurrency, branchOnlineMethods, branchTaxPercent, itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
@@ -44,9 +45,6 @@ export const bookingRules = () => {
   const unit = rules.minNoticeUnit === "hours" ? 60 : rules.minNoticeUnit === "days" ? 1440 : 1;
   return { ...rules, minNoticeMinutes: rules.minNotice * unit };
 };
-
-export const taxPercent = (): number =>
-  ((db.settings.lists.taxGroups[0]?.taxes as { percent: number }[] | undefined) ?? []).reduce((sum, tax) => sum + tax.percent, 0);
 
 export const tipOptions = () => db.settings.sections.tips as { options: { id: string; type: "percent" | "amount"; value: number }[]; defaultId: string | null };
 
@@ -103,6 +101,10 @@ export function shop() {
       ...branchHoursToday(branch.id),
       imageUrl: BRANCH_PHOTOS[branch.id] ?? null,
       barbers: bookableBarbers(branch.id).length,
+      // Cada sucursal cobra en su moneda, con su impuesto y con los métodos de su pasarela.
+      currency: branchCurrency(branch.id),
+      taxPercent: branchTaxPercent(branch.id),
+      onlineMethods: branchOnlineMethods(branch.id),
     }));
   return {
     // La marca de la barbería tal como la subió en Identidad; sin ella, Barberlytics.
@@ -112,7 +114,7 @@ export function shop() {
     coverUrl: COVER,
     phone: company.phone,
     currency: (db.settings.sections.pricing as { currency: string }).currency,
-    taxPercent: taxPercent(),
+    taxInclusive: taxInclusive(),
     minNoticeMinutes: rules.minNoticeMinutes,
     slotMinutes: rules.slotInterval,
     cancelHours: rules.cancelHours,
@@ -163,7 +165,7 @@ export function catalog(branchId: string) {
   });
   const products = db.products.items
     .filter((item) => item.visibility === "public" && item.sellable && item.activeBranchIds.includes(branchId))
-    .map((item) => ({ id: item.id, name: item.name, description: item.description, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, imageUrl: item.imageUrl }));
+    .map((item) => ({ id: item.id, name: item.name, description: item.description, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, taxPercent: itemTaxPercent(item.taxRate, branchId), imageUrl: item.imageUrl }));
   return {
     services: services.map((item) => ({
       id: item.id,
@@ -172,6 +174,8 @@ export function catalog(branchId: string) {
       category: db.services.categories.find((category) => category.id === item.categoryId)?.name ?? "",
       durationMin: item.durationMin,
       price: item.price,
+      // La tasa con la que se cobra en esta sucursal: la del servicio o, si no tiene, la de la sucursal.
+      taxPercent: itemTaxPercent(item.taxRate, branchId),
       imageUrl: item.imageUrl,
       isCombo: item.kind === "combo",
       popular: POPULAR.has(item.id),
@@ -512,4 +516,12 @@ export function branchDetail(branchId: string) {
       .filter((closure) => closure.branchIds.includes(branchId) && closure.endDate >= dateKey(new Date()))
       .map((closure) => ({ startDate: closure.startDate, endDate: closure.endDate, description: closure.description })),
   };
+}
+
+/** La tasa media de una reserva en su sucursal: cada servicio (al precio de su barbero) y cada producto con la suya. */
+export function reservationTaxPercent(branchId: string, planned: readonly { barberId: string; serviceIds: readonly string[] }[], products: readonly { productId: string; price: number; qty: number }[]): number {
+  return accountTaxPercent(branchId, {
+    services: planned.flatMap((item) => item.serviceIds.map((serviceId) => ({ id: serviceId, amount: barberPrice(item.barberId, serviceId) ?? 0 }))),
+    products: products.map((line) => ({ id: line.productId, amount: line.price * line.qty })),
+  });
 }

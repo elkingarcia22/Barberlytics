@@ -26,10 +26,10 @@ import {
   findReservationLine,
   isBlockedPhone,
   myAppointments,
+  reservationTaxPercent,
   reservationView,
   serviceName,
   shop,
-  taxPercent,
   tipOptions,
   visitSuggestion,
 } from "./logic";
@@ -45,6 +45,8 @@ import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 const GIFT_MIN = 10;
 const GIFT_MAX = 500;
 import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
+import { branchOnlineMethods, taxInclusive } from "../settings/branchRules";
+import { settlementsOf } from "./settlement";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
@@ -433,9 +435,12 @@ export const bookingHandlers = [
     const giftCode = text(input.giftCode);
     const giftCard = giftCode ? findGiftCard(giftCode) : undefined;
     if (giftCode && (!giftCard || giftCard.balance <= 0)) return error(422, "gift_invalid", "Esa tarjeta de regalo no existe o ya no tiene saldo.");
-    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: taxPercent(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0, reward: rewardValue, prepaid: coverage.amount });
+    // Cada línea con su tasa (la del artículo o la de la sucursal): el impuesto es el de esa sucursal.
+    const totals = computeTotals({ services: servicesTotal, products: productsTotal, discount: promoDiscount(promo, servicesTotal + productsTotal), taxPercent: reservationTaxPercent(branchId, plan.planned, productLines), taxInclusive: taxInclusive(), tip: tipAmount(tip, servicesTotal), cardFee: chargesCardFee(method) ? cardFeeRule() : null, giftBalance: giftCard?.balance ?? 0, reward: rewardValue, prepaid: coverage.amount });
 
     const rules = bookingRules();
+    // Lo que se cobra en línea pasa por la pasarela de la sucursal: sin pasarela conectada, solo se paga en la barbería.
+    const onlineMethods = branchOnlineMethods(branchId);
     let payment: MockReservation["payment"];
     if (totals.total === 0 && totals.gift > 0) {
       // La tarjeta de regalo cubre todo: no hay nada más que cobrar.
@@ -456,9 +461,10 @@ export const bookingHandlers = [
       if (customer.credit < totals.total) return error(422, "validation", "Tu saldo a favor no alcanza para esta reserva.");
       db.booking.credits = { ...db.booking.credits, [client.id]: Math.round((customer.credit - totals.total) * 100) / 100 };
       payment = { method, status: "paid", last4: null, brand: null, paid: totals.total };
-    } else if (method === "card" || method === "wallet") {
-      if (!rules.paymentMethods.card) return error(422, "validation", "Esta barbería no cobra en línea.");
-      const charged = chargeCard(client, input, method);
+    } else if (method === "card" || method === "wallet" || method === "pse" || method === "nequi") {
+      if (!rules.paymentMethods.card || !onlineMethods.includes(method)) return error(422, "validation", "Esta sucursal no recibe ese método de pago en línea.");
+      // PSE y Nequi los aprueba el banco o la app del cliente en la pasarela; el simulado los da por aprobados.
+      const charged = method === "pse" || method === "nequi" ? { last4: null, brand: null } : chargeCard(client, input, method);
       if (charged instanceof Response) return charged;
       payment = { method, status: "paid", last4: charged.last4, brand: charged.brand, paid: totals.total };
     } else {
@@ -479,6 +485,9 @@ export const bookingHandlers = [
     const referencePhotos = (Array.isArray(input.referencePhotos) ? input.referencePhotos : []).map((photo) => text(photo)).filter(Boolean);
     const badPhoto = referencePhotos.length > MAX_REFERENCE_PHOTOS || referencePhotos.some((photo) => !(PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS));
     if (badPhoto) return error(422, "validation", "La foto no se pudo subir. Prueba con otra.", { fields: { referencePhotos: ["La foto no se pudo subir. Prueba con otra."] } });
+    const number = `BL-${String(1000 + db.booking.reservations.length + 1)}`;
+    // Lo pagado, la propina y lo descontado quedan en cada cita: la caja cobra solo lo que falta.
+    const online = settlementsOf({ values: plan.planned.map((item, index) => item.price + (index === 0 ? productsTotal : 0)), serviceValues: plan.planned.map((item) => item.price), totals, payment, reservation: number });
     // Varias citas en un solo agendamiento quedan enlazadas en la agenda.
     const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     // Las partes de una visita llevan su nota: en la agenda se ve que es la misma persona en dos sillas.
@@ -506,11 +515,12 @@ export const bookingHandlers = [
       createdBy: "Reserva en línea",
       history: [{ id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "created" }],
       payment: null,
+      online: online[index],
     }));
     const lines: MockBookingLine[] = plan.planned.map((item, index) => ({ appointmentId: created[index].id, guestName: item.guestName, guestRelation: item.guestRelation, price: item.price, paid: Math.round(item.price * paidShare * 100) / 100, noPreference: item.noPreference }));
     const reservation: MockReservation = {
       id: reservationId,
-      number: `BL-${String(1000 + db.booking.reservations.length + 1)}`,
+      number,
       createdAt: new Date().toISOString(),
       customerId: client.id,
       branchId,

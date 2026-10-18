@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GATEWAY_PROVIDERS, type GatewayProvider } from "./gatewayProviders";
 
 /**
  * Las formas de cada ajuste. Dos familias, como en el backend: documentos
@@ -6,8 +7,8 @@ import { z } from "zod";
  * (`/settings/lists/:list`, con alta, edición y borrado).
  */
 
-export type SettingsSectionId = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "payments" | "notifications" | "company" | "billing";
-export type SettingsListId = "branches" | "closures" | "taxGroups" | "devices";
+export type SettingsSectionId = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing";
+export type SettingsListId = "branches" | "closures" | "taxGroups" | "devices" | "gateways";
 
 /* ---------------------------------------------------------------- negocio */
 
@@ -63,8 +64,25 @@ export type TipsSettings = z.infer<typeof tipsSchema>;
 export const cardFeeSchema = z.object({ enabled: z.boolean(), name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) });
 export type CardFeeSettings = z.infer<typeof cardFeeSchema>;
 
-export const paymentsSchema = z.object({ provider: z.literal("stripe"), publicKey: z.string(), secretKeySet: z.boolean(), connected: z.boolean() });
-export type PaymentsSettings = z.infer<typeof paymentsSchema>;
+/**
+ * Una pasarela conectada. La clave secreta nunca vuelve del servidor: solo se
+ * sabe si está guardada. Cada sucursal elige con cuál cobra.
+ */
+export const gatewaySchema = z.object({
+  id: z.string(),
+  provider: z.enum(GATEWAY_PROVIDERS),
+  name: z.string(),
+  publicKey: z.string(),
+  hasSecret: z.boolean(),
+  connected: z.boolean(),
+});
+export type Gateway = z.infer<typeof gatewaySchema>;
+export interface GatewayInput {
+  provider: GatewayProvider;
+  name: string;
+  publicKey: string;
+  secretKey: string;
+}
 
 export const paymentsTestSchema = z.object({ ok: z.boolean(), message: z.string() });
 
@@ -110,6 +128,10 @@ export const branchSchema = z.object({
   currency: z.string(),
   language: z.string(),
   timezone: z.string(),
+  /** El impuesto de la sucursal (Configuración › Impuestos): lo usa lo que no tiene tasa propia. */
+  taxGroupId: z.string().nullable().default(null),
+  /** Con qué pasarela cobra en línea; sin ella, la reserva solo deja pagar en la barbería. */
+  gatewayId: z.string().nullable().default(null),
   description: z.string(),
   status: z.enum(["active", "inactive"]),
   createdAt: z.string(),

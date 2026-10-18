@@ -1,10 +1,11 @@
 import * as React from "react";
-import { CreditCard, Smartphone, Store, Wallet } from "lucide-react";
+import { Building2, CreditCard, Smartphone, Store, Wallet } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import type { SelectionOption } from "@/components/selection";
 import { isApiError } from "@/lib/api";
 import { depositOf, feeLabel } from "../pricing";
 import { useReserveMutation } from "../queries";
+import { activeBranch } from "../useBookingTotals";
 import type { PayMethod } from "../types";
 import { useBookingFlow } from "./BookingContext";
 import { cardMissing, toastMissing } from "./missingData";
@@ -44,13 +45,13 @@ export function usePaymentController() {
 
   // El recargo se dice en la opción que lo lleva, antes de elegirla, y pagar en la barbería lo evita.
   const fee = shop.cardFee ? t("booking.payment.feeHint", { fee: feeLabel(shop.cardFee, fmt.money) }) : "";
+  // En línea se paga con lo que deja la pasarela de la sucursal: tarjeta en todas, PSE y Nequi en las de Colombia.
+  const online = shop.payment.card ? (activeBranch(shop, state.branchId)?.onlineMethods ?? ["card", "wallet"]) : [];
   const methods: SelectionOption[] = [
-    ...(shop.payment.card
-      ? [
-          { value: "card", label: t("booking.payment.card"), description: [t("booking.payment.cardHint"), fee].filter(Boolean).join(" "), icon: CreditCard },
-          { value: "wallet", label: t("booking.payment.wallet"), description: [t("booking.payment.walletHint"), fee].filter(Boolean).join(" "), icon: Smartphone },
-        ]
-      : []),
+    ...(online.includes("card") ? [{ value: "card", label: t("booking.payment.card"), description: [t("booking.payment.cardHint"), fee].filter(Boolean).join(" "), icon: CreditCard }] : []),
+    ...(online.includes("wallet") ? [{ value: "wallet", label: t("booking.payment.wallet"), description: [t("booking.payment.walletHint"), fee].filter(Boolean).join(" "), icon: Smartphone }] : []),
+    ...(online.includes("pse") ? [{ value: "pse", label: t("booking.payment.pse"), description: t("booking.payment.pseHint"), icon: Building2 }] : []),
+    ...(online.includes("nequi") ? [{ value: "nequi", label: t("booking.payment.nequi"), description: t("booking.payment.nequiHint"), icon: Smartphone }] : []),
     // «Solo en línea» no esconde la opción: se ve apagada y dice por qué.
     ...(shop.payment.payAtShop
       ? [
@@ -85,7 +86,7 @@ export function usePaymentController() {
 
   const serverCardError = isApiError(reserve.error) ? reserve.error.fieldErrors?.card?.[0] : undefined;
   const payLabel =
-    coveredByGift ? t("booking.gift.payCovered") : deposit > 0 ? t("booking.payment.payDeposit", { amount: fmt.money(deposit) }) : method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
+    coveredByGift ? t("booking.gift.payCovered") : deposit > 0 ? t("booking.payment.payDeposit", { amount: fmt.money(deposit) }) : method === "shop" ? t("booking.payment.payShop") : method === "credit" ? t("booking.payment.payCredit") : method === "wallet" ? t("booking.payment.payWallet", { amount: fmt.money(totals.total) }) : method === "pse" ? t("booking.payment.payPse", { amount: fmt.money(totals.total) }) : method === "nequi" ? t("booking.payment.payNequi", { amount: fmt.money(totals.total) }) : t("booking.payment.payNow", { amount: fmt.money(totals.total) });
 
   /** Revisa que el cobro esté completo; avisa de lo que falta y dice si se puede seguir. */
   const validate = () => {

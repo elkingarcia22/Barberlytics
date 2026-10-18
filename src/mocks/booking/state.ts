@@ -24,12 +24,12 @@ export interface MockReservation {
   lines: MockBookingLine[];
   products: { productId: string; name: string; qty: number; price: number }[];
   promoCode: string | null;
-  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; tip: number; fee: number; feeName: string | null; gift: number; reward: number; prepaid: number; total: number };
+  totals: { services: number; products: number; discount: number; subtotal: number; tax: number; taxIncluded?: boolean; tip: number; fee: number; feeName: string | null; gift: number; reward: number; prepaid: number; total: number };
   /** De dónde vino quien reservó (UTM del enlace), si se sabe. */
   utm?: { source: string; medium: string; campaign: string } | null;
   /** La tarjeta de regalo usada (su código), si la hubo. */
   giftCode?: string | null;
-  payment: { method: "card" | "wallet" | "shop" | "credit" | "gift"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
+  payment: { method: "card" | "wallet" | "shop" | "credit" | "gift" | "pse" | "nequi"; status: "paid" | "pending"; last4: string | null; brand: string | null; paid: number };
 }
 
 export interface MockSavedCard {

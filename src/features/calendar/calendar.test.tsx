@@ -786,6 +786,15 @@ describe("Calendario", () => {
     expect(screen.getByTestId("checkout-pay")).toHaveTextContent(/Cobrar US\$/);
   });
 
+  test("una cita pagada en línea solo cobra en caja lo que falta, con el impuesto de la sucursal", async () => {
+    // El corte paga el 10 % de la sucursal: 35 + 3,5. Al reservar dejó 10 de anticipo.
+    const taxed: ModelContext = { ...ctx, catalog: { ...CATALOG, services: [{ ...CATALOG.services[0], taxPercent: 10 }] } };
+    const online = { reservation: "BL-1001", method: "shop", paid: 10, tip: 0, discount: 0 };
+    renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated", online }} onOpenChange={() => {}} ctx={taxed} onPaid={() => {}} />);
+    expect(await screen.findByTestId("checkout-prepaid")).toHaveTextContent("BL-1001");
+    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$28.5");
+  });
+
   test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {
     const user = userEvent.setup();
     const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "seated" as const };

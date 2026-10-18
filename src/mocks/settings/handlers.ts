@@ -1,18 +1,19 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { GATEWAY_SPECS, isGatewayProvider, keyLooksValid } from "@/features/settings/gatewayProviders";
 import type { MockListItem, MockSettingsList, MockSettingsSection } from "./seed";
 
 /**
  * Los endpoints de configuración del backend simulado. Reproducen
  * docs/API_CONTRACT.md (sección «Configuración»): un documento por ajuste
- * (`/settings/:section`) y cuatro listas con alta, edición y borrado
+ * (`/settings/:section`) y cinco listas con alta, edición y borrado
  * (`/settings/lists/:list`).
  */
 
 const BASE = "*/api";
 const LATENCY_MS = 200;
-const SECTIONS: readonly MockSettingsSection[] = ["business", "booking", "pricing", "tips", "cardFee", "commissions", "payrollCycle", "payments", "notifications", "company", "billing"];
-const LISTS: readonly MockSettingsList[] = ["branches", "closures", "taxGroups", "devices"];
+const SECTIONS: readonly MockSettingsSection[] = ["business", "booking", "pricing", "tips", "cardFee", "commissions", "payrollCycle", "notifications", "company", "billing"];
+const LISTS: readonly MockSettingsList[] = ["branches", "closures", "taxGroups", "devices", "gateways"];
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const URL_LIKE = /^https?:\/\/\S+\.\S+/;
 
@@ -84,6 +85,10 @@ const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null
     else if (db.settings.lists.branches.some((item) => item.id !== currentId && text(item.name).toLowerCase() === name.toLowerCase())) fields.name = ["Ya hay una sucursal con ese nombre."];
     for (const key of ["country", "state", "city", "timezone", "currency"]) if (!text(body[key])) fields[key] = ["Este dato es obligatorio."];
     if (text(body.phone).replace(/\D/g, "").length < 8) fields.phone = ["Escribe un teléfono válido."];
+    const taxGroupId = body.taxGroupId ?? null;
+    if (taxGroupId !== null && !db.settings.lists.taxGroups.some((item) => item.id === taxGroupId)) fields.taxGroupId = ["Ese impuesto no existe."];
+    const gatewayId = body.gatewayId ?? null;
+    if (gatewayId !== null && !db.settings.lists.gateways.some((item) => item.id === gatewayId)) fields.gatewayId = ["Esa pasarela no existe."];
     return fields;
   },
   closures: (body) => {
@@ -114,16 +119,52 @@ const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null
     if (text(body.tpn).length < 4) fields.tpn = ["Escribe el TPN."];
     return fields;
   },
+  gateways: (body, currentId) => {
+    const fields: Fields = {};
+    const current = currentId ? db.settings.lists.gateways.find((item) => item.id === currentId) : undefined;
+    // El proveedor no cambia al editar: otra cuenta es otra pasarela.
+    const provider = current ? current.provider : body.provider;
+    if (!isGatewayProvider(provider)) return { provider: ["Elige la pasarela."] };
+    if (text(body.name).length < 2) fields.name = ["Ponle un nombre a la pasarela."];
+    if (!keyLooksValid(provider, "public", text(body.publicKey))) fields.publicKey = [`Esa no es una clave pública de ${GATEWAY_SPECS[provider].name}.`];
+    const secret = text(body.secretKey);
+    if (!current && !secret) fields.secretKey = ["Escribe la clave secreta."];
+    else if (secret && !keyLooksValid(provider, "secret", secret)) fields.secretKey = [`Esa no es una clave secreta de ${GATEWAY_SPECS[provider].name}.`];
+    return fields;
+  },
+};
+
+/** Lo que no se puede borrar porque una sucursal lo usa: la sucursal se quedaría sin impuesto o sin cobro. */
+const IN_USE: Partial<Record<MockSettingsList, { key: string; message: string }>> = {
+  taxGroups: { key: "taxGroupId", message: "Hay sucursales que cobran con este impuesto. Cámbiales el impuesto antes de borrarlo." },
+  gateways: { key: "gatewayId", message: "Hay sucursales que cobran con esta pasarela. Cámbiales la pasarela antes de borrarla." },
 };
 
 const isSection = (value: unknown): value is MockSettingsSection => SECTIONS.includes(value as MockSettingsSection);
 const isList = (value: unknown): value is MockSettingsList => LISTS.includes(value as MockSettingsList);
 
-/** Lo que una lista guarda de cada fila: nunca el secreto de un datáfono. */
-function listRow(list: MockSettingsList, body: Body): Body {
+/** Lo que una lista guarda de cada fila: nunca el secreto de un datáfono ni de una pasarela. */
+function listRow(list: MockSettingsList, body: Body, current?: MockListItem): Body {
+  if (list === "branches") return { ...body, taxGroupId: body.taxGroupId ?? null, gatewayId: body.gatewayId ?? null };
+  if (list === "gateways") {
+    // La clave secreta no se guarda en la fila: vive aparte (storeGatewaySecret).
+    const rest = Object.fromEntries(Object.entries(body).filter(([key]) => key !== "secretKey"));
+    const provider = current?.provider ?? body.provider;
+    return { ...rest, provider, publicKey: text(body.publicKey), name: text(body.name) };
+  }
   if (list !== "devices") return body;
   const { authKey, ...rest } = body;
   return { ...rest, hasAuthKey: text(authKey).length > 0 || body.hasAuthKey === true };
+}
+
+/** Guarda la clave secreta aparte y marca la fila: conectada si las dos claves tienen la forma del proveedor. */
+function storeGatewaySecret(item: MockListItem, secret: string): MockListItem {
+  const secrets = secret ? { ...db.settings.gatewaySecrets, [item.id]: secret } : db.settings.gatewaySecrets;
+  db.settings = { ...db.settings, gatewaySecrets: secrets };
+  const saved = secrets[item.id] ?? "";
+  const provider = item.provider;
+  const connected = isGatewayProvider(provider) && keyLooksValid(provider, "public", text(item.publicKey)) && keyLooksValid(provider, "secret", saved);
+  return { ...item, hasSecret: saved.length > 0, connected };
 }
 
 const listView = (list: MockSettingsList) => {
@@ -149,7 +190,8 @@ export const settingsHandlers = [
     const body = asRecord(await request.json().catch(() => ({})));
     const fields = LIST_RULES[list](body, null);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const item: MockListItem = { ...listRow(list, body), id: `${list.slice(0, 3)}_${Date.now().toString(36)}`, ...(list === "branches" ? { status: "active", createdAt: new Date().toISOString() } : {}) };
+    const row: MockListItem = { ...listRow(list, body), id: `${list.slice(0, 3)}_${Date.now().toString(36)}`, ...(list === "branches" ? { status: "active", createdAt: new Date().toISOString() } : {}) };
+    const item = list === "gateways" ? storeGatewaySecret(row, text(body.secretKey)) : row;
     db.settings = { ...db.settings, lists: { ...db.settings.lists, [list]: [...db.settings.lists[list], item] } };
     db.persist();
     return HttpResponse.json(listView(list), { status: 201 });
@@ -165,7 +207,8 @@ export const settingsHandlers = [
     const body = asRecord(await request.json().catch(() => ({})));
     const fields = LIST_RULES[list](body, current.id);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const updated: MockListItem = { ...current, ...listRow(list, { ...body, hasAuthKey: current.hasAuthKey }), id: current.id };
+    const merged: MockListItem = { ...current, ...listRow(list, { ...body, hasAuthKey: current.hasAuthKey }, current), id: current.id };
+    const updated = list === "gateways" ? storeGatewaySecret(merged, text(body.secretKey)) : merged;
     db.settings = { ...db.settings, lists: { ...db.settings.lists, [list]: db.settings.lists[list].map((item) => (item.id === current.id ? updated : item)) } };
     db.persist();
     return HttpResponse.json(listView(list));
@@ -181,20 +224,31 @@ export const settingsHandlers = [
       if (db.settings.lists.branches.length === 1) return error(409, "conflict", "El negocio necesita al menos una sucursal.");
       if (db.team.members.some((member) => member.branchIds.includes(String(params.id)) && member.status !== "inactive")) return error(409, "conflict", "Tiene personas del equipo activas. Muévelas a otra sucursal antes de borrarla.");
     }
+    const guard = IN_USE[list];
+    if (guard && db.settings.lists.branches.some((branch) => branch[guard.key] === params.id)) return error(409, "conflict", guard.message);
+    if (list === "gateways") {
+      const secrets = Object.fromEntries(Object.entries(db.settings.gatewaySecrets).filter(([id]) => id !== String(params.id)));
+      db.settings = { ...db.settings, gatewaySecrets: secrets };
+    }
     db.settings = { ...db.settings, lists: { ...db.settings.lists, [list]: db.settings.lists[list].filter((item) => item.id !== params.id) } };
     db.persist();
     return HttpResponse.json(listView(list));
   }),
 
-  /* Probar la conexión con la pasarela: vale con que las dos claves tengan forma de clave. */
-  http.post(`${BASE}/settings/payments/test`, async ({ request }) => {
+  /* Probar la conexión con una pasarela: vale con que las dos claves tengan la forma de ese proveedor. */
+  http.post(`${BASE}/settings/gateways/test`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const body = asRecord(await request.json().catch(() => ({})));
+    const provider = body.provider;
+    if (!isGatewayProvider(provider)) return error(422, "validation", "Elige la pasarela.", { fields: { provider: ["Elige la pasarela."] } });
     const publicKey = text(body.publicKey);
-    const secretKey = text(body.secretKey) || db.settings.secretKey || "";
-    const ok = publicKey.startsWith("pk_") && secretKey.startsWith("sk_");
-    return HttpResponse.json({ ok, message: ok ? "La pasarela respondió correctamente." : "La pasarela rechazó las claves. Revisa que sean de la misma cuenta y del mismo modo (prueba o producción)." });
+    // Sin clave escrita se prueba con la guardada de la pasarela que tiene esa clave pública.
+    const saved = db.settings.lists.gateways.find((item) => item.provider === provider && item.publicKey === publicKey);
+    const secretKey = text(body.secretKey) || (saved ? (db.settings.gatewaySecrets[saved.id] ?? "") : "");
+    const ok = keyLooksValid(provider, "public", publicKey) && keyLooksValid(provider, "secret", secretKey);
+    const name = GATEWAY_SPECS[provider].name;
+    return HttpResponse.json({ ok, message: ok ? `${name} respondió correctamente.` : `${name} rechazó las claves. Revisa que sean de la misma cuenta y del mismo modo (prueba o producción).` });
   }),
 
   http.post(`${BASE}/account/delete`, async ({ request }) => {
@@ -225,16 +279,9 @@ export const settingsHandlers = [
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     const current = db.settings.sections[section];
     let next: Body = { ...current, ...body };
-    let secretKey = db.settings.secretKey;
     if (section === "booking") next = { ...next, links: current.links };
     if (section === "billing") next = { ...current, details: { ...asRecord(current.details), ...asRecord(body.details) } };
-    if (section === "payments") {
-      const incoming = text(body.secretKey);
-      if (incoming) secretKey = incoming;
-      const publicKey = text(body.publicKey);
-      next = { provider: "stripe", publicKey, secretKeySet: Boolean(secretKey), connected: publicKey.startsWith("pk_") && Boolean(secretKey?.startsWith("sk_")) };
-    }
-    db.settings = { ...db.settings, secretKey, sections: { ...db.settings.sections, [section]: next } };
+    db.settings = { ...db.settings, sections: { ...db.settings.sections, [section]: next } };
     db.persist();
     return HttpResponse.json(next);
   }),

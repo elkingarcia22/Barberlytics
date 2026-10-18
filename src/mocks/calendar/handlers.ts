@@ -1,5 +1,8 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
+import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
+import { appointmentAccount } from "./account";
 import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
 import type { MockCatalogService } from "../services/seed";
 import type { MockCatalogProduct } from "../products/seed";
@@ -65,6 +68,7 @@ function requireAuth(request: Request) {
   return ACCOUNTS.find((item) => item.id === accountId) ?? null;
 }
 
+const round2 = (value: number): number => Math.round(value * 100) / 100;
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
@@ -97,6 +101,8 @@ export function barbersIn(branchId: string): MockBarber[] {
     workingHours: fixedHours(member),
     acceptsWalkIns: order?.walkIn.find((entry) => entry.memberId === member.id)?.enabled ?? isBarberRole(member.role),
     bookingVisible: member.bookingVisible,
+    // Lo que cobra cada barbero: la cuenta de la cita va a su precio, como en la reserva en línea.
+    prices: Object.fromEntries(member.services.flatMap((item) => (item.price === null ? [] : [[item.serviceId, item.price]]))),
   }));
 }
 
@@ -201,8 +207,9 @@ export const catalogServices = (): MockService[] => db.services.items.map(toAgen
    que exista; el catálogo que se ofrece solo trae los activos y vendibles. */
 const toSale = (item: MockCatalogProduct): MockProduct => ({ id: item.id, name: item.name, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: item.price, imageUrl: item.imageUrl });
 const catalogProducts = (): MockProduct[] => db.products.items.map(toSale);
-const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map(toSale);
-const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map(toAgenda);
+// El catálogo de una sucursal lleva la tasa con la que se cobra ahí: la del artículo o la de la sucursal.
+const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map((item) => ({ ...toSale(item), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
+const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map((item) => ({ ...toAgenda(item), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
 
 export const calendarHandlers = [
   http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
@@ -214,6 +221,7 @@ export const calendarHandlers = [
       clients: db.calendar.clients,
       services: bookableIn(branchId),
       products: sellableIn(branchId),
+      taxInclusive: taxInclusive(),
     });
   }),
 
@@ -389,16 +397,15 @@ export const calendarHandlers = [
       : existing.products;
     const tip = Math.max(0, Number(input.tip) || 0);
     const surcharge = method === "card" ? Math.max(0, Number(input.surcharge) || 0) : 0;
-    const subtotal =
-      serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.price ?? 0), 0) +
-      products.reduce((sum, item) => sum + (catalogProducts().find((product) => product.id === item.productId)?.price ?? 0) * item.qty, 0);
+    // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
+    const bill = appointmentAccount(existing, serviceIds, products);
     const paidAt = new Date().toISOString();
     return replaceAppointment({
       ...existing,
       serviceIds,
       products,
       status: "paid",
-      payment: { method, tip, tax: 0, total: subtotal + tip + surcharge, paidAt },
+      payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt },
       history: [...existing.history, entry(account.user.name, `paid:${method}`)],
     });
   }),
@@ -542,8 +549,17 @@ export const calendarHandlers = [
     if (items.length === 0) fields.items = ["Elige al menos un producto."];
     if (!METHODS.includes(method)) fields.method = ["Elige un método de pago."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const total = items.reduce((sum, item) => sum + (catalogProducts().find((product) => product.id === item.productId)?.price ?? 0) * item.qty, 0);
-    const sale = { id: `sale_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", items, method, total, paidAt: new Date().toISOString() };
+    const branchId = text(input.branchId) || "ma";
+    // La venta de mostrador lleva el impuesto de la sucursal donde se hace, como una cita.
+    const { tax, total } = cartTotals(
+      items.map((item) => {
+        const product = db.products.items.find((row) => row.id === item.productId);
+        return { amount: (product?.price ?? 0) * item.qty, percent: itemTaxPercent(product?.taxRate, branchId) };
+      }),
+      0,
+      taxInclusive()
+    );
+    const sale = { id: `sale_${Date.now().toString(36)}`, branchId, items, method, tax, total, paidAt: new Date().toISOString() };
     db.calendar.sales = [...db.calendar.sales, sale];
     db.persist();
     return HttpResponse.json(sale, { status: 201 });

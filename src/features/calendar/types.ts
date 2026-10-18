@@ -22,6 +22,8 @@ export const barberSchema = z.object({
   workingHours: z.record(z.string(), z.array(workingRangeSchema)),
   acceptsWalkIns: z.boolean(),
   bookingVisible: z.boolean().optional(),
+  /** Lo que cobra por cada servicio (su precio en Equipo); sin entrada, el de la carta. */
+  prices: z.record(z.string(), z.number()).optional(),
 });
 export type Barber = z.infer<typeof barberSchema>;
 
@@ -51,10 +53,11 @@ export const clientSchema = z.object({
 });
 export type Client = z.infer<typeof clientSchema>;
 
-export const serviceSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), durationMin: z.number(), price: z.number(), imageUrl: z.string().nullable().optional() });
+/** `taxPercent`: la tasa con la que se cobra en la sucursal del catálogo (la del artículo o la de la sucursal). */
+export const serviceSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), durationMin: z.number(), price: z.number(), taxPercent: z.number().optional(), imageUrl: z.string().nullable().optional() });
 export type Service = z.infer<typeof serviceSchema>;
 
-export const productSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), price: z.number(), imageUrl: z.string().nullable().optional() });
+export const productSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), price: z.number(), taxPercent: z.number().optional(), imageUrl: z.string().nullable().optional() });
 export type Product = z.infer<typeof productSchema>;
 
 export const catalogSchema = z.object({
@@ -62,6 +65,8 @@ export const catalogSchema = z.object({
   clients: z.array(clientSchema),
   services: z.array(serviceSchema),
   products: z.array(productSchema),
+  /** Los precios ya traen el impuesto (Configuración › Precios). */
+  taxInclusive: z.boolean().optional(),
 });
 export type CalendarCatalog = z.infer<typeof catalogSchema>;
 
@@ -78,8 +83,24 @@ export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 export const historyEntrySchema = z.object({ id: z.string(), at: z.string(), actor: z.string(), event: z.string() });
 export type HistoryEntry = z.infer<typeof historyEntrySchema>;
 
-export const paymentSchema = z.object({ method: paymentMethodSchema, tip: z.number(), tax: z.number(), total: z.number(), paidAt: z.string() });
+export const paymentSchema = z.object({
+  method: paymentMethodSchema,
+  tip: z.number(),
+  tax: z.number(),
+  total: z.number(),
+  paidAt: z.string(),
+  /** Lo que de ese total ya estaba pagado en línea (propina incluida): en caja se cobró el resto. */
+  prepaid: z.number().optional(),
+});
 export type Payment = z.infer<typeof paymentSchema>;
+
+/**
+ * Lo que ya quedó resuelto al reservar en línea: lo pagado (tarjeta, anticipo,
+ * saldo o tarjeta de regalo), la propina y lo descontado (cupón, cortesía o
+ * paquete). La caja cobra solo lo que falta: una reserva pagada no se vuelve a cobrar.
+ */
+export const onlineSettlementSchema = z.object({ reservation: z.string(), method: z.string(), paid: z.number(), tip: z.number(), discount: z.number() });
+export type OnlineSettlement = z.infer<typeof onlineSettlementSchema>;
 
 export const productLineSchema = z.object({ productId: z.string(), qty: z.number() });
 export type ProductLine = z.infer<typeof productLineSchema>;
@@ -108,6 +129,7 @@ export const appointmentSchema = z.object({
   createdBy: z.string(),
   history: z.array(historyEntrySchema),
   payment: paymentSchema.nullable(),
+  online: onlineSettlementSchema.nullable().optional(),
   /**
    * Las citas enlazadas comparten este id: las que salieron de un mismo
    * agendamiento (varias personas o varias citas de una vez) o las que se
@@ -166,6 +188,7 @@ export const saleSchema = z.object({
   branchId: z.string(),
   items: z.array(productLineSchema),
   method: paymentMethodSchema,
+  tax: z.number().optional(),
   total: z.number(),
   paidAt: z.string(),
 });

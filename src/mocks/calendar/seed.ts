@@ -28,6 +28,8 @@ export interface MockBarber {
   workingHours: Partial<Record<number, MockWorkingRange[]>>;
   acceptsWalkIns: boolean;
   bookingVisible: boolean;
+  /** Lo que cobra por cada servicio (su precio en Equipo). */
+  prices?: Record<string, number>;
 }
 
 export type MockClientType = "walkin" | "new" | "retained" | "frequent" | "vip";
@@ -63,6 +65,8 @@ export interface MockService {
   category: string;
   durationMin: number;
   price: number;
+  /** La tasa con la que se cobra en la sucursal del catálogo. */
+  taxPercent?: number;
   imageUrl?: string | null;
 }
 
@@ -71,6 +75,7 @@ export interface MockProduct {
   name: string;
   category: string;
   price: number;
+  taxPercent?: number;
   imageUrl?: string | null;
 }
 
@@ -92,6 +97,21 @@ export interface MockPayment {
   tax: number;
   total: number;
   paidAt: string;
+  /** Lo que de ese total ya estaba pagado en línea (propina incluida): en caja se cobró el resto. */
+  prepaid?: number;
+}
+
+/**
+ * Lo que ya quedó resuelto en la reserva en línea para esta cita: lo pagado
+ * (tarjeta, anticipo, saldo, tarjeta de regalo), la propina que dejó y lo
+ * descontado (cupón, cortesía, paquete). La caja cobra solo lo que falta.
+ */
+export interface MockOnlineSettlement {
+  reservation: string;
+  method: string;
+  paid: number;
+  tip: number;
+  discount: number;
 }
 
 export interface MockAppointment {
@@ -118,6 +138,8 @@ export interface MockAppointment {
   createdBy: string;
   history: MockHistoryEntry[];
   payment: MockPayment | null;
+  /** Lo resuelto al reservar en línea; sin reserva en línea, nada. */
+  online?: MockOnlineSettlement | null;
   linkId?: string | null;
 }
 
@@ -152,6 +174,8 @@ export interface MockSale {
   branchId: string;
   items: { productId: string; qty: number }[];
   method: MockPaymentMethod;
+  /** El impuesto que va dentro del total; las ventas sembradas no lo traen. */
+  tax?: number;
   total: number;
   paidAt: string;
 }

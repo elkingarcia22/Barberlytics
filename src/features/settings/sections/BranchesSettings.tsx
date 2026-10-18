@@ -9,14 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility";
 import type { FieldErrors } from "../SettingsFormParts";
 import { SettingsList } from "../SettingsListParts";
-import { CURRENCIES, branchSchema, type Branch, type BranchInput } from "../settingsTypes";
+import { useSettingsList, useSettingsSection } from "../settingsQueries";
+import { CURRENCIES, branchSchema, gatewaySchema, pricingSchema, taxGroupSchema, type Branch, type BranchInput } from "../settingsTypes";
 
 const TIMEZONES: readonly string[] = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Bogota", "America/Mexico_City"];
 const LANGUAGES: readonly { id: string; name: string }[] = [
   { id: "es", name: "Español" },
   { id: "en", name: "English" },
 ];
-const EMPTY: BranchInput = { name: "", legalName: "", taxId: "", country: "", state: "", city: "", address: "", zipcode: "", phone: "", currency: "USD", language: "es", timezone: "America/New_York", description: "" };
+const EMPTY: BranchInput = { name: "", legalName: "", taxId: "", country: "", state: "", city: "", address: "", zipcode: "", phone: "", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: null, gatewayId: null, description: "" };
+/** El valor de un select que no elige nada (Radix no admite la cadena vacía). */
+const NONE = "none";
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
 const REQUIRED = ["country", "state", "city"] as const;
 
@@ -28,6 +31,10 @@ const REQUIRED = ["country", "state", "city"] as const;
 export function BranchesSettings() {
   const t = useAppT();
   const { formatDate } = useLocale();
+  // Una sucursal nueva nace con la moneda de Precios; después cada una tiene la suya.
+  const pricing = useSettingsSection("pricing", pricingSchema);
+  const taxGroups = useSettingsList("taxGroups", taxGroupSchema);
+  const gateways = useSettingsList("gateways", gatewaySchema);
 
   const validate = (draft: BranchInput): FieldErrors => {
     const errors: FieldErrors = {};
@@ -56,8 +63,8 @@ export function BranchesSettings() {
           </span>
         ),
       })}
-      emptyDraft={EMPTY}
-      toDraft={({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, description }) => ({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, description })}
+      emptyDraft={{ ...EMPTY, currency: pricing.data?.currency ?? EMPTY.currency }}
+      toDraft={({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description }) => ({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description })}
       validate={validate}
       messages={{
         count: (count) => t("cfg.branches.count", { count }),
@@ -138,6 +145,38 @@ export function BranchesSettings() {
                   {LANGUAGES.map((language) => (
                     <SelectItem key={language.id} value={language.id}>
                       {language.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("cfg.branches.tax")} description={t("cfg.branches.taxHint")}>
+              <Select value={draft.taxGroupId ?? NONE} onValueChange={(value) => set("taxGroupId", value === NONE ? null : value)}>
+                <SelectTrigger data-testid="branches-tax">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{t("cfg.branches.noTax")}</SelectItem>
+                  {(taxGroups.data?.items ?? []).map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name} · {group.taxes.reduce((sum, tax) => sum + tax.percent, 0)} %
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label={t("cfg.branches.gateway")} description={t("cfg.branches.gatewayHint")}>
+              <Select value={draft.gatewayId ?? NONE} onValueChange={(value) => set("gatewayId", value === NONE ? null : value)}>
+                <SelectTrigger data-testid="branches-gateway">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>{t("cfg.branches.noGateway")}</SelectItem>
+                  {(gateways.data?.items ?? []).map((gateway) => (
+                    <SelectItem key={gateway.id} value={gateway.id}>
+                      {gateway.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

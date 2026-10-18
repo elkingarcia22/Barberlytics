@@ -1,4 +1,5 @@
-import type { PaymentMethod } from "./types";
+import { cartTotals } from "@/features/branches/tax";
+import type { CalendarCatalog, OnlineSettlement, PaymentMethod, ProductLine } from "./types";
 
 /**
  * Las cuentas del cobro, sin interfaz: cuánto es una propina sugerida, cuánto
@@ -38,3 +39,47 @@ export function surchargeAmount(fee: CardSurcharge | undefined, method: PaymentM
 
 /** Lo que se devuelve; negativo es lo que todavía falta. `null` si no se escribió cuánto entregó. */
 export const changeDue = (received: number | null, total: number): number | null => (received === null ? null : cents(received - total));
+
+export interface AppointmentBill {
+  /** Servicios y productos a precio de lista. */
+  subtotal: number;
+  /** Lo descontado al reservar en línea. */
+  discount: number;
+  tax: number;
+  /** Lo que vale la cuenta, con el impuesto de la sucursal. */
+  total: number;
+  /** Lo que ya se pagó al reservar en línea (sin la propina). */
+  prepaid: number;
+  /** Lo que queda por cobrar en caja, sin propina ni recargo. */
+  due: number;
+}
+
+/**
+ * La cuenta de una cita en la caja, igual que la calcula el servidor: cada
+ * línea con la tasa de la sucursal (o la suya), menos lo ya resuelto en la
+ * reserva en línea. Una reserva pagada no se vuelve a cobrar.
+ */
+export function appointmentBill(catalog: Pick<CalendarCatalog, "barbers" | "services" | "products" | "taxInclusive">, serviceIds: readonly string[], products: readonly ProductLine[], online?: OnlineSettlement | null, barberId?: string): AppointmentBill {
+  const lines = [
+    ...serviceIds.flatMap((id) => {
+      const service = catalog.services.find((item) => item.id === id);
+      // Cada servicio al precio del barbero que lo hace, como en la reserva en línea.
+      const price = service && (barberId ? catalog.barbers.find((barber) => barber.id === barberId)?.prices?.[service.id] : undefined);
+      return service ? [{ amount: price ?? service.price, percent: service.taxPercent ?? 0 }] : [];
+    }),
+    ...products.flatMap((line) => {
+      const product = catalog.products.find((item) => item.id === line.productId);
+      return product ? [{ amount: product.price * line.qty, percent: product.taxPercent ?? 0 }] : [];
+    }),
+  ];
+  const { subtotal, discount, tax, total } = cartTotals(lines, online?.discount ?? 0, catalog.taxInclusive === true);
+  const prepaid = cents(Math.min(total, online?.paid ?? 0));
+  return { subtotal, discount, tax, total, prepaid, due: cents(total - prepaid) };
+}
+
+/** Suma las cuentas de varias citas cobradas juntas (una visita). */
+export const sumBills = (bills: readonly AppointmentBill[]): AppointmentBill =>
+  bills.reduce<AppointmentBill>(
+    (sum, bill) => ({ subtotal: cents(sum.subtotal + bill.subtotal), discount: cents(sum.discount + bill.discount), tax: cents(sum.tax + bill.tax), total: cents(sum.total + bill.total), prepaid: cents(sum.prepaid + bill.prepaid), due: cents(sum.due + bill.due) }),
+    { subtotal: 0, discount: 0, tax: 0, total: 0, prepaid: 0, due: 0 }
+  );

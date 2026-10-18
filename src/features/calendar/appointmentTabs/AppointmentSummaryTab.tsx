@@ -18,6 +18,7 @@ import { ACTION_ICON, ACTION_LABEL } from "../appointmentActions";
 import { StageHeadline } from "./AppointmentPanelParts";
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "./AppointmentLinkSection";
 import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus } from "../types";
+import { appointmentBill } from "../checkoutMath";
 
 /**
  * Resumen: en qué va la cita y su avance, lo que no se puede pasar por alto
@@ -58,6 +59,8 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
   const services = servicesOf(ctx.catalog, appointment);
   const serviceDot = services[0] ? serviceColor(ctx.catalog, services[0].id) : undefined;
   const price = appointment.payment?.total ?? servicesPrice(services);
+  // Lo que falta cobrar en caja: con el impuesto de la sucursal y sin lo ya pagado al reservar en línea.
+  const due = appointmentBill(ctx.catalog, appointment.serviceIds, appointment.products, appointment.online, appointment.barberId).due;
   const critical = client?.notes.filter((note) => note.kind !== "note") ?? [];
   // Sin «Información del cliente» ni se enseña el teléfono ni se ofrece llamar o escribir.
   const canContact = ctx.access?.canContact ?? true;
@@ -104,7 +107,7 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
 
   const actionButton = (action: AppointmentActionId, variant: "default" | "secondary" | "ghost", grow = false) => {
     const Icon = ACTION_ICON[action];
-    const label = action === "pay" && variant === "default" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(price) }) : t(ACTION_LABEL[action]);
+    const label = action === "pay" && variant === "default" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(due) }) : t(ACTION_LABEL[action]);
     const link = href(action);
     const className = cn(grow && "flex-1");
     return link ? (

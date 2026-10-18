@@ -10,12 +10,12 @@ import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
 import { Chip } from "@/components/ai-interaction";
-import { appointmentRange, appointmentTotal, findBarber, findClient, servicesOf, type ModelContext } from "./calendarModel";
+import { appointmentRange, appointmentTotal, findBarber, findClient, priceFor, servicesOf, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
 import { useCheckoutAppointment } from "./queries";
 import { useSettingsSection } from "@/features/settings/settingsQueries";
 import { cardFeeSchema, tipsSchema } from "@/features/settings/settingsTypes";
-import { FALLBACK_TIPS, changeDue, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
+import { FALLBACK_TIPS, appointmentBill, changeDue, sumBills, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type Appointment, type PaymentMethod, type ProductLine } from "./types";
 import { ProductThumb, ServiceThumb } from "./calendarShared";
 
@@ -68,15 +68,18 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
 
   const client = findClient(ctx.catalog, appointment.clientId);
   const barber = findBarber(ctx.catalog, appointment.barberId);
-  const services = serviceIds.map((id) => ctx.catalog.services.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+  // Cada servicio al precio de su barbero: lo mismo que se cobra en la reserva en línea.
+  const services = servicesOf(ctx.catalog, { serviceIds, barberId: appointment.barberId });
   const lines = products.map((line) => ({ line, product: ctx.catalog.products.find((item) => item.id === line.productId) })).filter((item): item is { line: ProductLine; product: NonNullable<typeof item.product> } => Boolean(item.product));
   const chosenCompanions = companions.filter((item) => companionIds.includes(item.id));
-  const companionsTotal = chosenCompanions.reduce((sum, item) => sum + appointmentTotal(ctx.catalog, item), 0);
-  const subtotal = services.reduce((sum, item) => sum + item.price, 0) + lines.reduce((sum, { line, product }) => sum + product.price * line.qty, 0) + companionsTotal;
+  // La cuenta con el impuesto de la sucursal, menos lo ya pagado al reservar en línea: aquí se cobra solo el resto.
+  const companionBills = chosenCompanions.map((item) => appointmentBill(ctx.catalog, item.serviceIds, item.products, item.online, item.barberId));
+  const bill = sumBills([appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId), ...companionBills]);
+  const subtotal = bill.subtotal;
   const chosenTip = tipOptions.find((option) => option.id === tipChoice);
   const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, subtotal) : 0;
-  const surcharge = surchargeAmount(cardFee.data, method, subtotal);
-  const total = subtotal + tip + surcharge;
+  const surcharge = surchargeAmount(cardFee.data, method, bill.due);
+  const total = bill.due + tip + surcharge;
   const change = method === "cash" ? changeDue(received, total) : null;
 
   const addProduct = (productId: string) => {
@@ -94,7 +97,8 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
         checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge } }),
         ...chosenCompanions.map((item) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, method, surcharge: 0 } })),
       ]);
-      const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0), 0);
+      // Lo cobrado ahora: lo pagado en línea ya estaba cobrado.
+      const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0) - (item.payment?.prepaid ?? 0), 0);
       toast.success(others.length > 0 ? t("calendar.checkout.paidVisit", { count: others.length + 1 }) : t("calendar.checkout.paid"), {
         description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(charged || total), method: t(PAYMENT_METHOD_KEYS[method]) }),
       });
@@ -116,9 +120,12 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
         <div className="space-y-3 border-t border-border px-5 py-4">
           <div className="space-y-1">
             <TotalRow label={t("calendar.checkout.subtotal")} value={ctx.formatMoney(subtotal)} />
+            {bill.discount > 0 && <TotalRow label={t("calendar.checkout.discountOnline")} value={`−${ctx.formatMoney(bill.discount)}`} />}
+            {bill.tax > 0 && <TotalRow label={t(ctx.catalog.taxInclusive ? "calendar.checkout.taxIncluded" : "calendar.checkout.tax")} value={ctx.formatMoney(bill.tax)} />}
+            {bill.prepaid > 0 && <TotalRow label={t("calendar.checkout.prepaid", { reservation: appointment.online?.reservation ?? "" })} value={`−${ctx.formatMoney(bill.prepaid)}`} testId="checkout-prepaid" />}
             {tip > 0 && <TotalRow label={t("calendar.checkout.tip")} value={ctx.formatMoney(tip)} />}
             {surcharge > 0 && <TotalRow label={cardFee.data?.name || t("calendar.checkout.surcharge")} value={ctx.formatMoney(surcharge)} />}
-            <TotalRow label={t("calendar.checkout.total")} value={ctx.formatMoney(total)} strong />
+            <TotalRow label={t(bill.prepaid > 0 ? "calendar.checkout.due" : "calendar.checkout.total")} value={ctx.formatMoney(total)} strong />
             {change !== null && change >= 0 && <TotalRow label={t("calendar.checkout.change")} value={ctx.formatMoney(change)} />}
           </div>
           <Button className="w-full" onClick={pay} disabled={checkout.isPending || services.length === 0} data-testid="checkout-pay">
@@ -178,7 +185,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
               onValueChange={(id) => setServiceIds((current) => [...current, id])}
               placeholder={t("calendar.checkout.addService")}
               searchPlaceholder={t("calendar.create.searchServices")}
-              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }), leading: <ServiceThumb service={item} /> }))}
+              options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(priceFor(ctx.catalog, appointment.barberId, item)) }), leading: <ServiceThumb service={item} /> }))}
             />
           </div>
         </DrawerSection>
@@ -260,9 +267,9 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   );
 }
 
-function TotalRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function TotalRow({ label, value, strong, testId }: { label: string; value: string; strong?: boolean; testId?: string }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4" data-testid={testId}>
       <Text variant={strong ? "body" : "muted"} weight={strong ? "semibold" : undefined}>
         {label}
       </Text>

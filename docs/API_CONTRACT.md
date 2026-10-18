@@ -39,8 +39,8 @@ Cualquier estado ≥ 400 devuelve:
 
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| POST | `/auth/otp/request` | `{ phone, channel?: "sms" \| "email" }` | `204` siempre (no revela si el número existe ni si tiene correo de respaldo) · `422` · `429` bloqueado |
-| POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` número no registrado, código incorrecto o vencido (`details.attemptsLeft`) · `429` bloqueado |
+| POST | `/auth/otp/request` | `{ phone, channel?: "sms" \| "email" }` | `204` siempre (no revela si el número existe ni si tiene correo de respaldo) · `422` · `429` bloqueado o más de 5 códigos en 15 min (`details.reason: "too_many_codes"`) |
+| POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` con el **mismo mensaje** para número no registrado y código malo (`details.attemptsLeft`) · `429` bloqueado (`details.retryAfterSeconds`) |
 | POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone }` | `204` la barbería queda pendiente de activar · `422` (`email` ya registrado va en `fields`) |
 | POST | `/support/tickets` | `{ name, company, email, phone, message, reason: "recovery" \| "lockout" \| "other" }` | `201 { id }` · `422`. Sin sesión. |
 | POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
@@ -59,8 +59,10 @@ código de 6 dígitos por SMS que vence a los 10 minutos. Quien olvida su númer
 Si el SMS no llega, el código se puede pedir al **correo de respaldo** (`otp/request` con `channel: "email"`): cada
 persona lo configura y lo verifica en Configuración › Inicio de sesión (`/auth/backup-email`, con sesión). Es el mismo
 código y vale igual en `otp/verify`; la respuesta no dice si la cuenta tiene respaldo, para no filtrar datos.
-Tras **4 verificaciones fallidas seguidas** con un mismo celular, el backend lo bloquea: `otp/request` y `otp/verify`
-responden `429` con `details: { reason: "locked" }` hasta que soporte lo libere. El front muestra el aviso de bloqueo y
+Tras **4 verificaciones fallidas seguidas** con un mismo celular, el backend lo bloquea **15 minutos**: `otp/request` y
+`otp/verify` responden `429` con `details: { reason: "locked", retryAfterSeconds }`. No es indefinido a propósito: con
+un bloqueo sin fin cualquiera podría dejar al dueño fuera con 4 códigos falsos. Pedir códigos tiene tope (5 cada 15
+minutos por número), porque cada SMS cuesta y se abusa de él (SMS pumping). El front muestra el aviso de bloqueo y
 ofrece abrir un ticket (`/support/tickets`, `reason: "lockout"`). Un acceso correcto pone el contador en cero. `country`
 en `/auth/signup` es ISO 3166-1 alfa-2 y `timezone` un nombre IANA (`America/Bogota`).
 `credential` en `/auth/oauth` es el ID token que entrega el SDK del proveedor en el navegador (Google Identity
@@ -69,6 +71,23 @@ mock ignora la credencial y entra con la primera cuenta que tenga ese proveedor 
 En el mock el código por SMS es siempre `246810` y solo entran los celulares de las cuentas de demostración.
 
 Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSite=Lax` y dejar `sessionTokenStorage` sin uso (ver `src/features/auth/tokenStorage.ts`).
+
+## Avisos (`/notifications`)
+
+La campana. No hay tabla de avisos: salen de lo que pasó en la sucursal y cada rol ve los suyos.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. |
+| POST | `/notifications/read` | `{ ids }`. `204`. Lo leído se guarda por cuenta. |
+
+`kind` y para quién: `onlineBooking`, `cancelled`, `noShow` (dueño, administrador, recepción y el barbero de la cita);
+`whatsappFailed` (dueño, administrador, recepción); `lowStock`, `outOfStock`, `registerDifference` (diferencia de 1 o
+más en un cierre), `payrollDue` (el ciclo anterior terminó sin aprobar) (dueño y administrador); `registerOpen` (ayer
+hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payrollPaid` (al barbero, con su neto);
+`lowReview` (3 estrellas o menos; solo al dueño). `params` lleva lo necesario para escribirlo en el idioma de quien lee
+(`client`, `day`, `time`, `product`, `count`, `amount`, `from`, `to`…); `href` abre lo que lo causó. El mock recibe
+`role` y `memberId` por parámetro porque la sesión aún no trae el rol del equipo; el backend real los sacará de la sesión.
 
 ## Dashboard
 
@@ -241,6 +260,7 @@ El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `cl
 | GET | `/customers/:id` | `customerDetail`. `404` si no existe. |
 | POST | `/customers` | `{ firstName, lastName, phone, email, branchId, country?, state?, city?, address?, zipcode?, birthDate?, onlineOnly? }`. `201 customerDetail`. `422` con `fields` si falta nombre, apellido, celular o correo válidos, si el celular ya es de otro cliente o si la fecha de nacimiento es futura. |
 | PATCH | `/customers/:id` | Los mismos campos del alta, o solo `{ blocked: boolean }` para bloquear y desbloquear sin reenviar la ficha. Devuelve `customerDetail`. `422` · `404`. |
+| POST | `/customers/:id/messages` | `{ purpose: "thanks" \| "rebook" \| "birthday" \| "free", body }`. Anota un mensaje que el equipo abrió en WhatsApp (`wa.me`) desde la ficha; queda en su historial (`kind: "manual"`). `rebook` y `birthday` son promoción: `409 no_consent` si el cliente no aceptó promociones. `201` con la relación. |
 | POST | `/customers/:id/guests` | `{ name, relation? }`. `201 customerDetail`. Un invitado solo necesita nombre: la cita queda a nombre del titular. |
 | DELETE | `/customers/:id/guests/:guestId` | `customerDetail` sin ese invitado. `404`. |
 

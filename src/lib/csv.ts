@@ -3,9 +3,17 @@
  * formato para que la hoja los sume; la marca de orden de bytes hace que Excel abra bien las tildes.
  */
 
-/** Una celda CSV: entre comillas si lleva separador, comillas o salto de línea. */
+/**
+ * Un texto que empieza por `=`, `+`, `-`, `@`, tabulador o retorno lo abre Excel como fórmula: un nombre
+ * escrito en la reserva pública podría ejecutar algo en el computador del contador. Se le antepone un
+ * apóstrofo para que quede como texto. Los números van tal cual (un -12 es un número, no una fórmula).
+ */
+const FORMULA_START = /^[=+\-@\t\r]/;
+const neutralize = (value: string | number): string => (typeof value === "number" ? String(value) : FORMULA_START.test(value) ? `'${value}` : value);
+
+/** Una celda CSV: sin fórmulas, y entre comillas si lleva separador, comillas o salto de línea. */
 const csvCell = (value: string | number): string => {
-  const text = String(value);
+  const text = neutralize(value);
   return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 

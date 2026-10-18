@@ -137,6 +137,8 @@ Lo que responde MSW hoy.
 - `POST */api/messages/dispatch` · src/mocks/messages/handlers.ts
 - `GET */api/appointments/:id/messages` · src/mocks/messages/handlers.ts
 - `POST */api/booking/confirm` · src/mocks/messages/handlers.ts
+- `GET /notifications` · src/mocks/notifications/handlers.ts
+- `POST /notifications/read` · src/mocks/notifications/handlers.ts
 - `GET /payroll` · src/mocks/payroll/handlers.ts
 - `POST /payroll/adjustments` · src/mocks/payroll/handlers.ts
 - `DELETE /payroll/adjustments/:id` · src/mocks/payroll/handlers.ts
@@ -199,7 +201,7 @@ Router, providers, layout, navegación y páginas de error.
 
 ### chat
 
-- **index.ts** — El chat de la app: un solo almacén de conversaciones para el panel, la pantalla completa y el modo voz, y qui… · `chatStore`, `AppChatLabels`, `createAppChatBackend` · usa: @/help/chat, @/help/content, @/lib/chat
+- **index.ts** — Al cerrar sesión, las conversaciones se van con ella. · `chatStore`, `clearChatOnLogout`, `AppChatLabels`, `createAppChatBackend` · usa: @/help/chat, @/help/content, @/lib/chat
 
 ### components
 
@@ -233,6 +235,7 @@ Router, providers, layout, navegación y páginas de error.
 
 - **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
+- **notifications.ts** — Los avisos como los pinta la campana: el texto en el idioma de quien lee y, al tocarlo, leído y abierto. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
 - **router.tsx** · `router` · usa: @/features/access, @/features/auth, @/features/sections
 
@@ -248,7 +251,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### access
 
 - **AccessContext.tsx** — Lo monta el layout de la app con el rol efectivo (el propio o el de «Ver como»). · `AccessProvider`, `RequireArea`, `RoleHome`
-- **access.ts** — Todo lo de la sucursal o solo lo suyo (su columna, sus clientes, sus cifras). · `AccessScope`, `AccessMember`, `Access`, `TEAM_ROLES`, `isBarberRole`, `ROLE_HOME`, `teamRoleFromSession`, `DEMO_MEMBER`, `buildAccess`, `AccessArea`, `canOpen` · usa: @/features/team
+- **access.ts** — Todo lo de la sucursal o solo lo suyo (su columna, sus clientes, sus cifras). · `AccessScope`, `AccessMember`, `Access`, `TEAM_ROLES`, `isBarberRole`, `ROLE_HOME`, `teamRoleFromSession`, `canViewAs`, `DEMO_MEMBER`, `buildAccess`, `AccessArea`, `canOpen` · usa: @/features/team
 - **useAccess.ts** · `AccessContext`, `useAccess`
 - **viewAs.ts** · `readViewAs`, `writeViewAs` · usa: @/features/team
 
@@ -915,6 +918,10 @@ MSW: implementa docs/API_CONTRACT.md.
 ### messages
 
 - **handlers.ts** · `messagesHandlers`
+
+### notifications
+
+- **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers`
 
 ### payroll
 

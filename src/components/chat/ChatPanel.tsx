@@ -74,6 +74,8 @@ export function ChatPanel({ open, onOpenChange, title, subtitle, onMore }: ChatP
   }, [open, close]);
 
   const composerProps = {
+    // Adjuntar se apaga mientras quien responde no lea archivos: ofrecerlo y descartarlos engaña.
+    attach: false,
     value: draft,
     onChange: setDraft,
     onSend: (text: string) => actions.send(text),

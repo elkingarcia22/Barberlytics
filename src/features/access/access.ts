@@ -59,8 +59,23 @@ export function teamRoleFromSession(role: string | undefined): TeamRole {
   if (role === "manager") return "admin";
   if (role === "member") return "recepcion";
   if (role && (TEAM_ROLES as readonly string[]).includes(role)) return role as TeamRole;
-  return "owner";
+  // Falla cerrado: un rol que no se reconoce ve lo mínimo (lo suyo de barbero), nunca lo del dueño.
+  return "barbero-comision";
 }
+
+/**
+ * «Ver como» solo hacia abajo: el dueño revisa cualquier rol; el administrador, todos menos el
+ * dueño; el resto solo se ve a sí mismo. Así nadie se asoma a pantallas que su rol no abre.
+ */
+const VIEWABLE: Readonly<Record<TeamRole, readonly TeamRole[]>> = {
+  owner: TEAM_ROLES,
+  admin: ["admin", "recepcion", "barbero-comision", "barbero-renta"],
+  recepcion: ["recepcion"],
+  "barbero-comision": ["barbero-comision"],
+  "barbero-renta": ["barbero-renta"],
+};
+
+export const canViewAs = (own: TeamRole, target: TeamRole): boolean => VIEWABLE[own].includes(target);
 
 /**
  * Una persona de ejemplo por rol en la sucursal principal (el seed del equipo), para

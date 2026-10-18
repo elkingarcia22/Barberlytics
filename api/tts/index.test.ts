@@ -19,3 +19,10 @@ describe("POST /api/tts", () => {
     expect((await post({ text: "hola", lang: "es" })).status).toBe(501);
   });
 });
+
+describe("abuso", () => {
+  test("sin Origin ni Referer (un script) no se acepta", async () => {
+    const response = await POST(new Request(URL_BASE, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "hola", lang: "es" }) }));
+    expect(response.status).toBe(403);
+  });
+});

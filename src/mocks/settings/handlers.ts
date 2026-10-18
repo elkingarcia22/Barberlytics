@@ -253,7 +253,10 @@ export const settingsHandlers = [
 
   http.post(`${BASE}/account/delete`, async ({ request }) => {
     await delay(LATENCY_MS);
-    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    // Borrar la barbería es solo del dueño (en la plantilla de sesión, `admin`), lo pida la pantalla que lo pida.
+    if (account.user.role !== "admin") return error(403, "forbidden", "Solo el dueño puede eliminar la barbería.");
     const body = asRecord(await request.json().catch(() => ({})));
     const company = text(db.settings.sections.company.name);
     if (text(body.confirmation) !== company) return error(422, "validation", "El nombre no coincide.", { fields: { confirmation: ["Escribe el nombre de la empresa tal cual."] } });

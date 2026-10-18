@@ -48,7 +48,16 @@ export function createHelpBackend({ locale, fallback, labels }: HelpBackendOptio
       const top = hits[0];
       if (!top || !isConfidentAnswer(top, question)) {
         if (fallback) return fallback.reply(question, history, signal);
-        return { text: labels.notFound };
+        // Sin artículo seguro no se inventa: se dice y, si hay uno cercano, se ofrece para leerlo.
+        if (!top) return { text: labels.notFound, via: "help" };
+        const index = await loadHelpIndex(locale);
+        const nearest = index.articles[top.id];
+        return {
+          text: labels.notFound,
+          link: { label: nearest?.title ?? labels.openArticle, href: helpPath(top.id) },
+          followups: hits.map((hit) => index.articles[hit.id]?.title).filter((title): title is string => Boolean(title)),
+          via: "help",
+        };
       }
       const [index, markdown] = await Promise.all([loadHelpIndex(locale), loadHelpArticle(locale, top.id)]);
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");

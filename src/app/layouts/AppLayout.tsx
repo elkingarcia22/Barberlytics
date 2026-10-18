@@ -14,18 +14,20 @@ import { useTheme } from "@/themes";
 import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
 import { useAuth } from "@/features/auth";
-import { AccessProvider, buildAccess, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
+import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, useBranches } from "@/features/branches";
 import { useMessageDispatcher } from "@/features/calendar/messages";
+import { useMoney } from "@/features/calendar/calendarFormat";
+import { toShellNotifications, useMarkNotificationsRead, useNotifications } from "../notifications";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
 import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
 import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
-import { chatStore, createAppChatBackend } from "../chat";
+import { chatStore, clearChatOnLogout, createAppChatBackend } from "../chat";
 import { agentFocus, withAgentFocus } from "@/lib/chat";
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
@@ -81,18 +83,22 @@ export function AppLayout() {
   const { user, logout } = useAuth();
   const { resolvedMode, setMode } = useTheme();
   const t = useAppT();
-  const roles = React.useMemo(() => buildAppRoles(t), [t]);
+  const allRoles = React.useMemo(() => buildAppRoles(t), [t]);
   const navigate = useNavigate();
   const location = useLocation();
   // Mirar como otro rol es estado de la app, no de la sesión: el token sigue
   // siendo el mismo. Se recuerda entre recargas (features/access/viewAs).
-  const [viewRoleId, setViewRoleId] = React.useState<TeamRole | null>(() => readViewAs());
+  const [storedViewRole, setViewRoleId] = React.useState<TeamRole | null>(() => readViewAs());
   const ownRole = teamRoleFromSession(user?.role);
+  // Solo hacia abajo: un «ver como» guardado que este rol no puede usar se ignora.
+  const viewRoleId = storedViewRole && canViewAs(ownRole, storedViewRole) ? storedViewRole : null;
+  const roles = React.useMemo(() => allRoles.filter((role) => canViewAs(ownRole, role.id as TeamRole)), [allRoles, ownRole]);
   const effectiveRole = viewRoleId ?? ownRole;
   // Quién mira y qué puede: el menú, las rutas y cada pantalla preguntan aquí.
   const access = React.useMemo(() => buildAccess({ role: effectiveRole, previewing: viewRoleId !== null && viewRoleId !== ownRole }), [effectiveRole, viewRoleId, ownRole]);
   const selectRole = React.useCallback(
     (roleId: string) => {
+      if (!canViewAs(ownRole, roleId as TeamRole)) return;
       const next = roleId === ownRole ? null : (roleId as TeamRole);
       setViewRoleId(next);
       writeViewAs(next);
@@ -126,7 +132,15 @@ export function AppLayout() {
   // almacén de conversaciones.
   const [shellMode, setShellMode] = React.useState<ShellMode>("workspace");
   const [isVoiceOpen, setIsVoiceOpen] = React.useState(false);
-  const { locale } = useLocale();
+  const { locale, formatDate } = useLocale();
+  const formatMoney = useMoney();
+  // La campana: los avisos de esta sucursal para este rol (y, si es barbero, solo los suyos).
+  const notificationsQuery = useNotifications({ branchId, role: effectiveRole, memberId: isBarberRole(effectiveRole) ? (access.member?.id ?? null) : null, enabled: Boolean(user) });
+  const markRead = useMarkNotificationsRead();
+  const notificationItems = React.useMemo(
+    () => toShellNotifications(notificationsQuery.data?.items ?? [], { t, formatMoney, formatDate, navigate, markRead: (ids) => markRead.mutate(ids) }),
+    [notificationsQuery.data, t, formatMoney, formatDate, navigate, markRead]
+  );
   const chatState = React.useSyncExternalStore(chatStore.subscribe, chatStore.getState, chatStore.getState);
   const chatBackend = React.useMemo(
     () =>
@@ -249,6 +263,10 @@ export function AppLayout() {
       brand,
       navigation,
       roles,
+      notifications: notificationItems,
+      onMarkAllNotificationsRead: () => markRead.mutate(notificationItems.filter((item) => item.unread).map((item) => item.id)),
+      // Novedades se apaga hasta tener notas de versión propias: las de ejemplo eran de otro producto.
+      chrome: { news: false },
       // Aquí se trabaja por sucursal, no por empresa: el conmutador de la
       // cabecera dice en cuál estás y no vende licencias que enseñar.
       companies: branches,
@@ -316,10 +334,14 @@ export function AppLayout() {
       isDark: resolvedMode === "dark",
       onToggleDark: (dark) => setMode(dark ? "dark" : "light"),
       onLogout: () => {
+        // «Ver como» no sobrevive a la sesión: el siguiente que entre en este navegador empieza con su rol.
+        writeViewAs(null);
+        setViewRoleId(null);
+        clearChatOnLogout();
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, effectiveRole, selectRole, branchId, branches, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
+    [user, brand, roles, notificationItems, markRead, effectiveRole, selectRole, branchId, branches, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
   const openAgent = React.useCallback(() => {

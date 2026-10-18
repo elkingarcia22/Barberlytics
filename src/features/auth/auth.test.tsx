@@ -93,7 +93,7 @@ describe("entrar con celular y código", () => {
     const user = userEvent.setup();
     await requestCode(user, "3009999999");
     await typeCode(user, OTP_CODE);
-    expect(await screen.findByRole("alert")).toHaveTextContent(/no está registrado/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no es correcto/i);
     expect(tokenStorage.get()).toBeNull();
   });
 

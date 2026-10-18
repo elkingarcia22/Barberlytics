@@ -6,6 +6,7 @@ import { customersHandlers } from "./customers/handlers";
 import { relationshipHandlers } from "./customers/relationship";
 import { incomeHandlers } from "./reports/income";
 import { inventoryHandlers } from "./inventory/handlers";
+import { notificationsHandlers } from "./notifications/handlers";
 import { servicesHandlers } from "./services/handlers";
 import { productsHandlers } from "./products/handlers";
 import { transactionsHandlers } from "./transactions/handlers";
@@ -91,18 +92,38 @@ function normalizePhone(value: unknown): string {
 
 /** Intentos fallidos seguidos con un mismo celular antes de bloquearlo. */
 export const MAX_LOGIN_FAILURES = 4;
+/** El bloqueo dura un rato, no para siempre: si no, cualquiera podría dejar al dueño fuera con 4 códigos falsos. */
+const LOCK_MS = 15 * 60_000;
+/** Pedir códigos tiene tope por número: cada SMS cuesta y se abusa de él para fraude (SMS pumping). */
+const CODE_LIMIT = 5;
+const CODE_WINDOW_MS = 15 * 60_000;
+/** Un mismo mensaje para número desconocido y código malo: entrar no revela quién está registrado. */
+const BAD_CODE = "El código no es correcto o ya venció. Pide uno nuevo.";
 
-function lockedError() {
-  return error(429, "rate_limited", "Bloqueamos el acceso con este número por seguridad tras varios intentos fallidos.", {
-    details: { reason: "locked" },
+function isLocked(phone: string): boolean {
+  const until = db.loginLocks.get(phone);
+  if (until === undefined) return (db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES;
+  if (Date.now() < until) return true;
+  db.loginLocks.delete(phone);
+  db.loginFailures.delete(phone);
+  return false;
+}
+
+function lockedError(phone: string) {
+  const until = db.loginLocks.get(phone) ?? Date.now() + LOCK_MS;
+  return error(429, "rate_limited", "Bloqueamos el acceso con este número por seguridad tras varios intentos fallidos. Prueba de nuevo en unos minutos o pide ayuda a soporte.", {
+    details: { reason: "locked", retryAfterSeconds: Math.max(0, Math.ceil((until - Date.now()) / 1000)) },
   });
 }
 
-function registerFailure(phone: string, message: string) {
+function registerFailure(phone: string) {
   const failures = (db.loginFailures.get(phone) ?? 0) + 1;
   db.loginFailures.set(phone, failures);
-  if (failures >= MAX_LOGIN_FAILURES) return lockedError();
-  return error(401, "unauthorized", message, { details: { attemptsLeft: MAX_LOGIN_FAILURES - failures } });
+  if (failures >= MAX_LOGIN_FAILURES) {
+    db.loginLocks.set(phone, Date.now() + LOCK_MS);
+    return lockedError(phone);
+  }
+  return error(401, "unauthorized", BAD_CODE, { details: { attemptsLeft: MAX_LOGIN_FAILURES - failures } });
 }
 
 const TICKET_REASONS = ["recovery", "lockout", "other"] as const;
@@ -156,20 +177,24 @@ export const handlers = [
     if (body.channel !== undefined && !OTP_CHANNELS.includes(body.channel as (typeof OTP_CHANNELS)[number])) {
       return error(422, "validation_error", "Canal inválido.", { fields: { channel: ["Elige SMS o correo."] } });
     }
-    if ((db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES) return lockedError();
+    if (isLocked(phone)) return lockedError(phone);
+    const now = Date.now();
+    const recent = (db.codeRequests.get(phone) ?? []).filter((at) => now - at < CODE_WINDOW_MS);
+    if (recent.length >= CODE_LIMIT) return error(429, "rate_limited", "Pediste muchos códigos seguidos. Espera unos minutos e inténtalo otra vez.", { details: { reason: "too_many_codes" } });
+    db.codeRequests.set(phone, [...recent, now]);
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // Cada fallo seguido suma; al cuarto el número queda bloqueado (429 con
-  // `details.reason: "locked"`) hasta que soporte lo libere. Entrar lo pone en cero.
+  // Cada fallo seguido suma; al cuarto el número queda bloqueado 15 minutos (429 con
+  // `details.reason: "locked"` y `retryAfterSeconds`). Entrar lo pone en cero. Un número que no
+  // es de ninguna barbería responde igual que un código malo: no se revela quién está registrado.
   http.post(`${BASE}/auth/otp/verify`, async ({ request }) => {
     await delay(LATENCY_MS);
     const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
     const phone = normalizePhone(body.phone);
-    if ((db.loginFailures.get(phone) ?? 0) >= MAX_LOGIN_FAILURES) return lockedError();
+    if (isLocked(phone)) return lockedError(phone);
     const account = ACCOUNTS.find((item) => item.phone === phone);
-    if (!account) return registerFailure(phone, "Ese número no está registrado en ninguna barbería.");
-    if (body.code !== OTP_CODE) return registerFailure(phone, "El código no es correcto o ya venció. Pide uno nuevo.");
+    if (!account || body.code !== OTP_CODE) return registerFailure(phone);
     db.loginFailures.delete(phone);
     return openSession(account);
   }),
@@ -478,6 +503,7 @@ export const handlers = [
   ...relationshipHandlers,
   ...incomeHandlers,
   ...inventoryHandlers,
+  ...notificationsHandlers,
   ...customersHandlers,
 
   // ---------- Servicios ----------

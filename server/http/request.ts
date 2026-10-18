@@ -27,3 +27,38 @@ export async function readJsonBody(request: Request): Promise<unknown> {
     return undefined;
   }
 }
+
+/**
+ * Más estricto que `isSameOrigin`: para lo que cuesta dinero (voz, WhatsApp) no basta con que no
+ * venga de otro sitio; tiene que venir de esta app. Una petición sin `Origin` ni `Referer` (un
+ * `curl`, un script) se rechaza.
+ */
+export function isFromApp(request: Request): boolean {
+  const source = request.headers.get("origin") ?? request.headers.get("referer");
+  if (!source) return false;
+  try {
+    return new URL(source).host === new URL(request.url).host;
+  } catch {
+    return false;
+  }
+}
+
+const hits = new Map<string, number[]>();
+
+/**
+ * Tope de peticiones por IP en una ventana. Vive en la memoria de cada instancia: frena el abuso
+ * casual, no sustituye a un límite compartido (Vercel KV, Upstash) cuando haya tráfico real.
+ */
+export function rateLimited(request: Request, scope: string, limit: number, windowMs: number, now = Date.now()): boolean {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
+  const key = `${scope}:${ip}`;
+  const recent = (hits.get(key) ?? []).filter((at) => now - at < windowMs);
+  if (recent.length >= limit) {
+    hits.set(key, recent);
+    return true;
+  }
+  hits.set(key, [...recent, now]);
+  return false;
+}
+
+export const jsonError = (status: number, code: string, message: string): Response => new Response(JSON.stringify({ code, message }), { status, headers: { "content-type": "application/json" } });

@@ -40,6 +40,8 @@ export function ChatScreen({ history = true, onMore, className }: ChatScreenProp
   }, [conversation?.id]);
 
   const composerProps = {
+    // Adjuntar se apaga mientras quien responde no lea archivos: ofrecerlo y descartarlos engaña.
+    attach: false,
     value: draft,
     onChange: setDraft,
     onSend: (text: string) => actions.send(text),

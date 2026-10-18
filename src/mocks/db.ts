@@ -170,12 +170,18 @@ export interface MockDb {
   register: MockRegisterState;
   /** Existencias por sucursal y sus movimientos. */
   inventory: MockInventoryState;
+  /** Los avisos que cada cuenta ya leyó: `cuenta:aviso`. */
+  notificationsRead: string[];
   /** token de «Mis citas» → id de cliente. Solo en memoria. */
   bookingSessions: Map<string, string>;
   /** token → id de cuenta */
   sessions: Map<string, string>;
   /** celular → intentos fallidos seguidos al verificar el código. Solo en memoria. */
   loginFailures: Map<string, number>;
+  /** celular → hasta cuándo está bloqueado el acceso. Solo en memoria. */
+  loginLocks: Map<string, number>;
+  /** celular → cuándo pidió sus últimos códigos (tope de envíos). Solo en memoria. */
+  codeRequests: Map<string, number[]>;
   /** id de cuenta → correo de respaldo verificado, por si el SMS no llega al entrar. */
   backupEmails: Record<string, string>;
   /** id de cuenta → correo de respaldo al que se mandó el código y aún no se verifica. Solo en memoria. */
@@ -205,6 +211,7 @@ interface PersistedDb {
   payroll?: MockPayrollState;
   register?: MockRegisterState;
   inventory?: MockInventoryState;
+  notificationsRead?: string[];
   backupEmails?: Record<string, string>;
 }
 
@@ -247,9 +254,12 @@ export function createDb(): MockDb {
     payroll: saved?.payroll ?? emptyPayroll(),
     register: saved?.register ?? emptyRegister(),
     inventory: saved?.inventory ?? emptyInventory(),
+    notificationsRead: saved?.notificationsRead ?? [],
     bookingSessions: new Map(),
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
+    loginLocks: new Map(),
+    codeRequests: new Map(),
     backupEmails: saved?.backupEmails ?? {},
     pendingBackupEmails: new Map(),
     feedback: [],
@@ -258,7 +268,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -278,9 +288,12 @@ export function createDb(): MockDb {
       db.payroll = emptyPayroll();
       db.register = emptyRegister();
       db.inventory = emptyInventory();
+      db.notificationsRead = [];
       db.bookingSessions.clear();
       db.sessions.clear();
       db.loginFailures.clear();
+      db.loginLocks.clear();
+      db.codeRequests.clear();
       db.backupEmails = {};
       db.pendingBackupEmails.clear();
       db.feedback = [];

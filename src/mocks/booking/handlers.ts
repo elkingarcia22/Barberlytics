@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { releaseAppointmentStock, stockLevel, syncAppointmentStock } from "../inventory/stock";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
 import { profileOf, saveProfile } from "../customers/handlers";
@@ -34,7 +35,7 @@ import {
   visitSuggestion,
 } from "./logic";
 import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alternatives";
-import { cancelMessages, offerFreedSlot, rescheduleMessages, scheduleMessages } from "./reminders";
+import { cancelMessages, newConfirmToken, offerFreedSlot, rescheduleMessages, scheduleMessages } from "./reminders";
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
 import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
@@ -418,6 +419,9 @@ export const bookingHandlers = [
       const qty = Math.max(0, Math.floor(Number(line.qty) || 0));
       return product && qty > 0 ? [{ productId: product.id, name: product.name, qty, price: productPriceIn(product.id, branchId) }] : [];
     });
+    // En línea no se vende lo que no está en la estantería.
+    const short = productLines.find((line) => stockLevel(branchId, line.productId).onHand < line.qty);
+    if (short) return error(409, "out_of_stock", `Ya no nos quedan suficientes de «${short.name}». Quítalo o baja la cantidad.`);
     const servicesTotal = plan.planned.reduce((sum, item) => sum + item.price, 0);
     const productsTotal = productLines.reduce((sum, line) => sum + line.price * line.qty, 0);
     const customer = customerOf(client);
@@ -493,7 +497,7 @@ export const bookingHandlers = [
     const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     // Las partes de una visita llevan su nota: en la agenda se ve que es la misma persona en dos sillas.
     const partsOf = (visitId: string | null) => (visitId ? plan.planned.filter((other) => other.visitId === visitId).length : 0);
-    const created: MockAppointment[] = plan.planned.map((item, index) => ({
+    const drafts: MockAppointment[] = plan.planned.map((item, index) => ({
       id: `apt_web_${Date.now().toString(36)}_${index}`,
       linkId,
       branchId,
@@ -517,7 +521,10 @@ export const bookingHandlers = [
       history: [{ id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "created" }],
       payment: null,
       online: online[index],
+      confirmToken: newConfirmToken(),
     }));
+    // El producto reservado queda apartado: sale del inventario desde ya y vuelve si se cancela.
+    const created = drafts.map((item) => syncAppointmentStock(item, "online", client.name));
     const lines: MockBookingLine[] = plan.planned.map((item, index) => ({ appointmentId: created[index].id, guestName: item.guestName, guestRelation: item.guestRelation, price: item.price, paid: Math.round(item.price * paidShare * 100) / 100, noPreference: item.noPreference }));
     const reservation: MockReservation = {
       id: reservationId,
@@ -767,7 +774,7 @@ export const bookingHandlers = [
     cancelMessages(existing.id);
     // Lo que se devuelve queda en la cita: Transacciones la muestra devuelta, no anulada.
     const refunds = terms.refund > 0 ? [...(existing.refunds ?? []), { id: `rf_${Date.now().toString(36)}`, amount: terms.refund, to: refundTo === "credit" ? ("credit" as const) : ("card" as const), reason: "Cancelada en línea", at: new Date().toISOString(), by: client.name }] : existing.refunds;
-    const updated: MockAppointment = { ...existing, status: "cancelled", refunds, history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
+    const updated: MockAppointment = { ...releaseAppointmentStock(existing, client.name), status: "cancelled", refunds, history: [...existing.history, { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "status:cancelled" }] };
     db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
     // El hueco no se pierde: se ofrece a la lista de espera de esa hora.
     offerFreedSlot(existing);

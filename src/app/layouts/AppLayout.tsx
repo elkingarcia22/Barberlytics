@@ -19,6 +19,7 @@ import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, useBranches } from "@/features/branches";
+import { useMessageDispatcher } from "@/features/calendar/messages";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
@@ -104,6 +105,8 @@ export function AppLayout() {
   const [chosenBranchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
   // Las de Configuración: si la elegida se borra o se desactiva, se pasa a la primera que queda.
   const branches = useBranches();
+  // Los mensajes de WhatsApp que ya tocan salen mientras alguien del equipo tiene la app abierta.
+  useMessageDispatcher(Boolean(user));
   const branchId = branches.some((branch) => branch.id === chosenBranchId) ? chosenBranchId : (branches[0]?.id ?? DEFAULT_BRANCH_ID);
   const settings = React.useMemo(() => buildSettingsGroups(t, access), [t, access]);
   // La identidad que subió la barbería: su isologo, su nombre y debajo

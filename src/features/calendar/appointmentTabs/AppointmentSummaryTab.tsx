@@ -19,6 +19,7 @@ import { StageHeadline } from "./AppointmentPanelParts";
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "./AppointmentLinkSection";
 import { PAYMENT_METHOD_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus } from "../types";
 import { appointmentBill } from "../checkoutMath";
+import { AppointmentMessages } from "./AppointmentMessages";
 
 /**
  * Resumen: en qué va la cita y su avance, lo que no se puede pasar por alto
@@ -233,6 +234,9 @@ export function AppointmentSummaryTab({ appointment, ctx, onStatus, onBarberRead
           </div>
         )}
       </section>
+
+      {/* Si confirmó que viene y lo que se le mandó por WhatsApp; recepción lo marca si lo dice por otra vía. */}
+      {!appointment.walkIn && appointment.status !== "paid" && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
 
       {/* Enlazarla con otra cita del día (otra persona del mismo agendamiento, una cita aparte…). */}
       {onLink && isActive(appointment) && <LinkPicker current={appointment} candidates={linkCandidates} ctx={ctx} onLink={onLink} />}

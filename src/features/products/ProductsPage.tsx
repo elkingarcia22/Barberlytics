@@ -13,7 +13,7 @@ import { MetricCard, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
 import type { TableActionsPlacement } from "@/components/data-display/table-config";
 import { AttentionAction, AttentionStrip, EmptyState } from "@/components/feedback";
-import { Breadcrumbs } from "@/components/navigation";
+import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { ConfirmDialog } from "@/components/overlays";
 import { OptionTile } from "@/components/selection";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useAccess } from "@/features/access";
 import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
+import { InventoryView } from "./InventoryView";
 import { ProductCategoriesDrawer } from "./ProductCategoriesDrawer";
 import { ProductFormDrawer } from "./ProductFormDrawer";
 import { ALL, PRODUCT_ALERTS, categoryName, parseCategory, productCells, productColumns, productsPulse, type ProductAlertId } from "./productsHome";
@@ -50,6 +51,24 @@ export function ProductsPage() {
   const navigate = useNavigate();
   const branchId = useBranchId();
   const query = useProductsQuery(branchId);
+  const access = useAccess();
+  const can = React.useMemo(() => catalogAccess(access, "products"), [access]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("vista") === "existencias" ? "inventory" : "catalog";
+  const statusParam = searchParams.get("estado");
+  const stockFilter = statusParam === "low" || statusParam === "out" ? statusParam : null;
+  const setParams = (next: Record<string, string | null>) =>
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(next)) {
+          if (value === null) params.delete(key);
+          else params.set(key, value);
+        }
+        return params;
+      },
+      { replace: true }
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -59,22 +78,37 @@ export function ProductsPage() {
 
       <PageHeader title={t("products.title")} description={t("products.description")} />
 
-      <QueryBoundary
-        query={query}
-        loading={
-          <div className="space-y-section" data-testid="products-loading">
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <div className="grid gap-stack lg:grid-cols-3">
-              {[0, 1, 2].map((item) => (
-                <Skeleton key={item} className="h-[168px] rounded-2xl" />
-              ))}
+      <ThemaTabs
+        className="mb-section"
+        fitContent
+        tabs={[
+          { id: "catalog", label: t("products.view.catalog") },
+          { id: "inventory", label: t("products.view.inventory") },
+        ]}
+        activeTabId={view}
+        onTabChange={(next) => setParams({ vista: next === "inventory" ? "existencias" : null, estado: null, categoria: null, aviso: null })}
+      />
+
+      {view === "inventory" ? (
+        <InventoryView branchId={branchId} canEdit={can.canEdit} status={stockFilter} onStatusChange={(status) => setParams({ estado: status })} />
+      ) : (
+        <QueryBoundary
+          query={query}
+          loading={
+            <div className="space-y-section" data-testid="products-loading">
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <div className="grid gap-stack lg:grid-cols-3">
+                {[0, 1, 2].map((item) => (
+                  <Skeleton key={item} className="h-[168px] rounded-2xl" />
+                ))}
+              </div>
+              <Skeleton className="h-72 w-full rounded-2xl" />
             </div>
-            <Skeleton className="h-72 w-full rounded-2xl" />
-          </div>
-        }
-      >
-        {(data) => <ProductsHome catalog={data} branchId={branchId} />}
-      </QueryBoundary>
+          }
+        >
+          {(data) => <ProductsHome catalog={data} branchId={branchId} />}
+        </QueryBoundary>
+      )}
     </div>
   );
 }

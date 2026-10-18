@@ -3,12 +3,16 @@ import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBrandin
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
 import { customersHandlers } from "./customers/handlers";
+import { relationshipHandlers } from "./customers/relationship";
+import { incomeHandlers } from "./reports/income";
+import { inventoryHandlers } from "./inventory/handlers";
 import { servicesHandlers } from "./services/handlers";
 import { productsHandlers } from "./products/handlers";
 import { transactionsHandlers } from "./transactions/handlers";
 import { expensesHandlers } from "./expenses/handlers";
 import { payrollHandlers } from "./payroll/handlers";
 import { registerHandlers } from "./register/handlers";
+import { messagesHandlers } from "./messages/handlers";
 import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
 import { buildBusinessMetrics } from "./metrics";
@@ -471,6 +475,9 @@ export const handlers = [
   ...teamHandlers,
 
   // ---------- Clientes ----------
+  ...relationshipHandlers,
+  ...incomeHandlers,
+  ...inventoryHandlers,
   ...customersHandlers,
 
   // ---------- Servicios ----------
@@ -488,6 +495,7 @@ export const handlers = [
   // ---------- Nómina ----------
   ...payrollHandlers,
   ...registerHandlers,
+  ...messagesHandlers,
 
   // ---------- Configuración ----------
   ...settingsHandlers,

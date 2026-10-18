@@ -9,6 +9,7 @@ import { accountTaxPercent, branchCurrency, branchOnlineMethods, branchTaxPercen
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
+import { stockLevel } from "../inventory/stock";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 
 /**
@@ -166,7 +167,8 @@ export function catalog(branchId: string) {
     };
   });
   const products = db.products.items
-    .filter((item) => item.visibility === "public" && item.sellable && item.activeBranchIds.includes(branchId))
+    // Lo agotado en la sucursal no se ofrece en línea.
+    .filter((item) => item.visibility === "public" && item.sellable && item.activeBranchIds.includes(branchId) && stockLevel(branchId, item.id).onHand > 0)
     .map((item) => ({ id: item.id, name: item.name, description: item.description, category: db.products.categories.find((category) => category.id === item.categoryId)?.name ?? "", price: productPriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId), imageUrl: item.imageUrl }));
   return {
     services: services.map((item) => ({

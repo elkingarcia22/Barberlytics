@@ -137,6 +137,8 @@ export const appointmentSchema = z.object({
   payment: paymentSchema.nullable(),
   online: onlineSettlementSchema.nullable().optional(),
   refunds: z.array(refundSchema.extend({ id: z.string() })).optional(),
+  /** Si el cliente confirmó que viene (por el enlace de WhatsApp o porque recepción lo marcó); sin él, sin confirmar. */
+  confirmation: z.object({ status: z.enum(["confirmed", "declined"]), at: z.string(), via: z.enum(["link", "reception"]) }).nullable().optional(),
   /**
    * Las citas enlazadas comparten este id: las que salieron de un mismo
    * agendamiento (varias personas o varias citas de una vez) o las que se
@@ -234,6 +236,8 @@ export interface AppointmentPatch {
   force?: boolean;
   /** Quién lo decidió cuando no fue la persona que está en pantalla: el asistente. */
   actor?: "assistant";
+  /** Recepción marca que el cliente confirmó (por teléfono, en persona) o lo devuelve a sin confirmar. */
+  confirmation?: "confirmed" | "pending";
 }
 
 export interface CheckoutInput {

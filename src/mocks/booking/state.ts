@@ -50,7 +50,15 @@ export interface MockOutboxMessage {
   channel: "whatsapp" | "sms";
   kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "slotFreed";
   sendAt: string;
-  status: "scheduled" | "sent" | "cancelled";
+  /** `failed`: WhatsApp lo rechazó; se ve con su motivo y no se reintenta solo. */
+  status: "scheduled" | "sent" | "cancelled" | "failed";
+  /** Cuándo salió (o se intentó). */
+  sentAt?: string;
+  /** Sin WhatsApp conectado: se dio por enviado sin salir del sistema. */
+  simulated?: boolean;
+  /** El id que da WhatsApp al mensaje enviado. */
+  providerId?: string | null;
+  error?: string;
   /** «Se liberó una hora»: cuál, para reservarla en un toque. */
   offer?: { start: string; barberId: string; branchId: string };
 }

@@ -50,7 +50,7 @@ export interface ScheduleEventAction {
 }
 
 /** Los iconos pequeños de la esquina de una tarjeta. Son conceptos, no iconos: la tarjeta decide cuál dibuja. */
-export type ScheduleMarkerIcon = "online" | "walkIn" | "new" | "note" | "paid" | "repeat" | "requested";
+export type ScheduleMarkerIcon = "online" | "walkIn" | "new" | "note" | "paid" | "repeat" | "requested" | "confirmed";
 
 export interface ScheduleMarker {
   id: string;

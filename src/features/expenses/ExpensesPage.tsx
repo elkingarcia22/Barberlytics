@@ -22,6 +22,8 @@ import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
+import { IncomeStatementView } from "./IncomeStatementView";
+import { monthKey } from "./income";
 import { ALL, expenseCells, expenseColumns, parseKind } from "./expensesHome";
 import { ExpenseGlyph, ExpenseKindBadge } from "./expensesShared";
 import { monthlyEquivalent, summarizeExpenses } from "./expensesUtils";
@@ -53,6 +55,22 @@ export function ExpensesPage() {
   /* «Lo suyo» sin ficha no existe: se piden los de un dueño que no hay y la lista sale vacía. */
   const ownerMemberId = access.scope === "own" ? (access.member?.id ?? "none") : null;
   const query = useExpensesQuery(branchId, ownerMemberId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  /* El estado de resultados cruza ventas y nómina: solo para quien ve las dos y mira la sucursal entera. */
+  const canSeeIncome = ownerMemberId === null && access.can("payroll") && access.can("transactions");
+  const view = canSeeIncome && searchParams.get("vista") === "resultado" ? "income" : "expenses";
+  const monthParam = searchParams.get("mes") ?? "";
+  const month = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : monthKey(new Date());
+  const setParam = (key: string, value: string | null) =>
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current);
+        if (value === null) params.delete(key);
+        else params.set(key, value);
+        return params;
+      },
+      { replace: true }
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -62,21 +80,38 @@ export function ExpensesPage() {
 
       <PageHeader title={t("expenses.title")} description={t(ownerMemberId ? "expenses.ownDescription" : "expenses.description")} />
 
-      <QueryBoundary
-        query={query}
-        loading={
-          <div className="space-y-section" data-testid="expenses-loading">
-            <div className="grid gap-stack lg:grid-cols-3">
-              {[0, 1, 2].map((item) => (
-                <Skeleton key={item} className="h-[168px] rounded-2xl" />
-              ))}
+      {canSeeIncome && (
+        <ThemaTabs
+          className="mb-section"
+          fitContent
+          tabs={[
+            { id: "expenses", label: t("expenses.view.list") },
+            { id: "income", label: t("expenses.view.income") },
+          ]}
+          activeTabId={view}
+          onTabChange={(next) => setParam("vista", next === "income" ? "resultado" : null)}
+        />
+      )}
+
+      {view === "income" ? (
+        <IncomeStatementView branchId={branchId} month={month} onMonthChange={(next) => setParam("mes", next)} />
+      ) : (
+        <QueryBoundary
+          query={query}
+          loading={
+            <div className="space-y-section" data-testid="expenses-loading">
+              <div className="grid gap-stack lg:grid-cols-3">
+                {[0, 1, 2].map((item) => (
+                  <Skeleton key={item} className="h-[168px] rounded-2xl" />
+                ))}
+              </div>
+              <Skeleton className="h-72 w-full rounded-2xl" />
             </div>
-            <Skeleton className="h-72 w-full rounded-2xl" />
-          </div>
-        }
-      >
-        {(data) => <ExpensesHome expenses={data.items} branchId={branchId} ownerMemberId={ownerMemberId} />}
-      </QueryBoundary>
+          }
+        >
+          {(data) => <ExpensesHome expenses={data.items} branchId={branchId} ownerMemberId={ownerMemberId} />}
+        </QueryBoundary>
+      )}
     </div>
   );
 }

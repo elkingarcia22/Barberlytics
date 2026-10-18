@@ -10,6 +10,7 @@ import { Text } from "@/components/typography";
 import { NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calendar/types";
 import { ClientNoteList, NoteKindChips } from "@/features/calendar/clientNotes/ClientNotes";
 import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
+import { CustomerContactLog, CustomerWallet } from "./CustomerRelationship";
 import { APPOINTMENT_STATUS_BADGE, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
 import { APPOINTMENT_STATUS_KEYS, type CustomerAppointment, type CustomerDetail } from "./types";
 
@@ -95,6 +96,8 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
           </InfoCard>
 
           <CustomerNotes customer={customer} onAddNote={onAddNote} showMedical={showContact} />
+
+          <CustomerContactLog customerId={customer.id} />
         </div>
 
         <div className="space-y-stack">
@@ -108,6 +111,8 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
           >
             {next || last ? <AppointmentSummary appointment={(next ?? last) as CustomerAppointment} formatMoney={showMoney ? formatMoney : null} /> : <Text variant="muted">{t("customers.overview.noAppointments")}</Text>}
           </InfoCard>
+
+          <CustomerWallet customerId={customer.id} formatMoney={formatMoney} showMoney={showMoney} showContact={showContact} />
 
           <InfoCard
             title={t("customers.overview.contact")}

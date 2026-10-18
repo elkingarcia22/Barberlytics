@@ -38,7 +38,7 @@ const findClient = (id: string | readonly string[] | undefined) => realClients()
 /** Cuánto hacia atrás cuenta una cita cobrada para que el cliente siga siendo «suyo» del barbero. */
 const OWN_WINDOW_MS = 365 * 86_400_000;
 
-function barberName(id: string | null): string | null {
+export function barberName(id: string | null): string | null {
   const member = db.team.members.find((item) => item.id === id);
   return member ? memberName(member) : null;
 }

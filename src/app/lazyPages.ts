@@ -26,6 +26,7 @@ export const UsersPage = React.lazy(() => import("@/features/users/UsersPage").t
 export const DocsApp = React.lazy(() => import("@/docs/DocsApp").then((m) => ({ default: m.DocsApp })));
 /** La reserva en línea que ve el cliente; pública, con su propia vista previa. */
 export const BookingPage = React.lazy(() => import("@/features/booking/BookingPage").then((m) => ({ default: m.BookingPage })));
+export const ConfirmAppointmentPage = React.lazy(() => import("@/features/booking/ConfirmAppointmentPage").then((m) => ({ default: m.ConfirmAppointmentPage })));
 /** El centro de ayuda: lee el contenido publicado por el repo `centro-de-ayuda`. */
 export const HelpApp = React.lazy(() => import("@/help/HelpApp").then((m) => ({ default: m.HelpApp })));
 export const SettingsPage = React.lazy(() => import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));

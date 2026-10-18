@@ -101,8 +101,10 @@ export function useUpdateAppointment() {
 }
 
 function applyPatch(item: Appointment, patch: AppointmentPatch): Appointment {
-  const { notes, ...rest } = patch;
-  return { ...item, ...rest, ...(notes !== undefined ? { notes } : {}) };
+  const { notes, confirmation, ...rest } = patch;
+  // La confirmación que marca recepción se ve al instante; la fecha la pone el servidor.
+  const confirmed = confirmation === undefined ? {} : { confirmation: confirmation === "confirmed" ? { status: "confirmed" as const, at: new Date().toISOString(), via: "reception" as const } : null };
+  return { ...item, ...rest, ...confirmed, ...(notes !== undefined ? { notes } : {}) };
 }
 
 export function useCheckoutAppointment() {

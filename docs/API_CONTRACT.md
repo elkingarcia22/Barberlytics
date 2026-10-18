@@ -178,7 +178,7 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 `barber`: `{ id, branchId, name, avatarUrl, level: "junior" | "senior" | "master", workingHours: { [díaDeLaSemana 0–6]: [{ start: "09:00", end: "19:00" }] }, acceptsWalkIns }`
 `client`: `{ id, name, phone, type: "walkin" | "new" | "retained" | "frequent" | "vip", visits, cancellations, noShows, lastVisitAt, preferredBarberId, visitEveryDays, notes: [{ id, kind: "note" | "medication" | "allergy", text, createdAt }] }`
 `service`: `{ id, name, category, durationMin, price }` · `product`: `{ id, name, category, price }`
-`appointment`: `{ id, branchId, clientId, barberId, requestedBarberId, serviceIds, products: [{ productId, qty }], start, durationMin, status, barberReady, walkIn, source: "internal" | "online" | "walkin", repeat, seriesId, notes, createdAt, createdBy, history: [{ id, at, actor, event }], payment: { method, tip, tax, total, paidAt, prepaid? } | null, online?: { reservation, method, paid, tip, discount } | null }`
+`appointment`: `{ id, branchId, clientId, barberId, requestedBarberId, serviceIds, products: [{ productId, qty }], start, durationMin, status, barberReady, walkIn, source: "internal" | "online" | "walkin", repeat, seriesId, notes, createdAt, createdBy, history: [{ id, at, actor, event }], payment: { method, tip, tax, total, paidAt, prepaid? } | null, online?: { reservation, method, paid, tip, discount } | null, confirmation?: { status: "confirmed" | "declined", at, via: "link" | "reception" } | null }`
 
 `online` es lo que dejó resuelto la reserva en línea (lo pagado —tarjeta, anticipo, saldo o tarjeta de regalo—, la propina y lo descontado —cupón, cortesía o paquete—), repartido entre sus citas. Una cita reservada y pagada no se vuelve a cobrar: la caja cobra `total − online.paid`.
 `status`: `scheduled` (agendada) → `arrived` (llegó) → `seated` (en silla) → `paid` (cobrada); fuera del camino, `no_show` y `cancelled`. Una cita `paid` ya no cambia de estado.
@@ -206,6 +206,26 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 
 El mock genera la agenda de cada día la primera vez que se pide, de forma determinista (la misma fecha y sucursal dan las mismas citas), y recuerda lo que se cambia durante la sesión.
 
+## Mensajes al cliente (WhatsApp)
+
+Cada cita que no es de paso y tiene teléfono deja sus mensajes en la cola (`db.booking.outbox`): la confirmación al
+crearla, la reprogramación si se mueve, los recordatorios 24 h y 2 h antes y, al cancelar, el aviso de hueco libre a la
+lista de espera. Cancelar o marcar «no vino» anula los que faltaban. Cada mensaje: `{ id, appointmentId, to, channel,
+kind, sendAt, status: "scheduled" | "sent" | "failed" | "cancelled", sentAt?, simulated?, providerId?, error? }`.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/messages/dispatch` | Con sesión. Envía los mensajes vencidos. `{ sent, simulated, failed }`. La app lo llama cada minuto mientras hay sesión. |
+| GET | `/appointments/:id/messages` | Con sesión. `{ items }` de esa cita, del más reciente al más viejo. |
+| POST | `/booking/confirm` | Público. `{ token }` (el `confirmToken` de la cita, que va en el botón del mensaje). `200 { start, client, branch, confirmedAt }` y la cita queda `confirmation: { status: "confirmed", via: "link" }`. `404` si el token no existe · `409` si la cita está cancelada o marcada «no vino». Lo usa `/reservar/confirmar?t=`. |
+| PATCH | `/appointments/:id` | Además de lo de Calendario, `confirmation: "confirmed" \| "pending"` la confirma desde recepción (`via: "reception"`) o lo quita. |
+
+El envío real lo hace el servidor: `POST /api/whatsapp/send` (función de Vercel; en local, el middleware de Vite)
+con `{ to, kind, params: string[] (≤ 8), buttonParam? }` manda la plantilla aprobada de WhatsApp Cloud API
+(`WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_<KIND>`; ver `.env.example`). Sin llaves responde
+`501 not_configured` y el mensaje queda `sent` con `simulated: true`; si WhatsApp lo rechaza, `502` y el mensaje queda
+`failed` con el motivo. Las llaves nunca llegan al navegador.
+
 ## Clientes (`/customers`)
 
 El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `client` del calendario (mismo `id`): aquí se le suma lo que la agenda no necesita —contacto, dirección, en qué momento de la relación está y su historial—.
@@ -223,6 +243,13 @@ El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `cl
 | PATCH | `/customers/:id` | Los mismos campos del alta, o solo `{ blocked: boolean }` para bloquear y desbloquear sin reenviar la ficha. Devuelve `customerDetail`. `422` · `404`. |
 | POST | `/customers/:id/guests` | `{ name, relation? }`. `201 customerDetail`. Un invitado solo necesita nombre: la cita queda a nombre del titular. |
 | DELETE | `/customers/:id/guests/:guestId` | `customerDetail` sin ese invitado. `404`. |
+
+La relación que la reserva ya conoce va aparte, para no cargar la ficha:
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/customers/:id/relationship` | `{ membership: { every, progress, available, reward, rewardValue } \| null, packages: [{ id, name, service, remaining, total, expiresAt }], credit, giftCards: [{ code, recipientName, initial, balance, createdAt }] (las que compró), cards: [{ id, brand, last4, expMonth, expYear }], reviews: [{ id, rating, comment, barber, createdAt }], waitlist: [{ id, branchId, service, barber, slots, createdAt }] (solo huecos por venir), messages: [{ id, appointmentId, kind, channel, status: "sent" \| "failed", at, simulated, error }] (los 12 últimos), consent: { marketing: { accepted, at, source: "booking" \| "app" } \| null } }`. `404`. |
+| PATCH | `/customers/:id/consent` | `{ marketing: boolean }`. Guarda el permiso de promociones con la fecha y `source: "app"` (recepción) y devuelve la relación. Retirarlo siempre se puede; darlo, solo si el cliente lo dijo (Ley 1581: previo, expreso, informado y demostrable). Los mensajes de sus citas no dependen de este permiso. `422` sin `marketing` · `404`. |
 
 Las notas se crean, corrigen y borran con `/clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
 
@@ -252,7 +279,7 @@ El catálogo de lo que se ofrece. Es la **fuente de lo que la agenda puede agend
 
 ## Productos (`/products`)
 
-El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuente de lo que la caja puede cobrar**: `GET /calendar/catalog` devuelve como `products` los de aquí que están activos en la sucursal **y** a la venta (`sellable`). No hay inventario: el contrato no lleva existencias.
+El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuente de lo que la caja puede cobrar**: `GET /calendar/catalog` devuelve como `products` los de aquí que están activos en la sucursal **y** a la venta (`sellable`). Las existencias van aparte, en «Inventario».
 
 `category`: `{ id, name, description }`. `pcat_none` («Sin categoría») existe siempre y no se puede borrar.
 `product`: `{ id, name, description, categoryId, price (venta), branchPrice (venta en la sucursal de la petición \| null), cost (compra \| null), taxRate (0–100 \| null), sku (\| null), brand (\| null), distributor (\| null), visibility: "public" | "private", sellable, active, createdAt }`. `visibility` dice si el cliente lo ve al reservar en línea; `sellable`, si el equipo puede venderlo (uno de uso interno va en `false`); `active` es relativo al `branchId` de la petición.
@@ -268,6 +295,19 @@ El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuen
 | POST | `/product-categories` | `{ name, description? }`. `201 category`. `422` si el nombre falta o se repite. |
 | PATCH | `/product-categories/:id` | Igual. `category`. |
 | DELETE | `/product-categories/:id` | `204`; sus productos pasan a `pcat_none`. `409` para `pcat_none`. |
+
+## Inventario (`/inventory`)
+
+Existencias ligeras por sucursal de los productos activos y a la venta. Se mueven solas: el cobro de una cita descuenta sus productos, la venta rápida (`POST /sales`) los suyos y la reserva en línea **aparta** los que lleva desde que se reserva (vuelven si se cancela o se marca «no vino»; al cobrar solo se descuenta la diferencia, ver `stockTaken` en la cita). En mostrador se puede vender aunque el sistema diga 0 (queda en negativo: toca contar); en línea no: lo agotado no sale en `GET /booking/catalog` y `POST /booking/reservations` responde `409 out_of_stock` si no alcanza.
+
+`stockItem`: `{ productId, name, sku, categoryId, imageUrl, onHand, min, status: "ok" | "low" | "out", sold30, daysLeft (\| null), lastMovementAt (\| null) }`. `low` es `onHand ≤ min`; `sold30`, lo vendido en 30 días (citas cobradas y ventas rápidas); `daysLeft`, para cuántos días alcanza a ese ritmo.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/inventory?branchId` | `{ items: stockItem[], low }` (`low`: cuántos están por reponer o agotados). |
+| POST | `/inventory/movements` | `{ branchId, productId, kind: "receive" \| "count" \| "waste" \| "internal", qty, note? }`. Entrada suma; conteo fija lo que hay (`qty` ≥ 0) y anota la diferencia; merma y uso interno restan y piden `note`. `201 stockItem`. `422` con `fields`. |
+| PATCH | `/inventory/:productId` | `{ branchId, min }` (0–1.000). `stockItem`. `404` si no se vende en la sucursal. |
+| GET | `/inventory/:productId/movements?branchId` | `{ items: [{ id, delta, onHand, reason: "sale" \| "online" \| "return" \| "receive" \| "count" \| "waste" \| "internal", ref, note, at, by }] }`, los 50 últimos. |
 
 ## Transacciones (`/transactions`)
 
@@ -310,6 +350,14 @@ Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuen
 | DELETE | `/expenses/:id` | `204`. `404`. |
 
 El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes los calcula el front sobre `items`.
+
+## Reportes (`/reports`)
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/reports/income?branchId&month=AAAA-MM` | Estado de resultados del mes, hasta hoy si es el mes en curso. `{ month, days, elapsedDays, revenue: { services, products, rent, refunds, total }, costs: { products, commissions, salaries, adjustments, expensesFixed, expensesVariable }, contribution, fixedCosts, net, marginPercent, breakEven: { revenue, perDay, servicesPerDay, actualPerDay, avgTicket, openDays, contributionPercent } \| null, previous: { month, elapsedDays, revenue, net } }`. `422` sin sucursal o mes. |
+
+Todo va sin impuesto ni propina. **Ingresos**: lo cobrado por el equipo propio (servicios y productos, también ventas de mostrador) más la renta de sillas y las deducciones de los barberos de renta (lo que ellos cobran es suyo), menos devoluciones. **Variables** (crecen con lo vendido): costo del producto vendido (`products.cost`) y comisiones. **Fijos**: salarios, bonos y ajustes de nómina, gastos fijos de la sucursal llevados al mes —en proporción a los días vividos si el mes va a medias— y gastos variables del mes. `contribution = revenue − variables`; `net = contribution − fixedCosts`. **Punto de equilibrio**: lo fijo del mes completo ÷ (`contribution / revenue`); `servicesPerDay` lo divide por el ticket promedio y los días con agenda; `actualPerDay` es lo que se lleva. Un mes a medias se compara con el mismo tramo del anterior (`previous.elapsedDays`).
 
 ## Nómina (`/payroll`)
 

@@ -1,8 +1,10 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
+import { moveStock, releaseAppointmentStock, syncAppointmentStock } from "../inventory/stock";
 import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { appointmentAccount } from "./account";
+import { cancelMessages, newConfirmToken, offerFreedSlot, rescheduleMessages, scheduleMessages } from "../booking/reminders";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
 import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
 import type { MockCatalogService } from "../services/seed";
@@ -299,9 +301,13 @@ export const calendarHandlers = [
         createdBy: account.user.name,
         history: [entry(account.user.name, values.walkIn ? "walkin" : "created")],
         payment: null,
+        confirmToken: newConfirmToken(),
       });
     }
     db.calendar.appointments = [...created, ...db.calendar.appointments];
+    // Como la reserva en línea: confirmación y recordatorios por WhatsApp. Un cliente sin cita (ya está aquí) no los necesita.
+    const phone = db.calendar.clients.find((client) => client.id === values.clientId)?.phone;
+    if (!values.walkIn && phone) for (const appointment of created) scheduleMessages(appointment, phone);
     db.persist();
     return HttpResponse.json(created[0], { status: 201 });
   }),
@@ -372,9 +378,22 @@ export const calendarHandlers = [
       const clash = clashMessage(existing.branchId, next.barberId, next.start.slice(0, 10), parseClock(next.start.slice(11, 16)), next.durationMin, existing.id);
       if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     }
+    // Recepción marca la confirmación (por teléfono, en persona) o la deja sin confirmar.
+    if (input.confirmation === "confirmed" || input.confirmation === "pending") {
+      next = { ...next, confirmation: input.confirmation === "confirmed" ? { status: "confirmed", at: new Date().toISOString(), via: "reception" } : null };
+      history.push(entry(actor, input.confirmation === "confirmed" ? "confirmed" : "unconfirmed"));
+    }
     const reason = text(input.reason);
     if (reason) history.push(entry(actor, `reason:${reason}`));
-    return replaceAppointment({ ...next, history });
+    // Los mensajes siguen a la cita: moverla los reprograma; cancelarla los anula y ofrece el hueco a la lista de espera.
+    const phone = db.calendar.clients.find((client) => client.id === existing.clientId)?.phone;
+    if ((next.status === "cancelled" || next.status === "no_show") && existing.status !== next.status) {
+      cancelMessages(existing.id);
+      if (next.status === "cancelled") offerFreedSlot(existing);
+      // Lo que tenía apartado del inventario vuelve a la estantería.
+      next = releaseAppointmentStock(next, actor);
+    } else if (next.start !== existing.start && next.status === "scheduled" && phone) rescheduleMessages({ ...next, confirmToken: next.confirmToken ?? newConfirmToken() }, phone);
+    return replaceAppointment({ ...next, confirmToken: next.confirmToken ?? newConfirmToken(), history });
   }),
 
   http.post(`${BASE}/appointments/:id/checkout`, async ({ request, params }) => {
@@ -406,14 +425,21 @@ export const calendarHandlers = [
     const splitInput = asRecord(input.split as DefaultBodyType);
     const split = method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
     if (split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
-    return replaceAppointment({
-      ...existing,
-      serviceIds,
-      products,
-      status: "paid",
-      payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt, ...(split ? { split } : {}) },
-      history: [...existing.history, entry(account.user.name, `paid:${method}`)],
-    });
+    // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).
+    return replaceAppointment(
+      syncAppointmentStock(
+        {
+          ...existing,
+          serviceIds,
+          products,
+          status: "paid",
+          payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt, ...(split ? { split } : {}) },
+          history: [...existing.history, entry(account.user.name, `paid:${method}`)],
+        },
+        "sale",
+        account.user.name
+      )
+    );
   }),
 
   // Devolver una cuenta cobrada, entera o en parte, a efectivo o a la tarjeta.
@@ -570,7 +596,8 @@ export const calendarHandlers = [
 
   http.post(`${BASE}/sales`, async ({ request }) => {
     await delay(LATENCY_MS);
-    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     const input = asRecord(await request.json().catch(() => ({})));
     const method = text(input.method) as MockPaymentMethod;
     const items = Array.isArray(input.items)
@@ -592,6 +619,7 @@ export const calendarHandlers = [
     );
     const sale = { id: `sale_${Date.now().toString(36)}`, branchId, items, method, tax, total, paidAt: new Date().toISOString() };
     db.calendar.sales = [...db.calendar.sales, sale];
+    for (const item of items) moveStock({ branchId, productId: item.productId, delta: -item.qty, reason: "sale", ref: sale.id, by: account.user.name });
     db.persist();
     return HttpResponse.json(sale, { status: 201 });
   }),

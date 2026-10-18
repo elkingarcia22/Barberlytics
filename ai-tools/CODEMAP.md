@@ -35,6 +35,7 @@ De `src/app/router.tsx`.
 - `/configuracion/:seccion` → SettingsSectionPage
 - `/403` → ForbiddenPage
 - `/reservar` → BookingPage
+- `/reservar/confirmar` → ConfirmAppointmentPage
 - `/ayuda/*` → HelpApp
 - `/docs/*` → DocsApp
 - `*` → NotFoundPage
@@ -96,6 +97,8 @@ Lo que responde MSW hoy.
 - `DELETE /customers/:id` · src/mocks/customers/handlers.ts
 - `POST /customers/:id/guests` · src/mocks/customers/handlers.ts
 - `DELETE /customers/:id/guests/:guestId` · src/mocks/customers/handlers.ts
+- `GET /customers/:id/relationship` · src/mocks/customers/relationship.ts
+- `PATCH /customers/:id/consent` · src/mocks/customers/relationship.ts
 - `GET /expenses` · src/mocks/expenses/handlers.ts
 - `POST /expenses` · src/mocks/expenses/handlers.ts
 - `PATCH /expenses/:id` · src/mocks/expenses/handlers.ts
@@ -125,6 +128,13 @@ Lo que responde MSW hoy.
 - `DELETE /users/:id` · src/mocks/handlers.ts
 - `GET /company/branding` · src/mocks/handlers.ts
 - `PUT /company/branding` · src/mocks/handlers.ts
+- `GET /inventory` · src/mocks/inventory/handlers.ts
+- `POST /inventory/movements` · src/mocks/inventory/handlers.ts
+- `PATCH /inventory/:productId` · src/mocks/inventory/handlers.ts
+- `GET /inventory/:productId/movements` · src/mocks/inventory/handlers.ts
+- `POST */api/messages/dispatch` · src/mocks/messages/handlers.ts
+- `GET */api/appointments/:id/messages` · src/mocks/messages/handlers.ts
+- `POST */api/booking/confirm` · src/mocks/messages/handlers.ts
 - `GET /payroll` · src/mocks/payroll/handlers.ts
 - `POST /payroll/adjustments` · src/mocks/payroll/handlers.ts
 - `DELETE /payroll/adjustments/:id` · src/mocks/payroll/handlers.ts
@@ -144,6 +154,7 @@ Lo que responde MSW hoy.
 - `DELETE /product-categories/:id` · src/mocks/products/handlers.ts
 - `GET /register` · src/mocks/register/handlers.ts
 - `POST /register/close` · src/mocks/register/handlers.ts
+- `GET /reports/income` · src/mocks/reports/income.ts
 - `GET /services` · src/mocks/services/handlers.ts
 - `PUT /services/order` · src/mocks/services/handlers.ts
 - `PUT /services/activation` · src/mocks/services/handlers.ts
@@ -216,9 +227,9 @@ Router, providers, layout, navegación y páginas de error.
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
 - **router.tsx** · `router` · usa: @/features/access, @/features/auth, @/features/sections
@@ -266,6 +277,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **BookingFlow.tsx** · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, PortalContainerProvider, Skeleton, ThemaToaster · usa: @/app/i18n, @/lib/query, @/lib/utils
 - **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, CommentLayer, CommentsPanel, CommentsProvider, CommentsToggle, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
+- **ConfirmAppointmentPage.tsx** — Lo que abre el botón «Confirmar» del WhatsApp: confirma la cita con el token del enlace, sin pedir código ni… · `ConfirmAppointmentPage` · llama: POST /booking/confirm · piezas: EmptyState, Spinner, Text · usa: @/app/i18n, @/i18n, @/lib/api
 - **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/branches/${branchId}, GET /booking/catalog, GET /booking/availability, GET /booking/alternatives, GET /booking/earliest, POST /booking/waitlist, DELETE /booking/waitlist/${id}, GET /booking/me/suggestion, POST /booking/customers, PATCH /booking/me/cards/${id}, DELETE /booking/me/cards/${id}, POST /booking/promo, POST /booking/reservations, POST /booking/phone/check, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, GET /booking/barbers/${barberId}/reviews, POST /booking/appointments/${id}/review, POST /booking/events, GET /booking/funnel, POST /booking/packages/buy, POST /booking/gift-cards/check, POST /booking/gift-cards, POST /booking/appointments/${id}/repeat, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/details, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
 - **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `CalendarProvider`, `calendarUrl`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs`, `formatPhone`, `DayHours`, `OpenState`, `openStateOf`, `WEEK_ORDER` · usa: @/i18n
 - **bookingState.ts** — El recorrido de la reserva como datos: en qué paso está, quién reserva, la cita que se está armando y las que… · `BookingStep`, `BookingPerson`, `DraftItem`, `WaitlistEntry`, `BookingState`, `PendingProfile`, `BookingAction`, `initialBookingState`, `previousPartIndex`, `bookingReducer`, `PROGRESS_STEPS`, `ProgressStep`, `progressSteps`, `progressIndex`, `personName`, `defaultBranchId`
@@ -492,6 +504,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **checkoutMath.ts** — Las cuentas del cobro, sin interfaz: cuánto es una propina sugerida, cuánto recarga la tarjeta y cuánto se de… · `TipChoice`, `CardSurcharge`, `FALLBACK_TIPS`, `tipAmount`, `surchargeAmount`, `changeDue`, `AppointmentBill`, `appointmentBill`, `sumBills`, `splitAcross` · usa: @/features/branches
 - **dayBrief.ts** — Lo que el día pide mirar, en pocas líneas: quién va tarde, a quién le sobra agenda, quién ya no da abasto y a… · `BriefLine`, `IDLE_LOAD`, `FULL_LOAD`, `dayBrief`, `WaitlistMatch`, `waitlistMatch` · piezas: atMinutes, minutesOfDay, parseClock, workingMinutes · usa: @/app/i18n
 - **gapsModel.ts** — Los huecos del día: los ratos libres de cada barbero dentro de su jornada, desde ahora. · `DayGap`, `DayGapsOptions`, `DEFAULT_MIN_GAP_MINUTES`, `dayGaps`, `GapsSummary`, `gapsSummary` · piezas: atMinutes, minutesOfDay, parseClock
+- **messages.ts** — Los mensajes de WhatsApp de una cita (confirmación, recordatorios, hueco liberado) y el envío de los que ya t… · `messageKindSchema`, `MessageKind`, `MESSAGE_KIND_KEYS`, `appointmentMessageSchema`, `AppointmentMessage`, `messagesApi`, `useAppointmentMessages`, `useMessageDispatcher` · llama: GET /appointments/${appointmentId}/messages, POST /messages/dispatch · usa: @/app/i18n, @/lib/api
 - **pulseModel.ts** — En qué va cada cita ahora mismo y cuánto dinero lleva la jornada. · `PULSE_FOCUSES`, `PulseFocus`, `pulseGroup`, `DayPulse`, `dayPulse`
 - **queries.ts** — Claves jerárquicas: invalidar `days()` refresca cualquier día abierto sin tocar el catálogo, y `month()` se r… · `calendarKeys`, `useCatalogQuery`, `useDayQuery`, `useMonthQuery`, `useWaitlistQuery`, `useCreateAppointment`, `useUpdateAppointment`, `useCheckoutAppointment`, `useAddClientNote`, `useUpdateClientNote`, `useRemoveClientNote`, `useCreateBlock`, `useRemoveBlock`, `useAddToWaitlist`, `useRemoveFromWaitlist`, `useCreateSale`
 - **reflowModel.ts** — Reacomodar la cola de un barbero cuando algo se alarga: la cita que viene después se corre hasta donde termin… · `ReflowMove`, `ReflowPlan`, `isMovable`, `reflowPlan`, `planShiftMinutes`, `moveStart` · piezas: atMinutes, minutesOfDay, parseClock
@@ -521,6 +534,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AppointmentEditForm.tsx** — Cambiar una cita sin salir del detalle: servicios, barbero, fecha, hora, duración y la nota para el barbero. · `AppointmentEditFormProps`, `AppointmentEditForm` · piezas: Button, DatePicker, Field, MultiSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, atMinutes, formatClock, minutesOfDay, parseClock · usa: @/app/i18n
 - **AppointmentHistoryTab.tsx** — Historial: la actividad de la cita, quién hizo qué y cuándo, del más reciente al más antiguo. · `AppointmentHistoryTabProps`, `AppointmentHistoryTab` · piezas: DrawerSection, Timeline, TimelineItem · usa: @/app/i18n, @/i18n
 - **AppointmentLinkSection.tsx** — Lo que el panel de una cita necesita para sus citas enlazadas. · `AppointmentLinkProps`, `AppointmentLinkSectionProps`, `AppointmentLinkSection`, `LinkPickerProps`, `LinkPicker` · piezas: Button, ListItem, ListItemGroup, SearchableSelect, Text · usa: @/app/i18n
+- **AppointmentMessages.tsx** — Si el cliente confirmó que viene y qué mensajes se le mandaron. · `AppointmentMessagesProps`, `AppointmentMessages` · piezas: Badge, Button, Text · usa: @/app/i18n, @/i18n
 - **AppointmentNotesTab.tsx** — Notas: las del cliente filtradas por tipo —Notas, Medicamento, Alergias— con chips y su contador, el formular… · `AppointmentNotesTabProps`, `AppointmentNotesTab` · piezas: Button, DrawerSection, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea · usa: @/app/i18n, @/lib/api
 - **AppointmentPanelParts.tsx** · `StageHeadline` · piezas: Text · usa: @/lib/utils
 - **AppointmentSummaryTab.tsx** — Resumen: en qué va la cita y su avance, lo que no se puede pasar por alto (alergias), la cita en filas —lo mi… · `AppointmentSummaryTabProps`, `AppointmentSummaryTab` · piezas: Alert, AlertDescription, AlertTitle, Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ScheduleColorDot, Stepper, Text, formatClock, formatClockRange · usa: @/app/i18n, @/lib/utils
@@ -542,6 +556,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerNoteDrawer.tsx** — Una nota nueva del cliente: qué tipo es —una alergia no se lee igual que una preferencia— y el texto. · `CustomerNoteDrawerProps`, `CustomerNoteDrawer` · piezas: Button, DrawerShell, Field, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **CustomerOverview.tsx** — El resumen de un cliente: lo que hay que saber antes de atenderle arriba —alergias y medicamentos—, cuánto va… · `CustomerOverviewProps`, `CustomerOverview` · piezas: Alert, AlertDescription, AlertTitle, Button, MetricCard, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
+- **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api
 - **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de clientes; ver docs/API_CONTRACT.md. · `customersApi` · llama: GET /customers, GET /customers/${id}, POST /customers, PATCH /customers/${id}, DELETE /customers/${id}, POST /clients/${id}/notes, POST /customers/${id}/guests, DELETE /customers/${id}/guests/${guestId} · usa: @/features/calendar, @/lib/api
 - **customerAccess.ts** — Si quien mira puede ver a ese cliente: todo, o solo los suyos. · `isOwnCustomer`, `canSeeCustomer`, `CustomerPermissions`, `customerPermissions`, `useCustomerPermissions` · usa: @/features/access
@@ -551,6 +566,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `daysToBirthday`, `formatAgo`, `downloadCsv` · usa: @/features/branches, @/features/payroll
 - **overdue.ts** · `OverdueFacts`, `isOverdue`
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
+- **relationship.ts** · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `relationshipApi`, `useCustomerRelationship`, `useSetMarketingConsent` · llama: GET /customers/${id}/relationship, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
 - **types.ts** — En qué momento de la relación está un cliente. · `customerSegmentSchema`, `CustomerSegment`, `customerSchema`, `Customer`, `customersResponseSchema`, `CustomersResponse`, `customerAppointmentStatusSchema`, `CustomerAppointmentStatus`, `customerAppointmentSchema`, `CustomerAppointment`, `customerPaymentSchema`, `CustomerPayment`, `customerGuestSchema`, `CustomerGuest`, `customerProductSchema`, `CustomerProduct`, `customerDetailSchema`, `CustomerDetail`, `customerInputSchema`, `CustomerInput`, `EMPTY_CUSTOMER_INPUT`, `GuestInput`, `SEGMENT_KEYS`, `SEGMENT_HINT_KEYS`, `APPOINTMENT_STATUS_KEYS`, `APPOINTMENT_SOURCE_KEYS`, `PAYMENT_METHOD_KEYS`, `splitName`, `inputFromDetail` · usa: @/app/i18n, @/features/calendar
 
 ### dashboard
@@ -565,10 +581,12 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **ExpenseFormDrawer.tsx** — Registrar o editar un gasto sin salir de la lista. · `ExpenseFormDrawerProps`, `ExpenseFormDrawer` · piezas: Alert, AlertDescription, Button, CardSelection, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **IncomeStatementView.tsx** — ¿Cuánto me gané? El mes de la sucursal en un estado de resultados —lo que entró, lo que costó ganarlo y lo fi… · `IncomeStatementViewProps`, `IncomeStatementView` · piezas: Button, MetricCard, Progress, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
 - **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id} · usa: @/lib/api
 - **expensesHome.tsx** · `ALL`, `KindFilter`, `parseKind`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · usa: @/app/i18n
 - **expensesShared.tsx** — Las piezas chicas del módulo de gastos: el icono y la insignia por tipo. · `ExpenseGlyph`, `ExpenseKindBadge` · piezas: Badge, IconTile · usa: @/app/i18n
 - **expensesUtils.ts** — Cuántas veces al año se paga cada frecuencia. · `PAYMENTS_PER_YEAR`, `monthlyEquivalent`, `ExpensesSummary`, `summarizeExpenses`
+- **income.ts** — El estado de resultados del mes de una sucursal y su punto de equilibrio. · `incomeStatementSchema`, `IncomeStatement`, `monthKey`, `shiftMonth`, `changePercent`, `useIncomeStatement` · llama: GET /reports/income?branchId=${encodeURIComponent(branchId)}&month=${month} · usa: @/lib/api
 - **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useRemoveExpense`
 - **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `emptyExpenseInput`, `inputFromExpense`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
 
@@ -626,11 +644,17 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### products
 
+- **InventoryView.tsx** — Las existencias de la sucursal. · `InventoryViewProps`, `InventoryView` · piezas: AttentionAction, AttentionStrip, DataListActionRail, DataListBlock, ListItem, ShellRailSlot, Skeleton · usa: @/app/i18n, @/features/customers, @/i18n, @/lib/query
 - **ProductCategoriesDrawer.tsx** — Las categorías de productos: el panel compartido del catálogo, con sus textos y sus mutaciones. · `ProductCategoriesDrawerProps`, `ProductCategoriesDrawer` · usa: @/app/i18n, @/features/catalog
 - **ProductFormDrawer.tsx** — Crear o editar un producto sin salir de la lista. · `ProductFormDrawerProps`, `ProductFormDrawer` · piezas: Alert, AlertDescription, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Text, Textarea · usa: @/app/i18n, @/features/calendar, @/features/catalog, @/features/services, @/lib/api, @/lib/utils
 - **ProductProfilePage.tsx** · `ProductProfilePage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, MetricCard, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, Text · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/services, @/features/team, @/i18n, @/lib/api, @/lib/query
-- **ProductsPage.tsx** — El catálogo de productos. · `ProductsPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **ProductsPage.tsx** — El catálogo de productos. · `ProductsPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **StockBadge.tsx** — Disponible, por reponer o agotado, con el tono de su estado. · `StockBadge` · piezas: Badge
+- **StockHistoryDialog.tsx** — De dónde salen las existencias de un producto: cada venta, entrada, conteo y merma, con quién y cuándo. · `StockHistoryDialogProps`, `StockHistoryDialog` · piezas: Button, Field, Input, ModalShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/utils
+- **StockMovementDialog.tsx** — Lo que mueve el inventario a mano: llegó mercancía, se contó la estantería, se dañó algo o se usó en la barbe… · `StockMovementDialogProps`, `StockMovementDialog` · piezas: Button, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/lib/api
 - **api.ts** — Contrato de productos; ver docs/API_CONTRACT.md. · `productsApi` · llama: GET /products, GET /products/${id}, POST /products, PATCH /products/${id}, DELETE /products/${id}, PUT /products/activation, POST /product-categories, PATCH /product-categories/${id}, DELETE /product-categories/${id} · usa: @/lib/api
+- **inventory.ts** — El inventario ligero de una sucursal: existencias, mínimo, ritmo de venta y movimientos. · `stockStatusSchema`, `StockStatus`, `stockItemSchema`, `StockItem`, `Inventory`, `MANUAL_KINDS`, `ManualKind`, `StockReason`, `StockMovement`, `STOCK_STATUS_KEYS`, `STOCK_REASON_KEYS`, `inventoryApi`, `useInventory`, `useStockMovements`, `useMoveStock`, `useSetStockMin` · llama: GET /inventory?branchId=${encodeURIComponent(branchId)}, POST /inventory/movements, PATCH /inventory/${productId}, GET /inventory/${productId}/movements?branchId=${encodeURIComponent(branchId)} · usa: @/app/i18n, @/lib/api
+- **inventoryHome.tsx** · `inventoryColumns`, `inventoryCells` · usa: @/app/i18n, @/lib/utils
 - **productsHome.tsx** — La categoría de la URL, si existe; si no, todas. · `ALL`, `parseCategory`, `categoryName`, `profitOf`, `productColumns`, `ProductCellContext`, `productCells`, `ProductAlertId`, `ProductAlertPreset`, `PRODUCT_ALERTS`, `ProductsPulse`, `productsPulse` · usa: @/app/i18n, @/features/services
 - **productsShared.tsx** — La foto del producto y, mientras no hay o no carga, el icono. · `ProductGlyph`, `ProductActiveBadge`, `SellableBadge`, `ProductVisibilityBadge` · piezas: Badge, IconTile, StatusBadge · usa: @/app/i18n
 - **queries.ts** · `productKeys`, `useProductsQuery`, `useProductQuery`, `useCreateProduct`, `useUpdateProduct`, `useRemoveProduct`, `useSetProductsActive`, `useSaveProductCategory`, `useRemoveProductCategory`
@@ -832,13 +856,14 @@ MSW: implementa docs/API_CONTRACT.md.
 ### booking
 
 - **alternatives.ts** — Qué servicios cubre cada habilidad. · `SKILL_SERVICES`, `Alternative`, `alternatives`, `earliest`, `WaitlistWindow`, `joinWaitlist`
+- **dispatch.ts** — Envía los mensajes del outbox que ya tocan. · `SendResult`, `WhatsAppPayload`, `Sender`, `httpSender`, `payloadOf`, `dispatchDue`, `messagesOf`
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking
 - **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking
 - **packages.ts** — Paquetes prepagados: la barbería los ofrece en Ajustes (N visitas de un servicio con descuento y vencimiento)… · `PackageOffer`, `packageOffers`, `activePackages`, `buyPackage`, `spendPackages`
 - **recurring.ts** — Dejar una cita fija («cada 3 semanas»): las próximas con el mismo barbero y a la misma hora. · `REPEAT_WEEKS`, `RepeatWeeks`, `MAX_REPEATS`, `repeatAppointment`
-- **reminders.ts** — Programa la confirmación y los recordatorios que aún estén en el futuro. · `scheduleMessages`, `cancelMessages`, `rescheduleMessages`, `offerFreedSlot`
+- **reminders.ts** — Programa la confirmación y los recordatorios que aún estén en el futuro. · `scheduleMessages`, `cancelMessages`, `rescheduleMessages`, `offerFreedSlot`, `newConfirmToken`
 - **reviews.ts** — Todas las reseñas de un barbero, de la más nueva a la más vieja. · `reviewsOf`, `ratingOf`, `reviewOfAppointment`, `addReview`
 - **settlement.ts** · `SettlementInput`, `settlementsOf` · usa: @/features/booking
 - **state.ts** — Lo que la reserva en línea guarda además de las citas (que viven en la agenda, `db.calendar.appointments`, co… · `MockBookingLine`, `MockReservation`, `MockSavedCard`, `MockOutboxMessage`, `MockReview`, `MockGiftCard`, `MockFunnelEvent`, `MockOwnedPackage`, `MockBookingState`, `emptyBooking`, `DEMO_PHONES`, `DEMO_GUESTS`, `DEMO_GUESTS_CLIENT`, `DEMO_CARDS`, `BLOCKED_PHONE`, `DEMO_OTP`, `DECLINED_CARD`
@@ -861,13 +886,24 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### customers
 
-- **handlers.ts** · `profileOf`, `saveProfile`, `customersHandlers`
+- **handlers.ts** · `profileOf`, `barberName`, `saveProfile`, `customersHandlers`
+- **relationship.ts** · `relationshipOf`, `relationshipHandlers`
 - **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf`
 
 ### expenses
 
 - **handlers.ts** · `expensesHandlers`
 - **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `MockExpense`, `seedExpenses`
+
+### inventory
+
+- **handlers.ts** · `inventoryHandlers`
+- **state.ts** — El estado del inventario ligero; la lógica está en `stock.ts`. · `MockStockReason`, `MockStockMovement`, `MockInventoryState`, `emptyInventory`
+- **stock.ts** — Lo que hay: lo guardado o, la primera vez, una cifra fija por sucursal y producto (alguno bajo o agotado, par… · `stockLevel`, `stockStatus`, `setMin`, `moveStock`, `syncAppointmentStock`, `releaseAppointmentStock`, `soldByProduct`
+
+### messages
+
+- **handlers.ts** · `messagesHandlers`
 
 ### payroll
 
@@ -884,6 +920,10 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **handlers.ts** — Lo que debió moverse en la caja ese día, por medio de pago. · `RegisterExpected`, `expectedOf`, `registerHandlers`
 - **state.ts** — Un cierre de caja: lo que se contó al final del día frente a lo que debía haber. · `MockRegisterClosure`, `MockRegisterState`, `emptyRegister`
+
+### reports
+
+- **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `incomeStatement`, `incomeHandlers`
 
 ### services
 

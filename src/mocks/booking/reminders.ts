@@ -5,8 +5,9 @@ import type { MockOutboxMessage } from "./state";
 /**
  * Los mensajes que la reserva deja programados, como haría el servidor real con su proveedor de
  * WhatsApp/SMS: la confirmación al reservar (con «Confirmo» / «Reprogramar») y los recordatorios
- * 24 h y 2 h antes. Mover la cita los reprograma; cancelarla los anula. En la demo no se envía
- * nada: quedan en `db.booking.outbox` para que el backend real los tome de aquí.
+ * 24 h y 2 h antes. Mover la cita los reprograma; cancelarla los anula. Quedan en
+ * `db.booking.outbox` y los envía `dispatch.ts` cuando les toca (por WhatsApp si está conectado;
+ * si no, simulados). Las citas de recepción y las de la reserva en línea programan lo mismo.
  */
 
 const HOUR_MS = 3_600_000;
@@ -77,3 +78,6 @@ export function offerFreedSlot(freed: MockAppointment, now = new Date()): string
   db.booking.outbox = [...outbox(), ...messages];
   return matches.map((entry) => entry.clientId);
 }
+
+/** El token del enlace «Confirmar» de una cita: difícil de adivinar, uno por cita. */
+export const newConfirmToken = (): string => `cf_${crypto.randomUUID().replace(/-/g, "")}`;

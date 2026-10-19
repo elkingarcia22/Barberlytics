@@ -184,13 +184,17 @@ Lo implementado desde la investigación, todo en `main` con pruebas:
   salir; bandeja de avisos real por rol; «Mi pago» con estado y movimientos; un solo neto del barbero; la caja no
   espera el efectivo del barbero de renta; no se aprueban periodos de nómina cruzados.
 
+- **Equipo y permisos (2026-10-18)**: ausencias con aprobación (bloquean la agenda), fila viva que gobierna la venta sin
+  cita y la reserva sin preferencia, pestaña Rendimiento, portada con datos de la agenda; la sesión trae `teamRole` y
+  `memberId` y el servidor recorta nómina, clientes, transacciones, métricas, gastos, equipo, configuración y avisos.
+
 Pendiente, por orden:
 
-1. **Autorización en el servidor**: `teamRole` y `memberId` en la sesión y cada endpoint recortado por rol (hoy el mock
-   recibe el rol por parámetro en avisos y recorta en el navegador en nómina y calendario).
-2. **WhatsApp en producción**: plantillas aprobadas en Meta, claves en Vercel y la cola corriendo en el servidor (cron),
+1. **WhatsApp en producción**: plantillas aprobadas en Meta, claves en Vercel y la cola corriendo en el servidor (cron),
    no en el navegador; leer las respuestas (webhook).
-3. **Equipo**: ausencias con aprobación, fila de walk-ins en vivo, pestaña Rendimiento y portada con datos reales.
+2. **Equipo, segunda parte**: «Mi ficha» editable por el barbero, fichaje, turnos abiertos e intercambio, metas y
+   niveles con criterios, cambio de modelo comisión ↔ renta con fecha.
+3. **Calendario recortado en el servidor** para el barbero (hoy la agenda del día llega completa y se filtra en pantalla).
 4. **Fase 3 — IA** en el orden de §4: ritmo del cliente, hechos → narración, margen por hora de silla, revisión antes de
    cerrar, Clipper con modelo y herramientas de solo lectura, reservable por agentes.
 5. Integraciones que no se hacen en el mock: factura y documento soporte DIAN (Alegra o Siigo), Bre-B, push web (PWA).

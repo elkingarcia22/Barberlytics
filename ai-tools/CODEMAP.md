@@ -114,6 +114,8 @@ Lo que responde MSW hoy.
 - `DELETE /expenses/:id` · src/mocks/expenses/handlers.ts
 - `POST /auth/otp/request` · src/mocks/handlers.ts
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
+- `POST /auth/step-up/request` · src/mocks/handlers.ts
+- `POST /auth/step-up/verify` · src/mocks/handlers.ts
 - `POST /auth/signup` · src/mocks/handlers.ts
 - `POST /support/tickets` · src/mocks/handlers.ts
 - `POST /auth/oauth` · src/mocks/handlers.ts
@@ -213,6 +215,7 @@ Lo que responde MSW hoy.
 - `POST /team/absences/:id/:decision` · src/mocks/team/workforce.ts
 - `DELETE /team/absences/:id` · src/mocks/team/workforce.ts
 - `GET /transactions` · src/mocks/transactions/handlers.ts
+- `GET /payments` · src/mocks/transactions/ledger.ts
 
 ## App · `src/app`
 
@@ -284,6 +287,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **RecoveryPanel.tsx** — Olvidé mi número: se escribe el correo registrado y el celular llega allí. · `RecoveryPanelProps`, `RecoveryPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, Input, Label, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
 - **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
 - **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /support/tickets · usa: @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
@@ -292,6 +296,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **backupEmailQueries.ts** — El correo de respaldo de quien tiene la sesión. · `backupEmailKeys`, `useBackupEmailQuery`, `useBackupEmailMutations`
 - **phoneLabel.ts** — «+573001234567» → «+57 300 123 4567», para decir a qué número se envió el código. · `describePhone` · piezas: formatNational, parseE164
 - **providers.ts** — Pide al proveedor (Google Identity Services, MSAL para Outlook) la credencial con la que el backend abre la s… · `requestProviderCredential` · usa: @/lib/api
+- **stepUp.ts** · `stepUpToken`, `clearStepUp`, `stepUpApi` · llama: POST /auth/step-up/request, POST /auth/step-up/verify · usa: @/lib/api
 - **timezones.ts** — Zonas IANA de cada país que ofrece `PhoneInput`; la primera es la más poblada. · `COUNTRY_TIMEZONES`, `describeTimezone`, `timezonesFor`
 - **tokenStorage.ts** — Dónde vive el token de acceso en el navegador. · `TokenStorage`, `sessionTokenStorage`, `createMemoryTokenStorage`
 - **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpChannelSchema`, `OtpChannel`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `backupEmailSchema`, `BackupEmail`, `backupEmailRequestSchema`, `BackupEmailRequest`, `backupEmailVerifySchema`, `BackupEmailVerify`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
@@ -303,7 +308,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, CommentLayer, CommentsPanel, CommentsProvider, CommentsToggle, Grain, SegmentedControl, Text · usa: @/app/i18n, @/icons, @/themes/ThemeSelector
 - **ConfirmAppointmentPage.tsx** — Lo que abre el botón «Confirmar» del WhatsApp: confirma la cita con el token del enlace, sin pedir código ni… · `ConfirmAppointmentPage` · llama: POST /booking/confirm · piezas: EmptyState, Spinner, Text · usa: @/app/i18n, @/i18n, @/lib/api
 - **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/branches/${branchId}, GET /booking/catalog, GET /booking/availability, GET /booking/alternatives, GET /booking/earliest, POST /booking/waitlist, DELETE /booking/waitlist/${id}, GET /booking/me/suggestion, POST /booking/customers, PATCH /booking/me/cards/${id}, DELETE /booking/me/cards/${id}, POST /booking/promo, POST /booking/reservations, POST /booking/phone/check, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, GET /booking/barbers/${barberId}/reviews, POST /booking/appointments/${id}/review, POST /booking/events, GET /booking/funnel, POST /booking/packages/buy, POST /booking/gift-cards/check, POST /booking/gift-cards, POST /booking/appointments/${id}/repeat, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/details, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
-- **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `CalendarProvider`, `calendarUrl`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs`, `formatPhone`, `DayHours`, `OpenState`, `openStateOf`, `WEEK_ORDER` · usa: @/i18n
+- **bookingFormat.ts** — Una fecha como «AAAA-MM-DDTHH:mm». · `dayKeyOf`, `toStart`, `parseStart`, `clockMinutes`, `BookingFormatters`, `useBookingFormat`, `buildIcs`, `CalendarProvider`, `calendarUrl`, `downloadIcs`, `initialsOf`, `isTodayOver`, `firstBookableDay`, `isSameDayAs`, `formatPhone`, `DayHours`, `OpenState`, `openStateOf`, `WEEK_ORDER` · usa: @/i18n, @/lib/time
 - **bookingState.ts** — El recorrido de la reserva como datos: en qué paso está, quién reserva, la cita que se está armando y las que… · `BookingStep`, `BookingPerson`, `DraftItem`, `WaitlistEntry`, `BookingState`, `PendingProfile`, `BookingAction`, `initialBookingState`, `previousPartIndex`, `bookingReducer`, `PROGRESS_STEPS`, `ProgressStep`, `progressSteps`, `progressIndex`, `personName`, `defaultBranchId`
 - **funnel.ts** — Dónde se abre la reserva: el enlace público, el widget en su sitio o la vista previa del panel. · `BookingSurface`, `BookingUtm`, `utmFrom`, `useFunnelTracking`
 - **pricing.ts** — Los cupones que acepta la demo. · `TipKind`, `TipOption`, `Promo`, `PROMOS`, `OwnedPackageLike`, `coverByPackages`, `FIRST_VISIT_PROMO`, `PromoProblem`, `PromoContext`, `findPromo`, `promoDiscount`, `tipAmount`, `CardFeeRule`, `TotalsInput`, `Totals`, `chargesCardFee`, `computeTotals`, `depositOf`, `feeLabel`, `CancellationInput`, `CancellationTerms`, `cancellationTerms`, `renderPolicy` · usa: @/features/branches
@@ -784,7 +789,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **TaxesSettings.tsx** — Impuestos: los grupos de tasas que se aplican al cobrar. · `TaxesSettings` · piezas: Button, Field, IconTile, Input, NumberField, Text · usa: @/app/i18n
 - **TipsSettings.tsx** — Propinas: las opciones que se ofrecen al cobrar, cuál sale marcada y qué ve el cajero. · `TipsSettings` · piezas: Button, CardSelection, Field, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, ThemaTabs · usa: @/app/i18n
 - **bookingUtils.ts** — Las ayudas sin JSX de Reservas online: el enlace con seguimiento, la política con sus valores y el fragmento… · `UtmParams`, `buildBookingUrl`, `PolicyValues`, `renderPolicy`, `WidgetOptions`, `widgetSnippet`
-- **notificationCatalog.ts** — El catálogo de avisos: a quién le llegan, de qué avisan y por qué canal. · `NotificationChannel`, `NotificationAudience`, `NotificationEvent`, `NotificationGroup`, `NOTIFICATION_CATALOG`, `AUDIENCES`, `toggleKey`, `thresholdKey`, `ALL_EVENT_IDS`, `ALL_GROUP_IDS` · usa: @/app/i18n
+- **notificationCatalog.ts** — El catálogo de avisos: a quién le llegan, de qué avisan y por qué canal. · `NotificationChannel`, `NotificationAudience`, `NotificationEvent`, `NotificationGroup`, `NOTIFICATION_CATALOG`, `AUDIENCES`, `toggleKey`, `thresholdKey`, `ALL_EVENT_IDS`, `ALL_GROUP_IDS`, `AUDIENCE_OF_ROLE`, `eventOfNotification` · usa: @/app/i18n
 - **settingsMath.ts** — Cuántos días dura un cierre, contando el primero y el último. · `closureDays`, `taxTotal`, `tipLabel`
 
 ### team
@@ -828,10 +833,12 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### transactions
 
 - **AccountDrawer.tsx** — El detalle de una cuenta, en un panel: qué se cobró línea por línea, las cuentas —subtotal, impuesto, total,… · `AccountDrawerProps`, `AccountDrawer` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/features/calendar, @/features/customers, @/features/services, @/i18n
+- **LedgerDrawer.tsx** — El libro de pagos del periodo: lo que entró y salió por cada medio y cada movimiento con quién lo hizo. · `LedgerDrawerProps`, `LedgerDrawer` · piezas: Badge, Button, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **RefundDialog.tsx** — Devolver una cuenta cobrada, entera o en parte: cuánto, a dónde vuelve (efectivo o la tarjeta) y por qué. · `RefundDialogProps`, `RefundDialog` · piezas: Button, Field, Input, ModalShell, NumberField, SegmentedControl · usa: @/app/i18n
 - **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, NumberField, Skeleton, Text, Textarea · usa: @/app/i18n, @/features/review, @/i18n, @/lib/query
 - **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `RefundInput`, `transactionsApi` · llama: GET /transactions, POST /appointments/${appointmentId}/refund · usa: @/features/calendar, @/lib/api
+- **ledger.ts** — El libro de pagos: cada movimiento de dinero del periodo, en orden y sin borrar nada (ver docs/API_CONTRACT.m… · `ledgerKindSchema`, `LedgerKind`, `Ledger`, `LedgerEntry`, `useLedgerQuery`, `LEDGER_KIND_KEYS`, `methodKey` · llama: GET /payments · usa: @/app/i18n, @/lib/api
 - **queries.ts** — Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. · `transactionKeys`, `useTransactionsQuery`, `useRefundAccount` · usa: @/lib/api
 - **register.ts** — El cierre de caja: lo que debía haber en efectivo al final del día (según las cuentas) frente a lo que se con… · `registerExpectedSchema`, `RegisterExpected`, `registerClosureSchema`, `RegisterClosure`, `registerDaySchema`, `RegisterDay`, `RegisterCloseInput`, `registerApi`, `useRegisterDay`, `useCloseRegister`, `expectedInDrawer` · llama: GET /register, POST /register/close · usa: @/lib/api
 - **transactionsAccess.ts** — Las cuentas que le tocan a quien mira: todas, o solo las que atendió el barbero. · `accountsFor`, `showsPeriodTotals` · usa: @/features/access
@@ -906,6 +913,10 @@ Cliente de API, consultas y utilidades sin interfaz.
 - **QueryBoundary.tsx** — El patrón único de carga → error → vacío → datos. · `QueryBoundaryProps`, `QueryBoundary` · piezas: EmptyState, Skeleton
 - **queryClient.ts** — Política global de caché y reintentos. · `createQueryClient`, `queryClient` · usa: @/lib/api
 
+### time
+
+- **zoned.ts** — La hora de pared en esa zona para un instante: «AAAA-MM-DDTHH:mm». · `wallClock`, `offsetMinutes`, `instantOf`, `offsetLabel`, `isTimeZone`
+
 ## Hooks · `src/hooks`
 
 Hooks compartidos entre dominios.
@@ -938,7 +949,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **dispatch.ts** — Envía los mensajes del outbox que ya tocan. · `SendResult`, `WhatsAppPayload`, `Sender`, `httpSender`, `payloadOf`, `dispatchDue`, `messagesOf`
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
-- **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking
+- **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/lib/time
 - **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking
 - **packages.ts** — Paquetes prepagados: la barbería los ofrece en Ajustes (N visitas de un servicio con descuento y vencimiento)… · `PackageOffer`, `packageOffers`, `activePackages`, `buyPackage`, `spendPackages`
 - **recurring.ts** — Dejar una cita fija («cada 3 semanas»): las próximas con el mismo barbero y a la misma hora. · `REPEAT_WEEKS`, `RepeatWeeks`, `MAX_REPEATS`, `repeatAppointment`
@@ -956,7 +967,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
 - **random.ts** — Generador pseudoaleatorio con semilla (mulberry32): la misma semilla, la misma serie. · `seededRandom`
 - **server.ts** — Servidor para Vitest (Node/jsdom); ver `src/test/setup.ts`. · `server`
-- **session.ts** — Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha de equipo. · `MockSession`, `sessionOf`, `isManager`, `isBarber`, `unauthorized`, `forbidden`
+- **session.ts** — Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha de equipo. · `MockSession`, `sessionOf`, `isManager`, `isBarber`, `unauthorized`, `forbidden`, `hasStepUp`, `stepUpRequired`
 
 ### calendar
 
@@ -991,7 +1002,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### notifications
 
-- **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers`
+- **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers` · usa: @/features/settings
 
 ### onboarding
 
@@ -1030,7 +1041,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### settings
 
-- **branchRules.ts** — El impuesto de la sucursal: la suma de las tasas de su grupo (estatal + condado, por ejemplo). · `branchOf`, `branchCurrency`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/settings
+- **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/settings, @/lib/time
 - **handlers.ts** · `settingsHandlers` · usa: @/features/settings
 - **seed.ts** — La configuración del backend simulado. · `MockSettingsSection`, `MockSettingsList`, `MockListItem`, `MockSettingsState`, `DEFAULT_POLICY`, `seedSettings`
 
@@ -1044,6 +1055,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### transactions
 
 - **handlers.ts** · `transactionsHandlers`
+- **ledger.ts** — Quien cobró: la línea «cobrada» del historial (o, si no está, el barbero). · `LedgerKind`, `LedgerEntry`, `chargedBy`, `ledgerOf`, `ledgerHandlers`
 
 ## i18n · `src/i18n`
 

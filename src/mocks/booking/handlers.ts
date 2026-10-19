@@ -47,7 +47,8 @@ import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 const GIFT_MIN = 10;
 const GIFT_MAX = 500;
 import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
-import { branchOnlineMethods, taxInclusive } from "../settings/branchRules";
+import { branchOnlineMethods, branchTimeZone, startInstant, taxInclusive } from "../settings/branchRules";
+import { instantOf } from "@/lib/time/zoned";
 import { settlementsOf } from "./settlement";
 import { productPriceIn } from "../catalogPrices";
 import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
@@ -194,7 +195,7 @@ function planItems(branchId: string, items: unknown[], client: MockClient): { pl
     const day = start.slice(0, 10);
     const time = start.slice(11, 16);
     const minute = parseClock(time);
-    if (new Date(start).getTime() < Date.now() + minNotice * 60_000) return { problem: "Esa hora ya no se puede reservar. Elige otra." };
+    if (instantOf(start, branchTimeZone(branchId)).getTime() < Date.now() + minNotice * 60_000) return { problem: "Esa hora ya no se puede reservar. Elige otra." };
     const durationMin = durationOf(serviceIds);
     appointmentsOn(branchId, day);
     const overlapsTaken = (barberId: string) => taken.some((slot) => slot.barberId === barberId && slot.day === day && minute < slot.end && slot.start < minute + durationMin);
@@ -630,7 +631,7 @@ export const bookingHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const start = text(input.start);
     if (!START.test(start)) return error(422, "validation", "Elige fecha y hora.");
-    const terms = cancellationTerms({ start: new Date(existing.start), now: new Date(), cancelHours: bookingRules().cancelHours, lateFeePercent: 0, price: 0, paid: 0 });
+    const terms = cancellationTerms({ start: startInstant(existing), now: new Date(), cancelHours: bookingRules().cancelHours, lateFeePercent: 0, price: 0, paid: 0 });
     if (!terms.isFree) return error(409, "too_late", `Ya no se puede cambiar en línea: faltan menos de ${bookingRules().cancelHours} h. Llama a la barbería.`);
     const day = start.slice(0, 10);
     const minute = parseClock(start.slice(11, 16));
@@ -766,7 +767,7 @@ export const bookingHandlers = [
     const done = db.booking.cancellations[client.id] ?? 0;
     if (done >= rules.maxCancellations) return error(409, "limit", "Llegaste al límite de cancelaciones en línea. Llama a la barbería.");
     const view = bookedOf(existing);
-    const terms = cancellationTerms({ start: new Date(existing.start), now: new Date(), cancelHours: rules.cancelHours, lateFeePercent: rules.lateFeePercent, price: view.price, paid: view.paid });
+    const terms = cancellationTerms({ start: startInstant(existing), now: new Date(), cancelHours: rules.cancelHours, lateFeePercent: rules.lateFeePercent, price: view.price, paid: view.paid });
     if (terms.isPast) return error(409, "too_late", "Esa cita ya empezó.");
     const wantsCredit = text(asRecord(await request.json().catch(() => ({}))).refundTo) === "credit";
     const refundTo = terms.refund === 0 ? "none" : wantsCredit ? "credit" : "card";

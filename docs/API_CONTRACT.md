@@ -41,6 +41,8 @@ Cualquier estado ≥ 400 devuelve:
 |---|---|---|---|
 | POST | `/auth/otp/request` | `{ phone, channel?: "sms" \| "email" }` | `204` siempre (no revela si el número existe ni si tiene correo de respaldo) · `422` · `429` bloqueado o más de 5 códigos en 15 min (`details.reason: "too_many_codes"`) |
 | POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` con el **mismo mensaje** para número no registrado y código malo (`details.attemptsLeft`) · `429` bloqueado (`details.retryAfterSeconds`) |
+| POST | `/auth/step-up/request` | — (con sesión) | `200 { phoneHint }`: un código nuevo al celular de la cuenta, con los mismos topes y bloqueo que al entrar |
+| POST | `/auth/step-up/verify` | `{ code }` (con sesión) | `200 { token, expiresAt }`: confirma la identidad por 5 minutos y solo para esa cuenta · `401`/`429` como al entrar |
 | POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone }` | `204` la barbería queda pendiente de activar · `422` (`email` ya registrado va en `fields`) |
 | POST | `/support/tickets` | `{ name, company, email, phone, message, reason: "recovery" \| "lockout" \| "other" }` | `201 { id }` · `422`. Sin sesión. |
 | POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
@@ -74,13 +76,19 @@ En el mock el código por SMS es siempre `246810` y solo entran los celulares de
 
 Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSite=Lax` y dejar `sessionTokenStorage` sin uso (ver `src/features/auth/tokenStorage.ts`).
 
+**Confirmar que eres tú.** Lo sensible pide el código otra vez: eliminar la barbería (`POST /account/delete`), guardar
+la clave secreta de una pasarela (`POST`/`PATCH /settings/lists/gateways` con `secretKey`), crear a alguien con rol
+de dueño o administrador (`POST /team/members`) y poner el correo de respaldo (`POST /auth/backup-email`). Sin la
+cabecera `X-Step-Up` con un token vigente de `/auth/step-up/verify` responden `403 { code: "step_up_required" }`; la
+app abre el diálogo del código y repite la petición una vez. El token vive en la memoria de la pestaña.
+
 ## Avisos (`/notifications`)
 
 La campana. No hay tabla de avisos: salen de lo que pasó en la sucursal y cada rol ve los suyos.
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. |
+| GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. Cada aviso es un evento del catálogo de Configuración › Recordatorios y avisos para el destinatario de ese rol (`onlineBooking` → `bookingOnline`, `cancelled` → `appointmentCancelled`, `noShow` → `appointmentNoShow`, `lowStock`/`outOfStock` → `productLow`/`productOut`, `lowReview` → `badReview`, `absenceRequested` → `vacationRequested`, `absenceDecided` → `vacationApproved`/`vacationDenied`, y con su mismo nombre `whatsappFailed`, `registerDifference`, `registerOpen`, `payrollDue`, `payrollPaid`): si `<destinatario>.<evento>.push` («En la app») está apagado, no sale. |
 | POST | `/notifications/read` | `{ ids }`. `204`. Lo leído se guarda por cuenta. |
 
 `kind` y para quién: `onlineBooking`, `cancelled`, `noShow` (dueño, administrador, recepción y el barbero de la cita);
@@ -386,6 +394,12 @@ Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí �
 
 Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, devuelto) se calculan en el front sobre `items`; si el backend real pagina, tendrá que devolverlas en un `summary` aparte.
 
+## Libro de pagos (`/payments`)
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/payments?branchId&from&to` | `{ from, to, entries: [{ id, at, kind: "charge" \| "online" \| "tip" \| "refund" \| "sale", method, amount, by, concept, appointmentId, saleId }], totals: { in, out, net, byMethod, byKind } }`, en orden de `at`. Cada movimiento de dinero del periodo (hasta 62 días): el cobro de la cita (uno por medio si fue mixto, sin lo ya pagado en línea), lo pagado en línea al reservar (`online`, con el medio de la pasarela), la propina (`tip`), cada devolución (`refund`, en negativo, con su destino) y cada venta de mostrador. `by` es quien lo registró (la línea `status:paid` del historial). Es de solo lectura: una corrección es otro movimiento. Dueño, administrador y recepción ven todo; el barbero de renta, sus cuentas sin ventas de mostrador; el de comisión, `403`. |
+
 ## Caja (`/register`)
 
 El cierre de caja de una sucursal y un día: lo que debía haber en efectivo según las cuentas frente a lo que se contó.
@@ -593,6 +607,12 @@ Reglas que el cliente da por hechas:
 Los permisos por rol no están aquí: viven en Equipo.
 
 ## Reserva en línea (`/booking`)
+
+**Hora de la sede.** Las horas viajan como hora local de la sucursal sin zona (`2026-10-20T10:30:00`), y la zona es la de
+la sucursal (`timezone` en Configuración › Sucursales; si no tiene, la del negocio). «Hoy», las horas que ya pasaron, la
+antelación mínima, las condiciones de cancelación y el instante de cada recordatorio se calculan con esa zona, no con
+la de quien reserva ni la del servidor (`src/lib/time/zoned.ts`). Cada cita del cliente trae `timeZone`: el `.ics` la
+usa en `DTSTART;TZID=…`, el enlace de Google en `ctz` y el de Outlook pone la hora con su desfase.
 
 La cara pública de la barbería: la abre el cliente desde el enlace, la tablet del local o el widget
 del sitio (`/reservar` en la app). **No lleva la sesión de la app.** El cliente se identifica con

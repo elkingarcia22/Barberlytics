@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { forbidden, isManager, sessionOf } from "../session";
+import { forbidden, hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
 import { GATEWAY_SPECS, isGatewayProvider, keyLooksValid } from "@/features/settings/gatewayProviders";
 import type { MockListItem, MockSettingsList, MockSettingsSection } from "./seed";
 
@@ -192,6 +192,8 @@ export const settingsHandlers = [
     const body = asRecord(await request.json().catch(() => ({})));
     const fields = LIST_RULES[list](body, null);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    // Guardar la clave secreta de una pasarela es mover dinero: pide confirmar que eres tú.
+    if (list === "gateways" && text(body.secretKey) && !hasStepUp(request)) return stepUpRequired();
     const row: MockListItem = { ...listRow(list, body), id: `${list.slice(0, 3)}_${Date.now().toString(36)}`, ...(list === "branches" ? { status: "active", createdAt: new Date().toISOString() } : {}) };
     const item = list === "gateways" ? storeGatewaySecret(row, text(body.secretKey)) : row;
     db.settings = { ...db.settings, lists: { ...db.settings.lists, [list]: [...db.settings.lists[list], item] } };
@@ -210,6 +212,7 @@ export const settingsHandlers = [
     const body = asRecord(await request.json().catch(() => ({})));
     const fields = LIST_RULES[list](body, current.id);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    if (list === "gateways" && text(body.secretKey) && !hasStepUp(request)) return stepUpRequired();
     const merged: MockListItem = { ...current, ...listRow(list, { ...body, hasAuthKey: current.hasAuthKey }, current), id: current.id };
     const updated = list === "gateways" ? storeGatewaySecret(merged, text(body.secretKey)) : merged;
     db.settings = { ...db.settings, lists: { ...db.settings.lists, [list]: db.settings.lists[list].map((item) => (item.id === current.id ? updated : item)) } };
@@ -262,6 +265,7 @@ export const settingsHandlers = [
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     // Borrar la barbería es solo del dueño (en la plantilla de sesión, `admin`), lo pida la pantalla que lo pida.
     if (account.user.role !== "admin") return error(403, "forbidden", "Solo el dueño puede eliminar la barbería.");
+    if (!hasStepUp(request)) return stepUpRequired();
     const body = asRecord(await request.json().catch(() => ({})));
     const company = text(db.settings.sections.company.name);
     if (text(body.confirmation) !== company) return error(422, "validation", "El nombre no coincide.", { fields: { confirmation: ["Escribe el nombre de la empresa tal cual."] } });

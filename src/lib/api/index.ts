@@ -8,6 +8,8 @@ import { env } from "./env";
 export const apiAuth: ApiAuthBridge = {
   getToken: () => null,
   onUnauthorized: undefined,
+  getStepUp: undefined,
+  onStepUpRequired: undefined,
 };
 
 /** El cliente que usan todas las features. */
@@ -16,6 +18,8 @@ export const api = createApiClient({
   auth: {
     getToken: () => apiAuth.getToken(),
     onUnauthorized: () => apiAuth.onUnauthorized?.(),
+    getStepUp: () => apiAuth.getStepUp?.() ?? null,
+    onStepUpRequired: () => apiAuth.onStepUpRequired?.() ?? Promise.resolve(false),
   },
 });
 

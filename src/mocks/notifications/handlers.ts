@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
+import { AUDIENCE_OF_ROLE, eventOfNotification } from "@/features/settings/sections/notificationCatalog";
 import { ACCOUNTS, db } from "../db";
 import { isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
@@ -142,12 +143,21 @@ function absenceEvents(branchId: string, now: Date): MockNotification[] {
     });
 }
 
+const isOn = (role: Role, item: MockNotification): boolean => {
+  const eventId = eventOfNotification(item.kind, item.params.status);
+  if (!eventId) return true;
+  const toggles = ((db.settings.sections.notifications ?? {}) as { toggles?: Record<string, boolean> }).toggles ?? {};
+  return toggles[`${AUDIENCE_OF_ROLE[role]}.${eventId}.push`] !== false;
+};
+
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). */
 export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date()): MockNotification[] {
   const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
   return all
     .filter((item) => (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))
+    // Lo que se apagó en Configuración › Recordatorios y avisos («En la app») no sale en la campana.
+    .filter((item) => isOn(role, item))
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, MAX_ITEMS);
 }

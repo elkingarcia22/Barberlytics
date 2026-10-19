@@ -17,6 +17,7 @@ import type { BookingCatalog, BookingCustomer, BookedAppointment, BookingShop } 
 import { renderHook } from "@testing-library/react";
 import { itemPrice, useBookingTotals } from "./useBookingTotals";
 import { busyRanges, cartGroups, overlapsBusy } from "./visit";
+import { instantOf } from "@/lib/time/zoned";
 
 /** Un jueves a las 8:00: antes de que abra la barbería, con toda la semana por delante. */
 const NOW = new Date(2026, 9, 8, 8, 0);
@@ -729,11 +730,13 @@ describe("backend de la reserva", () => {
     const id = reservation.appointments[0].id;
     const pending = () => (db.booking.outbox ?? []).filter((message) => message.appointmentId === id && message.status === "scheduled");
     expect(pending().map((message) => message.kind).sort()).toEqual(["confirmation", "reminder24h", "reminder2h"]);
-    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(start.getTime() - 2 * 3_600_000).toISOString());
+    // La cita es a las 3 p. m. de Massachusetts, esté donde esté quien corre la prueba.
+    const at = (date: Date) => instantOf(toStart(date), "America/New_York").getTime();
+    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(at(start) - 2 * 3_600_000).toISOString());
 
     const later = new Date(2026, 9, 10, 17, 0);
     await bookingApi.reschedule(token, id, { start: toStart(later), barberId: null });
-    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(later.getTime() - 2 * 3_600_000).toISOString());
+    expect(pending().find((message) => message.kind === "reminder2h")?.sendAt).toBe(new Date(at(later) - 2 * 3_600_000).toISOString());
     expect(pending().some((message) => message.kind === "rescheduled")).toBe(true);
 
     await bookingApi.cancel(token, id, "credit");

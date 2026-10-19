@@ -5,6 +5,7 @@ import { db } from "@/mocks/db";
 import { appEs } from "@/app/i18n";
 import { AccessProvider, buildAccess } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
+import { StepUpHost } from "@/features/auth";
 import { SettingsSectionPage } from "./SettingsSectionPage";
 import { buildSettingsGroups, settingsLevel } from "./settingsCatalog";
 import { buildBookingUrl, renderPolicy, widgetSnippet } from "./sections/bookingUtils";
@@ -16,11 +17,20 @@ const TOKEN = "mock-acc_admin-test";
 function renderSection(id: string, search = "") {
   db.sessions.set(TOKEN, "acc_admin");
   return renderWithProviders(
-    <Routes>
-      <Route path="/configuracion/:seccion" element={<SettingsSectionPage />} />
-    </Routes>,
+    <>
+      <Routes>
+        <Route path="/configuracion/:seccion" element={<SettingsSectionPage />} />
+      </Routes>
+      <StepUpHost />
+    </>,
     { route: `/configuracion/${id}${search}`, token: TOKEN }
   );
+}
+
+/** Lo sensible pide el código otra vez: se escribe el de la demo y se confirma. */
+async function confirmIdentity(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(await screen.findByTestId("step-up-code"), "246810");
+  await user.click(screen.getByTestId("step-up-confirm"));
 }
 
 /** Un ajuste abierto con un rol concreto; «Sin permiso» es una ruta más. */
@@ -225,6 +235,8 @@ describe("pantallas de configuración", () => {
     await user.type(screen.getByTestId("gateways-public"), "pk_test_abc");
     await user.type(screen.getByTestId("gateways-secret"), "sk_test_xyz");
     await user.click(screen.getByTestId("gateways-submit"));
+    expect(db.settings.lists.gateways).toHaveLength(1);
+    await confirmIdentity(user);
     await waitFor(() => expect(db.settings.lists.gateways).toHaveLength(2));
     const created = db.settings.lists.gateways[1];
     expect(created.connected).toBe(true);
@@ -256,6 +268,7 @@ describe("pantallas de configuración", () => {
     await user.clear(input);
     await user.type(input, "carolina@gmail.com");
     await user.click(screen.getByTestId("backup-email-send"));
+    await confirmIdentity(user);
     expect(await screen.findByText(/enviamos a carolina@gmail.com/i)).toBeInTheDocument();
     expect(db.backupEmails.acc_admin).toBeUndefined();
     const group = screen.getByRole("group", { name: /código de verificación/i });
@@ -272,6 +285,7 @@ describe("pantallas de configuración", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId("backup-email-switch"));
     await user.click(await screen.findByTestId("backup-email-send"));
+    await confirmIdentity(user);
     const group = await screen.findByRole("group", { name: /código de verificación/i });
     await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
     await user.paste("000000");

@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
-import { forbidden, isBarber, isManager, sessionOf } from "./session";
+import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } from "./session";
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
 import { customersHandlers } from "./customers/handlers";
@@ -11,6 +11,7 @@ import { incomeHandlers } from "./reports/income";
 import { weekHandlers } from "./reports/week";
 import { menuHandlers } from "./reports/menu";
 import { reviewHandlers } from "./review/checks";
+import { ledgerHandlers } from "./transactions/ledger";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
@@ -105,6 +106,8 @@ const LOCK_MS = 15 * 60_000;
 /** Pedir códigos tiene tope por número: cada SMS cuesta y se abusa de él para fraude (SMS pumping). */
 const CODE_LIMIT = 5;
 const CODE_WINDOW_MS = 15 * 60_000;
+/** Cuánto vale una confirmación de identidad. */
+const STEP_UP_MS = 5 * 60_000;
 /** Un mismo mensaje para número desconocido y código malo: entrar no revela quién está registrado. */
 const BAD_CODE = "El código no es correcto o ya venció. Pide uno nuevo.";
 
@@ -207,6 +210,36 @@ export const handlers = [
     return openSession(account);
   }),
 
+  // Confirmar la identidad antes de algo sensible: un código nuevo al celular de la cuenta (mismos topes
+  // y bloqueo que al entrar) da un token de 5 minutos que la app manda en `X-Step-Up`.
+  http.post(`${BASE}/auth/step-up/request`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const session = sessionOf(request);
+    if (!session) return error(401, "unauthorized", "Tu sesión expiró.");
+    const phone = session.account.phone;
+    if (isLocked(phone)) return lockedError(phone);
+    const now = Date.now();
+    const recent = (db.codeRequests.get(phone) ?? []).filter((at) => now - at < CODE_WINDOW_MS);
+    if (recent.length >= CODE_LIMIT) return error(429, "rate_limited", "Pediste muchos códigos seguidos. Espera unos minutos e inténtalo otra vez.", { details: { reason: "too_many_codes" } });
+    db.codeRequests.set(phone, [...recent, now]);
+    return HttpResponse.json({ phoneHint: `•••• ${phone.slice(-4)}` });
+  }),
+
+  http.post(`${BASE}/auth/step-up/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const session = sessionOf(request);
+    if (!session) return error(401, "unauthorized", "Tu sesión expiró.");
+    const phone = session.account.phone;
+    if (isLocked(phone)) return lockedError(phone);
+    const body = (await request.json().catch(() => ({}))) as { code?: string };
+    if (body.code !== OTP_CODE) return registerFailure(phone);
+    db.loginFailures.delete(phone);
+    const token = `stp_${crypto.randomUUID()}`;
+    const expiresAt = Date.now() + STEP_UP_MS;
+    db.stepUps.set(token, { accountId: session.account.id, expiresAt });
+    return HttpResponse.json({ token, expiresAt: new Date(expiresAt).toISOString() });
+  }),
+
   // Crear cuenta: deja la barbería pendiente de activar y avisa por correo.
   http.post(`${BASE}/auth/signup`, async ({ request }) => {
     await delay(LATENCY_MS);
@@ -274,6 +307,8 @@ export const handlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    // El correo de respaldo sirve para recuperar la cuenta: cambiarlo pide confirmar que eres tú.
+    if (!hasStepUp(request)) return stepUpRequired();
     const body = (await request.json().catch(() => ({}))) as { email?: unknown };
     const email = text(body.email).toLowerCase();
     if (!EMAIL.test(email)) return error(422, "validation_error", "Escribe un correo válido.", { fields: { email: ["Escribe un correo válido."] } });
@@ -519,6 +554,7 @@ export const handlers = [
   ...weekHandlers,
   ...menuHandlers,
   ...reviewHandlers,
+  ...ledgerHandlers,
   ...inventoryHandlers,
   ...notificationsHandlers,
   ...onboardingHandlers,

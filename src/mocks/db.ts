@@ -209,6 +209,8 @@ export interface MockDb {
   loginLocks: Map<string, number>;
   /** celular → cuándo pidió sus últimos códigos (tope de envíos). Solo en memoria. */
   codeRequests: Map<string, number[]>;
+  /** Confirmaciones de identidad recientes (código otra vez antes de algo sensible): token → cuenta y hasta cuándo vale. */
+  stepUps: Map<string, { accountId: string; expiresAt: number }>;
   /** id de cuenta → correo de respaldo verificado, por si el SMS no llega al entrar. */
   backupEmails: Record<string, string>;
   /** id de cuenta → correo de respaldo al que se mandó el código y aún no se verifica. Solo en memoria. */
@@ -287,6 +289,7 @@ export function createDb(): MockDb {
     loginFailures: new Map(),
     loginLocks: new Map(),
     codeRequests: new Map(),
+    stepUps: new Map(),
     backupEmails: saved?.backupEmails ?? {},
     pendingBackupEmails: new Map(),
     feedback: [],
@@ -321,6 +324,7 @@ export function createDb(): MockDb {
       db.loginFailures.clear();
       db.loginLocks.clear();
       db.codeRequests.clear();
+      db.stepUps.clear();
       db.backupEmails = {};
       db.pendingBackupEmails.clear();
       db.feedback = [];

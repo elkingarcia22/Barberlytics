@@ -5,7 +5,7 @@ import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/ha
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
-import { accountTaxPercent, branchCurrency, branchOnlineMethods, branchTaxPercent, itemTaxPercent, taxInclusive } from "../settings/branchRules";
+import { accountTaxPercent, branchCurrency, branchNow, branchOnlineMethods, branchTaxPercent, branchTimeZone, itemTaxPercent, startInstant, taxInclusive } from "../settings/branchRules";
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
@@ -74,7 +74,8 @@ export const durationOf = (serviceIds: readonly string[]) =>
   serviceIds.reduce((sum, id) => sum + (db.services.items.find((item) => item.id === id)?.durationMin ?? 0), 0);
 
 export function branchHoursToday(branchId: string): { opensAt: string; closesAt: string } {
-  const today = dateKey(new Date());
+  // «Hoy» es el de la sucursal, no el de quien reserva desde otra zona.
+  const today = branchNow(branchId).slice(0, 10);
   const ranges = bookableBarbers(branchId).flatMap((barber) => {
     const member = memberOf(barber.id);
     return member ? hoursOn(member, today) : [];
@@ -209,8 +210,10 @@ export function availability(branchId: string, day: string, serviceIds: readonly
   const durationMin = Math.max(rules.slotInterval, durationOf(serviceIds));
   appointmentsOn(branchId, day);
   const candidates = bookableBarbers(branchId).filter((barber) => (barberId ? barber.id === barberId : true) && serviceIds.every((id) => barberPrice(barber.id, id) !== null));
-  const now = new Date();
-  const earliest = day === dateKey(now) ? now.getHours() * 60 + now.getMinutes() + rules.minNoticeMinutes : day < dateKey(now) ? Number.MAX_SAFE_INTEGER : 0;
+  // Lo que ya pasó se mide con el reloj de la sucursal: quien reserva desde otra zona ve las horas de la sede.
+  const nowLocal = branchNow(branchId);
+  const today = nowLocal.slice(0, 10);
+  const earliest = day === today ? parseClock(nowLocal.slice(11, 16)) + rules.minNoticeMinutes : day < today ? Number.MAX_SAFE_INTEGER : 0;
   const { opensAt, closesAt } = branchHoursToday(branchId);
   const slots: { time: string; barberIds: string[] }[] = [];
   for (let minute = parseClock(opensAt); minute + durationMin <= parseClock(closesAt); minute += rules.slotInterval) {
@@ -247,7 +250,7 @@ export function customerOf(client: MockClient) {
   const profile = profileOf(client);
   const mine = db.calendar.appointments.filter((item) => item.clientId === client.id);
   const now = Date.now();
-  const last = [...mine].filter((item) => item.status === "paid" || new Date(item.start).getTime() < now).sort((a, b) => b.start.localeCompare(a.start))[0];
+  const last = [...mine].filter((item) => item.status === "paid" || startInstant(item).getTime() < now).sort((a, b) => b.start.localeCompare(a.start))[0];
   const barberId = last?.barberId ?? client.preferredBarberId;
   const lastVisit = last
     ? { branchId: last.branchId, serviceIds: last.serviceIds, barberId, at: last.start }
@@ -265,7 +268,7 @@ export function customerOf(client: MockClient) {
     guests: profile.guests.map((guest) => ({ id: guest.id, name: guest.name, relation: guest.relation })),
     lastVisit,
     credit: db.booking.credits[client.id] ?? 0,
-    upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && new Date(item.start).getTime() >= now).length,
+    upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && startInstant(item).getTime() >= now).length,
     cards: cardsOf(client.id),
     depositRequired: needsDeposit(client, client.visits === 0 && !last),
     loyalty: loyaltyOf(client),
@@ -346,13 +349,15 @@ export function bookedOf(item: MockAppointment) {
   const member = memberOf(item.barberId);
   const branch = (db.settings.lists.branches as unknown as { id: string; name: string }[]).find((entry) => entry.id === item.branchId);
   const price = link?.line.price ?? item.serviceIds.reduce((sum, id) => sum + (barberPrice(item.barberId, id, item.branchId) ?? 0), 0);
-  const status = item.status === "cancelled" ? "cancelled" : item.status === "no_show" ? "no_show" : item.status === "paid" ? "completed" : new Date(item.start).getTime() + item.durationMin * 60_000 < Date.now() ? "completed" : "scheduled";
+  const status = item.status === "cancelled" ? "cancelled" : item.status === "no_show" ? "no_show" : item.status === "paid" ? "completed" : startInstant(item).getTime() + item.durationMin * 60_000 < Date.now() ? "completed" : "scheduled";
   return {
     review: reviewOfAppointment(item.id) ? { rating: reviewOfAppointment(item.id)?.rating ?? 0 } : null,
     id: item.id,
     reservationId: link?.reservation.id ?? null,
     branchId: item.branchId,
     branchName: branch?.name ?? item.branchId,
+    /** La zona de la sede: la hora de la cita es la de allí (para el .ics y los enlaces de calendario). */
+    timeZone: branchTimeZone(item.branchId),
     personName: link?.line.guestName ?? db.calendar.clients.find((client) => client.id === item.clientId)?.name ?? "",
     guestRelation: link?.line.guestRelation ?? null,
     serviceIds: item.serviceIds,
@@ -395,7 +400,7 @@ export function reservationView(reservation: MockReservation) {
 export function myAppointments(clientId: string) {
   const now = Date.now();
   const mine = db.calendar.appointments.filter((item) => item.clientId === clientId).map(bookedOf);
-  const upcoming = mine.filter((item) => item.status === "scheduled" && new Date(item.start).getTime() >= now).sort((a, b) => a.start.localeCompare(b.start));
+  const upcoming = mine.filter((item) => item.status === "scheduled" && startInstant(item).getTime() >= now).sort((a, b) => a.start.localeCompare(b.start));
   const past = mine.filter((item) => !upcoming.includes(item)).sort((a, b) => b.start.localeCompare(a.start)).slice(0, 12);
   const reservations = db.booking.reservations.filter((item) => item.customerId === clientId).map(reservationView);
   return { upcoming, past, reservations };
@@ -413,7 +418,7 @@ const USUAL_FALLBACK = [600, 660, 900, 1020];
 /** La hora a la que suele venir: la mediana de sus citas pasadas, o una estable por cliente. */
 function usualMinute(client: MockClient): number {
   const past = db.calendar.appointments
-    .filter((item) => item.clientId === client.id && isLive(item) && new Date(item.start).getTime() < Date.now())
+    .filter((item) => item.clientId === client.id && isLive(item) && startInstant(item).getTime() < Date.now())
     .map((item) => parseClock(item.start.slice(11, 16)))
     .sort((a, b) => a - b);
   if (past.length > 0) return past[Math.floor(past.length / 2)];

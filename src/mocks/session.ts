@@ -26,3 +26,17 @@ export const isBarber = (session: MockSession): boolean => session.teamRole === 
 
 export const unauthorized = () => HttpResponse.json({ code: "unauthorized", message: "Tu sesión expiró." }, { status: 401 });
 export const forbidden = (message = "Tu rol no puede hacer esto.") => HttpResponse.json({ code: "forbidden", message }, { status: 403 });
+
+/**
+ * Lo sensible (eliminar la barbería, claves de una pasarela, dar rol de dueño o administrador, el correo de
+ * respaldo) pide confirmar la identidad con un código nuevo: la app manda `X-Step-Up` con el token que da
+ * `POST /auth/step-up/verify`, que vale 5 minutos y solo para esa cuenta.
+ */
+export function hasStepUp(request: Request, now = Date.now()): boolean {
+  const session = sessionOf(request);
+  const token = request.headers.get("x-step-up");
+  const entry = token ? db.stepUps.get(token) : undefined;
+  return Boolean(session && entry && entry.accountId === session.account.id && entry.expiresAt > now);
+}
+
+export const stepUpRequired = () => HttpResponse.json({ code: "step_up_required", message: "Confirma que eres tú con el código que te enviamos." }, { status: 403 });

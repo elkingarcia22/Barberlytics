@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { isManager, sessionOf } from "../session";
+import { hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
 import {
   isBarberRole,
   memberName,
@@ -139,6 +139,8 @@ export const teamHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const role = text(input.role) as MockTeamRole;
     if (!ROLES.includes(role)) return error(422, "validation", "Elige un rol.", { fields: { role: ["Elige un rol."] } });
+    // Dar acceso de dueño o administrador abre toda la barbería: pide confirmar que eres tú.
+    if ((role === "owner" || role === "admin") && !hasStepUp(request)) return stepUpRequired();
     const { fields, values } = validateProfile(input);
     const isBarber = isBarberRole(role);
     if (isBarber && !values.levelId) fields.levelId = ["Elige el nivel del barbero."];

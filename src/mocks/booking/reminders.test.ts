@@ -3,6 +3,7 @@ import { db } from "../db";
 import { appointmentsOn } from "../calendar/handlers";
 import type { MockAppointment } from "../calendar/seed";
 import { payloadOf } from "./dispatch";
+import { startInstant } from "../settings/branchRules";
 import { reminderPlan, rescheduleMessages, scheduleMessages } from "./reminders";
 
 const DAY_MS = 86_400_000;
@@ -31,7 +32,7 @@ describe("recordatorios según Configuración", () => {
     scheduleMessages(appointment, "+573001112233");
     const reminder = messagesOf(appointment.id).find((item) => item.hoursBefore === 48)!;
     expect(reminder.kind).toBe("reminder");
-    expect(new Date(appointment.start).getTime() - new Date(reminder.sendAt).getTime()).toBe(48 * 3_600_000);
+    expect(startInstant(appointment).getTime() - new Date(reminder.sendAt).getTime()).toBe(48 * 3_600_000);
     expect(payloadOf(reminder)?.params.at(-1)).toBe("48");
   });
 

@@ -46,22 +46,30 @@ const SHOP_OCCUPANCY = event("shopOccupancy", PUSH, { unit: "percent", default: 
 const TIME_OFF = [event("barberBlocked", PUSH), event("vacationRequested", PUSH), event("rentVacation", PUSH)];
 const BARBER_DAY = [event("waitlistAssigned", PUSH), event("specialResources", PUSH)];
 const REMINDER = event("appointmentReminder", PUSH, { unit: "minutes", default: 30 });
+/* Lo que también sale en la campana de la app («En la app»): apagarlo aquí lo saca de ahí. */
+const BOOKING_ONLINE = event("bookingOnline", PUSH);
+const WHATSAPP_FAILED = event("whatsappFailed", PUSH);
+const NO_SHOW = event("appointmentNoShow", PUSH);
+const CASH = [event("registerDifference", PUSH), event("registerOpen", PUSH), event("payrollDue", PUSH)];
+const VACATION_DECIDED = [event("vacationApproved", PUSH), event("vacationDenied", PUSH)];
 
 export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonly NotificationGroup[]>> = {
   admin: [
-    group("clients", [...CLIENT_IMPORT, event("badReview", PUSH), ...CLIENT_STATES, event("clientBlocked", PUSH)]),
+    group("clients", [...CLIENT_IMPORT, event("badReview", PUSH), ...CLIENT_STATES, event("clientBlocked", PUSH), WHATSAPP_FAILED]),
     group("products", [...STOCK, ...PRODUCT_IMPORT]),
-    group("calendar", [event("barberOccupancy", PUSH, { unit: "percent", default: 90 }), SHOP_OCCUPANCY, ...TIME_OFF]),
+    group("calendar", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("barberOccupancy", PUSH, { unit: "percent", default: 90 }), SHOP_OCCUPANCY, ...TIME_OFF]),
+    group("cash", CASH),
     group("metrics", [...METRICS_HEALTH, ...RETENTION]),
     group("reports", REPORTS),
   ],
-  barberCommission: [group("appointments", [...APPOINTMENT_CHANGES, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, event("vacationApproved", PUSH), event("vacationDenied", PUSH)]), group("metrics", METRICS_HEALTH)],
-  barberRent: [group("clients", [...CLIENT_IMPORT, ...CLIENT_STATES]), group("appointments", [...APPOINTMENT_CHANGES, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", BARBER_DAY), group("metrics", METRICS_HEALTH)],
-  frontDesk: [group("appointments", [...APPOINTMENT_CHANGES, event("appointmentNoShow", PUSH)]), group("calendar", [event("waitlistJoined", PUSH), event("barberBlocked", PUSH), event("vacationApprovedTeam", PUSH)])],
+  barberCommission: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
+  barberRent: [group("clients", [...CLIENT_IMPORT, ...CLIENT_STATES]), group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
+  frontDesk: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, WHATSAPP_FAILED]), group("calendar", [event("waitlistJoined", PUSH), event("barberBlocked", PUSH), event("vacationApprovedTeam", PUSH), ...VACATION_DECIDED]), group("cash", [event("registerOpen", PUSH)])],
   owner: [
-    group("clients", [...CLIENT_IMPORT, event("clientBlocked", PUSH)]),
+    group("clients", [...CLIENT_IMPORT, event("clientBlocked", PUSH), event("badReview", PUSH), WHATSAPP_FAILED]),
     group("products", [...STOCK, ...PRODUCT_IMPORT, event("giftcardImportFailed", PUSH), event("giftcardImportDone", PUSH)]),
-    group("calendar", [SHOP_OCCUPANCY, ...TIME_OFF]),
+    group("calendar", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, SHOP_OCCUPANCY, ...TIME_OFF]),
+    group("cash", CASH),
     group("metrics", [...METRICS_HEALTH, ...RETENTION]),
     group("reports", REPORTS),
   ],
@@ -76,3 +84,26 @@ export const thresholdKey = (audience: NotificationAudience, eventId: string): s
 /** Todos los ids de evento del catálogo, sin repetir: para el diccionario y las pruebas. */
 export const ALL_EVENT_IDS: readonly string[] = [...new Set(Object.values(NOTIFICATION_CATALOG).flatMap((groups) => groups.flatMap((item) => item.events.map((entry) => entry.id))))];
 export const ALL_GROUP_IDS: readonly string[] = [...new Set(Object.values(NOTIFICATION_CATALOG).flatMap((groups) => groups.map((item) => item.id)))];
+
+/** De qué rol de la barbería es cada pestaña de destinatario. */
+export const AUDIENCE_OF_ROLE = { owner: "owner", admin: "admin", recepcion: "frontDesk", "barbero-comision": "barberCommission", "barbero-renta": "barberRent" } as const satisfies Record<string, NotificationAudience>;
+
+/** El evento del catálogo que corresponde a cada aviso de la campana. */
+export function eventOfNotification(kind: string, status?: unknown): string | null {
+  const map: Record<string, string> = {
+    onlineBooking: "bookingOnline",
+    cancelled: "appointmentCancelled",
+    noShow: "appointmentNoShow",
+    whatsappFailed: "whatsappFailed",
+    lowStock: "productLow",
+    outOfStock: "productOut",
+    registerDifference: "registerDifference",
+    registerOpen: "registerOpen",
+    payrollDue: "payrollDue",
+    payrollPaid: "payrollPaid",
+    lowReview: "badReview",
+    absenceRequested: "vacationRequested",
+  };
+  if (kind === "absenceDecided") return status === "approved" ? "vacationApproved" : "vacationDenied";
+  return map[kind] ?? null;
+}

@@ -13,7 +13,7 @@ import { useLocale } from "@/i18n";
 import { useTheme } from "@/themes";
 import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
-import { useAuth } from "@/features/auth";
+import { StepUpHost, useAuth } from "@/features/auth";
 import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
@@ -411,6 +411,8 @@ export function AppLayout() {
         <HelpGuidesDrawer open={isGuidesOpen} onOpenChange={setIsGuidesOpen} />
         {/* El feedback: un solo diálogo, que abre «Enviar feedback» del menú y,
             con la campaña a la vista, también su recorrido y su botón flotante. */}
+        {/* Lo sensible pide el código otra vez: el diálogo vive aquí y lo abre el cliente de la API. */}
+        <StepUpHost />
         <FeedbackHost
           open={isFeedbackOpen}
           onOpenChange={setIsFeedbackOpen}

@@ -1418,6 +1418,7 @@ export const appEs = {
   "calendar.filters.density": "Densidad",
   "calendar.filters.view": "Vista",
   "calendar.filters.clear": "Quitar filtros",
+  "calendar.filters.anyTimeOff": "Todo",
   "calendar.filters.timeOff": "Ausencias y bloqueos",
   "calendar.filters.showAbsences": "Vacaciones y ausencias",
   "calendar.filters.showBlocks": "Bloqueos",

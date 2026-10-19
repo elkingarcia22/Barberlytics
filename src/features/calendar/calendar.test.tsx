@@ -712,7 +712,7 @@ describe("Calendario", () => {
     await waitFor(() => expect(rows()).toBe(ritual + fade));
   }, 15_000);
 
-  test("«Bloqueos» y «Vacaciones y ausencias» esconden lo suyo de la rejilla sin quitarlo de la agenda", async () => {
+  test("«Ausencias y bloqueos» deja a la vista solo lo elegido, como «solo huecos»", async () => {
     const user = userEvent.setup();
     mount();
     const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
@@ -720,11 +720,21 @@ describe("Calendario", () => {
     await waitFor(() => expect(lunches()).toBeGreaterThan(0));
     await user.click(screen.getByTestId("calendar-filters"));
     const panel = await screen.findByTestId("calendar-filters-panel");
-    expect(within(panel).getByTestId("calendar-filter-timeoff")).toHaveTextContent("Ausencias y bloqueos");
-    await user.click(within(panel).getByTestId("calendar-filter-blocks"));
+    await user.click(within(panel).getByTestId("calendar-filter-timeoff"));
+    const list = await screen.findByRole("listbox");
+
+    // Con «Bloqueos» quedan los almuerzos y las citas se apagan.
+    await user.click(within(list).getByRole("option", { name: /^Bloqueos/ }));
+    await waitFor(() => expect(grid.querySelectorAll(".opacity-30").length).toBeGreaterThan(0));
+    expect(lunches()).toBeGreaterThan(0);
+    // Con solo «Vacaciones y ausencias», los almuerzos dejan de pintarse.
+    await user.click(within(list).getByRole("option", { name: /^Vacaciones y ausencias/ }));
+    await user.click(within(list).getByRole("option", { name: /^Bloqueos/ }));
     await waitFor(() => expect(lunches()).toBe(0));
     expect(screen.getByTestId("calendar-filters-count")).toHaveTextContent("1");
-    // «Quitar filtros» los vuelve a mostrar.
+    await user.keyboard("{Escape}");
+
+    // «Quitar filtros» vuelve a mostrar todo.
     await user.click(within(panel).getByTestId("calendar-filters-clear"));
     await waitFor(() => expect(lunches()).toBeGreaterThan(0));
   }, 15_000);

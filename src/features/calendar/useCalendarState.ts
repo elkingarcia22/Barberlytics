@@ -5,6 +5,11 @@ import { CALENDAR_VIEWS, clientTypeSchema, type CalendarView, type ClientType, t
 import { PULSE_FOCUSES, type PulseFocus } from "./pulseModel";
 import type { CalendarColorBy } from "./calendarModel";
 
+/** Lo que se puede ver a solas en la rejilla: las ausencias (vacaciones, incapacidades) o los bloqueos. */
+export type TimeOffKind = "absences" | "blocks";
+export const TIME_OFF_KINDS: readonly TimeOffKind[] = ["absences", "blocks"];
+const TIME_OFF_PARAM: Record<TimeOffKind, string> = { absences: "ausencias", blocks: "bloqueos" };
+
 /** «Colorear por» en la URL (`color=servicio|estado`); sin el parámetro, neutral. */
 const COLOR_PARAM: Record<Exclude<CalendarColorBy, "neutral">, string> = { service: "servicio", status: "estado", client: "cliente" };
 const CLIENT_TYPES: readonly ClientType[] = clientTypeSchema.options;
@@ -45,6 +50,9 @@ export function useCalendarState(today: Date = new Date()) {
   const typeParam = searchParams.get("tipo");
   const clientTypes = React.useMemo(() => (typeParam ?? "").split(",").filter((item): item is ClientType => CLIENT_TYPES.includes(item as ClientType)), [typeParam]);
 
+  const verParam = searchParams.get("ver");
+  const timeOffOnly = React.useMemo(() => TIME_OFF_KINDS.filter((kind) => (verParam ?? "").split(",").includes(TIME_OFF_PARAM[kind])), [verParam]);
+
   const set = React.useCallback(
     (patch: Record<string, string | undefined>) => {
       setSearchParams(
@@ -79,9 +87,12 @@ export function useCalendarState(today: Date = new Date()) {
     setFreeOnly: (next: boolean) => set({ huecos: next ? "1" : undefined }),
     /** Resaltar las citas enlazadas: cada grupo con su color, las demás apagadas. */
     showLinked: searchParams.get("enlazadas") === "1",
-    /** Qué se esconde de la rejilla: las ausencias (vacaciones, incapacidades) y los bloqueos. Por defecto se ve todo. */
-    hidden: { absences: (searchParams.get("ocultar") ?? "").split(",").includes("ausencias"), blocks: (searchParams.get("ocultar") ?? "").split(",").includes("bloqueos") },
-    setHidden: (next: { absences: boolean; blocks: boolean }) => set({ ocultar: [next.absences && "ausencias", next.blocks && "bloqueos"].filter(Boolean).join(",") || undefined }),
+    /**
+     * Ver solo ausencias y/o bloqueos, como «solo huecos»: las citas se apagan y en la rejilla queda
+     * solo lo elegido. Vacío, se ve todo.
+     */
+    timeOffOnly,
+    setTimeOffOnly: (next: readonly TimeOffKind[]) => set({ ver: next.map((kind) => TIME_OFF_PARAM[kind]).join(",") || undefined }),
     setShowLinked: (next: boolean) => set({ enlazadas: next ? "1" : undefined }),
     /** De qué se tiñen las tarjetas: es de la vista, no un filtro, y no apaga ninguna cita. */
     colorBy,

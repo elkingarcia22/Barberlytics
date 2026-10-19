@@ -21,7 +21,9 @@ describe("estado de resultados", () => {
     const report = incomeStatement("ma", "2026-09", NOW);
     const breakEven = report.breakEven!;
     expect(breakEven).not.toBeNull();
-    expect((breakEven.revenue * breakEven.contributionPercent) / 100).toBeCloseTo(report.fixedCosts, 0);
+    // El porcentaje viaja con dos decimales: el error tolerable es lo que mueve medio centésimo de punto.
+    const covered = (breakEven.revenue * breakEven.contributionPercent) / 100;
+    expect(Math.abs(covered - report.fixedCosts)).toBeLessThanOrEqual((breakEven.revenue * 0.005) / 100 + 0.01);
     expect(breakEven.servicesPerDay).toBe(Math.ceil(breakEven.revenue / breakEven.avgTicket / breakEven.openDays));
   });
 

@@ -5,12 +5,15 @@ import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { Field } from "@/components/forms";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
-import { ConfirmDialog, ModalShell } from "@/components/overlays";
+import { ModalShell } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Text } from "@/components/typography";
+import { useMoney } from "@/features/calendar/calendarFormat";
+import { ReviewFindings } from "@/features/review/ReviewFindings";
+import { needsAcknowledge, usePayrollReview } from "@/features/review/review";
 import { useApprovePayroll, usePayPayroll, useReopenPayroll } from "./queries";
 import { PAY_METHOD_KEYS, PAY_METHODS, type PayMethod, type PayrollRun } from "./types";
 
@@ -39,6 +42,11 @@ export function PayrollRunBar({ period, run, canManage }: PayrollRunBarProps) {
   const [method, setMethod] = React.useState<PayMethod>("transfer");
   const [reference, setReference] = React.useState("");
   const [reason, setReason] = React.useState("");
+  const [acknowledged, setAcknowledged] = React.useState(false);
+  const formatMoney = useMoney();
+  // La revisión se pide al abrir «Aprobar»: lo raro frente al historial, antes de dejarlo fijo.
+  const review = usePayrollReview(period, dialog === "approve");
+  const blockedByReview = review.isPending || (needsAcknowledge(review.data?.items ?? []) && !acknowledged);
 
   const status = run?.status ?? "open";
   const hint =
@@ -48,7 +56,7 @@ export function PayrollRunBar({ period, run, canManage }: PayrollRunBarProps) {
         ? t("payroll.run.approvedHint", { name: run.approvedBy, date: formatDate(new Date(run.approvedAt), DATE) })
         : t("payroll.run.openHint");
 
-  const close = () => setDialog(null);
+  const close = () => (setDialog(null), setAcknowledged(false));
   const onApprove = () => approve.mutate(period, { onSuccess: () => (close(), toast.success(t("payroll.run.approvedToast"))) });
   const onPay = () => run && pay.mutate({ id: run.id, method, reference: reference.trim() || undefined }, { onSuccess: () => (close(), toast.success(t("payroll.run.paidToast"))) });
   const onReopen = () => run && reopen.mutate({ id: run.id, reason: reason.trim() }, { onSuccess: () => (close(), setReason(""), toast.success(t("payroll.run.reopenedToast"))) });
@@ -75,7 +83,25 @@ export function PayrollRunBar({ period, run, canManage }: PayrollRunBarProps) {
         </>
       )}
 
-      <ConfirmDialog open={dialog === "approve"} onOpenChange={(open) => !open && close()} title={t("payroll.run.approveTitle")} description={t("payroll.run.approveHint")} confirmLabel={t("payroll.run.approve")} onConfirm={onApprove} loading={approve.isPending} />
+      <ModalShell
+        open={dialog === "approve"}
+        onOpenChange={(open) => !open && close()}
+        title={t("payroll.run.approveTitle")}
+        description={t("payroll.run.approveHint")}
+        size="md"
+        actions={
+          <>
+            <Button variant="outline" onClick={close}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={onApprove} disabled={approve.isPending || blockedByReview} data-testid="payroll-approve-confirm">
+              {t("payroll.run.approve")}
+            </Button>
+          </>
+        }
+      >
+        <ReviewFindings items={review.data?.items} loading={review.isPending} formatMoney={formatMoney} acknowledged={acknowledged} onAcknowledgedChange={setAcknowledged} />
+      </ModalShell>
 
       <ModalShell
         open={dialog === "pay"}

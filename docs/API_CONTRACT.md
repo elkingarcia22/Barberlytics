@@ -429,6 +429,34 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | GET | `/reports/week?branchId` | Solo dueño o administrador. Las cifras de «Cómo te fue»: los últimos 7 días contra los 7 anteriores. `{ from, to, revenue, revenuePrev, services, servicesPrev, occupancy, noShows, products, topBarber: { name, revenue } \| null, bestDay: { day, revenue } \| null, atRisk }`. |
 | POST | `/api/narrative` | `{ kind: "week" \| "pay", locale: "es" \| "en", facts: { [clave]: { label, value } } }` (hasta 20; claves alfanuméricas, etiquetas de 80 y valores de 40 caracteres) → `{ text, model }`. Claude redacta **con marcadores** (`{revenue}`) y sin dígitos; el servidor rechaza la respuesta si trae un dígito o un marcador desconocido (`502 unsafe_output`) y pone él las cifras. Sin `ANTHROPIC_API_KEY`, `501`. En cualquier fallo la app muestra su resumen automático con las mismas cifras. Modelo: `NARRATIVE_MODEL` (por defecto `claude-haiku-5-5`). Con origen de la app y tope por IP. |
 
+## Revisión antes de cerrar (`/payroll/review`, `/register/review`)
+
+Antes de aprobar una nómina o de cerrar la caja, lo raro frente al historial y a las reglas. Son reglas
+explicables, no un modelo: cada alerta dice qué pasó y con quién. No bloquean: con una alerta `high`,
+la app pide marcar «Lo revisé» antes de aprobar o cerrar.
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/payroll/review?branchId&from&to` | `{ items: Finding[] }`. Dueño y administrador; los demás, `403`. Periodo inválido: `422`. |
+| GET | `/register/review?branchId&date=AAAA-MM-DD` | `{ items: Finding[] }`. Recepción, administrador y dueño; el barbero, `403`. |
+
+`Finding`: `{ id, severity: "high" | "medium" | "info", kind, params, appointmentId?, date?, memberId? }`, de lo
+grave a lo informativo. `params` lleva los datos del texto (nombres y cifras; las cifras de dinero en la moneda
+de la sucursal). `date` es el día de `appointmentId`, para abrirla en la agenda.
+
+Nómina (`kind`): `netChange` (neto ±40 % frente al promedio de los 4 periodos de igual duración anteriores, con
+al menos 3 con citas; no aplica a renta), `salaryNoServices` (salario sin citas atendidas), `rentOwed` (renta
+pendiente después de los pagos del periodo), `tipOutlier` (propina > 50 % del servicio), `zeroSale` (cita cobrada
+sin valor de servicio), `newClientRepeat` (comisión de cliente nuevo pagada a quien ya vino en esos 4 periodos;
+una alerta con los nombres), `bigAdjustment` (ajuste > 50 % de lo ganado), `duplicateAdjustment` (`high`: misma
+persona, tipo y valor dos veces).
+
+Caja (`kind`): `duplicateCharge` (`high`: mismo cliente, barbero, servicios y total el mismo día, sin contar las
+citas enlazadas), `duplicateSale` (`high`: dos ventas de mostrador iguales a menos de 10 minutos),
+`openAccounts` (`high`: clientes que llegaron o están en la silla y no se cobraron), `tipOutlier`,
+`bigDiscount` (> 30 % del subtotal), `bigRefund` (> 50 % de lo cobrado), `selfRefund` (devolución en efectivo
+hecha por quien cobró).
+
 ## Nómina (`/payroll`)
 
 Lo que se le paga a cada barbero en un periodo. **Abierto**, se calcula sobre las citas **cobradas** del rango y la compensación de cada persona (su ficha en Equipo, `compensation` y `payments`) y admite ajustes. **Aprobado**, queda una foto fija: lo que cambie después en citas o reglas ya no la mueve. **Pagado**, además se sabe con qué se pagó. La renta y el salario son **por semana**; un rango de N días son N/7 semanas.
@@ -442,7 +470,7 @@ Cómo se calcula (para que cuadre con la caja):
 
 `member`: `{ memberId, name, avatarUrl, payout: "commission" | "rent" | "salary", rules (\| null), rentBase (\| null), salaryBase (\| null), services, serviceSales, productSales, serviceCommission, productCommission, tips, salary, rent, deductions, adjustments: adjustment[], adjustmentsTotal, net, lines }`
 `rules` (solo comisión): `{ type: "commission" | "scale", basic, recurring, walkIn, noPreference, newClient, productPercent, scale: [{ from, percent }] }` en porcentajes; una regla `null` usa la básica.
-`line`: `{ appointmentId, date, client, service, rule: "walkIn" | "noPreference" | "newClient" | "recurring" | "basic", rate (\| null), sale, commission, tip, deduction }`. La regla sale de quién trajo al cliente, de la más específica a la menos: sin cita → sin preferencia → cliente nuevo → cliente que repite → básica.
+`line`: `{ appointmentId, date, client, service, rule: "walkIn" | "noPreference" | "newClient" | "recurring" | "basic", rate (\| null), sale, commission, tip, deduction }`. La regla sale de quién trajo al cliente, de la más específica a la menos: sin cita → sin preferencia → cliente nuevo → cliente que repite → básica. Un cliente es nuevo una sola vez: con la etiqueta «nuevo», solo su primera cita cobrada del periodo paga como `newClient`; las siguientes, como `recurring`.
 `adjustment`: `{ id, kind: "bonus" | "deduction" | "advance", amount, note, createdAt, createdBy }`. El bono suma; el descuento y el adelanto restan.
 `net` = `serviceCommission + productCommission + tips + salary − rent − deductions + adjustmentsTotal`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
 `run`: `{ id, status: "approved" | "paid", approvedAt, approvedBy, paidAt, paidBy, method, reference } | null` (`null` = abierto). `history`: `[{ at, actor, event: "approved" | "paid" | "reopened", reason }]`.

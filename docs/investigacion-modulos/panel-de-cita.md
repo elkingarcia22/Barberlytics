@@ -315,3 +315,40 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   dice («Cobrar la de Mariana primero» / «Seguir con esta»). No frena.
 - **Terminó sin cobrar**: la tarjeta de la agenda lleva una píldora ámbar «Terminó hace 15 min · sin
   cobrar».
+
+## 17. El cobro en dos pasos (2026-10-19)
+
+`CheckoutDrawer` + `checkout/` (`useCheckout`, `BillStep`, `PayStep`, `allocate`): como el pago de la
+reserva, dentro del mismo panel y con el ticket abajo.
+
+1. **La cuenta**: las citas que se cobran juntas (las de su visita, marcadas, y *Sumar otra cita sin
+   cobrar* de las que ya están en la barbería), servicios con precio editable, productos con cantidad y
+   precio, *Vender una tarjeta de regalo* (monto y para quién) y *Agregar un descuento* (% o $ con motivo).
+2. **¿Cómo paga?**: propina, *¿Paga con tarjeta de regalo?* (código; cubre hasta su saldo) y el método:
+   efectivo (con el cambio), tarjeta (eligiendo el datáfono de Configuración; la demo trae dos), link de
+   pago (se manda por SMS o correo y el botón pasa a «Ya pagó · registrar»), mixto (efectivo + tarjeta) o
+   en partes (2–4, cada una con su método y su datáfono; tienen que cuadrar). Con varias citas, las partes
+   se reparten en orden (`allocateParts`).
+
+## 18. Cobro en una pantalla, devolver y borrar la venta (2026-10-19)
+
+- **Cobro en una sola pantalla** con la cara del pago de la reserva (el usuario no quiso dos pasos): lo
+  que se cobra, enlaces «¿Agregar un descuento?», «¿Tiene una tarjeta de regalo?» y «¿Vender una
+  tarjeta de regalo?», «¿Cómo paga?» en `OptionTile` de 3 columnas (y los datáfonos igual), y «Tu
+  orden». **La propina se pregunta al pulsar «Cobrar»**, en su ventana, como en la reserva; al elegirla
+  se cobra (en partes, se suma a la última).
+- **Devolver** es una página dentro del panel (`RefundPage`): se marca cada servicio, los productos con
+  cuántos (vuelven al inventario) y la propina; sale el monto con su descuento e impuesto, o se escribe
+  otro; a dónde vuelve y por qué. Lo ya devuelto se descuenta.
+- **Borrar la venta** (dueño y administrador) en el «⋯» de la cobrada, con motivo: la cita vuelve a «en
+  silla» sin pago.
+
+## 19. Reagendar varias y que el cliente reagende (2026-10-19)
+
+- **Reagendar** (cita cerrada) con varias citas en la visita: «Reagendar también la otra cita de la
+  visita» (encendido por defecto) las agenda todas a la misma distancia, con sus barberos y servicios, y
+  quedan enlazadas otra vez.
+- **¿Prefiere elegir él?**: se le manda por SMS o correo el enlace de la reserva en línea
+  (`features/booking/rebookLink.ts`: `/reservar?reagendar=1&servicios=…&barbero=…&sucursal=…`). Al
+  identificarse cae directo en elegir la hora con su servicio y barbero puestos, y paga como en cualquier
+  reserva.

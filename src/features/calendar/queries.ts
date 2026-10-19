@@ -97,6 +97,26 @@ export function useRestrictClient() {
   });
 }
 
+/** Devolver o borrar una venta: cambia la cita y las cuentas de Transacciones. */
+function useInvalidateSale() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateAgenda();
+  return () => {
+    invalidate();
+    void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  };
+}
+
+export function useRefundAppointment() {
+  const invalidate = useInvalidateSale();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: Parameters<typeof calendarApi.refund>[1] }) => calendarApi.refund(id, input), onSuccess: invalidate });
+}
+
+export function useVoidPayment() {
+  const invalidate = useInvalidateSale();
+  return useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => calendarApi.voidPayment(id, reason), onSuccess: invalidate });
+}
+
 export function useCreateAppointment() {
   const invalidate = useInvalidateAgenda();
   return useMutation({

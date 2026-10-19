@@ -637,6 +637,8 @@ export function historyLabel(event: string, ctx: ModelContext): string {
     moved: "calendar.history.moved",
     barber: "calendar.history.barber",
     client: "calendar.history.client",
+    refund: "calendar.history.refund",
+    voided: "calendar.history.voided",
     duration: "calendar.history.duration",
     paid: "calendar.history.paidWith",
     linked: "calendar.history.linked",

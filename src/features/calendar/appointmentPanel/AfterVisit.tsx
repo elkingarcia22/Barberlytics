@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import * as React from "react";
-import { Ban, CreditCard, ReceiptText, Repeat, Send, ShieldOff, Undo2 } from "lucide-react";
+import { Ban, CreditCard, ReceiptText, Repeat, Send, ShieldOff, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { useAppT } from "@/app/i18n";
@@ -19,7 +19,8 @@ import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSec
 import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
 import { useRestrictClient } from "../queries";
-import { ConfirmContent } from "./StatusConfirm";
+import { ConfirmContent, VoidSaleContent } from "./StatusConfirm";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
@@ -46,6 +47,8 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
   model: AppointmentModel;
   ctx: ModelContext;
   onOpenClient: () => void;
+  /** Devolver: una página dentro del panel. */
+  onOpenRefund: () => void;
 }
 
 /** El tinte de la tarjeta según cómo se cerró: verde cobrada; rojo cancelada o si no asistió. */
@@ -56,7 +59,7 @@ const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-de
  * canceló, llamar y escribir y —para quien puede (dueño, administrador,
  * recepción, renta)— pedirle pago por adelantado o bloquearlo.
  */
-function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void): Tile[] {
+function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void): Tile[] {
   const t = useAppT();
   const restrict = useRestrictClient();
   const { locale } = useLocale();
@@ -92,7 +95,7 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
     }
     tiles.push({ id: "receipt", icon: <ReceiptText className="size-5 text-primary" />, label: t("calendar.panel.after.receipt"), title: t("calendar.panel.after.receiptTitle"), onClick: openAccount });
     if (access.can("transactions", "edit")) {
-      tiles.push({ id: "refund", icon: <Undo2 className="size-5 text-warning" />, label: t("calendar.panel.after.refund"), title: t("calendar.panel.after.refundTitle"), onClick: openAccount });
+      tiles.push({ id: "refund", icon: <Undo2 className="size-5 text-warning" />, label: t("calendar.panel.after.refund"), title: t("calendar.panel.after.refundTitle"), onClick: onRefund });
     }
   } else {
     if (model.phone) {
@@ -137,12 +140,15 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
 
 
 /** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
-export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
+export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
   // Lo que se abre debajo de la tarjeta: fijar la cita o reagendarla (una cosa a la vez).
   const [open, setOpen] = React.useState<"pin" | "rebook" | null>(null);
   const toggle = (next: "pin" | "rebook") => setOpen((current) => (current === next ? null : next));
-  const tiles = useAfterTiles(model, ctx, () => toggle("pin"));
+  const tiles = useAfterTiles(model, ctx, () => toggle("pin"), onOpenRefund);
+  const [voiding, setVoiding] = React.useState(false);
+  // Borrar una venta hecha por error: del dueño y del administrador.
+  const canVoid = ctx.access?.canVoidSales ?? true;
   const { appointment, services, barber } = model;
   const paid = appointment.status === "paid" && appointment.payment !== null;
   const products = appointment.products.flatMap((line) => {
@@ -178,12 +184,24 @@ export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppo
             <ThemaIcon name="calendarAdd" />
             {t("calendar.panel.after.rebook")}
           </Button>
-          {/* Cancelada o no asistió por error: se reactiva (vuelve a pendiente). Cobrada no: eso es una devolución. */}
+          {/* Cancelada o no asistió por error: se reactiva (vuelve a pendiente). Cobrada por error: se borra la venta. */}
           {!paid && <MoreActionsMenu model={model} actions={[]} extra={[{ id: "undo", label: t("calendar.panel.reactivate"), icon: Undo2, onSelect: () => model.setStatus("scheduled") }]} />}
+          {paid && canVoid && (
+            <Popover open={voiding} onOpenChange={setVoiding}>
+              <PopoverAnchor asChild>
+                <span>
+                  <MoreActionsMenu model={model} actions={[]} extra={[{ id: "void", label: t("calendar.void.action"), icon: Trash2, onSelect: () => requestAnimationFrame(() => setVoiding(true)) }]} />
+                </span>
+              </PopoverAnchor>
+              <PopoverContent align="end" className="w-80" onFocusOutside={(event) => event.preventDefault()}>
+                <VoidSaleContent model={model} onClose={() => setVoiding(false)} />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </section>
       {open === "pin" && <PinSeries model={model} ctx={ctx} onClose={() => setOpen(null)} />}
-      {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} />}
+      {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} group={linked} />}
     </div>
   );
 }

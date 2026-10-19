@@ -13,6 +13,8 @@ import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../tea
 import type { MockCatalogService } from "../services/seed";
 import type { MockCatalogProduct } from "../products/seed";
 import { deriveProfile } from "../customers/seed";
+import { createGiftCard, spendGiftCard } from "../booking/giftCards";
+import { discountOf, parseExtras, splitOfParts } from "./checkoutExtras";
 import {
   WALK_IN_CLIENT,
   blockAppliesOn,
@@ -533,25 +535,53 @@ export const calendarHandlers = [
     if (changesPrices && sessionOf(request)?.teamRole === "barbero-comision") return forbidden("El precio lo cambia la barbería.");
     const servicePrices = Array.isArray(priceInput.servicePrices) ? serviceIds.map((_, index) => { const value = (priceInput.servicePrices as unknown[])[index]; return typeof value === "number" && value >= 0 ? round2(value) : null; }) : undefined;
     const productPrices = typeof priceInput.productPrices === "object" && priceInput.productPrices !== null ? Object.fromEntries(Object.entries(priceInput.productPrices as Record<string, unknown>).filter(([id, value]) => products.some((line) => line.productId === id) && typeof value === "number" && value >= 0).map(([id, value]) => [id, round2(value as number)])) : undefined;
+    // El descuento de la caja va sobre lo que vale la cuenta (después del descuento en línea, antes de impuestos).
+    const listBill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
+    const discount = discountOf(input.discount, round2(listBill.subtotal - listBill.discount));
+    if (typeof discount === "string") return error(422, "validation", discount, { fields: { discount: [discount] } });
+    const extras = parseExtras(input, method);
+    if (typeof extras === "string") return error(422, "validation", extras);
     // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
-    const bill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
+    const priced = { ...existing, ...(discount.amount > 0 ? { checkoutDiscount: discount.amount } : {}) };
+    const bill = appointmentAccount(priced, serviceIds, products, { servicePrices, productPrices });
     const paidAt = new Date().toISOString();
-    // Pago mixto: lo que entra en caja ahora se reparte entre efectivo y tarjeta, y tiene que cuadrar.
-    const dueNow = round2(bill.due + tip + surcharge);
+    // Lo que entra ahora: el saldo, la propina, el recargo y la tarjeta de regalo que se vende; menos lo que paga con la suya.
+    const giftUsed = extras.gift ? Math.min(extras.gift.amount, round2(bill.due + tip + (extras.giftSale?.amount ?? 0))) : 0;
+    const dueNow = round2(bill.due + tip + surcharge + (extras.giftSale?.amount ?? 0) - giftUsed);
+    // Mixto (efectivo + tarjeta) o dividido en partes: tiene que cuadrar con lo que se cobra.
     const splitInput = asRecord(input.split as DefaultBodyType);
-    const split = method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
-    if (split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
+    const split = extras.parts ? splitOfParts(extras.parts) : method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
+    if (extras.parts && Math.abs(extras.parts.reduce((sum, part) => sum + part.amount, 0) - dueNow) > 0.01) return error(422, "validation", "Las partes tienen que sumar lo que se cobra.", { fields: { parts: ["Las partes tienen que sumar lo que se cobra."] } });
+    if (!extras.parts && split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
+    // Ya cuadra: se descuenta la tarjeta de regalo del cliente y se crea la que se vende.
+    if (extras.gift && giftUsed > 0) spendGiftCard(extras.gift.code, giftUsed);
+    const sold = extras.giftSale ? createGiftCard({ initial: extras.giftSale.amount, buyerId: existing.clientId, recipientName: extras.giftSale.recipientName, recipientContact: extras.giftSale.recipientContact, message: "" }) : null;
+    const payment = {
+      method,
+      tip: round2(bill.prepaidTip + tip),
+      tax: bill.tax,
+      total: round2(bill.total + bill.prepaidTip + tip + surcharge),
+      prepaid: round2(bill.prepaid + bill.prepaidTip),
+      paidAt,
+      ...(split ? { split } : {}),
+      ...(discount.amount > 0 ? { discount: discount.amount, discountReason: discount.reason } : {}),
+      ...(extras.gift && giftUsed > 0 ? { gift: { code: extras.gift.code, amount: giftUsed } } : {}),
+      ...(sold ? { giftSale: { code: sold.code, amount: sold.initial } } : {}),
+      ...(extras.parts ? { parts: extras.parts } : {}),
+      ...(extras.deviceId ? { deviceId: extras.deviceId } : {}),
+    };
+    db.persist();
     // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).
     return replaceAppointment(
       syncAppointmentStock(
         {
-          ...existing,
+          ...priced,
           serviceIds,
           products,
           ...(servicePrices ? { servicePrices } : {}),
           ...(productPrices ? { productPrices } : {}),
           status: "paid",
-          payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt, ...(split ? { split } : {}) },
+          payment,
           history: [...existing.history, entry(account.user.name, `paid:${method}`)],
         },
         "sale",
@@ -582,9 +612,45 @@ export const calendarHandlers = [
     else if (amount > refundable) fields.amount = [`Se puede devolver hasta ${refundable}.`];
     if (reason.length < 3) fields.reason = ["Di por qué se devuelve."];
     if (to !== "cash" && to !== "card") fields.to = ["Elige a dónde vuelve el dinero."];
+    // Las líneas que se devuelven: un producto no puede volver más veces de las que se vendió.
+    const items = (Array.isArray(input.items) ? input.items : [])
+      .map((item) => asRecord(item as DefaultBodyType))
+      .filter((item) => (item.kind === "service" || item.kind === "product" || item.kind === "tip") && typeof item.id === "string")
+      .map((item) => ({ kind: item.kind as "service" | "product" | "tip", id: item.id as string, qty: Math.max(1, Math.round(Number(item.qty) || 1)), amount: round2(Number(item.amount) || 0) }));
+    const returnedBefore = (productId: string) => (existing.refunds ?? []).flatMap((item) => item.items ?? []).filter((item) => item.kind === "product" && item.id === productId).reduce((sum, item) => sum + item.qty, 0);
+    for (const item of items.filter((line) => line.kind === "product")) {
+      const sold = existing.products.find((line) => line.productId === item.id)?.qty ?? 0;
+      if (item.qty > sold - returnedBefore(item.id)) fields.items = ["Ese producto ya se devolvió."];
+    }
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const refund = { id: `rf_${Date.now().toString(36)}`, amount, to: to as "cash" | "card", reason, at: new Date().toISOString(), by: account.user.name };
+    // Los productos devueltos vuelven a la estantería de la sucursal.
+    for (const item of items.filter((line) => line.kind === "product")) moveStock({ branchId: existing.branchId, productId: item.id, delta: item.qty, reason: "return", ref: existing.id, by: account.user.name });
+    const refund = { id: `rf_${Date.now().toString(36)}`, amount, to: to as "cash" | "card", reason, at: new Date().toISOString(), by: account.user.name, ...(items.length > 0 ? { items } : {}) };
     return replaceAppointment({ ...existing, refunds: [...(existing.refunds ?? []), refund], history: [...existing.history, entry(account.user.name, `refund:${amount}`)] });
+  }),
+
+  /**
+   * Borrar la venta (se cobró por error): la cita vuelve a «en silla» sin pago, para cobrarla bien. Lo
+   * vendido vuelve al inventario, la tarjeta de regalo usada recupera su saldo y la que se vendió queda
+   * sin saldo. Solo dueño y administrador, y sin devoluciones de por medio.
+   */
+  http.post(`${BASE}/appointments/:id/void-payment`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const existing = findAppointment(params.id);
+    if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    const role = sessionOf(request)?.teamRole;
+    if (role && role !== "owner" && role !== "admin") return forbidden("Borrar una venta es del dueño o del administrador.");
+    if (existing.status !== "paid" || !existing.payment) return error(409, "conflict", "Solo se borra una venta cobrada.");
+    if ((existing.refunds ?? []).length > 0) return error(409, "conflict", "Esta venta tiene devoluciones: deshazla desde Transacciones.");
+    const reason = text(asRecord(await request.json().catch(() => ({}))).reason);
+    if (reason.length < 3) return error(422, "validation", "Di por qué se borra la venta.", { fields: { reason: ["Di por qué se borra la venta."] } });
+    const payment = existing.payment;
+    if (payment.gift) spendGiftCard(payment.gift.code, -payment.gift.amount);
+    if (payment.giftSale) spendGiftCard(payment.giftSale.code, payment.giftSale.amount);
+    const released = releaseAppointmentStock(existing, account.user.name);
+    return replaceAppointment({ ...released, status: "seated", payment: null, checkoutDiscount: undefined, servicePrices: undefined, productPrices: undefined, stockTaken: [], history: [...existing.history, entry(account.user.name, `voided:${reason}`)] });
   }),
 
   http.post(`${BASE}/clients/:id/notes`, async ({ request, params }) => {

@@ -1,11 +1,13 @@
 import { api } from "@/lib/api";
-import { appointmentSchema, type Appointment } from "@/features/calendar/types";
+import { appointmentSchema, type Appointment, type RefundItem } from "@/features/calendar/types";
 import { transactionsResponseSchema, type TransactionsParams, type TransactionsResponse } from "./types";
 
 export interface RefundInput {
   amount: number;
   reason: string;
   to: "cash" | "card";
+  /** Las líneas que se devuelven (los productos vuelven al inventario). Sin ellas, es solo un monto. */
+  items?: RefundItem[];
 }
 
 /** Contrato de transacciones; ver docs/API_CONTRACT.md. */

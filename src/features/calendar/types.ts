@@ -99,8 +99,20 @@ export const paymentSchema = z.object({
   prepaid: z.number().optional(),
   /** Con `mixed`: cuánto fue en efectivo y cuánto con tarjeta. */
   split: z.object({ cash: z.number(), card: z.number() }).optional(),
+  /** Lo descontado en la caja y por qué. */
+  discount: z.number().optional(),
+  discountReason: z.string().nullable().optional(),
+  /** Lo pagado con una tarjeta de regalo del cliente. */
+  gift: z.object({ code: z.string(), amount: z.number() }).optional(),
+  /** La tarjeta de regalo vendida en el mismo cobro (su código y su monto). */
+  giftSale: z.object({ code: z.string(), amount: z.number() }).optional(),
+  /** El pago dividido en partes, cada una con su método. */
+  parts: z.array(z.object({ method: z.enum(["cash", "card", "link"]), amount: z.number(), deviceId: z.string().optional() })).optional(),
+  /** El datáfono con que se pasó la tarjeta. */
+  deviceId: z.string().optional(),
 });
 export type Payment = z.infer<typeof paymentSchema>;
+export type PaymentPart = NonNullable<Payment["parts"]>[number];
 
 /**
  * Lo que ya quedó resuelto al reservar en línea: lo pagado (tarjeta, anticipo,
@@ -111,7 +123,10 @@ export const onlineSettlementSchema = z.object({ reservation: z.string(), method
 export type OnlineSettlement = z.infer<typeof onlineSettlementSchema>;
 
 /** Una devolución de la cuenta: desde la caja (efectivo o tarjeta) o al cancelar la reserva (tarjeta o saldo). */
-export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string() });
+/** Lo devuelto de una línea de la cuenta: un servicio, un producto (vuelve al inventario) o la propina. */
+export const refundItemSchema = z.object({ kind: z.enum(["service", "product", "tip"]), id: z.string(), qty: z.number(), amount: z.number() });
+export type RefundItem = z.infer<typeof refundItemSchema>;
+export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string(), items: z.array(refundItemSchema).optional() });
 export type Refund = z.infer<typeof refundSchema>;
 
 export const productLineSchema = z.object({ productId: z.string(), qty: z.number() });
@@ -140,6 +155,8 @@ export const appointmentSchema = z.object({
   /** Precios cambiados al cobrar: por servicio (en el orden de `serviceIds`) y por producto (unitario). */
   servicePrices: z.array(z.number().nullable()).optional(),
   productPrices: z.record(z.string(), z.number()).optional(),
+  /** Lo descontado al cobrar (en dinero, antes de impuestos). */
+  checkoutDiscount: z.number().optional(),
   createdAt: z.string(),
   createdBy: z.string(),
   history: z.array(historyEntrySchema),
@@ -279,6 +296,17 @@ export interface CheckoutInput {
   /** Precios cambiados en la caja: por servicio (en el orden de `serviceIds`, `null` = el de lista) y por producto (unitario). */
   servicePrices?: (number | null)[];
   productPrices?: Record<string, number>;
+  /** Un descuento de la caja: porcentaje o monto, con su motivo. */
+  discount?: { type: "percent" | "amount"; value: number; reason?: string };
+  /** Pagar (en parte) con una tarjeta de regalo del cliente. */
+  giftCode?: string;
+  giftAmount?: number;
+  /** Vender una tarjeta de regalo en el mismo cobro. */
+  giftSale?: { amount: number; recipientName: string; recipientContact?: string };
+  /** Dividir el pago en partes (al menos dos), cada una con su método. */
+  parts?: PaymentPart[];
+  /** El datáfono con que se pasa la tarjeta. */
+  deviceId?: string;
 }
 
 export const blockInputSchema = z.object({

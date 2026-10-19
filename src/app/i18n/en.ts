@@ -1,4 +1,5 @@
 import { calendarPanelEn } from "./calendar/panel.en";
+import { calendarCheckoutEn } from "./calendar/checkout.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
 import { bookingVariantsEn } from "./booking/variants.en";
@@ -1193,6 +1194,8 @@ export const appEn: AppMessageCatalog = {
   "calendar.history.moved": "Moved to {value}",
   "calendar.history.barber": "Barber changed to {value}",
   "calendar.history.client": "Client changed to {value}",
+  "calendar.history.refund": "Refund of {value}",
+  "calendar.history.voided": "Sale deleted: {value}",
   "calendar.history.duration": "Duration changed to {value} min",
   "calendar.history.linked": "Linked to other appointments",
   "calendar.history.unlinked": "Unlinked",
@@ -3792,4 +3795,5 @@ export const appEn: AppMessageCatalog = {
   ...bookingEn,
   ...bookingVariantsEn,
   ...calendarPanelEn,
+  ...calendarCheckoutEn,
 };

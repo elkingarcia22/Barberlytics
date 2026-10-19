@@ -18,7 +18,7 @@ import type { Appointment } from "../types";
 import { useFreeSlots } from "./useFreeSlots";
 import type { AppointmentModel } from "./useAppointmentModel";
 import { TileRow, type Tile } from "./StageParts";
-import { writeMenu } from "./writeChannels";
+import { SendToClient } from "./SendToClient";
 
 /**
  * «¿Le agendamos la próxima?»: lo que se le dice al cliente antes de que se
@@ -119,8 +119,8 @@ export function NextVisitBooker({ model, ctx, bare = false, group = [] }: { mode
 
 /**
  * Que elija él: el enlace de la reserva en línea con lo de esta cita, como se
- * manda el recibo —una tarjeta con su menú de SMS o correo—; ahí escoge la
- * hora y paga.
+ * manda el recibo —una tarjeta que abre Correo y SMS para marcar y un
+ * «Enviar»—; ahí escoge la hora y paga.
  */
 function SendRebookLink({ model }: { model: AppointmentModel }) {
   const t = useAppT();
@@ -131,7 +131,8 @@ function SendRebookLink({ model }: { model: AppointmentModel }) {
     icon: <Send className="size-5 text-primary" />,
     label: t("calendar.panel.next.linkSend"),
     title: t("calendar.panel.next.linkSendTitle"),
-    menu: writeMenu(model, t, { subject: t("calendar.panel.next.linkSubject"), text: t("calendar.panel.next.linkMessage", { name: model.firstName, link }) }),
+    wide: true,
+    confirm: (close) => <SendToClient model={model} kind="rebookLink" body={t("calendar.panel.next.linkMessage", { name: model.firstName, link })} onClose={close} />,
   };
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border/60 p-3" data-testid="panel-next-link">

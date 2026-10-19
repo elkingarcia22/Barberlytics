@@ -1515,6 +1515,8 @@ export const appEs = {
   "calendar.messages.kind.slotFreed": "Hueco liberado",
   "calendar.messages.kind.manual": "Mensaje del equipo",
   "calendar.messages.kind.reactivation": "Te toca volver",
+  "calendar.messages.kind.receipt": "Recibo",
+  "calendar.messages.kind.rebookLink": "Enlace para reagendar",
   "calendar.messages.status.scheduled": "Programado",
   "calendar.messages.status.sent": "Enviado",
   "calendar.messages.status.simulated": "Simulado",

@@ -26,6 +26,7 @@ import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
 import { ClientTags, MoreActionsMenu } from "./PanelParts";
 import { LinkedField, PanelStepper } from "./PanelShared";
+import { SendToClient } from "./SendToClient";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
 import { StageHeading, TileRow, type Tile } from "./StageParts";
@@ -90,8 +91,7 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
         total: ctx.formatMoney(payment.total),
         method: t(PAYMENT_METHOD_KEYS[payment.method]),
       });
-      const subject = t("calendar.panel.after.receiptSubject", { date: format(start, "d 'de' MMMM", { locale: calendarLocale(locale) }) });
-      tiles.push({ id: "send", icon: <Send className="size-5 text-primary" />, label: t("calendar.panel.after.send"), title: t("calendar.panel.after.sendTitle"), menu: writeMenu(model, t, { subject, text: message }) });
+      tiles.push({ id: "send", icon: <Send className="size-5 text-primary" />, label: t("calendar.panel.after.send"), title: t("calendar.panel.after.sendTitle"), wide: true, confirm: (close) => <SendToClient model={model} kind="receipt" body={message} onClose={close} /> });
     }
     tiles.push({ id: "receipt", icon: <ReceiptText className="size-5 text-primary" />, label: t("calendar.panel.after.receipt"), title: t("calendar.panel.after.receiptTitle"), onClick: openAccount });
     if (access.can("transactions", "edit")) {

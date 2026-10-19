@@ -20,6 +20,13 @@ function requireAuth(request: Request) {
   return ACCOUNTS.find((item) => item.id === accountId) ?? null;
 }
 
+/** Lo más largo que se acepta de un mensaje al cliente (un recibo con varias líneas cabe de sobra). */
+const MAX_BODY = 2000;
+
+function fieldError(field: string, message: string) {
+  return HttpResponse.json({ code: "validation", message, fields: { [field]: [message] } }, { status: 422 });
+}
+
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 
 export const messagesHandlers = [
@@ -37,6 +44,32 @@ export const messagesHandlers = [
     if (!appointment) return error(404, "not_found", "Esa cita no existe.");
     const items = messagesOf(appointment).map(({ id, kind, channel, sendAt, sentAt, status, simulated, error: failure }) => ({ id, kind, channel, sendAt, sentAt: sentAt ?? null, status, simulated: simulated === true, error: failure ?? null }));
     return HttpResponse.json({ items });
+  }),
+
+  // Mandar al cliente, desde el panel de la cita, su recibo o el enlace para reagendar: por SMS o correo, en el momento.
+  http.post("*/api/appointments/:id/messages", async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const appointment = db.calendar.appointments.find((item) => item.id === params.id);
+    if (!appointment) return error(404, "not_found", "Esa cita no existe.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const kind = input.kind === "receipt" || input.kind === "rebookLink" ? input.kind : null;
+    const channel = input.channel === "sms" ? "sms" : input.channel === "email" ? "email" : null;
+    const to = String(input.to ?? "").trim();
+    const body = String(input.body ?? "").trim();
+    if (!kind || !channel) return fieldError("kind", "Elige qué mandar y por dónde.");
+    if (kind === "receipt" && appointment.status !== "paid") return error(409, "conflict", "La cita aún no está cobrada.");
+    if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return fieldError("to", "Revisa el correo.");
+    if (channel === "sms" && to.replace(/\D/g, "").length < 8) return fieldError("to", "Revisa el celular.");
+    if (body.length === 0 || body.length > MAX_BODY) return fieldError("body", "El mensaje está vacío o es muy largo.");
+    const now = new Date().toISOString();
+    db.booking.outbox = [
+      ...(db.booking.outbox ?? []),
+      { id: `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, appointmentId: appointment.id, clientId: appointment.clientId, to, channel, kind, sendAt: now, sentAt: now, status: "sent", simulated: true, body, by: account.user.name },
+    ];
+    db.persist();
+    return HttpResponse.json({ channel, to }, { status: 201 });
   }),
 
   // El enlace «Confirmar» del mensaje: sin sesión, con el token de la cita.

@@ -47,9 +47,13 @@ export interface MockOutboxMessage {
   appointmentId: string;
   clientId: string;
   to: string;
-  channel: "whatsapp" | "sms";
-  /** `manual`: lo escribió el equipo desde la ficha del cliente y salió por wa.me; no pasa por la cola. */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation";
+  channel: "whatsapp" | "sms" | "email";
+  /**
+   * `manual`: lo escribió el equipo desde la ficha del cliente y salió por wa.me; no pasa por la cola.
+   * `receipt` y `rebookLink`: los mandó el equipo desde el panel de la cita (el recibo, el enlace para
+   * reagendar), por SMS o correo; salen en el momento.
+   */
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink";
   /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
   hoursBefore?: number;
   sendAt: string;

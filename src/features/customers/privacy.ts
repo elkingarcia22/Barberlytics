@@ -10,7 +10,7 @@ import { customerKeys } from "./queries";
  */
 
 export const PRIVACY_REQUEST_TYPES = ["access", "export", "rectify", "erase", "revoke", "other"] as const;
-export const PRIVACY_CHANNELS = ["app", "phone", "email", "in_person", "whatsapp"] as const;
+export const PRIVACY_CHANNELS = ["app", "phone", "email", "in_person", "whatsapp", "sms"] as const;
 export type PrivacyRequestType = (typeof PRIVACY_REQUEST_TYPES)[number];
 export type PrivacyChannel = (typeof PRIVACY_CHANNELS)[number];
 
@@ -29,6 +29,7 @@ export const PRIVACY_CHANNEL_KEYS = {
   email: "customers.privacy.channel.email",
   in_person: "customers.privacy.channel.in_person",
   whatsapp: "customers.privacy.channel.whatsapp",
+  sms: "customers.privacy.channel.sms",
 } as const satisfies Record<PrivacyChannel, string>;
 
 export const privacyRequestSchema = z.object({

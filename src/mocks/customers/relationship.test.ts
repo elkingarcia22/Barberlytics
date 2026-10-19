@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "../db";
 
 const TOKEN = "mock-acc_admin-test";
@@ -73,11 +73,14 @@ describe("ficha 360 del cliente", () => {
   });
 
   test("un mensaje de promoción sin permiso se rechaza; con permiso queda en el historial", async () => {
+    // Martes 11 a. m. en Boston: dentro de la franja legal de promociones.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-20T15:00:00.000Z") });
     const promo = { method: "POST", body: JSON.stringify({ purpose: "rebook", body: "Hola, te toca volver" }) };
     expect((await api("/customers/cli_001/messages", promo)).status).toBe(409);
     const thanks = await (await api("/customers/cli_001/messages", { method: "POST", body: JSON.stringify({ purpose: "thanks", body: "Gracias por venir" }) })).json();
     expect(thanks.messages[0]).toMatchObject({ kind: "manual", body: "Gracias por venir", status: "sent" });
     await api("/customers/cli_001/consent", { method: "PATCH", body: JSON.stringify({ marketing: true }) });
     expect((await api("/customers/cli_001/messages", promo)).status).toBe(201);
+    vi.useRealTimers();
   });
 });

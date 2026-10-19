@@ -3,9 +3,10 @@ import { ACCOUNTS, db } from "../db";
 import { messagesOf, syncOutbox } from "../booking/dispatch";
 import { applyReply, repliesOf } from "../booking/replies";
 import type { MockInboundReply } from "../booking/state";
+import { profileOf } from "../customers/handlers";
 
 /** Lo que «escribe» el cliente al simular una respuesta en la demo. */
-const SIMULATED_TEXT: Readonly<Record<MockInboundReply["intent"], string>> = { confirm: "Confirmo", reschedule: "¿Me la pueden pasar a otra hora?", cancel: "No puedo ir, lo siento", stop: "BAJA", start: "ALTA", other: "¿Tienen parqueadero?" };
+const SIMULATED_TEXT: Readonly<Record<MockInboundReply["intent"], string>> = { confirm: "Confirmo", reschedule: "¿Me la pueden pasar a otra hora?", cancel: "No puedo ir, lo siento", stop: "BAJA", start: "ALTA", help: "AYUDA", other: "¿Tienen parqueadero?" };
 
 /**
  * Los mensajes al cliente (WhatsApp). Reproduce docs/API_CONTRACT.md (sección «Mensajes»): enviar
@@ -13,6 +14,10 @@ const SIMULATED_TEXT: Readonly<Record<MockInboundReply["intent"], string>> = { c
  */
 
 const LATENCY_MS = 150;
+
+/** Todo SMS dice cómo dejar de recibirlos (CTIA): STOP y BAJA funcionan en cualquier idioma. */
+export const SMS_FOOTER = "Responde STOP o BAJA para no recibir más SMS.";
+const withSmsFooter = (body: string): string => (body.includes("STOP") ? body : `${body}\n\n${SMS_FOOTER}`);
 
 function error(status: number, code: string, message: string) {
   return HttpResponse.json({ code, message }, { status });
@@ -83,10 +88,13 @@ export const messagesHandlers = [
     if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return fieldError("to", "Revisa el correo.");
     if (channel === "sms" && to.replace(/\D/g, "").length < 8) return fieldError("to", "Revisa el celular.");
     if (body.length === 0 || body.length > MAX_BODY) return fieldError("body", "El mensaje está vacío o es muy largo.");
+    const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
+    // Respondió STOP por SMS: no se le manda ningún SMS hasta que responda ALTA (CTIA/TCPA).
+    if (channel === "sms" && client && profileOf(client).smsStop) return error(409, "sms_stopped", "Este cliente respondió STOP: no se le pueden mandar SMS. Mándalo por correo.");
     const now = new Date().toISOString();
     db.booking.outbox = [
       ...(db.booking.outbox ?? []),
-      { id: `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, appointmentId: appointment.id, clientId: appointment.clientId, to, channel, kind, sendAt: now, sentAt: now, status: "sent", simulated: true, body, by: account.user.name },
+      { id: `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, appointmentId: appointment.id, clientId: appointment.clientId, to, channel, kind, sendAt: now, sentAt: now, status: "sent", simulated: true, body: channel === "sms" ? withSmsFooter(body) : body, by: account.user.name },
     ];
     db.persist();
     return HttpResponse.json({ channel, to }, { status: 201 });

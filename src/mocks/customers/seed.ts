@@ -37,11 +37,13 @@ export interface MockCustomerProfile {
    * citas (Ley 1581: consentimiento previo, expreso e informado, y que se pueda probar).
    */
   /** El permiso de promociones, con el texto que se aceptó (versión y país): es la prueba. */
-  marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" | "whatsapp"; version?: string; country?: string };
+  marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" | "whatsapp" | "sms"; version?: string; country?: string };
   /** El permiso aparte para anotar alergias y medicamentos: sin él no se guardan. */
   healthConsent?: { accepted: boolean; at: string; source: "booking" | "app"; version: string; by?: string };
   /** Se borraron sus datos personales por solicitud (el historial contable queda, anónimo). */
   erasedAt?: string;
+  /** Respondió STOP/BAJA por SMS: no se le manda ningún SMS (tampoco los de sus citas) hasta ALTA. */
+  smsStop?: { at: string } | null;
   /** Borrado del directorio; la agenda conserva sus citas. */
   deleted?: boolean;
   /** La tanda de importación que lo trajo (para poder deshacerla). */
@@ -56,7 +58,7 @@ export interface MockPrivacyRequest {
   /** El nombre al momento de pedirlo (si luego se borra, el registro dice de quién era). */
   clientName: string;
   type: "access" | "export" | "rectify" | "erase" | "revoke" | "other";
-  channel: "app" | "phone" | "email" | "in_person" | "whatsapp";
+  channel: "app" | "phone" | "email" | "in_person" | "whatsapp" | "sms";
   status: "open" | "done";
   note: string;
   requestedAt: string;

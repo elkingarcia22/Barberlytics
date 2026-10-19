@@ -692,7 +692,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerPrivacy.tsx** — Los datos del cliente y sus derechos, en su ficha: el permiso aparte para anotar alergias y medicamentos (dat… · `CustomerPrivacy`, `RequestItem` · piezas: Badge, Button, ConfirmDialog, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea · usa: @/app/i18n, @/features/legal, @/features/team, @/i18n, @/lib/api
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
 - **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/features/team, @/i18n, @/lib/api
-- **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/lib/api
+- **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/i18n, @/lib/api
 - **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **PrivacyRequestsDrawer.tsx** — Todas las solicitudes de datos de la barbería, las abiertas primero: qué pidió cada cliente y hasta cuándo ha… · `PrivacyRequestsDrawer` · piezas: DrawerShell, Skeleton, Text, ThemaTabs · usa: @/app/i18n
 - **ReactivationDrawer.tsx** — Reactivar a los que ya se pasaron de su ritmo. · `ReactivationDrawerProps`, `ReactivationDrawer` · piezas: Alert, AlertDescription, Button, Checkbox, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/query
@@ -759,6 +759,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **LegalPage.tsx** · `LegalPage` · piezas: Alert, AlertDescription, Badge, BarberlyticsLogo, Heading, PageShell, Text · usa: @/app/i18n, @/i18n, @/lib/utils
 - **acceptances.ts** · `acceptancesSchema`, `LegalAcceptances`, `useLegalAcceptances`, `useAcceptDpa` · llama: GET /legal/acceptances, POST /legal/dpa/accept · usa: @/lib/api
 - **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`, `HEALTH_CONSENT_VERSION`, `HealthConsentTexts`, `healthConsentTexts`
+- **sendWindow.ts** — Cuándo se puede mandar una promoción, a la hora del cliente (la de la sede). · `SendCountry`, `SendPlace`, `colombianHolidays`, `isPromoAllowed`, `nextPromoSlot`, `promoWeek`
 - **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack`, `useHealthConsentTexts` · usa: @/features/settings, @/i18n
 
 ### legal/documents
@@ -1068,7 +1069,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### booking
 
 - **alternatives.ts** — Qué servicios cubre cada habilidad. · `SKILL_SERVICES`, `Alternative`, `alternatives`, `earliest`, `WaitlistWindow`, `joinWaitlist`
-- **dispatch.ts** — El outbox de la app y la cola de WhatsApp del servidor (`/api/whatsapp/queue`, ver server/whatsapp/queue). · `WhatsAppPayload`, `QueueRequest`, `QueueView`, `EnqueueResult`, `Queue`, `httpQueue`, `payloadOf`, `SyncCounts`, `syncOutbox`, `messagesOf` · usa: @/lib/api
+- **dispatch.ts** — El outbox de la app y la cola de WhatsApp del servidor (`/api/whatsapp/queue`, ver server/whatsapp/queue). · `WhatsAppPayload`, `QueueRequest`, `QueueView`, `EnqueueResult`, `Queue`, `httpQueue`, `payloadOf`, `SyncCounts`, `syncOutbox`, `messagesOf` · usa: @/features/legal, @/lib/api
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `sessionsBySource`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/features/payments, @/lib/time
@@ -1108,7 +1109,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
 - **privacy.ts** — El plazo para responder según el país de la sede del cliente: Colombia 10 días hábiles para consultas (ver, e… · `dueDateOf`, `logPrivacyRequest`, `exportOf`, `eraseClient`, `privacyHandlers` · usa: @/features/legal
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers` · usa: @/features/legal
-- **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers
+- **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers, @/features/legal
 - **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockPrivacyRequest`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf` · usa: @/features/legal
 
 ### expenses
@@ -1134,7 +1135,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### messages
 
-- **handlers.ts** · `messagesHandlers`
+- **handlers.ts** — Todo SMS dice cómo dejar de recibirlos (CTIA): STOP y BAJA funcionan en cualquier idioma. · `SMS_FOOTER`, `messagesHandlers`
 
 ### notifications
 
@@ -1177,7 +1178,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### settings
 
-- **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchCountry`, `consentProof`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/legal, @/features/settings, @/lib/time
+- **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchCountry`, `branchSendPlace`, `promoWindowOf`, `consentProof`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/legal, @/features/settings, @/lib/time
 - **handlers.ts** · `settingsHandlers` · usa: @/features/settings
 - **seed.ts** — La configuración del backend simulado. · `MockSettingsSection`, `MockSettingsList`, `MockListItem`, `MockSettingsState`, `DEFAULT_POLICY`, `seedSettings`
 

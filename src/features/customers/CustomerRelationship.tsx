@@ -25,6 +25,12 @@ const DAY_TIME: Intl.DateTimeFormatOptions = {
   minute: "2-digit",
 };
 const MAX_STARS = 5;
+const SOURCE_KEYS = {
+  booking: "customers.rel.sourceBooking",
+  app: "customers.rel.sourceApp",
+  whatsapp: "customers.rel.sourceWhatsapp",
+  sms: "customers.rel.sourceSms",
+} as const;
 
 interface RelationshipProps {
   customerId: string;
@@ -205,9 +211,10 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
   const status = consent
     ? t(consent.accepted ? "customers.rel.consentYes" : "customers.rel.consentNo", {
         date: formatDate(new Date(consent.at), DAY),
-        source: t(consent.source === "booking" ? "customers.rel.sourceBooking" : "customers.rel.sourceApp"),
+        source: t(SOURCE_KEYS[consent.source]),
       }) + (consent.version ? ` · ${t("customers.rel.consentVersion", { version: consent.version })}` : "")
     : t("customers.rel.consentUnknown");
+  const smsStop = useCustomerRelationship(customerId).data?.consent.smsStop;
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg bg-surface-subtle px-3 py-2" data-testid="customer-consent">
@@ -215,6 +222,11 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
       <div className="min-w-0 flex-1">
         <Text weight="semibold">{t("customers.rel.consent")}</Text>
         <Text variant="muted">{status}</Text>
+        {smsStop && (
+          <Text variant="muted" className="text-status-warning" data-testid="customer-sms-stop">
+            {t("customers.rel.smsStop", { date: formatDate(new Date(smsStop.at), DAY) })}
+          </Text>
+        )}
       </div>
       {accepted ? (
         <Button size="xs" variant="outline" onClick={() => save(false)} disabled={setConsent.isPending} data-testid="customer-consent-revoke">

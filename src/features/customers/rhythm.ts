@@ -27,6 +27,9 @@ const candidateSchema = z.object({
   offer: z.object({ start: z.string(), barberId: z.string(), barberName: z.string(), branchId: z.string() }).nullable(),
 });
 export type ReactivationCandidate = z.infer<typeof candidateSchema>;
+
+/** La franja legal de promociones en la sede (Ley 2300, TCPA): si ahora no se puede, desde cuándo. */
+const promoWindowSchema = z.object({ allowed: z.boolean(), nextAt: z.string(), timeZone: z.string().optional() });
 export const skipReasonSchema = z.enum(["noConsent", "recent", "noPhone", "noSlot"]);
 export type SkipReason = z.infer<typeof skipReasonSchema>;
 
@@ -38,13 +41,13 @@ export function useNextVisit(customerId: string) {
 }
 
 export function useReactivationCandidates(branchId: string, enabled: boolean) {
-  return useQuery({ queryKey: ["customers", "reactivation", branchId], queryFn: ({ signal }) => api.get("/customers/reactivation", { query: { branchId }, schema: z.object({ items: z.array(candidateSchema) }), signal }), enabled });
+  return useQuery({ queryKey: ["customers", "reactivation", branchId], queryFn: ({ signal }) => api.get("/customers/reactivation", { query: { branchId }, schema: z.object({ items: z.array(candidateSchema), window: promoWindowSchema.optional() }), signal }), enabled });
 }
 
 export function useApproveReactivation(branchId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clientIds: readonly string[]) => api.post("/customers/reactivation", { branchId, clientIds }, { schema: z.object({ queued: z.number(), skipped: z.array(z.object({ clientId: z.string(), reason: skipReasonSchema })) }) }),
+    mutationFn: (clientIds: readonly string[]) => api.post("/customers/reactivation", { branchId, clientIds }, { schema: z.object({ queued: z.number(), skipped: z.array(z.object({ clientId: z.string(), reason: skipReasonSchema })), sendAt: z.string().nullable().optional() }) }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["customers"] }),
   });
 }

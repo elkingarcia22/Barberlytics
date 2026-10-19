@@ -215,7 +215,7 @@ respuestas; retorno por canal con UTM.
 ## 17 Paso a producción y legal
 
 **Pendiente**
-- P0 · Backend real con `tenant_id` y RLS; cookie `httpOnly`; pasarela real; horarios legales y STOP/HELP; permiso de
+- P0 · Backend real con `tenant_id` y RLS; cookie `httpOnly`; pasarela real; ~~horarios legales y STOP/HELP~~; permiso de
   ~~salud~~; ~~paquete legal y DPA~~ (borradores); ~~borrar y exportar cliente~~; voz con plan pago; Sentry, copias, PITR; aviso de privacidad CO.
 - P1 · Límites compartidos; archivos privados; auditoría; DIAN; 10DLC; entornos; cuenta bancaria enmascarada; insignias
   «IA» sobre reglas; Clipper se presenta como IA; accesibilidad con axe; retención.
@@ -274,10 +274,14 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - El aviso de la reserva dice el contacto de la sede, que los datos están en EE. UU. y enlaza la política.
   - Falta:
     - la revisión del abogado y completar lo que va entre corchetes;
-    - horarios legales de envío y STOP en SMS.
 - **Datos de salud y derechos del cliente (17 P0).**
   - Permiso aparte para alergias y medicamentos (versión `health-…`, quién lo anotó): sin él el servidor rechaza esas notas (`409 health_consent_required`) y el formulario lo avisa; retirarlo las borra. Lo anota recepción o gerencia, no el barbero.
   - Ficha › «Datos y privacidad»: exportar todo lo del cliente en JSON, borrarlo (anonimiza, con confirmación de identidad; citas y cobros quedan sin datos personales) y anotar lo que pidió por teléfono, correo o en el local.
   - Registro de solicitudes con plazo por país (CO 10/15 días hábiles, MX 20, EE. UU. 45) y «Vencida»; cajón global en Clientes › «Solicitudes de datos».
   - Falta: festivos en el plazo, el permiso de salud desde la reserva, avisar al cliente al responder y borrar también de las copias de seguridad (backend real).
+- **Horario legal de promociones y STOP en SMS (17 P0).**
+  - Franja por país a la hora de la sede (`src/features/legal/sendWindow.ts`, la usan la app y el servidor): Colombia L–V 7–19, S 8–15, sin domingos ni festivos (Ley 2300; festivos calculados); EE. UU. 8–21 con Florida, Oklahoma, Maryland, Washington, Connecticut y Texas más estrictos (TCPA y leyes estatales); México y el resto L–S 9–20.
+  - La cola del servidor exige la sede en cada promoción, la aplaza a la próxima apertura y, justo antes de enviar, vuelve a mirar la franja y la BAJA. «Reactivar» y el «te toca volver» manual avisan cuándo saldrá.
+  - SMS: webhook `/api/sms/inbound` (Twilio, firmado) con STOP/BAJA, START/ALTA y HELP/AYUDA; STOP corta todos los SMS del número y las promociones, queda en el registro de solicitudes y en la ficha; todo SMS lleva «Responde STOP o BAJA…».
+  - Falta: tope de promociones por cliente y mes en el servidor (hoy lo pone la app), festivos de EE. UU. y México, 10DLC y el envío real de SMS (hoy simulado), y la revisión del abogado.
 

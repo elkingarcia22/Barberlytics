@@ -20,7 +20,7 @@ const LATENCY_MS = 150;
 const DAY_MS = 86_400_000;
 const MAX_NOTE = 500;
 const TYPES: readonly MockPrivacyRequest["type"][] = ["access", "export", "rectify", "erase", "revoke", "other"];
-const CHANNELS: readonly MockPrivacyRequest["channel"][] = ["app", "phone", "email", "in_person", "whatsapp"];
+const CHANNELS: readonly MockPrivacyRequest["channel"][] = ["app", "phone", "email", "in_person", "whatsapp", "sms"];
 const ERASED_NAME = "Cliente borrado";
 
 const requests = (): MockPrivacyRequest[] => db.customers.privacyRequests ?? [];

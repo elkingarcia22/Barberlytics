@@ -5,6 +5,8 @@ import { readWhatsAppConfig } from "./whatsapp.js";
 const NOW = Date.UTC(2026, 9, 19, 15);
 const configured = readWhatsAppConfig({ WHATSAPP_TOKEN: "t", WHATSAPP_PHONE_NUMBER_ID: "123" });
 const message = (id: string, minutes = 0, extra: Record<string, unknown> = {}) => ({ id, to: "+573001234567", kind: "confirmation", params: ["Marcela", "Corte", "mañana", "Centro"], sendAt: new Date(NOW + minutes * 60_000).toISOString(), ...extra });
+const CONSENT = { version: "co-2026-10", at: new Date(NOW).toISOString() };
+const BOGOTA = { country: "CO", timeZone: "America/Bogota" };
 const okFetch = () => vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ messages: [{ id: "wamid.1" }] }), { status: 200 }));
 
 describe("cola de WhatsApp", () => {
@@ -41,9 +43,38 @@ describe("cola de WhatsApp", () => {
 
   test("una promoción sin el permiso del cliente no entra a la cola", async () => {
     const store = createMemoryStore();
-    const result = await enqueue(store, "demo", "usr_0001", [message("m1", 0, { kind: "reactivation" }), message("m2", 0, { kind: "reactivation", consent: { version: "co-2026-10", at: new Date(NOW).toISOString() } })], NOW);
-    expect(result.rejected).toEqual([{ id: "m1", message: expect.stringContaining("permiso") }]);
+    const result = await enqueue(store, "demo", "usr_0001", [message("m1", 0, { kind: "reactivation" }), message("m2", 0, { kind: "reactivation", consent: CONSENT, place: BOGOTA }), message("m3", 0, { kind: "reactivation", consent: CONSENT })], NOW);
+    expect(result.rejected).toEqual([
+      { id: "m1", message: expect.stringContaining("permiso") },
+      { id: "m3", message: expect.stringContaining("franja") },
+    ]);
     expect(result.items.map((item) => item.id)).toEqual(["m2"]);
+  });
+
+  test("una promoción fuera de la franja legal espera a la próxima apertura de la sede", async () => {
+    const store = createMemoryStore();
+    // Sábado 24 de octubre, 4 p. m. en Bogotá: ya cerró la franja del sábado; domingo no; sale el lunes 26 a las 7.
+    const saturday = Date.parse("2026-10-24T16:00:00-05:00");
+    await enqueue(store, "demo", "usr_0001", [{ ...message("p1", 0, { kind: "reactivation", consent: CONSENT, place: BOGOTA }), sendAt: new Date(saturday).toISOString() }], saturday);
+    const fetcher = okFetch();
+    expect(await runDue(store, configured, fetcher, saturday)).toMatchObject({ sent: 0 });
+    expect(await runDue(store, configured, fetcher, Date.parse("2026-10-25T11:00:00-05:00"))).toMatchObject({ sent: 0 });
+    expect(await runDue(store, configured, fetcher, Date.parse("2026-10-26T07:00:00-05:00"))).toMatchObject({ sent: 1 });
+    // Los mensajes de una cita no esperan: un recordatorio de noche sale igual.
+    await enqueue(store, "demo", "usr_0001", [{ ...message("c1"), sendAt: new Date(saturday + 5 * 3_600_000).toISOString() }], saturday);
+    expect(await runDue(store, configured, okFetch(), saturday + 5 * 3_600_000)).toMatchObject({ sent: 1 });
+  });
+
+  test("el cron no manda una promoción fuera de la franja ni a quien escribió BAJA después de encolarla", async () => {
+    const store = createMemoryStore();
+    await enqueue(store, "demo", "usr_0001", [message("p1", 0, { kind: "reactivation", consent: CONSENT, place: BOGOTA }), message("p2", 0, { kind: "reactivation", consent: CONSENT, place: BOGOTA, to: "+573009998877" })], NOW);
+    await store.setOptOut("demo", "573009998877", true);
+    // El cron llega tarde: 9 p. m. del mismo lunes en Bogotá.
+    const late = Date.parse("2026-10-19T21:00:00-05:00");
+    const fetcher = okFetch();
+    expect(await runDue(store, configured, fetcher, late)).toMatchObject({ sent: 0, deferred: 1, cancelled: 1 });
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(await statusOf(store, "demo", ["p1", "p2"])).toMatchObject([{ status: "scheduled" }, { status: "cancelled" }]);
   });
 
   test("si WhatsApp falla se reintenta con espera y, al tercer intento, queda fallido", async () => {

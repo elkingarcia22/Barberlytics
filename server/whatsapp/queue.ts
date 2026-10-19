@@ -1,4 +1,5 @@
 import { parseSendInput, readWhatsAppConfig, sendTemplate, type MessageKind, type SendInput, type WhatsAppConfig } from "./whatsapp.js";
+import { isPromoAllowed, nextPromoSlot, type SendCountry, type SendPlace } from "../../src/features/legal/sendWindow.js";
 
 /**
  * La cola de WhatsApp en el servidor. Antes la cola corría en el navegador y llamaba a una función
@@ -19,6 +20,8 @@ export interface QueueItem extends SendInput {
   sendAt: string;
   /** Prueba del permiso del cliente; obligatoria para lo que Meta cuenta como marketing. */
   consent: { version: string; at: string } | null;
+  /** Dónde está la sede (país, estado, zona): una promoción solo sale en la franja legal de esa hora. */
+  place?: SendPlace | null;
   status: QueueStatus;
   attempts: number;
   nextAttemptAt: string;
@@ -50,12 +53,20 @@ export interface InboxEvent {
   at: string;
   /** El celular del cliente, solo dígitos. */
   from: string;
-  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "other";
+  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "help" | "other";
   /** Lo que escribió o el botón que tocó, recortado. */
   text: string;
   /** El mensaje de la app al que responde (el id del outbox), si se sabe. */
   messageId: string | null;
+  /** Por dónde llegó; sin él, WhatsApp. */
+  channel?: "whatsapp" | "sms";
 }
+
+/**
+ * Las dos listas de baja: `promo` (BAJA en cualquier canal: no más promociones) y `sms` (STOP por SMS:
+ * ningún SMS a ese número, tampoco los de sus citas).
+ */
+export type OptOutList = "promo" | "sms";
 
 export interface OutboxStore {
   get(tid: string, id: string): Promise<QueueItem | null>;
@@ -70,9 +81,9 @@ export interface OutboxStore {
   /** Guarda una respuesta (una sola vez por `wamid`) y le pone su número de orden. */
   pushInbox(tid: string, event: Omit<InboxEvent, "seq">): Promise<InboxEvent | null>;
   inbox(tid: string, after: number, limit: number): Promise<InboxEvent[]>;
-  /** Quien escribió BAJA/STOP: no recibe promociones. */
-  setOptOut(tid: string, phone: string, optedOut: boolean): Promise<void>;
-  isOptedOut(tid: string, phone: string): Promise<boolean>;
+  /** Quien escribió BAJA/STOP: no recibe promociones (`promo`, por defecto) o ningún SMS (`sms`). */
+  setOptOut(tid: string, phone: string, optedOut: boolean, list?: OptOutList): Promise<void>;
+  isOptedOut(tid: string, phone: string, list?: OptOutList): Promise<boolean>;
 }
 
 /** Lo que Meta cuenta como marketing: solo a quien aceptó promociones. */
@@ -134,11 +145,11 @@ export function createMemoryStore(): OutboxStore {
       return saved;
     },
     inbox: async (tid, after, limit) => (inboxes.get(tid) ?? []).filter((item) => item.seq > after).slice(0, limit),
-    setOptOut: async (tid, phone, optedOut) => {
-      if (optedOut) optOuts.add(keyOf(tid, phone));
-      else optOuts.delete(keyOf(tid, phone));
+    setOptOut: async (tid, phone, optedOut, list = "promo") => {
+      if (optedOut) optOuts.add(`${list}:${keyOf(tid, phone)}`);
+      else optOuts.delete(`${list}:${keyOf(tid, phone)}`);
     },
-    isOptedOut: async (tid, phone) => optOuts.has(keyOf(tid, phone)),
+    isOptedOut: async (tid, phone, list = "promo") => optOuts.has(`${list}:${keyOf(tid, phone)}`),
   };
 }
 
@@ -220,15 +231,18 @@ export function createUpstashStore(url: string, token: string, fetcher: Fetcher 
         .filter((item): item is InboxEvent => item !== null && item.seq > after)
         .slice(0, limit);
     },
-    setOptOut: async (tid, phone, optedOut) => {
-      await pipeline([[optedOut ? "SADD" : "SREM", `wa:optout:${tid}`, phone]]);
+    setOptOut: async (tid, phone, optedOut, list = "promo") => {
+      await pipeline([[optedOut ? "SADD" : "SREM", optOutKey(tid, list), phone]]);
     },
-    isOptedOut: async (tid, phone) => {
-      const [member] = await pipeline([["SISMEMBER", `wa:optout:${tid}`, phone]]);
+    isOptedOut: async (tid, phone, list = "promo") => {
+      const [member] = await pipeline([["SISMEMBER", optOutKey(tid, list), phone]]);
       return member === 1;
     },
   };
 }
+
+/** `wa:optout:<tid>` se queda como estaba (promociones); los SMS detenidos van aparte. */
+const optOutKey = (tid: string, list: OptOutList) => (list === "promo" ? `wa:optout:${tid}` : `sms:stop:${tid}`);
 
 let memoryStore: OutboxStore | null = null;
 
@@ -248,6 +262,28 @@ export interface EnqueueInput extends SendInput {
   id: string;
   sendAt: string;
   consent: { version: string; at: string } | null;
+  place: SendPlace | null;
+}
+
+const COUNTRIES: readonly SendCountry[] = ["CO", "US", "MX", "GENERIC"];
+
+const isTimeZone = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value || value.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+function parsePlace(raw: unknown): SendPlace | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const country = COUNTRIES.find((item) => item === record.country);
+  if (!country || !isTimeZone(record.timeZone)) return null;
+  const state = typeof record.state === "string" ? record.state.slice(0, 40) : null;
+  return { country, state, timeZone: record.timeZone };
 }
 
 /** Valida un mensaje para encolar; devuelve el mensaje o por qué no. */
@@ -265,7 +301,9 @@ export function parseEnqueueItem(raw: unknown, now = Date.now()): EnqueueInput |
       ? { version: rawConsent.version, at: rawConsent.at }
       : null;
   if (MARKETING_KINDS.includes(send.kind) && !consent) return "Un mensaje de promoción necesita el permiso del cliente.";
-  return { ...send, id: record.id, sendAt: new Date(sendAt).toISOString(), consent };
+  const place = parsePlace(record.place);
+  if (MARKETING_KINDS.includes(send.kind) && !place) return "Un mensaje de promoción necesita el país y la zona de la sede (franja legal de envío).";
+  return { ...send, id: record.id, sendAt: new Date(sendAt).toISOString(), consent, place };
 }
 
 export interface EnqueueResult {
@@ -295,12 +333,14 @@ export async function enqueue(store: OutboxStore, tid: string, by: string, raws:
       result.items.push(viewOf(existing));
       continue;
     }
+    // Una promoción fuera de la franja legal espera a la próxima apertura, a la hora de la sede.
+    const nextAttemptAt = input.place && MARKETING_KINDS.includes(input.kind) ? nextPromoSlot(input.place, new Date(Math.max(Date.parse(input.sendAt), now))).toISOString() : input.sendAt;
     const item: QueueItem = {
       ...input,
       tid,
       status: "scheduled",
       attempts: existing?.attempts ?? 0,
-      nextAttemptAt: input.sendAt,
+      nextAttemptAt,
       providerId: null,
       error: null,
       sentAt: null,
@@ -341,6 +381,10 @@ export interface RunCounts {
   simulated: number;
   failed: number;
   retried: number;
+  /** Promociones que el cron encontró fuera de la franja: vuelven a la cola para la próxima apertura. */
+  deferred: number;
+  /** Promociones anuladas porque el cliente escribió BAJA después de encolarlas. */
+  cancelled: number;
 }
 
 /** Qué pasó con un envío, según lo que respondió `sendTemplate`. */
@@ -354,16 +398,29 @@ async function outcomeOf(response: Response): Promise<{ kind: "sent" | "simulate
 
 /** Envía lo que ya toca, con reintentos. Lo llama el cron (y, en local, el servidor de desarrollo). */
 export async function runDue(store: OutboxStore | null = readOutboxStore(), config: WhatsAppConfig = readWhatsAppConfig(serverEnv()), fetcher: Fetcher = fetch, now = Date.now()): Promise<RunCounts> {
-  const counts: RunCounts = { sent: 0, simulated: 0, failed: 0, retried: 0 };
+  const counts: RunCounts = { sent: 0, simulated: 0, failed: 0, retried: 0, deferred: 0, cancelled: 0 };
   if (!store) return counts;
   for (const item of await store.due(now, MAX_BATCH)) {
     if (!(await store.claim(item))) continue;
+    const promo = MARKETING_KINDS.includes(item.kind);
+    // Justo antes de enviar se mira otra vez: pudo escribir BAJA, o el cron pudo llegar tarde y fuera de la franja.
+    if (promo && (await store.isOptedOut(item.tid, item.to))) {
+      counts.cancelled += 1;
+      await store.put({ ...item, status: "cancelled", error: "El cliente pidió no recibir promociones (BAJA)." });
+      continue;
+    }
+    if (promo && item.place && !isPromoAllowed(item.place, new Date(now))) {
+      counts.deferred += 1;
+      await store.put({ ...item, nextAttemptAt: nextPromoSlot(item.place, new Date(now)).toISOString() });
+      continue;
+    }
     const outcome = await outcomeOf(await sendTemplate(item, config, fetcher));
     const at = new Date(now).toISOString();
     const attempts = item.attempts + 1;
     if (outcome.kind === "retry" && attempts < MAX_ATTEMPTS) {
       counts.retried += 1;
-      await store.put({ ...item, attempts, error: outcome.message, nextAttemptAt: new Date(now + RETRY_BASE_MS * 2 ** (attempts - 1)).toISOString() });
+      const retryAt = new Date(now + RETRY_BASE_MS * 2 ** (attempts - 1));
+      await store.put({ ...item, attempts, error: outcome.message, nextAttemptAt: (promo && item.place ? nextPromoSlot(item.place, retryAt) : retryAt).toISOString() });
       continue;
     }
     const status: QueueStatus = outcome.kind === "sent" ? "sent" : outcome.kind === "simulated" ? "simulated" : "failed";

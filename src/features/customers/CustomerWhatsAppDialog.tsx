@@ -1,7 +1,8 @@
 import * as React from "react";
-import { ExternalLink, ShieldAlert } from "lucide-react";
+import { Clock, ExternalLink, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
+import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { Field } from "@/components/forms";
 import { ModalShell } from "@/components/overlays";
@@ -22,6 +23,7 @@ export interface CustomerWhatsAppDialogProps {
 
 const DAY_MS = 86_400_000;
 const MAX_BODY = 1_000;
+const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
 
 /**
  * Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se
@@ -47,8 +49,12 @@ export function CustomerWhatsAppDialog({ open, onOpenChange, customer }: Custome
   const [purpose, setPurpose] = React.useState<MessagePurpose>("thanks");
   const [body, setBody] = React.useState(() => templateBody(t, "thanks", context));
 
+  const { formatDate } = useLocale();
   const consented = relationship.data?.consent.marketing?.accepted === true;
-  const blocked = isPromotional(purpose) && !consented;
+  // Volver y cumpleaños son promoción: con permiso y dentro de la franja legal de su sede (Ley 2300, TCPA).
+  const promoWindow = relationship.data?.promoWindow;
+  const outsideWindow = isPromotional(purpose) && consented && promoWindow !== undefined && !promoWindow.allowed;
+  const blocked = isPromotional(purpose) && (!consented || outsideWindow);
   const pick = (next: MessagePurpose) => {
     setPurpose(next);
     setBody(templateBody(t, next, context));
@@ -102,10 +108,16 @@ export function CustomerWhatsAppDialog({ open, onOpenChange, customer }: Custome
             </SelectContent>
           </Select>
         </Field>
-        {blocked && (
+        {blocked && !outsideWindow && (
           <Alert data-testid="customer-whatsapp-no-consent">
             <ShieldAlert />
             <AlertDescription>{t("customers.whatsapp.noConsent")}</AlertDescription>
+          </Alert>
+        )}
+        {outsideWindow && promoWindow && (
+          <Alert data-testid="customer-whatsapp-outside-window">
+            <Clock />
+            <AlertDescription>{t("customers.whatsapp.outsideWindow", { when: formatDate(new Date(promoWindow.nextAt), { ...WHEN, timeZone: promoWindow.timeZone }) })}</AlertDescription>
           </Alert>
         )}
         <Field label={t("customers.whatsapp.message")} description={t("customers.whatsapp.messageHint")}>

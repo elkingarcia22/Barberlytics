@@ -28,7 +28,7 @@ describe("ritmo del cliente", () => {
     if (expectedQueued) {
       expect(db.booking.outbox!.some((message) => message.clientId === first.clientId && message.kind === "reactivation")).toBe(true);
       const again = await (await call(OWNER, "/customers/reactivation", { method: "POST", body: JSON.stringify({ branchId: "ma", clientIds: [first.clientId] }) })).json();
-      expect(again).toEqual({ queued: 0, skipped: [{ clientId: first.clientId, reason: "recent" }] });
+      expect(again).toMatchObject({ queued: 0, skipped: [{ clientId: first.clientId, reason: "recent" }] });
     }
   });
 

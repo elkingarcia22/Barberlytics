@@ -20,6 +20,14 @@ export interface CalendarAccess {
   canRemoveBlocks: boolean;
   /** Ver la ficha del barbero y sus horarios (fila Equipo). */
   canViewTeam: boolean;
+  /**
+   * Con la cita ya en la barbería, el barbero, la hora y el cliente quedan con candado. Solo para el
+   * barbero de comisión: dueño, administrador, recepción y barbero de renta cambian la cita en
+   * cualquier estado.
+   */
+  locksAfterCheckIn: boolean;
+  /** Bloquear al cliente o pedirle pago en línea desde la agenda (tras un «No asistió» o una cancelada). */
+  canRestrictClients: boolean;
 }
 
 /** Fuera del layout (la doc, las pruebas de piezas sueltas) el calendario se ve entero, como el dueño. */
@@ -31,6 +39,8 @@ export const FULL_CALENDAR_ACCESS: CalendarAccess = {
   canCreateBlock: true,
   canRemoveBlocks: true,
   canViewTeam: true,
+  locksAfterCheckIn: false,
+  canRestrictClients: true,
 };
 
 /**
@@ -51,6 +61,8 @@ export function calendarAccess(access: Access): CalendarAccess {
     canCreateBlock: access.can("block-calendar", "create"),
     canRemoveBlocks: access.can("block-calendar", "delete"),
     canViewTeam: access.can("team"),
+    locksAfterCheckIn: access.role === "barbero-comision",
+    canRestrictClients: access.role !== "barbero-comision",
   };
 }
 

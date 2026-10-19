@@ -18,9 +18,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
 /**
  * La cita como en «Arma tu cita» de la reserva en línea: servicios, barbero y
  * día y hora, cada uno un campo con foto que abre su lista en su sitio. Se
- * cambia mientras no ha ingresado; después el barbero y la hora quedan con
- * candado (ya está en la barbería) y los servicios se pueden sumar hasta
- * cobrar, que es cuando se pide «y de paso la barba». Al final, el
+ * cambia mientras no ha ingresado; después, para el barbero de comisión, el
+ * barbero y la hora quedan con candado (dueño, administrador, recepción y
+ * renta la siguen cambiando) y los servicios se pueden sumar hasta cobrar, que es cuando se pide «y de paso la barba». Al final, el
  * comentario y la foto del corte para el barbero, también como tarjeta.
  */
 
@@ -38,7 +38,8 @@ export function AppointmentFields({ model, ctx, onPatch }: AppointmentFieldsProp
   const [open, setOpen] = React.useState<Field | null>(null);
   const { appointment, services, barber } = model;
   const start = appointmentStart(appointment);
-  const notStarted = appointment.status === "scheduled";
+  // El barbero y la hora se cambian mientras no ha llegado; después, solo el barbero de comisión los ve con candado.
+  const notStarted = appointment.status === "scheduled" || (model.unpaid && !(ctx.access?.locksAfterCheckIn ?? false));
   const canAddServices = model.unpaid;
   const toggle = (field: Field) => setOpen((current) => (current === field ? null : field));
   const close = () => setOpen(null);

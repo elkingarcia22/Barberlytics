@@ -1481,6 +1481,7 @@ export const appEs = {
   "calendar.messages.notConfirmed": "Sin confirmar",
   "calendar.messages.confirmed": "Confirmada",
   "calendar.messages.confirmation": "Confirmación",
+  "calendar.messages.confirmedArrived": "Ya llegó a la barbería",
   "calendar.messages.sent": "Mensajes por correo y SMS ({count})",
   "calendar.messages.pendingHint": "Actívalo si te lo confirmó por teléfono o en persona",
   "calendar.messages.confirmedLink": "Confirmó por el enlace",

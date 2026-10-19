@@ -29,6 +29,9 @@ export function clientTags(model: AppointmentModel, t: Translate, options: { ope
   if (appointment.referencePhotos?.length) tags.push({ id: "photo", label: t("calendar.panel.tag.photo"), tone: "neutral" });
   if (options.operational) return tags;
   if (known && known.noShows > 0) tags.push({ id: "noShows", label: known.noShows === 1 ? t("calendar.panel.tag.noShowsOne") : t("calendar.panel.tag.noShows", { count: known.noShows }), tone: "warning" });
+  // Lo que la barbería le restringió: se ve donde se decide (y se cambia en los atajos de la cita cerrada).
+  if (known?.blocked) tags.push({ id: "blocked", label: t("calendar.panel.tag.blocked"), tone: "danger" });
+  if (known?.onlineOnly) tags.push({ id: "prepay", label: t("calendar.panel.tag.prepay"), tone: "warning" });
   // Si vino en línea, con cita o sin ella lo dice la línea de origen (`SourceLine`), no una etiqueta más.
   if (appointment.linkId) tags.push({ id: "linked", label: t("calendar.panel.tag.linked"), tone: "neutral" });
   if (known) {

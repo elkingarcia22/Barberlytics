@@ -9,6 +9,7 @@ import type {
   CalendarDay,
   Client,
   CheckoutInput,
+  ClientRestriction,
   NoteInput,
   SaleInput,
   WaitlistInput,
@@ -82,6 +83,18 @@ function useInvalidateAgenda() {
     void queryClient.invalidateQueries({ queryKey: calendarKeys.months() });
     void queryClient.invalidateQueries({ queryKey: calendarKeys.ranges() });
   };
+}
+
+/** Bloquear al cliente o pedirle pago en línea: cambia su ficha, así que se refrescan el catálogo y Clientes. */
+export function useRestrictClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, patch }: { clientId: string; patch: ClientRestriction }) => calendarApi.restrictClient(clientId, patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...calendarKeys.all, "catalog"] });
+      void queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
 }
 
 export function useCreateAppointment() {

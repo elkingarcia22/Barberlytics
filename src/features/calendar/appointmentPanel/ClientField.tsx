@@ -20,9 +20,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * El cliente como una tarjeta más de la cita, como el servicio o el barbero:
  * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» con lo que se
  * pregunta en el mostrador (membresía y ritmo, visitas, barbero de siempre,
- * contacto) y el paso a su página. Mientras la cita sigue agendada se puede
- * cambiar de cliente (se agendó a otro, o a nombre de quien llamó); en cuanto
- * llega, la visita ya es de quien vino y no cambia.
+ * contacto) y el paso a su página. Se puede cambiar de cliente (se agendó a
+ * otro, o a nombre de quien llamó) hasta cobrar; el barbero de comisión, solo
+ * mientras no ha llegado.
  */
 
 /** Cuántos se listan a la vez al buscar: el resto aparece al afinar la búsqueda. */
@@ -42,7 +42,8 @@ export function ClientField({ model, ctx, onOpenPage, onPatch }: ClientFieldProp
   const t = useAppT();
   const [mode, setMode] = React.useState<Mode | null>(null);
   const { known } = model;
-  const canChange = Boolean(onPatch) && model.appointment.status === "scheduled";
+  // Mientras no ha llegado, siempre; ya en la barbería, todos menos el barbero de comisión (hasta cobrar).
+  const canChange = Boolean(onPatch) && (model.appointment.status === "scheduled" || (model.unpaid && !(ctx.access?.locksAfterCheckIn ?? false)));
   const close = () => setMode(null);
   // Sin ficha (sin cita previa), abrirla es elegir a quién se le pone.
   const openMode: Mode | null = known ? "about" : canChange ? "change" : null;

@@ -46,6 +46,13 @@ describe("clientTags", () => {
     expect(member?.tone).toBe("success");
   });
 
+  test("says when the shop blocked the client or asks them to pay upfront", () => {
+    const restricted = { ...client, blocked: true, onlineOnly: true } as Client;
+    const tags = clientTags(model({ known: restricted, client: restricted }), t);
+    expect(tags.find((tag) => tag.id === "blocked")?.tone).toBe("danger");
+    expect(tags.find((tag) => tag.id === "prepay")?.tone).toBe("warning");
+  });
+
   test("operational tags leave out money and reliability", () => {
     expect(clientTags(model(), t, { operational: true })).toEqual([]);
   });

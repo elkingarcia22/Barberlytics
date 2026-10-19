@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import * as React from "react";
-import { ReceiptText, Repeat, Send, Undo2 } from "lucide-react";
+import { Ban, CreditCard, ReceiptText, Repeat, Send, ShieldOff, Undo2 } from "lucide-react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -12,10 +13,13 @@ import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useAccess } from "@/features/access";
+import { describeError } from "@/lib/api";
 import { appointmentEnd, appointmentStart, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
+import { useRestrictClient } from "../queries";
+import { ConfirmContent } from "./StatusConfirm";
 import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
@@ -47,9 +51,14 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
 /** El tinte de la tarjeta según cómo se cerró: verde cobrada; rojo cancelada o si no asistió. */
 const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-destructive/15 via-destructive/5", noShow: "from-destructive/15 via-destructive/5" } as const;
 
-/** Los atajos de después: recibo y devolución si se cobró; llamar y escribir si no vino. */
+/**
+ * Los atajos de después: recibo y devolución si se cobró; si no vino o se
+ * canceló, llamar y escribir y —para quien puede (dueño, administrador,
+ * recepción, renta)— pedirle pago por adelantado o bloquearlo.
+ */
 function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void): Tile[] {
   const t = useAppT();
+  const restrict = useRestrictClient();
   const { locale } = useLocale();
   const navigate = useNavigate();
   const access = useAccess();
@@ -85,11 +94,43 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
     if (access.can("transactions", "edit")) {
       tiles.push({ id: "refund", icon: <Undo2 className="size-5 text-warning" />, label: t("calendar.panel.after.refund"), title: t("calendar.panel.after.refundTitle"), onClick: openAccount });
     }
-  } else if (model.phone) {
-    const Call = ACTION_ICON.call;
-    const Chat = ACTION_ICON.message;
-    tiles.push({ id: "call", icon: <Call className="size-5 text-primary" />, label: t("calendar.detail.call"), title: t("calendar.detail.call"), href: model.href("call") ?? undefined });
-    tiles.push({ id: "message", icon: <Chat className="size-5 text-primary" />, label: t("calendar.detail.message"), title: t("calendar.panel.write.title"), menu: writeMenu(model, t) });
+  } else {
+    if (model.phone) {
+      const Call = ACTION_ICON.call;
+      const Chat = ACTION_ICON.message;
+      tiles.push({ id: "call", icon: <Call className="size-5 text-primary" />, label: t("calendar.detail.call"), title: t("calendar.detail.call"), href: model.href("call") ?? undefined });
+      tiles.push({ id: "message", icon: <Chat className="size-5 text-primary" />, label: t("calendar.detail.message"), title: t("calendar.panel.write.title"), menu: writeMenu(model, t) });
+    }
+    const known = model.known;
+    if (known && (ctx.access?.canRestrictClients ?? true)) {
+      const name = model.firstName;
+      const save = (patch: { blocked: boolean } | { onlineOnly: boolean }, done: string) =>
+        restrict.mutate(
+          { clientId: known.id, patch },
+          {
+            onSuccess: () => toast.success(done),
+            onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+          }
+        );
+      // Pago por adelantado: el ajuste «Reserva y pago solo en línea» de su ficha. Se pone o se quita con un toque.
+      tiles.push(
+        known.onlineOnly
+          ? { id: "prepay", icon: <CreditCard className="size-5 text-text-secondary" />, label: t("calendar.panel.restrict.prepayOff"), title: t("calendar.panel.restrict.prepayOffTitle", { name }), onClick: () => save({ onlineOnly: false }, t("calendar.panel.restrict.prepayOffDone", { name })) }
+          : { id: "prepay", icon: <CreditCard className="size-5 text-warning" />, label: t("calendar.panel.restrict.prepay"), title: t("calendar.panel.restrict.prepayTitle", { name }), onClick: () => save({ onlineOnly: true }, t("calendar.panel.restrict.prepayDone", { name })) }
+      );
+      // Bloquear pide confirmar: ya no reserva en línea ni se le agenda.
+      tiles.push(
+        known.blocked
+          ? { id: "block", icon: <ShieldOff className="size-5 text-text-secondary" />, label: t("calendar.panel.restrict.unblock"), title: t("calendar.panel.restrict.unblockTitle", { name }), onClick: () => save({ blocked: false }, t("calendar.panel.restrict.unblockDone", { name })) }
+          : {
+              id: "block",
+              icon: <Ban className="size-5 text-destructive" />,
+              label: t("calendar.panel.restrict.block"),
+              title: t("calendar.panel.restrict.blockTitle", { name }),
+              confirm: (close) => <ConfirmContent title={t("customers.block.title", { name: model.clientName })} hint={t("customers.block.hint")} confirmLabel={t("calendar.panel.restrict.block")} onConfirm={() => save({ blocked: true }, t("customers.block.done"))} onClose={close} testId="panel-block" />,
+            }
+      );
+    }
   }
   return tiles;
 }

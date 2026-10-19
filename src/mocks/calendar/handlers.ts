@@ -455,6 +455,8 @@ export const calendarHandlers = [
     if (typeof input.status === "string") {
       if (!STATUSES.includes(input.status as MockAppointmentStatus)) fields.status = ["Estado inválido."];
       else if (existing.status === "paid" && input.status !== "paid") fields.status = ["Una cita cobrada no cambia de estado."];
+      // «Cobrada» solo la pone el cobro (`/checkout`), que guarda cuánto, cómo y quién: aquí quedaría sin pago.
+      else if (input.status === "paid" && existing.status !== "paid") fields.status = ["Para cobrarla, usa el cobro."];
       else {
         next = { ...next, status: input.status as MockAppointmentStatus };
         history.push(entry(actor, `status:${input.status}`));

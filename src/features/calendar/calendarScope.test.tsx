@@ -83,6 +83,14 @@ describe("agenda del barbero recortada en el servidor", () => {
     await expect(api.post(`/appointments/${paid.id}/refund`, { amount: 1, reason: "Prueba", to: "cash" })).rejects.toMatchObject({ status: 403 });
   });
 
+  test("nadie marca una cita como cobrada sin el cobro", async () => {
+    const mine = appointmentsOn("ma", DAY).find((item) => item.barberId === BARBER && item.status === "scheduled")!;
+    signIn("acc_barber");
+    await expect(calendarApi.updateAppointment(mine.id, { status: "paid" })).rejects.toMatchObject({ status: 422 });
+    signIn("acc_admin");
+    await expect(calendarApi.updateAppointment(mine.id, { status: "paid" })).rejects.toMatchObject({ status: 422 });
+  });
+
   test("bloqueos: el de comisión no bloquea; el de renta solo su agenda", async () => {
     const block = { category: "lunch" as const, repeat: "none" as const, startDate: DAY, endDate: DAY, startTime: "13:00", endTime: "14:00", description: null };
     signIn("acc_barber");

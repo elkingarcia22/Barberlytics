@@ -966,6 +966,7 @@ export const appEs = {
   "calendar.pulse.focusEmpty": "Ninguna cita en este estado",
   "calendar.pulse.focusEmptyHint": "Quita el filtro para ver todo el día.",
   "calendar.pulse.clear": "Ver todas",
+  "calendar.card.unpaidSince": "Terminó hace {time} · sin cobrar",
   "calendar.card.late": "{time} tarde",
   "calendar.resource.free": "Libre {time}",
   "calendar.resource.full": "Sin huecos",

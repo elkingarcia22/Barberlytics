@@ -301,3 +301,17 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   línea» de la ficha: solo reserva pagando por adelantado) y *Bloquear* (con popover de confirmación);
   cada uno se deshace desde el mismo atajo. Solo para quien puede (`canRestrictClients`: todos menos el
   barbero de comisión). Las etiquetas *Bloqueado* y *Paga por adelantado* lo dicen en la tarjeta.
+
+## 16. Caja y estados (2026-10-19)
+
+- **Precio editable al cobrar** (`CheckoutPrice.tsx`): cada servicio y producto del cobro muestra su
+  precio con lápiz; se cambia ahí y debajo queda «De lista …». Viaja como `servicePrices` (en el orden de
+  los servicios) y `productPrices` (unitario) y queda en la cita (Transacciones lo usa). Todos menos el
+  barbero de comisión (`canEditPrices`; el servidor lo rechaza con `403`).
+- **Volver al estado anterior**: en el «⋯», «Volver a «Pendiente»» (si ya llegó) o «Volver a «Llegó»»
+  (si está en silla); en la cancelada o que no asistió, «Reactivar la cita». Cobrada no se deshace (es
+  una devolución).
+- **Aviso al cobrar**: si el barbero tiene otra cita que ya sentó antes y sigue sin cobrar, un diálogo lo
+  dice («Cobrar la de Mariana primero» / «Seguir con esta»). No frena.
+- **Terminó sin cobrar**: la tarjeta de la agenda lleva una píldora ámbar «Terminó hace 15 min · sin
+  cobrar».

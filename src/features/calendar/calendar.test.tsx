@@ -396,10 +396,10 @@ describe("modelo del calendario", () => {
     expect(live({ ...APPOINTMENT, status: "seated" }, at(10, 40)).color).toBe(1);
     expect(live({ ...APPOINTMENT, serviceIds: ["s2"] }, at(10, 0)).color).toBe(2);
     expect(live({ ...APPOINTMENT, status: "cancelled" }, at(10, 0)).color).toBeUndefined();
-    // Un solo indicador: agendada y por cobrar no llevan píldora —su botón («Ingresar», «Cobrar») ya lo dice—.
+    // Agendada no lleva píldora —su botón («Ingresar») ya lo dice—; la que terminó sin cobrar sí, en ámbar.
     expect(live(APPOINTMENT, at(10, 0)).status).toBeUndefined();
     expect(live(APPOINTMENT, at(10, 0)).action?.label).toBe("calendar.step.checkIn");
-    expect(live({ ...APPOINTMENT, status: "seated" }, at(11, 10)).status).toBeUndefined();
+    expect(live({ ...APPOINTMENT, status: "seated" }, at(11, 10)).status).toEqual({ label: "calendar.card.unpaidSince", tone: "warning" });
     expect(live({ ...APPOINTMENT, status: "seated" }, at(11, 10)).action?.label).toBe("calendar.step.pay");
     expect(live(APPOINTMENT, at(10, 45)).status).toEqual({ label: "calendar.card.late", tone: "negative" });
     expect(live({ ...APPOINTMENT, status: "arrived" }, at(10, 35)).status?.label).toBe("calendar.live.waiting");
@@ -793,6 +793,10 @@ describe("Calendario", () => {
 
     await user.click(screen.getByTestId("appointment-next-step"));
     await user.click(await screen.findByTestId("appointment-pay"));
+    // Si el barbero tiene otra cita sentada sin cobrar, primero sale el aviso (no frena): se sigue con esta.
+    await waitFor(() => expect(screen.queryByTestId("checkout-drawer") ?? screen.queryByRole("alertdialog")).not.toBeNull());
+    const warning = screen.queryByRole("alertdialog");
+    if (warning) await user.click(within(warning).getByRole("button", { name: "Seguir con esta" }));
     expect(await screen.findByTestId("checkout-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("appointment-drawer")).toBeNull();
     // Las propinas son las de Configuración, no una lista fija.

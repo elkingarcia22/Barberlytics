@@ -339,8 +339,13 @@ export const STAGE_FILL: Record<AppointmentStage, ScheduleTone> = {
 /** El estado que se lee en la tarjeta: «Ya ingresó», «En silla», «Por cobrar», «12 min tarde»… */
 export function stageBadge(appointment: Appointment, ctx: ModelContext): { label: string; tone: ScheduleTone } | undefined {
   const stage = appointmentStage(appointment, ctx.now);
-  // Agendada y por cobrar no llevan píldora: el botón de la tarjeta («Check-in», «Cobrar») ya lo dice.
-  if (!stage || stage === "upcoming" || stage === "toCollect") return undefined;
+  // Agendada no lleva píldora: el botón de la tarjeta («Ingresar») ya lo dice.
+  if (!stage || stage === "upcoming") return undefined;
+  // Ya terminó y nadie la cobró: se dice hace cuánto, en ámbar, para que no se quede sin cobrar.
+  if (stage === "toCollect" && ctx.now) {
+    const since = Math.max(1, Math.round((ctx.now.getTime() - appointmentEnd(appointment).getTime()) / 60_000));
+    return { label: ctx.t("calendar.card.unpaidSince", { time: durationLabel(since) }), tone: "warning" };
+  }
   const late = stage === "late" ? lateMinutes(appointment, ctx.now) : null;
   // Una cita cobrada lo dice con su importe: es lo primero que se busca al repasar el día.
   const label = stage === "paid" ? ctx.t("calendar.live.paidAmount", { amount: ctx.formatMoney(appointmentTotal(ctx.catalog, appointment)) }) : late === null ? ctx.t(STAGE_KEY[stage]) : ctx.t("calendar.card.late", { time: durationLabel(late) });

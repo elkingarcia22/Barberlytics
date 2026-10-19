@@ -930,6 +930,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.pulse.focusEmpty": "No appointments in this state",
   "calendar.pulse.focusEmptyHint": "Clear the filter to see the whole day.",
   "calendar.pulse.clear": "Show all",
+  "calendar.card.unpaidSince": "Done {time} ago · unpaid",
   "calendar.card.late": "{time} late",
   "calendar.resource.free": "Free at {time}",
   "calendar.resource.full": "Fully booked",

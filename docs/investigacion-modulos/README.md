@@ -209,8 +209,9 @@ Falta de esto:
 - Revisión de los 17 informes contra el código, en [estado-por-modulo.md](estado-por-modulo.md).
 - Quitadas las cifras al azar y las etiquetas de IA sobre reglas.
 - Webhook de WhatsApp: las respuestas confirman, piden otra hora o avisan que no puede venir, y BAJA retira el permiso.
+- Front Desk: kiosco por sede con check-in que avisa al barbero, y fila sin cita con espera estimada.
 
-**Siguiente, por orden:** (3) kiosco por sede con check-in que avisa y privacidad; (4) Métricas › Marketing con la
+**Siguiente, por orden:** (3) ~~kiosco por sede con check-in que avisa y privacidad~~ hecho; (4) Métricas › Marketing con la
 UTM real y sin reseñas de ejemplo fuera de la demo; (5) cola de walk-ins con espera estimada; (6) contratos y
 políticas; (7) el backend real (fase «escudo» de 6–8 semanas en 17) y un piloto con 3–5 barberías.
 

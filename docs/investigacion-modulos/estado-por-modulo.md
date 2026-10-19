@@ -245,3 +245,16 @@ Se va completando aquí lo que se corrige a partir de esta lista.
     - mover la cita desde la respuesta en un toque;
     - reflejar «entregado/leído» en la pantalla;
     - el filtro «Sin confirmar mañana».
+- **Front Desk (16 P0).**
+  - Kiosco por sede con código de 6 dígitos y token propio, que se desactiva desde Configuración › Agendamiento online.
+  - `/kiosco` con:
+    - check-in que muestra solo nombre de pila y hora, pasa la cita a «Llegó» y avisa al barbero y a recepción (`clientArrived`);
+    - fila sin cita con lugar y espera aproximada;
+    - idioma y letra grande;
+    - vuelta sola al inicio.
+  - En Calendario, «Fila sin cita» con «Llamar» (crea la cita «Llegó» con quien le toca) y «Se fue».
+  - Falta:
+    - «ya casi te toca» por mensaje y la pantalla de turnos (`/turnos`);
+    - el PIN del personal;
+    - que `phone/check` de la reserva deje de devolver el perfil (decisión del usuario del 2026-10-13: no se toca);
+    - la cita nueva desde la agenda sigue cayendo en la primera sede del barbero.

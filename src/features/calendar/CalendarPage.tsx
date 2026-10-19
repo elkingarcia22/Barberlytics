@@ -38,6 +38,7 @@ import { CheckoutDrawer } from "./CheckoutDrawer";
 import { BlockDrawer } from "./BlockDrawer";
 import { CollectionsDrawer } from "./CollectionsDrawer";
 import { WaitlistDrawer } from "./WaitlistDrawer";
+import { WalkInQueueDrawer } from "@/features/frontDesk/WalkInQueueDrawer";
 import { QuickSaleDrawer } from "./QuickSaleDrawer";
 import { WalkInSaleDrawer } from "./WalkInSaleDrawer";
 import { ReflowBanner } from "./ReflowBanner";
@@ -114,6 +115,7 @@ type Panel =
   | { kind: "waitlist" }
   | { kind: "quickSale" }
   | { kind: "walkInSale" }
+  | { kind: "walkInQueue" }
   | { kind: "gaps" }
   | { kind: "timeOff"; focus: TimeOffFocus }
   | { kind: "day"; date: Date }
@@ -451,6 +453,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         create: () => openPanel({ kind: "create", initial: null }),
         quickSale: () => openPanel({ kind: "quickSale" }),
         walkInSale: () => openPanel({ kind: "walkInSale" }),
+        walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
         waitlist: () => openPanel({ kind: "waitlist" }),
         block: () => openPanel({ kind: "block", barberId: ownBarberId }),
@@ -1116,6 +1119,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 }}
               />
 
+              <WalkInQueueDrawer open={panel?.kind === "walkInQueue"} onOpenChange={(open) => !open && closePanel()} branchId={branchId} ctx={ctx} canManage={!access.isBarber} />
               <WaitlistDrawer open={panel?.kind === "waitlist"} onOpenChange={(open) => !open && closePanel()} branchId={branchId} ctx={ctx} date={state.date} day={day.data} onSchedule={scheduleFromWaitlist} />
 
               <DayPanel

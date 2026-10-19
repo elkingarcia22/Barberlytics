@@ -37,6 +37,7 @@ De `src/app/router.tsx`.
 - `/403` → ForbiddenPage
 - `/reservar` → BookingPage
 - `/reservar/confirmar` → ConfirmAppointmentPage
+- `/kiosco` → KioskPage
 - `/ayuda/*` → HelpApp
 - `/docs/*` → DocsApp
 - `*` → NotFoundPage
@@ -116,6 +117,19 @@ Lo que responde MSW hoy.
 - `PATCH /expenses/:id` · src/mocks/expenses/handlers.ts
 - `POST /expenses/:id/end` · src/mocks/expenses/handlers.ts
 - `DELETE /expenses/:id` · src/mocks/expenses/handlers.ts
+- `GET /front-desk/devices` · src/mocks/frontDesk/handlers.ts
+- `POST /front-desk/devices` · src/mocks/frontDesk/handlers.ts
+- `POST /front-desk/devices/:id/code` · src/mocks/frontDesk/handlers.ts
+- `DELETE /front-desk/devices/:id` · src/mocks/frontDesk/handlers.ts
+- `GET /front-desk/queue` · src/mocks/frontDesk/handlers.ts
+- `POST /front-desk/queue` · src/mocks/frontDesk/handlers.ts
+- `POST /front-desk/queue/:id/call` · src/mocks/frontDesk/handlers.ts
+- `POST /front-desk/queue/:id/leave` · src/mocks/frontDesk/handlers.ts
+- `POST /kiosk/pair` · src/mocks/frontDesk/handlers.ts
+- `GET /kiosk/me` · src/mocks/frontDesk/handlers.ts
+- `POST /kiosk/lookup` · src/mocks/frontDesk/handlers.ts
+- `POST /kiosk/check-in` · src/mocks/frontDesk/handlers.ts
+- `POST /kiosk/queue` · src/mocks/frontDesk/handlers.ts
 - `POST /auth/otp/request` · src/mocks/handlers.ts
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
 - `POST /auth/step-up/request` · src/mocks/handlers.ts
@@ -267,12 +281,17 @@ Router, providers, layout, navegación y páginas de error.
 - **types.ts** — Toda clave de la aplicación, sacada de su diccionario español. · `AppMessageKey`, `AppMessageCatalog`
 - **useAppT.ts** — `t()` con las claves de esta aplicación autocompletadas, más las del sistema: una pantalla dice tanto "users.… · `useAppT` · usa: @/i18n
 
+### i18n/frontDesk
+
+- **frontDesk.en.ts** — Front desk: the walk-in queue (Calendar), kiosks (Settings) and the kiosk screen. · `frontDeskEn`
+- **frontDesk.es.ts** — Recepción: la fila sin cita (Calendario), los kioscos (Configuración) y la pantalla del kiosco. · `frontDeskEs`
+
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `KioskPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Los avisos como los pinta la campana: el texto en el idioma de quien lee y, al tocarlo, leído y abierto. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -525,7 +544,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CalendarDayView.tsx** — La vista Día: la rejilla por barbero con lo que se puede hacer desde ella —agendar en un hueco, abrir una cit… · `CalendarDayViewProps`, `CalendarDayView` · piezas: Button, Chip, EmptyState, ResourceDayGrid, calendarLocale, minutesOfDay, parseClock · usa: @/app/i18n, @/i18n
 - **CalendarFilters.tsx** — El control de filtros de la agenda: qué citas se miran —en qué estado están, de qué servicio son y qué tipo d… · `ServiceFilterOption`, `ResourceFilterOption`, `ClientTypeFilterOption`, `CalendarFilterSelection`, `CalendarFiltersProps`, `CalendarFilters` · piezas: Button, Checkbox, Popover, PopoverContent, PopoverTrigger, ScheduleColorDot, Switch, Text · usa: @/app/i18n, @/lib/utils
 - **CalendarMonthView.tsx** — La vista Mes: la ocupación de un barbero (o del equipo) día por día, con tres cifras arriba —citas del mes, o… · `CalendarMonthViewProps`, `CalendarMonthView` · piezas: KpiCard, MonthOccupancyGrid, Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/query
-- **CalendarPage.tsx** · `CalendarPageProps`, `CalendarPage` · piezas: Breadcrumbs, ConfirmDialog, DataListActionRail, ScreenHeaderActions, ShellHeaderSlot, ShellRailSlot, Skeleton, Text, atMinutes, formatClock, formatClockRange, minutesOfDay, useActionsPlacement, usePageHeaderExtras, useShellConfig · usa: @/app/i18n, @/features/access, @/features/branches, @/features/services, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **CalendarPage.tsx** · `CalendarPageProps`, `CalendarPage` · piezas: Breadcrumbs, ConfirmDialog, DataListActionRail, ScreenHeaderActions, ShellHeaderSlot, ShellRailSlot, Skeleton, Text, atMinutes, formatClock, formatClockRange, minutesOfDay, useActionsPlacement, usePageHeaderExtras, useShellConfig · usa: @/app/i18n, @/features/access, @/features/branches, @/features/frontDesk, @/features/services, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **CalendarSearch.tsx** · `CalendarSearchProps`, `CalendarSearch` · piezas: Button, Input, Popover, PopoverAnchor, PopoverContent, Text, Tooltip, TooltipContent, TooltipTrigger, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/lib/utils
 - **CalendarToolbar.tsx** — La barra del calendario y, a la vez, su cabecera: no hay título encima —las migas ya dicen dónde estás— para… · `CalendarToolbarProps`, `CalendarToolbar` · piezas: Button, Calendar, DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuShortcut, DropdownMenuTrigger, Popover, PopoverContent, PopoverTrigger, calendarLocale · usa: @/app/i18n, @/i18n
 - **CalendarViewOptions.tsx** — Cómo se ve la agenda, separado de qué se ve (eso es `CalendarFilters`). · `CalendarViewOptionsProps`, `CalendarViewOptions` · piezas: Button, Popover, PopoverContent, PopoverTrigger, SegmentedControl, Switch, scheduleColorClass · usa: @/app/i18n, @/lib/utils
@@ -706,6 +725,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **queries.ts** · `useSubmitFeedback`
 - **types.ts** — Largo máximo de un comentario; el panel corta ahí y el backend lo vuelve a comprobar. · `FEEDBACK_MAX_LENGTH`, `FEEDBACK_MIN_LENGTH`, `FEEDBACK_MAX_ATTACHMENTS`, `FEEDBACK_TYPES`, `FEEDBACK_NO_PAGE`, `FEEDBACK_ATTACHMENT_LIMITS`, `FeedbackAttachmentType`, `feedbackUploadRequestSchema`, `FeedbackUploadRequest`, `feedbackUploadTicketSchema`, `FeedbackUploadTicket`, `feedbackUploadedFileSchema`, `feedbackSubmissionSchema`, `FeedbackSubmission`, `feedbackReceiptSchema`, `FeedbackReceipt`
 
+### frontDesk
+
+- **KioskDevicesPanel.tsx** · `KioskDevicesPanel` · piezas: Badge, Button, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/branches, @/i18n, @/lib/api
+- **KioskPage.tsx** · `KioskPage` · piezas: Button, Heading, Input, PhoneInput, Text · usa: @/app/i18n, @/i18n, @/lib/utils
+- **WalkInQueueDrawer.tsx** — La fila de quien llega sin cita, en recepción: quién espera, en qué orden, cuánto le falta (aprox.) y con qui… · `WalkInQueueDrawerProps`, `WalkInQueueDrawer` · piezas: Badge, Button, DrawerSection, EmptyState, Field, Input, SearchableSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SidePanelShell, Text · usa: @/app/i18n, @/features/calendar, @/lib/api
+- **api.ts** — Recepción para el equipo: los kioscos de cada sede (Configuración) y la fila de quien llega sin cita (Calenda… · `kioskDeviceSchema`, `KioskDevice`, `queueEntrySchema`, `QueueEntry`, `queueSchema`, `WalkInQueue`, `JoinQueueInput`, `frontDeskApi`, `useKioskDevices`, `useKioskDeviceActions`, `useWalkInQueue`, `useQueueActions` · llama: GET /front-desk/devices, POST /front-desk/devices, POST /front-desk/devices/${id}/code, DELETE /front-desk/devices/${id}, GET /front-desk/queue, POST /front-desk/queue, POST /front-desk/queue/${id}/call, POST /front-desk/queue/${id}/leave · usa: @/features/calendar, @/lib/api
+- **kioskApi.ts** · `kioskToken`, `KioskError`, `KioskInfo`, `KioskAppointment`, `KioskCheckIn`, `KioskJoined`, `kioskApi` · usa: @/lib/api
+
 ### legal
 
 - **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`
@@ -831,7 +858,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **BillingSettings.tsx** — Plan y facturación: qué plan tiene la barbería, a nombre de quién salen las facturas, con qué tarjeta se paga… · `BillingSettings` · piezas: Badge, Button, Field, IconTile, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/features/calendar, @/i18n
 - **BookingFunnelCard.tsx** — Cómo convierte la reserva en línea: de cuántos que abren el enlace, cuántos llegan a cada paso y reservan, dó… · `BookingFunnelCard` · piezas: Badge, Progress, Skeleton, Text · usa: @/app/i18n, @/features/booking, @/i18n
-- **BookingSettings.tsx** — Reservas online, en dos vistas: las **reglas** —con cuánta anticipación se reserva, cuándo se puede cancelar,… · `BookingSettings` · piezas: Button, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, ThemaTabs · usa: @/app/i18n
+- **BookingSettings.tsx** — Reservas online, en dos vistas: las **reglas** —con cuánta anticipación se reserva, cuándo se puede cancelar,… · `BookingSettings` · piezas: Button, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/frontDesk
 - **BranchesSettings.tsx** — Sucursales: los locales del negocio. · `BranchesSettings` · piezas: Field, IconTile, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Textarea · usa: @/app/i18n, @/i18n
 - **BusinessSettings.tsx** — Perfil del negocio: cómo se cuenta el tiempo —zona, formato, semana y horario— y dónde encuentra el cliente a… · `BusinessSettings` · piezas: Field, Input, MultiSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ThemaTabs · usa: @/app/i18n
 - **CardFeeSettings.tsx** — Recargo por tarjeta: si se cobra, cómo se llama en el recibo y cuánto es —un porcentaje o un monto fijo—. · `CardFeeSettings` · piezas: Field, Input, NumberField, ThemaTabs · usa: @/app/i18n, @/features/calendar
@@ -1053,6 +1080,12 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **handlers.ts** · `expensesHandlers`
 - **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`
+
+### frontDesk
+
+- **estimate.ts** — La espera de cada persona que sigue en la fila, en su orden. · `QueueEstimate`, `estimateQueue`, `estimateIfJoined`
+- **handlers.ts** — Para las pruebas: cada una empieza sin consultas acumuladas. · `resetKioskLimits`, `frontDeskHandlers` · usa: @/features/legal
+- **state.ts** — Una tablet de recepción atada a una sede. · `MockKioskDevice`, `MockQueueStatus`, `MockQueueEntry`, `MockFrontDeskState`, `emptyFrontDesk`
 
 ### inventory
 

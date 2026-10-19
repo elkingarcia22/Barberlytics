@@ -57,6 +57,8 @@ export interface MockOutboxMessage {
   status: "scheduled" | "sent" | "cancelled" | "failed";
   /** Cuándo salió (o se intentó). */
   sentAt?: string;
+  /** Ya está en la cola de WhatsApp del servidor (la app solo refleja lo que pase allí). */
+  queued?: boolean;
   /** Sin WhatsApp conectado: se dio por enviado sin salir del sistema. */
   simulated?: boolean;
   /** El id que da WhatsApp al mensaje enviado. */
@@ -171,6 +173,3 @@ export const BLOCKED_PHONE = "+573009999999";
 
 /** El código que «llega» por SMS en la demo para entrar a «Mis citas». */
 export const DEMO_OTP = "246810";
-
-/** Tarjeta de prueba que el banco rechaza. */
-export const DECLINED_CARD = "4000000000000002";

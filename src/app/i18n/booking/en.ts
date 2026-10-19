@@ -433,6 +433,7 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.payment.cardExpiryError": "Enter an expiry date that hasn't passed (MM/YY).",
   "booking.payment.otherCard": "Use another new card",
   "booking.payment.cardMissing": "Add a card to pay.",
+  "booking.payment.cardRejected": "The payment gateway didn't accept the card. Check it or use another one.",
   "booking.payment.cardFieldMissing": "Check “{field}”.",
   "booking.payment.cvcMissing": "Enter the CVC to pay.",
   "booking.payment.shopDepositHint": "You leave a {percent}% deposit by card and pay the rest when you arrive.",

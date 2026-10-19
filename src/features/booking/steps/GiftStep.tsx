@@ -14,6 +14,7 @@ import { PayIdentity } from "../flow/PayIdentity";
 import { toastMissing } from "../flow/missingData";
 import { brandFromName, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { NewCardSheet } from "../flow/NewCardSheet";
+import { newCardToken } from "../flow/cardToken";
 import { NEW_CARD, SavedCardPicker } from "../flow/SavedCardPicker";
 import { useSavedCardManager } from "../flow/useSavedCardManager";
 import { StepLayout } from "../flow/StepLayout";
@@ -120,13 +121,10 @@ function GiftBody() {
       return;
     }
     if (chosenSaved && toastMissing(t, [!isCvcComplete(savedCvc, brandFromName(chosenSaved.brand)) && t("booking.payment.cvcMissing")])) return;
-    buy.mutate({
-      amount,
-      recipientName: name.trim(),
-      recipientContact: phone,
-      message: message.trim(),
-      savedCardId: chosenSaved?.id,
-      card: !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
+    // La tarjeta nueva va a la pasarela; al servidor solo llega su token.
+    void newCardToken(t, chosenSaved ? null : card, saveCard).then((token) => {
+      if (token === false) return;
+      buy.mutate({ amount, recipientName: name.trim(), recipientContact: phone, message: message.trim(), savedCardId: chosenSaved?.id, card: token });
     });
   };
 

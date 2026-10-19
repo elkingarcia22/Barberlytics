@@ -15,6 +15,11 @@ VITE_API_URL=https://api.tu-dominio.com/v1 npm run build
 
 Los estilos usan `'unsafe-inline'` porque Tailwind y los tokens del tema se aplican en línea; los scripts no lo necesitan.
 
+`frame-src` solo admite los campos alojados de las pasarelas (Stripe, Wompi, Mercado Pago): la tarjeta
+se escribe en ellos y a nuestro servidor solo llega un token (`src/features/payments/gateway.ts`, hoy
+simulada). Al conectar una pasarela real, añade su script a `script-src` (p. ej. `https://js.stripe.com`)
+y deja en `frame-src` solo la que uses.
+
 Las tipografías del selector de tema se cargan bajo demanda desde dos proveedores, así que la CSP los
 incluye: Google Fonts (`fonts.googleapis.com` para el CSS, `fonts.gstatic.com` para los archivos) y
 Fontshare (`api.fontshare.com` y `cdn.fontshare.com`), este último solo por Satoshi. Si prefieres no
@@ -49,6 +54,37 @@ idioma lo pone la app (español o inglés según su configuración). En local, `
 micrófono al propio sitio (`microphone=(self)`): sin eso el modo voz no escucha. La CSP permite
 `media-src 'self' blob:` porque el audio de la voz natural se reproduce desde un `blob:`.
 
+### Sesión firmada de las funciones que cuestan dinero
+
+La voz (`/api/tts`), Clipper (`/api/clipper`, `/api/clipper/feedback`), la narración (`/api/narrative`)
+y la cola de WhatsApp (`/api/whatsapp/queue`) piden `Authorization: Bearer <token>`: un JWT HS256
+firmado con `SESSION_SECRET` (ver `server/auth/session.ts`). Cada sesión tiene cupo por minuto y por
+día, además del tope por IP. Sin `SESSION_SECRET` esas funciones responden 503: mejor no atender que
+atender a cualquiera.
+
+| Variable (servidor) | Para qué |
+|---|---|
+| `SESSION_SECRET` | Firma las sesiones. 32 caracteres o más: `openssl rand -base64 48`. En `npm run dev` se usa uno al azar por proceso. |
+| `SESSION_DEMO_LOGIN` | `off` apaga `POST /api/session`, que emite la sesión a las cuentas de la demo con su código. Apágalo cuando el backend real emita el token al entrar (con el mismo secreto). |
+| `DEMO_OTP_CODE` | El código de la demo para esa emisión (por defecto `246810`). |
+
+El cliente de la reserva en línea pide `POST /api/session/guest`: media hora, solo la voz, con tope por IP.
+
+### Cola de WhatsApp
+
+La app ya no envía mensajes: los encola en `/api/whatsapp/queue` y el cron `/api/cron/whatsapp`
+(cada 5 minutos, `vercel.json`) envía lo que toca con hasta 3 intentos. La cola necesita un almacén
+compartido; sin él, en Vercel responde 501 y los mensajes quedan como simulados.
+
+| Variable (servidor) | Para qué |
+|---|---|
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Dónde vive la cola (Upstash Redis por REST; la integración de Vercel las pone sola). En local se usa la memoria del servidor de desarrollo, que hace de cron cada 30 s. |
+| `CRON_SECRET` | Vercel lo manda al cron como `Authorization: Bearer`; sin él, el cron no atiende. |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | La cuenta de WhatsApp Cloud API. Sin ellas los mensajes se dan por enviados en modo simulado. |
+
+En el plan Hobby de Vercel los crons corren como mucho una vez al día: para recordatorios a tiempo
+hace falta Pro (o un cron externo que llame a la ruta con el `CRON_SECRET`).
+
 ## Service worker de mocks
 
 `public/mockServiceWorker.js` se copia a `dist/` pero solo se registra cuando `VITE_USE_MOCKS=true`. Si prefieres no desplegarlo, elimínalo del build en el pipeline.
@@ -61,3 +97,6 @@ micrófono al propio sitio (`microphone=(self)`): sin eso el modo voz no escucha
 - [ ] Token en cookie `httpOnly` si el backend lo soporta (ver `docs/API_CONTRACT.md`).
 - [ ] Si hay campaña de feedback activa: variables del servidor definidas y hoja creada (`docs/FEEDBACK_LOOP.md`).
 - [ ] Voz de Clipper: clave del servicio de voz definida (si no, habla con la voz del navegador).
+- [ ] `SESSION_SECRET` definido (sin él, voz, Clipper, narración y WhatsApp responden 503) y `SESSION_DEMO_LOGIN=off` si ya hay backend real.
+- [ ] WhatsApp: Upstash y `CRON_SECRET` definidos, plan con crons cada 5 minutos.
+- [ ] Pasarela real conectada en `tokenizeCard` y su script en la CSP; el número de tarjeta nunca llega al servidor.

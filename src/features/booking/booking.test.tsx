@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { tokenizeCard } from "@/features/payments/gateway";
 import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { isApiError } from "@/lib/api";
 import { db } from "@/mocks/db";
@@ -41,6 +42,13 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   packages: [],
   ...draft,
 });
+
+/** La tarjeta como la manda la app: tokenizada por la pasarela (simulada). */
+async function gatewayCard(number: string, name: string, expiry: string, save: boolean) {
+  const token = await tokenizeCard({ number, name, expiry });
+  if (!token) throw new Error("la pasarela debería aceptar la tarjeta de prueba");
+  return { ...token, save };
+}
 
 describe("cuentas de la reserva", () => {
   test("el impuesto va sobre lo comprado con el descuento y la propina va aparte", () => {
@@ -684,7 +692,7 @@ describe("backend de la reserva", () => {
     expect(shop.packages.map((item) => item.id)).toContain("pkg_cortes4");
     await expect(bookingApi.buyPackage(token, { packageId: "no-existe", savedCardId: "card_demo_visa" })).rejects.toMatchObject({ status: 404 });
     await expect(bookingApi.buyPackage(token, { packageId: "pkg_cortes4" })).rejects.toMatchObject({ status: 422 });
-    const bought = await bookingApi.buyPackage(token, { packageId: "pkg_cortes4", card: { number: "4242424242424242", name: "Ana Pérez", expiry: "12/29", save: false } });
+    const bought = await bookingApi.buyPackage(token, { packageId: "pkg_cortes4", card: await gatewayCard("4242424242424242", "Ana Pérez", "12/29", false) });
     expect(bought.package).toMatchObject({ serviceId: "svc_corte", remaining: 4, total: 4 });
     const slot = (await bookingApi.earliest({ branchId: "ma", serviceIds: ["svc_corte"], barberId: null })).slot;
     if (!slot) throw new Error("debería haber hueco");
@@ -807,7 +815,7 @@ describe("backend de la reserva", () => {
       tipId: null,
       promoCode: "FAMILIA15",
       method: "card",
-      card: { number: "4242 4242 4242 4242", name: "Marcela Gómez", expiry: "12/30", save: false },
+      card: await gatewayCard("4242 4242 4242 4242", "Marcela Gómez", "12/30", false),
     });
     expect(reservation.appointments).toHaveLength(2);
     expect(reservation.appointments[0].barberId).not.toBe(reservation.appointments[1].barberId);
@@ -819,7 +827,7 @@ describe("backend de la reserva", () => {
 
   test("una visita en partes se reserva con un barbero por parte, enlazada y anotada; la misma persona no se cruza", async () => {
     const token = (await signIn()).token;
-    const card = { number: "4242 4242 4242 4242", name: "Marcela Gómez", expiry: "12/30", save: false };
+    const card = await gatewayCard("4242 4242 4242 4242", "Marcela Gómez", "12/30", false);
     const base = { branchId: "ma", products: [], tipId: null, promoCode: null, method: "card" as const, card };
     const overlap = [
       { guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 11, 0)), visitId: "visit_1" },
@@ -836,11 +844,25 @@ describe("backend de la reserva", () => {
     expect(created.every((item) => item.notes?.includes("Visita en 2 partes"))).toBe(true);
   });
 
+  test("el número de la tarjeta no se acepta en el servidor: solo el token de la pasarela", async () => {
+    const reserve = (card: unknown) =>
+      bookingApi
+        .reserve(token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: card as never })
+        .catch((caught: unknown) => caught);
+    const { token } = await signIn();
+    const raw = await reserve({ number: "4242424242424242", name: "M", expiry: "12/30", save: false });
+    expect(isApiError(raw) && raw.status).toBe(422);
+    expect(isApiError(raw) && raw.fieldErrors?.card).toBeTruthy();
+    const forged = await reserve({ token: "tok_inventado", brand: "Visa", last4: "4242", expMonth: 12, expYear: 2030, name: "M", save: false });
+    expect(isApiError(forged) && forged.status).toBe(422);
+    expect(db.booking.reservations).toHaveLength(0);
+  });
+
   test("la tarjeta rechazada no reserva nada", async () => {
     // Al pedir la hora se generan las citas de ese día de la agenda: solo cuentan las de la reserva en línea.
     const fromBooking = () => db.calendar.appointments.filter((item) => item.createdBy === "Reserva en línea").length;
     const error = await bookingApi
-      .reserve((await signIn()).token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4000000000000002", name: "M", expiry: "12/30", save: false } })
+      .reserve((await signIn()).token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 9, 12, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: await gatewayCard("4000000000000002", "M", "12/30", false) })
       .catch((caught: unknown) => caught);
     expect(isApiError(error) && error.status).toBe(402);
     expect(fromBooking()).toBe(0);
@@ -858,7 +880,7 @@ describe("backend de la reserva", () => {
     expect(withSaved.payment).toMatchObject({ status: "paid", brand: "Mastercard", last4: "4444" });
     await expect(bookingApi.reserve(token, { ...base, items: item(11), savedCardId: "card_que_no_existe" })).rejects.toMatchObject({ status: 422 });
 
-    await bookingApi.reserve(token, { ...base, items: item(12), card: { number: "5105 1051 0510 5100", name: "Marcela Gómez", expiry: "08/29", save: true } });
+    await bookingApi.reserve(token, { ...base, items: item(12), card: await gatewayCard("5105 1051 0510 5100", "Marcela Gómez", "08/29", true) });
     const { customer: after } = await signIn();
     if (!after) throw new Error("Marcela debería ser cliente");
     expect(after.cards.at(-1)).toMatchObject({ brand: "Mastercard", last4: "5100", expMonth: 8, expYear: 2029 });
@@ -885,7 +907,7 @@ describe("backend de la reserva", () => {
 
   test("con el código se ven las citas, se mueven y se cancelan con reembolso a saldo a favor", async () => {
     const session = await signIn();
-    const reservation = await bookingApi.reserve(session.token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: { number: "4242424242424242", name: "M", expiry: "12/30", save: false } });
+    const reservation = await bookingApi.reserve(session.token, { branchId: "ma", items: [{ guestId: null, serviceIds: ["svc_corte"], barberId: null, start: toStart(new Date(2026, 9, 10, 15, 0)) }], products: [], tipId: null, promoCode: null, method: "card", card: await gatewayCard("4242424242424242", "M", "12/30", false) });
     const appointment = reservation.appointments[0];
     await expect(bookingApi.verifyOtp(KNOWN_PHONE, "000000")).rejects.toMatchObject({ status: 422 });
     const { token } = await signIn();

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { serverFetch } from "@/lib/api/serverSession";
 
 /**
  * Hechos → narración en la app: las cifras ya calculadas van a `/api/narrative`, que las redacta con
@@ -20,7 +21,7 @@ export interface Narrative {
 
 async function requestNarrative(kind: "week" | "pay", locale: "es" | "en", facts: Facts, fallback: string, signal: AbortSignal): Promise<Narrative> {
   try {
-    const response = await fetch("/api/narrative", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, locale, facts }), signal });
+    const response = await serverFetch("/api/narrative", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, locale, facts }), signal });
     if (!response.ok) return { text: fallback, source: "auto", model: null };
     const body = (await response.json()) as { text?: string; model?: string };
     return body.text ? { text: body.text, source: "ai", model: body.model ?? null } : { text: fallback, source: "auto", model: null };

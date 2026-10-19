@@ -266,6 +266,16 @@ interface Trace {
  * con los resultados) o `{ kind: "answer", text, model, usage }`. Sin clave, 501 y la app usa el centro de ayuda.
  * Cada paso deja una línea en el registro (`server/clipper/turnLog.ts`).
  */
+/**
+ * El rol con el que Clipper ofrece herramientas sale de la sesión firmada, no del cuerpo: un barbero
+ * no se hace pasar por dueño escribiendo otro rol. Si el rol de la sesión no es del equipo, se deja
+ * el cuerpo como está y la validación lo rechaza.
+ */
+export function withSessionRole(body: unknown, role: string): unknown {
+  if (!isRecord(body) || !isRecord(body.context) || !isClipperRole(role)) return body;
+  return { ...body, context: { ...body.context, role } };
+}
+
 export async function clipperStep(body: unknown, config: ClipperConfig, fetcher: Fetcher = fetch): Promise<Response> {
   const started = Date.now();
   const trace: Trace = {

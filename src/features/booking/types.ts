@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CardTokenInput } from "@/features/payments/gateway";
 import { ONLINE_METHODS } from "@/features/settings/gatewayProviders";
 
 /**
@@ -247,7 +248,8 @@ export const packagePurchasedSchema = z.object({ package: ownedPackageSchema, pa
 export type PackagePurchased = z.infer<typeof packagePurchasedSchema>;
 export interface PackagePurchaseInput {
   packageId: string;
-  card?: { number: string; name: string; expiry: string; save: boolean };
+  /** La tarjeta nueva como token de la pasarela (`tokenizeCard`): el número y el CVC no viajan aquí. */
+  card?: CardTokenInput;
   savedCardId?: string;
 }
 
@@ -262,7 +264,8 @@ export interface GiftPurchaseInput {
   recipientName: string;
   recipientContact: string;
   message: string;
-  card?: { number: string; name: string; expiry: string; save: boolean };
+  /** La tarjeta nueva como token de la pasarela (`tokenizeCard`): el número y el CVC no viajan aquí. */
+  card?: CardTokenInput;
   savedCardId?: string;
 }
 
@@ -418,10 +421,10 @@ export interface ReservationInput {
   promoCode: string | null;
   method: PayMethod;
   /**
-   * Tarjeta nueva. El CVC no viaja a nuestro servidor: va directo a la pasarela
-   * (aquí, simulada). `save` la guarda tokenizada para la próxima.
+   * Tarjeta nueva, como token de la pasarela (`tokenizeCard`): el número y el CVC van a la pasarela,
+   * nunca a nuestro servidor. `save` la guarda tokenizada para la próxima.
    */
-  card?: { number: string; name: string; expiry: string; save: boolean };
+  card?: CardTokenInput;
   /** O una tarjeta guardada; se le pide el CVC otra vez en el celular, que tampoco viaja aquí. */
   savedCardId?: string;
   /** Tarjeta de regalo: paga primero; lo que sobra queda en ella. */

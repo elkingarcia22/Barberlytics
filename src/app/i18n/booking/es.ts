@@ -453,6 +453,7 @@ export const bookingEs = {
   "booking.payment.cardExpiryError": "Escribe un vencimiento que no haya pasado (MM/AA).",
   "booking.payment.otherCard": "Usar otra tarjeta nueva",
   "booking.payment.cardMissing": "Agrega una tarjeta para pagar.",
+  "booking.payment.cardRejected": "La pasarela no aceptó la tarjeta. Revísala o usa otra.",
   "booking.payment.cardFieldMissing": "Revisa «{field}».",
   "booking.payment.cvcMissing": "Escribe el CVC para pagar.",
   "booking.payment.shopDepositHint": "Dejas un anticipo del {percent} % con tarjeta y pagas el resto al llegar.",

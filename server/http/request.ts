@@ -45,13 +45,8 @@ export function isFromApp(request: Request): boolean {
 
 const hits = new Map<string, number[]>();
 
-/**
- * Tope de peticiones por IP en una ventana. Vive en la memoria de cada instancia: frena el abuso
- * casual, no sustituye a un límite compartido (Vercel KV, Upstash) cuando haya tráfico real.
- */
-export function rateLimited(request: Request, scope: string, limit: number, windowMs: number, now = Date.now()): boolean {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
-  const key = `${scope}:${ip}`;
+/** Cuenta un golpe contra `key` y dice si ya pasó de `limit` en la ventana. */
+function overLimit(key: string, limit: number, windowMs: number, now: number): boolean {
   const recent = (hits.get(key) ?? []).filter((at) => now - at < windowMs);
   if (recent.length >= limit) {
     hits.set(key, recent);
@@ -59,6 +54,29 @@ export function rateLimited(request: Request, scope: string, limit: number, wind
   }
   hits.set(key, [...recent, now]);
   return false;
+}
+
+/**
+ * Tope de peticiones por IP en una ventana. Vive en la memoria de cada instancia: frena el abuso
+ * casual, no sustituye a un límite compartido (Vercel KV, Upstash) cuando haya tráfico real.
+ */
+export function rateLimited(request: Request, scope: string, limit: number, windowMs: number, now = Date.now()): boolean {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
+  return overLimit(`${scope}:ip:${ip}`, limit, windowMs, now);
+}
+
+export interface Quota {
+  perMinute: number;
+  perDay: number;
+}
+
+/**
+ * Tope por sesión (por cuenta, no por IP): una misma persona no gasta más de `perMinute` en un
+ * minuto ni más de `perDay` en un día, cambie o no de red. Mismo límite de memoria que `rateLimited`.
+ */
+export function quotaExceeded(subject: string, scope: string, quota: Quota, now = Date.now()): boolean {
+  if (overLimit(`${scope}:sub:${subject}:m`, quota.perMinute, 60_000, now)) return true;
+  return overLimit(`${scope}:sub:${subject}:d`, quota.perDay, 86_400_000, now);
 }
 
 export const jsonError = (status: number, code: string, message: string): Response => new Response(JSON.stringify({ code, message }), { status, headers: { "content-type": "application/json" } });

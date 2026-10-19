@@ -1,19 +1,17 @@
 import { db } from "../db";
 import type { MockAppointment } from "../calendar/seed";
+import { profileOf } from "../customers/handlers";
+import { serverFetch } from "@/lib/api/serverSession";
 import type { MockOutboxMessage } from "./state";
 
 /**
- * Envía los mensajes del outbox que ya tocan. Cada uno sale como plantilla de WhatsApp por
- * `/api/whatsapp/send` (la función de servidor con las claves); si WhatsApp no está conectado
- * (501), queda como enviado **simulado** para que la demo siga; si WhatsApp lo rechaza, queda
- * fallido con su motivo. El backend real hará esto con una cola y reintentos.
+ * El outbox de la app y la cola de WhatsApp del servidor (`/api/whatsapp/queue`, ver
+ * server/whatsapp/queue). La app ya no envía: **encola** cada mensaje programado con su hora, anula
+ * en la cola los que se cancelan aquí y refleja lo que el cron del servidor envió (o no pudo).
+ *
+ * Sin cola (501 sin almacén configurado, 404 sin funciones, sin red) la demo sigue como antes: lo que
+ * ya toca queda como enviado **simulado**.
  */
-
-export interface SendResult {
-  status: "sent" | "simulated" | "failed";
-  providerId?: string | null;
-  error?: string;
-}
 
 export interface WhatsAppPayload {
   to: string;
@@ -22,19 +20,70 @@ export interface WhatsAppPayload {
   buttonParam?: string;
 }
 
-export type Sender = (payload: WhatsAppPayload) => Promise<SendResult>;
+/** Un mensaje para la cola: la plantilla, cuándo sale y, si es promoción, el permiso del cliente. */
+export interface QueueRequest extends WhatsAppPayload {
+  id: string;
+  sendAt: string;
+  consent: { version: string; at: string } | null;
+}
 
-/** El envío de verdad: la función de servidor. Fuera del navegador (pruebas) no hay a dónde mandar: simulado. */
-export const httpSender: Sender = async (payload) => {
-  if (typeof window === "undefined") return { status: "simulated" };
+/** Lo que la cola dice de cada mensaje. */
+export interface QueueView {
+  id: string;
+  status: "scheduled" | "sent" | "simulated" | "failed" | "cancelled";
+  providerId: string | null;
+  error: string | null;
+  sentAt: string | null;
+}
+
+/** Lo que responde la cola al encolar: lo aceptado y, con su motivo, lo que no. */
+export interface EnqueueResult {
+  items: QueueView[];
+  rejected: { id: string | null; message: string }[];
+}
+
+/** La cola del servidor. `null`: no hay cola (y los mensajes se simulan aquí). */
+export interface Queue {
+  enqueue(items: QueueRequest[]): Promise<EnqueueResult | null>;
+  cancel(ids: string[]): Promise<QueueView[] | null>;
+  status(ids: string[]): Promise<QueueView[] | null>;
+}
+
+/** Mensajes por petición: el tope de la cola del servidor. */
+const BATCH = 50;
+const QUEUE_ENDPOINT = "/api/whatsapp/queue";
+
+async function viewsOf(response: Response): Promise<QueueView[] | null> {
+  if (!response.ok) return null;
+  const body = (await response.json().catch(() => null)) as { items?: QueueView[] } | null;
+  return Array.isArray(body?.items) ? body.items : null;
+}
+
+const call = async (init: RequestInit, ids?: string[]): Promise<QueueView[] | null> => {
   try {
-    const response = await fetch("/api/whatsapp/send", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-    if (response.status === 501 || response.status === 404) return { status: "simulated" };
-    const body = (await response.json().catch(() => ({}))) as { id?: string | null; message?: string };
-    return response.ok ? { status: "sent", providerId: body.id ?? null } : { status: "failed", error: body.message ?? `WhatsApp respondió ${response.status}.` };
+    const url = ids ? `${QUEUE_ENDPOINT}?ids=${encodeURIComponent(ids.join(","))}` : QUEUE_ENDPOINT;
+    return await viewsOf(await serverFetch(url, init));
   } catch {
-    return { status: "simulated" };
+    return null;
   }
+};
+
+async function enqueueHttp(items: QueueRequest[]): Promise<EnqueueResult | null> {
+  try {
+    const response = await serverFetch(QUEUE_ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items }) });
+    if (!response.ok) return null;
+    const body = (await response.json().catch(() => null)) as Partial<EnqueueResult> | null;
+    return Array.isArray(body?.items) ? { items: body.items, rejected: Array.isArray(body.rejected) ? body.rejected : [] } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** La cola de verdad, con la sesión firmada del equipo. */
+export const httpQueue: Queue = {
+  enqueue: enqueueHttp,
+  cancel: (ids) => call({ method: "DELETE" }, ids),
+  status: (ids) => call({ method: "GET" }, ids),
 };
 
 const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" };
@@ -65,25 +114,87 @@ export function payloadOf(message: MockOutboxMessage): WhatsAppPayload | null {
   return { to: message.to, kind: message.kind, params, buttonParam };
 }
 
-/** Envía lo que toca a `now`. Devuelve cuántos salieron, cuántos se simularon y cuántos fallaron. */
-export async function dispatchDue(now: Date = new Date(), sender: Sender = httpSender): Promise<{ sent: number; simulated: number; failed: number }> {
-  const due = (db.booking.outbox ?? []).filter((message) => message.status === "scheduled" && new Date(message.sendAt).getTime() <= now.getTime());
-  const counts = { sent: 0, simulated: 0, failed: 0 };
-  const results = new Map<string, Partial<MockOutboxMessage>>();
-  for (const message of due) {
+const chunks = <T,>(items: T[]): T[][] => Array.from({ length: Math.ceil(items.length / BATCH) }, (_, index) => items.slice(index * BATCH, (index + 1) * BATCH));
+
+/** El permiso del cliente para promociones, como prueba para la cola (versión del texto y cuándo). */
+function consentOf(message: MockOutboxMessage): QueueRequest["consent"] {
+  const client = db.calendar.clients.find((item) => item.id === message.clientId);
+  const consent = client ? profileOf(client).marketingConsent : undefined;
+  return consent?.accepted ? { version: consent.version ?? "sin-version", at: consent.at } : null;
+}
+
+const MIRRORED: Partial<Record<QueueView["status"], MockOutboxMessage["status"]>> = { sent: "sent", simulated: "sent", failed: "failed" };
+
+export interface SyncCounts {
+  sent: number;
+  simulated: number;
+  failed: number;
+}
+
+/**
+ * Pone el outbox al día con la cola: encola lo programado que aún no está, anula en la cola lo que se
+ * canceló aquí y refleja lo que ya salió. Sin cola, simula lo que ya toca. Devuelve lo que cambió.
+ */
+export async function syncOutbox(now: Date = new Date(), queue: Queue = httpQueue): Promise<SyncCounts> {
+  const counts: SyncCounts = { sent: 0, simulated: 0, failed: 0 };
+  const changes = new Map<string, Partial<MockOutboxMessage>>();
+  const outbox = (db.booking.outbox ?? []).filter((message) => message.kind !== "manual");
+  const at = now.toISOString();
+  const mirror = (view: QueueView) => {
+    const status = MIRRORED[view.status];
+    if (!status) return;
+    counts[view.status === "failed" ? "failed" : view.status === "simulated" ? "simulated" : "sent"] += 1;
+    changes.set(view.id, { status, simulated: view.status === "simulated", providerId: view.providerId, error: view.error ?? undefined, sentAt: view.sentAt ?? at, queued: false });
+  };
+
+  // 1. Lo programado que la cola aún no tiene.
+  const pending = outbox.filter((message) => message.status === "scheduled" && !message.queued);
+  const requests: QueueRequest[] = [];
+  for (const message of pending) {
     const payload = payloadOf(message);
-    const result: SendResult = payload ? await sender(payload) : { status: "failed", error: "Falta el número o la cita." };
-    counts[result.status] += 1;
-    results.set(message.id, {
-      status: result.status === "failed" ? "failed" : "sent",
-      simulated: result.status === "simulated",
-      providerId: result.providerId ?? null,
-      error: result.error,
-      sentAt: now.toISOString(),
-    });
+    if (!payload) {
+      counts.failed += 1;
+      changes.set(message.id, { status: "failed", error: "Falta el número o la cita.", sentAt: at });
+      continue;
+    }
+    requests.push({ ...payload, id: message.id, sendAt: message.sendAt, consent: consentOf(message) });
   }
-  if (results.size > 0) {
-    db.booking.outbox = (db.booking.outbox ?? []).map((message) => (results.has(message.id) ? { ...message, ...results.get(message.id) } : message));
+  let hasQueue = true;
+  for (const batch of chunks(requests)) {
+    const result = await queue.enqueue(batch);
+    if (!result) {
+      hasQueue = false;
+      break;
+    }
+    const accepted = new Set(result.items.map((view) => view.id));
+    const reasons = new Map(result.rejected.map((item) => [item.id, item.message]));
+    for (const view of result.items) {
+      if (view.status === "scheduled") changes.set(view.id, { queued: true });
+      else mirror(view);
+    }
+    // Lo que la cola rechazó (p. ej. una promoción sin permiso) queda fallido con su motivo.
+    for (const request of batch.filter((item) => !accepted.has(item.id))) {
+      counts.failed += 1;
+      changes.set(request.id, { status: "failed", error: reasons.get(request.id) ?? "La cola de WhatsApp no aceptó el mensaje.", sentAt: at });
+    }
+  }
+
+  if (!hasQueue) {
+    // Sin cola: la demo sigue, lo que ya toca queda como enviado simulado.
+    for (const request of requests.filter((item) => !changes.has(item.id) && Date.parse(item.sendAt) <= now.getTime())) {
+      counts.simulated += 1;
+      changes.set(request.id, { status: "sent", simulated: true, providerId: null, sentAt: at });
+    }
+  } else {
+    // 2. Lo que se canceló aquí y seguía en la cola. 3. Lo que la cola ya envió.
+    const cancelled = outbox.filter((message) => message.status === "cancelled" && message.queued).map((message) => message.id);
+    for (const batch of chunks(cancelled)) if (await queue.cancel(batch)) batch.forEach((id) => changes.set(id, { queued: false }));
+    const waiting = outbox.filter((message) => message.status === "scheduled" && message.queued && Date.parse(message.sendAt) <= now.getTime()).map((message) => message.id);
+    for (const batch of chunks(waiting)) (await queue.status(batch))?.forEach(mirror);
+  }
+
+  if (changes.size > 0) {
+    db.booking.outbox = (db.booking.outbox ?? []).map((message) => (changes.has(message.id) ? { ...message, ...changes.get(message.id) } : message));
     db.persist();
   }
   return counts;

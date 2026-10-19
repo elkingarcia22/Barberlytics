@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { paymentEntriesOf } from "../transactions/ledger";
 import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
 import { withRisk } from "./risk";
@@ -727,10 +728,12 @@ export const calendarHandlers = [
     const reason = text(asRecord(await request.json().catch(() => ({}))).reason);
     if (reason.length < 3) return error(422, "validation", "Di por qué se borra la venta.", { fields: { reason: ["Di por qué se borra la venta."] } });
     const payment = existing.payment;
+    // El libro de pagos no borra: guarda lo cobrado y suma el contramovimiento (ver transactions/ledger).
+    const voided = { id: `void_${Date.now().toString(36)}`, at: new Date().toISOString(), by: account.user.name, reason, entries: paymentEntriesOf(existing).map(({ kind, method, amount, at, by }) => ({ kind: kind as "charge" | "tip", method, amount, at, by })) };
     if (payment.gift) spendGiftCard(payment.gift.code, -payment.gift.amount);
     if (payment.giftSale) spendGiftCard(payment.giftSale.code, payment.giftSale.amount);
     const released = releaseAppointmentStock(existing, account.user.name);
-    return replaceAppointment({ ...released, status: "seated", payment: null, checkoutDiscount: undefined, servicePrices: undefined, productPrices: undefined, stockTaken: [], history: [...existing.history, entry(account.user.name, `voided:${reason}`)] });
+    return replaceAppointment({ ...released, status: "seated", payment: null, checkoutDiscount: undefined, servicePrices: undefined, productPrices: undefined, stockTaken: [], voidedPayments: [...(existing.voidedPayments ?? []), voided], history: [...existing.history, entry(account.user.name, `voided:${reason}`)] });
   }),
 
   // Alergias y medicamentos son datos sensibles: sin el permiso aparte del cliente no se guardan (409).

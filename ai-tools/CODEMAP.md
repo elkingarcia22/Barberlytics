@@ -121,6 +121,9 @@ Lo que responde MSW hoy.
 - `GET /customers/:id/next-visit` · src/mocks/customers/rhythm.ts
 - `GET /customers/reactivation` · src/mocks/customers/rhythm.ts
 - `POST /customers/reactivation` · src/mocks/customers/rhythm.ts
+- `GET /expenses/categories` · src/mocks/expenses/handlers.ts
+- `POST /expenses/categories` · src/mocks/expenses/handlers.ts
+- `DELETE /expenses/categories/:id` · src/mocks/expenses/handlers.ts
 - `GET /expenses` · src/mocks/expenses/handlers.ts
 - `POST /expenses` · src/mocks/expenses/handlers.ts
 - `PATCH /expenses/:id` · src/mocks/expenses/handlers.ts
@@ -200,6 +203,7 @@ Lo que responde MSW hoy.
 - `PATCH /product-categories/:id` · src/mocks/products/handlers.ts
 - `DELETE /product-categories/:id` · src/mocks/products/handlers.ts
 - `GET /register` · src/mocks/register/handlers.ts
+- `POST /register/movements` · src/mocks/register/handlers.ts
 - `POST /register/close` · src/mocks/register/handlers.ts
 - `GET /reports/income` · src/mocks/reports/income.ts
 - `GET /reports/menu` · src/mocks/reports/menu.ts
@@ -543,6 +547,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **branches.ts** — Las sucursales del negocio. · `BRANCHES`, `DEFAULT_BRANCH_ID`
 - **tax.ts** — El impuesto de una cuenta, igual en la reserva en línea, en el cobro de la agenda y en Transacciones. · `TaxedLine`, `linePercent`, `blendedPercent`, `taxOn`, `CartTotals`, `cartTotals`
 - **useBranchCurrency.ts** — La moneda de la sucursal activa (la de la cabecera). · `useBranchCurrency` · piezas: useShellConfig · usa: @/features/settings
+- **useBranchMoney.ts** — Cómo se escribe el dinero en un campo de la sucursal activa: el símbolo de su moneda («$», «€») y cuántos dec… · `useCurrencyInput`, `useBranchToday` · piezas: useShellConfig · usa: @/features/settings, @/i18n, @/lib/time
 - **useBranches.ts** — Las sucursales activas de Configuración, en la forma que espera el shell. · `toCompany`, `useBranches` · usa: @/features/settings
 
 ### branding
@@ -731,16 +736,16 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### expenses
 
-- **ExpenseFormDrawer.tsx** — Registrar o editar un gasto sin salir de la lista. · `ExpenseFormDrawerProps`, `ExpenseFormDrawer` · piezas: Alert, AlertDescription, Button, CardSelection, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/features/calendar, @/lib/api
-- **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/csv, @/lib/query
+- **ExpenseFormDrawer.tsx** — Registrar o editar un gasto sin salir de la lista. · `ExpenseFormDrawerProps`, `ExpenseFormDrawer` · piezas: Alert, AlertDescription, Button, CardSelection, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/features/access, @/features/branches, @/features/calendar, @/lib/api
+- **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/branches, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/csv, @/lib/query
 - **IncomeStatementView.tsx** — ¿Cuánto me gané? El mes de la sucursal en un estado de resultados —lo que entró, lo que costó ganarlo y lo fi… · `IncomeStatementViewProps`, `IncomeStatementView` · piezas: Button, MetricCard, Progress, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
-- **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id}, POST /expenses/${id}/end · usa: @/lib/api
-- **expensesHome.tsx** — La categoría de la URL, si es una de las conocidas. · `ALL`, `KindFilter`, `parseKind`, `parseCategory`, `expensesCsvRows`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · piezas: Badge · usa: @/app/i18n
+- **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id}, POST /expenses/${id}/end, GET /expenses/categories, POST /expenses/categories, DELETE /expenses/categories/${id} · usa: @/lib/api
+- **expensesHome.tsx** — La categoría de la URL (de siempre o propia); la pantalla la compara con la lista. · `ALL`, `KindFilter`, `parseKind`, `parseCategory`, `expensesCsvRows`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · piezas: Badge · usa: @/app/i18n
 - **expensesShared.tsx** — Las piezas chicas del módulo de gastos: el icono y la insignia por tipo. · `ExpenseGlyph`, `ExpenseKindBadge` · piezas: Badge, IconTile · usa: @/app/i18n
-- **expensesUtils.ts** — Cuántas veces al año se paga cada frecuencia. · `PAYMENTS_PER_YEAR`, `monthlyEquivalent`, `ExpensesSummary`, `summarizeExpenses`
+- **expensesUtils.ts** — Cuántas veces al año se paga cada frecuencia. · `PAYMENTS_PER_YEAR`, `monthlyEquivalent`, `ExpensesSummary`, `activeInMonth`, `summarizeExpenses`
 - **income.ts** — El estado de resultados del mes de una sucursal y su punto de equilibrio. · `incomeStatementSchema`, `IncomeStatement`, `monthKey`, `shiftMonth`, `changePercent`, `useIncomeStatement` · llama: GET /reports/income?branchId=${encodeURIComponent(branchId)}&month=${month} · usa: @/lib/api
-- **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useEndExpense`, `useRemoveExpense`
-- **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseCategorySchema`, `ExpenseCategory`, `expensePaymentMethodSchema`, `ExpensePaymentMethod`, `expenseAttachmentSchema`, `ExpenseAttachment`, `MAX_EXPENSE_ATTACHMENTS`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `expenseDateOf`, `isEnded`, `emptyExpenseInput`, `inputFromExpense`, `CATEGORY_KEYS`, `PAYMENT_METHOD_KEYS`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
+- **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useEndExpense`, `useRemoveExpense`, `useExpenseCategories`, `useCreateExpenseCategory`
+- **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseCategorySchema`, `ExpenseCategory`, `expensePaymentMethodSchema`, `ExpensePaymentMethod`, `expenseAttachmentSchema`, `ExpenseAttachment`, `MAX_EXPENSE_ATTACHMENTS`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `expenseDateOf`, `isEnded`, `emptyExpenseInput`, `inputFromExpense`, `CATEGORY_KEYS`, `customCategorySchema`, `CustomCategory`, `categoriesResponseSchema`, `categoryLabel`, `PAYMENT_METHOD_KEYS`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
 
 ### feedback
 
@@ -957,7 +962,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **CompensationForm.tsx** — La pestaña Compensación de un barbero por comisión: cómo se le paga cada servicio (comisión fija, de escala o… · `CompensationFormProps`, `CompensationForm`, `CompensationView` · piezas: Button, Field, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n
 - **OptionsForm.tsx** — La pestaña Opciones: los interruptores que cambian cómo se agenda con esta persona, el intervalo, los recorda… · `OptionsFormProps`, `OptionsForm`, `OptionsView` · piezas: Button, Checkbox, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Text · usa: @/app/i18n
-- **PaymentsForm.tsx** — La pestaña Pagos de un barbero de renta: la base de la renta, las tres deducciones por los clientes que le pu… · `PaymentsFormProps`, `PaymentsForm`, `PaymentsView` · piezas: Button, Field, Input, NumberField, Text · usa: @/app/i18n, @/features/branches, @/i18n, @/lib/api
+- **PaymentsForm.tsx** — La pestaña Pagos de un barbero de renta: la base de la renta, las tres deducciones por los clientes que le pu… · `PaymentsFormProps`, `PaymentsForm`, `PaymentsView` · piezas: Button, Field, Input, NumberField, Text · usa: @/app/i18n, @/features/branches, @/lib/api
 - **PermissionsForm.tsx** — La pestaña Permisos: la matriz de esa persona. · `PermissionsFormProps`, `PermissionsForm` · piezas: Badge, Button, PermissionMatrix, Text · usa: @/app/i18n
 - **ProfileForm.tsx** — La pestaña Perfil: la foto, los datos de contacto, la descripción, si se puede agendar, el nivel, las habilid… · `ProfileFormProps`, `ProfileForm`, `ProfileView` · piezas: Button, Field, ImageCropDialog, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Tag, Text, Textarea, UploadZone · usa: @/app/i18n, @/i18n
 - **ScheduleForm.tsx** — La pestaña Calendario de la ficha: el horario fijo de la semana, una fila por día con su casilla y sus horas. · `ScheduleFormProps`, `ScheduleForm`, `ScheduleView` · piezas: Button, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, calendarLocale, formatClock, parseClock · usa: @/app/i18n, @/i18n
@@ -966,14 +971,16 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### transactions
 
 - **AccountDrawer.tsx** — El detalle de una cuenta, en un panel: qué se cobró línea por línea, las cuentas —subtotal, impuesto, total,… · `AccountDrawerProps`, `AccountDrawer` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/features/calendar, @/features/customers, @/features/services, @/i18n
+- **CashCount.tsx** — Contar el efectivo billete por billete: cuántos de cada uno y el total se suma solo. · `CashCountProps`, `CashCount` · piezas: Button, NumberField, Text · usa: @/app/i18n, @/i18n
 - **LedgerDrawer.tsx** — El libro de pagos del periodo: lo que entró y salió por cada medio y cada movimiento con quién lo hizo. · `LedgerDrawerProps`, `LedgerDrawer` · piezas: Badge, Button, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **RefundDialog.tsx** — Devolver una cuenta cobrada, entera o en parte: cuánto, a dónde vuelve (efectivo o la tarjeta) y por qué. · `RefundDialogProps`, `RefundDialog` · piezas: Button, Field, Input, ModalShell, NumberField, SegmentedControl · usa: @/app/i18n
-- **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, NumberField, Skeleton, Text, Textarea · usa: @/app/i18n, @/features/review, @/i18n, @/lib/query
+- **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, Input, NumberField, Skeleton, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/branches, @/features/review, @/i18n, @/lib/query
 - **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `RefundInput`, `transactionsApi` · llama: GET /transactions, POST /appointments/${appointmentId}/refund · usa: @/features/calendar, @/lib/api
+- **denominations.ts** — Los billetes y monedas de cada moneda, para contar la caja por denominación en vez de escribir un total (cont… · `Denomination`, `denominationsOf`, `countTotal`
 - **ledger.ts** — El libro de pagos: cada movimiento de dinero del periodo, en orden y sin borrar nada (ver docs/API_CONTRACT.m… · `ledgerKindSchema`, `LedgerKind`, `Ledger`, `LedgerEntry`, `useLedgerQuery`, `LEDGER_KIND_KEYS`, `methodKey` · llama: GET /payments · usa: @/app/i18n, @/lib/api
 - **queries.ts** — Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. · `transactionKeys`, `useTransactionsQuery`, `useRefundAccount` · usa: @/lib/api
-- **register.ts** — El cierre de caja: lo que debía haber en efectivo al final del día (según las cuentas) frente a lo que se con… · `registerExpectedSchema`, `RegisterExpected`, `registerClosureSchema`, `RegisterClosure`, `registerDaySchema`, `RegisterDay`, `RegisterCloseInput`, `registerApi`, `useRegisterDay`, `useCloseRegister`, `expectedInDrawer` · llama: GET /register, POST /register/close · usa: @/lib/api
+- **register.ts** — El cierre de caja: lo que debía haber en efectivo al final del día (según las cuentas) frente a lo que se con… · `registerExpectedSchema`, `RegisterExpected`, `registerClosureSchema`, `RegisterClosure`, `cashMovementSchema`, `CashMovement`, `registerDaySchema`, `RegisterDay`, `RegisterCloseInput`, `CashMovementInput`, `registerApi`, `useRegisterDay`, `useCloseRegister`, `useAddCashMovement`, `expectedInDrawer` · llama: GET /register, POST /register/close, POST /register/movements · usa: @/lib/api
 - **transactionsAccess.ts** — Las cuentas que le tocan a quien mira: todas, o solo las que atendió el barbero. · `accountsFor`, `showsPeriodTotals` · usa: @/features/access
 - **transactionsHome.tsx** — Qué se cobró, en una línea: «2 servicios · 1 producto». · `TransactionsSummary`, `summarize`, `countByStatus`, `transactionColumns`, `TransactionCellContext`, `describeLines`, `transactionCells` · usa: @/app/i18n, @/features/calendar, @/features/customers
 - **transactionsShared.tsx** — El estado de una cuenta, con su color y su icono. · `AccountStatusBadge` · piezas: Badge · usa: @/app/i18n
@@ -1112,7 +1119,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `RHYTHM_WEEKS`, `rhythmOf`, `blocksOn`, `clashMessage`, `resourceMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/booking, @/features/branches, @/features/calendar
 - **risk.ts** — Riesgo de que el cliente no venga (docs/API_CONTRACT.md, «Calendario»). · `RiskReason`, `NoShowRisk`, `noShowRisk`, `withRisk`
 - **scope.ts** — La ficha del barbero que llama, o `null` si no es barbero (dueño, administrador, recepción). · `barberOf`, `ownClientIds`, `redactClient`, `ownAppointments`, `ownBlocks`
-- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `MockUtm`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
+- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockVoidedPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `MockUtm`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
 
 ### customers
 
@@ -1127,7 +1134,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### expenses
 
 - **handlers.ts** · `expensesHandlers`
-- **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`
+- **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpenseCustomCategory`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`
 
 ### frontDesk
 
@@ -1170,8 +1177,8 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### register
 
-- **handlers.ts** — Lo que debió moverse en la caja ese día, por medio de pago. · `RegisterExpected`, `expectedOf`, `registerHandlers`
-- **state.ts** — Un cierre de caja: lo que se contó al final del día frente a lo que debía haber. · `MockRegisterClosure`, `MockRegisterState`, `emptyRegister`
+- **handlers.ts** — Lo que debió moverse en la caja ese día, por medio de pago. · `RegisterExpected`, `expectedOf`, `registerHandlers` · usa: @/features/transactions
+- **state.ts** — Un cierre de caja: lo que se contó al final del día frente a lo que debía haber. · `MockRegisterClosure`, `MockCashMovement`, `MockRegisterState`, `emptyRegister`
 
 ### reports
 
@@ -1206,7 +1213,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### transactions
 
 - **handlers.ts** · `transactionsHandlers`
-- **ledger.ts** — Quien cobró: la línea «cobrada» del historial (o, si no está, el barbero). · `LedgerKind`, `LedgerEntry`, `chargedBy`, `ledgerOf`, `ledgerHandlers`
+- **ledger.ts** — Quien cobró: la línea «cobrada» del historial (o, si no está, el barbero). · `LedgerKind`, `LedgerEntry`, `chargedBy`, `paymentEntriesOf`, `ledgerOf`, `ledgerHandlers`
 
 ## i18n · `src/i18n`
 

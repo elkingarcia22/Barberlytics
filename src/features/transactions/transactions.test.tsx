@@ -213,9 +213,10 @@ describe("contrato de transacciones (mock)", () => {
       .filter((item) => item.branchId === "ma" && item.status === "paid" && item.payment?.method === "cash" && !renter(item.barberId) && dateKey(new Date(item.payment.paidAt)) === PAST_DAY)
       .reduce((total, item) => total + item.payment!.total - (item.payment!.prepaid ?? 0), 0);
     expect(day.expected.cash).toBeCloseTo(cash, 2);
+    const expectedCash = day.expected.cash ?? 0;
     expect(day.closure).toBeNull();
-    await expect(registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + day.expected.cash - 5, note: "" })).rejects.toMatchObject({ status: 422 });
-    const closure = await registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + day.expected.cash - 5, note: "Vuelto mal dado" });
+    await expect(registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + expectedCash - 5, note: "" })).rejects.toMatchObject({ status: 422 });
+    const closure = await registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 100, counted: 100 + expectedCash - 5, note: "Vuelto mal dado" });
     expect(closure.difference).toBe(-5);
     expect((await registerApi.day("ma", PAST_DAY)).closure).toMatchObject({ difference: -5, note: "Vuelto mal dado" });
     await expect(registerApi.close({ branchId: "ma", date: PAST_DAY, opening: 0, counted: 0, note: "otra vez" })).rejects.toMatchObject({ status: 409 });

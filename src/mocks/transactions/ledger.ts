@@ -20,7 +20,7 @@ const MAX_RANGE_DAYS = 62;
 /** Lo pagado en línea puede ser de una cita que aún no llega: se mira la agenda que viene. */
 const ONLINE_AHEAD_DAYS = 60;
 
-export type LedgerKind = "charge" | "online" | "tip" | "refund" | "sale";
+export type LedgerKind = "charge" | "online" | "tip" | "refund" | "sale" | "void";
 export interface LedgerEntry {
   id: string;
   at: string;
@@ -41,13 +41,10 @@ const clientName = (id: string) => db.calendar.clients.find((client) => client.i
 /** Quien cobró: la línea «cobrada» del historial (o, si no está, el barbero). */
 export const chargedBy = (item: MockAppointment): string | null => [...item.history].reverse().find((entry) => entry.event === "status:paid" || entry.event.startsWith("paid:"))?.actor ?? null;
 
-function entriesOf(item: MockAppointment): LedgerEntry[] {
+/** El cobro de la cita (por medio si fue mixto) y su propina: lo que se guarda si luego se borra la venta. */
+export function paymentEntriesOf(item: MockAppointment): LedgerEntry[] {
   const entries: LedgerEntry[] = [];
-  const concept = clientName(item.clientId);
-  const base = { appointmentId: item.id, saleId: null, concept };
-  if (item.online && item.online.paid > 0) {
-    entries.push({ ...base, id: `online:${item.id}`, at: item.createdAt, kind: "online", method: item.online.method, amount: round(item.online.paid), by: "Reserva en línea" });
-  }
+  const base = { appointmentId: item.id, saleId: null, concept: clientName(item.clientId) };
   if (item.status === "paid" && item.payment) {
     const payment = item.payment;
     const by = chargedBy(item) ?? "";
@@ -60,6 +57,24 @@ function entriesOf(item: MockAppointment): LedgerEntry[] {
     }
     if (payment.tip > 0 && !payment.split) entries.push({ ...base, id: `tip:${item.id}`, at: payment.paidAt, kind: "tip", method: payment.method, amount: round(payment.tip), by });
   }
+  return entries;
+}
+
+function entriesOf(item: MockAppointment): LedgerEntry[] {
+  const concept = clientName(item.clientId);
+  const base = { appointmentId: item.id, saleId: null, concept };
+  const entries: LedgerEntry[] = [];
+  if (item.online && item.online.paid > 0) {
+    entries.push({ ...base, id: `online:${item.id}`, at: item.createdAt, kind: "online", method: item.online.method, amount: round(item.online.paid), by: "Reserva en línea" });
+  }
+  // Lo que se cobró y luego se borró sigue en el libro, con su contramovimiento al lado.
+  for (const voided of item.voidedPayments ?? []) {
+    voided.entries.forEach((original, index) => {
+      entries.push({ ...base, id: `${voided.id}:${index}`, at: original.at, kind: original.kind, method: original.method, amount: original.amount, by: original.by });
+      entries.push({ ...base, id: `${voided.id}:${index}:void`, at: voided.at, kind: "void", method: original.method, amount: -original.amount, by: voided.by, concept: `${concept} · ${voided.reason}` });
+    });
+  }
+  entries.push(...paymentEntriesOf(item));
   for (const refund of item.refunds ?? []) {
     entries.push({ ...base, id: `refund:${refund.id}`, at: refund.at, kind: "refund", method: refund.to, amount: -round(refund.amount), by: refund.by });
   }

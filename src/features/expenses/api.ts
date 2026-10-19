@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { expenseSchema, expensesResponseSchema, type Expense, type ExpenseInput, type ExpensesResponse } from "./types";
+import { categoriesResponseSchema, customCategorySchema, expenseSchema, expensesResponseSchema, type Expense, type ExpenseInput, type ExpensesResponse } from "./types";
 
 /** Contrato de gastos; ver docs/API_CONTRACT.md. */
 export const expensesApi = {
@@ -11,4 +11,8 @@ export const expensesApi = {
   remove: (id: string) => api.delete<void>(`/expenses/${id}`),
   /** Termina un fijo en esa fecha (hoy, por defecto); `null` lo reactiva. */
   end: (id: string, endDate: string | null) => api.post<Expense>(`/expenses/${id}/end`, { endDate }, { schema: expenseSchema }),
+  /** Las categorías: las de siempre y las propias de la barbería. */
+  categories: (signal?: AbortSignal) => api.get("/expenses/categories", { schema: categoriesResponseSchema, signal }),
+  createCategory: (name: string) => api.post("/expenses/categories", { name }, { schema: customCategorySchema }),
+  removeCategory: (id: string) => api.delete<void>(`/expenses/categories/${id}`),
 };

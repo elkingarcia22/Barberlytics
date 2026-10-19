@@ -117,6 +117,15 @@ export interface MockPayment {
 }
 
 /** Una devolución: desde la caja, o la que hizo la reserva en línea al cancelar. */
+export interface MockVoidedPayment {
+  id: string;
+  at: string;
+  by: string;
+  reason: string;
+  /** Los movimientos del cobro tal como estaban (cobro por medio y propina). */
+  entries: { kind: "charge" | "tip"; method: string; amount: number; at: string; by: string }[];
+}
+
 export interface MockRefund {
   id: string;
   amount: number;
@@ -177,6 +186,11 @@ export interface MockAppointment {
   utm?: MockUtm | null;
   /** Lo devuelto de esta cuenta. */
   refunds?: MockRefund[];
+  /**
+   * Cobros borrados (se cobró por error). El libro de pagos no borra: guarda lo que se había registrado y
+   * le suma un contramovimiento con quién lo anuló y por qué.
+   */
+  voidedPayments?: MockVoidedPayment[];
   /** Si el cliente confirmó que viene: por el enlace del mensaje o porque recepción lo marcó. */
   confirmation?: { status: "confirmed" | "declined" | "reschedule_requested"; at: string; via: "link" | "reception" | "whatsapp" } | null;
   /** El token del enlace «Confirmar» del mensaje de WhatsApp. */

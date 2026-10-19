@@ -9,7 +9,7 @@ import { METHOD_KEYS, ONLINE_METHOD_KEYS, REFUND_TO_KEYS } from "./types";
  * docs/API_CONTRACT.md, «Transacciones»). Una corrección es otro movimiento, no un cambio.
  */
 
-export const ledgerKindSchema = z.enum(["charge", "online", "tip", "refund", "sale"]);
+export const ledgerKindSchema = z.enum(["charge", "online", "tip", "refund", "sale", "void"]);
 export type LedgerKind = z.infer<typeof ledgerKindSchema>;
 
 const ledgerSchema = z.object({
@@ -31,6 +31,7 @@ export const LEDGER_KIND_KEYS = {
   tip: "transactions.ledger.kind.tip",
   refund: "transactions.ledger.kind.refund",
   sale: "transactions.ledger.kind.sale",
+  void: "transactions.ledger.kind.void",
 } as const satisfies Record<LedgerKind, AppMessageKey>;
 
 /** El nombre del medio, sea de caja, de la pasarela en línea o el destino de una devolución. */

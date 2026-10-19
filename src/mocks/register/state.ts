@@ -15,10 +15,27 @@ export interface MockRegisterClosure {
   note: string;
   closedAt: string;
   closedBy: string;
+  /** Lo contado por denominación («20» → 3 billetes), si se contó así. */
+  denominations?: Record<string, number> | null;
+  /** Se contó sin ver lo esperado (recepción): la diferencia la revisa gerencia. */
+  blind?: boolean;
+}
+
+/** Efectivo que entra o sale del cajón durante el día sin ser un cobro: sencillo, un pago a un proveedor, un retiro. */
+export interface MockCashMovement {
+  id: string;
+  branchId: string;
+  date: string;
+  type: "in" | "out";
+  amount: number;
+  reason: string;
+  at: string;
+  by: string;
 }
 
 export interface MockRegisterState {
   closures: MockRegisterClosure[];
+  movements?: MockCashMovement[];
 }
 
-export const emptyRegister = (): MockRegisterState => ({ closures: [] });
+export const emptyRegister = (): MockRegisterState => ({ closures: [], movements: [] });

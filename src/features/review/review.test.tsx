@@ -27,6 +27,8 @@ describe("revisión antes de cerrar", () => {
     expect(await screen.findByTestId("review-duplicateCharge")).toHaveTextContent(money(paid.payment!.total));
     const user = userEvent.setup();
     await user.type(screen.getByTestId("register-opening"), "0");
+    // La caja abre contando por billetes; aquí se escribe el total.
+    await user.click(screen.getByTestId("cash-count-mode"));
     await user.type(screen.getByTestId("register-counted"), "1000");
     await user.type(await screen.findByTestId("register-note"), "Prueba");
     expect(screen.getByTestId("register-submit")).toBeDisabled();

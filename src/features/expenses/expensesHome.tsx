@@ -3,7 +3,7 @@ import type { TableColumnCells, TableColumnSpec } from "@/components/data-displa
 import { ExpenseGlyph, ExpenseKindBadge } from "./expensesShared";
 import { monthlyEquivalent } from "./expensesUtils";
 import { Badge } from "@/components/ui/badge";
-import { CATEGORY_KEYS, FREQUENCY_KEYS, PAYMENT_METHOD_KEYS, expenseCategorySchema, expenseDateOf, expenseKindSchema, isEnded, type Expense, type ExpenseCategory, type ExpenseKind } from "./types";
+import { FREQUENCY_KEYS, PAYMENT_METHOD_KEYS, categoryLabel, expenseDateOf, expenseKindSchema, isEnded, type CustomCategory, type Expense, type ExpenseKind } from "./types";
 
 /** Lo que la lista de gastos sabe hacer con sus filas, sin JSX de pantalla: el filtro de la URL y las columnas. */
 
@@ -14,18 +14,18 @@ export type KindFilter = ExpenseKind | typeof ALL;
 
 export const parseKind = (value: string | null): KindFilter => (expenseKindSchema.safeParse(value).success ? (value as ExpenseKind) : ALL);
 
-/** La categoría de la URL, si es una de las conocidas. */
-export const parseCategory = (value: string | null): ExpenseCategory | null => (expenseCategorySchema.safeParse(value).success ? (value as ExpenseCategory) : null);
+/** La categoría de la URL (de siempre o propia); la pantalla la compara con la lista. */
+export const parseCategory = (value: string | null): string | null => (value && /^[\w-]{1,40}$/.test(value) ? value : null);
 
 /** Las filas del periodo para el contador: números sin formato y la fecha en AAAA-MM-DD. */
-export function expensesCsvRows(t: Translate, rows: readonly Expense[]): { header: string[]; rows: (string | number)[][] } {
+export function expensesCsvRows(t: Translate, rows: readonly Expense[], custom: readonly CustomCategory[] = []): { header: string[]; rows: (string | number)[][] } {
   return {
     header: [t("expenses.column.date"), t("expenses.column.expense"), t("expenses.column.kind"), t("expenses.column.category"), t("expenses.column.supplier"), t("expenses.form.paymentMethod"), t("expenses.column.frequency"), t("expenses.column.amount"), t("expenses.column.monthly"), t("expenses.column.endDate"), t("expenses.form.description")],
     rows: rows.map((row) => [
       expenseDateOf(row),
       row.name,
       t(row.kind === "fixed" ? "expenses.kind.fixed" : "expenses.kind.variable"),
-      t(CATEGORY_KEYS[row.categoryId ?? "other"]),
+      categoryLabel(t, row.categoryId, custom),
       row.supplier ?? "",
       row.paymentMethod ? t(PAYMENT_METHOD_KEYS[row.paymentMethod]) : "",
       row.frequency ? t(FREQUENCY_KEYS[row.frequency]) : "",
@@ -58,11 +58,13 @@ export interface ExpenseCellContext {
   formatDate: (value: Date | number, options?: Intl.DateTimeFormatOptions) => string;
   /** Abre el gasto para verlo o editarlo. */
   onOpen: (expense: Expense) => void;
+  /** Las categorías propias, para su nombre. */
+  customCategories?: readonly CustomCategory[];
 }
 
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
 
-export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen }: ExpenseCellContext): TableColumnCells<Expense> {
+export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen, customCategories = [] }: ExpenseCellContext): TableColumnCells<Expense> {
   const muted = <span className="text-text-muted">{EMPTY}</span>;
   return {
     expense: {
@@ -88,9 +90,14 @@ export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen }: 
         </span>
       ),
     },
-    category: { head: t("expenses.column.category"), cell: (row) => t(CATEGORY_KEYS[row.categoryId ?? "other"]), cellClassName: "text-text-secondary" },
+    category: { head: t("expenses.column.category"), cell: (row) => categoryLabel(t, row.categoryId, customCategories), cellClassName: "text-text-secondary" },
     supplier: { head: t("expenses.column.supplier"), cell: (row) => row.supplier || muted, cellClassName: "text-text-secondary" },
-    frequency: { head: t("expenses.column.frequency"), cell: (row) => (row.frequency ? t(FREQUENCY_KEYS[row.frequency]) : muted), cellClassName: "text-text-secondary" },
+    frequency: {
+      head: t("expenses.column.frequency"),
+      // Un fijo dice también qué día se paga.
+      cell: (row) => (row.frequency ? `${t(FREQUENCY_KEYS[row.frequency])}${row.dueDay ? ` · ${t("expenses.dueDay", { day: row.dueDay })}` : ""}` : muted),
+      cellClassName: "text-text-secondary",
+    },
     amount: { head: t("expenses.column.amount"), headClassName: "text-right", cell: (row) => formatMoney(row.amount), cellClassName: "text-right tabular-nums font-medium text-text-primary" },
     monthly: {
       head: t("expenses.column.monthly"),

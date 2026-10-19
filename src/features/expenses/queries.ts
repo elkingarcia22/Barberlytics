@@ -36,3 +36,12 @@ export function useRemoveExpense() {
   const invalidate = useInvalidateExpenses();
   return useMutation({ mutationFn: (id: string) => expensesApi.remove(id), onSuccess: invalidate });
 }
+
+export function useExpenseCategories() {
+  return useQuery({ queryKey: [...expenseKeys.all, "categories"], queryFn: ({ signal }) => expensesApi.categories(signal), staleTime: 60_000 });
+}
+
+export function useCreateExpenseCategory() {
+  const invalidate = useInvalidateExpenses();
+  return useMutation({ mutationFn: (name: string) => expensesApi.createCategory(name), onSuccess: invalidate });
+}

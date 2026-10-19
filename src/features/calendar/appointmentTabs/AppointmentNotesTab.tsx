@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Text } from "@/components/typography";
+import { EmptyState } from "@/components/feedback";
 import { useAddClientNote } from "../queries";
 import { ClientNoteList, MIN_NOTE_LENGTH, NoteKindChips } from "../clientNotes/ClientNotes";
 import { NOTE_KIND_KEYS, noteKindSchema, type Client, type NoteKind } from "../types";
@@ -35,6 +36,8 @@ export function AppointmentNotesTab({ client }: AppointmentNotesTabProps) {
   if (!client || client.type === "walkin") {
     return <Text variant="muted">{t("calendar.notes.walkIn")}</Text>;
   }
+
+  const visible = client.notes.filter((note) => note.kind === kind);
 
   const submit = () => {
     addNote.mutate(
@@ -101,7 +104,30 @@ export function AppointmentNotesTab({ client }: AppointmentNotesTabProps) {
             </div>
           </form>
         )}
-        <ClientNoteList clientId={client.id} notes={client.notes.filter((note) => note.kind === kind)} kinds={noteKindSchema.options} />
+        {visible.length === 0 && !adding ? (
+          // Sin notas de este tipo: el porqué y el botón para dejar la primera, en el mismo recuadro.
+          <EmptyState
+            icon="file"
+            title={t("calendar.notes.emptyTitle", { kind: t(NOTE_KIND_KEYS[kind]).toLowerCase() })}
+            description={t("calendar.notes.emptyHint")}
+            className="border-none bg-transparent shadow-none"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setDraftKind(kind);
+                  setAdding(true);
+                }}
+                data-testid="client-notes-empty-add"
+              >
+                <Plus /> {t("calendar.notes.add")}
+              </Button>
+            }
+          />
+        ) : (
+          <ClientNoteList clientId={client.id} notes={visible} kinds={noteKindSchema.options} />
+        )}
       </div>
     </DrawerSection>
   );

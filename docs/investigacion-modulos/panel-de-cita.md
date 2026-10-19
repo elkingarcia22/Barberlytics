@@ -191,3 +191,20 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   1280 px.
 - Clipper contesta con reglas por palabras (`topicOf`). Con un modelo detrás, el foco (`AgentFocus`) es
   el mismo y solo cambia `answer`.
+
+## 8. Ajustes tras la elección (2026-10-18)
+
+- **Cobrada, no asistió o cancelada** (`AfterVisit.tsx`): solo lo que sigue con el cliente. Arriba
+  *Enviar recibo* (WhatsApp con el detalle), *Ver recibo* y *Devolver* (la cuenta en Transacciones, con
+  permiso de editar transacciones); luego *¿Le agendamos la próxima?*, *Lo que se cobró*, las citas
+  enlazadas y el cliente. Se quitan la cita editable, la nota para el barbero y las alertas.
+- **Origen** visible y discreto bajo el titular: «Reserva en línea · hace 9 días», «Con cita previa ·
+  agendada hace 8 días» o «Sin cita previa». Las etiquetas del cliente van en la vista principal, no
+  dentro de su página.
+- **Productos** de la cita (los de la reserva en línea o los sumados en caja) como tarjetas.
+- **Tarjetas de la cita** neutras en reposo; el filo y el tinte de marca solo en la que está abierta.
+- **Notas del cliente**: sin notas de un tipo, un estado vacío con «Agregar nota» en el mismo recuadro.
+- **Buscador** (`CalendarSearch`, `searchModel.ts`): lupa a la izquierda de «Día» que se abre en un
+  campo; busca por nombre, celular, barbero, servicio, estado, tipo, origen, notas, día y hora entre un
+  mes atrás y 45 días adelante (`GET /calendar/appointments`).
+- **Foto del corte** en la demo: las citas cuya nota dice «Trae foto de referencia» la traen.

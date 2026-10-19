@@ -1102,6 +1102,8 @@ export const appEn: AppMessageCatalog = {
   "calendar.notes.note": "Notes",
   "calendar.notes.medication": "Medication",
   "calendar.notes.allergies": "Allergies",
+  "calendar.notes.emptyTitle": "No {kind} yet",
+  "calendar.notes.emptyHint": "Leave what the team should know before serving them: it shows on every appointment.",
   "calendar.notes.add": "Add note",
   "calendar.notes.type": "Type",
   "calendar.notes.description": "Description",

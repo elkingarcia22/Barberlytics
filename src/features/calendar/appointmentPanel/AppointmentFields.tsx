@@ -9,7 +9,7 @@ import { TimeSlotPicker, formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { appointmentStart, durationLabel, servicesMinutes, servicesPrice, toLocalIso, type ModelContext } from "../calendarModel";
-import { PersonAvatar, ServiceThumb } from "../calendarShared";
+import { PersonAvatar, ProductThumb, ServiceThumb } from "../calendarShared";
 import type { Appointment, AppointmentPatch } from "../types";
 import { InlineList, PanelField } from "./bookingStyle";
 import { useFreeSlots } from "./useFreeSlots";
@@ -60,6 +60,21 @@ export function AppointmentFields({ model, ctx, onPatch }: AppointmentFieldsProp
         testId="panel-field-services"
       />
       {open === "services" && <ServicesList model={model} ctx={ctx} onPatch={onPatch} onClose={close} />}
+      {/* Los productos de la cita (los que se pidieron al reservar en línea o se sumaron en caja), uno por tarjeta. */}
+      {appointment.products.map((line) => {
+        const product = ctx.catalog.products.find((entry) => entry.id === line.productId);
+        if (!product) return null;
+        return (
+          <PanelField
+            key={line.productId}
+            eyebrow={t("calendar.panel.fields.product")}
+            value={product.name}
+            detail={`× ${line.qty} · ${ctx.formatMoney(product.price * line.qty)}`}
+            leading={<ProductThumb product={product} size="md" tone="neutral" />}
+            testId="panel-field-product"
+          />
+        );
+      })}
       <PanelField
         eyebrow={t("calendar.panel.fields.barber")}
         value={barber?.name ?? "—"}

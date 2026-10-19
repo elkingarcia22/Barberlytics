@@ -37,9 +37,9 @@ describe("mainAction and restActions", () => {
 });
 
 describe("clientTags", () => {
-  test("shows no-shows, online and membership progress for a known client", () => {
+  test("shows no-shows and membership progress; where it came from goes in the origin line", () => {
     const ids = clientTags(model(), t).map((tag) => tag.id);
-    expect(ids).toEqual(["noShows", "online", "member"]);
+    expect(ids).toEqual(["noShows", "member"]);
   });
 
   test("marks a ready reward when the membership is full", () => {

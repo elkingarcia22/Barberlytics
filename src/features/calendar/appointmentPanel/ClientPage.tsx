@@ -5,11 +5,10 @@ import { ProgressRing } from "@/components/data-display/ProgressRing";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/navigation";
-import { ClientTypeBadge } from "../calendarShared";
 import { AppointmentNotesTab } from "../appointmentTabs/AppointmentNotesTab";
 import { JOURNEY, type ModelContext } from "../calendarModel";
 import { CLIENT_TYPE_KEYS } from "../types";
-import { ActionButton, ClientTags, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
+import { ActionButton, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
 import { NavRow } from "./bookingStyle";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
@@ -95,11 +94,6 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
 
   return (
     <div className="flex flex-col gap-6" data-testid="panel-client-page">
-      <div className="flex flex-wrap items-center gap-2">
-        <ClientTypeBadge type={known.type} />
-        <ClientTags model={model} />
-      </div>
-
       {/* La membresía ya trae su rótulo: sin título encima. */}
       <LoyaltyStrip model={model} />
 

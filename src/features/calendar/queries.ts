@@ -215,6 +215,11 @@ export function useRemoveClientNote() {
   });
 }
 
+export function useUpdateBlock() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: BlockInput }) => calendarApi.updateBlock(id, input), onSuccess: invalidate });
+}
+
 export function useCreateBlock() {
   const invalidate = useInvalidateAgenda();
   return useMutation({ mutationFn: (input: BlockInput) => calendarApi.createBlock(input), onSuccess: invalidate });

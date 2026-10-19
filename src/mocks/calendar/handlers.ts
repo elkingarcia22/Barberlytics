@@ -235,6 +235,26 @@ export function resourceMessage(branchId: string, candidate: Pick<MockAppointmen
   return `${conflict.resource.name} está ocupado a esa hora (lo usa ${names.join(", ") || "otra cita"}).`;
 }
 
+/** Lo que pide un bloqueo (alta o edición): barbero, categoría, repetición, fechas y horas. */
+function validateBlock(input: Record<string, unknown>) {
+  const fields: Record<string, string[]> = {};
+  const barber = findBarber(text(input.barberId));
+  const category = text(input.category) as MockBlockCategory;
+  const repeat = (text(input.repeat) || "none") as MockBlockRepeat;
+  const startDate = text(input.startDate);
+  const endDate = text(input.endDate) || startDate;
+  const startTime = text(input.startTime);
+  const endTime = text(input.endTime);
+  if (!barber) fields.barberId = ["Elige un barbero."];
+  if (!BLOCK_CATEGORIES.includes(category)) fields.category = ["Elige una categoría."];
+  if (!BLOCK_REPEATS.includes(repeat)) fields.repeat = ["Repetición inválida."];
+  if (!DAY_KEY.test(startDate)) fields.startDate = ["Elige la fecha de inicio."];
+  if (!DAY_KEY.test(endDate) || endDate < startDate) fields.endDate = ["La fecha fin no puede ser anterior al inicio."];
+  if (!CLOCK.test(startTime)) fields.startTime = ["Elige la hora de inicio."];
+  if (!CLOCK.test(endTime) || parseClock(endTime) <= parseClock(startTime)) fields.endTime = ["La hora de cierre debe ser posterior a la de inicio."];
+  return { fields, values: { barber, category, repeat, startDate, endDate, startTime, endTime } };
+}
+
 function replaceAppointment(updated: MockAppointment) {
   db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === updated.id ? updated : item));
   db.persist();
@@ -773,24 +793,11 @@ export const calendarHandlers = [
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const input = asRecord(await request.json().catch(() => ({})));
-    const fields: Record<string, string[]> = {};
-    const barber = findBarber(text(input.barberId));
     const denied = blockDenied(request, text(input.barberId));
     if (denied) return denied;
-    const category = text(input.category) as MockBlockCategory;
-    const repeat = (text(input.repeat) || "none") as MockBlockRepeat;
-    const startDate = text(input.startDate);
-    const endDate = text(input.endDate) || startDate;
-    const startTime = text(input.startTime);
-    const endTime = text(input.endTime);
-    if (!barber) fields.barberId = ["Elige un barbero."];
-    if (!BLOCK_CATEGORIES.includes(category)) fields.category = ["Elige una categoría."];
-    if (!BLOCK_REPEATS.includes(repeat)) fields.repeat = ["Repetición inválida."];
-    if (!DAY_KEY.test(startDate)) fields.startDate = ["Elige la fecha de inicio."];
-    if (!DAY_KEY.test(endDate) || endDate < startDate) fields.endDate = ["La fecha fin no puede ser anterior al inicio."];
-    if (!CLOCK.test(startTime)) fields.startTime = ["Elige la hora de inicio."];
-    if (!CLOCK.test(endTime) || parseClock(endTime) <= parseClock(startTime)) fields.endTime = ["La hora de cierre debe ser posterior a la de inicio."];
+    const { fields, values } = validateBlock(input);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const { barber, category, repeat, startDate, endDate, startTime, endTime } = values;
     // Con la aprobación encendida, el bloqueo que pone un barbero espera a que lo aprueben.
     const needsApproval = (db.settings.sections.booking as { blocksNeedApproval?: boolean }).blocksNeedApproval === true && Boolean(barberOf(request));
     const block: MockTimeBlock = {
@@ -831,6 +838,23 @@ export const calendarHandlers = [
     db.calendar.blocks = db.calendar.blocks.map((block) => (block.id === target.id ? approved : block));
     db.persist();
     return HttpResponse.json(approved);
+  }),
+
+  /** Editar un bloqueo: lo mismo que el alta; si esperaba aprobación, sigue esperándola. */
+  http.patch(`${BASE}/blocks/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const target = db.calendar.blocks.find((block) => block.id === params.id);
+    if (!target) return error(404, "not_found", "Ese bloqueo no existe.");
+    const input = { ...target, ...asRecord(await request.json().catch(() => ({}))) };
+    const denied = blockDenied(request, target.barberId) ?? blockDenied(request, text(input.barberId));
+    if (denied) return denied;
+    const { fields, values } = validateBlock(input);
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const updated: MockTimeBlock = { ...target, barberId: values.barber!.id, category: values.category, repeat: values.repeat, startDate: values.startDate, endDate: values.endDate, startTime: values.startTime, endTime: values.endTime, description: text(input.description) || null };
+    db.calendar.blocks = db.calendar.blocks.map((block) => (block.id === target.id ? updated : block));
+    db.persist();
+    return HttpResponse.json(updated);
   }),
 
   http.delete(`${BASE}/blocks/:id`, async ({ request, params }) => {

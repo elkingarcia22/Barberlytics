@@ -1,6 +1,6 @@
 import * as React from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarSearch, CalendarX2, Palmtree, Stethoscope, UserRound, Users } from "lucide-react";
+import { CalendarSearch, CalendarX2, Flame, Palmtree, Stethoscope, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -17,7 +17,9 @@ import { ABSENCE_KIND_KEYS, useDecideAbsence, type Absence } from "@/features/te
 import { PersonAvatar } from "../calendarShared";
 import { findBarber, type ModelContext } from "../calendarModel";
 import { PanelQuestion } from "../appointmentPanel/bookingStyle";
-import { useApproveBlock, useRemoveBlock } from "../queries";
+import { useApproveBlock, useRemoveBlock, useRhythmQuery } from "../queries";
+import { dayWeightOf } from "../dayWeight";
+import { DayWeightBadge } from "../DayWeightBadge";
 import { BLOCK_CATEGORY_KEYS, type TimeBlock } from "../types";
 import { coverageFor, daysOf, isShortHanded } from "./timeOffModel";
 
@@ -44,6 +46,9 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
   const coverage = coverageFor(absence, ctx.catalog.barbers, absences);
   const workDays = coverage.filter((day) => day.works).length;
   const short = coverage.filter((day) => day.works && isShortHanded(day));
+  // Si los días que pide suelen ser pesados (por el historial de la barbería): pesa en la decisión.
+  const rhythm = useRhythmQuery(absence.branchId);
+  const heavy = coverage.filter((day) => day.works && dayWeightOf(rhythm.data, day.date)?.level === "heavy");
   const Icon = KIND_ICON[absence.kind];
   const range = days.length === 1 ? format(days[0], "EEEE d 'de' MMMM", { locale: dateLocale }) : t("calendar.timeOff.range", { from: format(days[0], "EEE d MMM", { locale: dateLocale }), to: format(days[days.length - 1], "EEE d MMM", { locale: dateLocale }) });
   const byDay = new Map<string, Absence["affected"]>();
@@ -87,6 +92,13 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
         </Text>
         {onShowInCalendar && <ShowInCalendar onClick={() => onShowInCalendar(coverage.find((day) => day.works)?.date ?? days[0])} />}
       </section>
+
+      {heavy.length > 0 && (
+        <Alert variant="warning" data-testid="time-off-heavy">
+          <Flame />
+          <AlertDescription>{t("calendar.timeOff.heavyDays", { count: heavy.length, days: heavy.map((day) => format(day.date, "EEE d", { locale: dateLocale })).join(", ") })}</AlertDescription>
+        </Alert>
+      )}
 
       {short.length > 0 && (
         <Alert variant="warning">
@@ -132,7 +144,12 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
             <ListItem
               key={day.date.getTime()}
               size="sm"
-              title={format(day.date, "EEEE d", { locale: dateLocale })}
+              title={
+                <span className="flex items-center gap-1.5">
+                  <span className="first-letter:uppercase">{format(day.date, "EEEE d", { locale: dateLocale })}</span>
+                  {day.works && <DayWeightBadge weight={dayWeightOf(rhythm.data, day.date)} showNormal />}
+                </span>
+              }
               description={!day.works ? t("calendar.timeOff.notWorking") : day.alsoOff.length > 0 ? t("calendar.timeOff.alsoOff", { names: day.alsoOff.map((item) => (item.pending ? `${item.name} (${t("calendar.timeOff.pendingLower")})` : item.name)).join(", ") }) : t("calendar.timeOff.nobodyElse")}
               meta={day.works ? t("calendar.timeOff.available", { count: day.available, total: day.scheduled }) : "—"}
               className={day.works && isShortHanded(day) ? "text-warning" : undefined}

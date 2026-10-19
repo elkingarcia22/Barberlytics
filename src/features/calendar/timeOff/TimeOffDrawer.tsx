@@ -49,6 +49,8 @@ export interface TimeOffDrawerProps {
   onOpenAppointment: (date: Date, id: string) => void;
   /** Ponerla sola en la rejilla, en su primer día («Ver en el calendario»). */
   onShowInCalendar?: (focus: { type: "absence" | "block"; id: string }, on: Date) => void;
+  /** Al aprobar o rechazar: la agenda deja de mostrar solo esa y vuelve a la normalidad. */
+  onDecided?: () => void;
 }
 
 type Kind = "all" | AbsenceKind | "block";
@@ -56,7 +58,7 @@ type Status = "pending" | "approved" | "all";
 const KIND_ICON = { vacation: Palmtree, sick: Stethoscope, personal: UserRound } as const;
 const KINDS: readonly Kind[] = ["all", "vacation", "sick", "personal", "block"];
 
-export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null, onOpenAppointment, onShowInCalendar }: TimeOffDrawerProps) {
+export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null, onOpenAppointment, onShowInCalendar, onDecided }: TimeOffDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const dateLocale = calendarLocale(locale);
@@ -92,7 +94,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
       if (absence)
         return (
           <PanelSubpage title={t("calendar.timeOff.review")} onBack={() => setSelected(null)}>
-            <AbsenceReview absence={absence} absences={absencesQuery.data?.items ?? []} ctx={ctx} canDecide={canDecide} onOpenAppointment={onOpenAppointment} onShowInCalendar={onShowInCalendar && ((on) => onShowInCalendar({ type: "absence", id: absence.id }, on))} onDone={() => setSelected(null)} />
+            <AbsenceReview absence={absence} absences={absencesQuery.data?.items ?? []} ctx={ctx} canDecide={canDecide} onOpenAppointment={onOpenAppointment} onShowInCalendar={onShowInCalendar && ((on) => onShowInCalendar({ type: "absence", id: absence.id }, on))} onDone={() => { setSelected(null); onDecided?.(); }} />
           </PanelSubpage>
         );
     }
@@ -101,7 +103,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
       if (block)
         return (
           <PanelSubpage title={t("calendar.timeOff.review")} onBack={() => setSelected(null)}>
-            <BlockReview block={block} ctx={ctx} canDecide={canDecide} onShowInCalendar={onShowInCalendar && (() => onShowInCalendar({ type: "block", id: block.id }, parseISO(block.startDate)))} onDone={() => setSelected(null)} />
+            <BlockReview block={block} ctx={ctx} canDecide={canDecide} onShowInCalendar={onShowInCalendar && (() => onShowInCalendar({ type: "block", id: block.id }, parseISO(block.startDate)))} onDone={() => { setSelected(null); onDecided?.(); }} />
           </PanelSubpage>
         );
     }

@@ -5,6 +5,8 @@ export const calendarTimeOffEs = {
   "calendar.timeOff.hint": "Vacaciones, incapacidades, permisos y bloqueos del equipo; lo que falta aprobar, primero.",
   "calendar.timeOff.pending": "Por aprobar",
   "calendar.timeOff.pendingLower": "por aprobar",
+  "calendar.timeOff.heavyDays": "{count} de los días que pide suele ser pesado: {days}",
+  "calendar.timeOff.heavyDays_plural": "{count} de los días que pide suelen ser pesados: {days}",
   "calendar.timeOff.showInCalendar": "Ver en el calendario",
   "calendar.timeOff.stopShowing": "Dejar de ver {name} en el calendario",
   "calendar.timeOff.pendingCount": "{count} ausencia o bloqueo por aprobar",

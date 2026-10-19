@@ -68,7 +68,10 @@ export const isShortHanded = (coverage: Pick<DayCoverage, "scheduled" | "availab
  * incapacidad. Lo demás (almuerzo, reunión, un permiso de una hora) es un
  * bloqueo. Así los filtros «Vacaciones y ausencias» y «Bloqueos» no se pisan.
  */
-export const isAbsenceBlock = (block: Pick<TimeBlock, "id" | "category">): boolean => block.id.startsWith("blk_abs_") || block.category === "vacation" || block.category === "sick";
+/** El prefijo del bloqueo que deja en la agenda una ausencia aprobada (`blk_abs_<id de la ausencia>`). */
+export const ABSENCE_BLOCK_PREFIX = "blk_abs_";
+
+export const isAbsenceBlock = (block: Pick<TimeBlock, "id" | "category">): boolean => block.id.startsWith(ABSENCE_BLOCK_PREFIX) || block.category === "vacation" || block.category === "sick";
 
 /** Si un bloqueo (con su repetición) cae en un día. */
 export function blockAppliesOn(block: Pick<TimeBlock, "startDate" | "endDate" | "repeat">, date: Date): boolean {

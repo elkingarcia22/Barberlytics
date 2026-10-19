@@ -6,6 +6,8 @@ export const calendarTimeOffEn: Record<keyof typeof calendarTimeOffEs, string> =
   "calendar.timeOff.hint": "Vacations, sick days, leave and blocks for the team; pending ones first.",
   "calendar.timeOff.pending": "Pending",
   "calendar.timeOff.pendingLower": "pending",
+  "calendar.timeOff.heavyDays": "{count} of the requested days is usually busy: {days}",
+  "calendar.timeOff.heavyDays_plural": "{count} of the requested days are usually busy: {days}",
   "calendar.timeOff.showInCalendar": "Show in calendar",
   "calendar.timeOff.stopShowing": "Stop showing {name} in the calendar",
   "calendar.timeOff.pendingCount": "{count} time off or block to approve",

@@ -1,4 +1,5 @@
-import { isActive, serviceSlots } from "./calendarModel";
+import { formatClock } from "@/components/scheduling";
+import { findClient, isActive, serviceSlots, type ModelContext } from "./calendarModel";
 import type { Appointment, CalendarCatalog } from "./types";
 
 /**
@@ -16,8 +17,14 @@ export interface AgendaResource {
   serviceIds: readonly string[];
 }
 
-export interface ResourceUse {
-  appointment: Appointment;
+/** Lo que hace falta de una cita para saber qué recurso ocupa y cuándo (sirve también para una que aún no existe). */
+export type ResourceCandidate = Pick<Appointment, "id" | "serviceIds" | "barberId" | "durationMin" | "start" | "status">;
+
+/** Del catálogo solo hacen falta los servicios (su duración) y los barberos. */
+export type ResourceCatalog = Pick<CalendarCatalog, "services" | "barbers">;
+
+export interface ResourceUse<T extends ResourceCandidate = Appointment> {
+  appointment: T;
   start: Date;
   end: Date;
 }
@@ -35,7 +42,7 @@ export interface ResourceDay {
 }
 
 /** Los tramos de las citas vivas del día que ocupan el recurso, por hora. */
-export function resourceUses(resource: AgendaResource, appointments: readonly Appointment[], catalog: CalendarCatalog): ResourceUse[] {
+export function resourceUses<T extends ResourceCandidate>(resource: AgendaResource, appointments: readonly T[], catalog: ResourceCatalog): ResourceUse<T>[] {
   return appointments
     .filter(isActive)
     .flatMap((appointment) =>
@@ -51,7 +58,7 @@ export function resourceUses(resource: AgendaResource, appointments: readonly Ap
  * cuántos están en curso; con más que las unidades hay choque. Los choques
  * con las mismas citas se cuentan una vez.
  */
-export function resourceClashes(resource: AgendaResource, uses: readonly ResourceUse[]): ResourceClash[] {
+export function resourceClashes(resource: AgendaResource, uses: readonly ResourceUse<ResourceCandidate>[]): ResourceClash[] {
   const clashes = new Map<string, ResourceClash>();
   for (const use of uses) {
     const at = use.start.getTime();
@@ -65,9 +72,51 @@ export function resourceClashes(resource: AgendaResource, uses: readonly Resourc
   return [...clashes.values()];
 }
 
-export function resourceDay(resource: AgendaResource, appointments: readonly Appointment[], catalog: CalendarCatalog): ResourceDay {
+export function resourceDay(resource: AgendaResource, appointments: readonly Appointment[], catalog: ResourceCatalog): ResourceDay {
   const uses = resourceUses(resource, appointments, catalog);
   return { uses, clashes: resourceClashes(resource, uses) };
+}
+
+/** Un recurso que una cita no puede usar a esa hora: ya lo ocupan tantas citas como unidades hay. */
+export interface ResourceConflict<T extends ResourceCandidate = Appointment> {
+  resource: AgendaResource;
+  /** Las citas que ya lo ocupan en ese momento. */
+  with: T[];
+  /** Cuándo empieza el choque. */
+  at: Date;
+}
+
+/**
+ * Si una cita (nueva o movida) pide un recurso que a esa hora ya está
+ * completo. Se mira cada tramo suyo que usa un recurso, en su comienzo y en
+ * cada momento en que empieza otro uso dentro de él. La cita misma no cuenta
+ * contra sí (se excluye por id); una cancelada no ocupa nada.
+ */
+export function resourceConflict<T extends ResourceCandidate>(resources: readonly AgendaResource[], appointments: readonly T[], catalog: ResourceCatalog, candidate: ResourceCandidate): ResourceConflict<T> | null {
+  if (!isActive(candidate)) return null;
+  const others = appointments.filter((item) => item.id !== candidate.id);
+  for (const resource of resources) {
+    const mine = resourceUses(resource, [candidate], catalog);
+    if (mine.length === 0) continue;
+    const theirs = resourceUses(resource, others, catalog);
+    for (const use of mine) {
+      const from = use.start.getTime();
+      const to = use.end.getTime();
+      const moments = [from, ...theirs.map((other) => other.start.getTime()).filter((at) => at > from && at < to)];
+      for (const at of moments) {
+        const running = theirs.filter((other) => other.start.getTime() <= at && at < other.end.getTime());
+        if (running.length >= resource.units) return { resource, with: [...new Map(running.map((item) => [item.appointment.id, item.appointment])).values()], at: new Date(at) };
+      }
+    }
+  }
+  return null;
+}
+
+/** El choque en una frase, como los demás de la agenda: qué recurso, a qué hora y quién lo ocupa. */
+export function resourceReason(conflict: ResourceConflict | null, ctx: Pick<ModelContext, "t" | "catalog" | "intl">): string | null {
+  if (!conflict) return null;
+  const names = conflict.with.map((item) => findClient(ctx.catalog, item.clientId)?.name.split(" ")[0] ?? "").filter(Boolean);
+  return ctx.t("calendar.clash.resource", { resource: conflict.resource.name, time: formatClock(conflict.at, ctx.intl), names: names.join(", ") });
 }
 
 /** Si el filtro de servicios ya es exactamente el de un recurso (o lo contiene entero). */

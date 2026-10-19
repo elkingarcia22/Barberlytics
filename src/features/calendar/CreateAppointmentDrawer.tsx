@@ -1,23 +1,25 @@
 import * as React from "react";
 import { isBefore, isSameDay, startOfDay } from "date-fns";
-import { CalendarClock, Scissors, SlidersHorizontal, UserRound, UserRoundPlus } from "lucide-react";
+import { Armchair, CalendarClock, Scissors, SlidersHorizontal, UserRound, UserRoundPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError, isApiError } from "@/lib/api";
 import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, MultiSelect, SearchableSelect } from "@/components/forms";
 import { AiGeneratedBadge, Chip } from "@/components/ai-interaction";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Text } from "@/components/typography";
-import { TimeSlotPicker, formatClock, formatClockRange, isWorkingAt, minutesOfDay } from "@/components/scheduling";
+import { TimeSlotPicker, atMinutes, formatClock, formatClockRange, isWorkingAt, minutesOfDay } from "@/components/scheduling";
 import { ClientAvatar, PersonAvatar, ServiceThumb } from "./calendarShared";
 import { useOpenKey } from "./calendarFormat";
 import { appointmentInputSchema, CLIENT_TYPE_KEYS, REPEAT_KEYS, repeatRuleSchema, type Appointment, type CalendarDay, type RepeatRule } from "./types";
 import { findBarber, placementProblem, placementReason, servicesMinutes, toLocalIso, workingHoursOn, type ModelContext } from "./calendarModel";
 import { suggestSlots, type SlotSuggestion } from "./slotSuggestions";
+import { resourceConflict, resourceReason, type AgendaResource } from "./resourceModel";
 import { useCreateAppointment } from "./queries";
 
 /**
@@ -64,6 +66,8 @@ export interface CreateAppointmentDrawerProps {
   onSuggestions?: (suggestions: readonly SlotSuggestion[], draft: CreateAppointmentDraft) => void;
   /** Si quien agenda sigue las reglas de la casa. Sin ellas puede pisar otra cita o salirse del horario. */
   enforceRules?: boolean;
+  /** Los recursos especiales (sillón de lavado…): se avisa si a esa hora ya están completos. */
+  resources?: readonly AgendaResource[];
   onCreated: (appointment: Appointment) => void;
   onCreateClient: () => void;
 }
@@ -76,8 +80,9 @@ export function CreateAppointmentDrawer(props: CreateAppointmentDrawerProps) {
 }
 
 const EMPTY_SUGGESTIONS: readonly SlotSuggestion[] = [];
+const EMPTY_RESOURCES: readonly AgendaResource[] = [];
 
-function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDate, day, onSuggestions, enforceRules = true, onCreated, onCreateClient }: CreateAppointmentDrawerProps) {
+function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDate, day, onSuggestions, enforceRules = true, resources = EMPTY_RESOURCES, onCreated, onCreateClient }: CreateAppointmentDrawerProps) {
   const t = useAppT();
   const create = useCreateAppointment();
   const [clientId, setClientId] = React.useState(initial?.clientId ?? "");
@@ -114,14 +119,23 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
       preferredBarberId: barberId || null,
       wantedMinute: start && isSameDay(start, viewDate) ? minutesOfDay(start) : null,
       now: nowDate,
+      // No se propone un hueco que choca con un recurso especial ya completo.
+      isTaken: resources.length > 0 ? (slotBarberId, minute) => resourceConflict(resources, day.appointments, ctx.catalog, { id: "", serviceIds, barberId: slotBarberId, durationMin, start: toLocalIso(atMinutes(viewDate, minute)), status: "scheduled" }) !== null : undefined,
     });
-  }, [open, day, viewDate, services.length, ctx.catalog.barbers, durationMin, barberId, start, nowDate]);
+  }, [open, day, viewDate, services.length, ctx.catalog, durationMin, barberId, start, nowDate, resources, serviceIds]);
 
   const draft = React.useMemo<CreateAppointmentDraft>(() => ({ clientId: clientId || undefined, serviceIds, walkIn, notes }), [clientId, serviceIds, walkIn, notes]);
   React.useEffect(() => {
     onSuggestions?.(suggestions, draft);
   }, [onSuggestions, suggestions, draft]);
   React.useEffect(() => () => onSuggestions?.(EMPTY_SUGGESTIONS, { serviceIds: [], walkIn: false, notes: "" }), [onSuggestions]);
+
+  // Un recurso especial completo a esa hora (solo se sabe del día que se ve en la agenda).
+  const resourceWarning = React.useMemo(() => {
+    if (!barberId || !start || !day || !viewDate || !isSameDay(start, viewDate) || serviceIds.length === 0) return null;
+    const candidate = { id: "", serviceIds, barberId, durationMin, start: toLocalIso(start), status: "scheduled" as const };
+    return resourceReason(resourceConflict(resources, day.appointments, ctx.catalog, candidate), ctx);
+  }, [barberId, start, day, viewDate, serviceIds, durationMin, resources, ctx]);
 
   const isSlotDisabled = React.useCallback(
     (date: Date) => {
@@ -144,7 +158,7 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
     // Que no pise a nadie ni caiga fuera de horario, si se ve ese día en la agenda.
     if (enforceRules && barber && start && day && viewDate && isSameDay(start, viewDate)) {
       const from = minutesOfDay(start);
-      const reason = placementReason(placementProblem(day, barber, viewDate, from, from + durationMin), ctx, barber);
+      const reason = placementReason(placementProblem(day, barber, viewDate, from, from + durationMin), ctx, barber) ?? resourceWarning;
       if (reason) {
         setErrors((current) => ({ ...current, start: reason }));
         return;
@@ -311,6 +325,13 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
             <Field error={errors.start}>
               <TimeSlotPicker value={start} onChange={setStart} startDate={nowDate} isSlotDisabled={isSlotDisabled} />
             </Field>
+            {/* Quien sigue las reglas no podrá agendar así; quien puede forzar, sí, pero sabiéndolo. */}
+            {resourceWarning && !errors.start && (
+              <Alert variant="warning" data-testid="create-appointment-resource">
+                <Armchair />
+                <AlertDescription>{enforceRules ? resourceWarning : t("calendar.create.resourceForce", { reason: resourceWarning })}</AlertDescription>
+              </Alert>
+            )}
           </div>
         </DrawerSection>
 

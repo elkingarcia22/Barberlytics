@@ -384,7 +384,12 @@ export interface SeedDayOptions {
   now: Date;
   /** Los bloqueos de ese día (almuerzos, reuniones…): ahí no se siembran citas. */
   blocks?: readonly MockTimeBlock[];
+  /** Los recursos especiales (sillón de lavado…): no se siembran más citas a la vez de las unidades que hay. */
+  resources?: readonly { id: string; units: number; serviceIds: readonly string[] }[];
 }
+
+/** El servicio de reserva cuando el sorteado necesita un recurso ya completo: un corte no ocupa ninguno. */
+const RESOURCE_FREE_FALLBACK = "svc_corte";
 
 /**
  * La agenda de un día: para cada barbero con horario, citas encadenadas con
@@ -392,7 +397,7 @@ export interface SeedDayOptions {
  * pasados están cobradas (con algún plantón o cancelación); las de hoy van
  * según la hora; las futuras siguen agendadas.
  */
-export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: SeedDayOptions): MockAppointment[] {
+export function seedDay({ branchId, day, barbers, clients, now, blocks = [], resources = [] }: SeedDayOptions): MockAppointment[] {
   const rand = seededRandom(hashKey(`${branchId}:${day}`));
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
   const date = new Date(`${day}T00:00:00`);
@@ -407,6 +412,10 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
   const realClients = clients.filter((client) => client.id !== WALK_IN_CLIENT.id);
   const appointments: MockAppointment[] = [];
   let counter = 0;
+  // Lo que ya ocupa cada recurso ese día (minutos), entre todos los barberos.
+  const taken = new Map<string, { from: number; to: number }[]>(resources.map((resource) => [resource.id, []]));
+  const fits = (serviceId: string, from: number, to: number) =>
+    resources.every((resource) => !resource.serviceIds.includes(serviceId) || (taken.get(resource.id) ?? []).filter((use) => from < use.to && use.from < to).length < resource.units);
 
   for (const barber of barbers) {
     // Cada barbero atiende a quien lo prefiere o no tiene preferencia, no a los clientes de otro: así
@@ -424,7 +433,13 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
           cursor += 30;
           continue;
         }
-        const service = pick(SERVICES);
+        const drawn = pick(SERVICES);
+        // Si el sorteado necesita un recurso que a esa hora ya está completo, va un corte (sin gastar otro dado).
+        const service = fits(drawn.id, cursor, cursor + drawn.durationMin) ? drawn : (SERVICES.find((item) => item.id === RESOURCE_FREE_FALLBACK) ?? drawn);
+        if (!fits(service.id, cursor, cursor + service.durationMin)) {
+          cursor += 30;
+          continue;
+        }
         if (cursor + service.durationMin > end) break;
         // Nadie agenda encima de un almuerzo o de una reunión: la cita se va a después del bloqueo.
         const from = cursor;
@@ -438,6 +453,7 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
         seen.add(client.id);
         const startMinutes = cursor;
         const endMinutes = cursor + service.durationMin;
+        for (const resource of resources) if (resource.serviceIds.includes(service.id)) taken.get(resource.id)?.push({ from: startMinutes, to: endMinutes });
         const status = appointmentStatus({ isPast, isToday, nowMinutes, startMinutes, endMinutes, roll: rand() });
         const walkIn = rand() < 0.12;
         const id = `apt_${day.replace(/-/g, "")}_${barber.id.replace("team-", "")}_${counter++}`;

@@ -1437,6 +1437,8 @@ export const appEn: AppMessageCatalog = {
   "calendar.clash.appointment": "Overlaps with {name}",
   "calendar.clash.block": "Overlaps with “{name}”",
   "calendar.clash.offHours": "Outside {name}'s hours",
+  "calendar.create.resourceForce": "{reason}. You can still book it.",
+  "calendar.clash.resource": "{resource} is taken at {time} (used by {names})",
   "calendar.clash.otherBarber": "You can only move appointments within your own schedule",
   "calendar.marker.online": "Booked online",
   "calendar.marker.walkIn": "Walked in",

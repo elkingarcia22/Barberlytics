@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resourceDay, resourceSelected, toggleResource, type AgendaResource } from "./resourceModel";
+import { resourceConflict, resourceDay, resourceSelected, toggleResource, type AgendaResource } from "./resourceModel";
 import type { Appointment, CalendarCatalog } from "./types";
 
 const catalog = {
@@ -43,5 +43,26 @@ describe("toggleResource", () => {
     expect(on).toEqual(["svc_corte", "svc_trat", "svc_tinte"]);
     expect(resourceSelected(resource, on)).toBe(true);
     expect(toggleResource(resource, on)).toEqual(["svc_corte"]);
+  });
+});
+
+describe("resourceConflict", () => {
+  const busy = appointment("a", "2026-10-19T10:00", ["svc_trat"]);
+
+  it("avisa si la cita pide el recurso cuando ya está completo, y dice con quién choca", () => {
+    const conflict = resourceConflict([sink], [busy], catalog, appointment("new", "2026-10-19T10:30", ["svc_trat"]));
+    expect(conflict?.resource.id).toBe("res_lavado");
+    expect(conflict?.with.map((item) => item.id)).toEqual(["a"]);
+  });
+
+  it("también cuando otro uso empieza a mitad de su tramo", () => {
+    expect(resourceConflict([sink], [busy], catalog, appointment("new", "2026-10-19T09:30", ["svc_trat"]))).not.toBeNull();
+  });
+
+  it("no avisa si el tramo del recurso cae fuera, si hay unidades libres o si la cita es la misma que se mueve", () => {
+    expect(resourceConflict([sink], [busy], catalog, appointment("new", "2026-10-19T10:45", ["svc_trat"]))).toBeNull();
+    expect(resourceConflict([sink], [busy], catalog, appointment("new", "2026-10-19T10:00", ["svc_corte"]))).toBeNull();
+    expect(resourceConflict([{ ...sink, units: 2 }], [busy], catalog, appointment("new", "2026-10-19T10:00", ["svc_trat"]))).toBeNull();
+    expect(resourceConflict([sink], [busy], catalog, { ...busy, start: "2026-10-19T10:15" } as Appointment)).toBeNull();
   });
 });

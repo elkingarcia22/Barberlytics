@@ -515,6 +515,9 @@ describe("modelo del calendario", () => {
     // Nunca sobre una cita ni antes de ahora.
     expect(suggestSlots({ ...options, barbers: [BARBER], limit: 3 }).every((slot) => slot.start >= new Date(2026, 8, 25, 10, 30) && slot.start.getTime() !== new Date(2026, 8, 25, 10, 30).getTime())).toBe(true);
     expect(suggestSlots({ ...options, barbers: [] })).toEqual([]);
+    // Un hueco que choca con un recurso especial completo no se propone.
+    expect(suggestSlots({ ...options, isTaken: () => true })).toEqual([]);
+    expect(suggestSlots({ ...options, isTaken: (barberId) => barberId === preferred[0].barber.id, preferredBarberId: "b3" }).every((slot) => slot.barber.id !== preferred[0].barber.id)).toBe(true);
   });
 
   test("el reacomodo corre solo lo necesario, conserva el orden y avisa de lo que pasa del cierre", () => {

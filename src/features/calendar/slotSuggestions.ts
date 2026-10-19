@@ -39,6 +39,8 @@ export interface SuggestSlotsOptions {
   limit?: number;
   /** Una cita que ya existe y se está moviendo: su hueco actual no cuenta como ocupado. */
   excludeId?: string;
+  /** Si un hueco choca con algo que no es del barbero (un recurso especial completo). */
+  isTaken?: (barberId: string, startMinute: number) => boolean;
 }
 
 /** Cada cuántos minutos puede empezar una cita. */
@@ -79,6 +81,7 @@ export function suggestSlots(options: SuggestSlotsOptions): SlotSuggestion[] {
       for (let start = Math.max(open, Math.ceil(earliest / SUGGESTION_STEP_MINUTES) * SUGGESTION_STEP_MINUTES); start + durationMin <= close; start += SUGGESTION_STEP_MINUTES) {
         const end = start + durationMin;
         if (busy.some(([from, to]) => start < to && from < end)) continue;
+        if (options.isTaken?.(barber.id, start)) continue;
         const before = Math.max(open, ...busy.filter(([, to]) => to <= start).map(([, to]) => to));
         const after = Math.min(close, ...busy.filter(([from]) => from >= end).map(([from]) => from));
         const gapBefore = start - before;

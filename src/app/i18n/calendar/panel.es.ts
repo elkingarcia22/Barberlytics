@@ -65,7 +65,6 @@ export const calendarPanelEs = {
   "calendar.panel.request.addPhoto": "Agregar foto del corte",
   "calendar.panel.request.save": "Guardar",
   "calendar.panel.client.journey": "Su recorrido",
-  "calendar.panel.fields.saveDuration": "Guardar duración: {duration}",
   "calendar.agent.suggests": "Clipper sugiere:",
   "calendar.panel.after.title": "Después de la visita",
   "calendar.panel.after.send": "Enviar recibo",

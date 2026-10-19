@@ -279,3 +279,13 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
 - **La cerrada**: sin *Lo que se cobró* (está en *Ver recibo*) ni el agendador de la próxima a la
   vista; el botón principal es **Reagendar**, que lo abre debajo. *Fijar* abre lo suyo (uno a la vez).
 - Los tres iconos de la cabecera (actividad, Clipper, cerrar) miden lo mismo (16 px).
+
+## 14. Todo dentro de la tarjeta (2026-10-19)
+
+- *Día y hora* ya no cambia la duración (la ponen los servicios): solo mueve la cita.
+- **Confirmación** y **Citas enlazadas** son tarjetas como las de la cita, dentro de la tarjeta grande.
+  La de confirmación lleva su interruptor y, plegados, los mensajes de correo y SMS. La de enlazadas
+  dice qué van juntas y su total; abierta, la lista, el total y *Ver en la agenda*. Solo salen si
+  aplican.
+- Al final de la tarjeta, los atajos (si hacen falta) **encima** de la acción principal y su «⋯». Fuera
+  de la tarjeta solo queda el paso a paso.

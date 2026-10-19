@@ -13,14 +13,14 @@ import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useAccess } from "@/features/access";
 import { appointmentEnd, appointmentStart, type ModelContext } from "../calendarModel";
-import { AppointmentLinkSection, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
+import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
 import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
 import { ClientTags } from "./PanelParts";
-import { PanelStepper } from "./PanelShared";
+import { LinkedField, PanelStepper } from "./PanelShared";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
 import { StageHeading, TileRow, type Tile } from "./StageParts";
@@ -129,6 +129,7 @@ export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppo
             </Text>
           </div>
         </div>
+        <LinkedField model={model} ctx={ctx} linked={linked} onSelectAppointment={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />
         <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
         {/* La acción principal de la cita cerrada: agendarle la próxima. Lo cobrado está en «Ver recibo». */}
         <Button size="lg" className="w-full" aria-expanded={open === "rebook"} onClick={() => toggle("rebook")} data-testid="panel-rebook">
@@ -138,7 +139,6 @@ export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppo
       </section>
       {open === "pin" && <PinSeries model={model} ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} />}
-      {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
     </div>
   );
 }

@@ -98,6 +98,8 @@ export function useCalendarState(today: Date = new Date()) {
     setTeam: (next: TeamFilter) => set({ equipo: next === "working" ? undefined : next }),
     openAppointment: (id: string | null) => set({ cita: id ?? undefined }),
     /** Ir al día de una cita en la vista Día y abrirla, en una sola escritura de la URL (el buscador). */
+    /** Abrir una cita de otro día sin dejar la vista (Semana o Mes): el día pasa a ser ese. */
+    openAppointmentKeepingView: (next: Date, id: string) => set({ fecha: toDateKey(next) === toDateKey(today) ? undefined : toDateKey(next), cita: id }),
     openAppointmentOn: (next: Date, id: string) => set({ fecha: toDateKey(next) === toDateKey(today) ? undefined : toDateKey(next), vista: undefined, cita: id }),
   };
 }

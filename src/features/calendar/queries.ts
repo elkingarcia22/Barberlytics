@@ -30,6 +30,7 @@ export const calendarKeys = {
   range: (branchId: string, from: string, to: string) => [...calendarKeys.ranges(), branchId, from, to] as const,
   waitlist: (branchId: string, date: string | null) => [...calendarKeys.all, "waitlist", branchId, date] as const,
   blocks: (branchId: string) => [...calendarKeys.all, "blocks", branchId] as const,
+  rhythm: (branchId: string) => [...calendarKeys.all, "rhythm", branchId] as const,
 };
 
 export function useCatalogQuery(branchId: string) {
@@ -65,6 +66,15 @@ export function useMonthQuery(branchId: string, month: string, barberId: string 
     queryFn: ({ signal }) => calendarApi.month(branchId, month, barberId, signal),
     placeholderData: keepPreviousData,
     enabled,
+  });
+}
+
+/** El ritmo de la barbería por día de la semana: cambia poco, se pide una vez. */
+export function useRhythmQuery(branchId: string) {
+  return useQuery({
+    queryKey: calendarKeys.rhythm(branchId),
+    queryFn: ({ signal }) => calendarApi.rhythm(branchId, signal),
+    staleTime: 30 * 60_000,
   });
 }
 

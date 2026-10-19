@@ -17,12 +17,15 @@ import { isActive, servicesOf, servicesPrice, type ModelContext, teamIds } from 
 import { FULL_LOAD } from "./dayBrief";
 import { FULL_CALENDAR_ACCESS, scopeDay } from "./calendarAccess";
 import { WEEK_DAYS, weekCell, weekStartOf } from "./weekModel";
-import type { CalendarDay, TeamFilter } from "./types";
+import { dayWeightOf } from "./dayWeight";
+import { DayWeightBadge } from "./DayWeightBadge";
+import type { CalendarDay, DayRhythm, TeamFilter } from "./types";
 
 /**
  * La vista Semana: una fila por barbero y una columna por día, con cuánto de
  * su jornada tiene reservado y cuántas citas. Sirve para ver de un vistazo
- * dónde sobra agenda y dónde no cabe nadie más; tocar una celda abre ese día.
+ * dónde sobra agenda y dónde no cabe nadie más. Cada día dice si suele ser
+ * pesado o suave; tocar un día (o una celda) abre su panel al lado.
  */
 
 export interface CalendarWeekViewProps {
@@ -31,11 +34,15 @@ export interface CalendarWeekViewProps {
   team: TeamFilter;
   ctx: ModelContext;
   today?: Date;
+  /** El día abierto en el panel, resaltado. */
+  selectedDay?: Date | null;
+  /** El ritmo de la barbería, para marcar los días pesados y suaves. */
+  rhythm?: DayRhythm;
   onSelectDay: (date: Date, barberId: string | null) => void;
 }
 
 
-export function CalendarWeekView({ branchId, date, team, ctx, today, onSelectDay }: CalendarWeekViewProps) {
+export function CalendarWeekView({ branchId, date, team, ctx, today, selectedDay = null, rhythm, onSelectDay }: CalendarWeekViewProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const days = React.useMemo(() => Array.from({ length: WEEK_DAYS }, (_, index) => addDays(weekStartOf(date), index)), [date]);
@@ -71,12 +78,16 @@ export function CalendarWeekView({ branchId, date, team, ctx, today, onSelectDay
                 const active = week[index].appointments.filter(isActive);
                 const expected = active.reduce((sum, item) => sum + (item.payment?.total ?? servicesPrice(servicesOf(ctx.catalog, item))), 0);
                 const isToday = today ? isSameDay(day, today) : false;
+                const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
                 return (
-                  <TableHead key={day.toISOString()} className={cn("text-center", isToday && "bg-primary/10")}>
-                    <Button variant="ghost" size="sm" className="h-auto flex-col gap-0 py-1" onClick={() => onSelectDay(day, null)} aria-label={formatDate(day, { weekday: "long", day: "numeric", month: "long" })}>
-                      <Text as="span" weight="semibold" className="capitalize">
-                        {formatDate(day, { weekday: "short", day: "numeric" })}
-                      </Text>
+                  <TableHead key={day.toISOString()} className={cn("text-center", isToday && "bg-primary/10", isSelected && "bg-primary/15")}>
+                    <Button variant="ghost" size="sm" className="h-auto flex-col gap-0 py-1" onClick={() => onSelectDay(day, null)} aria-pressed={isSelected} aria-label={formatDate(day, { weekday: "long", day: "numeric", month: "long" })} data-testid={`calendar-week-day-${format(day, "yyyy-MM-dd")}`}>
+                      <span className="flex items-center gap-1">
+                        <Text as="span" weight="semibold" className="capitalize">
+                          {formatDate(day, { weekday: "short", day: "numeric" })}
+                        </Text>
+                        <DayWeightBadge weight={dayWeightOf(rhythm, day)} booked={active.length} compact />
+                      </span>
                       <Text as="span" variant="caption" className="tabular-nums">
                         {t("calendar.meta.appointments", { count: active.length })}
                         {access.showTotals && ` · ${ctx.formatMoney(expected)}`}
@@ -111,7 +122,7 @@ export function CalendarWeekView({ branchId, date, team, ctx, today, onSelectDay
                   }
                   const percent = Math.round(cell.load * 100);
                   return (
-                    <TableCell key={day.toISOString()} className="p-1">
+                    <TableCell key={day.toISOString()} className={cn("p-1", selectedDay && isSameDay(day, selectedDay) && "bg-primary/5")}>
                       <Button
                         variant="ghost"
                         className="h-auto w-full flex-col items-stretch gap-1 px-2 py-1.5"

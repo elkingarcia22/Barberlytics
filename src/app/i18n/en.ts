@@ -1,6 +1,7 @@
 import { calendarPanelEn } from "./calendar/panel.en";
 import { calendarCheckoutEn } from "./calendar/checkout.en";
 import { calendarTimeOffEn } from "./calendar/timeOff.en";
+import { calendarDayPanelEn } from "./calendar/dayPanel.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
 import { bookingVariantsEn } from "./booking/variants.en";
@@ -1002,7 +1003,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.nextWeek": "Next week",
   "calendar.week.aria": "Weekly occupancy by barber",
   "calendar.week.cell": "{name}, {day}: {percent}% booked, {count} appointments",
-  "calendar.week.hint": "Each cell shows the share of the shift that is booked and the day's appointments. Tap one to open its schedule.",
+  "calendar.week.hint": "Each cell shows the share of the shift that is booked and the day's appointments. The flame marks days that are usually busy; the feather, quiet ones. Tap a day to see its summary alongside.",
   "calendar.block.fullDay": "Block the whole shift ({range})",
   "calendar.block.clashes": "There is {count} appointment in that range. Move it before blocking.",
   "calendar.block.clashes_plural": "There are {count} appointments in that range. Move them before blocking.",
@@ -1081,7 +1082,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.agenda.emptyHint": "Tap a free slot in the Day view or create the appointment from the bar.",
   "calendar.agenda.noMore": "No more appointments to show",
   "calendar.month.barber": "Barber",
-  "calendar.month.hint": "Each day shows how much of the shift is booked. Tap a day to open it.",
+  "calendar.month.hint": "Each day shows how much of the shift is booked and whether it is usually busy or quiet. Tap a day to see its summary alongside.",
   "calendar.status.scheduled": "Pending",
   "calendar.status.arrived": "Arrived",
   "calendar.status.seated": "In chair",
@@ -3802,4 +3803,5 @@ export const appEn: AppMessageCatalog = {
   ...calendarPanelEn,
   ...calendarCheckoutEn,
   ...calendarTimeOffEn,
+  ...calendarDayPanelEn,
 };

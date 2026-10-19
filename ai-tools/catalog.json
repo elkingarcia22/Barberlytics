@@ -1,5 +1,5 @@
 {
-  "sourceHash": "a220fa87b243ef7b",
+  "sourceHash": "e877431328d7688f",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -14362,9 +14362,9 @@
         },
         {
           "name": "days",
-          "type": "{ date: Date; occupancy: number | null; count: number }[]",
+          "type": "{ date: Date; occupancy: number | null; count: number; marker?: ReactNode }[]",
           "default": null,
-          "description": "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas."
+          "description": "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas; `marker`, una marca pequeña en la esquina (en la agenda, «día pesado» o «día suave» con su tooltip)."
         },
         {
           "name": "selected",

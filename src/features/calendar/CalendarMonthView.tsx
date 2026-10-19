@@ -10,12 +10,15 @@ import { QueryBoundary } from "@/lib/query";
 import { PersonAvatar } from "./calendarShared";
 import { monthKey, teamIds } from "./calendarModel";
 import { useMonthQuery } from "./queries";
-import type { Barber, TeamFilter } from "./types";
+import { dayWeightOf } from "./dayWeight";
+import { DayWeightBadge } from "./DayWeightBadge";
+import type { Barber, DayRhythm, TeamFilter } from "./types";
 
 /**
  * La vista Mes: la ocupación de un barbero (o del equipo) día por día, con
  * tres cifras arriba —citas del mes, ocupación media, día más lleno— y la
- * rejilla debajo. Tocar un día abre esa fecha en la vista Día.
+ * rejilla debajo, con los días que suelen ser pesados o suaves marcados.
+ * Tocar un día abre su panel al lado, sin dejar el mes.
  */
 
 export interface CalendarMonthViewProps {
@@ -28,9 +31,13 @@ export interface CalendarMonthViewProps {
   showTeam?: boolean;
   onSelectDay: (date: Date) => void;
   today?: Date;
+  /** El día abierto en el panel, resaltado. */
+  selectedDay?: Date | null;
+  /** El ritmo de la barbería, para marcar los días pesados y suaves. */
+  rhythm?: DayRhythm;
 }
 
-export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange, onSelectDay, today, showTeam = true }: CalendarMonthViewProps) {
+export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange, onSelectDay, today, selectedDay = null, rhythm, showTeam = true }: CalendarMonthViewProps) {
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   // La ocupación del mes se pide de un barbero o de todo el equipo: con varios marcados, de todos.
@@ -77,7 +84,11 @@ export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange,
         }
       >
         {(month) => {
-          const days: MonthOccupancyDay[] = month.days.map((day) => ({ date: parseISO(day.date), occupancy: day.occupancy, count: day.count }));
+          const days: MonthOccupancyDay[] = month.days.map((day) => {
+            const at = parseISO(day.date);
+            const weight = day.occupancy === null ? null : dayWeightOf(rhythm, at);
+            return { date: at, occupancy: day.occupancy, count: day.count, marker: weight && weight.level !== "normal" ? <DayWeightBadge weight={weight} booked={day.count} compact /> : undefined };
+          });
           const working = month.days.filter((day) => day.occupancy !== null);
           const total = month.days.reduce((sum, day) => sum + day.count, 0);
           const average = working.length > 0 ? working.reduce((sum, day) => sum + (day.occupancy ?? 0), 0) / working.length : 0;
@@ -93,7 +104,7 @@ export function CalendarMonthView({ branchId, date, team, barbers, onTeamChange,
                   description={busiest ? `${formatNumber(Math.round((busiest.occupancy ?? 0) * 100))}% · ${t("calendar.meta.appointments", { count: busiest.count })}` : undefined}
                 />
               </div>
-              <MonthOccupancyGrid month={date} days={days} selected={date} today={today} onSelectDay={onSelectDay} />
+              <MonthOccupancyGrid month={date} days={days} selected={selectedDay} today={today} onSelectDay={onSelectDay} />
             </div>
           );
         }}

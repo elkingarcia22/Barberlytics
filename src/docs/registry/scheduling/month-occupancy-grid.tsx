@@ -74,7 +74,7 @@ export const monthOccupancyGridEntry = defineEntry({
   ],
   props: [
     { name: "month", type: "Date", description: "Cualquier día del mes a mostrar." },
-    { name: "days", type: "{ date: Date; occupancy: number | null; count: number }[]", description: "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas." },
+    { name: "days", type: "{ date: Date; occupancy: number | null; count: number; marker?: ReactNode }[]", description: "Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas; `marker`, una marca pequeña en la esquina (en la agenda, «día pesado» o «día suave» con su tooltip)." },
     { name: "selected", type: "Date | null", description: "El día marcado." },
     { name: "onSelectDay", type: "(date: Date) => void", description: "Se llama al tocar un día del mes." },
     { name: "today", type: "Date", description: "Qué día lleva el círculo de «hoy». Inyectable para la doc y las pruebas." },

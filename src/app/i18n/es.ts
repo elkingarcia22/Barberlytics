@@ -1,6 +1,7 @@
 import { calendarPanelEs } from "./calendar/panel.es";
 import { calendarCheckoutEs } from "./calendar/checkout.es";
 import { calendarTimeOffEs } from "./calendar/timeOff.es";
+import { calendarDayPanelEs } from "./calendar/dayPanel.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
 /**
@@ -1038,7 +1039,7 @@ export const appEs = {
   "calendar.nextWeek": "Semana siguiente",
   "calendar.week.aria": "Ocupación de la semana por barbero",
   "calendar.week.cell": "{name}, {day}: {percent}% ocupado, {count} citas",
-  "calendar.week.hint": "Cada celda es la parte de la jornada reservada y las citas del día. Toca una para abrir su agenda.",
+  "calendar.week.hint": "Cada celda es la parte de la jornada reservada y las citas del día. La llama marca los días que suelen ser pesados; la pluma, los suaves. Toca un día para ver su resumen al lado.",
   "calendar.block.fullDay": "Bloquear toda su jornada ({range})",
   "calendar.block.clashes": "Hay {count} cita en esa franja. Muévela antes de bloquear.",
   "calendar.block.clashes_plural": "Hay {count} citas en esa franja. Muévelas antes de bloquear.",
@@ -1117,7 +1118,7 @@ export const appEs = {
   "calendar.agenda.emptyHint": "Toca una franja libre en la vista Día o crea la cita desde la barra.",
   "calendar.agenda.noMore": "No hay más citas para mostrar",
   "calendar.month.barber": "Barbero",
-  "calendar.month.hint": "Cada día muestra cuánta de la jornada está reservada. Toca un día para abrirlo.",
+  "calendar.month.hint": "Cada día muestra cuánta de la jornada está reservada y si suele ser pesado o suave. Toca un día para ver su resumen al lado.",
   "calendar.status.scheduled": "Pendiente",
   "calendar.status.arrived": "Llegó",
   "calendar.status.seated": "En silla",
@@ -3839,4 +3840,5 @@ export const appEs = {
   ...calendarPanelEs,
   ...calendarCheckoutEs,
   ...calendarTimeOffEs,
+  ...calendarDayPanelEs,
 } as const;

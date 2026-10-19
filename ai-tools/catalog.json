@@ -1,5 +1,5 @@
 {
-  "sourceHash": "e877431328d7688f",
+  "sourceHash": "8ace2089b6100f29",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -9901,7 +9901,7 @@
           "name": "options",
           "type": "MultiSelectOption[]",
           "default": null,
-          "description": "Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura) y disabled. Se filtra por label y description."
+          "description": "Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura), meta (un dato corto a la derecha, como cuántas hay) y disabled. Se filtra por label y description."
         },
         {
           "name": "value",
@@ -9944,6 +9944,18 @@
           "type": "string",
           "default": null,
           "description": "Clases extra para el trigger."
+        },
+        {
+          "name": "ariaLabel",
+          "type": "string",
+          "default": null,
+          "description": "Nombre accesible del trigger cuando no va dentro de un Field con etiqueta."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "default": null,
+          "description": "Id del trigger, para enlazarlo con su etiqueta."
         }
       ],
       "guidelines": {

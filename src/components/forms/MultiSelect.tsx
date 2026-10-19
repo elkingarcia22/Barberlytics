@@ -23,6 +23,8 @@ export type MultiSelectOption = {
   description?: string
   /** Avatar o miniatura a la izquierda de la opción. */
   leading?: React.ReactNode
+  /** Un dato corto a la derecha (cuántas hay, por ejemplo). */
+  meta?: React.ReactNode
   disabled?: boolean
 }
 
@@ -35,6 +37,11 @@ export type MultiSelectProps = {
   emptyMessage?: string
   disabled?: boolean
   className?: string
+  /** El nombre del control cuando no va dentro de un `Field` con etiqueta. */
+  ariaLabel?: string
+  /** Para pruebas y para enlazarlo con su etiqueta. */
+  id?: string
+  "data-testid"?: string
 }
 
 export function MultiSelect({
@@ -46,6 +53,9 @@ export function MultiSelect({
   emptyMessage = "No se encontraron resultados.",
   disabled = false,
   className,
+  ariaLabel,
+  id,
+  "data-testid": testId,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -66,8 +76,11 @@ export function MultiSelect({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          id={id}
           role="combobox"
           aria-expanded={open}
+          aria-label={ariaLabel}
+          data-testid={testId}
           disabled={disabled}
           className={cn(
             "flex h-auto min-h-10 w-full items-center justify-between rounded-md border border-border/70 bg-muted px-5 py-3 text-sm text-foreground font-medium transition-all hover:bg-muted/60 focus:ring-2 focus:ring-primary/20",
@@ -134,11 +147,12 @@ export function MultiSelect({
                   keywords={[option.label, option.description ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => handleSelect(option.value)}
-                  className="flex items-center px-4 py-3 rounded-xl cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-1 hover:bg-surface-subtle"
+                  className="flex flex-col items-stretch px-4 py-3 rounded-xl cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-1 hover:bg-surface-subtle"
                 >
                   <div className="flex items-center w-full gap-3">
                     {option.leading}
                     <span className="flex-1 text-[13px] font-bold tracking-tight leading-none">{option.label}</span>
+                    {option.meta !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{option.meta}</span>}
                     {value.includes(option.value) && (
                       <div className="bg-primary/10 p-1 rounded-full">
                         <Check className={cn("h-3 w-3 text-primary")} />

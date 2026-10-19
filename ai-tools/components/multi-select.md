@@ -12,7 +12,7 @@ import { MultiSelect } from "@/components/forms"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `options` | `MultiSelectOption[]` |  | Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura) y disabled. Se filtra por label y description. |
+| `options` | `MultiSelectOption[]` |  | Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura), meta (un dato corto a la derecha, como cuántas hay) y disabled. Se filtra por label y description. |
 | `value` | `string[]` | `[]` | Valores seleccionados (controlado). |
 | `onValueChange` | `(value: string[]) => void` |  | Se llama con el arreglo completo al añadir o quitar una opción. |
 | `placeholder` | `string` | `"Seleccionar opciones"` | Texto del trigger cuando no hay selección. |
@@ -20,6 +20,8 @@ import { MultiSelect } from "@/components/forms"
 | `emptyMessage` | `string` | `"No se encontraron resultados."` | Mensaje cuando la lista queda vacía. |
 | `disabled` | `boolean` | `false` | Deshabilita el trigger completo. |
 | `className` | `string` |  | Clases extra para el trigger. |
+| `ariaLabel` | `string` |  | Nombre accesible del trigger cuando no va dentro de un Field con etiqueta. |
+| `id` | `string` |  | Id del trigger, para enlazarlo con su etiqueta. |
 
 ## Guías
 

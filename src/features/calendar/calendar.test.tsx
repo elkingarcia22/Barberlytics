@@ -674,33 +674,41 @@ describe("Calendario", () => {
     // Solo las filas de cita: los iconos de cada fila son otra lista dentro.
     const rows = () => screen.getByTestId("calendar-agenda").querySelectorAll('[data-slot="list-item"]').length;
     const all = agenda.querySelectorAll('[data-slot="list-item"]').length;
-    // Estados y servicios viven en el mismo panel, como listas de casillas con su cuenta.
+    // Estados y servicios viven en el mismo panel, cada grupo como un campo de varias opciones con su cuenta.
     await user.click(screen.getByTestId("calendar-filters"));
     const panel = await screen.findByTestId("calendar-filters-panel");
-    const countOf = (testId: string) => Number(within(panel).getByTestId(testId).querySelector("[data-count]")?.textContent);
-    const paid = countOf("calendar-filter-status-paid");
-    const upcoming = countOf("calendar-filter-status-upcoming");
+    const open = async (field: string) => {
+      await user.click(within(panel).getByTestId(`calendar-filter-${field}`));
+      return screen.findByRole("listbox");
+    };
+    const option = (list: HTMLElement, name: RegExp) => within(list).getByRole("option", { name });
+    const countOf = (element: HTMLElement) => Number(within(element).getByText(/^\d+$/).textContent);
+
+    let list = await open("status");
+    const paid = countOf(option(list, /^Cobrada/));
+    const upcoming = countOf(option(list, /^Agendada/));
     expect(paid).toBeGreaterThan(0);
     expect(upcoming).toBeGreaterThan(0);
 
     // Dos estados a la vez suman sus citas.
-    await user.click(within(within(panel).getByTestId("calendar-filter-status-paid")).getByRole("checkbox"));
+    await user.click(option(list, /^Cobrada/));
     await waitFor(() => expect(rows()).toBe(paid));
-    await user.click(within(within(panel).getByTestId("calendar-filter-status-upcoming")).getByRole("checkbox"));
+    await user.click(option(list, /^Agendada/));
     await waitFor(() => expect(rows()).toBe(paid + upcoming));
     expect(screen.getByTestId("calendar-filters-count")).toHaveTextContent("2");
+    await user.keyboard("{Escape}");
 
     // Quitar los filtros devuelve el día entero, de una sola vez.
     await user.click(within(panel).getByTestId("calendar-filters-clear"));
     await waitFor(() => expect(rows()).toBe(all));
 
     // Los servicios son los del catálogo, combos incluidos; se marcan varios.
-    expect(within(panel).getByTestId("calendar-filter-service-svc_premium")).toHaveTextContent("Ritual premium");
-    const ritual = countOf("calendar-filter-service-svc_premium");
-    const fade = countOf("calendar-filter-service-svc_fade");
-    await user.click(within(within(panel).getByTestId("calendar-filter-service-svc_premium")).getByRole("checkbox"));
+    list = await open("service");
+    const ritual = countOf(option(list, /^Ritual premium/));
+    const fade = countOf(option(list, /^Fade/));
+    await user.click(option(list, /^Ritual premium/));
     await waitFor(() => expect(rows()).toBe(ritual));
-    await user.click(within(within(panel).getByTestId("calendar-filter-service-svc_fade")).getByRole("checkbox"));
+    await user.click(option(list, /^Fade/));
     await waitFor(() => expect(rows()).toBe(ritual + fade));
   }, 15_000);
 

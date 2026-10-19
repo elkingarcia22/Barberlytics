@@ -150,7 +150,7 @@ const handleChange = (next: string[]) => setValue(next.slice(0, MAX));
     },
   ],
   props: [
-    { name: "options", type: "MultiSelectOption[]", description: "Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura) y disabled. Se filtra por label y description." },
+    { name: "options", type: "MultiSelectOption[]", description: "Lista de opciones: value, label y, opcionales, description, leading (avatar o miniatura), meta (un dato corto a la derecha, como cuántas hay) y disabled. Se filtra por label y description." },
     { name: "value", type: "string[]", default: "[]", description: "Valores seleccionados (controlado)." },
     { name: "onValueChange", type: "(value: string[]) => void", description: "Se llama con el arreglo completo al añadir o quitar una opción." },
     { name: "placeholder", type: "string", default: '"Seleccionar opciones"', description: "Texto del trigger cuando no hay selección." },
@@ -158,6 +158,8 @@ const handleChange = (next: string[]) => setValue(next.slice(0, MAX));
     { name: "emptyMessage", type: "string", default: '"No se encontraron resultados."', description: "Mensaje cuando la lista queda vacía." },
     { name: "disabled", type: "boolean", default: "false", description: "Deshabilita el trigger completo." },
     { name: "className", type: "string", description: "Clases extra para el trigger." },
+    { name: "ariaLabel", type: "string", description: "Nombre accesible del trigger cuando no va dentro de un Field con etiqueta." },
+    { name: "id", type: "string", description: "Id del trigger, para enlazarlo con su etiqueta." },
   ],
   guidelines: {
     do: ["Úsalo a partir de 5 opciones; con menos, un CheckboxCardGroup se lee mejor.", "Envuélvelo en un Field para etiqueta, ayuda y error.", "Ordena las opciones por frecuencia de uso o alfabéticamente."],

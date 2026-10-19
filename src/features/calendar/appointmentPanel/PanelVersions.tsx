@@ -9,6 +9,7 @@ import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { appointmentEnd, appointmentStart, durationLabel, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
+import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
 import type { Appointment, AppointmentPatch } from "../types";
 import { AppointmentFields } from "./AppointmentFields";
 import { ClientPageContent, ClientSummaryRow } from "./ClientPage";
@@ -105,7 +106,9 @@ export function CardsVersion(props: VersionProps) {
           <BarberRequest model={model} onPatch={onPatch} />
         </PanelQuestion>
       )}
-      <QuickTiles model={model} ctx={ctx} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+      {/* Si confirmó que viene y qué mensajes se le mandaron por WhatsApp (recordatorio, confirmación). */}
+      {!model.appointment.walkIn && <AppointmentMessages appointment={model.appointment} onPatch={onPatch} />}
+      <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
       <LinkedBlock {...props} />
       {model.known && (
         <PanelQuestion title={t("calendar.panel.cards.who")}>
@@ -202,7 +205,8 @@ export function MomentVersion(props: VersionProps) {
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
         <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="w-full" />
       </section>
-      <QuickTiles model={model} ctx={ctx} onChange={() => pages.open("appointment")} />
+      <QuickTiles model={model} onChange={() => pages.open("appointment")} />
+      {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={props.onPatch} />}
       <div className="grid grid-cols-2 gap-2">
         <ActionTile layout="stacked" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="calendar" />} />} title={t("calendar.panel.page.appointment")} description={durationLabel(appointment.durationMin)} onClick={() => pages.open("appointment")} />
         {model.known ? (

@@ -17,10 +17,8 @@ export const calendarPanelEs = {
 
   // ── Selector ──
   "calendar.panel.version.label": "Diseño del panel",
-  "calendar.panel.version.tabs": "Pestañas (actual)",
   "calendar.panel.version.cards": "Arma la cita",
   "calendar.panel.version.moment": "Tarjeta del momento",
-  "calendar.panel.hint.tabs": "El de hoy: resumen, Clipper, notas, cliente e historial por pestañas.",
   "calendar.panel.hint.cards": "Con la cara de «Arma tu cita» de la reserva: la cita en tarjetas que se cambian en su sitio.",
   "calendar.panel.hint.moment": "Una tarjeta grande con lo que toca y su botón; lo demás, en tarjetas que abren su página.",
 

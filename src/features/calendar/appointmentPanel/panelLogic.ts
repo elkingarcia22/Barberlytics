@@ -69,13 +69,15 @@ export const restActions = (model: AppointmentModel): AppointmentActionId[] =>
 export const mainAction = (model: AppointmentModel): AppointmentActionId => model.playbook.primary[model.playbook.primary.length - 1];
 
 /** Las acciones rápidas en tarjetas, además de la principal del pie. */
-export type QuickId = "call" | "whatsapp" | "noShow" | "cancel" | "change" | "ready" | "clipper";
+export type QuickId = "call" | "whatsapp" | "noShow" | "cancel" | "change";
 
 /**
- * Qué atajos se ofrecen según el momento: si va tarde, llamar, escribir, «no
- * asistió» y cancelar (la principal sigue siendo ingresar); antes de llegar,
- * cambiar la cita; en la silla, sumar un servicio; cobrada, hablar con él.
- * El cliente no va aquí: cada versión ya tiene su entrada a él.
+ * Qué atajos se ofrecen según el momento, solo cuando sirven: si va tarde,
+ * llamar, escribir, «no asistió» y cancelar (la principal sigue siendo
+ * ingresar); si aún no llega, llamar, escribir, cambiar la cita y cancelar.
+ * Ya en la barbería —esperando, en silla, por cobrar— ninguno tiene sentido:
+ * la acción es la del pie y lo raro queda en «⋯». No siempre hace falta tener
+ * atajos. Clipper no es un atajo: va siempre como su botón.
  */
 export function quickActions(model: AppointmentModel): QuickId[] {
   const contact: QuickId[] = model.phone ? ["call", "whatsapp"] : [];
@@ -84,16 +86,8 @@ export function quickActions(model: AppointmentModel): QuickId[] {
       return [...contact, "noShow", "cancel"];
     case "upcoming":
       return [...contact, "change", "cancel"];
-    case "waiting":
-      return [...(model.appointment.barberReady ? [] : (["ready"] as QuickId[])), "change", ...contact.slice(1), "cancel"];
-    case "seated":
-    case "toCollect":
-      return ["change", "clipper"];
-    case "paid":
-      return [...contact.slice(1), "clipper"];
-    case "noShow":
-    case "cancelled":
-      return contact;
+    default:
+      return [];
   }
 }
 

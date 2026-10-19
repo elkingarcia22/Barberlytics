@@ -24,7 +24,7 @@ import { ClientTags } from "./PanelParts";
 import { PanelStepper } from "./PanelShared";
 import { PanelField, PanelQuestion } from "./bookingStyle";
 import { SourceLine } from "./SourceLine";
-import { StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
+import { ClipperButton, StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -148,7 +148,10 @@ function AfterVisitCards({ model, ctx, onOpenClient, onOpenHistory, linked = [],
           <ClientSummaryRow model={model} onOpen={onOpenClient} />
         </PanelQuestion>
       )}
-      <HistoryLink onOpen={onOpenHistory} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ClipperButton model={model} ctx={ctx} />
+        <HistoryLink onOpen={onOpenHistory} />
+      </div>
     </div>
   );
 }
@@ -201,6 +204,7 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
         )}
         <ActionTile layout="stacked" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="clock" />} />} title={t("calendar.history.title")} description={t("calendar.panel.index.historyHint")} onClick={onOpenHistory} />
       </div>
+      <ClipperButton model={model} ctx={ctx} />
     </div>
   );
 }
@@ -208,7 +212,7 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
 function HistoryLink({ onOpen }: { onOpen: () => void }) {
   const t = useAppT();
   return (
-    <button type="button" onClick={onOpen} className="inline-flex items-center gap-1 self-end rounded-md text-sm font-medium text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
+    <button type="button" onClick={onOpen} className="inline-flex items-center gap-1 rounded-md text-sm font-medium text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
       {t("calendar.history.title")}
       <ThemaIcon name="chevronRight" size="sm" />
     </button>

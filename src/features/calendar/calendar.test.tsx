@@ -737,7 +737,8 @@ describe("Calendario", () => {
     const cards = await within(grid).findAllByRole("button", { name: /^Abrir / });
     await user.click(cards.find((card) => !/Sin cita|Cliente de paso/i.test(card.getAttribute("aria-label") ?? "")) as HTMLElement);
     const drawer = await screen.findByTestId("appointment-drawer");
-    await user.click(within(drawer).getByRole("tab", { name: /Notas/ }));
+    // Las notas viven en la página del cliente, dentro del panel.
+    await user.click(within(drawer).getByRole("button", { name: /Cliente ·/ }));
 
     await user.click(await within(drawer).findByRole("button", { name: "Acciones de Prefiere tijera arriba" }));
     await user.click(await screen.findByRole("menuitem", { name: "Editar" }));
@@ -757,7 +758,7 @@ describe("Calendario", () => {
     expect(db.calendar.clients.filter((item) => item.notes.some((entry) => entry.text === "Prefiere tijera arriba"))).toHaveLength(db.calendar.clients.length - 1);
   });
 
-  test("el detalle de la cita pone a la vista el siguiente paso y cobrar lo sustituye por el cobro", async () => {
+  test("el panel de la cita pone a la vista el siguiente paso y cobrar lo sustituye por el cobro", async () => {
     const user = userEvent.setup();
     mount();
     const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
@@ -769,16 +770,17 @@ describe("Calendario", () => {
     const drawer = await screen.findByTestId("appointment-drawer");
     expect(within(drawer).getByRole("list", { name: "Avance de la cita" })).toBeInTheDocument();
     expect(within(drawer).getByTestId("appointment-headline")).toBeInTheDocument();
-    // La cita se lee primero; el formulario aparece al pedir editarla.
-    expect(within(drawer).queryByTestId("appointment-edit")).toBeNull();
-    await user.click(within(drawer).getByTestId("appointment-edit-toggle"));
-    expect(within(drawer).getByTestId("appointment-edit")).toBeInTheDocument();
+    // La cita en tarjetas, como la reserva: el servicio se cambia en su sitio, sin abrir un formulario.
+    expect(within(drawer).getByTestId("panel-field-services")).toBeInTheDocument();
     expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Ingresar");
 
     await user.click(screen.getByTestId("appointment-next-step"));
     await waitFor(() => expect(screen.getByTestId("appointment-next-step")).toHaveTextContent("Sentar"));
+    // Ya en la barbería no hay atajos: la acción es la del pie.
+    expect(within(screen.getByTestId("appointment-drawer")).queryByTestId("panel-quick")).toBeNull();
 
-    await user.click(screen.getByTestId("appointment-pay"));
+    await user.click(screen.getByTestId("appointment-next-step"));
+    await user.click(await screen.findByTestId("appointment-pay"));
     expect(await screen.findByTestId("checkout-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("appointment-drawer")).toBeNull();
     // Las propinas son las de Configuración, no una lista fija.

@@ -11,10 +11,8 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.search.empty": "Nothing for «{query}»",
   "calendar.search.emptyHint": "Try the phone, barber, service or status («no-show», «paid»).",
   "calendar.panel.version.label": "Panel design",
-  "calendar.panel.version.tabs": "Tabs (current)",
   "calendar.panel.version.cards": "Build the booking",
   "calendar.panel.version.moment": "Moment card",
-  "calendar.panel.hint.tabs": "Today's panel: summary, Clipper, notes, client and history in tabs.",
   "calendar.panel.hint.cards": "Looks like «Build your booking» in online booking: the appointment as cards you change in place.",
   "calendar.panel.hint.moment": "One big card with what's next and its button; the rest in cards that open their page.",
 

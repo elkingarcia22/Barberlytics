@@ -6,7 +6,7 @@ de fitness y productos como Linear o Notion). Con eso se construyeron **cinco ve
 que se pueden comparar en la app, más la actual.
 
 **Cómo verlas:** abre una cita en `/calendario`; arriba del panel está el selector «Diseño del panel».
-La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=tabs|cards|moment`
+La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=cards|moment`
 abre directo una versión. Código en `src/features/calendar/appointmentPanel/`.
 
 > **2026-10-18: segunda ronda.** Las cinco versiones de la sección 4 (Como la reserva, Mostrador, Ficha
@@ -208,3 +208,8 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   campo; busca por nombre, celular, barbero, servicio, estado, tipo, origen, notas, día y hora entre un
   mes atrás y 45 días adelante (`GET /calendar/appointments`).
 - **Foto del corte** en la demo: las citas cuya nota dice «Trae foto de referencia» la traen.
+- **2026-10-18, más tarde:** se quitó el diseño de **pestañas** (quedan «Arma la cita», por defecto, y
+  «Tarjeta del momento»). Ya en la barbería (esperando, en silla, por cobrar) no hay atajos: la acción
+  es la del pie y lo raro queda en «⋯». Clipper va siempre como su botón, también en la cobrada. Del
+  panel de pestañas se conservan la confirmación y los mensajes de WhatsApp (`AppointmentMessages`) y
+  el cobro por lo que falta (`appointmentBill`: impuesto de la sucursal, menos lo pagado en línea).

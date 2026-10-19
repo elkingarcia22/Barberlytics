@@ -688,10 +688,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         ...(reflow && isSameDay(reflow.plan.date, state.date) ? [...reflow.plan.moves.map((move) => move.appointment.id), ...(reflow.anchorPatch ? [reflow.plan.anchor.id] : [])] : []),
         // Mirando solo los huecos, todas las citas se apagan.
         ...(state.freeOnly ? (day.data?.appointments ?? []).map((item) => item.id) : []),
+        // Mirando solo ausencias o bloqueos, también.
+        ...(state.timeOffOnly.length > 0 ? (day.data?.appointments ?? []).map((item) => item.id) : []),
         // Mirando las enlazadas, las sueltas se apagan.
         ...(state.showLinked ? (day.data?.appointments ?? []).filter((item) => !linkGroups.has(item.id)).map((item) => item.id) : []),
       ]),
-    [reflow, state.date, state.freeOnly, state.showLinked, day.data, linkGroups]
+    [reflow, state.date, state.freeOnly, state.timeOffOnly.length, state.showLinked, day.data, linkGroups]
   );
 
   // Las ausencias que esperan aprobación se ven rayadas en la columna del barbero (tocarlas abre su revisión).
@@ -722,13 +724,16 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       });
   }, [absences.data, ctx, state.date, state.view, t]);
 
-  // Ver u ocultar ausencias y bloqueos en la rejilla: solo se dejan de pintar; siguen ocupando su hueco.
-  const { absences: hideAbsences, blocks: hideBlocks } = state.hidden;
-  const hideBlock = React.useCallback((block: TimeBlock) => (isAbsenceBlock(block) ? hideAbsences : hideBlocks), [hideAbsences, hideBlocks]);
-  const timeOffVisibility = React.useMemo(() => {
+  // Ver solo ausencias y/o bloqueos, como «solo huecos»: lo no elegido deja de pintarse (sigue ocupando su hueco).
+  const timeOffOnly = state.timeOffOnly;
+  const onlyAbsences = timeOffOnly.includes("absences");
+  const onlyBlocks = timeOffOnly.includes("blocks");
+  const hideAbsences = timeOffOnly.length > 0 && !onlyAbsences;
+  const hideBlock = React.useCallback((block: TimeBlock) => timeOffOnly.length > 0 && (isAbsenceBlock(block) ? !onlyAbsences : !onlyBlocks), [timeOffOnly.length, onlyAbsences, onlyBlocks]);
+  const timeOffFilter = React.useMemo(() => {
     const blocks = day.data?.blocks ?? [];
-    return { showAbsences: !hideAbsences, showBlocks: !hideBlocks, absences: blocks.filter(isAbsenceBlock).length + absenceGhosts.length, blocks: blocks.filter((block) => !isAbsenceBlock(block)).length };
-  }, [day.data, absenceGhosts.length, hideAbsences, hideBlocks]);
+    return { selected: timeOffOnly, counts: { absences: blocks.filter(isAbsenceBlock).length + absenceGhosts.length, blocks: blocks.filter((block) => !isAbsenceBlock(block)).length } };
+  }, [day.data, absenceGhosts.length, timeOffOnly]);
 
   const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...(hideAbsences ? [] : absenceGhosts)], [freeGhosts, reflowGhosts, suggestionGhosts, absenceGhosts, hideAbsences]);
 
@@ -919,8 +924,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               onFreeOnlyChange={state.view === "day" ? state.setFreeOnly : undefined}
               showLinked={state.view === "day" ? state.showLinked : undefined}
               onShowLinkedChange={state.view === "day" ? state.setShowLinked : undefined}
-              timeOff={state.view === "day" ? timeOffVisibility : undefined}
-              onTimeOffChange={state.view === "day" ? (next) => state.setHidden({ absences: !next.showAbsences, blocks: !next.showBlocks }) : undefined}
+              timeOff={state.view === "day" ? timeOffFilter : undefined}
+              onTimeOffChange={state.view === "day" ? state.setTimeOffOnly : undefined}
             />
           ) : undefined
         }

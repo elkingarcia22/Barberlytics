@@ -11,6 +11,7 @@ import { ScheduleColorDot } from "@/components/scheduling";
 import { Switch } from "@/components/ui/switch";
 import { PULSE_FOCUSES, type DayPulse, type PulseFocus } from "./pulseModel";
 import type { ClientType } from "./types";
+import { TIME_OFF_KINDS, type TimeOffKind } from "./useCalendarState";
 
 /**
  * El control de filtros de la agenda: qué citas se miran —en qué estado
@@ -76,17 +77,15 @@ export interface CalendarFiltersProps {
   /** Resaltar las citas enlazadas; solo en la rejilla del día. */
   showLinked?: boolean;
   onShowLinkedChange?: (next: boolean) => void;
-  /** Ver u ocultar en la rejilla las ausencias y los bloqueos (juntos, como en las acciones); con cuántos hay hoy. */
-  timeOff?: TimeOffVisibility;
-  onTimeOffChange?: (next: Pick<TimeOffVisibility, "showAbsences" | "showBlocks">) => void;
+  /**
+   * Ver solo ausencias y/o bloqueos (juntos, como en las acciones), con cuántos hay hoy: lo
+   * elegido queda a la vista y las citas se apagan, como con «solo huecos». Solo en la rejilla del día.
+   */
+  timeOff?: { selected: readonly TimeOffKind[]; counts: Record<TimeOffKind, number> };
+  onTimeOffChange?: (next: TimeOffKind[]) => void;
 }
 
-export interface TimeOffVisibility {
-  showAbsences: boolean;
-  showBlocks: boolean;
-  absences: number;
-  blocks: number;
-}
+const TIME_OFF_LABEL: Record<TimeOffKind, AppMessageKey> = { absences: "calendar.filters.showAbsences", blocks: "calendar.filters.showBlocks" };
 
 const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
   late: "calendar.live.late",
@@ -103,8 +102,8 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
   const t = useAppT();
   const freeId = React.useId();
   const linkedId = React.useId();
-  const hiddenTimeOff = timeOff ? (timeOff.showAbsences ? 0 : 1) + (timeOff.showBlocks ? 0 : 1) : 0;
-  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0) + hiddenTimeOff;
+  const timeOffSelected = timeOff?.selected.length ?? 0;
+  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0) + timeOffSelected;
   const emit = (next: Partial<CalendarFilterSelection>) =>
     onChange({ focuses: [...focuses], serviceIds: [...serviceIds], clientTypes: [...clientTypes], ...next });
 
@@ -153,11 +152,14 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
         )}
 
         {timeOff && onTimeOffChange && (
-          <section className="space-y-1.5" aria-label={t("calendar.filters.timeOff")} data-testid="calendar-filter-timeoff">
-            <Text variant="label">{t("calendar.filters.timeOff")}</Text>
-            <ToggleRow label={t("calendar.filters.showAbsences")} count={timeOff.absences} checked={timeOff.showAbsences} onChange={(next) => onTimeOffChange({ showAbsences: next, showBlocks: timeOff.showBlocks })} testId="calendar-filter-absences" />
-            <ToggleRow label={t("calendar.filters.showBlocks")} count={timeOff.blocks} checked={timeOff.showBlocks} onChange={(next) => onTimeOffChange({ showAbsences: timeOff.showAbsences, showBlocks: next })} testId="calendar-filter-blocks" />
-          </section>
+          <FilterSelect
+            id="timeoff"
+            label={t("calendar.filters.timeOff")}
+            placeholder={t("calendar.filters.anyTimeOff")}
+            options={TIME_OFF_KINDS.map((kind) => ({ value: kind, label: t(TIME_OFF_LABEL[kind]), meta: timeOff.counts[kind] }))}
+            value={timeOff.selected}
+            onChange={(next) => onTimeOffChange(next as TimeOffKind[])}
+          />
         )}
 
         <FilterSelect
@@ -218,7 +220,7 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
               onChange({ focuses: [], serviceIds: [], clientTypes: [] });
               if (freeOnly) onFreeOnlyChange?.(false);
               if (showLinked) onShowLinkedChange?.(false);
-              if (hiddenTimeOff > 0) onTimeOffChange?.({ showAbsences: true, showBlocks: true });
+              if (timeOffSelected > 0) onTimeOffChange?.([]);
             }}
             data-testid="calendar-filters-clear">
             {t("calendar.filters.clear")}
@@ -226,24 +228,6 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
         )}
       </PopoverContent>
     </Popover>
-  );
-}
-
-/** Un interruptor de una línea con cuántos hay hoy: «Bloqueos  3  ●». */
-function ToggleRow({ label, count, checked, onChange, testId }: { label: string; count: number; checked: boolean; onChange: (next: boolean) => void; testId: string }) {
-  const id = React.useId();
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <label htmlFor={id} className="flex min-w-0 flex-1 items-center justify-between gap-2">
-        <Text as="span" size="sm">
-          {label}
-        </Text>
-        <Text as="span" size="xs" tone="muted" tabular>
-          {count}
-        </Text>
-      </label>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} data-testid={testId} />
-    </div>
   );
 }
 

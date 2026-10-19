@@ -1380,6 +1380,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.filters.density": "Density",
   "calendar.filters.view": "View",
   "calendar.filters.clear": "Clear filters",
+  "calendar.filters.anyTimeOff": "Everything",
   "calendar.filters.timeOff": "Time off and blocks",
   "calendar.filters.showAbsences": "Vacations and time off",
   "calendar.filters.showBlocks": "Blocks",

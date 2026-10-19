@@ -201,7 +201,7 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, linked = []
         </div>
       </section>
       {open === "pin" && <PinSeries model={model} ctx={ctx} onClose={() => setOpen(null)} />}
-      {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} />}
+      {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} group={linked} />}
     </div>
   );
 }

@@ -342,3 +342,13 @@ reserva, dentro del mismo panel y con el ticket abajo.
   otro; a dónde vuelve y por qué. Lo ya devuelto se descuenta.
 - **Borrar la venta** (dueño y administrador) en el «⋯» de la cobrada, con motivo: la cita vuelve a «en
   silla» sin pago.
+
+## 19. Reagendar varias y que el cliente reagende (2026-10-19)
+
+- **Reagendar** (cita cerrada) con varias citas en la visita: «Reagendar también la otra cita de la
+  visita» (encendido por defecto) las agenda todas a la misma distancia, con sus barberos y servicios, y
+  quedan enlazadas otra vez.
+- **¿Prefiere elegir él?**: se le manda por SMS o correo el enlace de la reserva en línea
+  (`features/booking/rebookLink.ts`: `/reservar?reagendar=1&servicios=…&barbero=…&sucursal=…`). Al
+  identificarse cae directo en elegir la hora con su servicio y barbero puestos, y paga como en cualquier
+  reserva.

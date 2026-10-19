@@ -438,6 +438,8 @@ export function appointmentMarkers(appointment: Appointment, client: Client | un
   else if (client?.notes.some((note) => note.kind !== "allergy")) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.clientNote") });
   // Confirmó que viene (por el enlace de WhatsApp o con recepción): se ve mientras la cita está por llegar.
   if (appointment.status === "scheduled" && appointment.confirmation?.status === "confirmed") markers.push({ id: "confirmed", icon: "confirmed", label: ctx.t("calendar.marker.confirmed") });
+  // Riesgo alto de no venir: una marca en la tarjeta para confirmar o pedir anticipo a tiempo.
+  if (appointment.risk?.level === "high") markers.push({ id: "risk", icon: "risk", label: ctx.t("calendar.marker.risk", { percent: Math.round(appointment.risk.probability * 100) }) });
   if (appointment.status === "paid") markers.push({ id: "paid", icon: "paid", label: ctx.t("calendar.marker.paid") });
   return markers;
 }
@@ -451,6 +453,7 @@ const MARKER_PREF: Record<string, CalendarCardPref | null> = {
   repeat: "repeat",
   note: "notes",
   confirmed: "status",
+  risk: "status",
   paid: null,
 };
 

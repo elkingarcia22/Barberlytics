@@ -19,6 +19,7 @@ import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { MyPayStatus } from "./MyPayStatus";
+import { PayNarrative } from "./PayNarrative";
 import { PayrollMemberDrawer } from "./PayrollMemberDrawer";
 import { myPayCells, myPayColumns } from "./myPayHome";
 import { usePayrollQuery } from "./queries";
@@ -127,6 +128,7 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
     <div className={cn("flex min-h-0 flex-1 flex-col", fetching && "opacity-80 transition-opacity motion-reduce:transition-none")}>
       <section aria-label={t("payroll.mine.summaryAria")} className="mb-section shrink-0 space-y-stack">
         <MyPayStatus run={data.run ?? null} member={member} formatMoney={formatMoney} />
+        <PayNarrative member={member} formatMoney={formatMoney} />
         <div className="grid gap-stack sm:grid-cols-2 xl:grid-cols-4">{isRent ? <RentCards member={member} formatMoney={formatMoney} /> : <CommissionCards member={member} formatMoney={formatMoney} />}</div>
         {isRent && (member.balance ?? member.net) < 0 && (
           <Alert variant="warning" data-testid="my-pay-owes">

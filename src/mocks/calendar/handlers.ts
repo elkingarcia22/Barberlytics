@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
+import { withRisk } from "./risk";
 import { moveStock, releaseAppointmentStock, syncAppointmentStock } from "../inventory/stock";
 import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { appointmentAccount } from "./account";
@@ -236,7 +237,9 @@ export const calendarHandlers = [
     const branchId = url.searchParams.get("branchId") ?? "ma";
     if (!DAY_KEY.test(day)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.", { fields: { date: ["Fecha inválida."] } });
     const hours = Object.fromEntries(barbersIn(branchId).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day)]));
-    return HttpResponse.json({ date: day, appointments: appointmentsOn(branchId, day), blocks: blocksOn(branchId, day), hours });
+    // Cada cita por atender lleva su riesgo de no venir (ver risk.ts).
+    const now = new Date();
+    return HttpResponse.json({ date: day, appointments: appointmentsOn(branchId, day).map((item) => withRisk(item, now)), blocks: blocksOn(branchId, day), hours });
   }),
 
   http.get(`${BASE}/calendar/month`, async ({ request }) => {

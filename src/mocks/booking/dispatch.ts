@@ -59,7 +59,7 @@ export function payloadOf(message: MockOutboxMessage): WhatsAppPayload | null {
       ? [firstName(client.name), services || "tu cita", when, branch]
       : [firstName(client.name), when, barber ? barber.firstName : branch];
   // El botón de la plantilla: confirmar la cita o, si se liberó una hora, reservarla.
-  const buttonParam = message.kind === "slotFreed" ? `${branchId}?hora=${encodeURIComponent(start)}` : appointment?.confirmToken;
+  const buttonParam = message.kind === "slotFreed" || message.kind === "reactivation" ? `${branchId}?hora=${encodeURIComponent(start)}` : appointment?.confirmToken;
   return { to: message.to, kind: message.kind, params, buttonParam };
 }
 

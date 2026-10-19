@@ -22,6 +22,7 @@ import { InsightsDashboard } from "./tabs/InsightsDashboard";
 import type { MetricsBusiness, MetricsParams } from "./types";
 import { useAccess } from "@/features/access";
 import { OnboardingChecklist } from "@/features/onboarding/OnboardingChecklist";
+import { WeekNarrative } from "./WeekNarrative";
 
 const TAB_LABELS: Readonly<Record<MetricsTab, AppMessageKey>> = {
   business: "metrics.tab.business",
@@ -161,6 +162,8 @@ export function MetricsPage() {
       <PageHeader title={t("metrics.title")} description={t(filters.isOwn ? "metrics.ownDescription" : "metrics.description")} />
       {/* La barbería recién creada ve aquí lo que le falta para operar; se va sola cuando está lista. */}
       {(access.role === "owner" || access.role === "admin") && <OnboardingChecklist branchId={branchId} />}
+      {/* «Cómo te fue»: la semana en palabras, con sus cifras (solo para quien gestiona). */}
+      {(access.role === "owner" || access.role === "admin") && <WeekNarrative branchId={branchId} />}
 
       <ThemaTabs
         className="mb-stack"

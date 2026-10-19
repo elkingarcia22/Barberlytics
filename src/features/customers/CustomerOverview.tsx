@@ -11,6 +11,7 @@ import { NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calend
 import { ClientNoteList, NoteKindChips } from "@/features/calendar/clientNotes/ClientNotes";
 import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
 import { CustomerContactLog, CustomerWallet } from "./CustomerRelationship";
+import { CustomerNextVisit } from "./CustomerNextVisit";
 import { APPOINTMENT_STATUS_BADGE, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
 import { APPOINTMENT_STATUS_KEYS, type CustomerAppointment, type CustomerDetail } from "./types";
 
@@ -111,6 +112,8 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
           >
             {next || last ? <AppointmentSummary appointment={(next ?? last) as CustomerAppointment} formatMoney={showMoney ? formatMoney : null} /> : <Text variant="muted">{t("customers.overview.noAppointments")}</Text>}
           </InfoCard>
+
+          <CustomerNextVisit customerId={customer.id} />
 
           <CustomerWallet customerId={customer.id} formatMoney={formatMoney} showMoney={showMoney} showContact={showContact} />
 

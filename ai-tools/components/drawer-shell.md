@@ -16,6 +16,7 @@ import { DrawerShell } from "@/components/overlays"
 | `trigger` | `React.ReactNode` |  | Elemento que abre el drawer (`asChild`). |
 | `title / description` | `string` |  | Cabecera con borde inferior; si ambos faltan, no se pinta. |
 | `leading` | `React.ReactNode` |  | Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo). |
+| `headerActions` | `React.ReactNode` |  | Botones de icono en la cabecera, antes del cierre: terciarios (`ghost`, `icon-sm`) y con su tooltip. El panel de una cita pone aquí la actividad y Clipper. |
 | `children` | `React.ReactNode` |  | Cuerpo con scroll propio y `scrollbar-gutter: stable`. |
 | `actions` | `React.ReactNode` |  | Botones del pie, en un `SheetFooter` con borde superior. |
 | `footer` | `React.ReactNode` |  | Pie completamente personalizado; reemplaza a `actions`. |

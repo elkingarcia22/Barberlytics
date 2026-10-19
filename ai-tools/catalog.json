@@ -1,5 +1,5 @@
 {
-  "sourceHash": "24f2f52c485c59aa",
+  "sourceHash": "a220fa87b243ef7b",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -13827,6 +13827,12 @@
           "description": "Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo)."
         },
         {
+          "name": "headerActions",
+          "type": "React.ReactNode",
+          "default": null,
+          "description": "Botones de icono en la cabecera, antes del cierre: terciarios (`ghost`, `icon-sm`) y con su tooltip. El panel de una cita pone aquí la actividad y Clipper."
+        },
+        {
           "name": "children",
           "type": "React.ReactNode",
           "default": null,
@@ -14077,6 +14083,12 @@
           "type": "React.ReactNode",
           "default": null,
           "description": "Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo)."
+        },
+        {
+          "name": "headerActions",
+          "type": "React.ReactNode",
+          "default": null,
+          "description": "Botones de icono en la cabecera, antes del cierre: terciarios (`ghost`, `icon-sm`) y con su tooltip. El panel de una cita pone aquí la actividad y Clipper."
         },
         {
           "name": "children",

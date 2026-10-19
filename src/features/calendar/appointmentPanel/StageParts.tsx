@@ -1,6 +1,9 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
-import { AIButton } from "@/components/ai-interaction";
+import { ClipperIcon } from "@/components/ai-interaction";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ThemaIcon } from "@/icons";
 import { formatClock } from "@/components/scheduling";
 import { Heading, Text } from "@/components/typography";
 import { cn } from "@/lib/utils";
@@ -68,11 +71,37 @@ export function TicketSummary({ model, ctx }: { model: AppointmentModel; ctx: Mo
   );
 }
 
-/** «Pregúntale a Clipper», siempre como este botón y en el mismo sitio, sea cual sea el momento de la cita. */
-export function ClipperButton({ model, ctx, className }: { model: AppointmentModel; ctx: ModelContext; className?: string }) {
+/**
+ * Los botones de la cabecera del panel, terciarios y solo icono, con su
+ * nombre en el tooltip: la actividad de la cita (su historial) y
+ * «Pregúntale a Clipper», que abre su panel hablando de esta cita.
+ */
+export function PanelHeaderActions({ model, ctx, onOpenHistory, historyOpen }: { model: AppointmentModel; ctx: ModelContext; onOpenHistory: () => void; historyOpen: boolean }) {
   const t = useAppT();
   const ask = useAskClipper(model, ctx);
-  return <AIButton variant="secondary" size="sm" label={t("calendar.panel.clipper.ask")} onClick={ask} className={className} />;
+  return (
+    <>
+      <IconAction label={t("calendar.history.title")} onClick={onOpenHistory} pressed={historyOpen} testId="panel-history-open">
+        <ThemaIcon name="clock" />
+      </IconAction>
+      <IconAction label={t("calendar.panel.clipper.ask")} onClick={ask} testId="panel-ask-clipper">
+        <ClipperIcon size={16} />
+      </IconAction>
+    </>
+  );
+}
+
+function IconAction({ label, onClick, pressed, testId, children }: { label: string; onClick: () => void; pressed?: boolean; testId: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label={label} aria-pressed={pressed} onClick={onClick} data-testid={testId}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 export interface QuickTilesProps {

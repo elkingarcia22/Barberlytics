@@ -17,9 +17,8 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * como una tarjeta más de la cita, debajo de «Día y hora». Cerrada se lee el
  * comentario y se ve la primera foto; abierta, el comentario entero y las
  * fotos. Si vino de la reserva en línea es lo que el cliente escribió y subió;
- * desde la agenda también se deja o se corrige (lo que dijo por teléfono, la
- * foto que mostró en el mostrador), con las reglas de la reserva: hasta tres
- * fotos, reducidas antes de guardarlas.
+ * desde la agenda se corrige con las reglas de la reserva (hasta tres fotos,
+ * reducidas antes de guardarlas). Sin comentario ni foto la tarjeta no sale.
  */
 
 export interface BarberRequestProps {
@@ -34,13 +33,14 @@ export function BarberRequestField({ model, onPatch, open, onToggle }: BarberReq
   const photos = appointment.referencePhotos ?? [];
   const hasContent = Boolean(appointment.notes) || photos.length > 0;
   const editable = model.unpaid;
-  if (!hasContent && !editable) return null;
+  // Sin comentario ni foto no se ofrece dejarlos: la tarjeta solo aparece cuando hay algo que ver.
+  if (!hasContent) return null;
   const close = () => {
     setEditing(false);
     if (open) onToggle();
   };
-  const value = appointment.notes ? `«${appointment.notes}»` : photos.length > 0 ? t("calendar.panel.request.onlyPhotos") : t("calendar.panel.request.empty");
-  const detail = photos.length > 0 ? t("calendar.panel.request.photos", { count: photos.length }) : hasContent ? undefined : t("calendar.panel.request.addHint");
+  const value = appointment.notes ? `«${appointment.notes}»` : t("calendar.panel.request.onlyPhotos");
+  const detail = photos.length > 0 ? t("calendar.panel.request.photos", { count: photos.length }) : undefined;
   return (
     <>
       <PanelField
@@ -50,15 +50,11 @@ export function BarberRequestField({ model, onPatch, open, onToggle }: BarberReq
         imageUrl={photos[0]}
         icon="camera"
         open={open}
-        onOpen={() => {
-          // Vacía, abrirla es dejar el comentario o la foto.
-          if (!hasContent) setEditing(true);
-          onToggle();
-        }}
+        onOpen={onToggle}
         testId="panel-field-request"
       />
-      {open && (editing || !hasContent) && <BarberRequestForm model={model} onPatch={onPatch} onDone={close} />}
-      {open && !editing && hasContent && (
+      {open && editing && <BarberRequestForm model={model} onPatch={onPatch} onDone={close} />}
+      {open && !editing && (
         <InlineList
           title={t("calendar.panel.request.view")}
           onClose={close}

@@ -12,7 +12,9 @@ import type { CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import type { AppointmentLinkProps } from "./appointmentTabs/AppointmentLinkSection";
 import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
 import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
-import { AppointmentPanelBody } from "./appointmentPanel/PanelBody";
+import { AppointmentPanelBody, type PanelPage } from "./appointmentPanel/PanelBody";
+import { usePanelPages } from "./appointmentPanel/panelHooks";
+import { PanelHeaderActions } from "./appointmentPanel/StageParts";
 
 /**
  * El panel de una cita. Se abre al lado de la agenda: en la cabecera, cuándo
@@ -53,14 +55,17 @@ function AppointmentPanel(props: AppointmentDrawerProps & { appointment: Appoint
   const t = useAppT();
   const { locale } = useLocale();
   const model = useAppointmentModel(appointment, ctx, props);
+  const pages = usePanelPages<PanelPage>();
   const start = appointmentStart(appointment);
   const day = capitalize(format(start, "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
   const time = t("calendar.panel.header.time", { from: formatClock(start, ctx.intl), to: formatClock(appointmentEnd(appointment), ctx.intl), duration: durationLabel(appointment.durationMin) });
 
   return (
-    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={day} description={time} leading={<IconTile size="lg" shape="circle" tone="neutral" icon={<ThemaIcon name="calendar" />} />}>
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={day} description={time} leading={<IconTile size="lg" shape="circle" tone="neutral" icon={<ThemaIcon name="calendar" />} />}
+      headerActions={<PanelHeaderActions model={model} ctx={ctx} historyOpen={pages.page === "history"} onOpenHistory={() => (pages.page === "history" ? pages.back() : pages.open("history"))} />}
+    >
       <div className="space-y-5" data-testid="appointment-drawer">
-        <AppointmentPanelBody model={model} ctx={ctx} onPatch={onPatch} onOpenClient={onOpenClient} linked={props.linked} linkCandidates={props.linkCandidates} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onLink={props.onLink} onShowLinked={props.onShowLinked} />
+        <AppointmentPanelBody pages={pages} model={model} ctx={ctx} onPatch={onPatch} onOpenClient={onOpenClient} linked={props.linked} linkCandidates={props.linkCandidates} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onLink={props.onLink} onShowLinked={props.onShowLinked} />
       </div>
     </SidePanelShell>
   );

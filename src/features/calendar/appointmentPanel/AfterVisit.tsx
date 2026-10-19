@@ -20,10 +20,9 @@ import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
 import { ClientTags } from "./PanelParts";
 import { PanelStepper } from "./PanelShared";
-import { NavRowLink } from "./bookingStyle";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
-import { ClipperButton, StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
+import { StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -34,19 +33,18 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * barbero, la nota para el barbero, las alertas) ya no tiene uso y se queda
  * fuera; sigue en la ficha del cliente y en el historial.
  *
- * Se cuenta con la tarjeta grande teñida del estado (verde cobrada, gris si
- * no se atendió), con el cliente, lo que se hizo y sus atajos dentro.
+ * Se cuenta con la tarjeta grande teñida del estado (verde cobrada, roja
+ * cancelada, ámbar si no asistió), con el cliente, lo que se hizo y sus atajos dentro.
  */
 
 export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "onSelectAppointment" | "onUnlink" | "onShowLinked"> {
   model: AppointmentModel;
   ctx: ModelContext;
   onOpenClient: () => void;
-  onOpenHistory: () => void;
 }
 
-/** El tinte de la tarjeta del momento: verde cobrada, gris si se cerró sin atender. */
-const MOMENT_TINT = { paid: "from-success/15 via-success/5", closed: "from-muted via-muted/40" } as const;
+/** El tinte de la tarjeta según cómo se cerró: verde cobrada, rojo cancelada, ámbar si no asistió. */
+const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-destructive/15 via-destructive/5", noShow: "from-warning/15 via-warning/5" } as const;
 
 /** Los atajos de después: recibo y devolución si se cobró; llamar y escribir si no vino. */
 function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void): Tile[] {
@@ -97,7 +95,7 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
 
 
 /** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
-export function AfterVisit({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
+export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
   const [pinning, setPinning] = React.useState(false);
   // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
@@ -112,7 +110,7 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenHistory, linked = [
   return (
     <div className="flex flex-col gap-5" data-testid="panel-after">
       {paid && <PanelStepper model={model} ctx={ctx} />}
-      <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", paid ? MOMENT_TINT.paid : MOMENT_TINT.closed)} data-testid="panel-moment-card">
+      <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", paid ? MOMENT_TINT.paid : appointment.status === "no_show" ? MOMENT_TINT.noShow : MOMENT_TINT.cancelled)} data-testid="panel-moment-card">
         <StageHeading model={model} ctx={ctx} size="lg" />
         <div className="-mt-2 flex flex-col gap-2">
           <SourceLine appointment={appointment} />
@@ -143,10 +141,6 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenHistory, linked = [
         </section>
       )}
       {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <ClipperButton model={model} ctx={ctx} />
-        <NavRowLink label={t("calendar.history.title")} onClick={onOpenHistory} />
-      </div>
     </div>
   );
 }

@@ -126,7 +126,6 @@ export const calendarPanelEs = {
   "calendar.panel.client.noMatch": "Nadie con «{query}».",
   "calendar.panel.client.seeAll": "Ver todo del cliente",
   "calendar.panel.fields.request": "Comentarios y foto del corte",
-  "calendar.panel.request.empty": "Sin comentarios ni fotos",
   "calendar.panel.request.onlyPhotos": "Solo foto del corte",
   "calendar.panel.request.photos": "{count} foto(s) del corte",
   "calendar.panel.request.view": "Lo que pidió para el corte",

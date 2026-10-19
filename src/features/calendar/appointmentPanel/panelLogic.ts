@@ -63,13 +63,13 @@ export function clockRelation(model: AppointmentModel, now: Date | undefined, t:
 
 /** Las acciones del playbook que no son la principal ni un enlace de contacto. */
 export const restActions = (model: AppointmentModel): AppointmentActionId[] =>
-  [...model.playbook.primary.slice(0, -1), ...model.playbook.secondary, ...model.playbook.more].filter((action) => action !== "edit" && action !== "call" && action !== "whatsapp");
+  [...model.playbook.primary.slice(0, -1), ...model.playbook.secondary, ...model.playbook.more].filter((action) => action !== "edit" && action !== "call" && action !== "message");
 
 /** La principal es la última de `primary` (las de antes son contacto: llamar, escribir). */
 export const mainAction = (model: AppointmentModel): AppointmentActionId => model.playbook.primary[model.playbook.primary.length - 1];
 
 /** Las acciones rápidas en tarjetas, además de la principal del pie. */
-export type QuickId = "call" | "whatsapp" | "noShow" | "cancel" | "change";
+export type QuickId = "call" | "message" | "noShow" | "cancel" | "change";
 
 /**
  * Qué atajos se ofrecen según el momento, solo cuando sirven: si va tarde,
@@ -80,7 +80,7 @@ export type QuickId = "call" | "whatsapp" | "noShow" | "cancel" | "change";
  * atajos. Clipper no es un atajo: va siempre como su botón.
  */
 export function quickActions(model: AppointmentModel): QuickId[] {
-  const contact: QuickId[] = model.phone ? ["call", "whatsapp"] : [];
+  const contact: QuickId[] = model.phone ? ["call", "message"] : [];
   switch (model.playbook.stage) {
     case "late":
       return [...contact, "noShow", "cancel"];

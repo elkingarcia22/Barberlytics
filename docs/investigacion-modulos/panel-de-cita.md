@@ -227,3 +227,33 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   barbero está libre; si no, la libre más cercana (marcada «Otra hora»); «Sin hueco» si no cabe, y «Ya
   agendada» si el cliente ya tiene cita ese día. Solo se agendan las que caben; mientras se fija,
   *¿Le agendamos la próxima?* se oculta.
+
+## 10. Una sola versión (2026-10-18, noche)
+
+- El usuario se quedó con **«Tarjeta + Arma la cita»**: se borraron «Arma la cita», «Tarjeta del
+  momento», el selector y `panelVersion.ts`. El cuerpo vive en `appointmentPanel/PanelBody.tsx`.
+- **Cabecera**: ya no es el cliente sino cuándo es la cita (día; hora de inicio a fin y duración).
+- **El cliente es una tarjeta** bajo *¿Quién viene?*, arriba de *¿Qué se va a hacer?* (tipo y
+  celular). Abierta, «Sobre {nombre}»: membresía y ritmo (lleva a su página), visitas, última visita,
+  barbero de siempre y contacto; al pie, *Ver todo del cliente*. También en la cobrada.
+- **Comentarios y foto del corte** es una tarjeta más, debajo de *Día y hora*: cerrada muestra el
+  comentario y la primera foto; abierta, todo y *Editar*; vacía, abre el formulario.
+- **WhatsApp → SMS o correo** en todo el calendario: el atajo *Escribir* y *Enviar recibo* abren un
+  menú SMS / Correo (`sms:` y `mailto:` con el recibo ya escrito; con un solo canal, va directo). La
+  acción `whatsapp` pasó a `message`. El cliente de la agenda tiene `email` (la demo lo saca del
+  nombre; uno de cada cinco no lo dejó). Los mensajes automáticos se titulan «Correo y SMS».
+- Lo raro (cancelar, no asistió… ya en la barbería) va al «⋯» junto a la acción principal, sin repetir
+  lo que ya está en los atajos.
+
+## 11. Alertas juntas, cambiar el cliente y «Ver en la agenda» (2026-10-19)
+
+- **Atención** (`CareAlerts.tsx`): el riesgo de no venir, las alergias y los medicamentos van juntos,
+  bajo las etiquetas, como píldoras cortas con la misma cara (qué es y el comienzo del texto). Lo
+  completo —las razones del riesgo y qué hacer, la nota entera— va en el tooltip. El riesgo bajo no se
+  muestra. Los mensajes de la cita ya no repiten el riesgo, y el aviso de envíos simulados es un icono
+  con tooltip.
+- **Cambiar el cliente** desde su tarjeta (`ClientField.tsx`), solo mientras la cita sigue agendada:
+  buscar por nombre o celular y tocarlo. En cuanto llega, la visita es de quien vino y no cambia. La
+  API acepta `clientId` en el PATCH (solo `scheduled`): quita la confirmación y pasa los avisos al nuevo.
+- **Ver en la agenda** (citas enlazadas) además de resaltarlas lleva la rejilla hasta la primera:
+  antes el filtro se activaba pero las citas quedaban fuera de la vista.

@@ -43,8 +43,12 @@ export interface AppointmentModel {
   /** Alergias y medicación: lo que no se puede pasar por alto. */
   critical: ClientNote[];
   notes: ClientNote[];
-  /** Solo dígitos, para `tel:` y WhatsApp; vacío si no hay o el rol no deja contactar. */
+  /** Solo dígitos, para `tel:` y `sms:`; vacío si no hay o el rol no deja contactar. */
   phone: string;
+  /** Su correo, si lo dejó y el rol deja contactar; vacío si no. */
+  email: string;
+  /** Cómo escribirle: por SMS y por correo, con un texto ya puesto si se da. */
+  writeLinks: (draft?: WriteDraft) => WriteLink[];
   playbook: AppointmentPlaybook;
   headline: string;
   insights: AppointmentInsight[];
@@ -63,6 +67,16 @@ export interface AppointmentModel {
   href: (action: AppointmentActionId) => string | null;
   /** El texto de la acción; cobrar dice cuánto. */
   label: (action: AppointmentActionId) => string;
+}
+
+export interface WriteDraft {
+  subject: string;
+  text: string;
+}
+
+export interface WriteLink {
+  channel: "sms" | "email";
+  href: string;
 }
 
 export interface StepTimes {
@@ -91,6 +105,7 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
   const price = appointment.payment?.total ?? bill.total;
   const canContact = ctx.access?.canContact ?? true;
   const phone = known?.phone && canContact ? digits(known.phone) : "";
+  const email = known?.email && canContact ? known.email : "";
   const playbook = appointmentPlaybook(appointment, ctx.now, { hasPhone: phone !== "" });
   const lastVisit = known?.lastVisitAt ? new Date(known.lastVisitAt) : null;
   // La próxima se cuenta desde esta cita: es la que se está atendiendo.
@@ -128,7 +143,11 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
     if (action === "cancel") handlers.onCancel(appointment);
   };
 
-  const href = (action: AppointmentActionId) => (action === "call" ? `tel:${phone}` : action === "whatsapp" ? `https://wa.me/${phone.replace("+", "")}` : null);
+  const href = (action: AppointmentActionId) => (action === "call" ? `tel:${phone}` : action === "message" ? `sms:${phone}` : null);
+  const writeLinks = (draft?: WriteDraft): WriteLink[] => [
+    ...(phone ? [{ channel: "sms" as const, href: `sms:${phone}${draft ? `?body=${encodeURIComponent(draft.text)}` : ""}` }] : []),
+    ...(email ? [{ channel: "email" as const, href: `mailto:${email}${draft ? `?subject=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.text)}` : ""}` }] : []),
+  ];
 
   return {
     appointment,
@@ -144,6 +163,8 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
     critical: client?.notes.filter((note) => note.kind !== "note") ?? [],
     notes: client?.notes.filter((note) => note.kind === "note") ?? [],
     phone,
+    email,
+    writeLinks,
     playbook,
     headline: headline(),
     insights: appointmentInsights(appointment, client, ctx.catalog),

@@ -218,6 +218,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   );
   // Si la cita está enlazada, el panel enseña todas las de su grupo.
   const currentLinked = React.useMemo(() => (currentAppointment && day.data ? linkedOf(day.data.appointments, currentAppointment) : []), [currentAppointment, day.data]);
+  // «Ver en la agenda»: resalta las enlazadas y lleva la rejilla hasta la primera, que puede estar
+  // fuera de la vista (la agenda abre en la mañana y el panel tapa la mitad).
+  const showLinkedInAgenda = React.useCallback(() => {
+    state.setShowLinked(true);
+    const first = [...currentLinked].sort((a, b) => appointmentStart(a).getTime() - appointmentStart(b).getTime())[0];
+    if (!first) return;
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Dos cuadros: el primero pinta el resaltado, el segundo ya tiene la tarjeta en su sitio.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-schedule-event="${CSS.escape(first.id)}"]`)?.scrollIntoView({ block: "center", inline: "nearest", behavior: reduced ? "auto" : "smooth" }))
+    );
+  }, [currentLinked, state]);
   // Con qué se puede enlazar: las demás citas vivas del día que no van ya con ella.
   const linkCandidates = React.useMemo(
     () => (currentAppointment && day.data ? day.data.appointments.filter((item) => isActive(item) && item.id !== currentAppointment.id && !(currentAppointment.linkId && item.linkId === currentAppointment.linkId)) : []),
@@ -907,7 +919,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onSelectAppointment={(appointment) => state.openAppointment(appointment.id)}
                 onUnlink={unlinkAppointment}
                 onLink={linkAppointments}
-                onShowLinked={() => state.setShowLinked(true)}
+                onShowLinked={showLinkedInAgenda}
               />
 
               <CreateAppointmentDrawer

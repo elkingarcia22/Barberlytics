@@ -43,7 +43,7 @@ export function appointmentContextActions(appointment: Appointment, ctx: ModelCo
       tone: DANGER.includes(action) ? "danger" : "default",
       onSelect: () => {
         if (action === "call") window.location.href = `tel:${phone}`;
-        else if (action === "whatsapp") window.open(`https://wa.me/${phone.replace("+", "")}`, "_blank", "noopener");
+        else if (action === "message") window.location.href = `sms:${phone}`;
         else handlers.run(action, appointment);
       },
     };

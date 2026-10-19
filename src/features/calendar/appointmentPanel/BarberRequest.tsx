@@ -4,21 +4,22 @@ import { Field } from "@/components/forms";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ActionTile } from "@/components/utility";
-import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { MAX_REFERENCE_PHOTOS, prepareReferencePhoto } from "@/features/booking/flow/referencePhoto";
 import type { Appointment, AppointmentPatch } from "../types";
 import { ReferencePhotos } from "./PanelParts";
+import { InlineList, PanelField } from "./bookingStyle";
 import { SourceLine } from "./SourceLine";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
- * «Para el barbero»: el comentario y las fotos del corte que llegan con la
- * cita. Si vino de la reserva en línea, es lo que el cliente escribió y subió;
- * desde la agenda también se deja o se corrige (lo que el cliente dijo por
- * teléfono, la foto que mostró en el mostrador), con las mismas reglas que la
- * reserva: hasta tres fotos, reducidas antes de guardarlas.
+ * «Comentarios y foto del corte»: lo que llega con la cita para el barbero,
+ * como una tarjeta más de la cita, debajo de «Día y hora». Cerrada se lee el
+ * comentario y se ve la primera foto; abierta, el comentario entero y las
+ * fotos. Si vino de la reserva en línea es lo que el cliente escribió y subió;
+ * desde la agenda también se deja o se corrige (lo que dijo por teléfono, la
+ * foto que mostró en el mostrador), con las reglas de la reserva: hasta tres
+ * fotos, reducidas antes de guardarlas.
  */
 
 export interface BarberRequestProps {
@@ -26,46 +27,57 @@ export interface BarberRequestProps {
   onPatch: (appointment: Appointment, patch: AppointmentPatch) => void;
 }
 
-export function BarberRequest({ model, onPatch }: BarberRequestProps) {
+export function BarberRequestField({ model, onPatch, open, onToggle }: BarberRequestProps & { open: boolean; onToggle: () => void }) {
   const t = useAppT();
   const { appointment } = model;
   const [editing, setEditing] = React.useState(false);
   const photos = appointment.referencePhotos ?? [];
   const hasContent = Boolean(appointment.notes) || photos.length > 0;
   const editable = model.unpaid;
-
-  if (editing) return <BarberRequestForm model={model} onPatch={onPatch} onDone={() => setEditing(false)} />;
-
-  if (!hasContent) {
-    if (!editable) return null;
-    return (
-      <ActionTile
-        tone="dashed"
-        leading={<IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="camera" />} />}
-        title={t("calendar.panel.request.add")}
-        description={t("calendar.panel.request.addHint")}
-        onClick={() => setEditing(true)}
-      />
-    );
-  }
-
+  if (!hasContent && !editable) return null;
+  const close = () => {
+    setEditing(false);
+    if (open) onToggle();
+  };
+  const value = appointment.notes ? `«${appointment.notes}»` : photos.length > 0 ? t("calendar.panel.request.onlyPhotos") : t("calendar.panel.request.empty");
+  const detail = photos.length > 0 ? t("calendar.panel.request.photos", { count: photos.length }) : hasContent ? undefined : t("calendar.panel.request.addHint");
   return (
-    <section aria-label={t("calendar.panel.request.title")} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4" data-testid="panel-request">
-      <div className="flex items-center gap-3">
-        <IconTile size="md" shape="circle" tone="primary" icon={<ThemaIcon name={appointment.source === "online" ? "globe" : "edit"} />} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <Text weight="semibold">{t("calendar.panel.request.title")}</Text>
-          <SourceLine appointment={appointment} />
-        </span>
-        {editable && (
-          <Button variant="ghost" size="xs" onClick={() => setEditing(true)} data-testid="panel-request-edit">
-            <ThemaIcon name="edit" /> {t("action.edit")}
-          </Button>
-        )}
-      </div>
-      {appointment.notes && <Text className="border-l-2 border-primary/60 pl-3 italic">«{appointment.notes}»</Text>}
-      <ReferencePhotos model={model} />
-    </section>
+    <>
+      <PanelField
+        eyebrow={t("calendar.panel.fields.request")}
+        value={value}
+        detail={detail}
+        imageUrl={photos[0]}
+        icon="camera"
+        open={open}
+        onOpen={() => {
+          // Vacía, abrirla es dejar el comentario o la foto.
+          if (!hasContent) setEditing(true);
+          onToggle();
+        }}
+        testId="panel-field-request"
+      />
+      {open && (editing || !hasContent) && <BarberRequestForm model={model} onPatch={onPatch} onDone={close} />}
+      {open && !editing && hasContent && (
+        <InlineList
+          title={t("calendar.panel.request.view")}
+          onClose={close}
+          footer={
+            editable ? (
+              <Button variant="outline" className="flex-1" onClick={() => setEditing(true)} data-testid="panel-request-edit">
+                <ThemaIcon name="edit" /> {t("calendar.panel.request.editShort")}
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="flex flex-col gap-3" data-testid="panel-request">
+            <SourceLine appointment={appointment} />
+            {appointment.notes && <Text className="border-l-2 border-primary/60 pl-3 italic">«{appointment.notes}»</Text>}
+            <ReferencePhotos model={model} />
+          </div>
+        </InlineList>
+      )}
+    </>
   );
 }
 

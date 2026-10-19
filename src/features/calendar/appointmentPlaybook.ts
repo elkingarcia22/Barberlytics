@@ -9,7 +9,7 @@ import type { Appointment } from "./types";
 
 export type AppointmentStage = "late" | "upcoming" | "waiting" | "seated" | "toCollect" | "paid" | "noShow" | "cancelled";
 
-export type AppointmentActionId = "call" | "whatsapp" | "checkIn" | "seat" | "pay" | "ready" | "rebook" | "edit" | "noShow" | "cancel";
+export type AppointmentActionId = "call" | "message" | "checkIn" | "seat" | "pay" | "ready" | "rebook" | "edit" | "noShow" | "cancel";
 
 export interface AppointmentPlaybook {
   stage: AppointmentStage;
@@ -27,7 +27,7 @@ export function appointmentStage(appointment: Appointment, now: Date | undefined
   return pulseGroup(appointment, now) ?? "upcoming";
 }
 
-const CONTACT: AppointmentActionId[] = ["call", "whatsapp"];
+const CONTACT: AppointmentActionId[] = ["call", "message"];
 
 export function appointmentPlaybook(appointment: Appointment, now: Date | undefined, options: { hasPhone: boolean }): AppointmentPlaybook {
   const stage = appointmentStage(appointment, now);

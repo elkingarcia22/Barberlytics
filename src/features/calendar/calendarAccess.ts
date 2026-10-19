@@ -12,7 +12,7 @@ export interface CalendarAccess {
   ownBarberId: string | null;
   /** Pisar otra cita, agendar fuera de horario o mover a la columna de otro. Los barberos nunca. */
   canForce: boolean;
-  /** Ofrecer llamar o escribir por WhatsApp al cliente («Información del cliente» activa). */
+  /** Ofrecer llamar o escribir (SMS o correo) al cliente («Información del cliente» activa). */
   canContact: boolean;
   /** Las cifras agregadas del día (cobrado de previsto, total de la lista, «por vender»). */
   showTotals: boolean;

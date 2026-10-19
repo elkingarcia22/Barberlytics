@@ -7,24 +7,21 @@ import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
-import { ActionTile } from "@/components/utility";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { useAccess } from "@/features/access";
-import { OrderSummary } from "@/features/booking/flow/OrderSummary";
-import type { Totals } from "@/features/booking/pricing";
-import { appointmentEnd, appointmentStart, durationLabel, type ModelContext } from "../calendarModel";
-import { ProductThumb, ServiceThumb } from "../calendarShared";
+import { appointmentEnd, appointmentStart, type ModelContext } from "../calendarModel";
 import { AppointmentLinkSection, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
-import { ClientSummaryRow } from "./ClientPage";
+import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
 import { ClientTags } from "./PanelParts";
 import { PanelStepper } from "./PanelShared";
-import { PanelField, PanelQuestion } from "./bookingStyle";
+import { NavRowLink } from "./bookingStyle";
+import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
 import { ClipperButton, StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
@@ -37,15 +34,13 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * barbero, la nota para el barbero, las alertas) ya no tiene uso y se queda
  * fuera; sigue en la ficha del cliente y en el historial.
  *
- * Cada versión del panel lo cuenta con su cara: «Arma la cita» en preguntas y
- * tarjetas, como la reserva en línea; «Tarjeta del momento» con la tarjeta
- * grande teñida del estado, con el cobro y sus atajos dentro.
+ * Se cuenta con la tarjeta grande teñida del estado (verde cobrada, gris si
+ * no se atendió), con el cliente, lo que se hizo y sus atajos dentro.
  */
 
 export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "onSelectAppointment" | "onUnlink" | "onShowLinked"> {
   model: AppointmentModel;
   ctx: ModelContext;
-  variant: "cards" | "moment";
   onOpenClient: () => void;
   onOpenHistory: () => void;
 }
@@ -68,7 +63,7 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
   if (payment) {
     // Fijar la cita (como en la reserva en línea): las próximas con el mismo barbero y a la misma hora.
     tiles.push({ id: "pin", icon: <Repeat className="size-5 text-primary" />, label: t("calendar.panel.pin.short"), title: t("calendar.panel.pin.title"), onClick: onPin });
-    if (model.phone) {
+    if (model.phone || model.email) {
       const lines = [
         ...model.services.map((service) => `• ${service.name}: ${ctx.formatMoney(service.price)}`),
         ...appointment.products.flatMap((line) => {
@@ -84,7 +79,8 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
         total: ctx.formatMoney(payment.total),
         method: t(PAYMENT_METHOD_KEYS[payment.method]),
       });
-      tiles.push({ id: "send", icon: <Send className="size-5 text-primary" />, label: t("calendar.panel.after.send"), title: t("calendar.panel.after.sendTitle"), href: `https://wa.me/${model.phone.replace("+", "")}?text=${encodeURIComponent(message)}`, external: true });
+      const subject = t("calendar.panel.after.receiptSubject", { date: format(start, "d 'de' MMMM", { locale: calendarLocale(locale) }) });
+      tiles.push({ id: "send", icon: <Send className="size-5 text-primary" />, label: t("calendar.panel.after.send"), title: t("calendar.panel.after.sendTitle"), menu: writeMenu(model, t, { subject, text: message }) });
     }
     tiles.push({ id: "receipt", icon: <ReceiptText className="size-5 text-primary" />, label: t("calendar.panel.after.receipt"), title: t("calendar.panel.after.receiptTitle"), onClick: openAccount });
     if (access.can("transactions", "edit")) {
@@ -92,82 +88,16 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
     }
   } else if (model.phone) {
     const Call = ACTION_ICON.call;
-    const Chat = ACTION_ICON.whatsapp;
+    const Chat = ACTION_ICON.message;
     tiles.push({ id: "call", icon: <Call className="size-5 text-primary" />, label: t("calendar.detail.call"), title: t("calendar.detail.call"), href: model.href("call") ?? undefined });
-    tiles.push({ id: "whatsapp", icon: <Chat className="size-5 text-primary" />, label: t("calendar.detail.whatsapp"), title: t("calendar.detail.whatsapp"), href: model.href("whatsapp") ?? undefined, external: true });
+    tiles.push({ id: "message", icon: <Chat className="size-5 text-primary" />, label: t("calendar.detail.message"), title: t("calendar.panel.write.title"), menu: writeMenu(model, t) });
   }
   return tiles;
 }
 
-/** El total de lo cobrado, sin las líneas: las líneas van en tarjetas («Arma la cita»). */
-function chargedTotals(model: AppointmentModel, ctx: ModelContext): Totals {
-  const { appointment, services } = model;
-  const servicesTotal = services.reduce((sum, service) => sum + service.price, 0);
-  const productsTotal = appointment.products.reduce((sum, line) => sum + (ctx.catalog.products.find((entry) => entry.id === line.productId)?.price ?? 0) * line.qty, 0);
-  const payment = appointment.payment;
-  return { services: servicesTotal, products: productsTotal, discount: 0, subtotal: servicesTotal + productsTotal, tax: payment?.tax ?? 0, tip: payment?.tip ?? 0, fee: 0, feeName: null, gift: 0, reward: 0, prepaid: 0, total: payment?.total ?? servicesTotal + productsTotal };
-}
 
-export function AfterVisit(props: AfterVisitProps) {
-  return props.variant === "moment" ? <AfterVisitMoment {...props} /> : <AfterVisitCards {...props} />;
-}
-
-/** «Arma la cita», después: cada cosa es una pregunta con su respuesta en tarjetas, como la reserva. */
-function AfterVisitCards({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
-  const t = useAppT();
-  const [pinning, setPinning] = React.useState(false);
-  // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
-  const [pinned, setPinned] = React.useState(false);
-  const tiles = useAfterTiles(model, ctx, () => setPinning((value) => !value));
-  const { appointment } = model;
-  const paid = appointment.status === "paid" && appointment.payment !== null;
-  return (
-    <div className="flex flex-col gap-5" data-testid="panel-after" data-variant="cards">
-      {paid && <PanelStepper model={model} ctx={ctx} />}
-      <StageHeading model={model} ctx={ctx} />
-      <div className="-mt-2 flex flex-col gap-2">
-        <SourceLine appointment={appointment} />
-        <ClientTags model={model} />
-      </div>
-      <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
-      {pinning && <PinSeries model={model} ctx={ctx} onClose={() => setPinning(false)} onPinned={() => setPinned(true)} />}
-      {!pinning && !pinned && (
-        <PanelQuestion title={t("calendar.panel.next.title")}>
-          <NextVisitBooker model={model} ctx={ctx} bare />
-        </PanelQuestion>
-      )}
-      {paid && (
-        <PanelQuestion title={t("calendar.panel.after.charged")}>
-          <div className="flex flex-col gap-2">
-            {model.services.map((service) => (
-              <PanelField key={service.id} eyebrow={t("calendar.panel.fields.services")} value={service.name} detail={`${durationLabel(service.durationMin)} · ${ctx.formatMoney(service.price)}`} leading={<ServiceThumb service={service} size="md" />} />
-            ))}
-            {appointment.products.map((line) => {
-              const product = ctx.catalog.products.find((entry) => entry.id === line.productId);
-              return product ? <PanelField key={line.productId} eyebrow={t("calendar.panel.fields.product")} value={product.name} detail={`× ${line.qty} · ${ctx.formatMoney(product.price * line.qty)}`} leading={<ProductThumb product={product} size="md" tone="neutral" />} /> : null;
-            })}
-          </div>
-          <div className="px-1 pt-1">
-            <OrderSummary totals={chargedTotals(model, ctx)} money={ctx.formatMoney} />
-          </div>
-        </PanelQuestion>
-      )}
-      {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
-      {model.known && (
-        <PanelQuestion title={t("calendar.panel.cards.who")}>
-          <ClientSummaryRow model={model} onOpen={onOpenClient} />
-        </PanelQuestion>
-      )}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <ClipperButton model={model} ctx={ctx} />
-        <HistoryLink onOpen={onOpenHistory} />
-      </div>
-    </div>
-  );
-}
-
-/** «Tarjeta del momento», después: la tarjeta grande con el cobro y sus atajos dentro; lo demás, debajo. */
-function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
+/** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
+export function AfterVisit({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
   const [pinning, setPinning] = React.useState(false);
   // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
@@ -180,7 +110,7 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
     return product ? [`${product.name} × ${line.qty}`] : [];
   });
   return (
-    <div className="flex flex-col gap-5" data-testid="panel-after" data-variant="moment">
+    <div className="flex flex-col gap-5" data-testid="panel-after">
       {paid && <PanelStepper model={model} ctx={ctx} />}
       <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", paid ? MOMENT_TINT.paid : MOMENT_TINT.closed)} data-testid="panel-moment-card">
         <StageHeading model={model} ctx={ctx} size="lg" />
@@ -188,6 +118,7 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
           <SourceLine appointment={appointment} />
           <ClientTags model={model} />
         </div>
+        <ClientField model={model} ctx={ctx} onOpenPage={onOpenClient} />
         <div className="flex items-center gap-3">
           <IconTile size="lg" src={services[0]?.imageUrl} icon={<ThemaIcon name="scissors" />} />
           <div className="flex min-w-0 flex-col">
@@ -212,23 +143,10 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
         </section>
       )}
       {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
-      <div className="grid grid-cols-2 gap-2">
-        {model.known && (
-          <ActionTile layout="stacked" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="users" />} />} title={t("calendar.tab.client")} description={t("calendar.panel.client.membershipShort", { count: model.loyaltyProgress, total: 10 })} onClick={onOpenClient} />
-        )}
-        <ActionTile layout="stacked" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<ThemaIcon name="clock" />} />} title={t("calendar.history.title")} description={t("calendar.panel.index.historyHint")} onClick={onOpenHistory} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ClipperButton model={model} ctx={ctx} />
+        <NavRowLink label={t("calendar.history.title")} onClick={onOpenHistory} />
       </div>
-      <ClipperButton model={model} ctx={ctx} />
     </div>
-  );
-}
-
-function HistoryLink({ onOpen }: { onOpen: () => void }) {
-  const t = useAppT();
-  return (
-    <button type="button" onClick={onOpen} className="inline-flex items-center gap-1 rounded-md text-sm font-medium text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
-      {t("calendar.history.title")}
-      <ThemaIcon name="chevronRight" size="sm" />
-    </button>
   );
 }

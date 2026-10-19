@@ -50,6 +50,8 @@ export const clientSchema = z.object({
   notes: z.array(clientNoteSchema),
   /** La foto del cliente; sin ella se pintan sus iniciales. */
   avatarUrl: z.string().nullable().optional(),
+  /** Su correo, si lo dejó: el recibo y los avisos salen por aquí o por SMS. */
+  email: z.string().nullable().optional(),
 });
 export type Client = z.infer<typeof clientSchema>;
 
@@ -137,7 +139,7 @@ export const appointmentSchema = z.object({
   payment: paymentSchema.nullable(),
   online: onlineSettlementSchema.nullable().optional(),
   refunds: z.array(refundSchema.extend({ id: z.string() })).optional(),
-  /** Si el cliente confirmó que viene (por el enlace de WhatsApp o porque recepción lo marcó); sin él, sin confirmar. */
+  /** Si el cliente confirmó que viene (por el enlace del mensaje o porque recepción lo marcó); sin él, sin confirmar. */
   confirmation: z.object({ status: z.enum(["confirmed", "declined"]), at: z.string(), via: z.enum(["link", "reception"]) }).nullable().optional(),
   /** Riesgo de que no venga, por su historial (ver docs/API_CONTRACT.md). */
   risk: z
@@ -236,6 +238,8 @@ export interface AppointmentPatch {
   barberReady?: boolean;
   start?: string;
   barberId?: string;
+  /** Otro cliente: solo mientras la cita sigue agendada (no ha llegado). */
+  clientId?: string;
   durationMin?: number;
   serviceIds?: string[];
   notes?: string | null;

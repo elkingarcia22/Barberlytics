@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { appointmentStart, durationLabel, servicesMinutes, servicesPrice, toLocalIso, type ModelContext } from "../calendarModel";
 import { PersonAvatar, ProductThumb, ServiceThumb } from "../calendarShared";
 import type { Appointment, AppointmentPatch } from "../types";
+import { BarberRequestField } from "./BarberRequest";
 import { InlineList, PanelField } from "./bookingStyle";
 import { useFreeSlots } from "./useFreeSlots";
 import type { AppointmentModel } from "./useAppointmentModel";
@@ -20,10 +21,11 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * día y hora, cada uno un campo con foto que abre su lista en su sitio. Se
  * cambia mientras no ha ingresado; después el barbero y la hora quedan con
  * candado (ya está en la barbería) y los servicios se pueden sumar hasta
- * cobrar, que es cuando se pide «y de paso la barba».
+ * cobrar, que es cuando se pide «y de paso la barba». Al final, el
+ * comentario y la foto del corte para el barbero, también como tarjeta.
  */
 
-type Field = "services" | "barber" | "when";
+type Field = "services" | "barber" | "when" | "request";
 
 /** Las duraciones que se ofrecen, las mismas de la edición de la cita. */
 const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180] as const;
@@ -100,6 +102,7 @@ export function AppointmentFields({ model, ctx, onPatch }: AppointmentFieldsProp
         testId="panel-field-when"
       />
       {open === "when" && <WhenList model={model} ctx={ctx} onPatch={onPatch} onClose={close} />}
+      <BarberRequestField model={model} onPatch={onPatch} open={open === "request"} onToggle={() => toggle("request")} />
     </div>
   );
 }

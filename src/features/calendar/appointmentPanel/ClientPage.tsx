@@ -13,8 +13,8 @@ import { NavRow } from "./bookingStyle";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
 /**
- * El cliente dentro del panel. Arriba, una fila que resume quién es (tipo,
- * membresía, ritmo) y lleva a su página; la página agrupa lo demás por lo que
+ * El cliente dentro del panel (la tarjeta de la cita está en `ClientField`):
+ * la fila que resume quién es y lleva a su página; la página agrupa lo demás por lo que
  * se pregunta: su membresía, cada cuánto viene, si cumple, en qué punto del
  * recorrido va (nuevo → VIP), lo que hay que cuidar, sus notas (dejar,
  * corregir, borrar), sus preferencias y contacto, y al final la ficha completa.
@@ -57,7 +57,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+export function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
       <Text size="sm" tone="secondary">
@@ -131,12 +131,17 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
           <Fact label={t("calendar.panel.client.usualBarberLabel")} value={preferred?.name ?? t("calendar.loyalty.noPreference")} />
           {model.phone && (
             <div className="flex items-center justify-between gap-4 py-1.5">
-              <Text size="sm" tone="secondary">
-                {known.phone}
-              </Text>
-              <span className="flex gap-1">
+              <span className="flex min-w-0 flex-col">
+                <Text size="sm" tone="secondary" tabular>
+                  {known.phone}
+                </Text>
+                <Text size="xs" tone="muted" truncate>
+                  {model.email || t("calendar.panel.write.noEmail")}
+                </Text>
+              </span>
+              <span className="flex shrink-0 gap-1">
                 <ActionButton model={model} action="call" variant="ghost" size="sm" iconOnly />
-                <ActionButton model={model} action="whatsapp" variant="ghost" size="sm" iconOnly />
+                <ActionButton model={model} action="message" variant="ghost" size="sm" iconOnly />
               </span>
             </div>
           )}

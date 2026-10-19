@@ -1,27 +1,24 @@
 import { format } from "date-fns";
+import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { SidePanelShell } from "@/components/overlays";
-import { ClientAvatar } from "./calendarShared";
+import { formatClock } from "@/components/scheduling";
+import { IconTile } from "@/components/utility/IconTile";
+import { ThemaIcon } from "@/icons";
 import { useOpenKey } from "./calendarFormat";
-import { appointmentStart, type ModelContext } from "./calendarModel";
+import { appointmentEnd, appointmentStart, durationLabel, type ModelContext } from "./calendarModel";
 import type { CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import type { AppointmentLinkProps } from "./appointmentTabs/AppointmentLinkSection";
 import type { Appointment, AppointmentPatch, AppointmentStatus } from "./types";
-import { usePanelVersion } from "./appointmentPanel/panelVersion";
-import { PanelVersionPicker } from "./appointmentPanel/PanelParts";
 import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
-import { PanelFooter } from "./appointmentPanel/PanelShared";
-import { CardsVersion, MixVersion, MomentVersion } from "./appointmentPanel/PanelVersions";
+import { AppointmentPanelBody } from "./appointmentPanel/PanelBody";
 
 /**
- * El panel de una cita. Se abre al lado de la agenda: en la cabecera, quién
- * es (avatar, nombre y día); debajo, lo que pide el momento de la cita.
- *
- * Tiene tres diseños para elegir con el selector de arriba —«Arma la cita»,
- * «Tarjeta del momento» y la mezcla de las dos— (`appointmentPanel/`, docs/investigacion-modulos/
- * panel-de-cita.md). Los dos leen la misma cita con `useAppointmentModel` y
- * corren las mismas acciones. El de pestañas se quitó el 2026-10-18.
+ * El panel de una cita. Se abre al lado de la agenda: en la cabecera, cuándo
+ * es (el día y la hora, de inicio a fin); el cliente va dentro, como una
+ * tarjeta más de la cita. Debajo, lo que pide el momento de la cita
+ * (`appointmentPanel/PanelBody.tsx`, docs/investigacion-modulos/panel-de-cita.md).
  */
 
 export interface AppointmentDrawerProps extends AppointmentLinkProps {
@@ -46,39 +43,24 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
 export function AppointmentDrawer(props: AppointmentDrawerProps) {
   // Pasar a otra cita del mismo grupo no remonta el panel: sigue en la misma página.
   const panelKey = props.linked && props.linked.length > 1 && props.appointment?.linkId ? `link-${props.appointment.linkId}` : (props.appointment?.id ?? "");
-  const [version] = usePanelVersion();
   const key = `${useOpenKey(props.open)}-${panelKey}`;
   if (!props.appointment) return null;
-  return <AppointmentVersionPanel key={`${key}-${version}`} {...props} appointment={props.appointment} />;
+  return <AppointmentPanel key={key} {...props} appointment={props.appointment} />;
 }
 
-/** Los diseños: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
-function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
+function AppointmentPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
   const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch } = props;
+  const t = useAppT();
   const { locale } = useLocale();
-  const [version] = usePanelVersion();
   const model = useAppointmentModel(appointment, ctx, props);
-  const day = capitalize(format(appointmentStart(appointment), "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
-  const versionProps = { model, ctx, onPatch, onOpenClient, linked: props.linked, linkCandidates: props.linkCandidates, onSelectAppointment: props.onSelectAppointment, onUnlink: props.onUnlink, onLink: props.onLink, onShowLinked: props.onShowLinked };
-  const stage = model.playbook.stage;
-  // Cobrada o cerrada sin atender, la próxima se agenda en el cuerpo; con la tarjeta del momento la acción vive en ella.
-  const hasFooter = version === "cards" && stage !== "paid" && stage !== "noShow" && stage !== "cancelled";
+  const start = appointmentStart(appointment);
+  const day = capitalize(format(start, "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
+  const time = t("calendar.panel.header.time", { from: formatClock(start, ctx.intl), to: formatClock(appointmentEnd(appointment), ctx.intl), duration: durationLabel(appointment.durationMin) });
 
   return (
-    <SidePanelShell
-      open={open}
-      onOpenChange={onOpenChange}
-      size="lg"
-      title={model.clientName}
-      description={day}
-      leading={<ClientAvatar client={model.client} name={model.clientName} size="lg" />}
-      footer={hasFooter ? <PanelFooter model={model} /> : undefined}
-    >
-      <div className="space-y-5" data-testid="appointment-drawer" data-panel-version={version}>
-        <PanelVersionPicker />
-        {version === "cards" && <CardsVersion {...versionProps} />}
-        {version === "moment" && <MomentVersion {...versionProps} />}
-        {version === "mix" && <MixVersion {...versionProps} />}
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={day} description={time} leading={<IconTile size="lg" shape="circle" tone="neutral" icon={<ThemaIcon name="calendar" />} />}>
+      <div className="space-y-5" data-testid="appointment-drawer">
+        <AppointmentPanelBody model={model} ctx={ctx} onPatch={onPatch} onOpenClient={onOpenClient} linked={props.linked} linkCandidates={props.linkCandidates} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onLink={props.onLink} onShowLinked={props.onShowLinked} />
       </div>
     </SidePanelShell>
   );

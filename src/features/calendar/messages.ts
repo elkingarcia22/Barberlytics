@@ -5,11 +5,12 @@ import { api } from "@/lib/api";
 import type { AppMessageKey } from "@/app/i18n";
 
 /**
- * Los mensajes de WhatsApp de una cita (confirmación, recordatorios, hueco liberado) y el envío de
- * los que ya tocan. Contrato en docs/API_CONTRACT.md («Mensajes»).
+ * Los mensajes de una cita (confirmación, recordatorios, hueco liberado, y lo que el equipo manda
+ * desde su panel: el recibo y el enlace para reagendar) y el envío de los que ya tocan. Contrato en
+ * docs/API_CONTRACT.md («Mensajes»).
  */
 
-export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "manual", "reactivation"]);
+export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "manual", "reactivation", "receipt", "rebookLink"]);
 export type MessageKind = z.infer<typeof messageKindSchema>;
 
 export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
@@ -21,12 +22,14 @@ export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
   slotFreed: "calendar.messages.kind.slotFreed",
   manual: "calendar.messages.kind.manual",
   reactivation: "calendar.messages.kind.reactivation",
+  receipt: "calendar.messages.kind.receipt",
+  rebookLink: "calendar.messages.kind.rebookLink",
 };
 
 export const appointmentMessageSchema = z.object({
   id: z.string(),
   kind: messageKindSchema,
-  channel: z.enum(["whatsapp", "sms"]),
+  channel: z.enum(["whatsapp", "sms", "email"]),
   sendAt: z.string(),
   sentAt: z.string().nullable(),
   status: z.enum(["scheduled", "sent", "cancelled", "failed"]),
@@ -55,8 +58,19 @@ const messagesListSchema = z.object({ items: z.array(appointmentMessageSchema), 
 
 const dispatchSchema = z.object({ sent: z.number(), simulated: z.number(), failed: z.number() });
 
+/** Lo que el equipo manda desde el panel de la cita: el recibo o el enlace para reagendar, por SMS o correo. */
+export type SendChannel = "email" | "sms";
+export interface SendToClientInput {
+  kind: "receipt" | "rebookLink";
+  channel: SendChannel;
+  to: string;
+  body: string;
+}
+const sentSchema = z.object({ channel: z.enum(["email", "sms"]), to: z.string() });
+
 export const messagesApi = {
   list: (appointmentId: string, signal?: AbortSignal) => api.get<z.infer<typeof messagesListSchema>>(`/appointments/${appointmentId}/messages`, { schema: messagesListSchema, signal }),
+  send: (appointmentId: string, input: SendToClientInput) => api.post<z.infer<typeof sentSchema>>(`/appointments/${appointmentId}/messages`, input, { schema: sentSchema }),
   /** Solo en la demo: como si el cliente respondiera por WhatsApp. */
   simulateReply: (appointmentId: string, intent: ReplyIntent) => api.post<unknown>(`/appointments/${appointmentId}/simulate-reply`, { intent }),
   dispatch: () => api.post<z.infer<typeof dispatchSchema>>("/messages/dispatch", {}, { schema: dispatchSchema }),
@@ -73,6 +87,15 @@ export function useSimulateReply(appointmentId: string) {
 
 export function useAppointmentMessages(appointmentId: string, enabled: boolean) {
   return useQuery({ queryKey: ["messages", appointmentId], queryFn: ({ signal }) => messagesApi.list(appointmentId, signal), enabled });
+}
+
+/** Mandar el recibo o el enlace; queda en los mensajes de la cita. */
+export function useSendToClient(appointmentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendToClientInput) => messagesApi.send(appointmentId, input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["messages", appointmentId] }),
+  });
 }
 
 /** Cada cuánto se pone el outbox al día con la cola de WhatsApp del servidor. */

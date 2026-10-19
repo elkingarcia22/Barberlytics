@@ -1498,6 +1498,8 @@ export const appEn: AppMessageCatalog = {
   "calendar.messages.kind.slotFreed": "Freed slot",
   "calendar.messages.kind.manual": "Message from the team",
   "calendar.messages.kind.reactivation": "Time to come back",
+  "calendar.messages.kind.receipt": "Receipt",
+  "calendar.messages.kind.rebookLink": "Rebooking link",
   "calendar.messages.status.scheduled": "Scheduled",
   "calendar.messages.status.sent": "Sent",
   "calendar.messages.status.simulated": "Simulated",

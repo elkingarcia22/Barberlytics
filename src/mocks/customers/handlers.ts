@@ -85,6 +85,12 @@ function summary(client: MockClient) {
   };
 }
 
+/** Si el cliente es de ese barbero: lo prefiere o lo atendió (o lo tiene agendado) en el último año. */
+export function isOwnClient(client: MockClient, memberId: string): boolean {
+  const item = summary(client);
+  return item.preferredBarberId === memberId || item.barberIds.includes(memberId);
+}
+
 function detail(client: MockClient) {
   const profile = profileOf(client);
   const base = summary(client);

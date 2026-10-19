@@ -105,6 +105,14 @@ Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId
   atendido en el último año) y `GET /customers/:id` de otro es `403`; `GET /transactions` solo sus cuentas (sin ventas de
   mostrador); `GET /metrics/*` con el barbero fijo en él y `GET /metrics/insights` `403`; `GET /team/members` sin teléfono,
   correo, compensación ni pagos de los colegas; rendimiento solo el suyo.
+- **Barbero en la agenda**: `GET /calendar/day`, `/calendar/appointments` y `/calendar/month` traen solo su columna
+  (sus citas, sus bloqueos, su horario y su ocupación, pida el barbero que pida); `GET /calendar/catalog` trae solo a
+  él en `barbers` y, en `clients`, la ficha completa de los suyos (los de Clientes y los que tiene en la agenda) y de
+  los demás solo nombre y foto (sin teléfono, notas ni historial); `GET /waitlist` las suyas y las de cualquier
+  barbero. Escribe solo en lo suyo: crear, cambiar y cobrar citas de su columna (`403` si no; tampoco la pasa a otro
+  barbero), sin `force` (se ignora: la agenda no lo deja pisar), notas solo en la ficha de sus clientes, lista de
+  espera consigo; las devoluciones son de la caja (`403`). Bloqueos: el de comisión no los crea ni los borra (pide la
+  ausencia en Equipo); el de renta, solo en su agenda.
 - **Barbero por comisión**: `GET/POST /expenses` `403`. **De renta**: solo sus gastos (`ownerMemberId` = su ficha).
 - **Solo dueño o administrador**: mover la nómina (ajustes, pagos de renta, aprobar, pagar, reabrir), escribir en
   Configuración, aprobar o rechazar ausencias, los avisos de negocio. **Solo el dueño**: eliminar la barbería.

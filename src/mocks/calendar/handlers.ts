@@ -2,6 +2,8 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { cartTotals } from "@/features/branches/tax";
 import { ACCOUNTS, db } from "../db";
 import { withRisk } from "./risk";
+import { barberOf, ownAppointments, ownBlocks, ownClientIds, redactClient } from "./scope";
+import { forbidden, sessionOf } from "../session";
 import { moveStock, releaseAppointmentStock, syncAppointmentStock } from "../inventory/stock";
 import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { appointmentAccount } from "./account";
@@ -237,14 +239,34 @@ const catalogProducts = (): MockProduct[] => db.products.items.map(toSale);
 const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter((item) => item.sellable && item.activeBranchIds.includes(branchId)).map((item) => ({ ...toSale(item), price: productPriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
 const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map((item) => ({ ...toAgenda(item), price: servicePriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
 
+/** Un barbero escribe en la ficha de sus clientes; los demás roles, en cualquiera. */
+function canTouchClient(request: Request, clientId: string): boolean {
+  const own = barberOf(request);
+  return !own || ownClientIds(own).has(clientId);
+}
+
+/**
+ * Quién bloquea la agenda: dueño, administrador y recepción, a cualquiera; el barbero de renta, la suya;
+ * el de comisión no bloquea (pide una ausencia en Equipo). `null` si puede.
+ */
+function blockDenied(request: Request, barberId: string): Response | null {
+  const session = sessionOf(request);
+  if (session?.teamRole === "barbero-comision") return forbidden("Pide la ausencia en Equipo › Ausencias: el bloqueo lo pone la barbería.");
+  if (session?.teamRole === "barbero-renta" && barberId !== session.memberId) return forbidden("Solo bloqueas tu agenda.");
+  return null;
+}
+
 export const calendarHandlers = [
   http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    // Un barbero recibe su columna y la ficha de sus clientes; de los demás, solo el nombre.
+    const own = barberOf(request);
+    const mine = own ? ownClientIds(own) : null;
     return HttpResponse.json({
-      barbers: barbersIn(branchId),
-      clients: db.calendar.clients,
+      barbers: own ? barbersIn(branchId).filter((barber) => barber.id === own) : barbersIn(branchId),
+      clients: mine ? db.calendar.clients.map((client) => (mine.has(client.id) || client.id === WALK_IN_CLIENT.id ? client : redactClient(client))) : db.calendar.clients,
       services: bookableIn(branchId),
       products: sellableIn(branchId),
       taxInclusive: taxInclusive(),
@@ -258,10 +280,12 @@ export const calendarHandlers = [
     const day = url.searchParams.get("date") ?? "";
     const branchId = url.searchParams.get("branchId") ?? "ma";
     if (!DAY_KEY.test(day)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.", { fields: { date: ["Fecha inválida."] } });
-    const hours = Object.fromEntries(barbersIn(branchId).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day)]));
+    // Un barbero recibe su columna: sus citas, sus bloqueos y su horario.
+    const own = barberOf(request);
+    const hours = Object.fromEntries(barbersIn(branchId).filter((barber) => !own || barber.id === own).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day)]));
     // Cada cita por atender lleva su riesgo de no venir (ver risk.ts).
     const now = new Date();
-    return HttpResponse.json({ date: day, appointments: appointmentsOn(branchId, day).map((item) => withRisk(item, now)), blocks: blocksOn(branchId, day), hours });
+    return HttpResponse.json({ date: day, appointments: ownAppointments(appointmentsOn(branchId, day), own).map((item) => withRisk(item, now)), blocks: ownBlocks(blocksOn(branchId, day), own), hours });
   }),
 
   http.get(`${BASE}/calendar/appointments`, async ({ request }) => {
@@ -280,7 +304,7 @@ export const calendarHandlers = [
       day.setDate(day.getDate() + index);
       return peekAppointmentsOn(branchId, `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`);
     }).flat();
-    return HttpResponse.json({ from, to, items });
+    return HttpResponse.json({ from, to, items: ownAppointments(items, barberOf(request)) });
   }),
 
   http.get(`${BASE}/calendar/month`, async ({ request }) => {
@@ -291,7 +315,9 @@ export const calendarHandlers = [
     const branchId = url.searchParams.get("branchId") ?? "ma";
     const barberId = url.searchParams.get("barberId");
     if (!MONTH_KEY.test(month)) return error(422, "validation", "El mes debe ser AAAA-MM.", { fields: { month: ["Mes inválido."] } });
-    const barberIds = barberId ? [barberId] : barbersIn(branchId).map((barber) => barber.id);
+    // Un barbero ve la ocupación de su columna, pida la que pida.
+    const own = barberOf(request);
+    const barberIds = own ? [own] : barberId ? [barberId] : barbersIn(branchId).map((barber) => barber.id);
     const [year, monthIndex] = month.split("-").map(Number);
     const daysInMonth = new Date(year, monthIndex, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, index) => {
@@ -308,6 +334,9 @@ export const calendarHandlers = [
     const rawBody = (await request.json().catch(() => ({}))) as DefaultBodyType;
     const { fields, values } = validateAppointmentInput(rawBody);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    // Un barbero agenda en su columna y con las reglas de la casa: nunca fuerza.
+    const own = barberOf(request);
+    if (own && values.barberId !== own) return forbidden("Solo agendas en tu columna.");
     const barberMember = findBarber(values.barberId)!;
     const barber = { id: barberMember.id, branchId: barberMember.branchIds[0] ?? "ma", name: memberName(barberMember) };
     const durationMin = values.serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.durationMin ?? 0), 0);
@@ -315,7 +344,7 @@ export const calendarHandlers = [
     const time = values.start.slice(11, 16);
     appointmentsOn(barber.branchId, day);
     const body = asRecord(rawBody);
-    const clash = body.force === true ? null : clashMessage(barber.branchId, values.barberId, day, parseClock(time), durationMin);
+    const clash = body.force === true && !own ? null : clashMessage(barber.branchId, values.barberId, day, parseClock(time), durationMin);
     if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     const seriesId = values.repeat === "none" ? null : `ser_${Date.now().toString(36)}`;
     const occurrences = values.repeat === "none" ? 1 : SERIES_LENGTH;
@@ -362,7 +391,12 @@ export const calendarHandlers = [
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     const existing = findAppointment(params.id);
     if (!existing) return error(404, "not_found", "Esa cita no existe.");
-    const input = asRecord(await request.json().catch(() => ({})));
+    // Un barbero cambia sus citas, sin pasarlas a otro barbero y sin forzar.
+    const own = barberOf(request);
+    const body = asRecord(await request.json().catch(() => ({})));
+    const input: Record<string, unknown> = own ? { ...body, force: false } : body;
+    if (own && existing.barberId !== own) return forbidden("Esa cita no es tuya.");
+    if (own && typeof input.barberId === "string" && input.barberId !== own) return forbidden("No pasas la cita a otro barbero.");
     const actor = actorOf(account.user.name, input);
     const fields: Record<string, string[]> = {};
     const history = [...existing.history];
@@ -455,6 +489,8 @@ export const calendarHandlers = [
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     const existing = findAppointment(params.id);
     if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    const own = barberOf(request);
+    if (own && existing.barberId !== own) return forbidden("Solo cobras tus citas.");
     if (existing.status === "paid") return error(409, "conflict", "Esta cita ya está cobrada.");
     if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o a la que no asistió no se cobra.");
     const input = asRecord(await request.json().catch(() => ({})));
@@ -502,6 +538,8 @@ export const calendarHandlers = [
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     const existing = findAppointment(params.id);
     if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    // Devolver dinero es de la caja (recepción, administrador, dueño), no del barbero.
+    if (barberOf(request)) return forbidden("Las devoluciones las hace la caja.");
     if (existing.status !== "paid" || !existing.payment) return error(409, "conflict", "Solo se devuelve una cuenta cobrada.");
     const input = asRecord(await request.json().catch(() => ({})));
     const amount = round2(Number(input.amount));
@@ -525,6 +563,7 @@ export const calendarHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const client = db.calendar.clients.find((item) => item.id === params.id);
     if (!client || client.id === WALK_IN_CLIENT.id) return error(404, "not_found", "Ese cliente no existe.");
+    if (!canTouchClient(request, client.id)) return forbidden("Ese cliente no es tuyo.");
     const input = asRecord(await request.json().catch(() => ({})));
     const kind = text(input.kind) as MockClientNote["kind"];
     const body = text(input.text);
@@ -546,6 +585,7 @@ export const calendarHandlers = [
     const client = db.calendar.clients.find((item) => item.id === params.id);
     const current = client?.notes.find((note) => note.id === params.noteId);
     if (!client || !current) return error(404, "not_found", "Esa nota no existe.");
+    if (!canTouchClient(request, client.id)) return forbidden("Ese cliente no es tuyo.");
     const input = asRecord(await request.json().catch(() => ({})));
     const kind = (input.kind === undefined ? current.kind : text(input.kind)) as MockClientNote["kind"];
     const body = input.text === undefined ? current.text : text(input.text);
@@ -564,6 +604,7 @@ export const calendarHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const client = db.calendar.clients.find((item) => item.id === params.id);
     if (!client || !client.notes.some((note) => note.id === params.noteId)) return error(404, "not_found", "Esa nota no existe.");
+    if (!canTouchClient(request, client.id)) return forbidden("Ese cliente no es tuyo.");
     const updated = { ...client, notes: client.notes.filter((note) => note.id !== params.noteId) };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
     db.persist();
@@ -576,6 +617,8 @@ export const calendarHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const fields: Record<string, string[]> = {};
     const barber = findBarber(text(input.barberId));
+    const denied = blockDenied(request, text(input.barberId));
+    if (denied) return denied;
     const category = text(input.category) as MockBlockCategory;
     const repeat = (text(input.repeat) || "none") as MockBlockRepeat;
     const startDate = text(input.startDate);
@@ -599,7 +642,10 @@ export const calendarHandlers = [
   http.delete(`${BASE}/blocks/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
-    if (!db.calendar.blocks.some((block) => block.id === params.id)) return error(404, "not_found", "Ese bloqueo no existe.");
+    const target = db.calendar.blocks.find((block) => block.id === params.id);
+    if (!target) return error(404, "not_found", "Ese bloqueo no existe.");
+    const denied = blockDenied(request, target.barberId);
+    if (denied) return denied;
     db.calendar.blocks = db.calendar.blocks.filter((block) => block.id !== params.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });
@@ -611,7 +657,9 @@ export const calendarHandlers = [
     const url = new URL(request.url);
     const branchId = url.searchParams.get("branchId") ?? "ma";
     const day = url.searchParams.get("date");
-    const items = db.calendar.waitlist.filter((item) => item.branchId === branchId && (!day || item.slots.some((slot) => slot.date === day)));
+    // Un barbero ve las suyas y las de «cualquier barbero» (las puede tomar).
+    const own = barberOf(request);
+    const items = db.calendar.waitlist.filter((item) => item.branchId === branchId && (!day || item.slots.some((slot) => slot.date === day)) && (!own || item.barberId === null || item.barberId === own));
     return HttpResponse.json({ items });
   }),
 
@@ -622,7 +670,10 @@ export const calendarHandlers = [
     const fields: Record<string, string[]> = {};
     const clientId = text(input.clientId);
     const serviceId = text(input.serviceId);
-    const barberId = text(input.barberId) || null;
+    // Un barbero apunta en la lista de espera consigo.
+    const own = barberOf(request);
+    if (own && text(input.barberId) && text(input.barberId) !== own) return forbidden("Solo te apuntas a ti en la lista de espera.");
+    const barberId = own ?? (text(input.barberId) || null);
     const branchId = text(input.branchId) || "ma";
     const slots = Array.isArray(input.slots)
       ? input.slots.map((slot) => asRecord(slot as DefaultBodyType)).filter((slot) => DAY_KEY.test(text(slot.date)) && CLOCK.test(text(slot.time))).map((slot) => ({ date: text(slot.date), time: text(slot.time) }))
@@ -641,7 +692,10 @@ export const calendarHandlers = [
   http.delete(`${BASE}/waitlist/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
-    if (!db.calendar.waitlist.some((item) => item.id === params.id)) return error(404, "not_found", "Esa entrada no existe.");
+    const entryToRemove = db.calendar.waitlist.find((item) => item.id === params.id);
+    if (!entryToRemove) return error(404, "not_found", "Esa entrada no existe.");
+    const own = barberOf(request);
+    if (own && entryToRemove.barberId !== null && entryToRemove.barberId !== own) return forbidden("Esa entrada es de otro barbero.");
     db.calendar.waitlist = db.calendar.waitlist.filter((item) => item.id !== params.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });

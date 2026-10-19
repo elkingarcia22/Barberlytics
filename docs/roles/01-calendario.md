@@ -33,10 +33,10 @@ admin, recepción y renta sale de la matriz de fábrica.
 | Acción / elemento | Dueño | Admin | Recepción | Comisión | Renta | Permiso | Fuente | En Thema |
 |---|---|---|---|---|---|---|---|---|
 | Día anterior / siguiente / campo de fecha / «Hoy» | ✅ [P] | ✅ [M] | ✅ [M] | ✅ [P] | ✅ [M] | `calendar·A` | CAL l. 10-11 | ✓ `CalendarToolbar.tsx` |
-| Vista **Dia** (rejilla por barbero) | ✅ todas las columnas [P] | ✅ [M] | ✅ [M] | 🔒 suyo: solo su columna [P] | 🔒 suyo [D] | `calendar·A` | CAL l. 17; MOD l. 182 | ✓ `CalendarDayView.tsx`; ✗ recorte |
-| Vista **Agenda** (lista del día) | ✅ [P] | ✅ [M] | ✅ [M] | 🔒 suyo [D] | 🔒 suyo [D] | `calendar·A` | CAL l. 31-34 | ✓ `CalendarAgendaView.tsx`; ✗ recorte |
-| Vista **Mes** (ocupación por día, «Ocup. 0.79 %») | ✅ elige barbero [P] | ✅ [M] | ✅ conteo; ocupación ? [D] | 🔒 suyo, sin selector [D] | 🔒 suyo [D] | `calendar·A` (+`kpis·A` para el %) [D] | CAL l. 36-39 | ✓ `CalendarMonthView.tsx` (KPIs «Ocupación media», «Día más lleno»); ✗ recorte |
-| Vista **Semana** (fila por barbero, % de jornada) | ✅ [D] | ✅ [D] | ✅ sin % [D] | 🔒 su fila [D] | 🔒 su fila [D] | `calendar·A` | Solo Thema | ✓ `CalendarWeekView.tsx`; ✗ recorte |
+| Vista **Dia** (rejilla por barbero) | ✅ todas las columnas [P] | ✅ [M] | ✅ [M] | 🔒 suyo: solo su columna [P] | 🔒 suyo [D] | `calendar·A` | CAL l. 17; MOD l. 182 | ✓ `CalendarDayView.tsx`; ✓ recorte en el servidor (`mocks/calendar/scope.ts`) |
+| Vista **Agenda** (lista del día) | ✅ [P] | ✅ [M] | ✅ [M] | 🔒 suyo [D] | 🔒 suyo [D] | `calendar·A` | CAL l. 31-34 | ✓ `CalendarAgendaView.tsx`; ✓ recorte en el servidor |
+| Vista **Mes** (ocupación por día, «Ocup. 0.79 %») | ✅ elige barbero [P] | ✅ [M] | ✅ conteo; ocupación ? [D] | 🔒 suyo, sin selector [D] | 🔒 suyo [D] | `calendar·A` (+`kpis·A` para el %) [D] | CAL l. 36-39 | ✓ `CalendarMonthView.tsx` (KPIs «Ocupación media», «Día más lleno»); ✓ recorte en el servidor |
+| Vista **Semana** (fila por barbero, % de jornada) | ✅ [D] | ✅ [D] | ✅ sin % [D] | 🔒 su fila [D] | 🔒 su fila [D] | `calendar·A` | Solo Thema | ✓ `CalendarWeekView.tsx`; ✓ recorte en el servidor |
 | Filtro **Equipo\*** (Trabajando / Todo el equipo / un barbero) | ✅ [P] | ✅ [M] | ✅ [M] | — (no hay filtro; solo su columna) [P] | — [D] | `calendar·A` | CAL l. 8-9; `art/filtrar-el-calendario-por-equipo` | ✓ `TeamPicker.tsx` (multi-barbero, más que producción); ✗ ocultar a barberos |
 | «Nadie trabaja este día» → **Ver todo el equipo** | ✅ [P] | ✅ [M] | ✅ [M] | — [D] | — [D] | `calendar·A` | CAL l. 23-24 | ✓ `CalendarDayView.tsx` (`calendar.nobody.*`) |
 | «Nadie trabaja este día» → **Configurar horarios** | ✅ [P] | ✅ [M] | — (sin Equipo) [M] | — [D] | — [D] | `team·E` | CAL l. 24 | ✓ navega a `/usuarios` (`CalendarPage.tsx` l. 737) |
@@ -68,7 +68,7 @@ admin, recepción y renta sale de la matriz de fábrica.
 |---|---|---|---|---|---|---|---|---|
 | **Crear cita** (Acciones / tecla C) | ✅ [P] | ✅ [M] | ✅ [M] | ✅ [P] | ✅ [M] | `appointments·C` | CAL l. 15, 41-46; MOD l. 110 | ✓ `CreateAppointmentDrawer.tsx` |
 | Tocar franja vacía → alta con barbero y hora puestos | ✅ [P] | ✅ | ✅ | ✅ su columna [P] | ✅ su columna [D] | `appointments·C` | CAL l. 25; `guia/guia-del-barbero-por-comision` | ✓ `CalendarPage.tsx` l. 324 |
-| Campo **Cliente**: buscar en «N clientes» | ✅ todos [P] | ✅ [M] | ✅ [M] | ✅ todos hoy [P] → suyos + nuevos [D] | 🔒 suyos + nuevos [D] | `clients·V` | CAL l. 48-49 | ✓ `SearchableSelect`; ✗ recorte |
+| Campo **Cliente**: buscar en «N clientes» | ✅ todos [P] | ✅ [M] | ✅ [M] | ✅ todos hoy [P] → suyos + nuevos [D] | 🔒 suyos + nuevos [D] | `clients·V` | CAL l. 48-49 | ✓ `SearchableSelect`; ✓ los ajenos llegan solo con el nombre |
 | Cliente → **Crear cliente** | ✅ [P] | ✅ [M] | ✅ [M] | ✅ [M] (contradicción, ver §5) | ✅ [M] | `clients·C` | CAL l. 48; `art/crear-una-cita-para-un-cliente-nuevo` | parcial: navega a `/clientes` y pierde el alta (`CalendarPage.tsx` l. 789) |
 | Cliente → **Walk in** (cliente genérico) | ✅ [P] | ✅ | ✅ | ✅ | ✅ | `appointments·C` | CAL l. 49 | ✓ `cli_walkin` primero |
 | Teléfono del cliente en la lista (enmascarado `000******0000`) | 👁 enmascarado [P] | 👁 [D] | 👁 [D] | 👁 enmascarado [P] | 👁 [D] | `client-info·A` ? | CAL l. 49; MOD l. 185 | ✗ seed con teléfono completo |
@@ -91,7 +91,7 @@ admin, recepción y renta sale de la matriz de fábrica.
 | Arrastrar la tarjeta a otra hora | ✅ [P] | ✅ [M] | ✅ [M] | 🔒 suyas, con reglas [D] | 🔒 suyas [D] | `appointments·E` | CAL l. 26-27; `art/mover-o-reprogramar-una-cita` | ✓ `onMove` (`CalendarPage.tsx` l. 358-371) |
 | Arrastrar a la columna de **otro barbero** | ✅ [P] | ✅ [M] | ✅ [M] | — (solo ve la suya) [D] | — [D] | `appointments·E` | CAL l. 27 | ✓ sin recorte |
 | Tirador **Cambiar duración** / campo Duración | ✅ [P] | ✅ | ✅ | 🔒 suyas [D] | 🔒 suyas [D] | `appointments·E` | CAL l. 29, 65 | ✓ `onResize` l. 373-390 |
-| **Forzar** (pisar otra cita, fuera de horario o sobre bloqueo) | ✅ [D] | ✅ [D] | ✅ [D] | — (rechazo con motivo) [D] | 🔒 solo en su columna [D] | `appointments·E` + rol | ? en producción | ✓ `force: !enforceRules`; ✗ el mock no valida el rol (`src/mocks/calendar/handlers.ts` l. 263, 355) |
+| **Forzar** (pisar otra cita, fuera de horario o sobre bloqueo) | ✅ [D] | ✅ [D] | ✅ [D] | — (rechazo con motivo) [D] | 🔒 solo en su columna [D] | `appointments·E` + rol | ? en producción | ✓ `force: !enforceRules`; ✓ el servidor ignora `force` de un barbero (comisión y renta) |
 | Proponer reacomodo al alargar sobre citas que se pueden correr | n/a (fuerza) | n/a | n/a | ✅ [D] | n/a | `appointments·E` | Solo Thema | ✓ `CalendarPage.tsx` l. 381-385 |
 | Aplicar / descartar reacomodo (fantasmas + franja) | ✅ [D] | ✅ | ✅ | 🔒 su cola [D] | 🔒 [D] | `appointments·E` | Solo Thema | ✓ `ReflowBanner.tsx`, `applyReflow` l. 417-444 |
 | Deshacer (toast / tecla Z) | ✅ | ✅ | ✅ | 🔒 | 🔒 | igual que la acción | Solo Thema | ✓ `patchWithUndo` |

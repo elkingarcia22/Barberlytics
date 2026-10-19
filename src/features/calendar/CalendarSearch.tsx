@@ -5,10 +5,12 @@ import { Search, X } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
-import { RailButton, useRailPopoutSide } from "@/components/action-rail";
 import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { appointmentStart, findBarber, findClient, servicesOf, type ModelContext } from "./calendarModel";
 import { AppointmentStatusBadge, ClientAvatar } from "./calendarShared";
@@ -17,9 +19,9 @@ import { useRangeQuery } from "./queries";
 import type { Appointment } from "./types";
 
 /**
- * El buscador de la agenda, en la barra flotante junto a «Crear cita»: una
- * lupa (su nombre en el tooltip) que al tocarla se abre hacia la derecha en un
- * campo, y encima, la lista de citas que coinciden. Busca por todo lo que se
+ * El buscador de la agenda, en la fila de arriba a la izquierda de la vista
+ * («Día»): un botón secundario con solo la lupa (su nombre en el tooltip) que
+ * al tocarlo se abre en un campo, y debajo, la lista de citas que coinciden. Busca por todo lo que se
  * pregunta en el mostrador —nombre, celular, barbero, servicio, estado, tipo
  * de cliente, en línea o sin cita, notas, día y hora— en el mes pasado y los
  * próximos 45 días. Elegir una lleva a su día y abre su panel.
@@ -44,7 +46,6 @@ export interface CalendarSearchProps {
 export function CalendarSearch({ open, onOpenChange, branchId, ctx, ownBarberId, onSelect }: CalendarSearchProps) {
   const t = useAppT();
   const { locale } = useLocale();
-  const side = useRailPopoutSide();
   const dateLocale = calendarLocale(locale);
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
@@ -73,7 +74,16 @@ export function CalendarSearch({ open, onOpenChange, branchId, ctx, ownBarberId,
   };
 
   if (!open) {
-    return <RailButton icon={<Search className="size-5" strokeWidth={2} />} label={t("calendar.search.label")} onClick={() => onOpenChange(true)} />;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="icon" aria-label={t("calendar.search.label")} onClick={() => onOpenChange(true)} data-testid="calendar-search-open">
+            <Search />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("calendar.search.label")}</TooltipContent>
+      </Tooltip>
+    );
   }
 
   const hasQuery = deferred.trim().length > 0;
@@ -83,14 +93,14 @@ export function CalendarSearch({ open, onOpenChange, branchId, ctx, ownBarberId,
       <PopoverAnchor asChild>
         <motion.div
           ref={anchorRef}
-          initial={{ width: 40, opacity: 0.6 }}
+          initial={{ width: 36, opacity: 0.6 }}
           animate={{ width: OPEN_WIDTH, opacity: 1 }}
           transition={{ type: "spring", bounce: 0.2, duration: 0.45 }}
-          className="relative flex h-10 items-center motion-reduce:transition-none"
+          className="relative flex items-center motion-reduce:transition-none"
           data-testid="calendar-search"
         >
-          <Search className="pointer-events-none absolute left-3 size-4 text-nav-foreground/60" strokeWidth={2} aria-hidden />
-          <input
+          <Search className="pointer-events-none absolute left-3 size-4 text-text-muted" aria-hidden />
+          <Input
             ref={inputRef}
             autoFocus
             type="search"
@@ -117,17 +127,17 @@ export function CalendarSearch({ open, onOpenChange, branchId, ctx, ownBarberId,
             placeholder={t("calendar.search.placeholder")}
             aria-label={t("calendar.search.label")}
             aria-controls="calendar-search-results"
-            className="h-10 w-full min-w-0 rounded-xl bg-nav-foreground/10 pl-9 pr-9 text-sm text-nav-foreground outline-none placeholder:text-nav-foreground/45 focus-visible:ring-2 focus-visible:ring-nav-foreground/30 [&::-webkit-search-cancel-button]:hidden"
+            className="w-full min-w-0 pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden"
           />
-          <button type="button" onClick={close} aria-label={t("common.close")} className="absolute right-2 flex size-6 items-center justify-center rounded-lg text-nav-foreground/60 transition-colors hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/30">
-            <X className="size-4" strokeWidth={2} />
-          </button>
+          <Button variant="ghost" size="icon-xs" onClick={close} aria-label={t("common.close")} className="absolute right-1.5">
+            <X />
+          </Button>
         </motion.div>
       </PopoverAnchor>
       <PopoverContent
-        side={side}
+        side="bottom"
         align="end"
-        sideOffset={14}
+        sideOffset={8}
         className="w-[26rem] max-w-[calc(100vw-2rem)] gap-0 p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}

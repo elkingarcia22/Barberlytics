@@ -366,7 +366,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Barra flotante o cabecera: lo decide la persona en «Personalización».
   const [actionsPlacement] = useActionsPlacement();
   const railOwnsActions = actionsPlacement === "rail";
-  // El buscador de la barra: abierto, la barra no se recoge.
+  // El buscador de la fila de arriba, junto a la vista: cerrado es solo la lupa.
   const [searchOpen, setSearchOpen] = React.useState(false);
   // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
   const headerExtras = usePageHeaderExtras();
@@ -722,6 +722,22 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         onViewChange={state.setView}
         onTeamChange={state.setTeam}
         showTeam={!ownBarberId}
+        search={
+          ctx && (
+            <CalendarSearch
+              open={searchOpen}
+              onOpenChange={setSearchOpen}
+              branchId={branchId}
+              ctx={ctx}
+              ownBarberId={ownBarberId}
+              onSelect={(appointment) => {
+                // Ir a su día y abrirla: un panel a la vez, así que se cierra el que hubiera.
+                closePanel();
+                state.openAppointmentOn(appointmentStart(appointment), appointment.id);
+              }}
+            />
+          )
+        }
         summary={
           revenue && isDayView && can.showTotals ? (
             <Text
@@ -1050,29 +1066,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail
-            actions={railActions}
-            selectedCount={0}
-            onClearSelection={() => undefined}
-            isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock"}
-            trailingActive={searchOpen}
-            trailing={
-              ctx && (
-                <CalendarSearch
-                  open={searchOpen}
-                  onOpenChange={setSearchOpen}
-                  branchId={branchId}
-                  ctx={ctx}
-                  ownBarberId={ownBarberId}
-                  onSelect={(appointment) => {
-                    // Ir a su día y abrirla: un panel a la vez, así que se cierra el que hubiera.
-                    closePanel();
-                    state.openAppointmentOn(appointmentStart(appointment), appointment.id);
-                  }}
-                />
-              )
-            }
-          />
+          <DataListActionRail actions={railActions} selectedCount={0} onClearSelection={() => undefined} isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock"} />
         </ShellRailSlot>
       )}
     </div>

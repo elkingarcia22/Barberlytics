@@ -124,8 +124,6 @@ export const dataListActionRailEntry = defineEntry({
     { name: "RailActionSpec.blockedReason", type: "string | null", description: "Por qué no se puede ahora. La deja a la vista y apagada, con el motivo: explicar vale más que esconder." },
     { name: "selectedCount", type: "number", description: "Cuántos registros hay marcados. Es lo único que decide el modo." },
     { name: "onClearSelection", type: "() => void", description: "La ✕ del recuento: suelta las marcas sin tocar las filas." },
-    { name: "trailing", type: "ReactNode", description: "Algo propio de la pantalla justo a la derecha de la acción principal, en la barra de escritorio: el buscador del calendario, una lupa que se despliega hacia la derecha en un campo. No es una acción más: no entra en el «más» ni en el botón flotante." },
-    { name: "trailingActive", type: "boolean", default: "false", description: "Lo de `trailing` está abierto (se está escribiendo, hay una lista abierta): la barra no se recoge aunque el puntero salga." },
     { name: "gender", type: '"f" | "m"', default: '"m"', description: "Concordancia del recuento: «3 seleccionadas» frente a «3 seleccionados»." },
     { name: "inlineLimit", type: "number", default: "5", description: "Cuántas caben antes de plegarse al menú «más»." },
     { name: "locked", type: "boolean", default: "false", description: "Una decisión inmersiva se adueñó de una fila: la barra se desmonta en vez de ofrecer algo que no viene a cuento." },

@@ -55,7 +55,7 @@ export interface SearchIndexEntry {
   appointment: Appointment;
   /** Todo el texto que se puede buscar, normalizado. */
   text: string;
-  /** Los números de la cita juntos (celular, fecha, hora), para buscar por cifras. */
+  /** Las cifras del celular, juntas: para encontrarlo escrito con o sin espacios. */
   digits: string;
   /** El nombre del cliente normalizado, para premiar a quien lo empieza igual. */
   name: string;
@@ -104,7 +104,7 @@ export function buildSearchIndex({ appointments, ctx, t, dateLocale }: SearchInd
       appointment.id,
     ];
     const text = normalizeSearch(parts.join(" "));
-    return { appointment, text, digits: digitsOf(`${client?.phone ?? ""} ${appointment.id}`), name: normalizeSearch(client?.name ?? "") };
+    return { appointment, text, digits: digitsOf(client?.phone ?? ""), name: normalizeSearch(client?.name ?? "") };
   });
 }
 

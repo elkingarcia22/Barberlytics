@@ -43,6 +43,8 @@ export interface CalendarToolbarProps {
   status?: React.ReactNode;
   /** Un dato corto del día (lo cobrado), tras los filtros; se pliega cuando falta ancho. */
   summary?: React.ReactNode;
+  /** El buscador de citas: la lupa a la izquierda del cambio de vista, que se abre en un campo. */
+  search?: React.ReactNode;
   /** Los ajustes de cómo se ve (color, qué cuenta la tarjeta, densidad): a la derecha, tras el cambio de vista. */
   viewSettings?: React.ReactNode;
   /** Las acciones de la pantalla, al final de la fila. */
@@ -59,7 +61,7 @@ const VIEWS: readonly { value: CalendarView; label: AppMessageKey; shortcut: str
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, showTeam = true, status, summary, viewSettings, actions }: CalendarToolbarProps) {
+export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, showTeam = true, status, summary, search, viewSettings, actions }: CalendarToolbarProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const dateLocale = calendarLocale(locale);
@@ -119,6 +121,7 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
       {summary}
 
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
+        {search}
         {/* La vista en un menú y no en cuatro segmentos: la fila tiene que caber
             en una línea con la lateral abierta, y cambiar de vista tiene atajo. */}
         <DropdownMenu>

@@ -97,8 +97,8 @@ export const DPA: LegalDoc = {
       id: "derechos",
       title: titled("7. Ayuda con los derechos de los titulares", "7. Help with data subject rights"),
       body: both(
-        ["El servicio permite a la barbería consultar, corregir, exportar y borrar los datos de un cliente [exportar y borrar por completar en el producto]. Si un titular escribe a Barberlytics, se lo hacemos llegar a la barbería en 2 días hábiles y la ayudamos a responder en plazo."],
-        ["The service lets the shop look up, correct, export and delete a client's data [export and delete to be completed in the product]. If a data subject writes to Barberlytics, we forward it to the shop within 2 business days and help it answer on time."]
+        ["El servicio permite a la barbería consultar, corregir, exportar y borrar los datos de un cliente, y lleva el registro de cada solicitud con su plazo. Si un titular escribe a Barberlytics, se lo hacemos llegar a la barbería en 2 días hábiles y la ayudamos a responder en plazo."],
+        ["The service lets the shop look up, correct, export and delete a client's data, and keeps a log of every request with its deadline. If a data subject writes to Barberlytics, we forward it to the shop within 2 business days and help it answer on time."]
       ),
     },
     {

@@ -11,6 +11,9 @@ import { messageKindSchema } from "@/features/calendar/messages";
 
 const consentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app", "whatsapp"]), version: z.string().optional(), country: z.string().optional() });
 
+/** El permiso aparte para anotar alergias y medicamentos (dato sensible): quién lo anotó y con qué texto. */
+const healthConsentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app"]), version: z.string(), by: z.string().optional() });
+
 export const relationshipSchema = z.object({
   membership: z.object({ every: z.number(), progress: z.number(), available: z.number(), reward: z.string(), rewardValue: z.number() }).nullable(),
   packages: z.array(z.object({ id: z.string(), name: z.string(), service: z.string(), remaining: z.number(), total: z.number(), expiresAt: z.string() })),
@@ -20,11 +23,12 @@ export const relationshipSchema = z.object({
   reviews: z.array(z.object({ id: z.string(), rating: z.number(), comment: z.string(), barber: z.string(), createdAt: z.string() })),
   waitlist: z.array(z.object({ id: z.string(), branchId: z.string(), service: z.string(), barber: z.string().nullable(), slots: z.array(z.object({ date: z.string(), time: z.string() })), createdAt: z.string() })),
   messages: z.array(z.object({ id: z.string(), appointmentId: z.string(), kind: messageKindSchema, channel: z.enum(["whatsapp", "sms"]), status: z.enum(["sent", "failed"]), at: z.string(), simulated: z.boolean(), error: z.string().nullable(), body: z.string().nullable().optional(), by: z.string().nullable().optional() })),
-  consent: z.object({ marketing: consentSchema.nullable() }),
+  consent: z.object({ marketing: consentSchema.nullable(), health: healthConsentSchema.nullable().optional() }),
 });
 
 export type CustomerRelationship = z.infer<typeof relationshipSchema>;
 export type MarketingConsent = z.infer<typeof consentSchema>;
+export type HealthConsent = z.infer<typeof healthConsentSchema>;
 
 export const MESSAGE_PURPOSES = ["thanks", "rebook", "birthday", "free"] as const;
 export type MessagePurpose = (typeof MESSAGE_PURPOSES)[number];
@@ -39,6 +43,8 @@ export const relationshipApi = {
   /** Anota un mensaje escrito desde la ficha (se abre en WhatsApp aparte). `409 no_consent` si es promoción sin permiso. */
   logMessage: (id: string, input: { purpose: MessagePurpose; body: string }) => api.post<CustomerRelationship>(`/customers/${id}/messages`, input, { schema: relationshipSchema }),
   setMarketing: (id: string, marketing: boolean) => api.patch<CustomerRelationship>(`/customers/${id}/consent`, { marketing }, { schema: relationshipSchema }),
+  /** Retirarlo borra sus alergias y medicamentos anotados (y queda en el registro de solicitudes). */
+  setHealth: (id: string, health: boolean) => api.patch<CustomerRelationship>(`/customers/${id}/consent`, { health }, { schema: relationshipSchema }),
 };
 
 const relationshipKey = (id: string) => ["customers", "relationship", id] as const;
@@ -60,5 +66,18 @@ export function useSetMarketingConsent() {
   return useMutation({
     mutationFn: ({ id, marketing }: { id: string; marketing: boolean }) => relationshipApi.setMarketing(id, marketing),
     onSuccess: (data, { id }) => queryClient.setQueryData(relationshipKey(id), data),
+  });
+}
+
+export function useSetHealthConsent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, health }: { id: string; health: boolean }) => relationshipApi.setHealth(id, health),
+    onSuccess: (data, { id }) => {
+      queryClient.setQueryData(relationshipKey(id), data);
+      // Retirarlo borra las notas médicas: la ficha y el registro cambian.
+      void queryClient.invalidateQueries({ queryKey: ["customers", "detail", id] });
+      void queryClient.invalidateQueries({ queryKey: ["privacy-requests"] });
+    },
   });
 }

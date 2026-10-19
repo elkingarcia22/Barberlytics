@@ -185,3 +185,34 @@ export function consentPack(country: string | null | undefined, locale: ConsentL
 
 /** La versión vigente para ese país: la que el servidor guarda con cada aceptación. */
 export const consentVersionOf = (country: string | null | undefined): string => PACKS[consentCountryOf(country)].version;
+
+/**
+ * El permiso aparte para anotar alergias y medicamentos (datos sensibles en Colombia; datos de salud con leyes
+ * propias en algunos estados de EE. UU.). Es explícito, facultativo, distinto del de promociones, y sin él no se
+ * guardan. Retirarlo borra lo anotado. Un solo texto para todos los países, con su versión como prueba.
+ */
+export const HEALTH_CONSENT_VERSION = "health-2026-10";
+
+export interface HealthConsentTexts {
+  label: string;
+  disclosure: string;
+  staffScript: string;
+}
+
+const HEALTH_TEXTS: Readonly<Record<ConsentLocale, HealthConsentTexts>> = {
+  es: {
+    label: "Autorizo a {shop} a anotar mis alergias o medicamentos para cuidar mi atención.",
+    disclosure: "Es voluntario y aparte de las promociones. Solo lo ve quien te atiende. Puedes retirarlo cuando quieras y se borra lo anotado.",
+    staffScript: "Pregúntale si quiere que anotemos sus alergias o medicamentos para cuidarlo en el servicio. Dile que es voluntario, que solo lo ve quien lo atiende y que puede retirarlo cuando quiera. Márcalo solo si dijo que sí hoy.",
+  },
+  en: {
+    label: "I authorize {shop} to record my allergies or medication to take care of me during service.",
+    disclosure: "It's voluntary and separate from promotions. Only whoever serves you sees it. You can withdraw it any time and what was recorded is deleted.",
+    staffScript: "Ask whether they want us to record allergies or medication to take care of them. Tell them it's voluntary, only whoever serves them sees it and they can withdraw it any time. Mark it only if they said yes today.",
+  },
+};
+
+export const healthConsentTexts = (locale: ConsentLocale, shop: string): HealthConsentTexts => {
+  const texts = HEALTH_TEXTS[locale];
+  return { label: fill(texts.label, shop), disclosure: fill(texts.disclosure, shop), staffScript: fill(texts.staffScript, shop) };
+};

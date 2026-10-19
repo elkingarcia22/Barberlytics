@@ -1,14 +1,17 @@
 import * as React from "react";
+import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
 import { DrawerShell } from "@/components/overlays";
 import { Field } from "@/components/forms";
 import { ThemaTabs } from "@/components/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calendar/types";
 import { useAddCustomerNote } from "./queries";
+import { useCustomerRelationship } from "./relationship";
 import type { AppMessageKey } from "@/app/i18n/types";
 
 export interface CustomerNoteDrawerProps {
@@ -32,6 +35,9 @@ export function CustomerNoteDrawer({ open, onOpenChange, customerId, customerNam
   const addNote = useAddCustomerNote();
   const [kind, setKind] = React.useState<NoteKind>("note");
   const [text, setText] = React.useState("");
+  // Alergias y medicamentos son datos sensibles: sin el permiso aparte del cliente no se anotan.
+  const relationship = useCustomerRelationship(open && customerId ? customerId : "");
+  const needsConsent = kind !== "note" && relationship.data !== undefined && relationship.data.consent.health?.accepted !== true;
 
   const close = () => {
     onOpenChange(false);
@@ -66,7 +72,7 @@ export function CustomerNoteDrawer({ open, onOpenChange, customerId, customerNam
           <Button type="button" variant="outline" onClick={close} disabled={addNote.isPending}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" form="customer-note-form" disabled={text.trim().length < MIN_NOTE_LENGTH || addNote.isPending} data-testid="customer-note-submit">
+          <Button type="submit" form="customer-note-form" disabled={text.trim().length < MIN_NOTE_LENGTH || addNote.isPending || needsConsent} data-testid="customer-note-submit">
             {t("customers.note.save")}
           </Button>
         </>
@@ -77,6 +83,12 @@ export function CustomerNoteDrawer({ open, onOpenChange, customerId, customerNam
         <Field label={t("calendar.notes.type")} required description={t(KIND_HINT_KEYS[kind])}>
           <ThemaTabs className="mb-0" fitContent tabs={noteKindSchema.options.map((option) => ({ id: option, label: t(NOTE_KIND_KEYS[option]) }))} activeTabId={kind} onTabChange={(id) => setKind(id as NoteKind)} />
         </Field>
+        {needsConsent && (
+          <Alert data-testid="customer-note-needs-consent">
+            <ShieldAlert />
+            <AlertDescription>{t("customers.privacy.medicalNeedsConsent")}</AlertDescription>
+          </Alert>
+        )}
         <Field label={t("calendar.notes.description")} required>
           <Textarea value={text} onChange={(event) => setText(event.target.value)} rows={4} data-testid="customer-note-text" />
         </Field>

@@ -24,6 +24,7 @@ import { payrollHandlers } from "./payroll/handlers";
 import { registerHandlers } from "./register/handlers";
 import { frontDeskHandlers } from "./frontDesk/handlers";
 import { legalHandlers } from "./legal/handlers";
+import { privacyHandlers } from "./customers/privacy";
 import { legalVersion } from "@/features/legal/documents";
 import { messagesHandlers } from "./messages/handlers";
 import { settingsHandlers } from "./settings/handlers";
@@ -603,6 +604,7 @@ export const handlers = [
   ...registerHandlers,
   ...frontDeskHandlers,
   ...legalHandlers,
+  ...privacyHandlers,
   ...messagesHandlers,
 
   // ---------- Configuración ----------

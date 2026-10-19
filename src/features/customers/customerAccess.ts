@@ -45,6 +45,12 @@ export interface CustomerPermissions {
   showContact: boolean;
   /** Valor de vida, ticket, pagos y pulso de dinero: recepción cobra pero no lleva los números. */
   showMoney: boolean;
+  /** Anotar o retirar el permiso de datos de salud: todos menos el barbero (lo pide recepción o gerencia). */
+  canHealthConsent: boolean;
+  /** Anotar solicitudes de datos que llegan por teléfono, correo o en el local: recepción y gerencia. */
+  canLogPrivacy: boolean;
+  /** Exportar, borrar y cerrar solicitudes de datos: el dueño o un administrador. */
+  canManagePrivacy: boolean;
 }
 
 export function customerPermissions(access: Access): CustomerPermissions {
@@ -60,6 +66,9 @@ export function customerPermissions(access: Access): CustomerPermissions {
     showContact: access.can("client-info", "active"),
     // Mismo criterio que Métricas: sin indicadores, salvo el barbero, que ve los suyos.
     showMoney: access.can("kpis", "active") || access.isBarber,
+    canHealthConsent: !access.isBarber,
+    canLogPrivacy: access.role === "owner" || access.role === "admin" || access.role === "recepcion",
+    canManagePrivacy: access.role === "owner" || access.role === "admin",
   };
 }
 

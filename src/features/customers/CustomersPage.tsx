@@ -24,6 +24,7 @@ import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerImportDrawer } from "./CustomerImportDrawer";
 import { ReactivationDrawer } from "./ReactivationDrawer";
+import { PrivacyRequestsDrawer } from "./PrivacyRequestsDrawer";
 import { useAccess } from "@/features/access";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { useCustomerPermissions } from "./customerAccess";
@@ -120,6 +121,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const [confirmBlock, setConfirmBlock] = React.useState<Customer | null>(null);
   const [importing, setImporting] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
+  const [privacyOpen, setPrivacyOpen] = React.useState(false);
   // Reactivar escribe a clientes en nombre de la barbería: lo aprueba quien gestiona.
   const access = useAccess();
   const manages = access.role === "owner" || access.role === "admin";
@@ -157,6 +159,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           exportList,
           importList: () => setImporting(true),
           reactivate: manages ? () => setReactivating(true) : undefined,
+          privacyRequests: perms.canLogPrivacy ? () => setPrivacyOpen(true) : undefined,
           open: () => single && navigate(`/clientes/${single.id}`),
           book: () => single && navigate(`/calendario?cliente=${single.id}`),
           note: () => single && setDrawer("note"),
@@ -205,6 +208,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
+      {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       </>
     );
   }
@@ -334,6 +338,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
       <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
+      {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 
       <ConfirmDialog

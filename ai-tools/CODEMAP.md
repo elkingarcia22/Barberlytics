@@ -539,15 +539,16 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### calendar/appointmentPanel
 
-- **AppointmentFields.tsx** · `AppointmentFieldsProps`, `AppointmentFields` · piezas: Button, SelectableRow, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n
-- **ClientPage.tsx** — La fila del cliente: tipo, visita de la membresía y ritmo; lleva a su página. · `ClientSummaryRow`, `ClientPageContent` · piezas: Button, ProgressRing, Text · usa: @/app/i18n, @/i18n
+- **AppointmentFields.tsx** · `AppointmentFieldsProps`, `AppointmentFields` · piezas: Button, Chip, SelectableRow, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n
+- **BarberRequest.tsx** — «Para el barbero»: el comentario y las fotos del corte que llegan con la cita. · `BarberRequestProps`, `BarberRequest` · piezas: ActionTile, Button, Field, IconTile, Text, Textarea · usa: @/app/i18n, @/features/booking, @/icons
+- **ClientPage.tsx** — La fila del cliente: tipo, visita de la membresía y ritmo; lleva a su página. · `ClientSummaryRow`, `ClientPageContent` · piezas: Button, ProgressRing, Stepper, Text · usa: @/app/i18n, @/i18n
 - **HistoryTimeline.tsx** — La visita contada con horas reales: lo hecho, lo que va ahora y lo que falta. · `HistoryTimeline` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
 - **NextVisitBooker.tsx** · `NextVisitBooker` · piezas: Button, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons, @/lib/api
 - **PanelParts.tsx** — El selector para comparar los diseños del panel, con una línea de qué propone cada uno. · `PanelVersionPicker`, `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MoreActionsMenu` · piezas: Alert, AlertDescription, AlertTitle, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tag, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **PanelShared.tsx** — Lo que comparten las versiones nuevas: el avance arriba (como en el panel de siempre) con la hora real de cad… · `PanelStepper`, `LinkedBlock`, `PanelFooter` · piezas: Stepper, formatClock · usa: @/app/i18n
-- **PanelVersions.tsx** — Las dos propuestas del panel de una cita que quedaron (2026-10-18, junto a las pestañas de siempre). · `VersionProps`, `CardsVersion`, `MomentVersion` · piezas: ActionTile, IconTile, Text, formatClock · usa: @/app/i18n, @/icons, @/lib/utils
+- **PanelVersions.tsx** — Las dos propuestas del panel de una cita que quedaron (2026-10-18, junto a las pestañas de siempre). · `VersionProps`, `CardsVersion`, `MomentVersion` · piezas: ActionTile, Button, IconTile, Text, formatClock · usa: @/app/i18n, @/icons, @/lib/utils
 - **SourceLine.tsx** — De dónde salió la cita y cuándo: «Reservó en línea hace 2 días». · `SourceLine` · piezas: Text, calendarLocale · usa: @/app/i18n, @/i18n, @/icons
-- **StageParts.tsx** — El titular del momento y su línea: «Va 12 min tarde · Llámalo o escríbele». · `StageHeading`, `BookingRequest`, `TicketSummary`, `ClipperButton`, `QuickTilesProps`, `QuickTiles` · piezas: AIButton, Heading, IconTile, Text, formatClock · usa: @/app/i18n, @/features/booking, @/icons, @/lib/utils
+- **StageParts.tsx** — El titular del momento y su línea: «Va 12 min tarde · Llámalo o escríbele». · `StageHeading`, `TicketSummary`, `ClipperButton`, `QuickTilesProps`, `QuickTiles` · piezas: AIButton, Heading, Text, formatClock · usa: @/app/i18n, @/features/booking, @/icons, @/lib/utils
 - **appointmentAgent.ts** — El foco que el panel de una cita le pasa a Clipper al abrirlo. · `topicOf`, `AppointmentAgentInput`, `appointmentAgentFocus` · piezas: formatClock · usa: @/app/i18n, @/lib/chat
 - **bookingStyle.tsx** — El campo de la reserva: foto, nombre del campo, lo elegido y un detalle; abre su lista. · `PanelFieldProps`, `PanelField`, `InlineList`, `PanelQuestion`, `NavRow`, `PanelSubpage` · piezas: ActionTile, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **panelHooks.ts** — Abre el panel de Clipper hablando de esta cita y este cliente. · `useAskClipper`, `usePanelPages` · usa: @/app/i18n, @/i18n, @/lib/chat
@@ -945,7 +946,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### calendar
 
 - **account.ts** — La cuenta de una cita, igual para el cobro de la agenda y para Transacciones: lo que vale (con el impuesto de… · `AppointmentAccount`, `barberServicePrice`, `appointmentAccount` · usa: @/features/branches
-- **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `blocksOn`, `clashMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/branches
+- **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `blocksOn`, `clashMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/booking, @/features/branches
 - **risk.ts** — Riesgo de que el cliente no venga (docs/API_CONTRACT.md, «Calendario»). · `RiskReason`, `NoShowRisk`, `noShowRisk`, `withRisk`
 - **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
 

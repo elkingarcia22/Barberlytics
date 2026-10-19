@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
+import { Chip } from "@/components/ai-interaction";
 import { SelectableRow } from "@/components/selection";
 import { TimeSlotPicker, formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
@@ -23,6 +24,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
  */
 
 type Field = "services" | "barber" | "when";
+
+/** Las duraciones que se ofrecen, las mismas de la edición de la cita. */
+const DURATIONS = [15, 30, 45, 60, 75, 90, 105, 120, 150, 180] as const;
 
 export interface AppointmentFieldsProps {
   model: AppointmentModel;
@@ -167,25 +171,41 @@ function WhenList({ model, ctx, onPatch, onClose }: { model: AppointmentModel; c
   const now = ctx.now ?? new Date();
   const start = appointmentStart(model.appointment);
   const [value, setValue] = React.useState<Date | null>(null);
-  const slots = useFreeSlots({ branchId: model.appointment.branchId, barber: model.barber, durationMin: model.appointment.durationMin, initialDay: start, now, excludeId: model.appointment.id });
+  const [duration, setDuration] = React.useState(model.appointment.durationMin);
+  const slots = useFreeSlots({ branchId: model.appointment.branchId, barber: model.barber, durationMin: duration, initialDay: start, now, excludeId: model.appointment.id });
   const label = value ? `${format(value, "EEE d 'de' MMM", { locale: calendarLocale(locale) })} · ${formatClock(value, ctx.intl)}` : "";
+  const durationChanged = duration !== model.appointment.durationMin;
   const apply = () => {
-    if (!value) return;
-    onPatch(model.appointment, { start: toLocalIso(value) });
+    if (!value && !durationChanged) return;
+    onPatch(model.appointment, { ...(value ? { start: toLocalIso(value) } : {}), ...(durationChanged ? { durationMin: duration } : {}) });
     onClose();
   };
+  const buttonLabel = value ? t("calendar.panel.fields.moveTo", { when: label }) : durationChanged ? t("calendar.panel.fields.saveDuration", { duration: durationLabel(duration) }) : t("calendar.panel.fields.pickTime");
   return (
     <InlineList
       title={t("calendar.panel.fields.whenTitle")}
       description={t("calendar.panel.fields.whenHint", { name: model.barber?.name.split(" ")[0] ?? "" })}
       onClose={onClose}
       footer={
-        <Button className="flex-1" onClick={apply} disabled={!value} data-testid="panel-when-apply">
-          {value ? t("calendar.panel.fields.moveTo", { when: label }) : t("calendar.panel.fields.pickTime")}
+        <Button className="flex-1" onClick={apply} disabled={!value && !durationChanged} data-testid="panel-when-apply">
+          {buttonLabel}
         </Button>
       }
     >
-      <TimeSlotPicker value={value} onChange={setValue} startDate={now} day={slots.day} onDayChange={slots.setDay} isDayDisabled={slots.isDayDisabled} isSlotDisabled={slots.isSlotDisabled} hideUnavailable loading={slots.loading} slotMinutes={15} />
+      <div className="flex flex-col gap-4">
+        {/* La duración, como en la edición de siempre: cambia qué horas caben. */}
+        <div className="flex flex-col gap-2">
+          <Text size="sm" weight="medium">
+            {t("calendar.field.duration")}
+          </Text>
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("calendar.field.duration")}>
+            {DURATIONS.map((minutes) => (
+              <Chip key={minutes} size="sm" label={durationLabel(minutes)} selected={minutes === duration} onClick={() => setDuration(minutes)} />
+            ))}
+          </div>
+        </div>
+        <TimeSlotPicker value={value} onChange={setValue} startDate={now} day={slots.day} onDayChange={slots.setDay} isDayDisabled={slots.isDayDisabled} isSlotDisabled={slots.isSlotDisabled} hideUnavailable loading={slots.loading} slotMinutes={15} />
+      </div>
     </InlineList>
   );
 }

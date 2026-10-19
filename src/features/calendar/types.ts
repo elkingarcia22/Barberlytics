@@ -233,6 +233,8 @@ export interface AppointmentPatch {
   durationMin?: number;
   serviceIds?: string[];
   notes?: string | null;
+  /** Las fotos del corte (data URL, hasta 3): reemplazan las que tenía. */
+  referencePhotos?: string[];
   /** Enlazarla con otras citas (su id de enlace) o desenlazarla (`null`). */
   linkId?: string | null;
   /** Por qué se hace el cambio («movida 15 min porque la anterior se alargó»): queda en el historial. */

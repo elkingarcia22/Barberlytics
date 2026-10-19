@@ -108,11 +108,22 @@ export function LoyaltyStrip({ model }: { model: AppointmentModel }) {
   );
 }
 
-/** Las fotos del corte que pidió al reservar en línea. */
-export function ReferencePhotos({ model, large = false }: { model: AppointmentModel; large?: boolean }) {
+/** Las fotos del corte que pidió el cliente. `thumbs`: miniaturas en fila, para que no empujen lo de abajo. */
+export function ReferencePhotos({ model, large = false, thumbs = false }: { model: AppointmentModel; large?: boolean; thumbs?: boolean }) {
   const t = useAppT();
   const photos = model.appointment.referencePhotos ?? [];
   if (photos.length === 0) return null;
+  if (thumbs) {
+    return (
+      <ul className="flex flex-wrap gap-2" aria-label={t("calendar.detail.referencePhoto")}>
+        {photos.map((photo, index) => (
+          <li key={index}>
+            <img src={photo} alt={t("calendar.detail.referencePhoto")} className="size-16 rounded-xl object-cover" data-testid="appointment-reference-photo" />
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
     <div className={cn("grid gap-2", photos.length > 1 && "grid-cols-2")}>
       {photos.map((photo, index) => (

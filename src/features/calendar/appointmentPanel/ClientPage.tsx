@@ -4,8 +4,10 @@ import { useLocale } from "@/i18n";
 import { ProgressRing } from "@/components/data-display/ProgressRing";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
+import { Stepper } from "@/components/navigation";
 import { ClientTypeBadge } from "../calendarShared";
-import type { ModelContext } from "../calendarModel";
+import { AppointmentNotesTab } from "../appointmentTabs/AppointmentNotesTab";
+import { JOURNEY, type ModelContext } from "../calendarModel";
 import { CLIENT_TYPE_KEYS } from "../types";
 import { ActionButton, ClientTags, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
 import { NavRow } from "./bookingStyle";
@@ -14,8 +16,9 @@ import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 /**
  * El cliente dentro del panel. Arriba, una fila que resume quién es (tipo,
  * membresía, ritmo) y lleva a su página; la página agrupa lo demás por lo que
- * se pregunta: su membresía, cada cuánto viene, si cumple, lo que hay que
- * cuidar, sus preferencias y cómo contactarlo, y al final la ficha completa.
+ * se pregunta: su membresía, cada cuánto viene, si cumple, en qué punto del
+ * recorrido va (nuevo → VIP), lo que hay que cuidar, sus notas (dejar,
+ * corregir, borrar), sus preferencias y contacto, y al final la ficha completa.
  */
 
 const LONG_DATE: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" };
@@ -116,16 +119,18 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
         </div>
       </Group>
 
-      {(model.critical.length > 0 || model.notes.length > 0) && (
+      <Group title={t("calendar.panel.client.journey")}>
+        <Stepper size="sm" aria-label={t("calendar.panel.client.journey")} current={Math.max(0, JOURNEY.indexOf(known.type))} steps={JOURNEY.map((type) => ({ id: type, label: t(CLIENT_TYPE_KEYS[type]) }))} />
+      </Group>
+
+      {model.critical.length > 0 && (
         <Group title={t("calendar.panel.client.careTitle")}>
           <CriticalAlerts model={model} compact />
-          {model.notes.map((note) => (
-            <div key={note.id} className="rounded-xl bg-surface-subtle px-3 py-2">
-              <Text size="sm">{note.text}</Text>
-            </div>
-          ))}
         </Group>
       )}
+
+      {/* Las notas del cliente: verlas por tipo, dejar una nueva y corregir o borrar cada una, como en la pestaña «Notas». */}
+      <AppointmentNotesTab client={known} />
 
       <Group title={t("calendar.panel.client.preferences")}>
         <div className="rounded-2xl border border-border bg-surface px-4 py-2">

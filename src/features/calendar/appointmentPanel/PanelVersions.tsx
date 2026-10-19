@@ -2,6 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
 import { ActionTile } from "@/components/utility";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
@@ -18,7 +19,8 @@ import { LinkedBlock, PanelStepper } from "./PanelShared";
 import { PanelQuestion, PanelSubpage } from "./bookingStyle";
 import { mainAction, showsRequest } from "./panelLogic";
 import { usePanelPages } from "./panelHooks";
-import { BookingRequest, ClipperButton, QuickTiles, StageHeading, TicketSummary } from "./StageParts";
+import { ClipperButton, QuickTiles, StageHeading, TicketSummary } from "./StageParts";
+import { BarberRequest } from "./BarberRequest";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -61,7 +63,7 @@ function Subpage({ page, back, props }: { page: Page; back: () => void; props: V
   return (
     <PanelSubpage title={t("calendar.panel.page.appointment")} onBack={back}>
       <AppointmentFields model={model} ctx={ctx} onPatch={onPatch} />
-      <BookingRequest model={model} />
+      <BarberRequest model={model} onPatch={onPatch} />
       <LinkedBlock {...props} />
     </PanelSubpage>
   );
@@ -96,9 +98,9 @@ export function CardsVersion(props: VersionProps) {
           <AppointmentFields model={model} ctx={ctx} onPatch={onPatch} />
         </div>
       </PanelQuestion>
-      {showsRequest(model) && (
+      {(model.unpaid || showsRequest(model)) && (
         <PanelQuestion title={t("calendar.panel.cards.asked")}>
-          <BookingRequest model={model} />
+          <BarberRequest model={model} onPatch={onPatch} />
         </PanelQuestion>
       )}
       <QuickTiles model={model} ctx={ctx} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
@@ -176,7 +178,13 @@ export function MomentVersion(props: VersionProps) {
         </div>
         <CriticalAlerts model={model} compact />
         {appointment.notes && showsRequest(model) && <Text className="border-l-2 border-primary/60 pl-3 italic">«{appointment.notes}»</Text>}
-        {showsRequest(model) && <ReferencePhotos model={model} />}
+        {showsRequest(model) && <ReferencePhotos model={model} thumbs />}
+        {model.unpaid && (
+          <Button variant="link" size="sm" className="h-auto self-start px-0" onClick={() => pages.open("appointment")} data-testid="panel-moment-request">
+            <ThemaIcon name="camera" />
+            {showsRequest(model) ? t("calendar.panel.request.editShort") : t("calendar.panel.request.add")}
+          </Button>
+        )}
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
         {active ? <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="w-full" /> : <NextVisitBooker model={model} ctx={ctx} />}
       </section>

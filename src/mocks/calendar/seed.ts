@@ -173,6 +173,8 @@ export interface MockAppointment {
   payment: MockPayment | null;
   /** Lo resuelto al reservar en línea; sin reserva en línea, nada. */
   online?: MockOnlineSettlement | null;
+  /** De dónde vino la reserva en línea (los `utm_*` del enlace); `null` si llegó directo. */
+  utm?: MockUtm | null;
   /** Lo devuelto de esta cuenta. */
   refunds?: MockRefund[];
   /** Si el cliente confirmó que viene: por el enlace del mensaje o porque recepción lo marcó. */
@@ -351,6 +353,25 @@ export const parseClock = (value: string): number => {
 
 export const clockOf = (minutes: number): string => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
+/** De dónde vino una reserva en línea de la semilla: siempre la misma para la misma cita. */
+export interface MockUtm {
+  source: string;
+  medium: string;
+  campaign: string;
+}
+
+/** Las campañas de la demo: cada una sale por su canal. */
+const SEED_CAMPAIGNS: Readonly<Record<string, string>> = { instagram: "martes-2x1-barba", google: "bienvenida-primera-visita", whatsapp: "trae-a-un-amigo" };
+
+function seedUtm(id: string): MockUtm | null {
+  const roll = hashKey(`${id}:utm`) % 100;
+  // Como en una barbería de barrio: Instagram y Google traen la mayoría; una de cada cinco llega directo.
+  const [source, medium] = roll < 32 ? ["instagram", "social"] : roll < 56 ? ["google", "maps"] : roll < 70 ? ["whatsapp", "message"] : roll < 80 ? ["facebook", "social"] : [null, null];
+  if (!source || !medium) return null;
+  const campaign = hashKey(`${id}:campaign`) % 10 < 3 ? (SEED_CAMPAIGNS[source] ?? "") : "";
+  return { source, medium, campaign };
+}
+
 function hashKey(value: string): number {
   let hash = 2166136261;
   for (const char of value) {
@@ -471,12 +492,15 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [], res
         const canRepeat = !walkIn && (client.type === "retained" || client.type === "frequent" || client.type === "vip");
         const repeat = canRepeat && extraRoll % REPEAT_EVERY === 0 ? (extraRoll % 2 === 0 ? "weekly" : "biweekly") : "none";
         const notes = extraRoll % NOTE_EVERY === 1 ? SEED_NOTES[extraRoll % SEED_NOTES.length] : null;
+        // En el mismo orden de siempre: el sorteo de la semilla no cambia.
+        const requestedBarberId = rand() < 0.75 ? barber.id : null;
+        const source: MockAppointmentSource = walkIn ? "walkin" : rand() < 0.4 ? "online" : "internal";
         appointments.push({
           id,
           branchId,
           clientId: client.id,
           barberId: barber.id,
-          requestedBarberId: rand() < 0.75 ? barber.id : null,
+          requestedBarberId,
           serviceIds: [service.id],
           products: sold,
           start: localIso(day, clockOf(startMinutes)),
@@ -484,7 +508,8 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [], res
           status,
           barberReady: status !== "scheduled",
           walkIn,
-          source: walkIn ? "walkin" : rand() < 0.4 ? "online" : "internal",
+          source,
+          ...(source === "online" ? { utm: seedUtm(id) } : {}),
           repeat,
           seriesId: repeat === "none" ? null : `ser_${client.id}_${barber.id.replace("team-", "")}`,
           notes,

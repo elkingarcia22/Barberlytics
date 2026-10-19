@@ -38,7 +38,7 @@ const PAYLOADS: Readonly<Record<string, ReplyIntent>> = { CONFIRM: "confirm", RE
 const EXACT: ReadonlyArray<[RegExp, ReplyIntent]> = [
   [/^(stop|baja|parar|unsubscribe|cancelar suscripcion|no mas mensajes|no mas promociones)$/, "stop"],
   [/^(start|alta|unstop|suscribir)$/, "start"],
-  [/^(si|sii+|ok|okay|okey|dale|listo|confirmo|confirmado|confirmada|confirm|yes|yep|ahi estare|alli estare|de una|perfecto|1)$/, "confirm"],
+  [/^(si|sii+|ok|okay|okey|dale|listo|confirmo|confirmado|confirmada|confirm|yes|yep|ahi estare|alli estare|de una|perfecto|voy|ya voy|voy para alla|on my way|1)$/, "confirm"],
   [/^(2|reprogramar|cambiar|reagendar|reschedule)$/, "reschedule"],
   [/^(3|cancelar|cancela|cancel|no puedo|no voy)$/, "cancel"],
 ];
@@ -46,7 +46,7 @@ const EXACT: ReadonlyArray<[RegExp, ReplyIntent]> = [
 /** Frases que dicen lo mismo dentro de un mensaje más largo. El orden importa: cancelar gana a confirmar. */
 const CONTAINS: ReadonlyArray<[RegExp, ReplyIntent]> = [
   [/\b(no (me )?(envien|manden|escriban) (mas )?(mensajes|promociones)|darme de baja|unsubscribe)\b/, "stop"],
-  [/\b(cancel(ar|o|a|en)?|anular|no (podre|puedo|voy a poder) (ir|llegar|asistir)|can t make it|cannot make it)\b/, "cancel"],
+  [/\b(cancel(ar|o|a|en)?|anular|ya no voy|no voy a ir|me sali de la fila|no (podre|puedo|voy a poder) (ir|llegar|asistir)|can t make it|cannot make it|not coming)\b/, "cancel"],
   [/\b(reprogram\w*|reagend\w*|cambiar (la )?(hora|cita|fecha|dia)|otro dia|otra hora|mas tarde|mas temprano|mover (la )?cita|reschedul\w*)\b/, "reschedule"],
   [/\b(confirm\w*|alli estare|ahi estare|cuenten conmigo|see you|i ll be there|nos vemos)\b/, "confirm"],
 ];

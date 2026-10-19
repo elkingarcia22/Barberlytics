@@ -210,9 +210,10 @@ Falta de esto:
 - Quitadas las cifras al azar y las etiquetas de IA sobre reglas.
 - Webhook de WhatsApp: las respuestas confirman, piden otra hora o avisan que no puede venir, y BAJA retira el permiso.
 - Front Desk: kiosco por sede con check-in que avisa al barbero, y fila sin cita con espera estimada.
+- Métricas › Marketing con la UTM real de cada cita; reseñas de ejemplo solo en la demo, marcadas y sin mezclarse.
 
-**Siguiente, por orden:** (3) ~~kiosco por sede con check-in que avisa y privacidad~~ hecho; (4) Métricas › Marketing con la
-UTM real y sin reseñas de ejemplo fuera de la demo; (5) cola de walk-ins con espera estimada; (6) contratos y
+**Siguiente, por orden:** (3) ~~kiosco por sede con check-in que avisa y privacidad~~ hecho; (4) ~~Métricas › Marketing con la
+UTM real y sin reseñas de ejemplo fuera de la demo~~ hecho; (5) cola de walk-ins con espera estimada; (6) contratos y
 políticas; (7) el backend real (fase «escudo» de 6–8 semanas en 17) y un piloto con 3–5 barberías.
 
 ---

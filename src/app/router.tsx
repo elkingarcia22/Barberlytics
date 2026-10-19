@@ -17,6 +17,7 @@ import {
   CalendarPage,
   ConfirmAppointmentPage,
   KioskPage,
+  TurnBoardPage,
   CustomerProfilePage,
   CustomersPage,
   ExpensesPage,
@@ -133,6 +134,8 @@ export const router = createBrowserRouter([
   { path: "/reservar/confirmar", element: lazy(<ConfirmAppointmentPage />), errorElement: <RouteError /> },
   // El kiosco de la sede: público, pero solo funciona emparejado con el código de Configuración.
   { path: "/kiosco", element: lazy(<KioskPage />), errorElement: <RouteError /> },
+  // La pantalla de turnos del televisor de la sala: con el token de un kiosco de la sede.
+  { path: "/turnos", element: lazy(<TurnBoardPage />), errorElement: <RouteError /> },
   // El centro de ayuda es público: hace falta antes de entrar (el login tiene
   // sus propios artículos) y trae su propio shell, como la doc.
   { path: "/ayuda/*", element: lazy(<HelpApp />), errorElement: <RouteError /> },

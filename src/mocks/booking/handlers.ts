@@ -503,6 +503,11 @@ export const bookingHandlers = [
     const linkId = plan.planned.length > 1 ? `lnk_${reservationId}` : null;
     // Las partes de una visita llevan su nota: en la agenda se ve que es la misma persona en dos sillas.
     const partsOf = (visitId: string | null) => (visitId ? plan.planned.filter((other) => other.visitId === visitId).length : 0);
+    // De dónde vino (los `utm_*` del enlace): queda en la reserva y en cada cita, para Métricas › Marketing.
+    const bookingUtm = (() => {
+      const utm = asRecord(input.utm as DefaultBodyType);
+      return text(utm.source) ? { source: text(utm.source).toLowerCase().slice(0, 40), medium: text(utm.medium).slice(0, 40), campaign: text(utm.campaign).slice(0, 60) } : null;
+    })();
     const drafts: MockAppointment[] = plan.planned.map((item, index) => ({
       id: `apt_web_${Date.now().toString(36)}_${index}`,
       linkId,
@@ -527,6 +532,7 @@ export const bookingHandlers = [
       history: [{ id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor: client.name, event: "created" }],
       payment: null,
       online: online[index],
+      utm: bookingUtm,
       confirmToken: newConfirmToken(),
     }));
     // El producto reservado queda apartado: sale del inventario desde ya y vuelve si se cancela.
@@ -542,10 +548,7 @@ export const bookingHandlers = [
       products: productLines,
       promoCode: promo?.code ?? null,
       giftCode: giftCard?.code ?? null,
-      utm: (() => {
-        const utm = asRecord(input.utm as DefaultBodyType);
-        return text(utm.source) ? { source: text(utm.source).slice(0, 40), medium: text(utm.medium).slice(0, 40), campaign: text(utm.campaign).slice(0, 60) } : null;
-      })(),
+      utm: bookingUtm,
       totals,
       payment,
     };
@@ -717,8 +720,8 @@ export const bookingHandlers = [
     await delay(LATENCY_MS);
     const limit = Math.min(20, Math.max(1, Number(new URL(request.url).searchParams.get("limit")) || 5));
     const all = reviewsOf(String(params.id));
-    // Público: solo el nombre con inicial, la nota, el comentario y la fecha.
-    return HttpResponse.json({ items: all.slice(0, limit).map(({ id, clientName, rating, comment, createdAt }) => ({ id, clientName, rating, comment, createdAt })), total: all.length });
+    // Público: solo el nombre con inicial, la nota, el comentario, la fecha y si es de ejemplo (la demo).
+    return HttpResponse.json({ items: all.slice(0, limit).map(({ id, clientName, rating, comment, createdAt, sample }) => ({ id, clientName, rating, comment, createdAt, sample: sample === true })), total: all.length });
   }),
 
   http.post(`${BASE}/appointments/:id/review`, async ({ request, params }) => {

@@ -5,9 +5,10 @@ import { useMetricsFormatters } from "../metricsFormat";
 import type { MetricsMarketing } from "../types";
 
 /**
- * Marketing: por dónde llegan las reservas digitales, cuánto convierte cada
- * canal y qué trajo cada campaña. Sin datos, un solo vacío que dice qué hace
- * falta, no tres tarjetas con un icono gris.
+ * Marketing: por dónde llegan las reservas en línea (el `utm_source` con que se
+ * reservó cada cita), cuánto convierte cada canal (sobre las sesiones que
+ * empezaron la reserva desde ahí) y qué trajo cada campaña (`utm_campaign`).
+ * Sin datos, un solo vacío que dice qué hace falta.
  */
 export function MarketingDashboard({ data }: { data: MetricsMarketing }) {
   const t = useAppT();
@@ -15,12 +16,13 @@ export function MarketingDashboard({ data }: { data: MetricsMarketing }) {
   const online = format.delta(data.kpis.onlineBookings, "pp");
   const campaigns = format.delta(data.kpis.campaignBookings);
   const hasData = data.channels.length > 0 || data.campaigns.length > 0;
-  const conversion = data.channels.map((channel) => ({
-    id: channel.id,
-    label: channel.name,
-    value: channel.visits ? Math.round((channel.bookings / channel.visits) * 1000) / 10 : 0,
-    meta: `${format.count(channel.bookings)}/${format.count(channel.visits)}`,
-  }));
+  // Solo los canales con visitas medidas: sin ellas no hay conversión que calcular.
+  // Del embudo: sesiones que reservaron sobre sesiones que empezaron, desde cada canal.
+  const conversion = data.channels.flatMap((channel) =>
+    channel.visits && channel.funnelBookings !== null
+      ? [{ id: channel.id, label: channel.name, value: Math.round((channel.funnelBookings / channel.visits) * 1000) / 10, meta: `${format.count(channel.funnelBookings)}/${format.count(channel.visits)}` }]
+      : []
+  );
 
   return (
     <div className="flex flex-col space-y-section">
@@ -68,11 +70,11 @@ export function MarketingDashboard({ data }: { data: MetricsMarketing }) {
           />
           <BarList
             title={t("metrics.marketing.conversion")}
-            description={t("metrics.marketing.conversionHint")}
+            description={data.visitsSample ? `${t("metrics.marketing.conversionHint")} · ${t("metrics.marketing.visitsSample")}` : t("metrics.marketing.conversionHint")}
             items={conversion}
             formatValue={format.percent}
             tone="positive"
-            emptyLabel={t("metrics.marketing.empty")}
+            emptyLabel={t("metrics.marketing.noVisits")}
           />
           <BarList
             title={t("metrics.marketing.campaigns")}

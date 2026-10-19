@@ -32,6 +32,7 @@ depender de terceros, autoaloja los `woff2` y sustituye la URL de `stylesheet` e
 |---|---|
 | `VITE_API_URL` | Base de la API. |
 | `VITE_USE_MOCKS` | `false` en producción (es el valor por defecto en build). |
+| `VITE_SAMPLE_DATA` | `false` apaga los datos de ejemplo de la demo (reseñas de barberos, embudo de la reserva). Encendidos por defecto; siempre van marcados y nunca se suman a los reales. |
 
 Se leen en tiempo de build: cambiarlas requiere reconstruir.
 

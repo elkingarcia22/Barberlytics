@@ -68,7 +68,7 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, onNee
         value={chosen ? chosen.name : t("booking.barber.any")}
         // «Sin preferencia» también es una respuesta: se ve elegida, como un barbero, cuando ya hay sede.
         selected={Boolean(state.branchId)}
-        detail={chosen ? [chosen.level, `★ ${chosen.rating.toFixed(1)}`].filter(Boolean).join(" · ") : t("booking.barber.anyLead")}
+        detail={chosen ? [chosen.level, chosen.reviews > 0 ? `★ ${chosen.rating.toFixed(1)}` : null].filter(Boolean).join(" · ") : t("booking.barber.anyLead")}
         placeholder={t("booking.barber.any")}
         open={open}
         onOpen={() => (!state.branchId && onNeedBranch ? onNeedBranch() : setOpen(true))}
@@ -134,7 +134,7 @@ export function AgendaBarberField({ labelledBy, barbers, usualId, eyebrow, onNee
                       {barber.id === usualId && <Badge variant="secondary">{t("booking.barber.lastTime")}</Badge>}
                     </span>
                     <Text as="span" size="xs" tone="muted" tabular className="truncate">
-                      {[barber.level, `★ ${barber.rating.toFixed(1)}`].filter(Boolean).join(" · ")}
+                      {[barber.level, barber.reviews > 0 ? `★ ${barber.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
                     {price && (
                       <>
                         {" · "}

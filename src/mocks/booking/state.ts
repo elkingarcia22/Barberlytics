@@ -65,7 +65,7 @@ export interface MockOutboxMessage {
    * `receipt` y `rebookLink`: los mandó el equipo desde el panel de la cita (el recibo, el enlace para
    * reagendar), por SMS o correo; salen en el momento.
    */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "queueAlmost";
   /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
   hoursBefore?: number;
   sendAt: string;
@@ -73,6 +73,9 @@ export interface MockOutboxMessage {
   status: "scheduled" | "sent" | "cancelled" | "failed";
   /** Cuándo salió (o se intentó). */
   sentAt?: string;
+  /** Mensajes que no son de una cita (la fila sin cita): su entrada y los valores de la plantilla ya listos. */
+  queueEntryId?: string;
+  params?: string[];
   /** Ya está en la cola de WhatsApp del servidor (la app solo refleja lo que pase allí). */
   queued?: boolean;
   /** Sin WhatsApp conectado: se dio por enviado sin salir del sistema. */
@@ -100,6 +103,8 @@ export interface MockReview {
   rating: number;
   comment: string;
   createdAt: string;
+  /** Reseña de ejemplo de la demo (no la dejó un cliente): se muestra marcada y nunca con las reales. */
+  sample?: boolean;
 }
 
 /** Una tarjeta de regalo: se compra para alguien y se gasta en reservas hasta agotar el saldo. */

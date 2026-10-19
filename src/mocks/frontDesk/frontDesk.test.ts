@@ -4,6 +4,7 @@ import { branchNow } from "../settings/branchRules";
 import { notificationsFor } from "../notifications/handlers";
 import { resetKioskLimits } from "./handlers";
 import { estimateQueue } from "./estimate";
+import { applyReply } from "../booking/replies";
 
 const OWNER = "mock-acc_admin-frontdesk";
 const RECEPTION = "mock-acc_reception-frontdesk";
@@ -100,6 +101,39 @@ describe("recepción y kiosco", () => {
     expect(called.queue).toMatchObject({ served: 1, waiting: [{ firstName: "Beto", position: 1 }] });
     const left = await (await staff(RECEPTION, `/front-desk/queue/${second.id}/leave`, post({ reason: "left" }))).json();
     expect(left).toMatchObject({ waiting: [], served: 1, left: 1 });
+  });
+
+  test("«ya casi te toca» sale una vez a quien dejó celular; «Ya no voy» lo saca de la fila", async () => {
+    const token = await pairedKiosk();
+    const me = await (await kiosk(token, "/kiosk/me")).json();
+    const joined = await (await kiosk(token, "/kiosk/queue", post({ firstName: "Ana", phone: "+15551230000", serviceIds: [me.services[0].id], barberId: null }))).json();
+    // Recién unida no se le escribe: está aquí y ya vio su espera.
+    expect((db.booking.outbox ?? []).some((item) => item.kind === "queueAlmost")).toBe(false);
+    db.frontDesk = { ...db.frontDesk, queue: db.frontDesk.queue.map((entry) => ({ ...entry, joinedAt: new Date(Date.now() - 10 * 60_000).toISOString() })) };
+    await staff(RECEPTION, "/front-desk/queue?branchId=ma");
+    await staff(RECEPTION, "/front-desk/queue?branchId=ma");
+    const sent = (db.booking.outbox ?? []).filter((item) => item.kind === "queueAlmost");
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ to: "+15551230000", queueEntryId: joined.id, params: ["Ana", expect.any(String), expect.stringMatching(/^en unos/)] });
+
+    applyReply({ wamid: "wamid.novoy", at: new Date().toISOString(), from: "15551230000", intent: "cancel", text: "Ya no voy", messageId: sent[0].id });
+    const queue = await (await staff(RECEPTION, "/front-desk/queue?branchId=ma")).json();
+    expect(queue).toMatchObject({ waiting: [], left: 1 });
+  });
+
+  test("la pantalla de turnos muestra a quién llamaron y quién sigue, sin celular ni servicio", async () => {
+    const token = await pairedKiosk();
+    const me = await (await kiosk(token, "/kiosk/me")).json();
+    const first = await (await kiosk(token, "/kiosk/queue", post({ firstName: "Ana", phone: "+15551230001", serviceIds: [me.services[0].id], barberId: null }))).json();
+    await kiosk(token, "/kiosk/queue", post({ firstName: "Beto", serviceIds: [me.services[0].id], barberId: null }));
+    await staff(RECEPTION, `/front-desk/queue/${first.id}/call`, post({}));
+    const board = await (await kiosk(token, "/kiosk/board")).json();
+    expect(board.called).toEqual([{ id: first.id, firstName: "Ana", barberFirstName: expect.any(String), calledAt: expect.any(String) }]);
+    // Solo turno, nombre de pila y espera (que puede ser null cerca del cierre).
+    expect(board.next).toMatchObject([{ position: 1, firstName: "Beto" }]);
+    expect(Object.keys(board.next[0]).sort()).toEqual(["firstName", "id", "position", "waitMax", "waitMin"]);
+    expect(JSON.stringify(board)).not.toContain("5551230001");
+    expect((await kiosk(null, "/kiosk/board")).status).toBe(401);
   });
 
   test("la espera crece en la fila y quien pide un barbero ocupado espera más que sin preferencia", () => {

@@ -44,6 +44,8 @@ export interface MockQueueEntry {
   appointmentId: string | null;
   /** Cuando se fue sin atender o lo quitaron. */
   leftAt: string | null;
+  /** Cuándo se le mandó «ya casi te toca» (una vez). */
+  notifiedAt?: string | null;
 }
 
 export interface MockFrontDeskState {

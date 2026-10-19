@@ -107,6 +107,8 @@ const firstName = (name: string) => name.split(" ")[0] || name;
 
 /** Los valores de la plantilla: a quién, qué, cuándo y con quién (en el orden de {{1}}, {{2}}…). */
 export function payloadOf(message: MockOutboxMessage): WhatsAppPayload | null {
+  // Lo que no es de una cita (la fila sin cita) ya trae sus valores.
+  if (message.params) return message.to ? { to: message.to, kind: message.kind, params: message.params } : null;
   const client = db.calendar.clients.find((item) => item.id === message.clientId);
   if (!client || !message.to) return null;
   const appointment = db.calendar.appointments.find((item) => item.id === message.appointmentId);

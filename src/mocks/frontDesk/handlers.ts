@@ -11,6 +11,7 @@ import { forbidden, isBarber, isManager, sessionOf, unauthorized, type MockSessi
 import { memberName } from "../team/seed";
 import { lineupTurn } from "../team/workforce";
 import { estimateIfJoined, estimateQueue } from "./estimate";
+import type { MockOutboxMessage } from "../booking/state";
 import type { MockKioskDevice, MockQueueEntry } from "./state";
 
 /**
@@ -39,6 +40,14 @@ const PAIR_ATTEMPTS_PER_MINUTE = 10;
 /** Una cita se puede marcar «Ya llegué» desde 2 h antes hasta 1 h después de su hora. */
 const EARLY_MIN = 120;
 const LATE_MIN = 60;
+/** «Ya casi te toca»: al primero de la fila o a quien le falten 15 minutos o menos… */
+const ALMOST_WAIT_MAX = 15;
+/** …pero no en los primeros minutos: quien se acaba de unir está aquí y ya vio su espera. */
+const ALMOST_AFTER_MS = 5 * 60_000;
+/** La pantalla de turnos: quién pasó en los últimos minutos y cuántos de los que siguen se ven. */
+const BOARD_CALLED_MS = 10 * 60_000;
+const BOARD_CALLED_MAX = 3;
+const BOARD_NEXT_MAX = 8;
 
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
@@ -136,6 +145,31 @@ function queueView(branchId: string, at = new Date()) {
     served: today.filter((entry) => entry.status === "called").length,
     left: today.filter((entry) => entry.status === "left").length,
   };
+}
+
+/**
+ * «Ya casi te toca» por mensaje, una vez, a quien dejó su celular: sale por la misma cola de WhatsApp que
+ * los recordatorios (plantilla `fila_casi_tu_turno`, con «Voy» / «Ya no voy»; «Ya no voy» lo saca de la
+ * fila, ver booking/replies.ts). Se revisa cada vez que la fila cambia o recepción la mira.
+ */
+function notifyAlmost(branchId: string, at = new Date()): void {
+  const today = queueToday(branchId, at);
+  const estimates = estimateQueue(branchId, today, at);
+  const due = today.filter((entry) => {
+    const estimate = estimates.get(entry.id);
+    const settled = at.getTime() - Date.parse(entry.joinedAt) >= ALMOST_AFTER_MS;
+    return entry.status === "waiting" && entry.phone && !entry.notifiedAt && settled && estimate && estimate.waitMax !== null && (estimate.position === 1 || estimate.waitMax <= ALMOST_WAIT_MAX);
+  });
+  if (due.length === 0) return;
+  const branch = branchName(branchId);
+  const messages: MockOutboxMessage[] = due.map((entry) => {
+    const estimate = estimates.get(entry.id);
+    const when = !estimate || estimate.waitMax === null || estimate.waitMax <= 10 ? "en unos minutos" : `en unos ${estimate.waitMin}–${estimate.waitMax} min`;
+    return { id: randomId("msg"), appointmentId: "", clientId: entry.clientId ?? "", to: entry.phone as string, channel: "whatsapp", kind: "queueAlmost", sendAt: at.toISOString(), status: "scheduled", queueEntryId: entry.id, params: [entry.firstName, branch, when], by: "Fila sin cita" };
+  });
+  db.booking.outbox = [...(db.booking.outbox ?? []), ...messages];
+  const notified = new Set(due.map((entry) => entry.id));
+  saveQueue(db.frontDesk.queue.map((entry) => (notified.has(entry.id) ? { ...entry, notifiedAt: at.toISOString() } : entry)));
 }
 
 interface JoinInput {
@@ -296,6 +330,7 @@ export const frontDeskHandlers = [
     const session = sessionOf(request);
     if (!session) return unauthorized();
     const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    notifyAlmost(branchId);
     const view = queueView(branchId);
     // El barbero ve quién viene, sin el celular (ya va oculto) y sin lo que no le toca.
     return HttpResponse.json(isBarber(session) ? { ...view, waiting: view.waiting.map((item) => ({ ...item, clientId: null })) } : view);
@@ -312,6 +347,7 @@ export const frontDeskHandlers = [
     if (!("firstName" in input) || Array.isArray((input as Record<string, unknown>).firstName)) return error(422, "validation", "Revisa los campos marcados.", { fields: input });
     const entry = join(branchId, input as JoinInput, "reception");
     if (entry instanceof Response) return entry;
+    notifyAlmost(branchId);
     return HttpResponse.json(queueView(branchId), { status: 201 });
   }),
 
@@ -325,6 +361,7 @@ export const frontDeskHandlers = [
     const body = asRecord(await request.json().catch(() => ({})));
     const appointment = callEntry(entry, text(body.barberId) || null, session.account.user.name);
     if (appointment instanceof Response) return appointment;
+    notifyAlmost(entry.branchId);
     db.persist();
     return HttpResponse.json({ appointment, queue: queueView(entry.branchId) });
   }),
@@ -338,6 +375,7 @@ export const frontDeskHandlers = [
     if (!entry) return error(404, "not_found", "Esa persona ya no está en la fila.");
     const reason = text(asRecord(await request.json().catch(() => ({}))).reason) === "removed" ? "removed" : "left";
     saveQueue(db.frontDesk.queue.map((item) => (item.id === entry.id ? { ...item, status: reason, leftAt: new Date().toISOString() } : item)));
+    notifyAlmost(entry.branchId);
     return HttpResponse.json(queueView(entry.branchId));
   }),
 
@@ -360,6 +398,7 @@ export const frontDeskHandlers = [
     const device = kioskOf(request);
     if (!device) return kioskUnauthorized();
     const branchId = device.branchId;
+    notifyAlmost(branchId);
     const probe = estimateIfJoined(branchId, [], null);
     const lanes = lineupTurn(branchId, "walkIn").items;
     const services = db.services.items.filter((item) => item.kind === "service" && item.activeBranchIds.includes(branchId));
@@ -372,6 +411,34 @@ export const frontDeskHandlers = [
       services: services.map((item) => ({ id: item.id, name: item.name, durationMin: item.durationMin })),
       barbers: lanes.map((lane) => ({ id: lane.memberId, firstName: firstNameOf(lane.name), avatarUrl: lane.avatarUrl })),
       queue: { waiting: queueToday(branchId).filter((entry) => entry.status === "waiting").length, waitMin: probe?.waitMin ?? null, waitMax: probe?.waitMax ?? null },
+    });
+  }),
+
+  // La pantalla de turnos del televisor: solo nombre de pila, turno y espera; nada de celular ni servicio.
+  http.get(`${BASE}/kiosk/board`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const device = kioskOf(request);
+    if (!device) return kioskUnauthorized();
+    const branchId = device.branchId;
+    notifyAlmost(branchId);
+    const now = Date.now();
+    const today = queueToday(branchId);
+    const view = queueView(branchId);
+    const called = today
+      .filter((entry) => entry.status === "called" && entry.calledAt && now - Date.parse(entry.calledAt) <= BOARD_CALLED_MS)
+      .sort((a, b) => (b.calledAt ?? "").localeCompare(a.calledAt ?? ""))
+      .slice(0, BOARD_CALLED_MAX)
+      .map((entry) => {
+        const appointment = db.calendar.appointments.find((item) => item.id === entry.appointmentId);
+        const barber = appointment ? db.team.members.find((member) => member.id === appointment.barberId) : undefined;
+        return { id: entry.id, firstName: entry.firstName, barberFirstName: barber?.firstName ?? null, calledAt: entry.calledAt };
+      });
+    return HttpResponse.json({
+      branch: { id: branchId, name: branchName(branchId) },
+      shopName: (db.settings.sections.company as { name?: string }).name ?? "",
+      called,
+      next: view.waiting.slice(0, BOARD_NEXT_MAX).map((entry) => ({ id: entry.id, position: entry.position, firstName: entry.firstName, waitMin: entry.waitMin, waitMax: entry.waitMax })),
+      waiting: view.waiting.length,
     });
   }),
 
@@ -414,6 +481,7 @@ export const frontDeskHandlers = [
     if (!("serviceIds" in input) || !Array.isArray((input as JoinInput).serviceIds) || typeof (input as JoinInput).firstName !== "string") return error(422, "validation", "Revisa los campos marcados.", { fields: input });
     const entry = join(device.branchId, input as JoinInput, "kiosk");
     if (entry instanceof Response) return entry;
+    notifyAlmost(device.branchId);
     const estimate = estimateQueue(device.branchId, queueToday(device.branchId)).get(entry.id);
     return HttpResponse.json({ id: entry.id, firstName: entry.firstName, position: estimate?.position ?? 1, waitMin: estimate?.waitMin ?? null, waitMax: estimate?.waitMax ?? null, barberFirstName: estimate?.barberName ? firstNameOf(estimate.barberName) : null }, { status: 201 });
   }),

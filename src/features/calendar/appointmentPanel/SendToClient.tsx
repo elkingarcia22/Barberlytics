@@ -15,9 +15,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
 /**
  * Mandarle al cliente su recibo o el enlace para reagendar, como el recibo de
  * la reserva en línea: Correo y SMS son tarjetas que se marcan (una, la otra o
- * las dos), cada una con su destino ya puesto y editable, y un solo «Enviar».
- * Va en el popover de su atajo, no en un modal sobre el panel. Lo enviado queda
- * en los mensajes de la cita.
+ * las dos), cada una con su destino ya puesto y editable, y un solo «Enviar»
+ * debajo —el botón principal de la página donde vaya—. Va dentro del panel, en
+ * su propia página; lo enviado queda en los mensajes de la cita.
  */
 
 export interface SendToClientProps {
@@ -25,10 +25,12 @@ export interface SendToClientProps {
   kind: SendToClientInput["kind"];
   /** El texto que se manda (el recibo con sus líneas, o el saludo con el enlace). */
   body: string;
-  onClose: () => void;
+  /** Una línea encima de los canales. */
+  lead?: string;
+  onSent: () => void;
 }
 
-export function SendToClient({ model, kind, body, onClose }: SendToClientProps) {
+export function SendToClient({ model, kind, body, lead, onSent }: SendToClientProps) {
   const t = useAppT();
   const send = useSendToClient(model.appointment.id);
   const [channels, setChannels] = React.useState<readonly SendChannel[]>(model.email ? ["email"] : ["sms"]);
@@ -54,17 +56,16 @@ export function SendToClient({ model, kind, body, onClose }: SendToClientProps) 
     }
     setErrors(failed);
     if (sent.length > 0) toast.success(t(kind === "receipt" ? "calendar.panel.send.receiptSent" : "calendar.panel.send.linkSent", { to: sent.join(t("calendar.panel.send.and")) }));
-    if (Object.keys(failed).length === 0) onClose();
+    if (Object.keys(failed).length === 0) onSent();
   };
 
   return (
     <div className="flex flex-col gap-4" data-testid={`panel-send-${kind}`}>
-      <div className="flex flex-col gap-0.5">
-        <Text weight="semibold">{t(kind === "receipt" ? "calendar.panel.send.receiptTitle" : "calendar.panel.send.linkTitle")}</Text>
-        <Text size="sm" tone="muted">
-          {t("calendar.panel.send.lead")}
+      {lead && (
+        <Text size="sm" tone="secondary">
+          {lead}
         </Text>
-      </div>
+      )}
       <div role="group" aria-label={t("calendar.panel.send.to")} className="flex flex-col gap-3">
         <ChannelCard id={`send-${kind}-email`} icon="mail" label={t("calendar.panel.send.email")} checked={channels.includes("email")} onCheckedChange={toggle("email")}>
           <Field label={t("calendar.panel.send.to")} error={errors.email}>
@@ -77,7 +78,7 @@ export function SendToClient({ model, kind, body, onClose }: SendToClientProps) 
           </Field>
         </ChannelCard>
       </div>
-      <Button type="button" className="w-full" onClick={() => void submit()} disabled={send.isPending} data-testid="panel-send-submit">
+      <Button type="button" size="lg" className="w-full" onClick={() => void submit()} disabled={send.isPending} data-testid="panel-send-submit">
         {send.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="mail" />}
         {channels.length > 1 ? t("calendar.panel.send.sendBoth") : t("calendar.panel.send.send")}
       </Button>

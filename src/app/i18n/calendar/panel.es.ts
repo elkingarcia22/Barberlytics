@@ -97,9 +97,6 @@ export const calendarPanelEs = {
   "calendar.panel.next.withOthers": "Reagendar también las otras {count} de la visita",
   "calendar.panel.next.withOthersHint": "Mismos servicios y barberos, en el mismo orden; quedan enlazadas.",
   "calendar.panel.next.bookManyAt": "Agendar las {count} citas · {when}",
-  "calendar.panel.next.linkSend": "Enviar enlace",
-  "calendar.panel.next.linkSendTitle": "Enviar el enlace para reagendar por SMS o correo",
-  "calendar.panel.next.linkTitle": "¿Prefiere elegir él?",
   "calendar.panel.send.receiptTitle": "Enviar el recibo",
   "calendar.panel.send.linkTitle": "Enviar el enlace para reagendar",
   "calendar.panel.send.lead": "Por correo, por SMS o por los dos.",
@@ -113,6 +110,9 @@ export const calendarPanelEs = {
   "calendar.panel.send.linkSent": "Enlace enviado a {to}",
   "calendar.panel.send.and": " y ",
   "calendar.panel.next.linkHint": "Mándale el enlace de la reserva en línea con todo puesto: escoge la hora y paga desde su celular.",
+  "calendar.panel.next.mode": "Cómo reagendar",
+  "calendar.panel.next.modePick": "Yo elijo la hora",
+  "calendar.panel.next.modeLink": "Que elija él",
   "calendar.panel.next.linkMessage": "Hola {name}, agenda tu próxima cita aquí (ya va con tu servicio y tu barbero): {link}",
   "calendar.panel.after.rebook": "Reagendar",
   "calendar.panel.after.charged": "Lo que se cobró",
@@ -185,14 +185,12 @@ export const calendarPanelEs = {
   "calendar.panel.fields.moveTo": "Mover a {when}",
 
   // ── La próxima ──
-  "calendar.panel.next.title": "¿Le agendamos la próxima?",
   "calendar.panel.next.byRhythm": "Viene cada {days} días: le toca el {date}. Díselo y agéndala ya.",
   "calendar.panel.next.noRhythm": "Aún no tiene ritmo: proponle volver en {weeks} semanas.",
   "calendar.panel.next.pick": "Elige día y hora",
   "calendar.panel.next.bookAt": "Agendar {when} con {barber}",
   "calendar.panel.next.booked": "Próxima cita agendada",
   "calendar.panel.next.bookedHint": "{name}: {when}.",
-  "calendar.panel.next.bookedLine": "{when} con {barber}",
 
   // ── Índice y pestañas ──
   "calendar.panel.index.historyHint": "Quién la creó, cuándo llegó, qué cambió",

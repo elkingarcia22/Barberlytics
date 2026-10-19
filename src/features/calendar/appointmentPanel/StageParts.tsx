@@ -134,10 +134,8 @@ export interface Tile {
   onClick?: () => void;
   /** Varios destinos (SMS o correo): se elige en un menú; con uno solo, va directo. */
   menu?: readonly MenuLink[];
-  /** Lo que pide confirmar (cancelar, no asistió) o completar (enviar el recibo): un popover junto a la tarjeta, con su cierre. */
+  /** Lo que pide confirmar (cancelar, no asistió): un popover junto a la tarjeta, con su cierre. */
   confirm?: (close: () => void) => React.ReactNode;
-  /** Popover más ancho, para lo que trae campos (a dónde enviar). */
-  wide?: boolean;
 }
 
 /** Los atajos del momento en una sola fila, como los de la reserva en línea: icono y una palabra. */
@@ -221,7 +219,7 @@ function ConfirmTile({ tile, body }: { tile: Tile; body: React.ReactNode }) {
           {body}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className={tile.wide ? "w-80" : "w-72"}>
+      <PopoverContent align="end" className="w-72">
         {tile.confirm?.(() => setOpen(false))}
       </PopoverContent>
     </Popover>

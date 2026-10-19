@@ -49,13 +49,14 @@ const REMINDER = event("appointmentReminder", PUSH, { unit: "minutes", default: 
 /* Lo que también sale en la campana de la app («En la app»): apagarlo aquí lo saca de ahí. */
 const BOOKING_ONLINE = event("bookingOnline", PUSH);
 const WHATSAPP_FAILED = event("whatsappFailed", PUSH);
+const WHATSAPP_REPLY = event("whatsappReply", PUSH);
 const NO_SHOW = event("appointmentNoShow", PUSH);
 const CASH = [event("registerDifference", PUSH), event("registerOpen", PUSH), event("payrollDue", PUSH)];
 const VACATION_DECIDED = [event("vacationApproved", PUSH), event("vacationDenied", PUSH)];
 
 export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonly NotificationGroup[]>> = {
   admin: [
-    group("clients", [...CLIENT_IMPORT, event("badReview", PUSH), ...CLIENT_STATES, event("clientBlocked", PUSH), WHATSAPP_FAILED]),
+    group("clients", [...CLIENT_IMPORT, event("badReview", PUSH), ...CLIENT_STATES, event("clientBlocked", PUSH), WHATSAPP_FAILED, WHATSAPP_REPLY]),
     group("products", [...STOCK, ...PRODUCT_IMPORT]),
     group("calendar", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("barberOccupancy", PUSH, { unit: "percent", default: 90 }), SHOP_OCCUPANCY, ...TIME_OFF]),
     group("cash", CASH),
@@ -64,9 +65,9 @@ export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonl
   ],
   barberCommission: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
   barberRent: [group("clients", [...CLIENT_IMPORT, ...CLIENT_STATES]), group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
-  frontDesk: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, WHATSAPP_FAILED]), group("calendar", [event("waitlistJoined", PUSH), event("barberBlocked", PUSH), event("vacationApprovedTeam", PUSH), ...VACATION_DECIDED]), group("cash", [event("registerOpen", PUSH)])],
+  frontDesk: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, WHATSAPP_FAILED, WHATSAPP_REPLY]), group("calendar", [event("waitlistJoined", PUSH), event("barberBlocked", PUSH), event("vacationApprovedTeam", PUSH), ...VACATION_DECIDED]), group("cash", [event("registerOpen", PUSH)])],
   owner: [
-    group("clients", [...CLIENT_IMPORT, event("clientBlocked", PUSH), event("badReview", PUSH), WHATSAPP_FAILED]),
+    group("clients", [...CLIENT_IMPORT, event("clientBlocked", PUSH), event("badReview", PUSH), WHATSAPP_FAILED, WHATSAPP_REPLY]),
     group("products", [...STOCK, ...PRODUCT_IMPORT, event("giftcardImportFailed", PUSH), event("giftcardImportDone", PUSH)]),
     group("calendar", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, SHOP_OCCUPANCY, ...TIME_OFF]),
     group("cash", CASH),
@@ -95,6 +96,7 @@ export function eventOfNotification(kind: string, status?: unknown): string | nu
     cancelled: "appointmentCancelled",
     noShow: "appointmentNoShow",
     whatsappFailed: "whatsappFailed",
+    whatsappReply: "whatsappReply",
     lowStock: "productLow",
     outOfStock: "productOut",
     registerDifference: "registerDifference",

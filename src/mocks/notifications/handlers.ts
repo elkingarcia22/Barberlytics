@@ -30,7 +30,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided";
 
 export interface MockNotification {
   id: string;
@@ -81,6 +81,21 @@ function appointmentEvents(branchId: string, now: Date): MockNotification[] {
       tone: "negative",
       params: { client: clientName(message.clientId), error: message.error ?? "" },
       roles: FRONT,
+    });
+  }
+  // Lo que respondieron por WhatsApp y recepción tiene que resolver (confirmar y BAJA ya se aplicaron solos).
+  for (const reply of (db.booking.inbound ?? []).filter((entry) => (entry.intent === "reschedule" || entry.intent === "cancel" || entry.intent === "other") && recent(entry.at, now))) {
+    const appointment = reply.appointmentId ? db.calendar.appointments.find((entry) => entry.id === reply.appointmentId) : undefined;
+    if (appointment && appointment.branchId !== branchId) continue;
+    items.push({
+      id: `reply:${reply.id}`,
+      kind: "whatsappReply",
+      at: reply.at,
+      href: appointment ? `/calendario?fecha=${appointment.start.slice(0, 10)}&cita=${appointment.id}` : reply.clientId ? `/clientes/${reply.clientId}` : "/calendario",
+      tone: reply.intent === "other" ? "info" : "warning",
+      params: { client: reply.clientId ? clientName(reply.clientId) : `+${reply.from}`, text: reply.text },
+      roles: FRONT,
+      memberId: appointment?.barberId ?? null,
     });
   }
   return items;

@@ -1,5 +1,5 @@
 {
-  "sourceHash": "e877431328d7688f",
+  "sourceHash": "cecba719c34f9919",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -1528,8 +1528,8 @@
         {
           "name": "confidence",
           "type": "\"low\" | \"medium\" | \"high\" | null",
-          "default": "\"high\"",
-          "description": "Nivel de confianza mostrado como badge en la esquina. `null` lo oculta: úsalo cuando la sugerencia sale de una regla y no de un modelo."
+          "default": "null",
+          "description": "Nivel de confianza mostrado como badge en la esquina. Sin valor no se muestra: pásalo solo cuando un modelo dé una confianza real, nunca sobre una regla."
         },
         {
           "name": "evidence",

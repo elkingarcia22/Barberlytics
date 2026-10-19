@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BadgeCheck, Ban, Check, CheckCheck, Footprints, Globe, Link2, Repeat, Star, StickyNote, TriangleAlert, UserRoundPlus, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Ban, CalendarClock, Check, CheckCheck, CircleSlash, Footprints, Globe, Link2, Repeat, Star, StickyNote, TriangleAlert, UserRoundPlus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,8 @@ const MARKER_ICON: Record<ScheduleMarkerIcon, LucideIcon> = {
   requested: Star,
   confirmed: CheckCheck,
   risk: TriangleAlert,
+  reschedule: CalendarClock,
+  declined: CircleSlash,
 };
 
 /** Con menos minutos que esto la tarjeta se considera corta (se usa cuando no llega el alto en píxeles). */

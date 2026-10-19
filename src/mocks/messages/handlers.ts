@@ -1,6 +1,11 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { messagesOf, syncOutbox } from "../booking/dispatch";
+import { applyReply, repliesOf } from "../booking/replies";
+import type { MockInboundReply } from "../booking/state";
+
+/** Lo que «escribe» el cliente al simular una respuesta en la demo. */
+const SIMULATED_TEXT: Readonly<Record<MockInboundReply["intent"], string>> = { confirm: "Confirmo", reschedule: "¿Me la pueden pasar a otra hora?", cancel: "No puedo ir, lo siento", stop: "BAJA", start: "ALTA", other: "¿Tienen parqueadero?" };
 
 /**
  * Los mensajes al cliente (WhatsApp). Reproduce docs/API_CONTRACT.md (sección «Mensajes»): enviar
@@ -36,7 +41,22 @@ export const messagesHandlers = [
     const appointment = db.calendar.appointments.find((item) => item.id === params.id);
     if (!appointment) return error(404, "not_found", "Esa cita no existe.");
     const items = messagesOf(appointment).map(({ id, kind, channel, sendAt, sentAt, status, simulated, error: failure }) => ({ id, kind, channel, sendAt, sentAt: sentAt ?? null, status, simulated: simulated === true, error: failure ?? null }));
-    return HttpResponse.json({ items });
+    const replies = repliesOf(appointment.id).map(({ id, at, intent, text }) => ({ id, at, intent, text }));
+    return HttpResponse.json({ items, replies });
+  }),
+
+  // Solo en la demo: como si el cliente respondiera por WhatsApp al último mensaje de la cita. Pasa por
+  // la misma función que aplica las respuestas reales (`applyReply`).
+  http.post("*/api/appointments/:id/simulate-reply", async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const appointment = db.calendar.appointments.find((item) => item.id === params.id);
+    if (!appointment) return error(404, "not_found", "Esa cita no existe.");
+    const intent = String(asRecord(await request.json().catch(() => ({}))).intent ?? "") as MockInboundReply["intent"];
+    if (!(intent in SIMULATED_TEXT)) return error(422, "validation", "Esa respuesta no existe.");
+    const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
+    const reply = applyReply({ wamid: `sim_${Math.random().toString(36).slice(2, 12)}`, at: new Date().toISOString(), from: (client?.phone ?? "").replace(/\D/g, ""), intent, text: SIMULATED_TEXT[intent], messageId: null, appointmentId: appointment.id });
+    return HttpResponse.json({ reply });
   }),
 
   // El enlace «Confirmar» del mensaje: sin sesión, con el token de la cita.

@@ -225,3 +225,23 @@ respuestas; retorno por canal con UTM.
 ## Hecho el 2026-10-19 después de esta revisión
 
 Se va completando aquí lo que se corrige a partir de esta lista.
+
+- **Lo que se veía mal.**
+  - Métricas › «IA» pasó a llamarse «Sugerencias», y la retención, las fichas sin visita y el ritmo medio salen de los datos.
+  - `AIInsightCard` ya no muestra «confianza alta» por defecto.
+  - Sin `AiGeneratedBadge` en las sugerencias de hora ni en el reacomodo.
+  - Clipper se presenta como asistente de IA y dice que los cambios se aplican solo con aprobación (01, 02, 11, 17).
+- **Respuestas de WhatsApp (02 P0, 10 P0, 13 P0, 15 P0).**
+  - Webhook firmado (`/api/whatsapp/webhook`) que clasifica con reglas: confirmar, otra hora, no puede, BAJA/STOP, ALTA y otra cosa.
+  - BAJA bloquea las promociones en el servidor. Los estados entregado y leído quedan en el mensaje, y un fallo después de aceptado lo marca fallido.
+  - Bandeja por barbería (`/api/whatsapp/inbox`) que la app aplica:
+    - la cita queda confirmada, «pidió otra hora» (`reschedule_requested`) o «no puede venir» (`declined`), con marca en la tarjeta e historial;
+    - BAJA retira el permiso del cliente;
+    - lo que hay que resolver avisa a recepción (`whatsappReply`).
+  - «Cancelar» no cancela sola la cita: recepción decide.
+  - En la demo, «Simular respuesta del cliente» en la cita.
+  - Falta:
+    - las plantillas con botones aprobadas en Meta;
+    - mover la cita desde la respuesta en un toque;
+    - reflejar «entregado/leído» en la pantalla;
+    - el filtro «Sin confirmar mañana».

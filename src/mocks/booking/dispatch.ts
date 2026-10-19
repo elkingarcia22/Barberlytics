@@ -2,6 +2,7 @@ import { db } from "../db";
 import type { MockAppointment } from "../calendar/seed";
 import { profileOf } from "../customers/handlers";
 import { serverFetch } from "@/lib/api/serverSession";
+import { applyReply, type InboxEvent } from "./replies";
 import type { MockOutboxMessage } from "./state";
 
 /**
@@ -47,6 +48,8 @@ export interface Queue {
   enqueue(items: QueueRequest[]): Promise<EnqueueResult | null>;
   cancel(ids: string[]): Promise<QueueView[] | null>;
   status(ids: string[]): Promise<QueueView[] | null>;
+  /** Las respuestas de los clientes que llegaron después de `after`. */
+  inbox(after: number): Promise<{ events: InboxEvent[]; cursor: number } | null>;
 }
 
 /** Mensajes por petición: el tope de la cola del servidor. */
@@ -79,11 +82,23 @@ async function enqueueHttp(items: QueueRequest[]): Promise<EnqueueResult | null>
   }
 }
 
+async function inboxHttp(after: number): Promise<{ events: InboxEvent[]; cursor: number } | null> {
+  try {
+    const response = await serverFetch(`/api/whatsapp/inbox?after=${after}`, { method: "GET" });
+    if (!response.ok) return null;
+    const body = (await response.json().catch(() => null)) as { events?: InboxEvent[]; cursor?: number } | null;
+    return Array.isArray(body?.events) && typeof body.cursor === "number" ? { events: body.events, cursor: body.cursor } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** La cola de verdad, con la sesión firmada del equipo. */
 export const httpQueue: Queue = {
   enqueue: enqueueHttp,
   cancel: (ids) => call({ method: "DELETE" }, ids),
   status: (ids) => call({ method: "GET" }, ids),
+  inbox: inboxHttp,
 };
 
 const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" };
@@ -129,6 +144,8 @@ export interface SyncCounts {
   sent: number;
   simulated: number;
   failed: number;
+  /** Respuestas de clientes aplicadas en esta vuelta. */
+  replies: number;
 }
 
 /**
@@ -136,7 +153,7 @@ export interface SyncCounts {
  * canceló aquí y refleja lo que ya salió. Sin cola, simula lo que ya toca. Devuelve lo que cambió.
  */
 export async function syncOutbox(now: Date = new Date(), queue: Queue = httpQueue): Promise<SyncCounts> {
-  const counts: SyncCounts = { sent: 0, simulated: 0, failed: 0 };
+  const counts: SyncCounts = { sent: 0, simulated: 0, failed: 0, replies: 0 };
   const changes = new Map<string, Partial<MockOutboxMessage>>();
   const outbox = (db.booking.outbox ?? []).filter((message) => message.kind !== "manual");
   const at = now.toISOString();
@@ -196,6 +213,15 @@ export async function syncOutbox(now: Date = new Date(), queue: Queue = httpQueu
   if (changes.size > 0) {
     db.booking.outbox = (db.booking.outbox ?? []).map((message) => (changes.has(message.id) ? { ...message, ...changes.get(message.id) } : message));
     db.persist();
+  }
+  // 4. Lo que respondieron los clientes: a la cita y a su ficha.
+  if (hasQueue) {
+    const inbox = await queue.inbox(db.booking.inboxCursor ?? 0);
+    if (inbox) {
+      for (const event of inbox.events) if (applyReply(event, now)) counts.replies += 1;
+      db.booking.inboxCursor = inbox.cursor;
+      db.persist();
+    }
   }
   return counts;
 }

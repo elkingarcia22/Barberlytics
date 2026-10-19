@@ -151,7 +151,23 @@ export function saveProfile(clientId: string, profile: MockCustomerProfile) {
   db.persist();
 }
 
-/** Valida lo que captura el formulario; devuelve los errores por campo. */
+/**
+ * El celular identifica al cliente: dos números son el mismo sin contar el indicativo del país (así
+ * «+57 300 123 4567» y «3001234567», o «+1 617…» y «617…», son uno). El correo es opcional.
+ */
+const COUNTRY_CODES = ["57", "1"] as const;
+const LOCAL_MIN = 8;
+const phoneKey = (phone: string): string => {
+  const digits = phone.replace(/\D/g, "");
+  const code = COUNTRY_CODES.find((prefix) => digits.startsWith(prefix) && digits.length - prefix.length >= LOCAL_MIN + 1);
+  return code ? digits.slice(code.length) : digits;
+};
+export const findByPhone = (phone: string, exceptId: string | null = null): MockClient | undefined => {
+  const key = phoneKey(phone);
+  return key.length < 8 ? undefined : realClients().find((client) => client.id !== exceptId && phoneKey(client.phone) === key);
+};
+
+/** Valida lo que captura el formulario; devuelve los errores por campo y, si el celular ya es de alguien, quién. */
 function validateInput(input: Record<string, unknown>, currentId: string | null) {
   const fields: Record<string, string[]> = {};
   const firstName = text(input.firstName);
@@ -161,11 +177,12 @@ function validateInput(input: Record<string, unknown>, currentId: string | null)
   const birthDate = text(input.birthDate);
   if (firstName.length < 2) fields.firstName = ["Escribe el nombre."];
   if (lastName.length < 2) fields.lastName = ["Escribe el apellido."];
+  const duplicate = phone.replace(/\D/g, "").length >= 8 ? findByPhone(phone, currentId) : undefined;
   if (phone.replace(/\D/g, "").length < 8) fields.phone = ["Escribe un celular válido."];
-  else if (realClients().some((client) => client.id !== currentId && client.phone.replace(/\D/g, "") === phone.replace(/\D/g, ""))) fields.phone = ["Ya hay un cliente con ese celular."];
-  if (!EMAIL.test(email)) fields.email = ["Escribe un correo válido."];
+  else if (duplicate) fields.phone = [`Ya existe ${duplicate.name} con ese celular.`];
+  if (email && !EMAIL.test(email)) fields.email = ["Escribe un correo válido."];
   if (birthDate && (!DAY_KEY.test(birthDate) || birthDate > new Date().toISOString().slice(0, 10))) fields.birthDate = ["Esa fecha no es válida."];
-  return { fields, values: { firstName, lastName, phone, email, birthDate: birthDate || null, country: text(input.country), state: text(input.state), city: text(input.city), address: text(input.address), zipcode: text(input.zipcode), onlineOnly: input.onlineOnly === true } };
+  return { fields, duplicateOf: duplicate ? { id: duplicate.id, name: duplicate.name } : null, values: { firstName, lastName, phone, email, birthDate: birthDate || null, country: text(input.country), state: text(input.state), city: text(input.city), address: text(input.address), zipcode: text(input.zipcode), onlineOnly: input.onlineOnly === true } };
 }
 
 export const customersHandlers = [
@@ -200,8 +217,8 @@ export const customersHandlers = [
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const input = asRecord(await request.json().catch(() => ({})));
-    const { fields, values } = validateInput(input, null);
-    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const { fields, values, duplicateOf } = validateInput(input, null);
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields, ...(duplicateOf ? { details: { fields, duplicateOf } } : {}) });
     const client: MockClient = {
       id: `cli_${Date.now().toString(36)}`,
       name: `${values.firstName} ${values.lastName}`,
@@ -253,8 +270,8 @@ export const customersHandlers = [
       return HttpResponse.json(detail(client));
     }
 
-    const { fields, values } = validateInput(input, client.id);
-    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const { fields, values, duplicateOf } = validateInput(input, client.id);
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields, ...(duplicateOf ? { details: { fields, duplicateOf } } : {}) });
     const updated: MockClient = { ...client, name: `${values.firstName} ${values.lastName}`, phone: values.phone };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
     saveProfile(client.id, { ...profile, email: values.email, country: values.country, state: values.state, city: values.city, address: values.address, zipcode: values.zipcode, birthDate: values.birthDate, onlineOnly: values.onlineOnly });

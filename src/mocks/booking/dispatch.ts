@@ -57,7 +57,9 @@ export function payloadOf(message: MockOutboxMessage): WhatsAppPayload | null {
   const params =
     message.kind === "confirmation" || message.kind === "rescheduled"
       ? [firstName(client.name), services || "tu cita", when, branch]
-      : [firstName(client.name), when, barber ? barber.firstName : branch];
+      : message.kind === "reminder"
+        ? [firstName(client.name), when, barber ? barber.firstName : branch, String(message.hoursBefore ?? "")]
+        : [firstName(client.name), when, barber ? barber.firstName : branch];
   // El botón de la plantilla: confirmar la cita o, si se liberó una hora, reservarla.
   const buttonParam = message.kind === "slotFreed" || message.kind === "reactivation" ? `${branchId}?hora=${encodeURIComponent(start)}` : appointment?.confirmToken;
   return { to: message.to, kind: message.kind, params, buttonParam };

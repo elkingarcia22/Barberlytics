@@ -49,7 +49,9 @@ export interface MockOutboxMessage {
   to: string;
   channel: "whatsapp" | "sms";
   /** `manual`: lo escribió el equipo desde la ficha del cliente y salió por wa.me; no pasa por la cola. */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "slotFreed" | "manual" | "reactivation";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation";
+  /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
+  hoursBefore?: number;
   sendAt: string;
   /** `failed`: WhatsApp lo rechazó; se ve con su motivo y no se reintenta solo. */
   status: "scheduled" | "sent" | "cancelled" | "failed";

@@ -9,7 +9,7 @@ import type { AppMessageKey } from "@/app/i18n/types";
  * ocupación, los minutos antes de la cita—.
  */
 
-export type NotificationChannel = "email" | "push" | "sms";
+export type NotificationChannel = "email" | "push" | "sms" | "whatsapp";
 export type NotificationAudience = "admin" | "barberCommission" | "barberRent" | "frontDesk" | "owner" | "clients";
 
 export interface NotificationEvent {
@@ -28,6 +28,8 @@ export interface NotificationGroup {
 const EMAIL_PUSH: readonly NotificationChannel[] = ["email", "push"];
 const PUSH: readonly NotificationChannel[] = ["push"];
 const EMAIL_SMS: readonly NotificationChannel[] = ["email", "sms"];
+/** Lo que se le manda al cliente por su cita sale primero por WhatsApp (el motor de mensajes de la reserva). */
+const CLIENT_MESSAGE: readonly NotificationChannel[] = ["whatsapp", "email", "sms"];
 
 const event = (id: string, channels: readonly NotificationChannel[], threshold?: NotificationEvent["threshold"]): NotificationEvent => ({ id, labelKey: `cfg.notify.event.${id}` as AppMessageKey, channels, threshold });
 const group = (id: string, events: readonly NotificationEvent[]): NotificationGroup => ({ id, labelKey: `cfg.notify.group.${id}` as AppMessageKey, events });
@@ -63,7 +65,7 @@ export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonl
     group("metrics", [...METRICS_HEALTH, ...RETENTION]),
     group("reports", REPORTS),
   ],
-  clients: [group("appointments", [event("bookingConfirmed", EMAIL_SMS), event("bookingRescheduled", EMAIL_SMS), event("bookingCancelled", EMAIL_SMS), event("bookingReminder", EMAIL_SMS), event("bookingMissed", EMAIL_SMS), event("giftcardReceived", EMAIL_SMS), event("proactiveBooking", EMAIL_SMS)])],
+  clients: [group("appointments", [event("bookingConfirmed", CLIENT_MESSAGE), event("bookingRescheduled", CLIENT_MESSAGE), event("bookingCancelled", EMAIL_SMS), event("bookingReminder", CLIENT_MESSAGE), event("bookingMissed", EMAIL_SMS), event("giftcardReceived", EMAIL_SMS), event("proactiveBooking", EMAIL_SMS)])],
 };
 
 export const AUDIENCES: readonly NotificationAudience[] = ["owner", "admin", "frontDesk", "barberCommission", "barberRent", "clients"];

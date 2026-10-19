@@ -96,7 +96,14 @@ export type PayrollCycleSettings = z.infer<typeof payrollCycleSchema>;
 
 /* ----------------------------------------------------------------- avisos */
 
-export const notificationsSchema = z.object({ toggles: z.record(z.string(), z.boolean()), thresholds: z.record(z.string(), z.number()) });
+/** Hasta tres recordatorios al cliente, cada uno a tantas horas de la cita. */
+export const MAX_REMINDERS = 3;
+export const DEFAULT_REMINDER_HOURS: readonly number[] = [24, 2];
+export const notificationsSchema = z.object({
+  toggles: z.record(z.string(), z.boolean()),
+  thresholds: z.record(z.string(), z.number()),
+  reminderHours: z.array(z.number().int().min(1).max(168)).max(MAX_REMINDERS).optional(),
+});
 export type NotificationSettings = z.infer<typeof notificationsSchema>;
 
 /* ----------------------------------------------------------------- cuenta */

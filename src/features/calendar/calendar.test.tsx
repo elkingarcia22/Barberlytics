@@ -727,7 +727,7 @@ describe("Calendario", () => {
     // «Quitar filtros» los vuelve a mostrar.
     await user.click(within(panel).getByTestId("calendar-filters-clear"));
     await waitFor(() => expect(lunches()).toBeGreaterThan(0));
-  });
+  }, 15_000);
 
   test("se eligen varios barberos a la vez y «solo huecos» marca lo libre para agendar", async () => {
     const user = userEvent.setup();

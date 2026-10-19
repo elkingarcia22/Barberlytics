@@ -113,12 +113,11 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
         <Button variant="outline" aria-label={t("calendar.filters.title")} data-testid="calendar-filters">
           <ListFilter className="text-text-muted" />
           {t("calendar.filters.button")}
-          {active > 0 ? (
+          {/* Solo cuántos filtros hay puestos; sin ninguno, nada. */}
+          {active > 0 && (
             <span className="rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground" data-testid="calendar-filters-count">
               {active}
             </span>
-          ) : (
-            <span className="tabular-nums text-text-muted">{pulse.total}</span>
           )}
         </Button>
       </PopoverTrigger>

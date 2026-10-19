@@ -1,6 +1,6 @@
 import * as React from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarX2, Palmtree, Stethoscope, UserRound, Users } from "lucide-react";
+import { CalendarSearch, CalendarX2, Palmtree, Stethoscope, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -32,7 +32,7 @@ const KIND_ICON = { vacation: Palmtree, sick: Stethoscope, personal: UserRound }
 /** Cuántas citas afectadas se ven por día; el resto se cuenta. */
 const PER_DAY = 3;
 
-export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppointment, onDone }: { absence: Absence; absences: readonly Absence[]; ctx: ModelContext; canDecide: boolean; onOpenAppointment: (date: Date, id: string) => void; onDone: () => void }) {
+export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppointment, onShowInCalendar, onDone }: { absence: Absence; absences: readonly Absence[]; ctx: ModelContext; canDecide: boolean; onOpenAppointment: (date: Date, id: string) => void; /** Ponerla sola en la rejilla, en el primer día que el barbero trabaja. */ onShowInCalendar?: (on: Date) => void; onDone: () => void }) {
   const t = useAppT();
   const { locale } = useLocale();
   const decide = useDecideAbsence();
@@ -85,6 +85,7 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
         <Text size="xs" tone="muted">
           {t("calendar.timeOff.requested", { name: absence.requestedBy, when: format(parseISO(absence.requestedAt), "d MMM, h:mm a", { locale: dateLocale }) })}
         </Text>
+        {onShowInCalendar && <ShowInCalendar onClick={() => onShowInCalendar(coverage.find((day) => day.works)?.date ?? days[0])} />}
       </section>
 
       {short.length > 0 && (
@@ -158,7 +159,7 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
 }
 
 /** Un bloqueo que puso un barbero y espera aprobación: qué, cuándo y quién lo pidió. */
-export function BlockReview({ block, ctx, canDecide, onDone }: { block: TimeBlock; ctx: ModelContext; canDecide: boolean; onDone: () => void }) {
+export function BlockReview({ block, ctx, canDecide, onShowInCalendar, onDone }: { block: TimeBlock; ctx: ModelContext; canDecide: boolean; onShowInCalendar?: () => void; onDone: () => void }) {
   const t = useAppT();
   const { locale } = useLocale();
   const approve = useApproveBlock();
@@ -190,6 +191,7 @@ export function BlockReview({ block, ctx, canDecide, onDone }: { block: TimeBloc
           )}
         </span>
       </section>
+      {onShowInCalendar && <ShowInCalendar onClick={onShowInCalendar} />}
       {block.description && <Text className="border-l-2 border-primary/60 pl-3 italic">«{block.description}»</Text>}
       {canDecide && block.status === "pending" && (
         <div className="flex gap-2">
@@ -202,6 +204,16 @@ export function BlockReview({ block, ctx, canDecide, onDone }: { block: TimeBloc
         </div>
       )}
     </div>
+  );
+}
+
+/** Verla sola en la rejilla, como un filtro: las citas se apagan y queda ella. */
+function ShowInCalendar({ onClick }: { onClick: () => void }) {
+  const t = useAppT();
+  return (
+    <Button type="button" variant="outline" size="sm" className="self-start" onClick={onClick} data-testid="time-off-show">
+      <CalendarSearch /> {t("calendar.timeOff.showInCalendar")}
+    </Button>
   );
 }
 

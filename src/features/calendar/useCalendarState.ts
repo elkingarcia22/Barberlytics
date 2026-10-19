@@ -9,6 +9,11 @@ import type { CalendarColorBy } from "./calendarModel";
 export type TimeOffKind = "absences" | "blocks";
 export const TIME_OFF_KINDS: readonly TimeOffKind[] = ["absences", "blocks"];
 const TIME_OFF_PARAM: Record<TimeOffKind, string> = { absences: "ausencias", blocks: "bloqueos" };
+/** Una ausencia o un bloqueo concreto, para verlo solo en la rejilla. */
+export interface TimeOffShown {
+  type: "absence" | "block";
+  id: string;
+}
 
 /** «Colorear por» en la URL (`color=servicio|estado`); sin el parámetro, neutral. */
 const COLOR_PARAM: Record<Exclude<CalendarColorBy, "neutral">, string> = { service: "servicio", status: "estado", client: "cliente" };
@@ -53,6 +58,13 @@ export function useCalendarState(today: Date = new Date()) {
   const verParam = searchParams.get("ver");
   const timeOffOnly = React.useMemo(() => TIME_OFF_KINDS.filter((kind) => (verParam ?? "").split(",").includes(TIME_OFF_PARAM[kind])), [verParam]);
 
+  const shownParam = searchParams.get("mostrar");
+  const timeOffFocus = React.useMemo<TimeOffShown | null>(() => {
+    const [type, id] = (shownParam ?? "").split(":");
+    if (!id || (type !== "ausencia" && type !== "bloqueo")) return null;
+    return { type: type === "ausencia" ? "absence" : "block", id };
+  }, [shownParam]);
+
   const set = React.useCallback(
     (patch: Record<string, string | undefined>) => {
       setSearchParams(
@@ -92,6 +104,10 @@ export function useCalendarState(today: Date = new Date()) {
      * solo lo elegido. Vacío, se ve todo.
      */
     timeOffOnly,
+    /** Una ausencia o un bloqueo puesto a la vista desde su revisión («Ver en el calendario»): solo él, las citas apagadas. */
+    timeOffFocus,
+    showTimeOff: (focus: TimeOffShown | null, on?: Date) =>
+      set({ mostrar: focus ? `${focus.type === "absence" ? "ausencia" : "bloqueo"}:${focus.id}` : undefined, ...(on ? { fecha: toDateKey(on) === toDateKey(today) ? undefined : toDateKey(on), vista: undefined, cita: undefined } : {}) }),
     setTimeOffOnly: (next: readonly TimeOffKind[]) => set({ ver: next.map((kind) => TIME_OFF_PARAM[kind]).join(",") || undefined }),
     setShowLinked: (next: boolean) => set({ enlazadas: next ? "1" : undefined }),
     /** De qué se tiñen las tarjetas: es de la vista, no un filtro, y no apaga ninguna cita. */

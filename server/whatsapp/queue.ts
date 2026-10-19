@@ -1,0 +1,278 @@
+import { parseSendInput, readWhatsAppConfig, sendTemplate, type MessageKind, type SendInput, type WhatsAppConfig } from "./whatsapp.js";
+
+/**
+ * La cola de WhatsApp en el servidor. Antes la cola corría en el navegador y llamaba a una función
+ * pública que enviaba lo que le pidieran; ahora la app solo **encola** (con su sesión firmada), un
+ * cron envía lo que ya toca con reintentos, y la app consulta el estado para reflejarlo en la cita.
+ *
+ * Dónde se guarda: Upstash Redis (REST) si están `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`;
+ * en local, en memoria del servidor de desarrollo. En Vercel sin Upstash no hay cola (la memoria de
+ * una función no sobrevive entre llamadas) y responde 501: la app deja los mensajes como simulados.
+ */
+
+export type QueueStatus = "scheduled" | "sent" | "simulated" | "failed" | "cancelled";
+
+export interface QueueItem extends SendInput {
+  /** El id del mensaje en la app: único dentro de la barbería. */
+  id: string;
+  tid: string;
+  sendAt: string;
+  /** Prueba del permiso del cliente; obligatoria para lo que Meta cuenta como marketing. */
+  consent: { version: string; at: string } | null;
+  status: QueueStatus;
+  attempts: number;
+  nextAttemptAt: string;
+  providerId: string | null;
+  error: string | null;
+  sentAt: string | null;
+  createdBy: string;
+}
+
+/** Lo que la app ve de cada mensaje encolado. */
+export interface QueueView {
+  id: string;
+  status: QueueStatus;
+  providerId: string | null;
+  error: string | null;
+  sentAt: string | null;
+  attempts: number;
+}
+
+export interface OutboxStore {
+  get(tid: string, id: string): Promise<QueueItem | null>;
+  put(item: QueueItem): Promise<void>;
+  /** Los que ya tocan (`nextAttemptAt` ≤ ahora), los más viejos primero. */
+  due(now: number, limit: number): Promise<QueueItem[]>;
+  /** Toma un mensaje para enviarlo; `false` si otro envío ya lo tiene (dos crons a la vez). */
+  claim(item: QueueItem): Promise<boolean>;
+}
+
+/** Lo que Meta cuenta como marketing: solo a quien aceptó promociones. */
+export const MARKETING_KINDS: readonly MessageKind[] = ["reactivation"];
+/** Intentos ante un error de WhatsApp o de red antes de darlo por fallido; espera 5, 10, 20 min. */
+export const MAX_ATTEMPTS = 3;
+const RETRY_BASE_MS = 5 * 60_000;
+/** Mensajes por lote: al encolar y en cada pasada del cron. */
+export const MAX_BATCH = 50;
+/** Un recordatorio no se programa a más de 400 días. */
+const MAX_AHEAD_MS = 400 * 86_400_000;
+const ID = /^[\w-]{1,64}$/;
+/** Lo que se guarda vive 60 días: de sobra para mostrarlo en la cita. */
+const TTL_SECONDS = 60 * 86_400;
+
+const serverEnv = (): Record<string, string | undefined> => (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+
+export const viewOf = (item: QueueItem): QueueView => ({ id: item.id, status: item.status, providerId: item.providerId, error: item.error, sentAt: item.sentAt, attempts: item.attempts });
+
+// ── Almacenes ────────────────────────────────────────────────────────────────────────────────────
+
+const keyOf = (tid: string, id: string) => `${tid}:${id}`;
+
+export function createMemoryStore(): OutboxStore {
+  const items = new Map<string, QueueItem>();
+  const claimed = new Set<string>();
+  return {
+    get: async (tid, id) => items.get(keyOf(tid, id)) ?? null,
+    put: async (item) => {
+      items.set(keyOf(item.tid, item.id), item);
+      claimed.delete(keyOf(item.tid, item.id));
+    },
+    due: async (now, limit) =>
+      [...items.values()]
+        .filter((item) => item.status === "scheduled" && Date.parse(item.nextAttemptAt) <= now)
+        .sort((a, b) => a.nextAttemptAt.localeCompare(b.nextAttemptAt))
+        .slice(0, limit),
+    claim: async (item) => {
+      const key = keyOf(item.tid, item.id);
+      if (claimed.has(key)) return false;
+      claimed.add(key);
+      return true;
+    },
+  };
+}
+
+type Fetcher = typeof fetch;
+
+/** Upstash Redis por REST: cada mensaje en `wa:item:<tid>:<id>` y los pendientes en el índice `wa:due`. */
+export function createUpstashStore(url: string, token: string, fetcher: Fetcher = fetch): OutboxStore {
+  const pipeline = async (commands: (string | number)[][]): Promise<unknown[]> => {
+    const response = await fetcher(`${url.replace(/\/$/, "")}/pipeline`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(commands),
+    });
+    if (!response.ok) throw new Error(`Upstash respondió ${response.status}.`);
+    const results = (await response.json()) as { result?: unknown; error?: string }[];
+    const failed = results.find((entry) => entry.error);
+    if (failed) throw new Error(`Upstash: ${failed.error}`);
+    return results.map((entry) => entry.result);
+  };
+  const parse = (raw: unknown): QueueItem | null => {
+    if (typeof raw !== "string") return null;
+    try {
+      return JSON.parse(raw) as QueueItem;
+    } catch {
+      return null;
+    }
+  };
+  return {
+    get: async (tid, id) => parse((await pipeline([["GET", `wa:item:${keyOf(tid, id)}`]]))[0]),
+    put: async (item) => {
+      const member = keyOf(item.tid, item.id);
+      await pipeline([
+        ["SET", `wa:item:${member}`, JSON.stringify(item), "EX", TTL_SECONDS],
+        item.status === "scheduled" ? ["ZADD", "wa:due", Date.parse(item.nextAttemptAt), member] : ["ZREM", "wa:due", member],
+        ["DEL", `wa:lock:${member}`],
+      ]);
+    },
+    due: async (now, limit) => {
+      const [members] = await pipeline([["ZRANGE", "wa:due", "-inf", now, "BYSCORE", "LIMIT", 0, limit]]);
+      if (!Array.isArray(members) || members.length === 0) return [];
+      const [raws] = await pipeline([["MGET", ...members.map((member) => `wa:item:${String(member)}`)]]);
+      return (Array.isArray(raws) ? raws : []).map(parse).filter((item): item is QueueItem => item !== null && item.status === "scheduled");
+    },
+    claim: async (item) => {
+      const [result] = await pipeline([["SET", `wa:lock:${keyOf(item.tid, item.id)}`, "1", "NX", "EX", 120]]);
+      return result === "OK";
+    },
+  };
+}
+
+let memoryStore: OutboxStore | null = null;
+
+/** El almacén que toca según el entorno; `null` si no hay dónde guardar la cola de forma fiable. */
+export function readOutboxStore(env: Record<string, string | undefined> = serverEnv()): OutboxStore | null {
+  const url = env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (url && token) return createUpstashStore(url, token);
+  if (env.VERCEL) return null;
+  memoryStore ??= createMemoryStore();
+  return memoryStore;
+}
+
+// ── Encolar, anular, consultar ───────────────────────────────────────────────────────────────────
+
+export interface EnqueueInput extends SendInput {
+  id: string;
+  sendAt: string;
+  consent: { version: string; at: string } | null;
+}
+
+/** Valida un mensaje para encolar; devuelve el mensaje o por qué no. */
+export function parseEnqueueItem(raw: unknown, now = Date.now()): EnqueueInput | string {
+  if (!raw || typeof raw !== "object") return "Falta el mensaje.";
+  const record = raw as Record<string, unknown>;
+  if (typeof record.id !== "string" || !ID.test(record.id)) return "El id del mensaje no es válido.";
+  const send = parseSendInput(record);
+  if (typeof send === "string") return send;
+  const sendAt = typeof record.sendAt === "string" ? Date.parse(record.sendAt) : Number.NaN;
+  if (!Number.isFinite(sendAt) || sendAt - now > MAX_AHEAD_MS) return "La hora de envío no es válida.";
+  const rawConsent = record.consent as Record<string, unknown> | null | undefined;
+  const consent =
+    rawConsent && typeof rawConsent.version === "string" && rawConsent.version.length <= 40 && typeof rawConsent.at === "string" && Number.isFinite(Date.parse(rawConsent.at))
+      ? { version: rawConsent.version, at: rawConsent.at }
+      : null;
+  if (MARKETING_KINDS.includes(send.kind) && !consent) return "Un mensaje de promoción necesita el permiso del cliente.";
+  return { ...send, id: record.id, sendAt: new Date(sendAt).toISOString(), consent };
+}
+
+export interface EnqueueResult {
+  items: QueueView[];
+  rejected: { id: string | null; message: string }[];
+}
+
+/**
+ * Encola (o reprograma) mensajes. Uno que ya salió no se toca: encolar dos veces el mismo id no lo
+ * envía dos veces.
+ */
+export async function enqueue(store: OutboxStore, tid: string, by: string, raws: unknown[], now = Date.now()): Promise<EnqueueResult> {
+  const result: EnqueueResult = { items: [], rejected: [] };
+  for (const raw of raws.slice(0, MAX_BATCH)) {
+    const input = parseEnqueueItem(raw, now);
+    if (typeof input === "string") {
+      const id = raw && typeof raw === "object" && typeof (raw as { id?: unknown }).id === "string" ? (raw as { id: string }).id : null;
+      result.rejected.push({ id, message: input });
+      continue;
+    }
+    const existing = await store.get(tid, input.id);
+    if (existing && existing.status !== "scheduled") {
+      result.items.push(viewOf(existing));
+      continue;
+    }
+    const item: QueueItem = {
+      ...input,
+      tid,
+      status: "scheduled",
+      attempts: existing?.attempts ?? 0,
+      nextAttemptAt: input.sendAt,
+      providerId: null,
+      error: null,
+      sentAt: null,
+      createdBy: existing?.createdBy ?? by,
+    };
+    await store.put(item);
+    result.items.push(viewOf(item));
+  }
+  return result;
+}
+
+/** Anula los que aún no salieron; los demás se devuelven como están. */
+export async function cancel(store: OutboxStore, tid: string, ids: string[]): Promise<QueueView[]> {
+  const views: QueueView[] = [];
+  for (const id of ids.filter((value) => ID.test(value)).slice(0, MAX_BATCH)) {
+    const item = await store.get(tid, id);
+    if (!item) continue;
+    if (item.status !== "scheduled") {
+      views.push(viewOf(item));
+      continue;
+    }
+    const cancelled: QueueItem = { ...item, status: "cancelled" };
+    await store.put(cancelled);
+    views.push(viewOf(cancelled));
+  }
+  return views;
+}
+
+export async function statusOf(store: OutboxStore, tid: string, ids: string[]): Promise<QueueView[]> {
+  const items = await Promise.all(ids.filter((value) => ID.test(value)).slice(0, MAX_BATCH).map((id) => store.get(tid, id)));
+  return items.filter((item): item is QueueItem => item !== null).map(viewOf);
+}
+
+// ── Enviar lo que toca (el cron) ─────────────────────────────────────────────────────────────────
+
+export interface RunCounts {
+  sent: number;
+  simulated: number;
+  failed: number;
+  retried: number;
+}
+
+/** Qué pasó con un envío, según lo que respondió `sendTemplate`. */
+async function outcomeOf(response: Response): Promise<{ kind: "sent" | "simulated" | "rejected" | "retry"; id: string | null; message: string | null }> {
+  const body = (await response.json().catch(() => ({}))) as { id?: string | null; message?: string };
+  if (response.ok) return { kind: "sent", id: body.id ?? null, message: null };
+  if (response.status === 501) return { kind: "simulated", id: null, message: null };
+  // 400: el mensaje está mal y reintentar no lo arregla; 502: WhatsApp o la red, se reintenta.
+  return { kind: response.status === 400 ? "rejected" : "retry", id: null, message: body.message ?? `WhatsApp respondió ${response.status}.` };
+}
+
+/** Envía lo que ya toca, con reintentos. Lo llama el cron (y, en local, el servidor de desarrollo). */
+export async function runDue(store: OutboxStore | null = readOutboxStore(), config: WhatsAppConfig = readWhatsAppConfig(serverEnv()), fetcher: Fetcher = fetch, now = Date.now()): Promise<RunCounts> {
+  const counts: RunCounts = { sent: 0, simulated: 0, failed: 0, retried: 0 };
+  if (!store) return counts;
+  for (const item of await store.due(now, MAX_BATCH)) {
+    if (!(await store.claim(item))) continue;
+    const outcome = await outcomeOf(await sendTemplate(item, config, fetcher));
+    const at = new Date(now).toISOString();
+    const attempts = item.attempts + 1;
+    if (outcome.kind === "retry" && attempts < MAX_ATTEMPTS) {
+      counts.retried += 1;
+      await store.put({ ...item, attempts, error: outcome.message, nextAttemptAt: new Date(now + RETRY_BASE_MS * 2 ** (attempts - 1)).toISOString() });
+      continue;
+    }
+    const status: QueueStatus = outcome.kind === "sent" ? "sent" : outcome.kind === "simulated" ? "simulated" : "failed";
+    counts[status] += 1;
+    await store.put({ ...item, attempts, status, providerId: outcome.id, error: outcome.message, sentAt: at });
+  }
+  return counts;
+}

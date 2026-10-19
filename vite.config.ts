@@ -1,99 +1,72 @@
 import path from "path"
 import { defineConfig, loadEnv, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
-import { readTtsConfig, synthesize } from "./server/tts/tts"
-import { readWhatsAppConfig, sendTemplate } from "./server/whatsapp/whatsapp"
-import { narrate, readNarrativeConfig } from "./server/narrative/narrative"
-import { clipperStep, readClipperConfig } from "./server/clipper/clipper"
-import { clipperFeedback } from "./server/clipper/turnLog"
+import type { IncomingMessage, ServerResponse } from "http"
+import { POST as tts } from "./api/tts/index"
+import { POST as clipper } from "./api/clipper/index"
+import { POST as clipperFeedback } from "./api/clipper/feedback"
+import { POST as narrative } from "./api/narrative/index"
+import { POST as session } from "./api/session/index"
+import { POST as guestSession } from "./api/session/guest"
+import * as whatsappQueue from "./api/whatsapp/queue"
+import { enableDevSessionSecret } from "./server/auth/session"
+import { runDue } from "./server/whatsapp/queue"
+
+type Handler = (request: Request) => Promise<Response> | Response
+
+/** Las funciones de `api/` por ruta y método: en local las atiende el servidor de desarrollo con el mismo código. */
+const ROUTES: Record<string, Partial<Record<string, Handler>>> = {
+  "/api/tts": { POST: tts },
+  "/api/clipper": { POST: clipper },
+  "/api/clipper/feedback": { POST: clipperFeedback },
+  "/api/narrative": { POST: narrative },
+  "/api/session": { POST: session },
+  "/api/session/guest": { POST: guestSession },
+  "/api/whatsapp/queue": { POST: whatsappQueue.POST, GET: whatsappQueue.GET, DELETE: whatsappQueue.DELETE },
+}
+
+/** Cada cuánto el servidor de desarrollo hace lo que en Vercel hace el cron: enviar lo que ya toca. */
+const DEV_QUEUE_TICK_MS = 30_000
+
+async function toRequest(req: IncomingMessage): Promise<Request> {
+  const headers = new Headers()
+  for (const [key, value] of Object.entries(req.headers)) if (typeof value === "string") headers.set(key, value)
+  let body = ""
+  if (req.method !== "GET" && req.method !== "HEAD") for await (const chunk of req) body += chunk
+  return new Request(`http://${req.headers.host ?? "localhost"}${req.url ?? "/"}`, { method: req.method, headers, body: body || undefined })
+}
+
+async function send(res: ServerResponse, response: Response): Promise<void> {
+  res.statusCode = response.status
+  response.headers.forEach((value, key) => res.setHeader(key, value))
+  res.end(Buffer.from(await response.arrayBuffer()))
+}
 
 /**
- * La voz de Clipper (y el envío por WhatsApp) también en local: con `npm run dev` las funciones de `api/` no corren, así que el
- * servidor de desarrollo atiende `POST /api/tts` con el mismo código que la función de Vercel. La
- * clave se lee de `.env.local` (no se sube a git) y nunca llega al navegador.
+ * La voz de Clipper, Clipper, la narración, la sesión firmada y la cola de WhatsApp también en local:
+ * con `npm run dev` las funciones de `api/` no corren, así que el servidor de desarrollo las atiende
+ * con el mismo código que Vercel. Las claves se leen de `.env.local` (no se sube a git) y nunca llegan
+ * al navegador; sin `SESSION_SECRET` se firma con uno al azar de este proceso.
  */
-function clipperVoiceInDev(): Plugin {
+function serverFunctionsInDev(): Plugin {
   return {
-    name: "clipper-voice-dev",
+    name: "server-functions-dev",
     apply: "serve",
     configureServer(server) {
       const env = loadEnv(server.config.mode, server.config.root, "")
-      server.middlewares.use("/api/tts", async (req, res, next) => {
-        if (req.method !== "POST") return next()
-        let body = ""
-        for await (const chunk of req) body += chunk
-        let payload: unknown
+      for (const [key, value] of Object.entries(env)) if (process.env[key] === undefined) process.env[key] = value
+      enableDevSessionSecret()
+      const tick = setInterval(() => void runDue().catch(() => undefined), DEV_QUEUE_TICK_MS)
+      server.httpServer?.once("close", () => clearInterval(tick))
+      server.middlewares.use(async (req, res, next) => {
+        const pathname = (req.url ?? "").split("?")[0]
+        const handler = ROUTES[pathname]?.[req.method ?? "GET"]
+        if (!handler) return next()
         try {
-          payload = JSON.parse(body)
-        } catch {
-          payload = undefined
+          await send(res, await handler(await toRequest(req)))
+        } catch (error) {
+          next(error)
         }
-        const response = await synthesize(payload, readTtsConfig({ ...process.env, ...env }))
-        res.statusCode = response.status
-        response.headers.forEach((value, key) => res.setHeader(key, value))
-        res.end(Buffer.from(await response.arrayBuffer()))
-      })
-      // WhatsApp, igual: el mismo código que la función de Vercel, con las claves de `.env.local`.
-      server.middlewares.use("/api/whatsapp/send", async (req, res, next) => {
-        if (req.method !== "POST") return next()
-        let body = ""
-        for await (const chunk of req) body += chunk
-        let payload: unknown
-        try {
-          payload = JSON.parse(body)
-        } catch {
-          payload = undefined
-        }
-        const response = await sendTemplate(payload, readWhatsAppConfig({ ...process.env, ...env }))
-        res.statusCode = response.status
-        response.headers.forEach((value, key) => res.setHeader(key, value))
-        res.end(Buffer.from(await response.arrayBuffer()))
-      })
-      // Clipper con modelo (ANTHROPIC_API_KEY de `.env.local`); sin clave, 501 y responde el centro de ayuda.
-      // El 👍/👎 va a /api/clipper/feedback; el registro sale en la consola de este servidor.
-      server.middlewares.use("/api/clipper", async (req, res, next) => {
-        if (req.method !== "POST") return next()
-        if (req.url?.startsWith("/feedback")) {
-          let raw = ""
-          for await (const chunk of req) raw += chunk
-          let payload: unknown
-          try {
-            payload = JSON.parse(raw)
-          } catch {
-            payload = undefined
-          }
-          const response = clipperFeedback(payload)
-          res.statusCode = response.status
-          return res.end()
-        }
-        let body = ""
-        for await (const chunk of req) body += chunk
-        let payload: unknown
-        try {
-          payload = JSON.parse(body)
-        } catch {
-          payload = undefined
-        }
-        const response = await clipperStep(payload, readClipperConfig({ ...process.env, ...env }))
-        res.statusCode = response.status
-        response.headers.forEach((value, key) => res.setHeader(key, value))
-        res.end(Buffer.from(await response.arrayBuffer()))
-      })
-      // Hechos → narración con Claude (ANTHROPIC_API_KEY de `.env.local`); sin clave, 501 y la app usa su resumen.
-      server.middlewares.use("/api/narrative", async (req, res, next) => {
-        if (req.method !== "POST") return next()
-        let body = ""
-        for await (const chunk of req) body += chunk
-        let payload: unknown
-        try {
-          payload = JSON.parse(body)
-        } catch {
-          payload = undefined
-        }
-        const response = await narrate(payload, readNarrativeConfig({ ...process.env, ...env }))
-        res.statusCode = response.status
-        response.headers.forEach((value, key) => res.setHeader(key, value))
-        res.end(Buffer.from(await response.arrayBuffer()))
       })
     },
   }
@@ -101,7 +74,7 @@ function clipperVoiceInDev(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), clipperVoiceInDev()],
+  plugins: [react(), serverFunctionsInDev()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

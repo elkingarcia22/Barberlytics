@@ -188,8 +188,8 @@ export const chatPanelEntry = defineEntry({
   name: "ChatPanel",
   group: "ai",
   description: {
-    es: "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
-    en: "The chat as a side panel: it portals into the AdminShell anchor (the screen narrows instead of being covered) and floats OVERLAY_INSET from the edge. Starts with the greeting, the box and a few questions; with a conversation, the thread on top and the box below. From the header: a new conversation or open it full screen.",
+    es: "El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. En el celular (por debajo de md) no hay sitio para estrechar nada: es una hoja a pantalla completa que sube por encima del contenido, con la cabecera y el cerrar a la vista. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.",
+    en: "The chat as a side panel: it portals into the AdminShell anchor (the screen narrows instead of being covered) and floats OVERLAY_INSET from the edge. On phones (below md) there is no room to narrow anything: it is a full-screen sheet that slides up over the content, with the header and close button in view. Starts with the greeting, the box and a few questions; with a conversation, the thread on top and the box below. From the header: a new conversation or open it full screen.",
   },
   importPath: 'import { ChatPanel, ChatProvider } from "@/components/chat"',
   sourcePath: "src/components/chat/ChatPanel.tsx",

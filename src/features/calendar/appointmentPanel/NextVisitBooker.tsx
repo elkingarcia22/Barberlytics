@@ -18,6 +18,7 @@ import type { Appointment } from "../types";
 import { useFreeSlots } from "./useFreeSlots";
 import type { AppointmentModel } from "./useAppointmentModel";
 import { SendToClient } from "./SendToClient";
+import { targetOf } from "./sendTarget";
 
 /**
  * «Reagendar», como una página dentro del panel. Arriba se elige cómo: lo
@@ -125,5 +126,5 @@ function PickTime({ model, ctx, group, onDone }: { model: AppointmentModel; ctx:
 function SendRebookLink({ model, onSent }: { model: AppointmentModel; onSent: () => void }) {
   const t = useAppT();
   const link = buildRebookLink(window.location.origin, { branchId: model.appointment.branchId, serviceIds: model.appointment.serviceIds, barberId: model.appointment.barberId });
-  return <SendToClient model={model} kind="rebookLink" lead={t("calendar.panel.next.linkHint")} body={t("calendar.panel.next.linkMessage", { name: model.firstName, link })} onSent={onSent} />;
+  return <SendToClient target={targetOf(model)} kind="rebookLink" lead={t("calendar.panel.next.linkHint")} body={t("calendar.panel.next.linkMessage", { name: model.firstName, link })} onSent={onSent} />;
 }

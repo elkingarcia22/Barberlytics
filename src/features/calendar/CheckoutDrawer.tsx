@@ -7,19 +7,27 @@ import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemaIcon } from "@/icons";
-import { servicesOf, type ModelContext } from "./calendarModel";
+import { appointmentStart, servicesOf, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
-import type { Appointment } from "./types";
+import { STATUS_KEYS, type Appointment } from "./types";
 import { BillSection, DiscountField, GiftSaleField } from "./checkout/BillSection";
-import { GiftRedeem, PaySection } from "./checkout/PaySection";
+import { PayMethods, PayPageContent, type PayPage } from "./checkout/PaySection";
+import { PanelQuestion, PanelSubpage } from "./appointmentPanel/bookingStyle";
+import type { SendTarget } from "./appointmentPanel/sendTarget";
+import { TRACK } from "./appointmentPanel/panelLogic";
+import { Stepper } from "@/components/navigation";
+import { formatClock } from "@/components/scheduling";
+import type { AppMessageKey } from "@/app/i18n/types";
 import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
 
 /**
- * Cobrar, en una sola pantalla con la cara del pago de la reserva en línea:
- * arriba lo que se cobra (citas juntas, servicios con su precio, productos),
- * los enlaces para un descuento y para las tarjetas de regalo (pagar con una o
- * vender una), «¿Cómo paga?» en tarjetas y «Tu orden». La propina se pregunta
- * al pulsar «Cobrar», en su ventana, como en la reserva; al elegirla se cobra.
+ * Cobrar, con la cara del panel de la cita: el avance de la cita arriba y una
+ * tarjeta teñida con «Cobrar US$ …», y dentro lo que se cobra (citas juntas,
+ * servicios con su precio, productos), el descuento y la tarjeta de regalo
+ * que se vende, «¿Cómo paga?» en tarjetas, «Tu orden» y un solo botón
+ * principal. Lo que pide más pasos (link de pago, mixto, en partes, la
+ * tarjeta de regalo del cliente) entra a su propia página del panel. La
+ * propina se pregunta al pulsar «Cobrar», en su ventana, como en la reserva.
  */
 
 export interface CheckoutDrawerProps {
@@ -35,6 +43,7 @@ export interface CheckoutDrawerProps {
 }
 
 const NO_TIP = "none";
+const PAGE_TITLE: Record<PayPage, AppMessageKey> = { link: "calendar.checkout.pay.link", mixed: "calendar.checkout.pay.mixed", parts: "calendar.checkout.pay.parts", gift: "calendar.checkout.pay.gift" };
 
 export function CheckoutDrawer(props: CheckoutDrawerProps) {
   const key = `${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`;
@@ -46,9 +55,11 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const t = useAppT();
   const checkout = useCheckout({ appointment, companions, candidates, ctx, onPaid, onClose: () => onOpenChange(false) });
   const [tipOpen, setTipOpen] = React.useState(false);
-  const [giftOpen, setGiftOpen] = React.useState(false);
+  const [page, setPage] = React.useState<PayPage | null>(null);
   // Con propinas en Configuración se preguntan al cobrar; si no, se cobra directo.
   const charge = () => (checkout.tipOptions.length > 0 ? setTipOpen(true) : void checkout.pay(NO_TIP));
+  const canContact = ctx.access?.canContact ?? true;
+  const target: SendTarget | null = checkout.client ? { appointmentId: appointment.id, email: canContact ? (checkout.client.email ?? "") : "", phone: canContact ? checkout.client.phone.replace(/[^\d+]/g, "") : "" } : null;
 
   return (
     <SidePanelShell
@@ -57,48 +68,65 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
       size="lg"
       title={checkout.together.length > 0 ? t("calendar.checkout.titleVisit") : t("calendar.checkout.title")}
       description={checkout.client ? `${checkout.client.name} · ${checkout.barber?.name ?? ""}` : undefined}
-      footer={
-        <div className="border-t border-border px-5 py-4">
-          <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
-            {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
-            {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
-          </Button>
-        </div>
-      }
     >
-      <div className="flex flex-col gap-6" data-testid="checkout-drawer">
-        <Text tone="secondary">{t("calendar.checkout.lead")}</Text>
-        <BillSection checkout={checkout} appointment={appointment} ctx={ctx} />
+      {page ? (
+        <PanelSubpage title={t(PAGE_TITLE[page])} onBack={() => setPage(null)}>
+          <PayPageContent page={page} checkout={checkout} ctx={ctx} target={target} onDone={() => setPage(null)} />
+        </PanelSubpage>
+      ) : (
+        <div className="flex flex-col gap-5" data-testid="checkout-drawer">
+          <CheckoutStepper appointment={appointment} ctx={ctx} />
+          <section className="flex flex-col gap-5 rounded-2xl bg-gradient-to-b from-warning/15 via-warning/5 to-transparent p-4" data-testid="checkout-card">
+            <div className="flex flex-col gap-1">
+              <Heading level={2}>{t("calendar.checkout.heading", { total: ctx.formatMoney(checkout.total) })}</Heading>
+              <Text tone="secondary">{t("calendar.checkout.lead")}</Text>
+            </div>
+            <BillSection checkout={checkout} appointment={appointment} ctx={ctx} />
 
-        {/* Como el cupón de la reserva: enlaces en una línea; el que se abre toma el ancho entero. */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {checkout.discountValue === null && (
-              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setDiscountValue(0)} data-testid="checkout-discount-add">
-                {t("calendar.checkout.discount.ask")}
-              </Button>
+            {/* El descuento y vender una tarjeta de regalo: enlaces que se abren en su sitio. */}
+            {(checkout.discountValue === null || !checkout.giftSale) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {checkout.discountValue === null && (
+                  <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setDiscountValue(0)} data-testid="checkout-discount-add">
+                    {t("calendar.checkout.discount.ask")}
+                  </Button>
+                )}
+                {!checkout.giftSale && (
+                  <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setGiftSale({ amount: 50, recipientName: "", recipientContact: "" })} data-testid="checkout-gift-sale-add">
+                    {t("calendar.checkout.giftSale.ask")}
+                  </Button>
+                )}
+              </div>
             )}
-            {!checkout.gift && !giftOpen && (
-              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => setGiftOpen(true)} data-testid="checkout-gift-ask">
-                {t("calendar.checkout.giftCard.ask")}
-              </Button>
-            )}
-            {!checkout.giftSale && (
-              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setGiftSale({ amount: 50, recipientName: "", recipientContact: "" })} data-testid="checkout-gift-sale-add">
-                {t("calendar.checkout.giftSale.ask")}
-              </Button>
-            )}
-          </div>
-          {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
-          {(giftOpen || checkout.gift) && <GiftRedeem checkout={checkout} ctx={ctx} />}
-          {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
+            {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
+            {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
+
+            <PanelQuestion title={t("calendar.checkout.howPays")}>
+              <PayMethods checkout={checkout} ctx={ctx} onOpenPage={setPage} />
+            </PanelQuestion>
+            <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
+            <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
+              {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+              {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
+            </Button>
+          </section>
         </div>
-
-        <PaySection checkout={checkout} ctx={ctx} />
-        <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
-      </div>
+      )}
       <TipModal open={tipOpen} onOpenChange={setTipOpen} checkout={checkout} ctx={ctx} />
     </SidePanelShell>
+  );
+}
+
+/** El avance de la cita, como en su panel: el cobro es el último paso. */
+function CheckoutStepper({ appointment, ctx }: { appointment: Appointment; ctx: ModelContext }) {
+  const t = useAppT();
+  return (
+    <Stepper
+      size="sm"
+      aria-label={t("calendar.detail.track")}
+      current={TRACK.length - 1}
+      steps={TRACK.map((status) => ({ id: status, label: t(status === "scheduled" ? "calendar.detail.trackScheduled" : STATUS_KEYS[status]), description: status === "scheduled" ? formatClock(appointmentStart(appointment), ctx.intl) : undefined }))}
+    />
   );
 }
 

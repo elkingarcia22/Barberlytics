@@ -32,6 +32,10 @@ export interface CalendarAccess {
   canEditPrices: boolean;
   /** Borrar una venta hecha por error (la cita vuelve a «en silla» sin pago): dueño y administrador. */
   canVoidSales: boolean;
+  /** Aprobar o rechazar ausencias y bloqueos: dueño, administrador y recepción (no los barberos). */
+  canDecideTimeOff: boolean;
+  /** Registrar la ausencia de cualquiera, ya aprobada: dueño y administrador. */
+  canManageTimeOff: boolean;
 }
 
 /** Fuera del layout (la doc, las pruebas de piezas sueltas) el calendario se ve entero, como el dueño. */
@@ -47,6 +51,8 @@ export const FULL_CALENDAR_ACCESS: CalendarAccess = {
   canRestrictClients: true,
   canEditPrices: true,
   canVoidSales: true,
+  canDecideTimeOff: true,
+  canManageTimeOff: true,
 };
 
 /**
@@ -71,6 +77,8 @@ export function calendarAccess(access: Access): CalendarAccess {
     canRestrictClients: access.role !== "barbero-comision",
     canEditPrices: access.role !== "barbero-comision",
     canVoidSales: access.role === "owner" || access.role === "admin",
+    canDecideTimeOff: !access.isBarber,
+    canManageTimeOff: access.role === "owner" || access.role === "admin",
   };
 }
 

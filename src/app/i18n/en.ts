@@ -1,5 +1,6 @@
 import { calendarPanelEn } from "./calendar/panel.en";
 import { calendarCheckoutEn } from "./calendar/checkout.en";
+import { calendarTimeOffEn } from "./calendar/timeOff.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
 import { bookingVariantsEn } from "./booking/variants.en";
@@ -3397,6 +3398,10 @@ export const appEn: AppMessageCatalog = {
   "cfg.booking.surgeOccupancy": "From an occupancy of",
   "cfg.booking.surgeType": "The increase is",
   "cfg.booking.surgeIncrease": "How much it goes up",
+  "cfg.booking.blocks": "Calendar blocks",
+  "cfg.booking.blocksHint": "When a barber blocks their schedule (lunch, an errand).",
+  "cfg.booking.blocksApproval": "Barbers' blocks need approval",
+  "cfg.booking.blocksApprovalHint": "They show striped in the calendar until the owner, admin or front desk approves them in Time off and blocks.",
   "cfg.booking.waitlist": "Waitlist",
   "cfg.booking.waitlistHint": "How long clients have to accept a freed slot and to arrive.",
   "cfg.booking.waitAccept": "Time to accept",
@@ -3796,4 +3801,5 @@ export const appEn: AppMessageCatalog = {
   ...bookingVariantsEn,
   ...calendarPanelEn,
   ...calendarCheckoutEn,
+  ...calendarTimeOffEn,
 };

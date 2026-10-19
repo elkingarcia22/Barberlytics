@@ -70,7 +70,26 @@ export const lineupRank = (branchId: string, day: string): string[] => lineupTur
 
 /* ------------------------------------------------------------- ausencias */
 
-const absences = (): MockAbsence[] => db.team.absences ?? [];
+/**
+ * Las ausencias. La demo trae dos solicitudes por aprobar (relativas a hoy) para que se vea el flujo en
+ * la agenda: unas vacaciones la semana que viene y un permiso de un día.
+ */
+const absences = (): MockAbsence[] => db.team.absences ?? demoAbsences();
+
+const nameOf = (memberId: string) => {
+  const member = memberOf(memberId);
+  return member ? memberName(member) : memberId;
+};
+
+function demoAbsences(now = new Date()): MockAbsence[] {
+  const day = (offset: number) => dateKey(new Date(now.getTime() + offset * DAY_MS));
+  const nextMonday = (8 - now.getDay()) % 7 || 7;
+  const base = { branchId: "ma", note: "", status: "pending" as const, requestedAt: new Date(now.getTime() - DAY_MS).toISOString(), decidedBy: null, decidedAt: null, reason: null, blockId: null };
+  return [
+    { ...base, id: "abs_demo_vacation", memberId: "team-05", kind: "vacation", startDate: day(nextMonday), endDate: day(nextMonday + 4), note: "Viaje familiar a la costa.", requestedBy: nameOf("team-05") },
+    { ...base, id: "abs_demo_personal", memberId: "team-07", kind: "personal", startDate: day(3), endDate: day(3), note: "Diligencia personal en la mañana.", requestedBy: nameOf("team-07") },
+  ];
+}
 const saveAbsences = (items: MockAbsence[]) => {
   db.team = { ...db.team, absences: items };
   db.persist();
@@ -348,7 +367,8 @@ export const workforceHandlers = [
     await delay(LATENCY_MS);
     const session = sessionOf(request);
     if (!session) return unauthorized();
-    if (!isManager(session)) return forbidden("Solo el dueño o el administrador aprueban ausencias.");
+    // Deciden el dueño, el administrador y recepción (quien lleva la agenda); los barberos no.
+    if (!isManager(session) && session.teamRole !== "recepcion") return forbidden("Las ausencias las aprueba la barbería.");
     const absence = absences().find((item) => item.id === params.id);
     if (!absence) return HttpResponse.json({ code: "not_found", message: "Esa ausencia no existe." }, { status: 404 });
     if (absence.status !== "pending") return HttpResponse.json({ code: "conflict", message: "Esa ausencia ya se decidió." }, { status: 409 });

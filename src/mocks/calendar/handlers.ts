@@ -730,10 +730,46 @@ export const calendarHandlers = [
     if (!CLOCK.test(startTime)) fields.startTime = ["Elige la hora de inicio."];
     if (!CLOCK.test(endTime) || parseClock(endTime) <= parseClock(startTime)) fields.endTime = ["La hora de cierre debe ser posterior a la de inicio."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const block: MockTimeBlock = { id: `blk_${Date.now().toString(36)}`, branchId: barber!.branchIds[0] ?? "ma", barberId: barber!.id, category, repeat, startDate, endDate, startTime, endTime, description: text(input.description) || null };
+    // Con la aprobación encendida, el bloqueo que pone un barbero espera a que lo aprueben.
+    const needsApproval = (db.settings.sections.booking as { blocksNeedApproval?: boolean }).blocksNeedApproval === true && Boolean(barberOf(request));
+    const block: MockTimeBlock = {
+      id: `blk_${Date.now().toString(36)}`,
+      branchId: barber!.branchIds[0] ?? "ma",
+      barberId: barber!.id,
+      category,
+      repeat,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      description: text(input.description) || null,
+      ...(needsApproval ? { status: "pending" as const, requestedBy: sessionOf(request)?.account.user.name ?? "" } : {}),
+    };
     db.calendar.blocks = [...db.calendar.blocks, block];
     db.persist();
     return HttpResponse.json(block, { status: 201 });
+  }),
+
+  /** Los bloqueos de la sucursal (un barbero, solo los suyos), para la lista de ausencias y bloqueos. */
+  http.get(`${BASE}/calendar/blocks`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    const own = barberOf(request);
+    return HttpResponse.json({ items: db.calendar.blocks.filter((block) => block.branchId === branchId && (!own || block.barberId === own)) });
+  }),
+
+  /** Aprobar un bloqueo pendiente: dueño, administrador o recepción. Rechazarlo es borrarlo. */
+  http.post(`${BASE}/blocks/:id/approve`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (barberOf(request)) return forbidden("Los bloqueos los aprueba la barbería.");
+    const target = db.calendar.blocks.find((block) => block.id === params.id);
+    if (!target) return error(404, "not_found", "Ese bloqueo no existe.");
+    const approved: MockTimeBlock = { ...target, status: undefined, requestedBy: undefined };
+    db.calendar.blocks = db.calendar.blocks.map((block) => (block.id === target.id ? approved : block));
+    db.persist();
+    return HttpResponse.json(approved);
   }),
 
   http.delete(`${BASE}/blocks/:id`, async ({ request, params }) => {

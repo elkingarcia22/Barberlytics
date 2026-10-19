@@ -244,6 +244,10 @@ function Rules({ draft, set, errors }: RulesProps) {
           ))}
         </div>
       </SettingsCard>
+
+      <SettingsCard title={t("cfg.booking.blocks")} description={t("cfg.booking.blocksHint")}>
+        <SwitchRow label={t("cfg.booking.blocksApproval")} hint={t("cfg.booking.blocksApprovalHint")} checked={draft.blocksNeedApproval} onCheckedChange={(checked) => set("blocksNeedApproval", checked)} testId="booking-blocks-approval" />
+      </SettingsCard>
     </>
   );
 }

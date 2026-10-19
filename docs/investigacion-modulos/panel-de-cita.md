@@ -352,3 +352,19 @@ reserva, dentro del mismo panel y con el ticket abajo.
   (`features/booking/rebookLink.ts`: `/reservar?reagendar=1&servicios=…&barbero=…&sucursal=…`). Al
   identificarse cae directo en elegir la hora con su servicio y barbero puestos, y paga como en cualquier
   reserva.
+
+## 20. Ausencias y bloqueos en la agenda (2026-10-19)
+
+- **Ausencias y bloqueos** (acción de la barra, `timeOff/TimeOffDrawer`): panel junto a la agenda con lo
+  que falta aprobar primero; filtros por estado (por aprobar, aprobadas, todas) y por tipo (vacaciones,
+  incapacidad, permiso, bloqueos); *Agregar ausencia* en su sitio (quién, qué, desde–hasta y nota; el
+  dueño y el administrador la dejan aprobada, el resto queda por aprobar).
+- **Revisar** (`TimeOffReview`): quién, qué y cuándo; días, citas ya agendadas y días que trabaja; aviso
+  si el equipo queda corto (menos de la mitad); sus citas por día (tocar una la abre para moverla); el
+  equipo cada día (cuántos trabajan y quién más falta); *Aprobar* o *Rechazar* con motivo. Deciden dueño,
+  administrador y recepción.
+- **En la rejilla**: la ausencia por aprobar se ve rayada en la columna del barbero; tocarla abre su
+  revisión. Al aprobarse queda el bloqueo de siempre.
+- **Bloqueos con aprobación**: Configuración › Agendamiento › *Los bloqueos de los barberos necesitan
+  aprobación*. Encendido, el bloqueo que pone un barbero queda rayado («… · por aprobar») hasta que lo
+  aprueban; rechazarlo lo borra.

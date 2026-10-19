@@ -1,5 +1,6 @@
 import { calendarPanelEs } from "./calendar/panel.es";
 import { calendarCheckoutEs } from "./calendar/checkout.es";
+import { calendarTimeOffEs } from "./calendar/timeOff.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
 /**
@@ -3433,6 +3434,10 @@ export const appEs = {
   "cfg.booking.surgeOccupancy": "A partir de una ocupación de",
   "cfg.booking.surgeType": "El aumento es",
   "cfg.booking.surgeIncrease": "Cuánto sube",
+  "cfg.booking.blocks": "Bloqueos de la agenda",
+  "cfg.booking.blocksHint": "Cuando un barbero bloquea su agenda (almuerzo, una diligencia).",
+  "cfg.booking.blocksApproval": "Los bloqueos de los barberos necesitan aprobación",
+  "cfg.booking.blocksApprovalHint": "Quedan rayados en la agenda hasta que el dueño, el administrador o recepción los aprueban en Ausencias y bloqueos.",
   "cfg.booking.waitlist": "Lista de espera",
   "cfg.booking.waitlistHint": "Cuánto tiempo tiene el cliente para aceptar el hueco que se liberó y para llegar.",
   "cfg.booking.waitAccept": "Tiempo para aceptar",
@@ -3833,4 +3838,5 @@ export const appEs = {
   ...bookingVariantsEs,
   ...calendarPanelEs,
   ...calendarCheckoutEs,
+  ...calendarTimeOffEs,
 } as const;

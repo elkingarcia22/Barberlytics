@@ -1,5 +1,5 @@
 import * as React from "react";
-import { addDays, differenceInMinutes, isSameDay, startOfDay } from "date-fns";
+import { addDays, differenceInMinutes, format, isSameDay, startOfDay } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -53,6 +53,8 @@ import { CalendarWeekView } from "./CalendarWeekView";
 import { moveStart, reflowPlan, type ReflowPlan } from "./reflowModel";
 import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
+import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
+import { ABSENCE_KIND_KEYS, useAbsences } from "@/features/team/workforce";
 import {
   appointmentEnd,
   appointmentStart,
@@ -61,6 +63,7 @@ import {
   CLIENT_TYPE_ORDER,
   durationLabel,
   visibleBarbers,
+  workingHoursOn,
   isActive,
   serviceCategories,
   serviceColor,
@@ -107,6 +110,7 @@ type Panel =
   | { kind: "quickSale" }
   | { kind: "walkInSale" }
   | { kind: "gaps" }
+  | { kind: "timeOff"; focus: TimeOffFocus }
   | { kind: "removeBlock"; block: TimeBlock }
   | { kind: "confirm"; action: "cancel" | "noShow"; appointment: Appointment };
 
@@ -425,6 +429,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
+        timeOff: () => openPanel({ kind: "timeOff", focus: null }),
       }).filter((action) => !hiddenRailActions.has(action.id)),
     [hiddenRailActions, navigate, openPanel, ownBarberId, t]
   );
@@ -644,7 +649,35 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     [reflow, state.date, state.freeOnly, state.showLinked, day.data, linkGroups]
   );
 
-  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts], [freeGhosts, reflowGhosts, suggestionGhosts]);
+  // Las ausencias que esperan aprobación se ven rayadas en la columna del barbero (tocarlas abre su revisión).
+  const absences = useAbsences(branchId);
+  const absenceGhosts = React.useMemo<ScheduleEvent[]>(() => {
+    if (!ctx || state.view !== "day") return [];
+    const day = format(state.date, "yyyy-MM-dd");
+    return (absences.data?.items ?? [])
+      .filter((item) => item.status === "pending" && item.startDate <= day && day <= item.endDate)
+      .flatMap((item) => {
+        const barber = ctx.catalog.barbers.find((entry) => entry.id === item.memberId);
+        const hours = barber ? workingHoursOn(barber, state.date) : [];
+        if (!barber || hours.length === 0) return [];
+        return [
+          {
+            id: `absence-${item.id}`,
+            resourceId: barber.id,
+            start: parseLocal(`${day}T${hours[0].start}:00`),
+            end: parseLocal(`${day}T${hours[hours.length - 1].end}:00`),
+            kind: "block" as const,
+            title: t("calendar.timeOff.ghost", { kind: t(ABSENCE_KIND_KEYS[item.kind]) }),
+            subtitle: item.note || undefined,
+            tone: "warning" as const,
+            ghost: true,
+            locked: true,
+          },
+        ];
+      });
+  }, [absences.data, ctx, state.date, state.view, t]);
+
+  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...absenceGhosts], [freeGhosts, reflowGhosts, suggestionGhosts, absenceGhosts]);
 
   const onSuggestions = React.useCallback((next: readonly SlotSuggestion[], nextDraft: CreateAppointmentDraft) => {
     setSuggestions((current) => (sameSuggestions(current, next) ? current : next));
@@ -652,6 +685,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   }, []);
 
   const acceptProposal = (event: ScheduleEvent) => {
+    if (event.id.startsWith("absence-")) {
+      openPanel({ kind: "timeOff", focus: { type: "absence", id: event.id.slice("absence-".length) } });
+      return;
+    }
     if (event.id.startsWith("ghost-")) {
       void applyReflow();
       return;
@@ -912,7 +949,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onDropRejected={onDropRejected}
                         onSlotClick={onSlotClick}
                         onOpenAppointment={openAppointment}
-                        onOpenBlock={(block) => canRemoveBlock(can, block) && setPanel({ kind: "removeBlock", block })}
+                        onOpenBlock={(block) => (block.status === "pending" ? openPanel({ kind: "timeOff", focus: { type: "block", id: block.id } }) : canRemoveBlock(can, block) && setPanel({ kind: "removeBlock", block }))}
                         appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
                         blockActions={(block) => blockContextActions(block, ctx, (target) => setPanel({ kind: "removeBlock", block: target }))}
                         onAcceptProposal={acceptProposal}
@@ -1037,6 +1074,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               />
 
               <WaitlistDrawer open={panel?.kind === "waitlist"} onOpenChange={(open) => !open && closePanel()} branchId={branchId} ctx={ctx} date={state.date} day={day.data} onSchedule={scheduleFromWaitlist} />
+
+              <TimeOffDrawer
+                open={panel?.kind === "timeOff"}
+                onOpenChange={(open) => !open && closePanel()}
+                ctx={ctx}
+                branchId={branchId}
+                focus={panel?.kind === "timeOff" ? panel.focus : null}
+                onOpenAppointment={(date, id) => {
+                  closePanel();
+                  state.openAppointmentOn(date, id);
+                }}
+              />
 
               <GapsDrawer
                 open={panel?.kind === "gaps"}

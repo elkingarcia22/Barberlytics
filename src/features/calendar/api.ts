@@ -3,6 +3,7 @@ import {
   appointmentSchema,
   calendarDaySchema,
   calendarMonthSchema,
+  calendarRangeSchema,
   catalogSchema,
   clientSchema,
   saleSchema,
@@ -16,6 +17,7 @@ import {
   type CalendarCatalog,
   type CalendarDay,
   type CalendarMonth,
+  type CalendarRange,
   type CheckoutInput,
   type Client,
   type NoteInput,
@@ -32,6 +34,8 @@ export const calendarApi = {
     api.get<CalendarCatalog>("/calendar/catalog", { query: { branchId }, schema: catalogSchema, signal }),
   day: (branchId: string, date: string, signal?: AbortSignal) =>
     api.get<CalendarDay>("/calendar/day", { query: { branchId, date }, schema: calendarDaySchema, signal }),
+  range: (branchId: string, from: string, to: string, signal?: AbortSignal) =>
+    api.get<CalendarRange>("/calendar/appointments", { query: { branchId, from, to }, schema: calendarRangeSchema, signal }),
   month: (branchId: string, month: string, barberId: string | null, signal?: AbortSignal) =>
     api.get<CalendarMonth>("/calendar/month", { query: { branchId, month, barberId }, schema: calendarMonthSchema, signal }),
   createAppointment: (input: AppointmentInput) => api.post<Appointment>("/appointments", input, { schema: appointmentSchema }),

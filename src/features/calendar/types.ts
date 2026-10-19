@@ -183,6 +183,10 @@ export type CalendarDay = z.infer<typeof calendarDaySchema>;
 
 export const monthDaySchema = z.object({ date: z.string(), occupancy: z.number().nullable(), count: z.number() });
 export const calendarMonthSchema = z.object({ month: z.string(), days: z.array(monthDaySchema) });
+
+/** Las citas de un rango de días, del más antiguo al más nuevo: de ahí sale el buscador. */
+export const calendarRangeSchema = z.object({ from: z.string(), to: z.string(), items: z.array(appointmentSchema) });
+export type CalendarRange = z.infer<typeof calendarRangeSchema>;
 export type CalendarMonth = z.infer<typeof calendarMonthSchema>;
 
 export const waitlistEntrySchema = z.object({

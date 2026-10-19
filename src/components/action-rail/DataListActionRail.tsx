@@ -45,6 +45,13 @@ export interface DataListActionRailProps {
   locked?: boolean;
   /** Un panel modal tomó la pantalla: la barra se recoge y deja de responder. */
   isBlocked?: boolean;
+  /**
+   * Algo propio de la pantalla justo a la derecha de la acción principal: un
+   * buscador que se despliega desde un icono. Solo en la barra de escritorio.
+   */
+  trailing?: React.ReactNode;
+  /** Lo de `trailing` está abierto (escribiendo, con su lista): la barra no se recoge. */
+  trailingActive?: boolean;
 }
 
 /** Cinco caben sin apretar; la sexta ya pide plegarse. */
@@ -92,6 +99,8 @@ export function DataListActionRail({
   inlineLimit = DEFAULT_INLINE_LIMIT,
   locked = false,
   isBlocked = false,
+  trailing,
+  trailingActive = false,
 }: DataListActionRailProps) {
   // El agente de IA de la app, si lo hay, cierra la barra por la derecha como
   // una segunda principal con el degradado de la IA: es de todas las
@@ -160,7 +169,7 @@ export function DataListActionRail({
   return (
     <TooltipProvider>
       <ActionRailShell
-        keepOpen={selectedCount > 0 || isMenuOpen}
+        keepOpen={selectedCount > 0 || isMenuOpen || trailingActive}
         isBlocked={isBlocked}
         contextual={
           selectedCount === 0 ? null : (
@@ -252,8 +261,13 @@ export function DataListActionRail({
                   />
                 </AnimatedActionItem>
               )}
-              {agent && (
+              {trailing && (
                 <AnimatedActionItem animKey={animKey} staggerIndex={screenInline.length + (screenOverflow.length > 0 ? 1 : 0) + (primary ? 1 : 0)} skipColorFlash>
+                  {trailing}
+                </AnimatedActionItem>
+              )}
+              {agent && (
+                <AnimatedActionItem animKey={animKey} staggerIndex={screenInline.length + (screenOverflow.length > 0 ? 1 : 0) + (primary ? 1 : 0) + (trailing ? 1 : 0)} skipColorFlash>
                   {/* Solo la chispa: el nombre va en el tooltip, como en el resto de iconos de la barra. */}
                   <Tooltip>
                     <TooltipTrigger asChild>

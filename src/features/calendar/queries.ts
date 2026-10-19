@@ -25,6 +25,8 @@ export const calendarKeys = {
   day: (branchId: string, date: string) => [...calendarKeys.days(), branchId, date] as const,
   months: () => [...calendarKeys.all, "month"] as const,
   month: (branchId: string, month: string, barberId: string | null) => [...calendarKeys.months(), branchId, month, barberId] as const,
+  ranges: () => [...calendarKeys.all, "range"] as const,
+  range: (branchId: string, from: string, to: string) => [...calendarKeys.ranges(), branchId, from, to] as const,
   waitlist: (branchId: string, date: string | null) => [...calendarKeys.all, "waitlist", branchId, date] as const,
 };
 
@@ -45,6 +47,16 @@ export function useDayQuery(branchId: string, date: string) {
   });
 }
 
+/** Las citas de un rango, para el buscador: solo se piden cuando se abre. */
+export function useRangeQuery(branchId: string, from: string, to: string, enabled: boolean) {
+  return useQuery({
+    queryKey: calendarKeys.range(branchId, from, to),
+    queryFn: ({ signal }) => calendarApi.range(branchId, from, to, signal),
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
 export function useMonthQuery(branchId: string, month: string, barberId: string | null, enabled = true) {
   return useQuery({
     queryKey: calendarKeys.month(branchId, month, barberId),
@@ -62,12 +74,13 @@ export function useWaitlistQuery(branchId: string, date: string | null, enabled 
   });
 }
 
-/** Tras cualquier cambio de una cita, los días y los meses abiertos se vuelven a pedir. */
+/** Tras cualquier cambio de una cita, los días, los meses y las búsquedas abiertos se vuelven a pedir. */
 function useInvalidateAgenda() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: calendarKeys.days() });
     void queryClient.invalidateQueries({ queryKey: calendarKeys.months() });
+    void queryClient.invalidateQueries({ queryKey: calendarKeys.ranges() });
   };
 }
 

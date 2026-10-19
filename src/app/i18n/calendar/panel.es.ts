@@ -4,6 +4,17 @@
  * Clipper contesta sobre ella. Mismo tono que la agenda: corto, de mostrador.
  */
 export const calendarPanelEs = {
+  // ── Buscador de la agenda ──
+  "calendar.search.label": "Buscar citas",
+  "calendar.search.placeholder": "Nombre, celular, barbero, estado…",
+  "calendar.search.hint": "Busca por nombre, celular, barbero, servicio, estado, día u hora.",
+  "calendar.search.loading": "Buscando…",
+  "calendar.search.count": "{count} citas",
+  "calendar.search.countMore": "{shown} de {total} citas: afina la búsqueda",
+  "calendar.search.range": "{from} – {to}",
+  "calendar.search.empty": "Nada con «{query}»",
+  "calendar.search.emptyHint": "Prueba con el celular, el barbero, el servicio o el estado («no asistió», «cobrada»).",
+
   // ── Selector ──
   "calendar.panel.version.label": "Diseño del panel",
   "calendar.panel.version.tabs": "Pestañas (actual)",

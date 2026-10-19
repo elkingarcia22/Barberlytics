@@ -22,6 +22,8 @@ import { DataListActionRail } from "@/components/action-rail"
 | `RailActionSpec.blockedReason` | `string \| null` |  | Por qué no se puede ahora. La deja a la vista y apagada, con el motivo: explicar vale más que esconder. |
 | `selectedCount` | `number` |  | Cuántos registros hay marcados. Es lo único que decide el modo. |
 | `onClearSelection` | `() => void` |  | La ✕ del recuento: suelta las marcas sin tocar las filas. |
+| `trailing` | `ReactNode` |  | Algo propio de la pantalla justo a la derecha de la acción principal, en la barra de escritorio: el buscador del calendario, una lupa que se despliega hacia la derecha en un campo. No es una acción más: no entra en el «más» ni en el botón flotante. |
+| `trailingActive` | `boolean` | `false` | Lo de `trailing` está abierto (se está escribiendo, hay una lista abierta): la barra no se recoge aunque el puntero salga. |
 | `gender` | `"f" \| "m"` | `"m"` | Concordancia del recuento: «3 seleccionadas» frente a «3 seleccionados». |
 | `inlineLimit` | `number` | `5` | Cuántas caben antes de plegarse al menú «más». |
 | `locked` | `boolean` | `false` | Una decisión inmersiva se adueñó de una fila: la barra se desmonta en vez de ofrecer algo que no viene a cuento. |

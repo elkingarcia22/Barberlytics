@@ -1,6 +1,15 @@
 import type { calendarPanelEs } from "./panel.es";
 
 export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
+  "calendar.search.label": "Search appointments",
+  "calendar.search.placeholder": "Name, phone, barber, status…",
+  "calendar.search.hint": "Search by name, phone, barber, service, status, day or time.",
+  "calendar.search.loading": "Searching…",
+  "calendar.search.count": "{count} appointments",
+  "calendar.search.countMore": "{shown} of {total} appointments: narrow it down",
+  "calendar.search.range": "{from} – {to}",
+  "calendar.search.empty": "Nothing for «{query}»",
+  "calendar.search.emptyHint": "Try the phone, barber, service or status («no-show», «paid»).",
   "calendar.panel.version.label": "Panel design",
   "calendar.panel.version.tabs": "Tabs (current)",
   "calendar.panel.version.cards": "Build the booking",

@@ -23,6 +23,7 @@ import { CalendarAgendaView } from "./CalendarAgendaView";
 import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
+import { CalendarSearch } from "./CalendarSearch";
 import { CalendarFilters, type ClientTypeFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
@@ -365,6 +366,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Barra flotante o cabecera: lo decide la persona en «Personalización».
   const [actionsPlacement] = useActionsPlacement();
   const railOwnsActions = actionsPlacement === "rail";
+  // El buscador de la barra: abierto, la barra no se recoge.
+  const [searchOpen, setSearchOpen] = React.useState(false);
   // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
   const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
@@ -1047,7 +1050,29 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail actions={railActions} selectedCount={0} onClearSelection={() => undefined} isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock"} />
+          <DataListActionRail
+            actions={railActions}
+            selectedCount={0}
+            onClearSelection={() => undefined}
+            isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock"}
+            trailingActive={searchOpen}
+            trailing={
+              ctx && (
+                <CalendarSearch
+                  open={searchOpen}
+                  onOpenChange={setSearchOpen}
+                  branchId={branchId}
+                  ctx={ctx}
+                  ownBarberId={ownBarberId}
+                  onSelect={(appointment) => {
+                    // Ir a su día y abrirla: un panel a la vez, así que se cierra el que hubiera.
+                    closePanel();
+                    state.openAppointmentOn(appointmentStart(appointment), appointment.id);
+                  }}
+                />
+              )
+            }
+          />
         </ShellRailSlot>
       )}
     </div>

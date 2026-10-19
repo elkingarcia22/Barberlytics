@@ -1,5 +1,5 @@
 {
-  "sourceHash": "3281fb867d620490",
+  "sourceHash": "ad0ed758081185f0",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -481,6 +481,18 @@
           "type": "() => void",
           "default": null,
           "description": "La ✕ del recuento: suelta las marcas sin tocar las filas."
+        },
+        {
+          "name": "trailing",
+          "type": "ReactNode",
+          "default": null,
+          "description": "Algo propio de la pantalla justo a la derecha de la acción principal, en la barra de escritorio: el buscador del calendario, una lupa que se despliega hacia la derecha en un campo. No es una acción más: no entra en el «más» ni en el botón flotante."
+        },
+        {
+          "name": "trailingActive",
+          "type": "boolean",
+          "default": "false",
+          "description": "Lo de `trailing` está abierto (se está escribiendo, hay una lista abierta): la barra no se recoge aunque el puntero salga."
         },
         {
           "name": "gender",

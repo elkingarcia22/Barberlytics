@@ -6,6 +6,7 @@ import { useAppT } from "@/app/i18n";
 import { NumberField, PHONE_COUNTRIES, PhoneInput } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThemaIcon } from "@/icons";
@@ -30,10 +31,12 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
   const t = useAppT();
   const [done, setDone] = React.useState<Pick<SignupRequest, "email" | "company"> | null>(null);
   const [serverError, setServerError] = React.useState<string | null>(null);
+  // El celular se verifica en el mismo registro: primero se manda el código, luego se crea la cuenta con él.
+  const [codeSent, setCodeSent] = React.useState(false);
 
   const form = useForm<SignupRequest>({
     resolver: zodResolver(signupRequestSchema),
-    defaultValues: { firstName: "", lastName: "", company: "", email: "", phone: "", barbers: undefined, country: "", timezone: "" },
+    defaultValues: { firstName: "", lastName: "", company: "", email: "", phone: "", barbers: undefined, country: "", timezone: "", acceptTerms: false, code: "" },
   });
   const { errors, isSubmitting } = form.formState;
   const country = useWatch({ control: form.control, name: "country" });
@@ -48,6 +51,11 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
   const submit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
+      if (!codeSent) {
+        await authApi.signupCode(values.phone);
+        setCodeSent(true);
+        return;
+      }
       await authApi.signup(values);
       setDone({ email: values.email, company: values.company });
     } catch (error) {
@@ -181,9 +189,38 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
           </AuthField>
         </div>
 
+        <Controller
+          control={form.control}
+          name="acceptTerms"
+          render={({ field }) => (
+            <div className="space-y-1">
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-text-secondary">
+                <Checkbox checked={field.value} onCheckedChange={(value) => field.onChange(value === true)} disabled={isSubmitting} className="mt-0.5" aria-invalid={!!errors.acceptTerms} data-testid="signup-terms" />
+                {t("auth.signup.terms")}
+              </label>
+              {errors.acceptTerms?.message && (
+                <Text size="sm" tone="negative">
+                  {errors.acceptTerms.message}
+                </Text>
+              )}
+            </div>
+          )}
+        />
+
+        {codeSent && (
+          <div className="space-y-1.5">
+            <AuthField id="signup-code" label={t("auth.signup.code")} error={errors.code?.message}>
+              {(control) => <Input {...control} inputMode="numeric" autoComplete="one-time-code" autoFocus disabled={isSubmitting} data-testid="signup-code" {...form.register("code")} />}
+            </AuthField>
+            <Text size="sm" tone="secondary">
+              {t("auth.signup.codeHint")}
+            </Text>
+          </div>
+        )}
+
         <Button type="submit" size="lg" className="btn-sweep mt-2 w-full" disabled={isSubmitting} data-testid="signup-submit">
           {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="userAdd" size="sm" tone="inverse" />}
-          {t("auth.signup.submit")}
+          {codeSent ? t("auth.signup.submit") : t("auth.signup.sendCode")}
         </Button>
       </form>
 

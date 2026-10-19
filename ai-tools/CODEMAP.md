@@ -116,6 +116,7 @@ Lo que responde MSW hoy.
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
 - `POST /auth/step-up/request` · src/mocks/handlers.ts
 - `POST /auth/step-up/verify` · src/mocks/handlers.ts
+- `POST /auth/signup/code` · src/mocks/handlers.ts
 - `POST /auth/signup` · src/mocks/handlers.ts
 - `POST /support/tickets` · src/mocks/handlers.ts
 - `POST /auth/oauth` · src/mocks/handlers.ts
@@ -288,10 +289,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **LoginPage.tsx** — Entrada a la aplicación en dos mitades. · `LoginPage` · piezas: BarberlyticsLogo, Enter, Foil, Grain, HairCanvas, Halo, Heading, Text, Vignette · usa: @/app/i18n, @/i18n, @/lib/utils, @/themes
 - **RecoveryPanel.tsx** — Olvidé mi número: se escribe el correo registrado y el celular llega allí. · `RecoveryPanelProps`, `RecoveryPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, Input, Label, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
-- **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
-- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /support/tickets · usa: @/lib/api
+- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
 - **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom` · usa: @/lib/api
 - **authFormParts.tsx** — Etiqueta, control y mensaje de error enlazados por `id`. · `FieldControlProps`, `AuthField`, `FormErrorAlert`, `BackButton` · piezas: Alert, AlertDescription, AlertTitle, Button, Label, Text · usa: @/icons

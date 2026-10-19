@@ -213,4 +213,11 @@ Pendiente, por orden:
 5. **Fase 3 — IA** (orden original) en el orden de §4: ritmo del cliente, hechos → narración, margen por hora de silla, revisión antes de
    cerrar, Clipper con modelo y herramientas de solo lectura, reservable por agentes.
 5. Integraciones que no se hacen en el mock: factura y documento soporte DIAN (Alegra o Siigo), Bre-B, push web (PWA).
+6. **P0 sin integraciones cerrados el 2026-10-19**: recordatorios a las horas de Configuración y con WhatsApp como
+   canal; el celular identifica al cliente (duplicados con «Abrir la ficha», correo opcional); la campana respeta lo
+   apagado en Configuración; la reserva, los recordatorios y el `.ics` usan la zona de la sede; libro de pagos en
+   Transacciones; confirmar la identidad en lo sensible (`/auth/step-up`); el registro verifica el celular y pide
+   aceptar los términos. Quedan: estados de confirmación y anticipo en el panel de la cita (otra sesión lo está
+   rediseñando), texto legal del consentimiento según el país, evaluaciones y registro de turnos de Clipper, y abrir
+   sesión con una barbería nueva al registrarse (necesita el backend real, el mock tiene una sola barbería).
 

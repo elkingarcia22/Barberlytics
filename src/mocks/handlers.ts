@@ -240,7 +240,21 @@ export const handlers = [
     return HttpResponse.json({ token, expiresAt: new Date(expiresAt).toISOString() });
   }),
 
-  // Crear cuenta: deja la barbería pendiente de activar y avisa por correo.
+  // El código del registro: verifica que el celular es de quien se registra (mismos topes que al entrar).
+  http.post(`${BASE}/auth/signup/code`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    const phone = normalizePhone(body.phone);
+    if (!PHONE_E164.test(phone)) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    if (isLocked(phone)) return lockedError(phone);
+    const now = Date.now();
+    const recent = (db.codeRequests.get(phone) ?? []).filter((at) => now - at < CODE_WINDOW_MS);
+    if (recent.length >= CODE_LIMIT) return error(429, "rate_limited", "Pediste muchos códigos seguidos. Espera unos minutos e inténtalo otra vez.", { details: { reason: "too_many_codes" } });
+    db.codeRequests.set(phone, [...recent, now]);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Crear cuenta: con el celular verificado y los términos aceptados, deja la barbería pendiente de activar y avisa por correo.
   http.post(`${BASE}/auth/signup`, async ({ request }) => {
     await delay(LATENCY_MS);
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
@@ -252,7 +266,14 @@ export const handlers = [
     if (!PHONE_E164.test(normalizePhone(body.phone))) fields.phone = ["Escribe un celular válido."];
     const barbers = Number(body.barbers);
     if (!Number.isInteger(barbers) || barbers < 1) fields.barbers = ["Escribe cuántos barberos tiene tu equipo."];
+    if (body.acceptTerms !== true) fields.acceptTerms = ["Acepta los términos y el tratamiento de datos para seguir."];
     if (Object.keys(fields).length) return error(422, "validation_error", "Revisa los campos marcados.", { fields });
+    // El celular se verifica en el mismo registro: sin el código que le llegó no hay cuenta.
+    const phone = normalizePhone(body.phone);
+    if (isLocked(phone)) return lockedError(phone);
+    if (!text(body.code)) return error(422, "validation_error", "Escribe el código que te enviamos.", { fields: { code: ["Escribe el código que te enviamos."] } });
+    if (text(body.code) !== OTP_CODE) return registerFailure(phone);
+    db.loginFailures.delete(phone);
     return new HttpResponse(null, { status: 204 });
   }),
 

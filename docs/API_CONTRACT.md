@@ -43,7 +43,8 @@ Cualquier estado ≥ 400 devuelve:
 | POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` con el **mismo mensaje** para número no registrado y código malo (`details.attemptsLeft`) · `429` bloqueado (`details.retryAfterSeconds`) |
 | POST | `/auth/step-up/request` | — (con sesión) | `200 { phoneHint }`: un código nuevo al celular de la cuenta, con los mismos topes y bloqueo que al entrar |
 | POST | `/auth/step-up/verify` | `{ code }` (con sesión) | `200 { token, expiresAt }`: confirma la identidad por 5 minutos y solo para esa cuenta · `401`/`429` como al entrar |
-| POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone }` | `204` la barbería queda pendiente de activar · `422` (`email` ya registrado va en `fields`) |
+| POST | `/auth/signup/code` | `{ phone }` | `204` manda el código al celular del registro (mismos topes y bloqueo que al entrar) · `422` celular inválido |
+| POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone, acceptTerms, code }` | `204` con los términos y el tratamiento de datos aceptados (`acceptTerms: true`) y el celular verificado con el código: la barbería queda pendiente de activar · `422` (`email` ya registrado, `acceptTerms` o `code` faltante van en `fields`) · `401` código malo (cuenta para el bloqueo) |
 | POST | `/support/tickets` | `{ name, company, email, phone, message, reason: "recovery" \| "lockout" \| "other" }` | `201 { id }` · `422`. Sin sesión. |
 | POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
 | POST | `/auth/recovery/request` | `{ email }` | `204` siempre (no revela si el correo existe) · `422` |

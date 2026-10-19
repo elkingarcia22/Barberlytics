@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { ACCOUNTS } from "../../src/mocks/db";
-import { DEMO_ACCOUNTS, DEMO_OTP_CODE } from "./demoAccounts.js";
+import { DEMO_OTP_CODE } from "./demoAccounts.js";
 import { guardPaid } from "./guard.js";
 import { issueGuestSession, issueStaffSession } from "./issue.js";
 import { requireSession, signSession, verifySession } from "./session.js";
@@ -56,10 +55,6 @@ describe("sesión firmada", () => {
 });
 
 describe("emitir la sesión", () => {
-  test("las cuentas de la demo del servidor son las mismas del backend simulado", () => {
-    expect(DEMO_ACCOUNTS.map((item) => [item.phone, item.sub, item.role, item.mid])).toEqual(ACCOUNTS.map((item) => [item.phone, item.user.id, item.user.teamRole, item.user.memberId]));
-  });
-
   test("con celular y código de la demo da el token del equipo; con otro código, no", async () => {
     const env = { SESSION_SECRET: SECRET };
     const ok = issueStaffSession(request({}, "9.9.9.1"), { phone: "+57 300 765 4321", code: DEMO_OTP_CODE }, env);

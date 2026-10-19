@@ -36,9 +36,15 @@ export interface QueueView {
   sentAt: string | null;
 }
 
+/** Lo que responde la cola al encolar: lo aceptado y, con su motivo, lo que no. */
+export interface EnqueueResult {
+  items: QueueView[];
+  rejected: { id: string | null; message: string }[];
+}
+
 /** La cola del servidor. `null`: no hay cola (y los mensajes se simulan aquí). */
 export interface Queue {
-  enqueue(items: QueueRequest[]): Promise<QueueView[] | null>;
+  enqueue(items: QueueRequest[]): Promise<EnqueueResult | null>;
   cancel(ids: string[]): Promise<QueueView[] | null>;
   status(ids: string[]): Promise<QueueView[] | null>;
 }
@@ -62,9 +68,20 @@ const call = async (init: RequestInit, ids?: string[]): Promise<QueueView[] | nu
   }
 };
 
+async function enqueueHttp(items: QueueRequest[]): Promise<EnqueueResult | null> {
+  try {
+    const response = await serverFetch(QUEUE_ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items }) });
+    if (!response.ok) return null;
+    const body = (await response.json().catch(() => null)) as Partial<EnqueueResult> | null;
+    return Array.isArray(body?.items) ? { items: body.items, rejected: Array.isArray(body.rejected) ? body.rejected : [] } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** La cola de verdad, con la sesión firmada del equipo. */
 export const httpQueue: Queue = {
-  enqueue: (items) => call({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items }) }),
+  enqueue: enqueueHttp,
   cancel: (ids) => call({ method: "DELETE" }, ids),
   status: (ids) => call({ method: "GET" }, ids),
 };
@@ -144,20 +161,21 @@ export async function syncOutbox(now: Date = new Date(), queue: Queue = httpQueu
   }
   let hasQueue = true;
   for (const batch of chunks(requests)) {
-    const views = await queue.enqueue(batch);
-    if (!views) {
+    const result = await queue.enqueue(batch);
+    if (!result) {
       hasQueue = false;
       break;
     }
-    const accepted = new Set(views.map((view) => view.id));
-    for (const view of views) {
+    const accepted = new Set(result.items.map((view) => view.id));
+    const reasons = new Map(result.rejected.map((item) => [item.id, item.message]));
+    for (const view of result.items) {
       if (view.status === "scheduled") changes.set(view.id, { queued: true });
       else mirror(view);
     }
     // Lo que la cola rechazó (p. ej. una promoción sin permiso) queda fallido con su motivo.
     for (const request of batch.filter((item) => !accepted.has(item.id))) {
       counts.failed += 1;
-      changes.set(request.id, { status: "failed", error: "La cola de WhatsApp no aceptó el mensaje.", sentAt: at });
+      changes.set(request.id, { status: "failed", error: reasons.get(request.id) ?? "La cola de WhatsApp no aceptó el mensaje.", sentAt: at });
     }
   }
 

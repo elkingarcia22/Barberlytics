@@ -36,7 +36,7 @@ describe("mensajes de WhatsApp", () => {
     const queue: Queue = {
       enqueue: vi.fn(async (batch: QueueRequest[]) => {
         batch.forEach((item) => items.set(item.id, { ...item, status: "scheduled" }));
-        return batch.map((item) => view(item.id));
+        return { items: batch.map((item) => view(item.id)), rejected: [] };
       }),
       cancel: vi.fn(async (ids: string[]) => {
         ids.forEach((id) => items.set(id, { ...items.get(id)!, status: "cancelled" }));

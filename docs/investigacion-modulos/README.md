@@ -188,8 +188,24 @@ y seguridad por fila + Inngest o QStash para recordatorios y webhooks + Upstash 
 Resend. Costo aproximado por barbería y mes: 25–45 USD en EE. UU. y 12–35 en Colombia (sin verificar del todo las
 tarifas de WhatsApp en Colombia ni el precio de los modelos); fijo para empezar, 250–450 USD al mes.
 
-**Siguiente, por orden:** (1) endpoints pagos con sesión y la cola de WhatsApp en el servidor; (2) tarjeta solo en
-los campos de la pasarela; (3) kiosco por sede con check-in que avisa y privacidad; (4) Métricas › Marketing con la
+**Hecho el 2026-10-19 (puntos 1 y 2):**
+- **Sesión firmada.** Voz, Clipper, narración y la cola de WhatsApp piden un token HS256 firmado con `SESSION_SECRET`
+  (`server/auth`) y tienen cupo por sesión además del tope por IP. En Clipper, el rol sale del token.
+  `POST /api/session` lo emite a las cuentas de la demo; `/api/session/guest` da media hora de voz a la reserva en línea.
+  Sin secreto, esas funciones responden 503.
+- **Cola de WhatsApp en el servidor.** La app encola, anula y refleja; el cron `/api/cron/whatsapp` (con
+  `CRON_SECRET`) envía con 3 intentos. La cola se guarda en Upstash. Una promoción sin la prueba del permiso no entra.
+  `/api/whatsapp/send` ya no existe.
+- **Tarjeta solo como token.** Reserva, paquetes y regalos mandan el token de la pasarela (simulada en
+  `src/features/payments/gateway.ts`); el servidor rechaza un `card.number`. La Conversación abre la hoja de la tarjeta
+  y la del CVC en vez de pedirlos en el chat. La CSP deja `frame-src` solo a las pasarelas y quita `*.thema.dev`.
+
+Falta de esto:
+- Una pasarela real en `tokenizeCard`, con su script en la CSP.
+- Entrar con Google o Microsoft todavía no da sesión firmada, así que esas funciones usan su respaldo.
+- Los cupos viven en la memoria de cada instancia, no en Upstash.
+
+**Siguiente, por orden:** (3) kiosco por sede con check-in que avisa y privacidad; (4) Métricas › Marketing con la
 UTM real y sin reseñas de ejemplo fuera de la demo; (5) cola de walk-ins con espera estimada; (6) contratos y
 políticas; (7) el backend real (fase «escudo» de 6–8 semanas en 17) y un piloto con 3–5 barberías.
 

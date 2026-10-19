@@ -40,10 +40,13 @@ export function serverFunctionsInDev(routes: Routes, options: DevServerOptions =
       const env = loadEnv(server.config.mode, server.config.root, "");
       for (const [key, value] of Object.entries(env)) if (process.env[key] === undefined) process.env[key] = value;
       enableDevSessionSecret();
-      if (options.tick) {
+      // Solo con servidor HTTP (no cuando un script usa Vite en modo middleware, como el catálogo), y
+      // sin retener el proceso: `unref` deja que termine aunque el temporizador siga.
+      if (options.tick && server.httpServer) {
         const tick = options.tick;
         const timer = setInterval(() => void tick().catch(() => undefined), options.tickMs ?? 30_000);
-        server.httpServer?.once("close", () => clearInterval(timer));
+        timer.unref();
+        server.httpServer.once("close", () => clearInterval(timer));
       }
       server.middlewares.use(async (req, res, next) => {
         const pathname = (req.url ?? "").split("?")[0];

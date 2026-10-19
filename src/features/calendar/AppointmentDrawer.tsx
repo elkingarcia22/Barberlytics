@@ -12,14 +12,14 @@ import { usePanelVersion } from "./appointmentPanel/panelVersion";
 import { PanelVersionPicker } from "./appointmentPanel/PanelParts";
 import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
 import { PanelFooter } from "./appointmentPanel/PanelShared";
-import { CardsVersion, MomentVersion } from "./appointmentPanel/PanelVersions";
+import { CardsVersion, MixVersion, MomentVersion } from "./appointmentPanel/PanelVersions";
 
 /**
  * El panel de una cita. Se abre al lado de la agenda: en la cabecera, quién
  * es (avatar, nombre y día); debajo, lo que pide el momento de la cita.
  *
- * Tiene dos diseños para elegir con el selector de arriba —«Arma la cita» y
- * «Tarjeta del momento»— (`appointmentPanel/`, docs/investigacion-modulos/
+ * Tiene tres diseños para elegir con el selector de arriba —«Arma la cita»,
+ * «Tarjeta del momento» y la mezcla de las dos— (`appointmentPanel/`, docs/investigacion-modulos/
  * panel-de-cita.md). Los dos leen la misma cita con `useAppointmentModel` y
  * corren las mismas acciones. El de pestañas se quitó el 2026-10-18.
  */
@@ -52,7 +52,7 @@ export function AppointmentDrawer(props: AppointmentDrawerProps) {
   return <AppointmentVersionPanel key={`${key}-${version}`} {...props} appointment={props.appointment} />;
 }
 
-/** Los dos diseños: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
+/** Los diseños: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
 function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
   const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch } = props;
   const { locale } = useLocale();
@@ -61,8 +61,8 @@ function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: 
   const day = capitalize(format(appointmentStart(appointment), "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
   const versionProps = { model, ctx, onPatch, onOpenClient, linked: props.linked, linkCandidates: props.linkCandidates, onSelectAppointment: props.onSelectAppointment, onUnlink: props.onUnlink, onLink: props.onLink, onShowLinked: props.onShowLinked };
   const stage = model.playbook.stage;
-  // Cobrada o cerrada sin atender, la próxima se agenda en el cuerpo; en «Tarjeta del momento» la acción vive en la tarjeta.
-  const hasFooter = version !== "moment" && stage !== "paid" && stage !== "noShow" && stage !== "cancelled";
+  // Cobrada o cerrada sin atender, la próxima se agenda en el cuerpo; con la tarjeta del momento la acción vive en ella.
+  const hasFooter = version === "cards" && stage !== "paid" && stage !== "noShow" && stage !== "cancelled";
 
   return (
     <SidePanelShell
@@ -78,6 +78,7 @@ function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: 
         <PanelVersionPicker />
         {version === "cards" && <CardsVersion {...versionProps} />}
         {version === "moment" && <MomentVersion {...versionProps} />}
+        {version === "mix" && <MixVersion {...versionProps} />}
       </div>
     </SidePanelShell>
   );

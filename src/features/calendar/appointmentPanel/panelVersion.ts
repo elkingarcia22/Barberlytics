@@ -4,13 +4,13 @@ import type { AppMessageKey } from "@/app/i18n/types";
 /**
  * Con qué diseño se abre el panel de una cita. Son propuestas para comparar
  * (docs/investigacion-modulos/panel-de-cita.md): las dos que el usuario eligió
- * (2026-10-18), «Arma la cita» (por defecto) y «Tarjeta del momento». La de
- * pestañas se quitó; un valor guardado de ella cae en la de por defecto. Es una preferencia de la
+ * (2026-10-18), «Arma la cita» (por defecto) y «Tarjeta del momento», y la que
+ * mezcla las dos («Tarjeta + Arma la cita»). La de pestañas se quitó; un valor guardado de ella cae en la de por defecto. Es una preferencia de la
  * persona, como la densidad: vive fuera de React y se guarda. Un enlace con
  * `?panel=<id>` la fija al cargar, para compartir una versión.
  */
 
-export const PANEL_VERSIONS = ["cards", "moment"] as const;
+export const PANEL_VERSIONS = ["cards", "moment", "mix"] as const;
 export type PanelVersion = (typeof PANEL_VERSIONS)[number];
 
 export const DEFAULT_PANEL_VERSION: PanelVersion = "cards";
@@ -18,11 +18,13 @@ export const DEFAULT_PANEL_VERSION: PanelVersion = "cards";
 export const PANEL_VERSION_LABEL: Record<PanelVersion, AppMessageKey> = {
   cards: "calendar.panel.version.cards",
   moment: "calendar.panel.version.moment",
+  mix: "calendar.panel.version.mix",
 };
 
 export const PANEL_VERSION_HINT: Record<PanelVersion, AppMessageKey> = {
   cards: "calendar.panel.hint.cards",
   moment: "calendar.panel.hint.moment",
+  mix: "calendar.panel.hint.mix",
 };
 
 const STORAGE_KEY = "thema.calendar.panelVersion.v2";

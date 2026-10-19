@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import { ReceiptText, Send, Undo2 } from "lucide-react";
+import * as React from "react";
+import { ReceiptText, Repeat, Send, Undo2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -20,6 +21,7 @@ import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
 import { ClientSummaryRow } from "./ClientPage";
 import { NextVisitBooker } from "./NextVisitBooker";
+import { PinSeries } from "./PinSeries";
 import { ClientTags } from "./PanelParts";
 import { PanelStepper } from "./PanelShared";
 import { PanelField, PanelQuestion } from "./bookingStyle";
@@ -52,7 +54,7 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
 const MOMENT_TINT = { paid: "from-success/15 via-success/5", closed: "from-muted via-muted/40" } as const;
 
 /** Los atajos de después: recibo y devolución si se cobró; llamar y escribir si no vino. */
-function useAfterTiles(model: AppointmentModel, ctx: ModelContext): Tile[] {
+function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void): Tile[] {
   const t = useAppT();
   const { locale } = useLocale();
   const navigate = useNavigate();
@@ -64,6 +66,8 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext): Tile[] {
   const payment = appointment.status === "paid" ? appointment.payment : null;
   const tiles: Tile[] = [];
   if (payment) {
+    // Fijar la cita (como en la reserva en línea): las próximas con el mismo barbero y a la misma hora.
+    tiles.push({ id: "pin", icon: <Repeat className="size-5 text-primary" />, label: t("calendar.panel.pin.short"), title: t("calendar.panel.pin.title"), onClick: onPin });
     if (model.phone) {
       const lines = [
         ...model.services.map((service) => `• ${service.name}: ${ctx.formatMoney(service.price)}`),
@@ -111,7 +115,10 @@ export function AfterVisit(props: AfterVisitProps) {
 /** «Arma la cita», después: cada cosa es una pregunta con su respuesta en tarjetas, como la reserva. */
 function AfterVisitCards({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
-  const tiles = useAfterTiles(model, ctx);
+  const [pinning, setPinning] = React.useState(false);
+  // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
+  const [pinned, setPinned] = React.useState(false);
+  const tiles = useAfterTiles(model, ctx, () => setPinning((value) => !value));
   const { appointment } = model;
   const paid = appointment.status === "paid" && appointment.payment !== null;
   return (
@@ -123,9 +130,12 @@ function AfterVisitCards({ model, ctx, onOpenClient, onOpenHistory, linked = [],
         <ClientTags model={model} />
       </div>
       <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
-      <PanelQuestion title={t("calendar.panel.next.title")}>
-        <NextVisitBooker model={model} ctx={ctx} bare />
-      </PanelQuestion>
+      {pinning && <PinSeries model={model} ctx={ctx} onClose={() => setPinning(false)} onPinned={() => setPinned(true)} />}
+      {!pinning && !pinned && (
+        <PanelQuestion title={t("calendar.panel.next.title")}>
+          <NextVisitBooker model={model} ctx={ctx} bare />
+        </PanelQuestion>
+      )}
       {paid && (
         <PanelQuestion title={t("calendar.panel.after.charged")}>
           <div className="flex flex-col gap-2">
@@ -159,7 +169,10 @@ function AfterVisitCards({ model, ctx, onOpenClient, onOpenHistory, linked = [],
 /** «Tarjeta del momento», después: la tarjeta grande con el cobro y sus atajos dentro; lo demás, debajo. */
 function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
-  const tiles = useAfterTiles(model, ctx);
+  const [pinning, setPinning] = React.useState(false);
+  // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
+  const [pinned, setPinned] = React.useState(false);
+  const tiles = useAfterTiles(model, ctx, () => setPinning((value) => !value));
   const { appointment, services, barber } = model;
   const paid = appointment.status === "paid" && appointment.payment !== null;
   const products = appointment.products.flatMap((line) => {
@@ -188,7 +201,8 @@ function AfterVisitMoment({ model, ctx, onOpenClient, onOpenHistory, linked = []
         </div>
         <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
       </section>
-      <NextVisitBooker model={model} ctx={ctx} />
+      {pinning && <PinSeries model={model} ctx={ctx} onClose={() => setPinning(false)} onPinned={() => setPinned(true)} />}
+      {!pinning && !pinned && <NextVisitBooker model={model} ctx={ctx} />}
       {paid && (
         <section aria-label={t("calendar.panel.after.charged")} className="flex flex-col gap-2">
           <Text size="sm" weight="medium">

@@ -222,3 +222,59 @@ export function MomentVersion(props: VersionProps) {
     </div>
   );
 }
+
+/* ---------------------------------------------------------------- 3. Tarjeta + Arma la cita */
+
+/**
+ * «Tarjeta + Arma la cita» (2026-10-18, a pedido del usuario): lo que le gustó
+ * de cada una. Arriba el avance; la tarjeta grande del momento, teñida por el
+ * estado, pero con «¿Qué se va a hacer?» en tarjetas que se cambian en su
+ * sitio y la acción principal dentro. Debajo, como en «Arma la cita», las
+ * alertas, el comentario y la foto del corte, los atajos y «¿Quién viene?»;
+ * Clipper y la actividad, como en la tarjeta. Cobrada, la vista de la tarjeta
+ * (con «Fijar la cita»).
+ */
+export function MixVersion(props: VersionProps) {
+  const t = useAppT();
+  const { model, ctx, onPatch } = props;
+  const pages = usePanelPages<Page>();
+  const fieldsRef = React.useRef<HTMLDivElement>(null);
+  if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
+  if (isClosed(model)) return <AfterVisit variant="moment" model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+  const { appointment } = model;
+  const stage = model.playbook.stage;
+  return (
+    <div className="flex flex-col gap-5" data-testid="panel-mix">
+      <PanelStepper model={model} ctx={ctx} />
+      <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", MOMENT_TINT[stage])} data-testid="panel-moment-card">
+        <StageHeading model={model} ctx={ctx} size="lg" />
+        <VisitContext model={model} />
+        <PanelQuestion title={t("calendar.panel.cards.what")}>
+          <div ref={fieldsRef} className="scroll-mt-4">
+            <AppointmentFields model={model} ctx={ctx} onPatch={onPatch} />
+          </div>
+        </PanelQuestion>
+        {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
+        <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="w-full" />
+      </section>
+      <CriticalAlerts model={model} compact />
+      {(model.unpaid || showsRequest(model)) && (
+        <PanelQuestion title={t("calendar.panel.cards.asked")}>
+          <BarberRequest model={model} onPatch={onPatch} />
+        </PanelQuestion>
+      )}
+      <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
+      {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
+      <LinkedBlock {...props} />
+      {model.known && (
+        <PanelQuestion title={t("calendar.panel.cards.who")}>
+          <ClientSummaryRow model={model} onOpen={() => pages.open("client")} />
+        </PanelQuestion>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ClipperButton model={model} ctx={ctx} />
+        <NavRowLink label={t("calendar.history.title")} onClick={() => pages.open("history")} />
+      </div>
+    </div>
+  );
+}

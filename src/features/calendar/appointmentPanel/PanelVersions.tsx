@@ -86,7 +86,7 @@ export function CardsVersion(props: VersionProps) {
   const fieldsRef = React.useRef<HTMLDivElement>(null);
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
-  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+  if (isClosed(model)) return <AfterVisit variant="cards" model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const stage = model.playbook.stage;
   return (
     <div className="flex flex-col gap-5" data-testid="panel-cards">
@@ -167,7 +167,7 @@ export function MomentVersion(props: VersionProps) {
   const pages = usePanelPages<Page>();
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
-  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+  if (isClosed(model)) return <AfterVisit variant="moment" model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const { appointment, services, barber } = model;
   const stage = model.playbook.stage;
   return (

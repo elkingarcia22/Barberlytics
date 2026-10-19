@@ -542,7 +542,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### calendar/appointmentPanel
 
-- **AfterVisit.tsx** — La cita ya cerrada —cobrada, o que no se atendió—. · `AfterVisitProps`, `AfterVisit` · piezas: Text, calendarLocale · usa: @/app/i18n, @/features/access, @/i18n
+- **AfterVisit.tsx** — La cita ya cerrada —cobrada, o que no se atendió—. · `AfterVisitProps`, `AfterVisit` · piezas: ActionTile, IconTile, Text, calendarLocale, formatClock · usa: @/app/i18n, @/features/access, @/features/booking, @/i18n, @/icons, @/lib/utils
 - **AppointmentFields.tsx** · `AppointmentFieldsProps`, `AppointmentFields` · piezas: Button, Chip, SelectableRow, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n
 - **BarberRequest.tsx** — «Para el barbero»: el comentario y las fotos del corte que llegan con la cita. · `BarberRequestProps`, `BarberRequest` · piezas: ActionTile, Button, Field, IconTile, Text, Textarea · usa: @/app/i18n, @/features/booking, @/icons
 - **ClientPage.tsx** — La fila del cliente: tipo, visita de la membresía y ritmo; lleva a su página. · `ClientSummaryRow`, `ClientPageContent` · piezas: Button, ProgressRing, Stepper, Text · usa: @/app/i18n, @/i18n

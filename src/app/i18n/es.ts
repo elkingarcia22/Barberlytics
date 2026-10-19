@@ -1151,6 +1151,8 @@ export const appEs = {
   "calendar.notes.note": "Notas",
   "calendar.notes.medication": "Medicamento",
   "calendar.notes.allergies": "Alergias",
+  "calendar.notes.emptyTitle": "Sin {kind} todavía",
+  "calendar.notes.emptyHint": "Deja lo que el equipo debe saber antes de atenderlo: aparece en cada cita.",
   "calendar.notes.add": "Agregar nota",
   "calendar.notes.type": "Tipo",
   "calendar.notes.description": "Descripción",

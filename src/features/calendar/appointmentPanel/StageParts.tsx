@@ -89,8 +89,8 @@ const TILE =
 /** Con 1 a 4 atajos se reparten el ancho por igual: siempre caben en una fila. */
 const COLUMNS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
 
-interface Tile {
-  id: QuickId;
+export interface Tile {
+  id: string;
   icon: React.ReactNode;
   /** Lo que se ve: una palabra. */
   label: string;
@@ -99,6 +99,8 @@ interface Tile {
   /** Lo que se anuncia y sale al pasar el ratón: la acción completa. */
   title: string;
   href?: string;
+  /** Abre en otra pestaña (WhatsApp). */
+  external?: boolean;
   onClick?: () => void;
 }
 
@@ -112,7 +114,7 @@ export function QuickTiles({ model, ctx, onChange }: QuickTilesProps) {
   const scheduled = model.appointment.status === "scheduled";
   const tiles: Record<QuickId, Tile> = {
     call: { id: "call", icon: glyph(ACTION_ICON.call), label: t("calendar.detail.call"), title: `${t("calendar.detail.call")} ${model.known?.phone ?? ""}`.trim(), href: model.href("call") ?? undefined },
-    whatsapp: { id: "whatsapp", icon: glyph(ACTION_ICON.whatsapp), label: t("calendar.detail.whatsapp"), narrowLabel: t("calendar.panel.quick.writeShort"), title: t("calendar.detail.whatsapp"), href: model.href("whatsapp") ?? undefined },
+    whatsapp: { id: "whatsapp", icon: glyph(ACTION_ICON.whatsapp), label: t("calendar.detail.whatsapp"), narrowLabel: t("calendar.panel.quick.writeShort"), title: t("calendar.detail.whatsapp"), href: model.href("whatsapp") ?? undefined, external: true },
     noShow: { id: "noShow", icon: glyph(ACTION_ICON.noShow, "text-warning"), label: t("calendar.step.noShow"), title: t("calendar.step.noShow"), onClick: () => model.run("noShow") },
     cancel: { id: "cancel", icon: glyph(ACTION_ICON.cancel, "text-destructive"), label: t("calendar.step.cancel"), title: t("calendar.step.cancel"), onClick: () => model.run("cancel") },
     change: {
@@ -125,10 +127,15 @@ export function QuickTiles({ model, ctx, onChange }: QuickTilesProps) {
     ready: { id: "ready", icon: glyph(ACTION_ICON.ready, "text-success"), label: t("calendar.panel.quick.readyShort"), title: t("calendar.step.ready"), onClick: () => model.run("ready") },
     clipper: { id: "clipper", icon: <ThemaIcon name="sparkles" tone="primary" />, label: t("calendar.panel.clipper.short"), title: t("calendar.panel.clipper.ask"), onClick: ask },
   };
+  return <TileRow tiles={ids.map((id) => tiles[id])} label={t("calendar.panel.quick.title")} />;
+}
+
+/** Una fila de atajos: de uno a cuatro, repartidos por igual; icono arriba y una palabra. */
+export function TileRow({ tiles, label }: { tiles: readonly Tile[]; label: string }) {
+  if (tiles.length === 0) return null;
   return (
-    <nav aria-label={t("calendar.panel.quick.title")} className={cn("grid gap-1.5 sm:gap-2", COLUMNS[ids.length])} data-testid="panel-quick">
-      {ids.map((id) => {
-        const tile = tiles[id];
+    <nav aria-label={label} className={cn("grid gap-1.5 sm:gap-2", COLUMNS[Math.min(tiles.length, 4)])} data-testid="panel-quick">
+      {tiles.map((tile) => {
         const body = (
           <>
             {tile.icon}
@@ -146,11 +153,11 @@ export function QuickTiles({ model, ctx, onChange }: QuickTilesProps) {
           </>
         );
         return tile.href ? (
-          <a key={id} href={tile.href} target={id === "whatsapp" ? "_blank" : undefined} rel="noreferrer" className={TILE} aria-label={tile.title} title={tile.title}>
+          <a key={tile.id} href={tile.href} target={tile.external ? "_blank" : undefined} rel="noreferrer" className={TILE} aria-label={tile.title} title={tile.title}>
             {body}
           </a>
         ) : (
-          <button key={id} type="button" onClick={tile.onClick} className={TILE} aria-label={tile.title} title={tile.title}>
+          <button key={tile.id} type="button" onClick={tile.onClick} className={TILE} aria-label={tile.title} title={tile.title}>
             {body}
           </button>
         );

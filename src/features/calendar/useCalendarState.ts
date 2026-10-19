@@ -97,5 +97,7 @@ export function useCalendarState(today: Date = new Date()) {
     setView: (next: CalendarView) => set({ vista: next === "day" ? undefined : next }),
     setTeam: (next: TeamFilter) => set({ equipo: next === "working" ? undefined : next }),
     openAppointment: (id: string | null) => set({ cita: id ?? undefined }),
+    /** Ir al día de una cita en la vista Día y abrirla, en una sola escritura de la URL (el buscador). */
+    openAppointmentOn: (next: Date, id: string) => set({ fecha: toDateKey(next) === toDateKey(today) ? undefined : toDateKey(next), vista: undefined, cita: id }),
   };
 }

@@ -41,6 +41,9 @@ import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features
  * agenda hasta que se cobra.
  */
 
+/** Las fotos de la semilla son enlaces de la galería; se aceptan al volver a guardar la cita. */
+const isSeedPhoto = (photo: string): boolean => photo.startsWith("https://images.unsplash.com/");
+
 const BASE = "*/api";
 const LATENCY_MS = 200;
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
@@ -113,21 +116,38 @@ export function barbersIn(branchId: string): MockBarber[] {
 
 const findBarber = (id: string) => db.team.members.find((member) => member.id === id && (isBarberRole(member.role) || member.isAlsoBarber));
 
+/** Las citas que la semilla generaría para un día, sin guardarlas. */
+function generateDay(branchId: string, day: string): MockAppointment[] {
+  const weekday = new Date(`${day}T00:00:00`).getDay();
+  const barbers = barbersIn(branchId).map((barber) => {
+    const member = db.team.members.find((item) => item.id === barber.id);
+    return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day) : [] } };
+  });
+  return seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date(), blocks: db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day)) });
+}
+
 /** Las citas de un día de una sucursal, generándolas la primera vez que se piden. */
 export function appointmentsOn(branchId: string, day: string): MockAppointment[] {
   const key = `${branchId}:${day}`;
   if (!db.calendar.seededDays.includes(key)) {
-    const weekday = new Date(`${day}T00:00:00`).getDay();
-    const barbers = barbersIn(branchId).map((barber) => {
-      const member = db.team.members.find((item) => item.id === barber.id);
-      return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day) : [] } };
-    });
-    db.calendar.appointments.push(...seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date(), blocks: db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day)) }));
+    db.calendar.appointments.push(...generateDay(branchId, day));
     db.calendar.seededDays.push(key);
     db.persist();
   }
   return db.calendar.appointments.filter((item) => item.branchId === branchId && item.start.startsWith(day));
 }
+
+/**
+ * Las citas de un día para mirarlas sin abrirlo: si el día ya se abrió, las guardadas; si no, las que
+ * la semilla generaría (las mismas que verá al abrirlo), sin llenar el almacenamiento del navegador.
+ */
+function peekAppointmentsOn(branchId: string, day: string): MockAppointment[] {
+  if (db.calendar.seededDays.includes(`${branchId}:${day}`)) return appointmentsOn(branchId, day);
+  return generateDay(branchId, day);
+}
+
+/** Lo más que se puede pedir de una vez: tres meses. */
+const MAX_RANGE_DAYS = 92;
 
 export const blocksOn = (branchId: string, day: string): MockTimeBlock[] =>
   db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day));
@@ -241,6 +261,25 @@ export const calendarHandlers = [
     // Cada cita por atender lleva su riesgo de no venir (ver risk.ts).
     const now = new Date();
     return HttpResponse.json({ date: day, appointments: appointmentsOn(branchId, day).map((item) => withRisk(item, now)), blocks: blocksOn(branchId, day), hours });
+  }),
+
+  http.get(`${BASE}/calendar/appointments`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const url = new URL(request.url);
+    const from = url.searchParams.get("from") ?? "";
+    const to = url.searchParams.get("to") ?? "";
+    const branchId = url.searchParams.get("branchId") ?? "ma";
+    if (!DAY_KEY.test(from) || !DAY_KEY.test(to)) return error(422, "validation", "Las fechas deben ser AAAA-MM-DD.", { fields: { from: ["Fecha inválida."], to: ["Fecha inválida."] } });
+    const start = new Date(`${from}T00:00:00`);
+    const days = Math.round((new Date(`${to}T00:00:00`).getTime() - start.getTime()) / 86_400_000) + 1;
+    if (days < 1 || days > MAX_RANGE_DAYS) return error(422, "validation", `El rango va de 1 a ${MAX_RANGE_DAYS} días.`, { fields: { to: ["Rango inválido."] } });
+    const items = Array.from({ length: days }, (_, index) => {
+      const day = new Date(start);
+      day.setDate(day.getDate() + index);
+      return peekAppointmentsOn(branchId, `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`);
+    }).flat();
+    return HttpResponse.json({ from, to, items });
   }),
 
   http.get(`${BASE}/calendar/month`, async ({ request }) => {
@@ -371,7 +410,7 @@ export const calendarHandlers = [
     // Las fotos del corte que se suman desde la agenda: las mismas reglas que en la reserva en línea.
     if (input.referencePhotos !== undefined) {
       const photos = (Array.isArray(input.referencePhotos) ? input.referencePhotos : []).map((photo) => text(photo)).filter(Boolean);
-      const badPhoto = photos.length > MAX_REFERENCE_PHOTOS || photos.some((photo) => !(PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS));
+      const badPhoto = photos.length > MAX_REFERENCE_PHOTOS || photos.some((photo) => !(isSeedPhoto(photo) || (PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS)));
       if (badPhoto) fields.referencePhotos = ["La foto no se pudo subir. Prueba con otra."];
       else next = { ...next, referencePhotos: photos };
     }

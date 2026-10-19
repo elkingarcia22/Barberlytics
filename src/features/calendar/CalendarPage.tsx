@@ -23,6 +23,7 @@ import { CalendarAgendaView } from "./CalendarAgendaView";
 import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
+import { CalendarSearch } from "./CalendarSearch";
 import { CalendarFilters, type ClientTypeFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
@@ -365,6 +366,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Barra flotante o cabecera: lo decide la persona en «Personalización».
   const [actionsPlacement] = useActionsPlacement();
   const railOwnsActions = actionsPlacement === "rail";
+  // El buscador de la fila de arriba, junto a la vista: cerrado es solo la lupa.
+  const [searchOpen, setSearchOpen] = React.useState(false);
   // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
   const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
@@ -719,6 +722,22 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         onViewChange={state.setView}
         onTeamChange={state.setTeam}
         showTeam={!ownBarberId}
+        search={
+          ctx && (
+            <CalendarSearch
+              open={searchOpen}
+              onOpenChange={setSearchOpen}
+              branchId={branchId}
+              ctx={ctx}
+              ownBarberId={ownBarberId}
+              onSelect={(appointment) => {
+                // Ir a su día y abrirla: un panel a la vez, así que se cierra el que hubiera.
+                closePanel();
+                state.openAppointmentOn(appointmentStart(appointment), appointment.id);
+              }}
+            />
+          )
+        }
         summary={
           revenue && isDayView && can.showTotals ? (
             <Text

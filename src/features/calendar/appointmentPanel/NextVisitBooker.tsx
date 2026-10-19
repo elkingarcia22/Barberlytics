@@ -24,7 +24,7 @@ import type { AppointmentModel } from "./useAppointmentModel";
 /** Sin ritmo todavía, la próxima se propone a este plazo. */
 const DEFAULT_WEEKS = 4;
 
-export function NextVisitBooker({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
+export function NextVisitBooker({ model, ctx, bare = false }: { model: AppointmentModel; ctx: ModelContext; /** Sin su título: lo pone afuera quien la usa (la pregunta de «Arma la cita»). */ bare?: boolean }) {
   const t = useAppT();
   const { locale, formatDate } = useLocale();
   const create = useCreateAppointment();
@@ -76,7 +76,7 @@ export function NextVisitBooker({ model, ctx }: { model: AppointmentModel; ctx: 
   return (
     <section aria-label={t("calendar.panel.next.title")} className="flex flex-col gap-3" data-testid="panel-next-visit">
       <div className="flex flex-col gap-0.5">
-        <Text weight="semibold">{t("calendar.panel.next.title")}</Text>
+        {!bare && <Text weight="semibold">{t("calendar.panel.next.title")}</Text>}
         <Text size="sm" tone="secondary">
           {model.nextVisit && model.known?.visitEveryDays
             ? t("calendar.panel.next.byRhythm", { days: model.known.visitEveryDays, date: formatDate(suggested, { weekday: "long", day: "numeric", month: "long" }) })

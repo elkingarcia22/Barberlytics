@@ -1,5 +1,5 @@
 import { seededRandom } from "../db";
-import { clientPhoto } from "../media";
+import { REFERENCE_PHOTO_NOTE, clientPhoto, referencePhotosFor } from "../media";
 
 /**
  * Los datos del calendario del backend simulado: el equipo con su horario,
@@ -333,7 +333,7 @@ const REPEAT_EVERY = 5;
 const NOTE_EVERY = 7;
 /** Una de cada tantas citas pegadas a la anterior del mismo barbero es el segundo servicio del mismo cliente. */
 const SAME_VISIT_EVERY = 3;
-const SEED_NOTES = ["Quiere el mismo corte de la última vez", "Trae foto de referencia", "Llega con el tiempo justo", "Prefiere máquina 2 a los lados"] as const;
+const SEED_NOTES = ["Quiere el mismo corte de la última vez", REFERENCE_PHOTO_NOTE, "Llega con el tiempo justo", "Prefiere máquina 2 a los lados"] as const;
 
 /** Antes de esta hora (10:00) la agenda de hoy se siembra como a las 12:30, para que la demo muestre todos los estados. */
 const DEMO_EARLY_BEFORE_MINUTES = 10 * 60;
@@ -429,6 +429,8 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
           repeat,
           seriesId: repeat === "none" ? null : `ser_${client.id}_${barber.id.replace("team-", "")}`,
           notes,
+          // Quien dice traer foto de referencia la trae: así el barbero la ve en el panel de la cita.
+          ...(notes === REFERENCE_PHOTO_NOTE ? { referencePhotos: referencePhotosFor(extraRoll) } : {}),
           createdAt,
           createdBy: walkIn ? barber.name : rand() < 0.5 ? "Lucía Bernal" : "Reserva online",
           history: [{ id: `${id}_h0`, at: createdAt, actor: walkIn ? barber.name : "Lucía Bernal", event: walkIn ? "walkin" : "created" }, ...visitSteps(id, day, startMinutes, endMinutes, status, barber.name)],

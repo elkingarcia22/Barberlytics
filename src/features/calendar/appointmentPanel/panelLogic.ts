@@ -24,13 +24,12 @@ export interface ClientTag {
 export function clientTags(model: AppointmentModel, t: Translate, options: { operational?: boolean } = {}): ClientTag[] {
   const { appointment, known, client, requested } = model;
   const tags: ClientTag[] = [];
-  if (appointment.walkIn) tags.push({ id: "walkIn", label: t("calendar.card.walkIn"), tone: "neutral" });
   if (isFirstVisit(client)) tags.push({ id: "first", label: t("calendar.panel.tag.firstVisit"), tone: "info" });
   if (requested) tags.push({ id: "requested", label: t("calendar.panel.tag.requested", { name: requested.name.split(" ")[0] }), tone: "neutral" });
   if (appointment.referencePhotos?.length) tags.push({ id: "photo", label: t("calendar.panel.tag.photo"), tone: "neutral" });
   if (options.operational) return tags;
   if (known && known.noShows > 0) tags.push({ id: "noShows", label: known.noShows === 1 ? t("calendar.panel.tag.noShowsOne") : t("calendar.panel.tag.noShows", { count: known.noShows }), tone: "warning" });
-  if (appointment.source === "online") tags.push({ id: "online", label: t("calendar.panel.tag.online"), tone: "neutral" });
+  // Si vino en línea, con cita o sin ella lo dice la línea de origen (`SourceLine`), no una etiqueta más.
   if (appointment.linkId) tags.push({ id: "linked", label: t("calendar.panel.tag.linked"), tone: "neutral" });
   if (known) {
     tags.push(
@@ -145,3 +144,6 @@ export const TRACK: readonly AppointmentStatus[] = ["scheduled", "arrived", "sea
 
 /** En qué paso del avance va la cita (cobrada = todos hechos); -1 si se cerró sin atender. */
 export const trackIndexOf = (model: AppointmentModel): number => TRACK.indexOf(model.appointment.status);
+
+/** Cobrada o cerrada sin atender: el panel pasa a lo que sigue con el cliente (`AfterVisit`). */
+export const isClosed = (model: AppointmentModel): boolean => ["paid", "noShow", "cancelled"].includes(model.playbook.stage);

@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
  */
 
 const FIELD_BASE =
-  "group w-full rounded-xl border bg-surface text-left shadow-xs outline-none transition-[border-color,box-shadow,background-color] duration-fast hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
-/** Respondida: filo de marca y un tinte encima del fondo, como en la reserva. */
-const FIELD_SELECTED = "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]";
+  "group w-full rounded-xl border border-input bg-surface text-left shadow-xs outline-none transition-[border-color,box-shadow,background-color] duration-fast hover:border-primary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+/** Solo la que está abierta lleva el filo y el tinte de marca: en reposo, todas neutras. */
+const FIELD_OPEN = "aria-expanded:border-primary/60 aria-expanded:bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]";
 
 export interface PanelFieldProps {
   /** El nombre del campo, encima de lo elegido: «Servicios». */
@@ -67,7 +67,7 @@ export function PanelField({ eyebrow, value, detail, imageUrl, icon = "scissors"
     );
   }
   return (
-    <button type="button" aria-expanded={open} onClick={onOpen} data-testid={testId} className={cn(FIELD_BASE, FIELD_SELECTED, "flex min-h-16 items-center gap-3 px-3 py-2.5")}>
+    <button type="button" aria-expanded={open} onClick={onOpen} data-testid={testId} className={cn(FIELD_BASE, FIELD_OPEN, "flex min-h-16 items-center gap-3 px-3 py-2.5")}>
       {body}
       <ThemaIcon name="chevronDown" size="sm" tone="muted" className="shrink-0 transition-transform duration-fast group-aria-expanded:rotate-180" />
     </button>

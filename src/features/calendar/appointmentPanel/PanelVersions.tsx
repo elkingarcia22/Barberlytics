@@ -13,11 +13,12 @@ import type { Appointment, AppointmentPatch } from "../types";
 import { AppointmentFields } from "./AppointmentFields";
 import { ClientPageContent, ClientSummaryRow } from "./ClientPage";
 import { HistoryTimeline } from "./HistoryTimeline";
-import { NextVisitBooker } from "./NextVisitBooker";
-import { ActionButton, CriticalAlerts, ReferencePhotos } from "./PanelParts";
+import { AfterVisit } from "./AfterVisit";
+import { ActionButton, ClientTags, CriticalAlerts, ReferencePhotos } from "./PanelParts";
+import { SourceLine } from "./SourceLine";
 import { LinkedBlock, PanelStepper } from "./PanelShared";
 import { PanelQuestion, PanelSubpage } from "./bookingStyle";
-import { mainAction, showsRequest } from "./panelLogic";
+import { isClosed, mainAction, showsRequest } from "./panelLogic";
 import { usePanelPages } from "./panelHooks";
 import { ClipperButton, QuickTiles, StageHeading, TicketSummary } from "./StageParts";
 import { BarberRequest } from "./BarberRequest";
@@ -84,14 +85,15 @@ export function CardsVersion(props: VersionProps) {
   const pages = usePanelPages<Page>();
   const fieldsRef = React.useRef<HTMLDivElement>(null);
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
+  // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
+  if (isClosed(model)) return <AfterVisit variant="cards" model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const stage = model.playbook.stage;
-  const closed = stage === "paid" || stage === "noShow" || stage === "cancelled";
   return (
     <div className="flex flex-col gap-5" data-testid="panel-cards">
       <PanelStepper model={model} ctx={ctx} />
       <StageHeading model={model} ctx={ctx} />
+      <VisitContext model={model} />
       <CriticalAlerts model={model} compact />
-      {closed && <NextVisitBooker model={model} ctx={ctx} />}
       {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
       <PanelQuestion title={t("calendar.panel.cards.what")}>
         <div ref={fieldsRef} className="scroll-mt-4">
@@ -114,6 +116,16 @@ export function CardsVersion(props: VersionProps) {
         <ClipperButton model={model} ctx={ctx} />
         <NavRowLink label={t("calendar.history.title")} onClick={() => pages.open("history")} />
       </div>
+    </div>
+  );
+}
+
+/** De dónde salió la cita (en línea, con cita previa o sin ella), discreto, y las etiquetas del cliente. */
+function VisitContext({ model }: { model: AppointmentModel }) {
+  return (
+    <div className="-mt-2 flex flex-col gap-2" data-testid="panel-visit-context">
+      <SourceLine appointment={model.appointment} />
+      <ClientTags model={model} />
     </div>
   );
 }
@@ -154,14 +166,16 @@ export function MomentVersion(props: VersionProps) {
   const { model, ctx } = props;
   const pages = usePanelPages<Page>();
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
+  // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
+  if (isClosed(model)) return <AfterVisit variant="moment" model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenHistory={() => pages.open("history")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const { appointment, services, barber } = model;
   const stage = model.playbook.stage;
-  const active = stage !== "paid" && stage !== "noShow" && stage !== "cancelled";
   return (
     <div className="flex flex-col gap-5" data-testid="panel-moment">
       <PanelStepper model={model} ctx={ctx} />
       <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", MOMENT_TINT[stage])} data-testid="panel-moment-card">
         <StageHeading model={model} ctx={ctx} size="lg" />
+        <VisitContext model={model} />
         <div className="flex items-center gap-3">
           <IconTile size="lg" src={services[0]?.imageUrl} icon={<ThemaIcon name="scissors" />} />
           <div className="flex min-w-0 flex-col">
@@ -186,7 +200,7 @@ export function MomentVersion(props: VersionProps) {
           </Button>
         )}
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
-        {active ? <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="w-full" /> : <NextVisitBooker model={model} ctx={ctx} />}
+        <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="w-full" />
       </section>
       <QuickTiles model={model} ctx={ctx} onChange={() => pages.open("appointment")} />
       <div className="grid grid-cols-2 gap-2">

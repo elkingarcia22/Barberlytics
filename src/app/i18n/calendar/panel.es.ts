@@ -4,6 +4,17 @@
  * Clipper contesta sobre ella. Mismo tono que la agenda: corto, de mostrador.
  */
 export const calendarPanelEs = {
+  // ── Buscador de la agenda ──
+  "calendar.search.label": "Buscar citas",
+  "calendar.search.placeholder": "Nombre, celular, barbero, estado…",
+  "calendar.search.hint": "Busca por nombre, celular, barbero, servicio, estado, día u hora.",
+  "calendar.search.loading": "Buscando…",
+  "calendar.search.count": "{count} citas",
+  "calendar.search.countMore": "{shown} de {total} citas: afina la búsqueda",
+  "calendar.search.range": "{from} – {to}",
+  "calendar.search.empty": "Nada con «{query}»",
+  "calendar.search.emptyHint": "Prueba con el celular, el barbero, el servicio o el estado («no asistió», «cobrada»).",
+
   // ── Selector ──
   "calendar.panel.version.label": "Diseño del panel",
   "calendar.panel.version.tabs": "Pestañas (actual)",
@@ -36,9 +47,9 @@ export const calendarPanelEs = {
 
   // ── Lo que pidió al reservar ──
   "calendar.panel.request.title": "Para el barbero",
-  "calendar.panel.source.online": "Reservó en línea {when}",
-  "calendar.panel.source.internal": "Agendada en la barbería {when}",
-  "calendar.panel.source.walkin": "Llegó sin cita",
+  "calendar.panel.source.online": "Reserva en línea · {when}",
+  "calendar.panel.source.internal": "Con cita previa · agendada {when}",
+  "calendar.panel.source.walkin": "Sin cita previa",
 
   // ── Atajos ──
   "calendar.panel.quick.title": "Atajos de la cita",
@@ -59,6 +70,15 @@ export const calendarPanelEs = {
   "calendar.panel.client.journey": "Su recorrido",
   "calendar.panel.fields.saveDuration": "Guardar duración: {duration}",
   "calendar.agent.suggests": "Clipper sugiere:",
+  "calendar.panel.after.title": "Después de la visita",
+  "calendar.panel.after.send": "Enviar recibo",
+  "calendar.panel.after.sendTitle": "Enviar el recibo por WhatsApp",
+  "calendar.panel.after.receipt": "Ver recibo",
+  "calendar.panel.after.receiptTitle": "Ver la cuenta y su recibo en Transacciones",
+  "calendar.panel.after.refund": "Devolver",
+  "calendar.panel.after.refundTitle": "Devolver dinero: abre la cuenta en Transacciones",
+  "calendar.panel.after.charged": "Lo que se cobró",
+  "calendar.panel.after.receiptMessage": "Hola {name}, este es el recibo de tu visita del {date}:\n{lines}\nPropina: {tip}\nTotal: {total} · {method}\n¡Gracias por venir!",
   "calendar.panel.more": "Más acciones",
 
   // ── La cita en tarjetas ──
@@ -67,6 +87,7 @@ export const calendarPanelEs = {
   "calendar.panel.cards.asked": "Comentarios y foto del corte",
   "calendar.panel.cards.who": "¿Quién viene?",
   "calendar.panel.fields.services": "Servicios",
+  "calendar.panel.fields.product": "Producto",
   "calendar.panel.fields.barber": "Barbero",
   "calendar.panel.fields.when": "Día y hora",
   "calendar.panel.fields.requested": "Lo pidió el cliente",
@@ -115,7 +136,6 @@ export const calendarPanelEs = {
   "calendar.panel.tag.requested": "Pidió a {name}",
   "calendar.panel.tag.noShows": "{count} inasistencias",
   "calendar.panel.tag.noShowsOne": "1 inasistencia",
-  "calendar.panel.tag.online": "En línea",
   "calendar.panel.tag.linked": "Enlazada",
   "calendar.panel.tag.photo": "Trae foto",
   "calendar.panel.tag.member": "Membresía {count}/{total}",

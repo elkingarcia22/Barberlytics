@@ -79,6 +79,9 @@ export function useCalendarState(today: Date = new Date()) {
     setFreeOnly: (next: boolean) => set({ huecos: next ? "1" : undefined }),
     /** Resaltar las citas enlazadas: cada grupo con su color, las demás apagadas. */
     showLinked: searchParams.get("enlazadas") === "1",
+    /** Qué se esconde de la rejilla: las ausencias (vacaciones, incapacidades) y los bloqueos. Por defecto se ve todo. */
+    hidden: { absences: (searchParams.get("ocultar") ?? "").split(",").includes("ausencias"), blocks: (searchParams.get("ocultar") ?? "").split(",").includes("bloqueos") },
+    setHidden: (next: { absences: boolean; blocks: boolean }) => set({ ocultar: [next.absences && "ausencias", next.blocks && "bloqueos"].filter(Boolean).join(",") || undefined }),
     setShowLinked: (next: boolean) => set({ enlazadas: next ? "1" : undefined }),
     /** De qué se tiñen las tarjetas: es de la vista, no un filtro, y no apaga ninguna cita. */
     colorBy,

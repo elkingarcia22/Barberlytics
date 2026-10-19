@@ -56,6 +56,7 @@ import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
 import { DayPanel } from "./dayPanel/DayPanel";
+import { isAbsenceBlock } from "./timeOff/timeOffModel";
 import { resourceConflict, resourceDay, resourceReason } from "./resourceModel";
 import { useResourcesQuery } from "@/features/services/queries";
 import { dayWeightOf } from "./dayWeight";
@@ -721,7 +722,15 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       });
   }, [absences.data, ctx, state.date, state.view, t]);
 
-  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...absenceGhosts], [freeGhosts, reflowGhosts, suggestionGhosts, absenceGhosts]);
+  // Ver u ocultar ausencias y bloqueos en la rejilla: solo se dejan de pintar; siguen ocupando su hueco.
+  const { absences: hideAbsences, blocks: hideBlocks } = state.hidden;
+  const hideBlock = React.useCallback((block: TimeBlock) => (isAbsenceBlock(block) ? hideAbsences : hideBlocks), [hideAbsences, hideBlocks]);
+  const timeOffVisibility = React.useMemo(() => {
+    const blocks = day.data?.blocks ?? [];
+    return { showAbsences: !hideAbsences, showBlocks: !hideBlocks, absences: blocks.filter(isAbsenceBlock).length + absenceGhosts.length, blocks: blocks.filter((block) => !isAbsenceBlock(block)).length };
+  }, [day.data, absenceGhosts.length, hideAbsences, hideBlocks]);
+
+  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...(hideAbsences ? [] : absenceGhosts)], [freeGhosts, reflowGhosts, suggestionGhosts, absenceGhosts, hideAbsences]);
 
   const onSuggestions = React.useCallback((next: readonly SlotSuggestion[], nextDraft: CreateAppointmentDraft) => {
     setSuggestions((current) => (sameSuggestions(current, next) ? current : next));
@@ -910,6 +919,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               onFreeOnlyChange={state.view === "day" ? state.setFreeOnly : undefined}
               showLinked={state.view === "day" ? state.showLinked : undefined}
               onShowLinkedChange={state.view === "day" ? state.setShowLinked : undefined}
+              timeOff={state.view === "day" ? timeOffVisibility : undefined}
+              onTimeOffChange={state.view === "day" ? (next) => state.setHidden({ absences: !next.showAbsences, blocks: !next.showBlocks }) : undefined}
             />
           ) : undefined
         }
@@ -987,6 +998,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         columnWidths={columnWidths}
                         onColumnResize={setColumnWidth}
                         extraEvents={extraEvents}
+                        hideBlock={hideBlock}
                         fadedIds={fadedIds}
                         highlightLinks={state.showLinked}
                         alerts={resourceAlerts}

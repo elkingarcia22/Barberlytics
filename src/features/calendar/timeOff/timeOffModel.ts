@@ -62,6 +62,14 @@ export function coverageFor(absence: Pick<TimeOffAbsence, "id" | "memberId" | "s
 /** Menos de la mitad del equipo: el día queda corto. */
 export const isShortHanded = (coverage: Pick<DayCoverage, "scheduled" | "available">): boolean => coverage.scheduled > 0 && coverage.available / coverage.scheduled < 0.5;
 
+/**
+ * Si un bloqueo es en realidad una ausencia: la que deja en la agenda una
+ * ausencia aprobada (`blk_abs_…`) o uno puesto a mano como vacaciones o
+ * incapacidad. Lo demás (almuerzo, reunión, un permiso de una hora) es un
+ * bloqueo. Así los filtros «Vacaciones y ausencias» y «Bloqueos» no se pisan.
+ */
+export const isAbsenceBlock = (block: Pick<TimeBlock, "id" | "category">): boolean => block.id.startsWith("blk_abs_") || block.category === "vacation" || block.category === "sick";
+
 /** Si un bloqueo (con su repetición) cae en un día. */
 export function blockAppliesOn(block: Pick<TimeBlock, "startDate" | "endDate" | "repeat">, date: Date): boolean {
   const day = keyOf(date);

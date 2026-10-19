@@ -1,6 +1,6 @@
 # ChatPanel (beta)
 
-El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.
+El chat como panel lateral: se porta al ancla de AdminShell (la pantalla se estrecha, no se tapa) y flota a OVERLAY_INSET del borde. En el celular (por debajo de md) no hay sitio para estrechar nada: es una hoja a pantalla completa que sube por encima del contenido, con la cabecera y el cerrar a la vista. Arranca con el saludo, la caja y unas preguntas; con conversación, el hilo arriba y la caja abajo. Desde la cabecera: otra conversación o abrirla en pantalla completa.
 
 Familia: IA · Doc: `/docs#/components/chat-panel` · Fuente: `src/components/chat/ChatPanel.tsx`
 

@@ -58,7 +58,7 @@ export function AIInsightCard({
   title,
   description,
   type = "insight",
-  confidence = "high",
+  confidence = null,
   evidence,
   impact,
   actionLabel,

@@ -6,7 +6,7 @@ import { useAppT } from "@/app/i18n";
 import { describeError, isApiError } from "@/lib/api";
 import { DrawerSection, SidePanelShell } from "@/components/overlays";
 import { Field, MultiSelect, SearchableSelect } from "@/components/forms";
-import { AiGeneratedBadge, Chip } from "@/components/ai-interaction";
+import { Chip } from "@/components/ai-interaction";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -294,12 +294,9 @@ function CreateAppointmentPanel({ open, onOpenChange, ctx, initial, now, viewDat
           <div className="space-y-3">
             {services.length > 0 && day && (
               <div className="space-y-1.5" data-testid="create-appointment-suggestions">
-                <div className="flex items-center gap-2">
-                  <Text as="span" variant="label">
-                    {t("calendar.suggest.title")}
-                  </Text>
-                  <AiGeneratedBadge />
-                </div>
+                <Text as="span" variant="label">
+                  {t("calendar.suggest.title")}
+                </Text>
                 {suggestions.length === 0 ? (
                   <Text variant="caption">{t("calendar.suggest.none")}</Text>
                 ) : (

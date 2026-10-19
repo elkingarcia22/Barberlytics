@@ -286,7 +286,7 @@ export const appEn: AppMessageCatalog = {
   "metrics.tab.customers": "Customers",
   "metrics.tab.barbers": "Barbers",
   "metrics.tab.marketing": "Marketing",
-  "metrics.tab.insights": "AI",
+  "metrics.tab.insights": "Suggestions",
   "metrics.comingSoonTitle": "This view is on its way",
   "metrics.comingSoonDetail": "For now, everything about the business lives in the “Business” tab.",
   "metrics.filters": "Filters",

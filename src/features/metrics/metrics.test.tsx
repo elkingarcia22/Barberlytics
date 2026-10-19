@@ -81,16 +81,17 @@ describe("Métricas", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("period=week");
   });
 
-  test("la pestaña de IA diagnostica tres meses y no lleva periodo", async () => {
+  test("la pestaña de sugerencias diagnostica tres meses y no lleva periodo", async () => {
     mount("/metricas?tab=insights");
     expect(await screen.findByText("Salud del negocio")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Periodo" })).toBeNull();
-    expect(screen.getByText("Sugerencias")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Sugerencias" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByText("Sugerencias").length).toBeGreaterThan(1);
   });
 });
 
 describe("Métricas de un barbero", () => {
-  test("el de comisión ve sus tres pestañas, sin selector de barbero ni IA", async () => {
+  test("el de comisión ve sus tres pestañas, sin selector de barbero ni sugerencias", async () => {
     mount("/metricas?period=week&date=2026-09-21", "barbero-comision");
     const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
     const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-04" });
@@ -99,14 +100,14 @@ describe("Métricas de un barbero", () => {
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Negocio", "Clientes", "Barberos"]);
   });
 
-  test("un enlace con otro barbero o con la IA no le abre nada ajeno", async () => {
+  test("un enlace con otro barbero o con las sugerencias no le abre nada ajeno", async () => {
     mount("/metricas?tab=insights&barber=b6&period=week&date=2026-09-21", "barbero-renta");
     const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
     const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-30" });
     expect(within(pulse).getByText(`${own.appointments.total}`)).toBeInTheDocument();
     expect(screen.queryByText("Salud del negocio")).toBeNull();
     expect(screen.getByRole("tab", { name: "Marketing" })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "IA" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Sugerencias" })).toBeNull();
   });
 
   test("en Barberos ve solo su fila, sin el neto del equipo ni el reparto", async () => {

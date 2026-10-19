@@ -307,7 +307,7 @@ export const appEs = {
   "metrics.tab.customers": "Clientes",
   "metrics.tab.barbers": "Barberos",
   "metrics.tab.marketing": "Marketing",
-  "metrics.tab.insights": "IA",
+  "metrics.tab.insights": "Sugerencias",
   "metrics.comingSoonTitle": "Esta vista está en camino",
   "metrics.comingSoonDetail": "Por ahora, todo lo del negocio está en la pestaña «Negocio».",
   "metrics.filters": "Filtros",

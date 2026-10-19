@@ -2,7 +2,6 @@ import { Check, Shuffle, X } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { AttentionStrip } from "@/components/feedback";
 import { Button } from "@/components/ui/button";
-import { AiGeneratedBadge } from "@/components/ai-interaction";
 import { formatClock } from "@/components/scheduling";
 import { findClient, type ModelContext } from "./calendarModel";
 import { moveStart, planShiftMinutes, type ReflowPlan } from "./reflowModel";
@@ -44,7 +43,6 @@ export function ReflowBanner({ plan, ctx, busy = false, onApply, onDiscard }: Re
         title={t("calendar.reflow.title", { count: plan.moves.length, minutes: planShiftMinutes(plan), barber: plan.barber.name.split(" ")[0] })}
         detail={detail}
       >
-        <AiGeneratedBadge />
         <Button size="sm" variant="outline" onClick={onDiscard} disabled={busy} data-testid="calendar-reflow-discard">
           <X /> {t("calendar.reflow.discard")}
         </Button>

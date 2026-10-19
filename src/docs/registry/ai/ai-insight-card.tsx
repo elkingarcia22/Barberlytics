@@ -39,7 +39,7 @@ export const aiInsightCardEntry = defineEntry({
     code: ({ type, confidence, title, withDetails, actionLabel }) => {
       const attrs = [
         type !== "insight" ? `type="${type}"` : "",
-        confidence !== "high" ? `confidence="${confidence}"` : "",
+        confidence ? `confidence="${confidence}"` : "",
         `title="${title}"`,
         'description="Comparado con el trimestre anterior, concentrado en el equipo de la región Andina."',
         withDetails ? 'evidence="23 salidas en 90 días"' : "",
@@ -103,7 +103,7 @@ export const aiInsightCardEntry = defineEntry({
     { name: "title", type: "string", description: "Titular del hallazgo. Obligatorio." },
     { name: "description", type: "string", description: "Explicación breve bajo el título." },
     { name: "type", type: '"insight" | "risk" | "recommendation" | "opportunity"', default: '"insight"', description: "Naturaleza del hallazgo; define icono, etiqueta y color." },
-    { name: "confidence", type: '"low" | "medium" | "high" | null', default: '"high"', description: "Nivel de confianza mostrado como badge en la esquina. `null` lo oculta: úsalo cuando la sugerencia sale de una regla y no de un modelo." },
+    { name: "confidence", type: '"low" | "medium" | "high" | null', default: "null", description: "Nivel de confianza mostrado como badge en la esquina. Sin valor no se muestra: pásalo solo cuando un modelo dé una confianza real, nunca sobre una regla." },
     { name: "evidence", type: "string", description: "Dato que sustenta el hallazgo." },
     { name: "impact", type: "string", description: "Consecuencia esperada." },
     { name: "actionLabel", type: "string", description: "Texto del botón al pie. Sin él no hay pie." },

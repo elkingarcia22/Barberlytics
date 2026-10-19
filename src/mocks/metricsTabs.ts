@@ -251,11 +251,12 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
   const appointments = appointmentsOf(days);
   const completed = completedOf(days);
   const totals = totalsOf(days);
-  const rand = seededRandom(hashText(`insights|${toIsoDate(start)}`));
 
   const completionRate = pct(completed.length, appointments.length);
   const noShowRate = pct(appointments.filter((item) => item.status === "noShow").length, appointments.length);
-  const retentionRate = round2(54 + rand() * 16);
+  // Retención: de los clientes atendidos en la ventana, cuántos volvieron al menos una vez en ella.
+  const visitsByClient = completed.reduce((acc, item) => acc.set(item.clientId, (acc.get(item.clientId) ?? 0) + 1), new Map<string, number>());
+  const retentionRate = pct([...visitsByClient.values()].filter((count) => count >= 2).length, visitsByClient.size);
   const avgTicket = totals.transactions ? round2(totals.sales / totals.transactions) : 0;
   const score = Math.round(completionRate * 0.4 + Math.max(0, 100 - noShowRate * 8) * 0.2 + retentionRate * 0.25 + Math.min(1, avgTicket / 75) * 100 * 0.15);
 
@@ -278,9 +279,8 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
   const best = open.reduce((top, row) => (row.total > top.total ? row : top), open[0]);
   const worst = open.reduce((low, row) => (row.total < low.total ? row : low), open[0]);
   const gap = best.total ? Math.round(((best.total - worst.total) / best.total) * 100) : 0;
-  const neverBooked = 180 + Math.round(rand() * 120);
   // Los riesgos son los clientes de verdad, con las mismas reglas que Clientes: la cifra lleva a su lista.
-  const { churned, atRisk, overdue } = clientRisks();
+  const { churned, atRisk, overdue, neverBooked, rhythmDays } = clientRisks();
   const peakHour = CAPACITY_HOURS[rows.flatMap((row) => row.values).reduce<{ index: number; value: number }>((top, value, index) => (value > top.value ? { index: index % CAPACITY_HOURS.length, value } : top), { index: 0, value: -1 }).index];
 
   return {
@@ -289,16 +289,20 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
     risks: { churned, atRisk, overdue },
     capacity: { hours: CAPACITY_HOURS, rows },
     suggestions: [
-      {
-        id: "never-booked",
-        group: "clients",
-        type: "risk",
-        tag: "Retención",
-        title: `${neverBooked} clientes registrados nunca han reservado`,
-        description: "Se crearon en el sistema pero no agendaron ninguna cita. Son ingreso potencial que ya conoce la barbería.",
-        action: "Enviar una oferta de bienvenida para su primera visita",
-        evidence: `${neverBooked} fichas sin cita en los últimos 3 meses`,
-      },
+      ...(neverBooked > 0
+        ? [
+            {
+              id: "never-booked",
+              group: "clients" as const,
+              type: "risk" as const,
+              tag: "Retención",
+              title: `${neverBooked} clientes registrados nunca han venido`,
+              description: "Tienen ficha en la barbería pero ninguna visita. Son ingreso potencial que ya conoce la barbería.",
+              action: "Enviar una oferta de bienvenida para su primera visita",
+              evidence: `${neverBooked} fichas sin ninguna visita`,
+            },
+          ]
+        : []),
       {
         id: "overdue",
         group: "clients",
@@ -307,7 +311,7 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
         title: `${overdue} clientes habituales llevan más de 6 semanas sin venir`,
         description: "Venían cada 3–4 semanas y se han pasado de su ritmo. Un recordatorio a tiempo suele recuperarlos antes de que se vayan.",
         action: "Programar un recordatorio con su barbero de preferencia",
-        evidence: `Ritmo medio de 25 días entre visitas`,
+        evidence: rhythmDays ? `Ritmo medio de ${rhythmDays} días entre visitas` : undefined,
       },
       {
         id: "weekday-gap",
@@ -325,7 +329,7 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
         type: "insight",
         tag: "Capacidad",
         title: `Las ${String(peakHour).padStart(2, "0")}:00 se llenan antes que cualquier otra hora`,
-        description: "Es la franja con más demanda y donde más citas se quedan sin hueco. Abrir una silla más o mover un descanso amplía la caja sin captar clientes nuevos.",
+        description: "Es la franja con más citas por silla de los últimos tres meses. Abrir una silla más o mover un descanso amplía la caja sin captar clientes nuevos.",
         action: "Revisar los turnos de esa franja en el calendario",
       },
       ...(totals.cancellationRate > 20
@@ -336,7 +340,7 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
               type: "risk" as const,
               tag: "Cancelaciones",
               title: `El ${totals.cancellationRate.toLocaleString("es-CO", { maximumFractionDigits: 1 })} % de las citas se cancelan o no llegan`,
-              description: "Por encima del 20 % la agenda pierde huecos que ya nadie ocupa. Un recordatorio 24 h antes y una política de confirmación bajan la tasa a la mitad.",
+              description: "Por encima del 20 % la agenda pierde huecos que ya nadie ocupa. Un recordatorio 24 h antes y pedir confirmación suelen bajarla.",
               action: "Activar el recordatorio automático 24 h antes",
               evidence: `${appointments.filter((item) => item.status !== "completed" && item.status !== "pendingCollection").length} citas perdidas en 3 meses`,
             },
@@ -347,13 +351,15 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
 }
 
 /** Perdidos, en riesgo y a los que ya les tocaba volver, entre los clientes de la barbería. */
-function clientRisks(): { churned: number; atRisk: number; overdue: number } {
-  const facts = db.calendar.clients
-    .filter((client) => client.id !== WALK_IN_CLIENT.id && !profileOf(client).deleted)
-    .map((client) => ({ ...lifecycleOf(client, profileOf(client).blocked), visitEveryDays: client.visitEveryDays ?? null }));
+function clientRisks(): { churned: number; atRisk: number; overdue: number; neverBooked: number; rhythmDays: number | null } {
+  const clients = db.calendar.clients.filter((client) => client.id !== WALK_IN_CLIENT.id && !profileOf(client).deleted);
+  const facts = clients.map((client) => ({ ...lifecycleOf(client, profileOf(client).blocked), visitEveryDays: client.visitEveryDays ?? null }));
+  const rhythms = facts.flatMap((item) => (item.visitEveryDays ? [item.visitEveryDays] : []));
   return {
     churned: facts.filter((item) => item.segment === "lost").length,
     atRisk: facts.filter((item) => item.segment === "atRisk").length,
     overdue: facts.filter((item) => isOverdue(item)).length,
+    neverBooked: clients.filter((client) => client.visits === 0).length,
+    rhythmDays: rhythms.length > 0 ? Math.round(rhythms.reduce((sum, days) => sum + days, 0) / rhythms.length) : null,
   };
 }

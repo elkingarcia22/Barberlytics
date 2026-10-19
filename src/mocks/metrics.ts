@@ -53,6 +53,8 @@ export interface Appointment {
   barberId: string;
   /** El cliente pidió a ese barbero (no «sin preferencia»). */
   requested: boolean;
+  /** De dónde vino la reserva en línea (`utm_*` del enlace); `null` si llegó directo o no fue en línea. */
+  utm: { source: string; medium: string; campaign: string } | null;
 }
 
 export interface DayRecord {
@@ -97,6 +99,7 @@ export function dayRecord(date: Date, barberId: string, branchId: string): DayRe
       clientId: item.clientId,
       barberId: item.barberId,
       requested: item.requestedBarberId !== null,
+      utm: item.utm ?? null,
     };
   });
   // Los productos que se llevaron en las citas cobradas y, para todo el equipo, los de mostrador.

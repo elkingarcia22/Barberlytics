@@ -116,8 +116,12 @@ export const metricsMarketingSchema = z.object({
     bestChannel: z.string().nullable(),
     campaignBookings: comparedSchema,
   }),
-  channels: z.array(z.object({ id: z.string(), name: z.string(), bookings: z.number(), visits: z.number() })),
+  /** Reservas en línea por origen (`utm_source`; «directo» sin él). `visits`: sesiones que empezaron la reserva desde ahí; `null` sin medir. */
+  channels: z.array(z.object({ id: z.string(), name: z.string(), bookings: z.number(), visits: z.number().nullable(), funnelBookings: z.number().nullable().default(null) })),
+  /** Por `utm_campaign`: reservas e ingreso cobrado. */
   campaigns: z.array(z.object({ id: z.string(), name: z.string(), bookings: z.number(), revenue: z.number() })),
+  /** Las visitas son del embudo de ejemplo de la demo (aún no hay sesiones reales medidas). */
+  visitsSample: z.boolean().default(false),
 });
 export type MetricsMarketing = z.infer<typeof metricsMarketingSchema>;
 

@@ -100,6 +100,8 @@ export interface MockReview {
   rating: number;
   comment: string;
   createdAt: string;
+  /** Reseña de ejemplo de la demo (no la dejó un cliente): se muestra marcada y nunca con las reales. */
+  sample?: boolean;
 }
 
 /** Una tarjeta de regalo: se compra para alguien y se gasta en reservas hasta agotar el saldo. */

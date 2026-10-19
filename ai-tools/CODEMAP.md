@@ -762,7 +762,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **BarbersDashboard.tsx** — Barberos: lo que ganó el equipo y cómo se reparte, con la ocupación, la cancelación y las propinas de cada un… · `BarbersDashboard` · piezas: BarList, MetricCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell · usa: @/app/i18n
 - **CustomersDashboard.tsx** — Clientes: cuántos vuelven, cuánto deja cada uno, por dónde reservan y qué tipo de cliente llena la agenda. · `CustomersDashboard` · piezas: BarList, CompositionDonut, DistributionBar, MetricCard · usa: @/app/i18n
 - **InsightsDashboard.tsx** — IA: un diagnóstico de los últimos tres meses. · `InsightsDashboard` · piezas: AIInsightCard, AttentionAction, AttentionStrip, Card, ClipperIcon, HeatmapMatrix, MetricCard, MetricDial, PanelHeading · usa: @/app/i18n
-- **MarketingDashboard.tsx** — Marketing: por dónde llegan las reservas digitales, cuánto convierte cada canal y qué trajo cada campaña. · `MarketingDashboard` · piezas: BarList, EmptyState, MetricCard · usa: @/app/i18n
+- **MarketingDashboard.tsx** — Marketing: por dónde llegan las reservas en línea (el `utm_source` con que se reservó cada cita), cuánto conv… · `MarketingDashboard` · piezas: BarList, EmptyState, MetricCard · usa: @/app/i18n
 
 ### narrative
 
@@ -1036,7 +1036,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **alternatives.ts** — Qué servicios cubre cada habilidad. · `SKILL_SERVICES`, `Alternative`, `alternatives`, `earliest`, `WaitlistWindow`, `joinWaitlist`
 - **dispatch.ts** — El outbox de la app y la cola de WhatsApp del servidor (`/api/whatsapp/queue`, ver server/whatsapp/queue). · `WhatsAppPayload`, `QueueRequest`, `QueueView`, `EnqueueResult`, `Queue`, `httpQueue`, `payloadOf`, `SyncCounts`, `syncOutbox`, `messagesOf` · usa: @/lib/api
-- **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `funnelSummary`
+- **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `sessionsBySource`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/features/payments, @/lib/time
 - **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking, @/features/legal
@@ -1056,6 +1056,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
 - **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
 - **random.ts** — Generador pseudoaleatorio con semilla (mulberry32): la misma semilla, la misma serie. · `seededRandom`
+- **sampleData.ts** — Los datos de ejemplo de la demo (reseñas de barberos, el embudo de la reserva) se ven solo mientras esto esté… · `sampleDataOn`
 - **server.ts** — Servidor para Vitest (Node/jsdom); ver `src/test/setup.ts`. · `server`
 - **session.ts** — Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha de equipo. · `MockSession`, `sessionOf`, `isManager`, `isBarber`, `unauthorized`, `forbidden`, `hasStepUp`, `stepUpRequired`
 
@@ -1066,7 +1067,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `RHYTHM_WEEKS`, `rhythmOf`, `blocksOn`, `clashMessage`, `resourceMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/booking, @/features/branches, @/features/calendar
 - **risk.ts** — Riesgo de que el cliente no venga (docs/API_CONTRACT.md, «Calendario»). · `RiskReason`, `NoShowRisk`, `noShowRisk`, `withRisk`
 - **scope.ts** — La ficha del barbero que llama, o `null` si no es barbero (dueño, administrador, recepción). · `barberOf`, `ownClientIds`, `redactClient`, `ownAppointments`, `ownBlocks`
-- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
+- **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockRefund`, `MockOnlineSettlement`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `MockUtm`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
 
 ### customers
 

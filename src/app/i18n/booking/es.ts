@@ -230,6 +230,7 @@ export const bookingEs = {
   "booking.barber.social": "Sus redes",
   "booking.barber.work": "Trabajos",
   "booking.barber.skills": "Habilidades",
+  "booking.barber.sampleReviews": "Reseñas de ejemplo (demo)",
   "booking.barber.openPhoto": "Ampliar la foto {current} de {total}",
   "booking.gallery.count": "{current} de {total}",
   "booking.gallery.hint": "Desliza o usa las flechas para ver más fotos.",

@@ -258,3 +258,12 @@ Se va completando aquí lo que se corrige a partir de esta lista.
     - el PIN del personal;
     - que `phone/check` de la reserva deje de devolver el perfil (decisión del usuario del 2026-10-13: no se toca);
     - la cita nueva desde la agenda sigue cayendo en la primera sede del barbero.
+- **Marketing honesto (01 P2, 15 P0).**
+  - Métricas › Marketing sale del `utm` que guarda cada cita en línea (la reserva lo copia a cada cita):
+    - canales por `utm_source` (sin él, «Directo», que no cuenta como mejor canal);
+    - campañas por `utm_campaign`, con el ingreso cobrado;
+    - conversión sobre las sesiones medidas del embudo.
+  - Nada al azar. La semilla trae un `utm` fijo por cita en línea.
+  - Las reseñas de ejemplo existen solo en la demo (`VITE_SAMPLE_DATA`), van marcadas y nunca se mezclan con las reales: la primera real las reemplaza. Sin reseñas no se muestra calificación.
+  - Falta: campañas administrables, el origen del cliente (no solo de la cita) y referidos.
+

@@ -614,14 +614,18 @@ describe("backend de la reserva", () => {
     const done = (await bookingApi.myAppointments(token)).past.find((item) => item.id === upcomingId);
     if (!done) throw new Error("la cita cobrada debería estar en el historial");
     expect(done).toMatchObject({ status: "completed", review: null });
+    // En la demo, mientras nadie califica, el barbero muestra reseñas de ejemplo, marcadas.
     const before = (await bookingApi.catalog("ma")).barbers.find((barber) => barber.id === done.barberId);
+    expect(before).toMatchObject({ ratingSample: true });
+    expect((await bookingApi.barberReviews(done.barberId)).items.every((review) => review.sample === true)).toBe(true);
     await expect(bookingApi.review(token, done.id, { rating: 0, comment: "" })).rejects.toMatchObject({ status: 422 });
     await bookingApi.review(token, done.id, { rating: 5, comment: "Impecable" });
     await expect(bookingApi.review(token, done.id, { rating: 4, comment: "" })).rejects.toMatchObject({ status: 409 });
+    // La primera reseña real reemplaza a las de ejemplo: nunca se mezclan en el promedio.
     const after = (await bookingApi.catalog("ma")).barbers.find((barber) => barber.id === done.barberId);
-    expect(after?.reviews).toBe((before?.reviews ?? 0) + 1);
+    expect(after).toMatchObject({ reviews: 1, rating: 5, ratingSample: false });
     const latest = await bookingApi.barberReviews(done.barberId);
-    expect(latest.items[0]).toMatchObject({ clientName: "Marcela G.", rating: 5, comment: "Impecable" });
+    expect(latest).toMatchObject({ total: 1, items: [{ clientName: "Marcela G.", rating: 5, comment: "Impecable", sample: false }] });
   });
 
   test("la tarjeta de regalo paga primero, deja el saldo que sobra y si cubre todo no hay nada que cobrar", async () => {

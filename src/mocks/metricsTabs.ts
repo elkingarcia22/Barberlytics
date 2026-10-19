@@ -4,6 +4,7 @@ import { appointmentsOn } from "./calendar/handlers";
 import { payrollOf } from "./payroll/compute";
 import { profileOf } from "./customers/handlers";
 import { lifecycleOf } from "./customers/seed";
+import { sessionsBySource } from "./booking/funnel";
 import { isOverdue } from "@/features/customers/overdue";
 import {
   barbersOfBranch,
@@ -27,9 +28,10 @@ import type { ClientType, MetricsBarbers, MetricsCustomers, MetricsInsights, Met
 /**
  * Las otras cuatro pestañas de Métricas, sobre los mismos días reales que
  * Negocio (la agenda de la sucursal): clientes, barberos y marketing leen el
- * periodo pedido; el diagnóstico mira los últimos tres meses. Lo que la agenda
- * no registra (de qué canal llegó una reserva, el tipo de cliente a lo largo
- * del tiempo) se reparte sobre los totales reales y está marcado así.
+ * periodo pedido; el diagnóstico mira los últimos tres meses. Marketing lee
+ * el origen que guarda cada cita en línea (`utm`). Lo que la agenda no
+ * registra (el tipo de cliente a lo largo del tiempo) se reparte sobre los
+ * totales reales y está marcado así.
  */
 
 const seedOf = (sim: SimulatedPeriod, salt: string) => seededRandom(hashText(`${toIsoDate(sim.range.from)}|${sim.granularity}|${sim.barberId}|${salt}`));
@@ -185,55 +187,73 @@ export function buildBarbersMetrics(query: MetricsQuery): MetricsBarbers {
   };
 }
 
-// ── Marketing ───────────────────────────────────────────────────────────────
+// ── Marketing ──────────────────────────────────────────────────────────────
 
-const CHANNELS = [
-  { id: "instagram", name: "Instagram", weight: 5, visitsPerBooking: 14 },
-  { id: "google", name: "Google", weight: 4, visitsPerBooking: 6 },
-  { id: "website", name: "Sitio web", weight: 2, visitsPerBooking: 9 },
-  { id: "whatsapp", name: "WhatsApp", weight: 3, visitsPerBooking: 3 },
-] as const;
+/**
+ * Marketing sale de lo que guarda cada cita en línea: los `utm_*` del enlace con que se reservó
+ * (`appointment.utm`). Sin `utm_source` cuenta como «Directo». La conversión por canal sale del embudo:
+ * sesiones que empezaron la reserva desde ese origen y cuántas reservaron (las dos del mismo embudo);
+ * sin sesiones medidas, la demo usa las de ejemplo y lo dice (`visitsSample`).
+ */
+const SOURCE_ALIASES: Readonly<Record<string, string>> = { ig: "instagram", fb: "facebook", wa: "whatsapp", direct: "directo", "(direct)": "directo", "": "directo" };
+const SOURCE_NAMES: Readonly<Record<string, string>> = { instagram: "Instagram", google: "Google", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok", email: "Correo", directo: "Directo" };
 
-const CAMPAIGNS = [
-  { id: "tuesday", name: "Martes 2×1 en barba", weight: 3 },
-  { id: "welcome", name: "Bienvenida primera visita", weight: 2 },
-  { id: "referral", name: "Trae a un amigo", weight: 1 },
-] as const;
+const channelOf = (source: string | undefined): string => {
+  const key = (source ?? "").trim().toLowerCase();
+  return SOURCE_ALIASES[key] ?? key;
+};
+const channelName = (id: string): string => SOURCE_NAMES[id] ?? id.charAt(0).toUpperCase() + id.slice(1);
+/** «martes-2x1-barba» → «Martes 2x1 barba»: la campaña como se escribió en el enlace, legible. */
+const campaignName = (slug: string): string => {
+  const words = slug.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
 
-function marketingOf(days: readonly DayRecord[], rand: () => number) {
+function marketingOf(days: readonly DayRecord[]) {
   const appointments = appointmentsOf(days);
-  const online = appointments.filter((item) => item.method === "online").length;
-  const channels = split(online, CHANNELS.map((channel) => channel.weight + rand())).map((bookings, index) => ({
-    id: CHANNELS[index].id,
-    name: CHANNELS[index].name,
-    bookings,
-    visits: Math.round(bookings * CHANNELS[index].visitsPerBooking * (0.8 + rand() * 0.4)),
-  }));
-  const campaignBookings = Math.round(appointments.length * (0.06 + rand() * 0.05));
-  const campaigns = split(campaignBookings, CAMPAIGNS.map((campaign) => campaign.weight + rand() * 0.5)).map((bookings, index) => ({
-    id: CAMPAIGNS[index].id,
-    name: CAMPAIGNS[index].name,
-    bookings,
-    revenue: round2(bookings * (48 + rand() * 18)),
-  }));
-  return { onlineBookings: pct(online, appointments.length), channels, campaignBookings, campaigns };
+  const online = appointments.filter((item) => item.method === "online");
+  const from = days[0]?.date ?? new Date();
+  const lastDay = days.at(-1)?.date ?? from;
+  const to = new Date(lastDay.getFullYear(), lastDay.getMonth(), lastDay.getDate(), 23, 59, 59);
+  const { bySource: visits, sample: visitsSample } = sessionsBySource(from, to);
+
+  const byChannel = new Map<string, number>();
+  for (const item of online) byChannel.set(channelOf(item.utm?.source), (byChannel.get(channelOf(item.utm?.source)) ?? 0) + 1);
+  const channels = [...byChannel.entries()]
+    .map(([id, bookings]) => {
+      const funnel = visits.get(id);
+      return { id, name: channelName(id), bookings, visits: funnel ? funnel.sessions : null, funnelBookings: funnel ? funnel.bookings : null };
+    })
+    .sort((a, b) => b.bookings - a.bookings);
+
+  const byCampaign = new Map<string, { bookings: number; revenue: number }>();
+  for (const item of online.filter((entry) => entry.utm?.campaign)) {
+    const slug = (item.utm?.campaign ?? "").toLowerCase();
+    const row = byCampaign.get(slug) ?? { bookings: 0, revenue: 0 };
+    // El ingreso es lo cobrado: una cita que aún no llega no ha traído plata.
+    byCampaign.set(slug, { bookings: row.bookings + 1, revenue: row.revenue + (item.status === "completed" ? item.service.price : 0) });
+  }
+  const campaigns = [...byCampaign.entries()].map(([id, row]) => ({ id, name: campaignName(id), bookings: row.bookings, revenue: round2(row.revenue) })).sort((a, b) => b.bookings - a.bookings);
+  return { onlineBookings: pct(online.length, appointments.length), channels, campaignBookings: sum(campaigns.map((campaign) => campaign.bookings)), campaigns, visitsSample };
 }
 
 export function buildMarketingMetrics(query: MetricsQuery): MetricsMarketing {
   const sim = simulatePeriod(query);
-  const now = marketingOf(sim.days, seedOf(sim, "marketing"));
-  const before = marketingOf(sim.previousDays, seedOf({ ...sim, range: sim.previous }, "marketing"));
-  const best = [...now.channels].sort((a, b) => b.bookings - a.bookings)[0];
+  const now = marketingOf(sim.days);
+  const before = marketingOf(sim.previousDays);
+  // El mejor canal es el que más trae de los que se pueden medir: «Directo» no es un canal de marketing.
+  const best = now.channels.find((channel) => channel.id !== "directo" && channel.bookings > 0);
   return {
     period: periodOf(sim),
     previous: previousOf(sim),
     kpis: {
       onlineBookings: { value: now.onlineBookings, previous: before.onlineBookings },
-      bestChannel: best && best.bookings > 0 ? best.name : null,
+      bestChannel: best ? best.name : null,
       campaignBookings: { value: now.campaignBookings, previous: before.campaignBookings },
     },
-    channels: now.channels.filter((channel) => channel.bookings > 0),
-    campaigns: now.campaigns.filter((campaign) => campaign.bookings > 0),
+    channels: now.channels,
+    campaigns: now.campaigns,
+    visitsSample: now.visitsSample,
   };
 }
 

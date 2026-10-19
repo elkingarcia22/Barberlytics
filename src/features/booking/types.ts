@@ -113,6 +113,8 @@ export const bookingBarberSchema = z.object({
   gallery: z.array(z.string()),
   rating: z.number(),
   reviews: z.number(),
+  /** Sus reseñas son de ejemplo (solo en la demo): se marcan como tales. */
+  ratingSample: z.boolean().optional(),
   /** Los servicios que hace y lo que cobra por cada uno. */
   prices: z.record(z.string(), z.number()),
 });
@@ -238,7 +240,7 @@ export const earliestSchema = z.object({ slot: z.object({ date: z.string(), time
 export type Earliest = z.infer<typeof earliestSchema>;
 
 /** Las reseñas públicas de un barbero: nombre con inicial, nota, comentario y fecha. */
-export const barberReviewSchema = z.object({ id: z.string(), clientName: z.string(), rating: z.number(), comment: z.string(), createdAt: z.string() });
+export const barberReviewSchema = z.object({ id: z.string(), clientName: z.string(), rating: z.number(), comment: z.string(), createdAt: z.string(), sample: z.boolean().optional() });
 export type BarberReview = z.infer<typeof barberReviewSchema>;
 export const barberReviewsSchema = z.object({ items: z.array(barberReviewSchema), total: z.number() });
 export const reviewSavedSchema = z.object({ id: z.string(), rating: z.number() });

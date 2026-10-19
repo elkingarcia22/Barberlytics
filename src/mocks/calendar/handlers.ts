@@ -31,6 +31,7 @@ import {
   type MockTimeBlock,
   type MockWaitlistEntry,
 } from "./seed";
+import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
 
 /**
  * Los endpoints del calendario del backend simulado. Reproducen
@@ -364,6 +365,13 @@ export const calendarHandlers = [
       else next = { ...next, serviceIds, durationMin: serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.durationMin ?? 0), 0) };
     }
     if (input.notes !== undefined) next = { ...next, notes: text(input.notes) || null };
+    // Las fotos del corte que se suman desde la agenda: las mismas reglas que en la reserva en línea.
+    if (input.referencePhotos !== undefined) {
+      const photos = (Array.isArray(input.referencePhotos) ? input.referencePhotos : []).map((photo) => text(photo)).filter(Boolean);
+      const badPhoto = photos.length > MAX_REFERENCE_PHOTOS || photos.some((photo) => !(PHOTO_PATTERN.test(photo) && photo.length <= MAX_PHOTO_CHARS));
+      if (badPhoto) fields.referencePhotos = ["La foto no se pudo subir. Prueba con otra."];
+      else next = { ...next, referencePhotos: photos };
+    }
     if (input.linkId !== undefined) {
       const linkId = typeof input.linkId === "string" && input.linkId.trim() !== "" ? input.linkId.trim() : null;
       if ((existing.linkId ?? null) !== linkId) {

@@ -70,7 +70,9 @@ function answerFor(topic: Topic, input: AppointmentAgentInput): string {
     case "summary": {
       const visits = !known ? t("calendar.agent.summary.walkIn") : known.visits <= 1 ? t("calendar.agent.summary.first") : t("calendar.agent.summary.visits", { visits: known.visits });
       const alert = model.critical.length > 0 ? ` ${t("calendar.agent.alerts.some", { list: model.critical.map((note) => note.text).join("; ") })}` : "";
-      return `${t("calendar.agent.summary.lead", { name: model.clientName, services, barber: model.barber?.name ?? "—", time })} ${visits} ${model.headline}.${alert}`;
+      // Lo que la pestaña de Clipper mostraba en tarjetas va aquí, como lista: riesgos, oportunidades y qué ofrecer.
+      const suggestions = model.insights.length > 0 ? `\n\n**${t("calendar.agent.suggests")}**\n${model.insights.map((insight) => `- ${insightText(input, insight)}`).join("\n")}` : "";
+      return `${t("calendar.agent.summary.lead", { name: model.clientName, services, barber: model.barber?.name ?? "—", time })} ${visits} ${model.headline}.${alert}${suggestions}`;
     }
     case "alerts":
       return model.critical.length > 0 ? t("calendar.agent.alerts.some", { list: model.critical.map((note) => note.text).join("; ") }) : t("calendar.agent.alerts.none", { name: firstName });

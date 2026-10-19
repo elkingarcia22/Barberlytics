@@ -3,7 +3,6 @@ import { useAppT } from "@/app/i18n";
 import { AIButton } from "@/components/ai-interaction";
 import { formatClock } from "@/components/scheduling";
 import { Heading, Text } from "@/components/typography";
-import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { OrderSummary, type OrderLine } from "@/features/booking/flow/OrderSummary";
@@ -11,16 +10,13 @@ import type { Totals } from "@/features/booking/pricing";
 import { durationLabel, type ModelContext } from "../calendarModel";
 import { ACTION_ICON } from "../appointmentActions";
 import { useAskClipper } from "./panelHooks";
-import { ReferencePhotos } from "./PanelParts";
 import { quickActions, stageTitle, type QuickId } from "./panelLogic";
-import { SourceLine } from "./SourceLine";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
  * Lo que va arriba según el momento de la cita, con la cara de la reserva en
- * línea: el titular en la letra de la reserva, lo que el cliente pidió al
- * reservar (nota y fotos) mientras aún no se cobra, el ticket cuando toca
- * cobrar y los atajos en tarjetas, como «Lo que puedes hacer» de la
+ * línea: el titular en la letra de la reserva, el ticket cuando toca cobrar
+ * y los atajos en tarjetas, como «Lo que puedes hacer» de la
  * confirmación de la reserva.
  */
 
@@ -37,26 +33,6 @@ export function StageHeading({ model, ctx, size = "md" }: { model: AppointmentMo
       </Heading>
       {title.line && <Text tone="secondary">{title.line}</Text>}
     </div>
-  );
-}
-
-/** Lo que el cliente pidió al reservar: su nota y las fotos del corte, a la vista antes de empezar. */
-export function BookingRequest({ model }: { model: AppointmentModel }) {
-  const t = useAppT();
-  const { appointment } = model;
-  if (!appointment.notes && !appointment.referencePhotos?.length) return null;
-  return (
-    <section aria-label={t("calendar.panel.request.title")} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4" data-testid="panel-request">
-      <div className="flex items-center gap-3">
-        <IconTile size="md" shape="circle" tone="primary" icon={<ThemaIcon name={appointment.source === "online" ? "globe" : "edit"} />} />
-        <span className="flex min-w-0 flex-col">
-          <Text weight="semibold">{t("calendar.panel.request.title")}</Text>
-          <SourceLine appointment={appointment} />
-        </span>
-      </div>
-      {appointment.notes && <Text className="border-l-2 border-primary/60 pl-3 italic">«{appointment.notes}»</Text>}
-      <ReferencePhotos model={model} />
-    </section>
   );
 }
 

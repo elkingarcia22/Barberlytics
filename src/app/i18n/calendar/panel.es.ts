@@ -35,7 +35,7 @@ export const calendarPanelEs = {
   "calendar.panel.desk.waitingFor": "Esperando hace {time}",
 
   // ── Lo que pidió al reservar ──
-  "calendar.panel.request.title": "Lo que pidió al reservar",
+  "calendar.panel.request.title": "Para el barbero",
   "calendar.panel.source.online": "Reservó en línea {when}",
   "calendar.panel.source.internal": "Agendada en la barbería {when}",
   "calendar.panel.source.walkin": "Llegó sin cita",
@@ -49,12 +49,22 @@ export const calendarPanelEs = {
   "calendar.panel.quick.addServiceShort": "Sumar",
   "calendar.panel.quick.readyShort": "Listo",
   "calendar.panel.clipper.short": "Clipper",
+  "calendar.panel.request.add": "Dejar comentario o foto del corte",
+  "calendar.panel.request.addHint": "Lo ve el barbero antes de empezar",
+  "calendar.panel.request.editShort": "Editar comentario y foto",
+  "calendar.panel.request.note": "Comentario para el barbero",
+  "calendar.panel.request.notePlaceholder": "Ej.: degradado bajo, dejar 2 cm arriba",
+  "calendar.panel.request.addPhoto": "Agregar foto del corte",
+  "calendar.panel.request.save": "Guardar",
+  "calendar.panel.client.journey": "Su recorrido",
+  "calendar.panel.fields.saveDuration": "Guardar duración: {duration}",
+  "calendar.agent.suggests": "Clipper sugiere:",
   "calendar.panel.more": "Más acciones",
 
   // ── La cita en tarjetas ──
   "calendar.panel.page.appointment": "La cita",
   "calendar.panel.cards.what": "¿Qué se va a hacer?",
-  "calendar.panel.cards.asked": "Lo que pidió",
+  "calendar.panel.cards.asked": "Comentarios y foto del corte",
   "calendar.panel.cards.who": "¿Quién viene?",
   "calendar.panel.fields.services": "Servicios",
   "calendar.panel.fields.barber": "Barbero",

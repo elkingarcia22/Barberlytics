@@ -24,6 +24,7 @@ export interface ClientTag {
 export function clientTags(model: AppointmentModel, t: Translate, options: { operational?: boolean } = {}): ClientTag[] {
   const { appointment, known, client, requested } = model;
   const tags: ClientTag[] = [];
+  if (appointment.walkIn) tags.push({ id: "walkIn", label: t("calendar.card.walkIn"), tone: "neutral" });
   if (isFirstVisit(client)) tags.push({ id: "first", label: t("calendar.panel.tag.firstVisit"), tone: "info" });
   if (requested) tags.push({ id: "requested", label: t("calendar.panel.tag.requested", { name: requested.name.split(" ")[0] }), tone: "neutral" });
   if (appointment.referencePhotos?.length) tags.push({ id: "photo", label: t("calendar.panel.tag.photo"), tone: "neutral" });

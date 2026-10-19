@@ -329,3 +329,16 @@ reserva, dentro del mismo panel y con el ticket abajo.
    pago (se manda por SMS o correo y el botón pasa a «Ya pagó · registrar»), mixto (efectivo + tarjeta) o
    en partes (2–4, cada una con su método y su datáfono; tienen que cuadrar). Con varias citas, las partes
    se reparten en orden (`allocateParts`).
+
+## 18. Cobro en una pantalla, devolver y borrar la venta (2026-10-19)
+
+- **Cobro en una sola pantalla** con la cara del pago de la reserva (el usuario no quiso dos pasos): lo
+  que se cobra, enlaces «¿Agregar un descuento?», «¿Tiene una tarjeta de regalo?» y «¿Vender una
+  tarjeta de regalo?», «¿Cómo paga?» en `OptionTile` de 3 columnas (y los datáfonos igual), y «Tu
+  orden». **La propina se pregunta al pulsar «Cobrar»**, en su ventana, como en la reserva; al elegirla
+  se cobra (en partes, se suma a la última).
+- **Devolver** es una página dentro del panel (`RefundPage`): se marca cada servicio, los productos con
+  cuántos (vuelven al inventario) y la propina; sale el monto con su descuento e impuesto, o se escribe
+  otro; a dónde vuelve y por qué. Lo ya devuelto se descuenta.
+- **Borrar la venta** (dueño y administrador) en el «⋯» de la cobrada, con motivo: la cita vuelve a «en
+  silla» sin pago.

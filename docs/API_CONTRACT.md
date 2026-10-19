@@ -390,7 +390,8 @@ Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí �
 
 | Método | Ruta | Notas |
 |---|---|---|
-| POST | `/appointments/:id/refund` | `{ amount, reason, to: "cash" \| "card" }`: devuelve una cuenta cobrada, entera o en parte, hasta `total + tip − refunded`. Responde la cita con `refunds`. `409` si no está cobrada; `422` con `fields`. La nómina deja de comisionar lo devuelto. |
+| POST | `/appointments/:id/refund` | `{ amount, reason, to: "cash" \| "card", items? }`: devuelve una cuenta cobrada, entera o en parte, hasta `total + tip − refunded`. `items: [{ kind: "service" \| "product" \| "tip", id, qty, amount }]` dice qué se devuelve: los productos vuelven al inventario (no más de lo vendido menos lo ya devuelto: `422`). Responde la cita con `refunds`. `409` si no está cobrada; `422` con `fields`. La nómina deja de comisionar lo devuelto. |
+| POST | `/appointments/:id/void-payment` | `{ reason }`. Borra una venta hecha por error: la cita vuelve a `seated` sin `payment`, lo vendido vuelve al inventario, la tarjeta de regalo usada recupera su saldo y la vendida queda sin saldo. Solo dueño y administrador (`403`); `409` si no está cobrada o ya tiene devoluciones; `422` sin motivo. |
 | GET | `/transactions?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, items: account[] }`, de la más reciente a la más antigua. Sin paginar: el front resume, filtra por estado y busca en memoria. `422` si el rango es inválido, va al revés o pasa de 62 días. |
 
 Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, devuelto) se calculan en el front sobre `items`; si el backend real pagina, tendrá que devolverlas en un `summary` aparte.

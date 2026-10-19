@@ -64,13 +64,19 @@ export function VoidSaleContent({ model, onClose }: { model: AppointmentModel; o
   const t = useAppT();
   const voidPayment = useVoidPayment();
   const [reason, setReason] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  // El menú que lo abrió devuelve el foco a su botón al cerrarse: el campo lo toma un momento después.
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 120);
+    return () => window.clearTimeout(timer);
+  }, []);
   return (
     <div className="flex flex-col gap-3" data-testid="panel-void">
       <PopoverHeader>
         <PopoverTitle>{t("calendar.void.title")}</PopoverTitle>
         <PopoverDescription>{t("calendar.void.hint")}</PopoverDescription>
       </PopoverHeader>
-      <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("calendar.void.reason")} aria-label={t("calendar.void.reason")} autoFocus />
+      <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("calendar.void.reason")} aria-label={t("calendar.void.reason")} ref={inputRef} />
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onClose}>
           {t("calendar.cancel.keep")}

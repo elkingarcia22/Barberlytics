@@ -799,11 +799,11 @@ describe("Calendario", () => {
     if (warning) await user.click(within(warning).getByRole("button", { name: "Seguir con esta" }));
     expect(await screen.findByTestId("checkout-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("appointment-drawer")).toBeNull();
-    // Primero la cuenta; luego «¿Cómo paga?», con las propinas de Configuración (no una lista fija).
-    expect(screen.getByTestId("checkout-next")).toHaveTextContent(/Continuar al pago · US\$/);
-    await user.click(screen.getByTestId("checkout-next"));
-    expect(await within(screen.getByTestId("checkout-drawer")).findByRole("button", { name: /^25%/ })).toBeInTheDocument();
+    // Una sola pantalla; la propina (las de Configuración, no una lista fija) se pregunta al pulsar «Cobrar».
     expect(screen.getByTestId("checkout-pay")).toHaveTextContent(/Cobrar US\$/);
+    await user.click(screen.getByTestId("checkout-pay"));
+    expect(await screen.findByRole("radio", { name: /^25%/ })).toBeInTheDocument();
+    expect(screen.getByTestId("checkout-tip-pay")).toHaveTextContent(/Sin propina · cobrar US\$/);
   });
 
   test("una cita pagada en línea solo cobra en caja lo que falta, con el impuesto de la sucursal", async () => {

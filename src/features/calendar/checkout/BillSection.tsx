@@ -16,17 +16,16 @@ import type { Appointment } from "../types";
 import type { CheckoutController } from "./useCheckout";
 
 /**
- * «La cuenta», el primer paso del cobro: qué se cobra. Las citas que van
- * juntas (las de su visita y otras sin cobrar que se sumen), los servicios
- * con su precio (se cambia ahí mismo), los productos, una tarjeta de regalo
- * que se vende y el descuento. Cada cosa es una pregunta con su tarjeta, como
- * en la reserva.
+ * Qué se cobra: las citas que van juntas (las de su visita y otras sin
+ * cobrar que se sumen), los servicios con su precio (se cambia ahí mismo) y
+ * los productos. Y dos piezas que se abren desde un enlace, como el cupón de
+ * la reserva: vender una tarjeta de regalo y el descuento.
  */
 
 /** Los montos de tarjeta de regalo que se ofrecen de un toque. */
 const GIFT_AMOUNTS = [25, 50, 100] as const;
 
-export function BillStep({ checkout, appointment, ctx }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext }) {
+export function BillSection({ checkout, appointment, ctx }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext }) {
   const { t } = checkout;
   const canEditPrices = ctx.access?.canEditPrices ?? true;
   const addable = checkout.candidates.filter((item) => !checkout.extras.some((extra) => extra.id === item.id));
@@ -139,12 +138,6 @@ export function BillStep({ checkout, appointment, ctx }: { checkout: CheckoutCon
         />
       </PanelQuestion>
 
-      <PanelQuestion title={t("calendar.checkout.extras")}>
-        <div className="flex flex-col gap-2">
-          <GiftSaleField checkout={checkout} ctx={ctx} />
-          <DiscountField checkout={checkout} ctx={ctx} />
-        </div>
-      </PanelQuestion>
     </div>
   );
 }
@@ -168,7 +161,7 @@ function VisitRow({ appointment, ctx, current = false, selected = false, onClick
 }
 
 /** Vender una tarjeta de regalo en el mismo cobro: el monto y para quién (le llega el código). */
-function GiftSaleField({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+export function GiftSaleField({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t, giftSale } = checkout;
   if (!giftSale) {
     return <ActionTile tone="dashed" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<Gift />} />} title={t("calendar.checkout.giftSale.add")} description={t("calendar.checkout.giftSale.hint")} onClick={() => checkout.setGiftSale({ amount: GIFT_AMOUNTS[1], recipientName: "", recipientContact: "" })} data-testid="checkout-gift-sale-add" />;
@@ -212,7 +205,7 @@ function GiftSaleField({ checkout, ctx }: { checkout: CheckoutController; ctx: M
 }
 
 /** Un descuento de la caja: porcentaje o monto, con su motivo (queda en la cuenta). */
-function DiscountField({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+export function DiscountField({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   if (checkout.discountValue === null) {
     return <ActionTile tone="dashed" leading={<IconTile size="md" shape="circle" tone="neutral" icon={<Percent />} />} title={t("calendar.checkout.discount.add")} description={t("calendar.checkout.discount.hint")} onClick={() => checkout.setDiscountValue(0)} data-testid="checkout-discount-add" />;

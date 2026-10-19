@@ -2,81 +2,45 @@ import * as React from "react";
 import { Banknote, CreditCard, Gift, Link2, Mail, MessageSquareText, Smartphone, Split, SquareStack, X } from "lucide-react";
 import { Chip } from "@/components/ai-interaction";
 import { Field, NumberField } from "@/components/forms";
-import { RadioCardGroup, SegmentedControl, SelectableRow } from "@/components/selection";
-import { Text } from "@/components/typography";
+import { OptionTile, SegmentedControl } from "@/components/selection";
+import { Heading, Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import type { ModelContext } from "../calendarModel";
-import { tipAmount } from "../checkoutMath";
-import { PanelQuestion } from "../appointmentPanel/bookingStyle";
 import type { PaymentPart } from "../types";
 import type { CheckoutController, PayChoice } from "./useCheckout";
 
 /**
- * «¿Cómo paga?», el segundo paso del cobro, con la cara del pago de la
- * reserva: la propina para el barbero, la tarjeta de regalo del cliente y el
- * método —efectivo (con el cambio), tarjeta (eligiendo el datáfono), link de
- * pago (se le manda y se registra cuando pague), mixto (efectivo y tarjeta) o
- * en partes (cada una con su método)—.
+ * «¿Cómo paga?», con la cara del pago de la reserva: las formas de pago en
+ * tarjetas y lo de la elegida —efectivo (con el cambio), tarjeta (eligiendo el
+ * datáfono), link de pago (se le manda y se registra cuando pague), mixto
+ * (efectivo y tarjeta) o en partes (cada una con su método)—. La tarjeta de
+ * regalo del cliente se abre desde un enlace; la propina se pregunta al cobrar.
  */
 
 const PAY_ICONS: Record<PayChoice, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, mixed: Split, parts: SquareStack };
 const PAY_CHOICES: readonly PayChoice[] = ["cash", "card", "link", "mixed", "parts"];
 const PART_COUNTS = [2, 3, 4] as const;
 
-export function PayStep({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+export function PaySection({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   return (
     <div className="flex flex-col gap-6" data-testid="checkout-pay-step">
-      <PanelQuestion title={t("calendar.checkout.tipFor", { name: checkout.barber?.name.split(" ")[0] ?? "" })}>
-        <div className="flex flex-wrap gap-2">
-          <Chip label={t("calendar.checkout.noTip")} selected={checkout.tipChoice === "none"} tone={checkout.tipChoice === "none" ? "primary" : "default"} onClick={() => checkout.setTipChoice("none")} />
-          {checkout.tipOptions.map((option) => (
-            <Chip key={option.id} label={option.type === "percent" ? `${option.value}% · ${ctx.formatMoney(tipAmount(option, checkout.bill.subtotal))}` : ctx.formatMoney(option.value)} selected={checkout.tipChoice === option.id} tone={checkout.tipChoice === option.id ? "primary" : "default"} onClick={() => checkout.setTipChoice(option.id)} />
+      <section className="flex flex-col gap-3">
+        <Heading level={6}>{t("calendar.checkout.howPays")}</Heading>
+        {/* Como el pago de la reserva: las formas de pago en tarjetas lado a lado y, debajo, lo de la elegida. */}
+        <div role="radiogroup" aria-label={t("calendar.checkout.method")} className="grid grid-cols-3 gap-2" data-testid="checkout-methods">
+          {PAY_CHOICES.map((choice) => (
+            <OptionTile key={choice} layout="stacked" compact option={{ value: choice, label: t(`calendar.checkout.pay.${choice}`), icon: PAY_ICONS[choice] }} selected={checkout.payChoice === choice} onSelect={(value) => checkout.choosePay(value as PayChoice)} />
           ))}
-          <Chip label={t("calendar.checkout.customTip")} selected={checkout.tipChoice === "custom"} tone={checkout.tipChoice === "custom" ? "primary" : "default"} onClick={() => checkout.setTipChoice("custom")} />
         </div>
-        {checkout.tipChoice === "custom" && (
-          <Field label={t("calendar.checkout.tip")}>
-            <NumberField value={checkout.customTip} onValueChange={checkout.setCustomTip} min={0} step={1} prefix="$" size="sm" />
-          </Field>
-        )}
-      </PanelQuestion>
-
-      <PanelQuestion title={t("calendar.checkout.giftCard.title")}>
-        <GiftRedeem checkout={checkout} ctx={ctx} />
-      </PanelQuestion>
-
-      <PanelQuestion title={t("calendar.checkout.method")}>
-        <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("calendar.checkout.method")} data-testid="checkout-methods">
-          {PAY_CHOICES.map((choice) => {
-            const Icon = PAY_ICONS[choice];
-            return (
-              <SelectableRow
-                key={choice}
-                role="radio"
-                checked={checkout.payChoice === choice}
-                label={t(`calendar.checkout.pay.${choice}`)}
-                leading={<IconTile size="md" shape="circle" tone={checkout.payChoice === choice ? "primary" : "neutral"} icon={<Icon />} />}
-                onClick={() => checkout.choosePay(choice)}
-                data-testid={`checkout-method-${choice}`}
-              >
-                <span className="flex flex-col">
-                  <Text as="span" weight="medium">
-                    {t(`calendar.checkout.pay.${choice}`)}
-                  </Text>
-                  <Text as="span" size="xs" tone="muted">
-                    {t(`calendar.checkout.pay.${choice}Hint`)}
-                  </Text>
-                </span>
-              </SelectableRow>
-            );
-          })}
-        </div>
-        <div className="mt-1">
+        <Text size="xs" tone="muted">
+          {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
+        </Text>
+        <div>
           {checkout.payChoice === "cash" && <CashDetail checkout={checkout} ctx={ctx} />}
           {checkout.payChoice === "card" && <DevicePicker checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}
           {checkout.payChoice === "link" && <LinkDetail checkout={checkout} ctx={ctx} />}
@@ -88,13 +52,13 @@ export function PayStep({ checkout, ctx }: { checkout: CheckoutController; ctx: 
             {t("calendar.checkout.surchargeHint", { amount: ctx.formatMoney(checkout.surcharge) })}
           </Text>
         )}
-      </PanelQuestion>
+      </section>
     </div>
   );
 }
 
 /** Pagar con la tarjeta de regalo del cliente: el código, su saldo y cuánto cubre. */
-function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+export function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   const [code, setCode] = React.useState("");
   if (checkout.gift) {
@@ -161,7 +125,11 @@ function DevicePicker({ checkout, value, onChange }: { checkout: CheckoutControl
       <Text size="sm" weight="medium">
         {t("calendar.checkout.device.title")}
       </Text>
-      <RadioCardGroup columns={devices.length > 1 ? 2 : 1} value={value ?? undefined} onChange={onChange} options={devices.map((device) => ({ value: device.id, label: device.name, description: `TPN ${device.tpn}`, icon: Smartphone }))} />
+      <div role="radiogroup" aria-label={t("calendar.checkout.device.title")} className="grid grid-cols-2 gap-2">
+        {devices.map((device) => (
+          <OptionTile key={device.id} compact option={{ value: device.id, label: device.name, description: `TPN ${device.tpn}`, icon: Smartphone }} selected={value === device.id} onSelect={onChange} />
+        ))}
+      </div>
     </div>
   );
 }

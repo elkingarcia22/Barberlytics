@@ -94,17 +94,23 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   const togetherBills = together.map((item) => appointmentBill(ctx.catalog, item.serviceIds, item.products, item.online, item.barberId, item));
   const bill = sumBills([ownBill, ...togetherBills]);
 
-  const chosenTip = tipOptions.find((option) => option.id === tipChoice);
-  const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, bill.subtotal) : 0;
+  /** La propina de una opción (`none`, `custom` o el id de Configuración): se elige al pulsar «Cobrar». */
+  const tipOf = (choice: string, custom: number | null = customTip): number => {
+    const option = tipOptions.find((item) => item.id === choice);
+    return choice === "custom" ? Math.max(0, custom ?? 0) : option ? tipAmount(option, bill.subtotal) : 0;
+  };
   const giftSaleAmount = giftSale?.amount && giftSale.amount > 0 ? giftSale.amount : 0;
-  // La tarjeta de regalo paga primero lo de la cita abierta (su propina y la tarjeta que se vende incluidas).
-  const giftApplied = gift ? cents(Math.min(gift.balance, ownBill.due + tip + giftSaleAmount)) : 0;
-  const beforeFee = cents(bill.due + tip + giftSaleAmount - giftApplied);
   const mixed = payChoice === "mixed";
-  const cash = mixed ? Math.min(Math.max(0, cashPart ?? 0), beforeFee) : 0;
-  // El recargo va sobre lo que se pasa con tarjeta (en mixto, su parte; en partes no se cobra).
-  const surcharge = payChoice === "card" ? surchargeAmount(cardFee.data, "card", cents(bill.due - giftApplied)) : mixed ? surchargeAmount(cardFee.data, "card", beforeFee - cash) : 0;
-  const total = cents(beforeFee + surcharge);
+  /** Lo que se cobra con una propina dada: la tarjeta de regalo paga primero; el recargo va sobre lo que se pasa con tarjeta. */
+  const amountsWith = (tipValue: number) => {
+    const giftUsed = gift ? cents(Math.min(gift.balance, ownBill.due + tipValue + giftSaleAmount)) : 0;
+    const beforeFee = cents(bill.due + tipValue + giftSaleAmount - giftUsed);
+    const cashNow = mixed ? Math.min(Math.max(0, cashPart ?? 0), beforeFee) : 0;
+    const fee = payChoice === "card" ? surchargeAmount(cardFee.data, "card", cents(bill.due - giftUsed)) : mixed ? surchargeAmount(cardFee.data, "card", beforeFee - cashNow) : 0;
+    return { giftApplied: giftUsed, cash: cashNow, surcharge: fee, total: cents(beforeFee + fee) };
+  };
+  const tip = tipOf(tipChoice);
+  const { giftApplied, cash, surcharge, total } = amountsWith(tip);
   const change = payChoice === "cash" ? changeDue(received, total) : null;
   const partsTotal = parts ? cents(parts.reduce((sum, part) => sum + part.amount, 0)) : 0;
   const partsLeft = cents(total - partsTotal);
@@ -162,11 +168,17 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   /** Si se puede cobrar ya: el link se manda primero; en partes, tienen que cuadrar. */
   const ready = services.length > 0 && !(payChoice === "link" && !linkSent) && !(payChoice === "parts" && Math.abs(partsLeft) > 0.01) && !(giftSale && (!giftSale.amount || giftSale.recipientName.trim().length < 2));
 
-  const pay = async () => {
+  /** Cobra con la propina elegida en la ventana de «Cobrar» (en partes, la propina se suma a la última). */
+  const pay = async (tipChoiceNow: string = tipChoice, customNow: number | null = customTip) => {
+    setTipChoice(tipChoiceNow);
+    setCustomTip(customNow);
+    const tip = tipOf(tipChoiceNow, customNow);
+    const { giftApplied, cash, surcharge, total } = amountsWith(tip);
     const ownDue = cents(ownBill.due + tip + giftSaleAmount - giftApplied + (payChoice === "card" ? surcharge : 0));
     const dues = [ownDue, ...togetherBills.map((item) => item.due)];
     // Cómo se cierra cada cita: en partes se reparten en orden; en mixto, el efectivo se reparte y el resto va con tarjeta.
-    const allocated = payChoice === "parts" && parts ? allocateParts(parts, dues).map(paymentOf) : null;
+    const withTip = parts ? parts.map((part, index) => (index === parts.length - 1 ? { ...part, amount: cents(part.amount + tip) } : part)) : null;
+    const allocated = payChoice === "parts" && withTip ? allocateParts(withTip, dues).map(paymentOf) : null;
     const mixedSplits = mixed ? splitAcross(cash, [cents(ownDue + surcharge), ...dues.slice(1)]) : [];
     const methodOf = (index: number): Pick<CheckoutInput, "method" | "parts" | "deviceId" | "split"> => {
       if (allocated) return allocated[index];
@@ -226,6 +238,8 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     tipChoice,
     customTip,
     tip,
+    tipOf,
+    totalWithTip: (tipValue: number) => amountsWith(tipValue).total,
     payChoice,
     received,
     change,

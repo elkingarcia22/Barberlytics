@@ -1,24 +1,25 @@
 import * as React from "react";
-import { ArrowLeft, ArrowRight, HandCoins } from "lucide-react";
 import { useAppT } from "@/app/i18n";
-import { SidePanelShell } from "@/components/overlays";
-import { Stepper } from "@/components/navigation";
-import { Text } from "@/components/typography";
+import { Spinner } from "@/components/feedback/Spinner";
+import { ModalShell, SidePanelShell } from "@/components/overlays";
+import { Field, NumberField } from "@/components/forms";
+import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
-import type { ModelContext } from "./calendarModel";
+import { Separator } from "@/components/ui/separator";
+import { ThemaIcon } from "@/icons";
+import { servicesOf, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
 import type { Appointment } from "./types";
-import { BillStep } from "./checkout/BillStep";
-import { PayStep } from "./checkout/PayStep";
+import { BillSection, DiscountField, GiftSaleField } from "./checkout/BillSection";
+import { GiftRedeem, PaySection } from "./checkout/PaySection";
 import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
 
 /**
- * Cobrar, en dos pasos dentro del mismo panel, como el pago de la reserva en
- * línea: «La cuenta» (qué se cobra: citas juntas, servicios con su precio,
- * productos, tarjeta de regalo que se vende y descuento) y «¿Cómo paga?»
- * (propina, tarjeta de regalo del cliente y el método: efectivo, tarjeta con
- * su datáfono, link de pago, mixto o en partes). Abajo, siempre, el ticket y
- * el botón que dice lo que pasa.
+ * Cobrar, en una sola pantalla con la cara del pago de la reserva en línea:
+ * arriba lo que se cobra (citas juntas, servicios con su precio, productos),
+ * los enlaces para un descuento y para las tarjetas de regalo (pagar con una o
+ * vender una), «¿Cómo paga?» en tarjetas y «Tu orden». La propina se pregunta
+ * al pulsar «Cobrar», en su ventana, como en la reserva; al elegirla se cobra.
  */
 
 export interface CheckoutDrawerProps {
@@ -33,7 +34,7 @@ export interface CheckoutDrawerProps {
   candidates?: readonly Appointment[];
 }
 
-type Step = "bill" | "pay";
+const NO_TIP = "none";
 
 export function CheckoutDrawer(props: CheckoutDrawerProps) {
   const key = `${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`;
@@ -43,81 +44,181 @@ export function CheckoutDrawer(props: CheckoutDrawerProps) {
 
 function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companions, candidates }: CheckoutDrawerProps & { appointment: Appointment }) {
   const t = useAppT();
-  const [step, setStep] = React.useState<Step>("bill");
   const checkout = useCheckout({ appointment, companions, candidates, ctx, onPaid, onClose: () => onOpenChange(false) });
-  const together = checkout.together.length > 0;
+  const [tipOpen, setTipOpen] = React.useState(false);
+  const [giftOpen, setGiftOpen] = React.useState(false);
+  // Con propinas en Configuración se preguntan al cobrar; si no, se cobra directo.
+  const charge = () => (checkout.tipOptions.length > 0 ? setTipOpen(true) : void checkout.pay(NO_TIP));
 
   return (
     <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
       size="lg"
-      title={together ? t("calendar.checkout.titleVisit") : t("calendar.checkout.title")}
+      title={checkout.together.length > 0 ? t("calendar.checkout.titleVisit") : t("calendar.checkout.title")}
       description={checkout.client ? `${checkout.client.name} · ${checkout.barber?.name ?? ""}` : undefined}
-      footer={<CheckoutFooter checkout={checkout} ctx={ctx} step={step} onNext={() => setStep("pay")} onBack={() => setStep("bill")} />}
+      footer={
+        <div className="border-t border-border px-5 py-4">
+          <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
+            {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+            {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
+          </Button>
+        </div>
+      }
     >
-      <div className="flex flex-col gap-5" data-testid="checkout-drawer">
-        <Stepper
-          size="sm"
-          aria-label={t("calendar.checkout.steps")}
-          current={step === "bill" ? 0 : 1}
-          onStepClick={(index) => setStep(index === 0 ? "bill" : "pay")}
-          steps={[
-            { id: "bill", label: t("calendar.checkout.step.bill") },
-            { id: "pay", label: t("calendar.checkout.step.pay") },
-          ]}
-        />
-        {step === "bill" ? <BillStep checkout={checkout} appointment={appointment} ctx={ctx} /> : <PayStep checkout={checkout} ctx={ctx} />}
+      <div className="flex flex-col gap-6" data-testid="checkout-drawer">
+        <Text tone="secondary">{t("calendar.checkout.lead")}</Text>
+        <BillSection checkout={checkout} appointment={appointment} ctx={ctx} />
+
+        {/* Como el cupón de la reserva: enlaces en una línea; el que se abre toma el ancho entero. */}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {checkout.discountValue === null && (
+              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setDiscountValue(0)} data-testid="checkout-discount-add">
+                {t("calendar.checkout.discount.ask")}
+              </Button>
+            )}
+            {!checkout.gift && !giftOpen && (
+              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => setGiftOpen(true)} data-testid="checkout-gift-ask">
+                {t("calendar.checkout.giftCard.ask")}
+              </Button>
+            )}
+            {!checkout.giftSale && (
+              <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setGiftSale({ amount: 50, recipientName: "", recipientContact: "" })} data-testid="checkout-gift-sale-add">
+                {t("calendar.checkout.giftSale.ask")}
+              </Button>
+            )}
+          </div>
+          {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
+          {(giftOpen || checkout.gift) && <GiftRedeem checkout={checkout} ctx={ctx} />}
+          {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
+        </div>
+
+        <PaySection checkout={checkout} ctx={ctx} />
+        <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
       </div>
+      <TipModal open={tipOpen} onOpenChange={setTipOpen} checkout={checkout} ctx={ctx} />
     </SidePanelShell>
   );
 }
 
-/** El ticket y el botón del paso: «Continuar al pago» y, en el pago, «Cobrar» (o «Ya pagó» con el link). */
-function CheckoutFooter({ checkout, ctx, step, onNext, onBack }: { checkout: CheckoutController; ctx: ModelContext; step: Step; onNext: () => void; onBack: () => void }) {
+/** «Tu orden», como en la reserva: una línea por cita y por producto, y las cuentas. */
+function OrderCard({ checkout, ctx, appointment }: { checkout: CheckoutController; ctx: ModelContext; appointment: Appointment }) {
   const { t, bill } = checkout;
+  const lines = [
+    ...checkout.services.map((service, index) => ({ id: `s-${index}`, label: service.name, detail: checkout.barber?.name, amount: checkout.servicePrices[index] ?? service.price })),
+    ...checkout.together.map((item) => ({ id: `a-${item.id}`, label: servicesOf(ctx.catalog, item).map((service) => service.name).join(" + "), detail: t("calendar.checkout.togetherLine"), amount: servicesOf(ctx.catalog, item).reduce((sum, service) => sum + service.price, 0) })),
+    ...checkout.products.flatMap((line) => {
+      const product = ctx.catalog.products.find((item) => item.id === line.productId);
+      return product ? [{ id: `p-${product.id}`, label: product.name, detail: `× ${line.qty}`, amount: (checkout.productPrices[product.id] ?? product.price) * line.qty }] : [];
+    }),
+  ];
   return (
-    <div className="space-y-3 border-t border-border px-5 py-4">
-      <div className="space-y-1" data-testid="checkout-ticket">
-        <TotalRow label={t("calendar.checkout.subtotal")} value={ctx.formatMoney(bill.subtotal)} />
-        {bill.discount > 0 && <TotalRow label={t("calendar.checkout.discountLine")} value={`−${ctx.formatMoney(bill.discount)}`} testId="checkout-discount-line" />}
-        {bill.tax > 0 && <TotalRow label={t(ctx.catalog.taxInclusive ? "calendar.checkout.taxIncluded" : "calendar.checkout.tax")} value={ctx.formatMoney(bill.tax)} />}
-        {checkout.giftSaleAmount > 0 && <TotalRow label={t("calendar.checkout.giftSale.line")} value={ctx.formatMoney(checkout.giftSaleAmount)} />}
-        {bill.prepaid > 0 && <TotalRow label={checkout.reservation ? t("calendar.checkout.prepaid", { reservation: checkout.reservation }) : t("calendar.checkout.prepaidShort")} value={`−${ctx.formatMoney(bill.prepaid)}`} testId="checkout-prepaid" />}
-        {checkout.tip > 0 && <TotalRow label={t("calendar.checkout.tip")} value={ctx.formatMoney(checkout.tip)} />}
-        {checkout.surcharge > 0 && <TotalRow label={checkout.cardFeeName || t("calendar.checkout.surcharge")} value={ctx.formatMoney(checkout.surcharge)} />}
-        {checkout.giftApplied > 0 && <TotalRow label={t("calendar.checkout.giftCard.line")} value={`−${ctx.formatMoney(checkout.giftApplied)}`} />}
-        <TotalRow label={t(bill.prepaid > 0 ? "calendar.checkout.due" : "calendar.checkout.total")} value={ctx.formatMoney(checkout.total)} strong testId="checkout-total" />
-      </div>
-      {step === "bill" ? (
-        <Button className="w-full" size="lg" onClick={onNext} disabled={checkout.services.length === 0} data-testid="checkout-next">
-          {t("calendar.checkout.next", { total: ctx.formatMoney(checkout.total) })}
-          <ArrowRight />
-        </Button>
-      ) : (
-        <div className="flex gap-2">
-          <Button variant="outline" size="lg" onClick={onBack} aria-label={t("common.back")}>
-            <ArrowLeft />
-          </Button>
-          <Button className="flex-1" size="lg" onClick={() => void checkout.pay()} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
-            <HandCoins />
-            {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
-          </Button>
+    <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-subtle p-4" data-testid="checkout-ticket">
+      <Heading level={6}>{t("calendar.checkout.order")}</Heading>
+      <div className="flex flex-col gap-2">
+        {lines.map((line) => (
+          <div key={line.id} className="flex items-start justify-between gap-3">
+            <span className="flex min-w-0 flex-col">
+              <Text size="sm" weight="medium" truncate>
+                {line.label}
+              </Text>
+              {line.detail && (
+                <Text size="xs" tone="muted" truncate>
+                  {line.detail}
+                </Text>
+              )}
+            </span>
+            <Text size="sm" tabular>
+              {ctx.formatMoney(line.amount)}
+            </Text>
+          </div>
+        ))}
+        <Separator className="my-1" />
+        {bill.discount > 0 && <Row label={t("calendar.checkout.discountLine")} value={`−${ctx.formatMoney(bill.discount)}`} positive testId="checkout-discount-line" />}
+        <Row label={t("calendar.checkout.subtotal")} value={ctx.formatMoney(bill.subtotal - bill.discount)} />
+        <Row label={t(ctx.catalog.taxInclusive ? "calendar.checkout.taxIncluded" : "calendar.checkout.tax")} value={ctx.formatMoney(bill.tax)} />
+        {checkout.giftSaleAmount > 0 && <Row label={t("calendar.checkout.giftSale.line")} value={ctx.formatMoney(checkout.giftSaleAmount)} />}
+        {bill.prepaid > 0 && <Row label={appointment.online?.reservation ? t("calendar.checkout.prepaid", { reservation: appointment.online.reservation }) : t("calendar.checkout.prepaidShort")} value={`−${ctx.formatMoney(bill.prepaid)}`} positive testId="checkout-prepaid" />}
+        {checkout.surcharge > 0 && <Row label={checkout.cardFeeName || t("calendar.checkout.surcharge")} value={ctx.formatMoney(checkout.surcharge)} />}
+        {checkout.giftApplied > 0 && <Row label={t("calendar.checkout.giftCard.line")} value={`−${ctx.formatMoney(checkout.giftApplied)}`} positive />}
+        <Separator className="my-1" />
+        <div className="flex items-center justify-between gap-3" data-testid="checkout-total">
+          <Text weight="semibold">{t(bill.prepaid > 0 ? "calendar.checkout.due" : "calendar.checkout.total")}</Text>
+          <Text size="lg" weight="bold" tabular>
+            {ctx.formatMoney(checkout.total)}
+          </Text>
         </div>
-      )}
+      </div>
+    </section>
+  );
+}
+
+function Row({ label, value, positive = false, testId }: { label: string; value: string; positive?: boolean; testId?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3" data-testid={testId}>
+      <Text size="sm" tone={positive ? "positive" : "secondary"}>
+        {label}
+      </Text>
+      <Text size="sm" tabular tone={positive ? "positive" : "default"}>
+        {value}
+      </Text>
     </div>
   );
 }
 
-function TotalRow({ label, value, strong, testId }: { label: string; value: string; strong?: boolean; testId?: string }) {
+/** La propina para el barbero, al pulsar «Cobrar» (como en la reserva): al elegirla se cobra. */
+function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpenChange: (open: boolean) => void; checkout: CheckoutController; ctx: ModelContext }) {
+  const { t } = checkout;
+  const [choice, setChoice] = React.useState(NO_TIP);
+  const [custom, setCustom] = React.useState<number | null>(null);
+  const tip = checkout.tipOf(choice, custom);
+  const options = [
+    { value: NO_TIP, label: t("calendar.checkout.noTip") },
+    ...checkout.tipOptions.map((option) => ({ value: option.id, label: option.type === "percent" ? `${option.value}% · ${ctx.formatMoney(checkout.tipOf(option.id))}` : ctx.formatMoney(option.value) })),
+    { value: "custom", label: t("calendar.checkout.customTip") },
+  ];
   return (
-    <div className="flex items-center justify-between gap-4" data-testid={testId}>
-      <Text variant={strong ? "body" : "muted"} weight={strong ? "semibold" : undefined}>
-        {label}
-      </Text>
-      <Text weight={strong ? "semibold" : undefined} size={strong ? "lg" : undefined} tabular>
-        {value}
-      </Text>
-    </div>
+    <ModalShell
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title={t("calendar.checkout.tipFor", { name: checkout.barber?.name.split(" ")[0] ?? "" })}
+      description={t("calendar.checkout.tipAsk")}
+      actions={
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={checkout.paying}
+          onClick={() => {
+            onOpenChange(false);
+            void checkout.pay(choice, custom);
+          }}
+          data-testid="checkout-tip-pay"
+        >
+          {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+          {tip > 0 ? t("calendar.checkout.tipAndPay", { total: ctx.formatMoney(checkout.totalWithTip(tip)) }) : t("calendar.checkout.tipSkipPay", { total: ctx.formatMoney(checkout.total) })}
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div role="radiogroup" aria-label={t("calendar.checkout.tip")} className="flex flex-wrap gap-2">
+          {options.map((option) => {
+            const selected = choice === option.value;
+            return (
+              <Button key={option.value} type="button" role="radio" aria-checked={selected} variant={selected ? "default" : "outline"} className="min-w-[5rem] rounded-full tabular-nums" onClick={() => setChoice(option.value)}>
+                {option.label}
+              </Button>
+            );
+          })}
+        </div>
+        {choice === "custom" && (
+          <Field label={t("calendar.checkout.tip")}>
+            <NumberField value={custom} onValueChange={setCustom} min={0} step={1} prefix="$" size="sm" autoFocus />
+          </Field>
+        )}
+      </div>
+    </ModalShell>
   );
 }

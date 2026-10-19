@@ -137,6 +137,9 @@ export const appointmentSchema = z.object({
   notes: z.string().nullable(),
   /** Fotos del corte que pidió el cliente al reservar en línea. */
   referencePhotos: z.array(z.string()).optional(),
+  /** Precios cambiados al cobrar: por servicio (en el orden de `serviceIds`) y por producto (unitario). */
+  servicePrices: z.array(z.number().nullable()).optional(),
+  productPrices: z.record(z.string(), z.number()).optional(),
   createdAt: z.string(),
   createdBy: z.string(),
   history: z.array(historyEntrySchema),
@@ -273,6 +276,9 @@ export interface CheckoutInput {
   surcharge?: number;
   /** Con `mixed`: el reparto entre efectivo y tarjeta de lo que se cobra ahora. */
   split?: { cash: number; card: number };
+  /** Precios cambiados en la caja: por servicio (en el orden de `serviceIds`, `null` = el de lista) y por producto (unitario). */
+  servicePrices?: (number | null)[];
+  productPrices?: Record<string, number>;
 }
 
 export const blockInputSchema = z.object({

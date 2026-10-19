@@ -149,6 +149,9 @@ export interface MockAppointment {
   notes: string | null;
   /** Fotos del corte que quiere el cliente (data URL), si las mandó al reservar en línea. */
   referencePhotos?: string[];
+  /** Precios cambiados al cobrar: por servicio (en el orden de `serviceIds`) y por producto (unitario). */
+  servicePrices?: (number | null)[];
+  productPrices?: Record<string, number>;
   createdAt: string;
   createdBy: string;
   history: MockHistoryEntry[];

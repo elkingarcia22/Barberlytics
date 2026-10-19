@@ -18,6 +18,7 @@ import { cardFeeSchema, tipsSchema } from "@/features/settings/settingsTypes";
 import { FALLBACK_TIPS, appointmentBill, changeDue, splitAcross, sumBills, surchargeAmount, tipAmount, type TipChoice } from "./checkoutMath";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type Appointment, type PaymentMethod, type ProductLine } from "./types";
 import { ProductThumb, ServiceThumb } from "./calendarShared";
+import { CheckoutPrice } from "./CheckoutPrice";
 
 /**
  * Cobrar una cita: los servicios y productos de la cuenta, la propina para
@@ -53,6 +54,10 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const checkout = useCheckoutAppointment();
   const [serviceIds, setServiceIds] = React.useState<string[]>(appointment?.serviceIds ?? []);
   const [products, setProducts] = React.useState<ProductLine[]>(appointment?.products ?? []);
+  // Los precios cambiados en la caja: por servicio (alineados con `serviceIds`; `null` = el de lista) y por producto.
+  const [servicePrices, setServicePrices] = React.useState<(number | null)[]>(() => (appointment?.serviceIds ?? []).map((_, index) => appointment?.servicePrices?.[index] ?? null));
+  const [productPrices, setProductPrices] = React.useState<Record<string, number>>(appointment?.productPrices ?? {});
+  const canEditPrices = ctx.access?.canEditPrices ?? true;
   // Las propinas sugeridas y el recargo por tarjeta son los de Configuración.
   const tipSettings = useSettingsSection("tips", tipsSchema);
   const cardFee = useSettingsSection("cardFee", cardFeeSchema);
@@ -76,7 +81,10 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const chosenCompanions = companions.filter((item) => companionIds.includes(item.id));
   // La cuenta con el impuesto de la sucursal, menos lo ya pagado al reservar en línea: aquí se cobra solo el resto.
   const companionBills = chosenCompanions.map((item) => appointmentBill(ctx.catalog, item.serviceIds, item.products, item.online, item.barberId));
-  const bill = sumBills([appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId), ...companionBills]);
+  const prices = { servicePrices, productPrices };
+  const bill = sumBills([appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId, prices), ...companionBills]);
+  const unitPrice = (productId: string, listPrice: number) => productPrices[productId] ?? listPrice;
+  const pricesChanged = servicePrices.some((price) => price !== null) || Object.keys(productPrices).length > 0;
   const subtotal = bill.subtotal;
   const chosenTip = tipOptions.find((option) => option.id === tipChoice);
   const tip = tipChoice === "custom" ? Math.max(0, customTip ?? 0) : chosenTip ? tipAmount(chosenTip, subtotal) : 0;
@@ -99,10 +107,10 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const pay = async () => {
     try {
       // En mixto, cada cita lleva su parte de efectivo y de tarjeta; la abierta lleva propina y recargo.
-      const ownDue = Math.round((appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId).due + tip + surcharge) * 100) / 100;
+      const ownDue = Math.round((appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId, prices).due + tip + surcharge) * 100) / 100;
       const splits = mixed ? splitAcross(cash, [ownDue, ...companionBills.map((item) => item.due)]) : [];
       const [paid, ...others] = await Promise.all([
-        checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge, ...(mixed ? { split: splits[0] } : {}) } }),
+        checkout.mutateAsync({ id: appointment.id, input: { serviceIds, products, tip, method, surcharge, ...(mixed ? { split: splits[0] } : {}), ...(pricesChanged ? { servicePrices, productPrices } : {}) } }),
         ...chosenCompanions.map((item, index) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, method, surcharge: 0, ...(mixed ? { split: splits[index + 1] } : {}) } })),
       ]);
       // Lo cobrado ahora: lo pagado en línea ya estaba cobrado.
@@ -158,7 +166,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
                     leading={<ServiceThumb service={itemServices[0]} />}
                     title={itemServices.map((service) => service.name).join(" + ") || "—"}
                     description={isCurrent ? `${appointmentRange(item, ctx.intl)} · ${t("calendar.checkout.thisAppointment")}` : appointmentRange(item, ctx.intl)}
-                    meta={ctx.formatMoney(isCurrent ? itemServices.reduce((sum, service) => sum + service.price, 0) : appointmentTotal(ctx.catalog, item))}
+                    meta={ctx.formatMoney(isCurrent ? itemServices.reduce((sum, service, index) => sum + (servicePrices[index] ?? service.price), 0) : appointmentTotal(ctx.catalog, item))}
                     data-testid="checkout-visit-item"
                   />
                 );
@@ -176,11 +184,30 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
                   size="sm"
                   leading={<ServiceThumb service={service} />}
                   title={service.name}
-                  description={t("calendar.field.minutes", { count: service.durationMin })}
-                  meta={ctx.formatMoney(service.price)}
+                  description={
+                    servicePrices[index] != null ? `${t("calendar.field.minutes", { count: service.durationMin })} · ${t("calendar.checkout.listPrice", { price: ctx.formatMoney(service.price) })}` : t("calendar.field.minutes", { count: service.durationMin })
+                  }
+                  meta={
+                    <CheckoutPrice
+                      value={servicePrices[index] ?? service.price}
+                      listPrice={service.price}
+                      editable={canEditPrices}
+                      label={service.name}
+                      format={ctx.formatMoney}
+                      onChange={(next) => setServicePrices((current) => current.map((price, i) => (i === index ? next : price)))}
+                    />
+                  }
                   actions={
                     services.length > 1 ? (
-                      <Button size="icon-xs" variant="ghost" aria-label={`${t("calendar.checkout.remove")}: ${service.name}`} onClick={() => setServiceIds((current) => current.filter((_, i) => i !== index))}>
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label={`${t("calendar.checkout.remove")}: ${service.name}`}
+                        onClick={() => {
+                          setServiceIds((current) => current.filter((_, i) => i !== index));
+                          setServicePrices((current) => current.filter((_, i) => i !== index));
+                        }}
+                      >
                         <Trash2 />
                       </Button>
                     ) : undefined
@@ -190,7 +217,10 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
             </ListItemGroup>
             <SearchableSelect
               value=""
-              onValueChange={(id) => setServiceIds((current) => [...current, id])}
+              onValueChange={(id) => {
+                setServiceIds((current) => [...current, id]);
+                setServicePrices((current) => [...current, null]);
+              }}
               placeholder={t("calendar.checkout.addService")}
               searchPlaceholder={t("calendar.create.searchServices")}
               options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(priceFor(ctx.catalog, appointment.barberId, item)) }), leading: <ServiceThumb service={item} /> }))}
@@ -208,8 +238,26 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
                     size="sm"
                     leading={<ProductThumb product={product} />}
                     title={product.name}
-                    description={`${line.qty} × ${ctx.formatMoney(product.price)}`}
-                    meta={ctx.formatMoney(product.price * line.qty)}
+                    description={
+                      productPrices[product.id] !== undefined
+                        ? `${line.qty} × ${ctx.formatMoney(unitPrice(product.id, product.price))} · ${t("calendar.checkout.listPrice", { price: ctx.formatMoney(product.price) })}`
+                        : `${line.qty} × ${ctx.formatMoney(product.price)}`
+                    }
+                    meta={
+                      <CheckoutPrice
+                        value={unitPrice(product.id, product.price)}
+                        listPrice={product.price}
+                        editable={canEditPrices}
+                        label={product.name}
+                        format={(value) => ctx.formatMoney(value * line.qty)}
+                        onChange={(next) =>
+                          setProductPrices((current) => {
+                            const rest = Object.fromEntries(Object.entries(current).filter(([id]) => id !== product.id));
+                            return next === null ? rest : { ...rest, [product.id]: next };
+                          })
+                        }
+                      />
+                    }
                     actions={
                       <Button size="icon-xs" variant="ghost" aria-label={`${t("calendar.checkout.remove")}: ${product.name}`} onClick={() => setProducts((current) => current.filter((item) => item.productId !== product.id))}>
                         <Trash2 />

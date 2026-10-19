@@ -101,7 +101,7 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
   const firstName = clientName.split(" ")[0];
   const services = servicesOf(ctx.catalog, appointment);
   // Lo que vale y lo que falta cobrar en caja: con el impuesto de la sucursal y sin lo ya pagado al reservar en línea.
-  const bill = appointmentBill(ctx.catalog, appointment.serviceIds, appointment.products, appointment.online, appointment.barberId);
+  const bill = appointmentBill(ctx.catalog, appointment.serviceIds, appointment.products, appointment.online, appointment.barberId, appointment);
   const price = appointment.payment?.total ?? bill.total;
   const canContact = ctx.access?.canContact ?? true;
   const phone = known?.phone && canContact ? digits(known.phone) : "";

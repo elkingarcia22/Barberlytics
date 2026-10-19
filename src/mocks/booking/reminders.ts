@@ -1,6 +1,7 @@
 import { db } from "../db";
 import type { MockAppointment } from "../calendar/seed";
 import type { MockOutboxMessage } from "./state";
+import { startInstant } from "../settings/branchRules";
 
 /**
  * Los mensajes que la reserva deja programados, como haría el servidor real con su proveedor de
@@ -37,7 +38,8 @@ const nextId = () => `msg_${Date.now().toString(36)}_${(seq += 1)}`;
 
 /** Programa la confirmación y los recordatorios que aún estén en el futuro. */
 export function scheduleMessages(appointment: MockAppointment, phone: string, now = new Date()): void {
-  const start = new Date(appointment.start).getTime();
+  // La cita es a la hora de su sucursal: el recordatorio sale a ese instante, esté donde esté el servidor.
+  const start = startInstant(appointment).getTime();
   const base = { appointmentId: appointment.id, clientId: appointment.clientId, to: phone, channel: "whatsapp" as const, status: "scheduled" as const };
   const messages: MockOutboxMessage[] = clientWhatsApp("bookingConfirmed") ? [{ ...base, id: nextId(), kind: "confirmation", sendAt: now.toISOString() }] : [];
   for (const reminder of reminderPlan()) {

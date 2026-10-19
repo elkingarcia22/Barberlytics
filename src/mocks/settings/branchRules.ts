@@ -1,6 +1,7 @@
 import { GATEWAY_SPECS, isGatewayProvider, type OnlineMethod } from "@/features/settings/gatewayProviders";
 import { blendedPercent, linePercent } from "@/features/branches/tax";
 import { db } from "../db";
+import { instantOf, isTimeZone, wallClock } from "@/lib/time/zoned";
 import type { MockListItem } from "./seed";
 
 /**
@@ -18,6 +19,22 @@ export const branchCurrency = (branchId: string): string => {
   const currency = branchOf(branchId)?.currency;
   return typeof currency === "string" && currency ? currency : FALLBACK_CURRENCY;
 };
+
+const FALLBACK_TIME_ZONE = "America/New_York";
+
+/** La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. */
+export const branchTimeZone = (branchId: string): string => {
+  const own = branchOf(branchId)?.timezone;
+  if (isTimeZone(own)) return own;
+  const business = (db.settings.sections.business as { timezone?: string } | undefined)?.timezone;
+  return isTimeZone(business) ? business : FALLBACK_TIME_ZONE;
+};
+
+/** El instante real de una cita: su hora local en la zona de su sucursal. */
+export const startInstant = (item: { start: string; branchId: string }): Date => instantOf(item.start, branchTimeZone(item.branchId));
+
+/** «Ahora» en la sucursal, como hora de pared («AAAA-MM-DDTHH:mm»). */
+export const branchNow = (branchId: string, at: Date = new Date()): string => wallClock(branchTimeZone(branchId), at);
 
 /** El impuesto de la sucursal: la suma de las tasas de su grupo (estatal + condado, por ejemplo). */
 export function branchTaxPercent(branchId: string): number {

@@ -80,7 +80,7 @@ La campana. No hay tabla de avisos: salen de lo que pasó en la sucursal y cada 
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. |
+| GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. Cada aviso es un evento del catálogo de Configuración › Recordatorios y avisos para el destinatario de ese rol (`onlineBooking` → `bookingOnline`, `cancelled` → `appointmentCancelled`, `noShow` → `appointmentNoShow`, `lowStock`/`outOfStock` → `productLow`/`productOut`, `lowReview` → `badReview`, `absenceRequested` → `vacationRequested`, `absenceDecided` → `vacationApproved`/`vacationDenied`, y con su mismo nombre `whatsappFailed`, `registerDifference`, `registerOpen`, `payrollDue`, `payrollPaid`): si `<destinatario>.<evento>.push` («En la app») está apagado, no sale. |
 | POST | `/notifications/read` | `{ ids }`. `204`. Lo leído se guarda por cuenta. |
 
 `kind` y para quién: `onlineBooking`, `cancelled`, `noShow` (dueño, administrador, recepción y el barbero de la cita);
@@ -593,6 +593,12 @@ Reglas que el cliente da por hechas:
 Los permisos por rol no están aquí: viven en Equipo.
 
 ## Reserva en línea (`/booking`)
+
+**Hora de la sede.** Las horas viajan como hora local de la sucursal sin zona (`2026-10-20T10:30:00`), y la zona es la de
+la sucursal (`timezone` en Configuración › Sucursales; si no tiene, la del negocio). «Hoy», las horas que ya pasaron, la
+antelación mínima, las condiciones de cancelación y el instante de cada recordatorio se calculan con esa zona, no con
+la de quien reserva ni la del servidor (`src/lib/time/zoned.ts`). Cada cita del cliente trae `timeZone`: el `.ics` la
+usa en `DTSTART;TZID=…`, el enlace de Google en `ctz` y el de Outlook pone la hora con su desfase.
 
 La cara pública de la barbería: la abre el cliente desde el enlace, la tablet del local o el widget
 del sitio (`/reservar` en la app). **No lleva la sesión de la app.** El cliente se identifica con

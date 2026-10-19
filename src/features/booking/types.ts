@@ -296,6 +296,8 @@ export const bookedAppointmentSchema = z.object({
   reservationId: z.string().nullable(),
   branchId: z.string(),
   branchName: z.string(),
+  /** La zona de la sede: la hora de la cita es la de allí. */
+  timeZone: z.string().optional(),
   personName: z.string(),
   guestRelation: z.string().nullable(),
   serviceIds: z.array(z.string()),

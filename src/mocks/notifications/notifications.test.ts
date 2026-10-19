@@ -23,6 +23,14 @@ describe("bandeja de avisos", () => {
     expect(notificationsFor("ma", "recepcion", null).some((item) => item.kind === "whatsappFailed" && item.params.error === "Template not found")).toBe(true);
   });
 
+  test("lo apagado en Configuración («En la app») no sale en la campana, y solo para ese destinatario", () => {
+    const stock = (role: "owner" | "admin") => notificationsFor("ma", role, null).filter((item) => item.kind === "outOfStock" || item.kind === "lowStock");
+    expect(stock("owner").length).toBeGreaterThan(0);
+    db.settings.sections = { ...db.settings.sections, notifications: { toggles: { "owner.productLow.push": false, "owner.productOut.push": false }, thresholds: {} } };
+    expect(stock("owner")).toEqual([]);
+    expect(stock("admin").length).toBeGreaterThan(0);
+  });
+
   test("lo leído queda leído para esa cuenta", async () => {
     const first = await (await api("/notifications?branchId=ma&role=owner")).json();
     expect(first.unread).toBeGreaterThan(0);

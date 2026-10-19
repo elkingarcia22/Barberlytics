@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { isOwnClient } from "../customers/handlers";
+import { agendaBarbers, isOwnClient } from "../customers/handlers";
 import { isBarber, sessionOf } from "../session";
 import type { MockAppointment, MockClient, MockTimeBlock } from "./seed";
 
@@ -16,20 +16,13 @@ export function barberOf(request: Request): string | null {
   return session && isBarber(session) ? session.memberId : null;
 }
 
-const YEAR_MS = 365 * 86_400_000;
-
 /**
- * Los clientes que son suyos: los de Clientes más los que atendió (o tiene agendados) con él en el último
- * año en la agenda. Una cita cancelada o a la que no vino no los hace suyos.
+ * Los clientes que son suyos, con la misma regla que Clientes (`isOwnClient`): lo prefiere, o lo atendió o
+ * lo tiene agendado en el último año, según la ficha o la agenda real. La agenda se lee una sola vez.
  */
-export function ownClientIds(memberId: string, now = Date.now()): Set<string> {
-  const ids = new Set(
-    db.calendar.appointments
-      .filter((item) => item.barberId === memberId && item.status !== "cancelled" && item.status !== "no_show" && now - new Date(item.start).getTime() <= YEAR_MS)
-      .map((item) => item.clientId)
-  );
-  for (const client of db.calendar.clients) if (!ids.has(client.id) && isOwnClient(client, memberId)) ids.add(client.id);
-  return ids;
+export function ownClientIds(memberId: string): Set<string> {
+  const agenda = agendaBarbers();
+  return new Set(db.calendar.clients.filter((client) => isOwnClient(client, memberId, agenda)).map((client) => client.id));
 }
 
 /** Un cliente ajeno: el nombre y la foto para encontrarlo; sin teléfono, notas de salud ni historial. */

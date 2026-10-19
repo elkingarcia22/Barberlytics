@@ -103,6 +103,17 @@ export interface MockPayment {
   prepaid?: number;
   /** Con `mixed`: cuánto fue en efectivo y cuánto con tarjeta. */
   split?: { cash: number; card: number };
+  /** Lo descontado en la caja y por qué. */
+  discount?: number;
+  discountReason?: string | null;
+  /** Lo pagado con una tarjeta de regalo del cliente. */
+  gift?: { code: string; amount: number };
+  /** Una tarjeta de regalo vendida en el mismo cobro. */
+  giftSale?: { code: string; amount: number };
+  /** El pago dividido en partes, cada una con su método. */
+  parts?: { method: "cash" | "card" | "link"; amount: number; deviceId?: string }[];
+  /** El datáfono con que se pasó la tarjeta. */
+  deviceId?: string;
 }
 
 /** Una devolución: desde la caja, o la que hizo la reserva en línea al cancelar. */
@@ -152,6 +163,8 @@ export interface MockAppointment {
   /** Precios cambiados al cobrar: por servicio (en el orden de `serviceIds`) y por producto (unitario). */
   servicePrices?: (number | null)[];
   productPrices?: Record<string, number>;
+  /** Lo descontado al cobrar (en dinero, antes de impuestos). */
+  checkoutDiscount?: number;
   createdAt: string;
   createdBy: string;
   history: MockHistoryEntry[];

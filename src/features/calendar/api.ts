@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { api } from "@/lib/api";
 import {
   appointmentSchema,
@@ -40,6 +41,8 @@ export const calendarApi = {
   month: (branchId: string, month: string, barberId: string | null, signal?: AbortSignal) =>
     api.get<CalendarMonth>("/calendar/month", { query: { branchId, month, barberId }, schema: calendarMonthSchema, signal }),
   createAppointment: (input: AppointmentInput) => api.post<Appointment>("/appointments", input, { schema: appointmentSchema }),
+  /** El saldo de una tarjeta de regalo, para pagar con ella en la caja. */
+  checkGiftCard: (code: string) => api.post<{ code: string; balance: number }>(`/booking/gift-cards/check`, { code }, { schema: z.object({ code: z.string(), balance: z.number() }) }),
   /** Restringir al cliente desde la agenda (bloquearlo o pedirle pago en línea): va a su ficha. */
   restrictClient: (clientId: string, patch: ClientRestriction) => api.patch<unknown>(`/customers/${clientId}`, patch),
   updateAppointment: (id: string, patch: AppointmentPatch) => api.patch<Appointment>(`/appointments/${id}`, patch, { schema: appointmentSchema }),

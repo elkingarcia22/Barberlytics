@@ -1,4 +1,5 @@
 import { calendarPanelEs } from "./calendar/panel.es";
+import { calendarCheckoutEs } from "./calendar/checkout.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
 /**
@@ -3825,4 +3826,5 @@ export const appEs = {
   ...bookingEs,
   ...bookingVariantsEs,
   ...calendarPanelEs,
+  ...calendarCheckoutEs,
 } as const;

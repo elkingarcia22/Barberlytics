@@ -98,7 +98,11 @@ export function seedSettings(): MockSettingsState {
         { id: "tax_ut", name: "Utah", taxes: [{ name: "Estatal", percent: 4.85 }, { name: "Local", percent: 2.4 }] },
         { id: "tax_co_iva", name: "IVA Colombia", taxes: [{ name: "IVA", percent: 19 }] },
       ],
-      devices: [],
+      // Dos datáfonos en la caja: el cobro con tarjeta elige con cuál se pasa.
+      devices: [
+        { id: "dev_caja", name: "Datáfono de la caja", serial: "SN-48201", tpn: "TPN-7731", hasAuthKey: true },
+        { id: "dev_movil", name: "Datáfono móvil", serial: "SN-48217", tpn: "TPN-7745", hasAuthKey: true },
+      ],
       gateways: [{ id: "gw_stripe", provider: "stripe", name: "Stripe", publicKey: "pk_test_demo_barberia", hasSecret: true, connected: true }],
     },
   };

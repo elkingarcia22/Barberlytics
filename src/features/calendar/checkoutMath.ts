@@ -63,6 +63,22 @@ export interface AppointmentBill {
 export interface PriceOverrides {
   servicePrices?: readonly (number | null)[];
   productPrices?: Readonly<Record<string, number>>;
+  /** Lo descontado en la caja (en dinero, antes de impuestos). */
+  checkoutDiscount?: number;
+}
+
+/** Un descuento de la caja en dinero: porcentaje o monto sobre `base`, sin pasarse de ella. */
+export function discountAmount(discount: { type: "percent" | "amount"; value: number } | null, base: number): number {
+  if (!discount || !(discount.value > 0) || base <= 0) return 0;
+  const amount = discount.type === "percent" ? (base * Math.min(100, discount.value)) / 100 : discount.value;
+  return cents(Math.min(base, amount));
+}
+
+/** Reparte `total` en `count` partes iguales; la última se lleva los centavos que sobren. */
+export function equalParts(total: number, count: number): number[] {
+  if (count <= 0) return [];
+  const each = Math.floor((total / count) * 100) / 100;
+  return Array.from({ length: count }, (_, index) => (index === count - 1 ? cents(total - each * (count - 1)) : each));
 }
 
 export function appointmentBill(catalog: Pick<CalendarCatalog, "barbers" | "services" | "products" | "taxInclusive">, serviceIds: readonly string[], products: readonly ProductLine[], online?: OnlineSettlement | null, barberId?: string, prices: PriceOverrides = {}): AppointmentBill {
@@ -78,7 +94,7 @@ export function appointmentBill(catalog: Pick<CalendarCatalog, "barbers" | "serv
       return product ? [{ amount: (prices.productPrices?.[line.productId] ?? product.price) * line.qty, percent: product.taxPercent ?? 0 }] : [];
     }),
   ];
-  const { subtotal, discount, tax, total } = cartTotals(lines, online?.discount ?? 0, catalog.taxInclusive === true);
+  const { subtotal, discount, tax, total } = cartTotals(lines, (online?.discount ?? 0) + (prices.checkoutDiscount ?? 0), catalog.taxInclusive === true);
   const prepaid = cents(Math.min(total, online?.paid ?? 0));
   return { subtotal, discount, tax, total, prepaid, due: cents(total - prepaid) };
 }

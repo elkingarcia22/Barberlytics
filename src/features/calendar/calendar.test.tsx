@@ -799,7 +799,9 @@ describe("Calendario", () => {
     if (warning) await user.click(within(warning).getByRole("button", { name: "Seguir con esta" }));
     expect(await screen.findByTestId("checkout-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("appointment-drawer")).toBeNull();
-    // Las propinas son las de Configuración, no una lista fija.
+    // Primero la cuenta; luego «¿Cómo paga?», con las propinas de Configuración (no una lista fija).
+    expect(screen.getByTestId("checkout-next")).toHaveTextContent(/Continuar al pago · US\$/);
+    await user.click(screen.getByTestId("checkout-next"));
     expect(await within(screen.getByTestId("checkout-drawer")).findByRole("button", { name: /^25%/ })).toBeInTheDocument();
     expect(screen.getByTestId("checkout-pay")).toHaveTextContent(/Cobrar US\$/);
   });
@@ -810,7 +812,20 @@ describe("Calendario", () => {
     const online = { reservation: "BL-1001", method: "shop", paid: 10, tip: 0, discount: 0 };
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated", online }} onOpenChange={() => {}} ctx={taxed} onPaid={() => {}} />);
     expect(await screen.findByTestId("checkout-prepaid")).toHaveTextContent("BL-1001");
-    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$28.5");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$28.5");
+  });
+
+  test("el descuento y la tarjeta de regalo que se vende cambian lo que se cobra", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
+    expect(await screen.findByTestId("checkout-total")).toHaveTextContent("$35");
+    await user.click(screen.getByTestId("checkout-discount-add"));
+    await user.type(within(screen.getByTestId("checkout-discount")).getByRole("spinbutton"), "10");
+    // 10 % de 35.
+    await waitFor(() => expect(screen.getByTestId("checkout-total")).toHaveTextContent("$31.5"));
+    await user.click(screen.getByTestId("checkout-gift-sale-add"));
+    // La tarjeta de regalo arranca en 50 y se suma a lo que se cobra.
+    await waitFor(() => expect(screen.getByTestId("checkout-total")).toHaveTextContent("$81.5"));
   });
 
   test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {
@@ -820,11 +835,11 @@ describe("Calendario", () => {
     const visit = await screen.findByTestId("checkout-visit");
     const items = within(visit).getAllByTestId("checkout-visit-item");
     expect(items).toHaveLength(2);
-    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$70");
     await user.click(within(items[1]).getByRole("button"));
-    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$35");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$35");
     await user.click(within(items[1]).getByRole("button"));
-    expect(screen.getByTestId("checkout-pay")).toHaveTextContent("$70");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$70");
   });
 
   test("la vista Semana cruza barberos y días, y una celda abre ese día con ese barbero", async () => {

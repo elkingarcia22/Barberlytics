@@ -48,7 +48,8 @@ export function appointmentAccount(
     ...products.map((line) => ({ amount: (prices.productPrices?.[line.productId] ?? productPriceIn(line.productId, branchId)) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
   ];
   const online = appointment.online ?? null;
-  const computed = cartTotals(lines, online?.discount ?? 0, taxInclusive());
+  // Lo descontado en línea y lo descontado en la caja.
+  const computed = cartTotals(lines, (online?.discount ?? 0) + (appointment.checkoutDiscount ?? 0), taxInclusive());
   // Ya cobrada, vale con el impuesto que se registró al cobrar (las sembradas no traen); si no, el de hoy.
   const { subtotal, discount } = computed;
   const tax = appointment.payment ? appointment.payment.tax : computed.tax;

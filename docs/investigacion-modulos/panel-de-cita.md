@@ -315,3 +315,17 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   dice («Cobrar la de Mariana primero» / «Seguir con esta»). No frena.
 - **Terminó sin cobrar**: la tarjeta de la agenda lleva una píldora ámbar «Terminó hace 15 min · sin
   cobrar».
+
+## 17. El cobro en dos pasos (2026-10-19)
+
+`CheckoutDrawer` + `checkout/` (`useCheckout`, `BillStep`, `PayStep`, `allocate`): como el pago de la
+reserva, dentro del mismo panel y con el ticket abajo.
+
+1. **La cuenta**: las citas que se cobran juntas (las de su visita, marcadas, y *Sumar otra cita sin
+   cobrar* de las que ya están en la barbería), servicios con precio editable, productos con cantidad y
+   precio, *Vender una tarjeta de regalo* (monto y para quién) y *Agregar un descuento* (% o $ con motivo).
+2. **¿Cómo paga?**: propina, *¿Paga con tarjeta de regalo?* (código; cubre hasta su saldo) y el método:
+   efectivo (con el cambio), tarjeta (eligiendo el datáfono de Configuración; la demo trae dos), link de
+   pago (se manda por SMS o correo y el botón pasa a «Ya pagó · registrar»), mixto (efectivo + tarjeta) o
+   en partes (2–4, cada una con su método y su datáfono; tienen que cuadrar). Con varias citas, las partes
+   se reparten en orden (`allocateParts`).

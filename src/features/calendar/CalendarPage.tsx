@@ -235,6 +235,14 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     () => (checkoutAppointment && day.data ? linkedOf(day.data.appointments, checkoutAppointment).filter((item) => item.id !== checkoutAppointment.id && isUnpaid(item)) : []),
     [checkoutAppointment, day.data]
   );
+  // Otras citas del día sin cobrar (ya en la barbería) que se pueden sumar al cobro: dos de la familia, un amigo que paga.
+  const checkoutCandidates = React.useMemo(
+    () =>
+      checkoutAppointment && day.data
+        ? day.data.appointments.filter((item) => item.id !== checkoutAppointment.id && (item.status === "arrived" || item.status === "seated") && !checkoutCompanions.some((companion) => companion.id === item.id))
+        : [],
+    [checkoutAppointment, checkoutCompanions, day.data]
+  );
   // Si la cita está enlazada, el panel enseña todas las de su grupo.
   const currentLinked = React.useMemo(() => (currentAppointment && day.data ? linkedOf(day.data.appointments, currentAppointment) : []), [currentAppointment, day.data]);
   // «Ver en la agenda»: resalta las enlazadas y lleva la rejilla hasta la primera, que puede estar
@@ -986,6 +994,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               <CheckoutDrawer
                 appointment={panel?.kind === "checkout" ? panel.appointment : null}
                 companions={checkoutCompanions}
+                candidates={checkoutCandidates}
                 open={panel?.kind === "checkout"}
                 onOpenChange={(open) => !open && closePanel()}
                 ctx={ctx}

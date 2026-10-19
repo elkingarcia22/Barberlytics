@@ -2226,6 +2226,7 @@ export const appEs = {
   "customers.reactivate.outsideWindow": "Ahora no es horario legal para promociones en esta sede. Lo que apruebes saldrá el {when}, hora de la sede",
   "customers.reactivate.queuedLater": "Saldrán el {when}, hora de la sede, cuando abra la franja legal",
   "customers.whatsapp.outsideWindow": "Fuera del horario legal para promociones en su sede. Podrás escribirle desde el {when}, hora de la sede",
+  "customers.whatsapp.promoCap": "Ya tiene una promoción el {date}: una cada 30 días por cliente. Un «gracias» o un mensaje libre sí se pueden.",
   "customers.rel.sourceWhatsapp": "por WhatsApp",
   "customers.rel.consentRevoke": "Retirar permiso",
   "customers.privacy.title": "Datos y privacidad",

@@ -77,6 +77,24 @@ describe("cola de WhatsApp", () => {
     expect(await statusOf(store, "demo", ["p1", "p2"])).toMatchObject([{ status: "scheduled" }, { status: "cancelled" }]);
   });
 
+  test("una promoción por cliente cada 30 días; reprogramar la misma no cuenta y lo anulado libera el cupo", async () => {
+    const store = createMemoryStore();
+    const promo = (id: string, days = 0, to = "+573001234567") => ({ ...message(id, 0, { kind: "reactivation", consent: CONSENT, place: BOGOTA, to }), sendAt: new Date(NOW + days * 86_400_000).toISOString() });
+    expect((await enqueue(store, "demo", "usr_0001", [promo("p1")], NOW)).items).toHaveLength(1);
+    // Otra al mismo número dentro de los 30 días: rechazada; a otro número, sí.
+    const second = await enqueue(store, "demo", "usr_0001", [promo("p2", 10), promo("p3", 0, "+573005556677")], NOW);
+    expect(second.rejected).toEqual([{ id: "p2", message: expect.stringContaining("tope") }]);
+    expect(second.items.map((item) => item.id)).toEqual(["p3"]);
+    // Encolar otra vez la misma (reprogramarla) no choca consigo misma.
+    expect((await enqueue(store, "demo", "usr_0001", [promo("p1", 1)], NOW)).rejected).toEqual([]);
+    // Una programada para dentro de dos semanas también ocupa el cupo hacia atrás.
+    expect((await enqueue(store, "demo", "usr_0001", [promo("p4", -20)], NOW)).rejected).toHaveLength(1);
+    // Pasados los 30 días, otra sí; y si se anula la primera, el cupo queda libre.
+    expect((await enqueue(store, "demo", "usr_0001", [promo("p5", 45)], NOW)).rejected).toEqual([]);
+    await cancel(store, "demo", ["p1"]);
+    expect((await enqueue(store, "demo", "usr_0001", [promo("p2", 10)], NOW)).rejected).toEqual([]);
+  });
+
   test("si WhatsApp falla se reintenta con espera y, al tercer intento, queda fallido", async () => {
     const store = createMemoryStore();
     await enqueue(store, "demo", "usr_0001", [message("m1")], NOW);

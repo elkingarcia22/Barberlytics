@@ -54,7 +54,8 @@ export function CustomerWhatsAppDialog({ open, onOpenChange, customer }: Custome
   // Volver y cumpleaños son promoción: con permiso y dentro de la franja legal de su sede (Ley 2300, TCPA).
   const promoWindow = relationship.data?.promoWindow;
   const outsideWindow = isPromotional(purpose) && consented && promoWindow !== undefined && !promoWindow.allowed;
-  const blocked = isPromotional(purpose) && (!consented || outsideWindow);
+  const capped = isPromotional(purpose) && consented ? (relationship.data?.promoCap ?? null) : null;
+  const blocked = isPromotional(purpose) && (!consented || outsideWindow || capped !== null);
   const pick = (next: MessagePurpose) => {
     setPurpose(next);
     setBody(templateBody(t, next, context));
@@ -108,13 +109,19 @@ export function CustomerWhatsAppDialog({ open, onOpenChange, customer }: Custome
             </SelectContent>
           </Select>
         </Field>
-        {blocked && !outsideWindow && (
+        {blocked && consented === false && (
           <Alert data-testid="customer-whatsapp-no-consent">
             <ShieldAlert />
             <AlertDescription>{t("customers.whatsapp.noConsent")}</AlertDescription>
           </Alert>
         )}
-        {outsideWindow && promoWindow && (
+        {capped && (
+          <Alert data-testid="customer-whatsapp-promo-cap">
+            <ShieldAlert />
+            <AlertDescription>{t("customers.whatsapp.promoCap", { date: formatDate(new Date(capped.sendAt), { day: "numeric", month: "long" }) })}</AlertDescription>
+          </Alert>
+        )}
+        {outsideWindow && !capped && promoWindow && (
           <Alert data-testid="customer-whatsapp-outside-window">
             <Clock />
             <AlertDescription>{t("customers.whatsapp.outsideWindow", { when: formatDate(new Date(promoWindow.nextAt), { ...WHEN, timeZone: promoWindow.timeZone }) })}</AlertDescription>

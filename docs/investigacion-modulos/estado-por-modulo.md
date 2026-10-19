@@ -283,5 +283,7 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Franja por país a la hora de la sede (`src/features/legal/sendWindow.ts`, la usan la app y el servidor): Colombia L–V 7–19, S 8–15, sin domingos ni festivos (Ley 2300; festivos calculados); EE. UU. 8–21 con Florida, Oklahoma, Maryland, Washington, Connecticut y Texas más estrictos (TCPA y leyes estatales); México y el resto L–S 9–20.
   - La cola del servidor exige la sede en cada promoción, la aplaza a la próxima apertura y, justo antes de enviar, vuelve a mirar la franja y la BAJA. «Reactivar» y el «te toca volver» manual avisan cuándo saldrá.
   - SMS: webhook `/api/sms/inbound` (Twilio, firmado) con STOP/BAJA, START/ALTA y HELP/AYUDA; STOP corta todos los SMS del número y las promociones, queda en el registro de solicitudes y en la ficha; todo SMS lleva «Responde STOP o BAJA…».
-  - Falta: tope de promociones por cliente y mes en el servidor (hoy lo pone la app), festivos de EE. UU. y México, 10DLC y el envío real de SMS (hoy simulado), y la revisión del abogado.
+  - Tope de una promoción por cliente cada 30 días en la cola del servidor y en la app (la reactivación y el «te toca volver» o cumpleaños escritos a mano cuentan juntos).
+  - Festivos de EE. UU. (federales, con el día observado) y de México (LFT art. 74) fuera de la franja, por regla de producto.
+  - Falta: festivos estatales de EE. UU., 10DLC y el envío real de SMS (hoy simulado), y la revisión del abogado.
 

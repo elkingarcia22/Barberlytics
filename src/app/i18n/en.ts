@@ -2190,6 +2190,7 @@ export const appEn: AppMessageCatalog = {
   "customers.reactivate.outsideWindow": "It's outside legal hours for promotions at this location. What you approve goes out {when}, location time",
   "customers.reactivate.queuedLater": "They'll go out {when}, location time, when legal hours open",
   "customers.whatsapp.outsideWindow": "Outside legal hours for promotions at their location. You can write from {when}, location time",
+  "customers.whatsapp.promoCap": "They already have a promotion on {date}: one every 30 days per client. A thank-you or a free message is fine.",
   "customers.rel.sourceWhatsapp": "via WhatsApp",
   "customers.rel.consentRevoke": "Withdraw",
   "customers.privacy.title": "Data and privacy",

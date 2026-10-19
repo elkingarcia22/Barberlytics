@@ -6,6 +6,7 @@ import { forbidden, isManager, sessionOf, unauthorized } from "../session";
 import { memberName } from "../team/seed";
 import { isOverdue } from "@/features/customers/overdue";
 import { lifecycleOf } from "./seed";
+import { promoNear } from "./promoCap";
 import { branchSendPlace, promoWindowOf } from "../settings/branchRules";
 import { nextPromoSlot } from "@/features/legal/sendWindow";
 import { profileOf } from "./handlers";
@@ -20,7 +21,6 @@ import { profileOf } from "./handlers";
 const BASE = "*/api";
 const LATENCY_MS = 200;
 const DAY_MS = 86_400_000;
-const RECENT_DAYS = 30;
 const MAX_CANDIDATES = 40;
 const REACTIVATE: ReadonlySet<string> = new Set(["atRisk", "lost"]);
 
@@ -37,7 +37,8 @@ export function nextVisitOf(client: MockClient) {
   return { ...suggestion, options: suggestion.options.map((option) => ({ ...option, barberName: barberLabel(option.barberId) })) };
 }
 
-const contactedRecently = (clientId: string, now: Date) => (db.booking.outbox ?? []).some((message) => message.clientId === clientId && message.kind === "reactivation" && message.status !== "cancelled" && now.getTime() - new Date(message.sendAt).getTime() < RECENT_DAYS * DAY_MS);
+/** Ya tiene una promoción a menos de 30 días (automática o escrita a mano): el tope por cliente. */
+const contactedRecently = (clientId: string, now: Date) => promoNear(clientId, now) !== null;
 
 /** Los que ya se pasaron de su ritmo (le toca, en riesgo o perdidos) en la sucursal, con lo que se sabe para decidir si escribirles. */
 export function reactivationCandidates(branchId: string, now = new Date()) {

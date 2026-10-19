@@ -9,6 +9,9 @@
  *   estrictos: Florida, Oklahoma, Maryland y Washington hasta las 8:00 p. m.; Connecticut de 9 a 8; Texas de
  *   9 a 9 entre semana y desde el mediodía el domingo.
  * - **México y el resto**: de 9:00 a. m. a 8:00 p. m., lunes a sábado (regla de producto, prudente).
+ * - **Festivos**: en Colombia los prohíbe la ley. En Estados Unidos (los 11 federales, el día y el que se
+ *   observa si cae en fin de semana) y en México (los días de descanso obligatorio de la Ley Federal del
+ *   Trabajo, art. 74) no se mandan promociones por regla de producto: nadie quiere una oferta el 4 de julio.
  *
  * Solo aplica a promociones: los mensajes de una cita (recordatorio, confirmación, recibo) salen cuando
  * toca. Son reglas de producto que confirma el abogado de cada país.
@@ -128,14 +131,75 @@ const toMonday = (year: number, month: number, day: number) => {
   return shift(base, (8 - weekday) % 7);
 };
 
-const holidayCache = new Map<number, ReadonlySet<string>>();
+const holidayCache = new Map<string, ReadonlySet<string>>();
+
+/** El n-ésimo día de la semana del mes (n = −1: el último). */
+function nthWeekday(year: number, month: number, weekday: number, n: number): string {
+  if (n > 0) {
+    const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+    return iso(year, month, 1 + ((weekday - first + 7) % 7) + (n - 1) * 7);
+  }
+  const lastDay = new Date(Date.UTC(year, month, 0));
+  const back = (lastDay.getUTCDay() - weekday + 7) % 7;
+  return iso(year, month, lastDay.getUTCDate() - back);
+}
+
+/** El día que se descansa si cae en fin de semana (sábado → viernes, domingo → lunes). */
+function observed(year: number, month: number, day: number): string {
+  const base = Date.UTC(year, month - 1, day);
+  const weekday = new Date(base).getUTCDay();
+  return weekday === 6 ? shift(base, -1) : weekday === 0 ? shift(base, 1) : iso(year, month, day);
+}
+
+const cached = (key: string, build: () => string[]): ReadonlySet<string> => {
+  const hit = holidayCache.get(key);
+  if (hit) return hit;
+  const days = new Set(build());
+  holidayCache.set(key, days);
+  return days;
+};
+
+/** Los festivos federales de EE. UU. (5 U.S.C. 6103): el día y, si cae en fin de semana, el que se observa. */
+export function usHolidays(year: number): ReadonlySet<string> {
+  const fixed: [number, number][] = [[1, 1], [6, 19], [7, 4], [11, 11], [12, 25]];
+  return cached(`US-${year}`, () => [
+    ...fixed.flatMap(([month, day]) => [iso(year, month, day), observed(year, month, day)]),
+    // El 1 de enero del año siguiente puede observarse el viernes 31 de diciembre.
+    observed(year + 1, 1, 1),
+    nthWeekday(year, 1, 1, 3), // Martin Luther King Jr.
+    nthWeekday(year, 2, 1, 3), // Presidents' Day
+    nthWeekday(year, 5, 1, -1), // Memorial Day
+    nthWeekday(year, 9, 1, 1), // Labor Day
+    nthWeekday(year, 10, 1, 2), // Columbus Day
+    nthWeekday(year, 11, 4, 4), // Thanksgiving
+  ]);
+}
+
+/** Los días de descanso obligatorio de México (Ley Federal del Trabajo, art. 74). */
+export function mexicanHolidays(year: number): ReadonlySet<string> {
+  return cached(`MX-${year}`, () => [
+    iso(year, 1, 1),
+    nthWeekday(year, 2, 1, 1), // Constitución
+    nthWeekday(year, 3, 1, 3), // Natalicio de Benito Juárez
+    iso(year, 5, 1),
+    iso(year, 9, 16),
+    nthWeekday(year, 11, 1, 3), // Revolución
+    iso(year, 12, 25),
+    // La transmisión del Poder Ejecutivo Federal, cada seis años desde 2024.
+    ...(year >= 2024 && (year - 2024) % 6 === 0 ? [iso(year, 10, 1)] : []),
+  ]);
+}
+
+const HOLIDAYS: Partial<Record<SendCountry, (year: number) => ReadonlySet<string>>> = {
+  CO: (year) => colombianHolidays(year),
+  US: usHolidays,
+  MX: mexicanHolidays,
+};
 
 /** Los festivos de Colombia de ese año («AAAA-MM-DD»). */
 export function colombianHolidays(year: number): ReadonlySet<string> {
-  const cached = holidayCache.get(year);
-  if (cached) return cached;
   const sunday = easter(year);
-  const days = new Set<string>([
+  return cached(`CO-${year}`, () => [
     iso(year, 1, 1),
     iso(year, 5, 1),
     iso(year, 7, 20),
@@ -155,15 +219,13 @@ export function colombianHolidays(year: number): ReadonlySet<string> {
     shift(sunday, 64), // Corpus Christi (jueves +60, al lunes)
     shift(sunday, 71), // Sagrado Corazón (viernes +68, al lunes)
   ]);
-  holidayCache.set(year, days);
-  return days;
 }
 
 // ── La franja ────────────────────────────────────────────────────────────────────────────────────
 
 /** La franja permitida de ese día local, o `null` si ese día no se envía. */
 function spanOf(place: SendPlace, local: Pick<Local, "year" | "month" | "day" | "weekday">): Span | null {
-  if (place.country === "CO" && colombianHolidays(local.year).has(iso(local.year, local.month, local.day))) return null;
+  if (HOLIDAYS[place.country]?.(local.year).has(iso(local.year, local.month, local.day))) return null;
   return RULES[ruleKey(place.country, place.state)][local.weekday];
 }
 

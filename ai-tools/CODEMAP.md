@@ -761,7 +761,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **LegalPage.tsx** · `LegalPage` · piezas: Alert, AlertDescription, Badge, BarberlyticsLogo, Heading, PageShell, Text · usa: @/app/i18n, @/i18n, @/lib/utils
 - **acceptances.ts** · `acceptancesSchema`, `LegalAcceptances`, `useLegalAcceptances`, `useAcceptDpa` · llama: GET /legal/acceptances, POST /legal/dpa/accept · usa: @/lib/api
 - **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`, `HEALTH_CONSENT_VERSION`, `HealthConsentTexts`, `healthConsentTexts`
-- **sendWindow.ts** — Cuándo se puede mandar una promoción, a la hora del cliente (la de la sede). · `SendCountry`, `SendPlace`, `colombianHolidays`, `isPromoAllowed`, `nextPromoSlot`, `promoWeek`
+- **sendWindow.ts** — Cuándo se puede mandar una promoción, a la hora del cliente (la de la sede). · `SendCountry`, `SendPlace`, `usHolidays`, `mexicanHolidays`, `colombianHolidays`, `isPromoAllowed`, `nextPromoSlot`, `promoWeek`
 - **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack`, `useHealthConsentTexts` · usa: @/features/settings, @/i18n
 
 ### legal/documents
@@ -1110,6 +1110,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `isOwnClient`, `saveProfile`, `findByPhone`, `customersHandlers`
 - **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
 - **privacy.ts** — El plazo para responder según el país de la sede del cliente: Colombia 10 días hábiles para consultas (ver, e… · `dueDateOf`, `logPrivacyRequest`, `exportOf`, `eraseClient`, `privacyHandlers` · usa: @/features/legal
+- **promoCap.ts** — La promoción más cercana a `at` (antes o después) a menos de 30 días, si la hay. · `PROMO_CAP_DAYS`, `promoNear`
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers` · usa: @/features/legal
 - **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers, @/features/legal
 - **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockPrivacyRequest`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf` · usa: @/features/legal

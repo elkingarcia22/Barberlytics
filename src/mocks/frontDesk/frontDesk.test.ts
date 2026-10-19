@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "../db";
 import { branchNow } from "../settings/branchRules";
 import { notificationsFor } from "../notifications/handlers";
@@ -33,6 +33,7 @@ async function appointmentNow(clientId = "cli_002") {
 }
 
 describe("recepción y kiosco", () => {
+  afterEach(() => vi.useRealTimers());
   beforeEach(() => {
     db.reset();
     resetKioskLimits();
@@ -104,6 +105,8 @@ describe("recepción y kiosco", () => {
   });
 
   test("«ya casi te toca» sale una vez a quien dejó celular; «Ya no voy» lo saca de la fila", async () => {
+    // La espera depende de quién trabaja a esa hora: un martes a mediodía en Boston la sede está abierta.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-20T16:00:00.000Z") });
     const token = await pairedKiosk();
     const me = await (await kiosk(token, "/kiosk/me")).json();
     const joined = await (await kiosk(token, "/kiosk/queue", post({ firstName: "Ana", phone: "+15551230000", serviceIds: [me.services[0].id], barberId: null }))).json();

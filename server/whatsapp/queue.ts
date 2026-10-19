@@ -84,10 +84,21 @@ export interface OutboxStore {
   /** Quien escribió BAJA/STOP: no recibe promociones (`promo`, por defecto) o ningún SMS (`sms`). */
   setOptOut(tid: string, phone: string, optedOut: boolean, list?: OptOutList): Promise<void>;
   isOptedOut(tid: string, phone: string, list?: OptOutList): Promise<boolean>;
+  /** Anota una promoción a ese número para la hora en que sale (el tope por cliente). */
+  notePromo(tid: string, phone: string, id: string, at: number): Promise<void>;
+  /** Los ids de las promociones a ese número que salen entre `from` y `to`. */
+  promosBetween(tid: string, phone: string, from: number, to: number): Promise<string[]>;
 }
 
 /** Lo que Meta cuenta como marketing: solo a quien aceptó promociones. */
 export const MARKETING_KINDS: readonly MessageKind[] = ["reactivation"];
+/**
+ * El tope de promociones por cliente: una cada 30 días, contando antes y después de la que se encola (una
+ * programada para dentro de dos semanas también cuenta). Lo anulado, lo fallido y lo que no salió no cuenta.
+ */
+export const PROMO_CAP = 1;
+export const PROMO_CAP_DAYS = 30;
+const PROMO_CAP_MS = PROMO_CAP_DAYS * 86_400_000;
 /** Intentos ante un error de WhatsApp o de red antes de darlo por fallido; espera 5, 10, 20 min. */
 export const MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 5 * 60_000;
@@ -116,6 +127,7 @@ export function createMemoryStore(): OutboxStore {
   const providers = new Map<string, { tid: string; id: string }>();
   const inboxes = new Map<string, InboxEvent[]>();
   const optOuts = new Set<string>();
+  const promos = new Map<string, Map<string, number>>();
   return {
     get: async (tid, id) => items.get(keyOf(tid, id)) ?? null,
     put: async (item) => {
@@ -150,6 +162,11 @@ export function createMemoryStore(): OutboxStore {
       else optOuts.delete(`${list}:${keyOf(tid, phone)}`);
     },
     isOptedOut: async (tid, phone, list = "promo") => optOuts.has(`${list}:${keyOf(tid, phone)}`),
+    notePromo: async (tid, phone, id, at) => {
+      const key = keyOf(tid, phone);
+      promos.set(key, new Map(promos.get(key)).set(id, at));
+    },
+    promosBetween: async (tid, phone, from, to) => [...(promos.get(keyOf(tid, phone)) ?? new Map<string, number>()).entries()].filter(([, at]) => at >= from && at <= to).map(([id]) => id),
   };
 }
 
@@ -237,6 +254,17 @@ export function createUpstashStore(url: string, token: string, fetcher: Fetcher 
     isOptedOut: async (tid, phone, list = "promo") => {
       const [member] = await pipeline([["SISMEMBER", optOutKey(tid, list), phone]]);
       return member === 1;
+    },
+    // Un índice ordenado por número: id → hora de salida; vive lo que dura el tope más un margen.
+    notePromo: async (tid, phone, id, at) => {
+      await pipeline([
+        ["ZADD", `wa:promos:${keyOf(tid, phone)}`, at, id],
+        ["EXPIRE", `wa:promos:${keyOf(tid, phone)}`, Math.ceil((PROMO_CAP_MS * 2) / 1000)],
+      ]);
+    },
+    promosBetween: async (tid, phone, from, to) => {
+      const [ids] = await pipeline([["ZRANGE", `wa:promos:${keyOf(tid, phone)}`, from, to, "BYSCORE"]]);
+      return Array.isArray(ids) ? ids.map(String) : [];
     },
   };
 }
@@ -333,8 +361,13 @@ export async function enqueue(store: OutboxStore, tid: string, by: string, raws:
       result.items.push(viewOf(existing));
       continue;
     }
+    const promo = MARKETING_KINDS.includes(input.kind);
     // Una promoción fuera de la franja legal espera a la próxima apertura, a la hora de la sede.
-    const nextAttemptAt = input.place && MARKETING_KINDS.includes(input.kind) ? nextPromoSlot(input.place, new Date(Math.max(Date.parse(input.sendAt), now))).toISOString() : input.sendAt;
+    const nextAttemptAt = input.place && promo ? nextPromoSlot(input.place, new Date(Math.max(Date.parse(input.sendAt), now))).toISOString() : input.sendAt;
+    if (promo && (await promosNear(store, tid, input.to, input.id, Date.parse(nextAttemptAt))) >= PROMO_CAP) {
+      result.rejected.push({ id: input.id, message: `Ya tiene una promoción en ${PROMO_CAP_DAYS} días: es el tope por cliente.` });
+      continue;
+    }
     const item: QueueItem = {
       ...input,
       tid,
@@ -347,9 +380,17 @@ export async function enqueue(store: OutboxStore, tid: string, by: string, raws:
       createdBy: existing?.createdBy ?? by,
     };
     await store.put(item);
+    if (promo) await store.notePromo(tid, item.to, item.id, Date.parse(nextAttemptAt));
     result.items.push(viewOf(item));
   }
   return result;
+}
+
+/** Cuántas promociones vivas (por salir o ya salidas) tiene ese número a menos de 30 días de `at`, sin contar `id`. */
+async function promosNear(store: OutboxStore, tid: string, phone: string, id: string, at: number): Promise<number> {
+  const ids = (await store.promosBetween(tid, phone, at - PROMO_CAP_MS, at + PROMO_CAP_MS)).filter((other) => other !== id);
+  const items = await Promise.all(ids.map((other) => store.get(tid, other)));
+  return items.filter((item) => item && (item.status === "scheduled" || item.status === "sent" || item.status === "simulated")).length;
 }
 
 /** Anula los que aún no salieron; los demás se devuelven como están. */

@@ -26,6 +26,8 @@ export const relationshipSchema = z.object({
   consent: z.object({ marketing: consentSchema.nullable(), health: healthConsentSchema.nullable().optional(), smsStop: z.object({ at: z.string() }).nullable().optional() }),
   /** La franja legal de promociones en su sede ahora: si no, desde cuándo se puede. */
   promoWindow: z.object({ allowed: z.boolean(), nextAt: z.string(), timeZone: z.string().optional() }).optional(),
+  /** El tope por cliente (una promoción cada 30 días): la que ya tiene cerca, si la hay. */
+  promoCap: z.object({ sendAt: z.string() }).nullable().optional(),
 });
 
 export type CustomerRelationship = z.infer<typeof relationshipSchema>;

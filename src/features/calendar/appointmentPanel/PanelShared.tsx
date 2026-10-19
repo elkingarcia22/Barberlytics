@@ -1,11 +1,14 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
+import { Button } from "@/components/ui/button";
+import { ThemaIcon } from "@/icons";
 import { Stepper } from "@/components/navigation";
 import { formatClock } from "@/components/scheduling";
-import { appointmentStart, isActive, type ModelContext } from "../calendarModel";
+import { appointmentStart, appointmentTotal, isActive, servicesOf, type ModelContext } from "../calendarModel";
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { STATUS_KEYS } from "../types";
 import { TRACK, trackIndexOf } from "./panelLogic";
-import { InlineList } from "./bookingStyle";
+import { InlineList, PanelField } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -35,27 +38,62 @@ export function PanelStepper({ model, ctx }: { model: AppointmentModel; ctx: Mod
 }
 
 /**
- * Las citas enlazadas, solo si las hay. Enlazar otra se pide desde el «⋯» de
- * la acción principal y se elige aquí, en una lista que se abre en su sitio.
+ * Las citas enlazadas, solo si las hay, como una tarjeta más de la cita: qué
+ * van juntas y su total; abierta, la lista (se elige cuál mirar, se saca una
+ * del grupo) y «Ver en la agenda». Enlazar otra se pide desde el «⋯» y se
+ * elige aquí, en una lista que se abre en su sitio.
  */
-export function LinkedBlock({ model, ctx, linked = [], linkCandidates = [], onSelectAppointment, onUnlink, onLink, onShowLinked, linking, onLinkingDone }: AppointmentLinkProps & { model: AppointmentModel; ctx: ModelContext; linking: boolean; onLinkingDone: () => void }) {
+export function LinkedField({ model, ctx, linked = [], onSelectAppointment, onUnlink, onShowLinked }: Pick<AppointmentLinkProps, "linked" | "onSelectAppointment" | "onUnlink" | "onShowLinked"> & { model: AppointmentModel; ctx: ModelContext }) {
   const t = useAppT();
+  const [open, setOpen] = React.useState(false);
+  if (linked.length < 2 || !onSelectAppointment) return null;
+  const total = linked.reduce((sum, item) => sum + appointmentTotal(ctx.catalog, item), 0);
+  const names = linked.map((item) => servicesOf(ctx.catalog, item)[0]?.name ?? "—").join(" + ");
   return (
     <>
-      {linking && onLink && isActive(model.appointment) && (
-        <InlineList title={t("calendar.link.add")} description={t("calendar.link.pickHint")} onClose={onLinkingDone}>
-          <LinkPicker
-            current={model.appointment}
-            candidates={linkCandidates}
-            ctx={ctx}
-            onLink={(appointment, target) => {
-              onLink(appointment, target);
-              onLinkingDone();
-            }}
-          />
+      <PanelField
+        eyebrow={t("calendar.link.linked")}
+        value={names}
+        detail={t("calendar.link.summary", { count: linked.length, total: ctx.formatMoney(total) })}
+        icon="link"
+        open={open}
+        onOpen={() => setOpen((current) => !current)}
+        testId="panel-field-linked"
+      />
+      {open && (
+        <InlineList
+          title={t("calendar.link.title", { count: linked.length })}
+          onClose={() => setOpen(false)}
+          footer={
+            onShowLinked ? (
+              <Button variant="outline" className="flex-1" onClick={onShowLinked} data-testid="appointment-linked-show">
+                <ThemaIcon name="calendar" /> {t("calendar.link.show")}
+              </Button>
+            ) : undefined
+          }
+        >
+          <AppointmentLinkSection bare linked={linked} current={model.appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} />
         </InlineList>
       )}
-      {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={model.appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
     </>
+  );
+}
+
+/** Enlazar otra cita (pedido desde el «⋯»): la lista para elegirla, en su sitio. */
+export function LinkPickerField({ model, ctx, linkCandidates = [], onLink, onDone }: { model: AppointmentModel; ctx: ModelContext; linkCandidates?: AppointmentLinkProps["linkCandidates"]; onLink?: AppointmentLinkProps["onLink"]; onDone: () => void }) {
+  const t = useAppT();
+  if (!onLink || !isActive(model.appointment)) return null;
+  return (
+    <InlineList title={t("calendar.link.add")} description={t("calendar.link.pickHint")} onClose={onDone}>
+      <LinkPicker
+        current={model.appointment}
+        candidates={linkCandidates}
+        ctx={ctx}
+        onLink={(appointment, target) => {
+          onLink(appointment, target);
+          onDone();
+        }}
+      />
+    </InlineList>
   );
 }

@@ -56,7 +56,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.request.addPhoto": "Add haircut photo",
   "calendar.panel.request.save": "Save",
   "calendar.panel.client.journey": "Their journey",
-  "calendar.panel.fields.saveDuration": "Save duration: {duration}",
   "calendar.agent.suggests": "Clipper suggests:",
   "calendar.panel.after.title": "After the visit",
   "calendar.panel.after.send": "Send receipt",

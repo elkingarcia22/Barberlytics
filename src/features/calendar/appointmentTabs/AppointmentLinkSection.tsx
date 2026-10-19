@@ -37,17 +37,19 @@ export interface AppointmentLinkSectionProps {
   onSelect: (appointment: Appointment) => void;
   onUnlink?: (appointment: Appointment) => void;
   onShowLinked?: () => void;
+  /** Sin su título ni «Ver en la agenda»: los pone afuera quien la abre (la tarjeta del panel). */
+  bare?: boolean;
 }
 
 const servicesLabel = (appointment: Appointment, ctx: ModelContext) => servicesOf(ctx.catalog, appointment).map((service) => service.name).join(" + ") || "—";
 
-export function AppointmentLinkSection({ linked, current, ctx, onSelect, onUnlink, onShowLinked }: AppointmentLinkSectionProps) {
+export function AppointmentLinkSection({ linked, current, ctx, onSelect, onUnlink, onShowLinked, bare = false }: AppointmentLinkSectionProps) {
   const t = useAppT();
   const total = linked.reduce((sum, item) => sum + appointmentTotal(ctx.catalog, item), 0);
 
   return (
     <section aria-label={t("calendar.link.title", { count: linked.length })} className="space-y-2" data-testid="appointment-linked">
-      <div className="flex items-center justify-between gap-2">
+      <div className={bare ? "hidden" : "flex items-center justify-between gap-2"}>
         <Text variant="label" weight="semibold">
           {t("calendar.link.title", { count: linked.length })}
         </Text>

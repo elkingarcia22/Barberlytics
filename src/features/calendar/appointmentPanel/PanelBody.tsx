@@ -16,7 +16,7 @@ import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./Pan
 import { CareAlerts } from "./CareAlerts";
 import { StatusConfirmContent, type ClosingAction } from "./StatusConfirm";
 import { SourceLine } from "./SourceLine";
-import { LinkedBlock, PanelStepper } from "./PanelShared";
+import { LinkedField, LinkPickerField, PanelStepper } from "./PanelShared";
 import { PanelQuestion, PanelSubpage } from "./bookingStyle";
 import { isClosed, mainAction, quickActions, restActions } from "./panelLogic";
 import type { PanelPages } from "./panelHooks";
@@ -29,9 +29,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * Arriba el avance; la tarjeta del momento, teñida por el estado, con quién
  * viene y qué se va a hacer en tarjetas que se cambian en su sitio —cliente,
  * servicios, productos, barbero, día y hora, y el comentario y la foto del
- * corte— y la acción principal dentro. Debajo, los atajos (solo si hacen
- * falta), los mensajes de la cita y las enlazadas. La actividad y Clipper van
- * en la cabecera del panel. Cobrada o cerrada sin atender, lo que sigue con el cliente.
+ * corte—, la confirmación y las enlazadas (también tarjetas), y al final los
+ * atajos (solo si hacen falta) y la acción principal con su «⋯». Todo vive en
+ * la tarjeta; la actividad y Clipper van en la cabecera del panel. Cobrada o cerrada sin atender, lo que sigue con el cliente.
  */
 
 export interface PanelBodyProps extends AppointmentLinkProps {
@@ -124,7 +124,15 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
             <AppointmentFields model={model} ctx={ctx} onPatch={onPatch} />
           </div>
         </PanelQuestion>
+        {/* Si viene (confirmación y mensajes) y con qué citas va: tarjetas como las de arriba, solo si aplican. */}
+        <div className="flex flex-col gap-2 empty:hidden">
+          {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
+          <LinkedField model={model} ctx={ctx} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />
+          {linking && <LinkPickerField model={model} ctx={ctx} linkCandidates={props.linkCandidates} onLink={props.onLink} onDone={() => setLinking(false)} />}
+        </div>
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
+        {/* Al final de la tarjeta: los atajos (solo si hacen falta) y debajo la acción principal con su «⋯». */}
+        <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
         <Popover open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
           <PopoverAnchor asChild>
             <div className="flex items-center gap-2">
@@ -138,10 +146,6 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
           </PopoverContent>
         </Popover>
       </section>
-      <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
-      {/* Si confirmó que viene y qué mensajes se le mandaron por correo o SMS (confirmación, recordatorios). */}
-      {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
-      <LinkedBlock {...props} linking={linking} onLinkingDone={() => setLinking(false)} />
     </div>
   );
 }

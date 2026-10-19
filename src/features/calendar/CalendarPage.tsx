@@ -55,7 +55,7 @@ import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
 import { DayPanel } from "./dayPanel/DayPanel";
-import { resourceDay } from "./resourceModel";
+import { resourceConflict, resourceDay, resourceReason } from "./resourceModel";
 import { useResourcesQuery } from "@/features/services/queries";
 import { dayWeightOf } from "./dayWeight";
 import { DayWeightBadge } from "./DayWeightBadge";
@@ -481,6 +481,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   /* ------------------------------------------------------- mover y estirar */
 
   /** Si una tarjeta cabe donde se quiere soltar. Alargarla sobre citas que se pueden correr sí vale: se ofrece reacomodar. */
+  // La cita como quedaría tras soltarla (otra hora, otro barbero u otra duración), contra los recursos especiales.
+  const resources = resourcesQuery.data?.items;
+  const dropConflict = React.useCallback(
+    (id: string, drop: ScheduleDrop) => {
+      const anchor = day.data?.appointments.find((item) => item.id === id);
+      if (!anchor || !ctx || !day.data || !resources?.length) return null;
+      const moved = { ...anchor, start: toLocalIso(drop.start), barberId: drop.resourceId, durationMin: differenceInMinutes(drop.end, drop.start) };
+      return resourceConflict(resources, day.data.appointments, ctx.catalog, moved);
+    },
+    [ctx, day.data, resources]
+  );
+
   const validateDrop = React.useCallback(
     (event: ScheduleEvent, drop: ScheduleDrop): string | null => {
       // Un barbero no pasa citas a la columna de otro, ni aunque la viera.
@@ -498,16 +510,17 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         // Si todo lo que pisa se puede correr, el plan lo resuelve; si no, no cabe.
         if (plan && clashingAppointments(day.data.appointments, barber.id, state.date, from, to, event.id).every((item) => plan.moves.some((move) => move.appointment.id === item.id))) return null;
       }
-      return placementReason(problem, ctx, barber);
+      return placementReason(problem, ctx, barber) ?? resourceReason(dropConflict(event.id, drop), ctx);
     },
-    [ctx, day.data, enforceRules, ownBarberId, state.date, t]
+    [ctx, day.data, dropConflict, enforceRules, ownBarberId, state.date, t]
   );
 
   /** Sin reglas el cambio entra igual, pero se avisa de sobre qué quedó. */
   const overlapNote = (barberId: string, from: number, to: number, excludeId: string): string | null => {
     if (enforceRules || !ctx || !day.data) return null;
     const barber = findBarber(ctx.catalog, barberId);
-    return barber ? placementReason(placementProblem(day.data, barber, state.date, from, to, excludeId), ctx, barber) : null;
+    const drop: ScheduleDrop = { resourceId: barberId, start: atMinutes(state.date, from), end: atMinutes(state.date, to) };
+    return barber ? (placementReason(placementProblem(day.data, barber, state.date, from, to, excludeId), ctx, barber) ?? resourceReason(dropConflict(excludeId, drop), ctx)) : null;
   };
 
   const onDropRejected = (_event: ScheduleEvent, _drop: ScheduleDrop, reason: string) => toast.error(t("calendar.clash.title"), { description: reason });
@@ -1039,6 +1052,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 day={day.data}
                 onSuggestions={onSuggestions}
                 enforceRules={enforceRules}
+                resources={resources}
                 onCreated={(appointment) => state.setDate(parseLocal(appointment.start))}
                 onCreateClient={() => navigate("/clientes")}
               />

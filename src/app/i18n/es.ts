@@ -1473,6 +1473,8 @@ export const appEs = {
   "calendar.clash.appointment": "Se pisa con {name}",
   "calendar.clash.block": "Se pisa con «{name}»",
   "calendar.clash.offHours": "Fuera del horario de {name}",
+  "calendar.create.resourceForce": "{reason}. Puedes agendar igual.",
+  "calendar.clash.resource": "{resource} está ocupado a las {time} (lo usa {names})",
   "calendar.clash.otherBarber": "Solo puedes mover citas dentro de tu agenda",
   "calendar.marker.online": "Reservó online",
   "calendar.marker.walkIn": "Llegó sin cita",

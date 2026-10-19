@@ -37,6 +37,8 @@ import {
   type MockTimeBlock,
   type MockWaitlistEntry,
 } from "./seed";
+import { resourceConflict } from "@/features/calendar/resourceModel";
+import { seedResources } from "../services/seed";
 import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
 
 /**
@@ -128,7 +130,7 @@ function generateDay(branchId: string, day: string): MockAppointment[] {
     const member = db.team.members.find((item) => item.id === barber.id);
     return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day) : [] } };
   });
-  return seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date(), blocks: db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day)) });
+  return seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date(), blocks: db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day)), resources: db.services.resources ?? seedResources() });
 }
 
 /** Las citas de un día de una sucursal, generándolas la primera vez que se piden. */
@@ -215,6 +217,17 @@ export function clashMessage(branchId: string, barberId: string, day: string, st
   if (clash) return `Se pisa con la cita de ${db.calendar.clients.find((client) => client.id === clash.clientId)?.name ?? "otro cliente"}.`;
   const block = blocksOn(branchId, day).find((item) => item.barberId === barberId && startMinute < parseClock(item.endTime) && parseClock(item.startTime) < end);
   return block ? "Se pisa con un bloqueo del barbero." : null;
+}
+
+/**
+ * Si la cita pide un recurso especial (el sillón de lavado…) que a esa hora
+ * ya está completo. La misma regla que la agenda (`resourceConflict`).
+ */
+export function resourceMessage(branchId: string, candidate: Pick<MockAppointment, "id" | "serviceIds" | "barberId" | "durationMin" | "start" | "status">): string | null {
+  const conflict = resourceConflict(db.services.resources ?? seedResources(), appointmentsOn(branchId, candidate.start.slice(0, 10)), { services: catalogServices(), barbers: [] }, candidate);
+  if (!conflict) return null;
+  const names = conflict.with.map((item) => db.calendar.clients.find((client) => client.id === item.clientId)?.name.split(" ")[0]).filter(Boolean);
+  return `${conflict.resource.name} está ocupado a esa hora (lo usa ${names.join(", ") || "otra cita"}).`;
 }
 
 function replaceAppointment(updated: MockAppointment) {
@@ -394,7 +407,7 @@ export const calendarHandlers = [
     const time = values.start.slice(11, 16);
     appointmentsOn(barber.branchId, day);
     const body = asRecord(rawBody);
-    const clash = body.force === true && !own ? null : clashMessage(barber.branchId, values.barberId, day, parseClock(time), durationMin);
+    const clash = body.force === true && !own ? null : (clashMessage(barber.branchId, values.barberId, day, parseClock(time), durationMin) ?? resourceMessage(barber.branchId, { id: "", serviceIds: values.serviceIds, barberId: values.barberId, durationMin, start: values.start, status: "scheduled" }));
     if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     const seriesId = values.repeat === "none" ? null : `ser_${Date.now().toString(36)}`;
     const occurrences = values.repeat === "none" ? 1 : SERIES_LENGTH;
@@ -524,7 +537,7 @@ export const calendarHandlers = [
     // Devolverle la vida a una cita cancelada tampoco puede pisar a quien tomó el hueco.
     const revived = (existing.status === "cancelled" || existing.status === "no_show") && next.status === "scheduled";
     if ((moved || revived) && input.force !== true && next.status !== "cancelled" && next.status !== "no_show") {
-      const clash = clashMessage(existing.branchId, next.barberId, next.start.slice(0, 10), parseClock(next.start.slice(11, 16)), next.durationMin, existing.id);
+      const clash = clashMessage(existing.branchId, next.barberId, next.start.slice(0, 10), parseClock(next.start.slice(11, 16)), next.durationMin, existing.id) ?? resourceMessage(existing.branchId, next);
       if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     }
     // Recepción marca la confirmación (por teléfono, en persona) o la deja sin confirmar.

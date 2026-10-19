@@ -59,7 +59,7 @@ export function parseLocal(value: string): Date {
 /** Date a ISO local sin zona, con minutos. */
 export const toLocalIso = (date: Date): string => format(date, "yyyy-MM-dd'T'HH:mm");
 
-export const appointmentStart = (appointment: Appointment): Date => parseLocal(appointment.start);
+export const appointmentStart = (appointment: Pick<Appointment, "start">): Date => parseLocal(appointment.start);
 export const appointmentEnd = (appointment: Appointment): Date => addMinutes(appointmentStart(appointment), appointment.durationMin);
 
 export const findClient = (catalog: CalendarCatalog, id: string): Client | undefined => catalog.clients.find((client) => client.id === id);
@@ -69,7 +69,7 @@ export const priceFor = (catalog: Pick<CalendarCatalog, "barbers">, barberId: st
   (barberId ? catalog.barbers.find((barber) => barber.id === barberId)?.prices?.[service.id] : undefined) ?? service.price;
 
 /** Los servicios de una cita, cada uno al precio de su barbero: es lo que se le cobra al cliente. */
-export const servicesOf = (catalog: CalendarCatalog, appointment: Pick<Appointment, "serviceIds"> & { barberId?: string }): Service[] =>
+export const servicesOf = (catalog: Pick<CalendarCatalog, "services" | "barbers">, appointment: Pick<Appointment, "serviceIds"> & { barberId?: string }): Service[] =>
   appointment.serviceIds
     .map((id) => catalog.services.find((service) => service.id === id))
     .filter((service): service is Service => Boolean(service))
@@ -102,7 +102,7 @@ export function visibleBarbers(barbers: readonly Barber[], team: TeamFilter, dat
 }
 
 /** Una cita cuenta para la agenda mientras no esté anulada. */
-export const isActive = (appointment: Appointment): boolean => appointment.status !== "cancelled" && appointment.status !== "no_show";
+export const isActive = (appointment: Pick<Appointment, "status">): boolean => appointment.status !== "cancelled" && appointment.status !== "no_show";
 
 export const isUnpaid = (appointment: Appointment): boolean => isActive(appointment) && appointment.status !== "paid";
 
@@ -518,7 +518,7 @@ export function visitContinuations(appointments: readonly Appointment[]): Set<st
  * hora de inicio. Si la cita dura más o menos que la suma (se estiró o se
  * acortó a mano), cada tramo se estira en proporción.
  */
-export function serviceSlots(catalog: CalendarCatalog, appointment: Appointment): { service: Service; start: Date; end: Date; minutes: number }[] {
+export function serviceSlots(catalog: Pick<CalendarCatalog, "services" | "barbers">, appointment: Pick<Appointment, "serviceIds" | "barberId" | "durationMin" | "start">): { service: Service; start: Date; end: Date; minutes: number }[] {
   const services = servicesOf(catalog, appointment);
   const sum = servicesMinutes(services);
   const scale = sum > 0 ? appointment.durationMin / sum : 1;

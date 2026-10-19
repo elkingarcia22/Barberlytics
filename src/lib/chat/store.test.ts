@@ -49,6 +49,18 @@ describe("createChatStore", () => {
     expect(store.getState().conversations[0].unread).toBe(false);
   });
 
+  test("las propuestas llegan con la respuesta y su estado cambia sin tocar lo demás", async () => {
+    const store = createChatStore({ now: () => 1000 });
+    const action = { id: "a1", kind: "moveAppointment", title: "Mover", rows: [{ label: "Cuándo", after: "16:00" }], payload: {}, status: "proposed" as const };
+    store.send("Mueve a Juan", backendWith(reply({ text: "Lista para aplicar.", actions: [action] })));
+    await vi.runAllTimersAsync();
+    const agent = () => store.getState().conversations[0].messages[1];
+    expect(agent().actions).toEqual([action]);
+    store.updateAction(agent().id, "a1", { status: "applied", undo: { appointmentId: "x" } });
+    expect(agent().actions?.[0]).toMatchObject({ status: "applied", undo: { appointmentId: "x" }, title: "Mover" });
+    expect(agent().text).toBe("Lista para aplicar.");
+  });
+
   test("una respuesta que llega a una conversación que no se mira queda sin leer", async () => {
     const store = createChatStore({ now: () => 1000 });
     const first = store.send("Uno", backendWith(reply(), 50));

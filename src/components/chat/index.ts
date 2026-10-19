@@ -7,6 +7,7 @@ export { ChatUserMessage, type ChatUserMessageProps } from "./ChatUserMessage";
 export { ChatAgentMessage, type ChatAgentMessageProps } from "./ChatAgentMessage";
 export { ChatThinking } from "./ChatThinking";
 export { ChatQuestionCard, type ChatQuestionCardProps } from "./ChatQuestionCard";
+export { ChatActionCard, type ChatActionCardProps } from "./ChatActionCard";
 export { ChatCardView } from "./ChatCardView";
 export { ChatFeedbackForm, type ChatFeedbackPayload } from "./ChatFeedbackForm";
 export { ChatMarkdown, type ChatMarkdownProps } from "./ChatMarkdown";

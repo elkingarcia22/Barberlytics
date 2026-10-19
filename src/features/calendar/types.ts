@@ -226,6 +226,8 @@ export const appointmentInputSchema = z.object({
   notes: z.string().nullable().optional(),
   /** Quien agenda sin reglas (dueño, administrador, recepción, barbero de renta) puede pisar otra cita o un bloqueo. */
   force: z.boolean().optional(),
+  /** La propuso Clipper y la persona la aprobó: queda «Clipper · nombre» en el historial. */
+  actor: z.literal("clipper").optional(),
 });
 export type AppointmentInput = z.infer<typeof appointmentInputSchema>;
 
@@ -245,8 +247,8 @@ export interface AppointmentPatch {
   reason?: string;
   /** Saltarse la regla de no pisar: solo quien agenda sin reglas. */
   force?: boolean;
-  /** Quién lo decidió cuando no fue la persona que está en pantalla: el asistente. */
-  actor?: "assistant";
+  /** Quién lo decidió cuando no fue la persona que está en pantalla: el asistente o Clipper (con quien lo aprobó). */
+  actor?: "assistant" | "clipper";
   /** Recepción marca que el cliente confirmó (por teléfono, en persona) o lo devuelve a sin confirmar. */
   confirmation?: "confirmed" | "pending";
 }

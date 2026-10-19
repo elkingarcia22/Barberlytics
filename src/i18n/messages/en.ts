@@ -151,6 +151,17 @@ export const en: MessageCatalog = {
 
   // ── AI chat ──
   "chat.title": "Clipper",
+  "chat.action.proposed": "Proposal",
+  "chat.action.applying": "Applying…",
+  "chat.action.applied": "Applied",
+  "chat.action.discarded": "Discarded",
+  "chat.action.undoing": "Undoing…",
+  "chat.action.undone": "Undone",
+  "chat.action.failed": "Not applied",
+  "chat.action.apply": "Apply",
+  "chat.action.discard": "Discard",
+  "chat.action.undo": "Undo",
+  "chat.action.open": "View",
   "chat.subtitle": "Platform assistant",
   "chat.greeting.morning": "Good morning,",
   "chat.greeting.afternoon": "Good afternoon,",

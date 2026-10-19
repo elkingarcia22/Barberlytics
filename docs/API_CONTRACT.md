@@ -233,7 +233,7 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | GET | `/calendar/appointments?branchId&from=AAAA-MM-DD&to=AAAA-MM-DD` | `{ from, to, items }`: las citas de la sucursal en el rango, de la más antigua a la más nueva, con la misma forma que las del día. De 1 a 92 días, `422` fuera de eso. Es lo que usa el buscador del calendario (nombre, teléfono, barbero, servicio, estado, notas…), que filtra en la pantalla. |
 | GET | `/calendar/month?branchId&month=AAAA-MM&barberId?` | `{ month, days: [{ date, occupancy: 0–1 \| null, count }] }`. `occupancy` es minutos de cita sobre minutos de jornada; `null` si nadie trabaja. Sin `barberId`, todo el equipo. |
 | POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. `409 conflict` si el tramo pisa otra cita viva o un bloqueo del barbero (el mensaje dice con quién), salvo con `force: true`, que usan los roles que agendan sin reglas (dueño, administrador, recepción, barbero de renta). |
-| PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, referencePhotos, reason?, actor? }`. `referencePhotos` reemplaza las fotos del corte (hasta 3 data URL de imagen, las mismas reglas que en la reserva en línea; `422` si alguna no sirve). Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión. `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, salvo con `force: true`. `422` · `404`. |
+| PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, durationMin (15–480), serviceIds, notes, referencePhotos, reason?, actor? }`. `referencePhotos` reemplaza las fotos del corte (hasta 3 data URL de imagen, las mismas reglas que en la reserva en línea; `422` si alguna no sirve). Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión; `actor: "clipper"`, como «Clipper · persona de la sesión» (el cambio lo propuso Clipper y lo aprobó ella). `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva o un bloqueo, o si una cita cancelada o sin presentarse vuelve a `scheduled` sobre un hueco ya ocupado, salvo con `force: true`. `422` · `404`. |
 | POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge?, split? }`. Con `mixed`, `split: { cash, card }` tiene que sumar lo que se cobra ahora (saldo + propina + recargo): si no, `422`; el recargo va solo sobre la parte de tarjeta. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`: `tax` es el de la sucursal y, si la cita vino de la reserva en línea, `payment.prepaid` es lo que ya estaba pagado (su `online.paid` + `online.tip`): en caja se cobra solo el resto. `409` si ya estaba cobrada o anulada. |
 | POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
 | PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404`. |
@@ -426,7 +426,8 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 
 ## Clipper (`/api/clipper`, función de servidor)
 
-Clipper responde con los datos de la barbería usando herramientas **de solo lectura**. El servidor guarda la clave
+Clipper responde con los datos de la barbería usando herramientas **de consulta** y **propone cambios** que la
+persona aplica. El servidor guarda la clave
 (`ANTHROPIC_API_KEY`; modelo en `CLIPPER_MODEL`, por defecto `claude-sonnet-5-5`), elige qué herramientas ve el modelo
 según el rol (`src/lib/clipper/toolCatalog.ts`) y hace **un paso** de la conversación. La app ejecuta las consultas
 con la sesión de quien pregunta, así que cada endpoint aplica su permiso (ver «Permisos en el servidor»).
@@ -441,7 +442,18 @@ con la sesión de quien pregunta, así que cada endpoint aplica su permiso (ver 
 Herramientas: `agenda_del_dia`, `cuentas_del_periodo`, `buscar_cliente`, `proxima_visita_cliente` y `buscar_ayuda`
 (todos); `caja_del_dia`, `turno_sin_cita` y `revision_antes_de_cerrar` (dueño, administrador, recepción); `nomina`
 (dueño, administrador y barberos, la suya); `resumen_semana`, `clientes_para_reactivar` y `rentabilidad_servicios`
-(dueño y administrador). Cada una devuelve un resumen con los conteos y totales ya hechos.
+(dueño y administrador); `catalogo_de_la_sucursal` (todos: barberos y servicios con sus ids). Cada una devuelve un
+resumen con los conteos y totales ya hechos.
+
+**Propuestas** (`kind: "propose"`): `proponer_mover_cita`, `proponer_cita`, `proponer_cancelar_cita` y
+`proponer_bloqueo` (dueño, administrador, recepción); `proponer_nota_cliente` (todos). No cambian nada: la app valida,
+mira la agenda para avisar de choques y deja en la respuesta una tarjeta (`ChatAction`: título, filas con antes y
+después, avisos) con «Aplicar». Al modelo le vuelve que la propuesta espera a la persona; nunca dice que ya está hecho.
+«Aplicar» usa los endpoints de siempre (`PATCH /appointments/:id`, `POST /appointments`, `POST /blocks`,
+`POST /clients/:id/notes`) con `actor: "clipper"`, que deja **«Clipper · quien aprobó»** en el historial de la cita (y
+en `createdBy` de la cita nueva); el servidor sigue negándose a pisar otra cita (`409`) y la tarjeta muestra el motivo.
+«Deshacer» devuelve lo que había: la hora y el barbero, el estado anterior (una cita cancelada vuelve a agendada si
+nadie tomó el hueco; si no, `409`), cancela la cita creada, borra el bloqueo o la nota.
 
 **Cifras verificadas**: cada número de la respuesta tiene que aparecer en los resultados de las consultas o en lo que
 preguntó la persona (en cualquiera de sus lecturas: `1.239` puede ser mil doscientos treinta y nueve o uno coma dos;

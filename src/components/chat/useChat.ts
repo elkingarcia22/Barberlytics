@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { ChatBackend, ChatState, ChatStore, Conversation } from "@/lib/chat";
+import type { ChatAction, ChatBackend, ChatState, ChatStore, Conversation } from "@/lib/chat";
 
 export interface ChatConnector {
   id: string;
@@ -33,6 +33,12 @@ export interface ChatContextValue {
   onOpenFull?: (conversationId: string | null) => void;
   /** Abrir el modo voz; sin esto no hay botón Voz. */
   onOpenVoice?: () => void;
+  /**
+   * Aplicar o deshacer un cambio que propuso el agente. Devuelve cómo queda (`applied` con su `undo`,
+   * `undone`); si falla, lanza un error con el mensaje para la persona. Sin esto, las propuestas no
+   * tienen botón.
+   */
+  onAction?: (action: ChatAction, op: "apply" | "undo") => Promise<Partial<ChatAction>>;
 }
 
 export const ChatContext = React.createContext<ChatContextValue | null>(null);
@@ -57,9 +63,20 @@ export function useActiveConversation(): Conversation | null {
 
 /** Las acciones del chat, ya atadas al almacén y a quien responde. */
 export function useChatActions() {
-  const { store, backend } = useChatContext();
+  const { store, backend, onAction } = useChatContext();
   return React.useMemo(
     () => ({
+      /** Aplica o deshace un cambio propuesto; el estado va quedando en el mensaje. */
+      runAction: async (messageId: string, action: ChatAction, op: "apply" | "undo") => {
+        if (!onAction) return;
+        store.updateAction(messageId, action.id, { status: op === "apply" ? "applying" : "undoing", error: undefined });
+        try {
+          store.updateAction(messageId, action.id, await onAction(action, op));
+        } catch (error) {
+          store.updateAction(messageId, action.id, { status: op === "apply" ? "failed" : "applied", error: error instanceof Error ? error.message : String(error) });
+        }
+      },
+      discardAction: (messageId: string, actionId: string) => store.updateAction(messageId, actionId, { status: "discarded" }),
       send: (text: string) => store.send(text, backend),
       answer: (messageId: string, option: string) => store.answer(messageId, option, backend),
       regenerate: () => store.regenerate(backend),
@@ -71,6 +88,6 @@ export function useChatActions() {
       remove: store.remove,
       newConversation: () => store.setActive(null),
     }),
-    [store, backend]
+    [store, backend, onAction]
   );
 }

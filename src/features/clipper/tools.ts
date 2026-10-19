@@ -8,6 +8,8 @@ import { reviewApi } from "@/features/review/review";
 import { registerApi } from "@/features/transactions/register";
 import { transactionsApi } from "@/features/transactions/api";
 import { helpPath, loadHelpIndex, loadHelpSearchDocs, type HelpLocale } from "@/help/content";
+import type { ChatAction } from "@/lib/chat";
+import { isProposalName, PROPOSERS, ProposalError, proposalSummary, type ProposalName, type Translate } from "./proposals";
 
 /**
  * Lo que hace cada herramienta de Clipper (el catálogo está en `src/lib/clipper/toolCatalog.ts`). Cada
@@ -23,6 +25,8 @@ export interface ClipperToolContext {
   /** AAAA-MM-DD en la sucursal. */
   today: string;
   locale: HelpLocale;
+  /** Para los textos de las tarjetas de propuesta. */
+  t: Translate;
 }
 
 type Args = Record<string, unknown>;
@@ -50,7 +54,17 @@ export function weekOf(day: string): { from: string; to: string } {
   return { from: key(monday), to: key(new Date(monday.getTime() + 6 * DAY_MS)) };
 }
 
-const RUNNERS: Record<ClipperToolName, Runner> = {
+type ReadName = Exclude<ClipperToolName, ProposalName>;
+
+const RUNNERS: Record<ReadName, Runner> = {
+  async catalogo_de_la_sucursal(_args, context, signal) {
+    const catalog = await calendarApi.catalog(context.branchId, signal);
+    return {
+      barberos: catalog.barbers.map((item) => ({ id: item.id, nombre: item.name })),
+      servicios: catalog.services.map((item) => ({ id: item.id, nombre: item.name, minutos: item.durationMin, precio: item.price })),
+    };
+  },
+
   async agenda_del_dia(args, context, signal) {
     const fecha = dayArg(args.fecha, context.today);
     const [catalog, day] = await Promise.all([calendarApi.catalog(context.branchId, signal), calendarApi.day(context.branchId, fecha, signal)]);
@@ -65,9 +79,12 @@ const RUNNERS: Record<ClipperToolName, Runner> = {
       porConfirmar: pending.filter((item) => item.confirmation?.status !== "confirmed").length,
       riesgoAltoDeNoVenir: pending.filter((item) => item.risk?.level === "high").length,
       lista: sorted.slice(0, MAX_ROWS).map((item) => ({
+        id: item.id,
         hora: item.start.slice(11, 16),
         cliente: name(catalog.clients, item.clientId),
         barbero: name(catalog.barbers, item.barberId),
+        barberoId: item.barberId,
+        clienteId: item.clientId,
         servicios: item.serviceIds.map((id) => name(catalog.services, id)).join(" + "),
         minutos: item.durationMin,
         estado: item.status,
@@ -223,6 +240,12 @@ const RUNNERS: Record<ClipperToolName, Runner> = {
 
 /** Los nombres que se muestran bajo la respuesta («Consulté: Agenda del día»). */
 export const TOOL_LABEL_KEYS = {
+  catalogo_de_la_sucursal: "clipper.tool.catalog",
+  proponer_mover_cita: "clipper.tool.propose",
+  proponer_cita: "clipper.tool.propose",
+  proponer_cancelar_cita: "clipper.tool.propose",
+  proponer_bloqueo: "clipper.tool.propose",
+  proponer_nota_cliente: "clipper.tool.propose",
   agenda_del_dia: "clipper.tool.agenda",
   cuentas_del_periodo: "clipper.tool.accounts",
   resumen_semana: "clipper.tool.week",
@@ -237,18 +260,26 @@ export const TOOL_LABEL_KEYS = {
   buscar_ayuda: "clipper.tool.help",
 } as const satisfies Record<ClipperToolName, string>;
 
-export const isToolName = (name: string): name is ClipperToolName => name in RUNNERS;
+export const isToolName = (name: string): name is ClipperToolName => name in RUNNERS || isProposalName(name);
 
 /**
  * Ejecuta una consulta y la devuelve como texto para el modelo. Un error (sin permiso, sin datos) no
  * rompe la conversación: vuelve como resultado con `is_error`, y el modelo lo dice.
  */
-export async function runClipperTool(name: string, args: Args, context: ClipperToolContext, signal: AbortSignal): Promise<{ content: string; isError: boolean }> {
+export async function runClipperTool(name: string, args: Args, context: ClipperToolContext, signal: AbortSignal, propose?: (action: ChatAction) => void): Promise<{ content: string; isError: boolean }> {
   if (!isToolName(name)) return { content: JSON.stringify({ error: "Herramienta desconocida." }), isError: true };
   try {
-    return { content: JSON.stringify(await RUNNERS[name](args, context, signal)), isError: false };
+    // Una propuesta no cambia nada: queda como tarjeta en la respuesta y el modelo sabe que espera «Aplicar».
+    if (isProposalName(name)) {
+      if (!propose) return { content: JSON.stringify({ error: "Aquí no se pueden proponer cambios." }), isError: true };
+      const action = await PROPOSERS[name](args, { branchId: context.branchId, locale: context.locale, t: context.t }, signal);
+      propose(action);
+      return { content: JSON.stringify(proposalSummary(action)), isError: false };
+    }
+    return { content: JSON.stringify(await RUNNERS[name as ReadName](args, context, signal)), isError: false };
   } catch (error) {
     if (signal.aborted) throw error;
+    if (error instanceof ProposalError) return { content: JSON.stringify({ error: error.message }), isError: true };
     const status = (error as { status?: number }).status;
     const message = status === 403 ? "Sin permiso para este dato con este rol." : status === 401 ? "La sesión terminó." : "No se pudo consultar.";
     return { content: JSON.stringify({ error: message, status: status ?? null }), isError: true };

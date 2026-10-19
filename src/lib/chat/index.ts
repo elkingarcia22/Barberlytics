@@ -1,5 +1,6 @@
 export type {
   ChatBackend,
+  ChatAction,
   ChatCard,
   ChatLink,
   ChatMessage,

@@ -29,6 +29,9 @@ import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
 import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
 import { chatStore, clearChatOnLogout, createAppChatBackend } from "../chat";
 import { TOOL_LABEL_KEYS } from "@/features/clipper/tools";
+import { runClipperAction } from "@/features/clipper/proposals";
+import { useQueryClient } from "@tanstack/react-query";
+import { describeError } from "@/lib/api";
 import { useSettingsList } from "@/features/settings/settingsQueries";
 import { branchSchema } from "@/features/settings/settingsTypes";
 import { agentFocus, withAgentFocus } from "@/lib/chat";
@@ -150,6 +153,7 @@ export function AppLayout() {
     () => toShellNotifications(notificationsQuery.data?.items ?? [], { t, formatMoney, formatDate, navigate, markRead: (ids) => markRead.mutate(ids) }),
     [notificationsQuery.data, t, formatMoney, formatDate, navigate, markRead]
   );
+  const queryClient = useQueryClient();
   const chatState = React.useSyncExternalStore(chatStore.subscribe, chatStore.getState, chatStore.getState);
   // Clipper consulta con la sesión de quien pregunta: su rol, su ficha, su sucursal y su moneda.
   const branchSettings = useSettingsList("branches", branchSchema);
@@ -169,7 +173,7 @@ export function AppLayout() {
       },
       toHelpLocale(locale),
       {
-        context: { branchId, role: effectiveRole, memberId, today, locale: toHelpLocale(locale), branch: branchName, currency, userName },
+        context: { branchId, role: effectiveRole, memberId, today, locale: toHelpLocale(locale), branch: branchName, currency, userName, t },
         labels: { consulted: t("clipper.consulted"), tool: (name) => t(TOOL_LABEL_KEYS[name as keyof typeof TOOL_LABEL_KEYS] ?? "clipper.consulted") },
       }
     );
@@ -223,8 +227,18 @@ export function AppLayout() {
         setShellMode("agent");
       },
       onOpenVoice: () => setIsVoiceOpen(true),
+      // Lo que propuso Clipper se aplica (o se deshace) con los endpoints de siempre; después, todo se vuelve a leer.
+      onAction: async (action, op) => {
+        try {
+          return await runClipperAction(action, op);
+        } catch (error) {
+          throw new Error(describeError(error).description, { cause: error });
+        } finally {
+          void queryClient.invalidateQueries();
+        }
+      },
     }),
-    [agentContext, agentFocusValue, answeringBackend, user?.name, locale, navigate, t]
+    [agentContext, agentFocusValue, answeringBackend, user?.name, locale, navigate, t, queryClient]
   );
   // El historial de la barra lateral, con Hoy / Ayer / Últimos 7 días.
   const chatHistory = React.useMemo<readonly ChatHistoryGroup[]>(() => {

@@ -1,5 +1,5 @@
 {
-  "sourceHash": "3281fb867d620490",
+  "sourceHash": "c1cd16b0732fffb7",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -1846,6 +1846,79 @@
       ],
       "docs": "/docs#/components/ai-spark-glyph",
       "ficha": "ai-tools/components/ai-spark-glyph.md"
+    },
+    {
+      "id": "chat-action-card",
+      "name": "ChatActionCard",
+      "group": "ai",
+      "description": "Un cambio que el agente propone y la persona aplica: qué cambia (lo de antes tachado, lo nuevo al lado), los avisos y «Aplicar» o «Descartar». Nada se toca hasta aplicar; aplicado, queda «Deshacer» y el enlace para verlo. Es como Clipper mueve, crea o cancela citas, bloquea ratos y anota en la ficha.",
+      "import": "import { ChatActionCard } from \"@/components/chat\"",
+      "source": "src/components/chat/ChatActionCard.tsx",
+      "status": "beta",
+      "tags": [
+        "ia",
+        "chat",
+        "accion",
+        "propuesta",
+        "deshacer",
+        "agente"
+      ],
+      "props": [
+        {
+          "name": "action",
+          "type": "ChatAction",
+          "default": null,
+          "description": "title, rows ({ label, before?, after }), warnings?, status (proposed, applying, applied, discarded, undoing, undone, failed), undo?, href? y error?."
+        },
+        {
+          "name": "onApply",
+          "type": "() => void",
+          "default": null,
+          "description": "Aplicar (o reintentar si falló). Sin esto, la tarjeta solo muestra la propuesta."
+        },
+        {
+          "name": "onUndo",
+          "type": "() => void",
+          "default": null,
+          "description": "Deshacer; sale cuando está aplicada y trae `undo`."
+        },
+        {
+          "name": "onDiscard",
+          "type": "() => void",
+          "default": null,
+          "description": "Descartar la propuesta."
+        },
+        {
+          "name": "onNavigate",
+          "type": "(href: string) => void",
+          "default": null,
+          "description": "El enlace «Ver» al resultado, si trae `href`."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Una tarjeta por cambio: si el agente propone tres, son tres tarjetas que se aplican por separado.",
+          "Pon en los avisos lo que cambia la decisión (un choque, un dato de salud, un pago en línea)."
+        ],
+        "dont": [
+          "No apliques nada sin el toque de la persona: la tarjeta es la confirmación.",
+          "No escondas el antes: sin él no se puede revisar ni deshacer con confianza."
+        ]
+      },
+      "related": [
+        "chat-thread",
+        "chat-question-card"
+      ],
+      "examples": [
+        {
+          "id": "move",
+          "title": "Mover una cita, con un choque",
+          "description": "Aplica para ver el estado aplicado con «Deshacer»; descarta para cerrarla. En la app, el chat la pinta sola cuando la respuesta trae `actions`.",
+          "code": "<ChatActionCard action={action} onApply={apply} onUndo={undo} onDiscard={discard} onNavigate={navigate} />"
+        }
+      ],
+      "docs": "/docs#/components/chat-action-card",
+      "ficha": "ai-tools/components/chat-action-card.md"
     },
     {
       "id": "chat-composer",

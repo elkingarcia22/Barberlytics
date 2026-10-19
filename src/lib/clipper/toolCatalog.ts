@@ -1,8 +1,9 @@
 /**
- * Las herramientas de Clipper: qué puede consultar y quién. Las comparten el servidor (`server/clipper`,
- * que se las declara al modelo) y la app (`src/features/clipper/tools.ts`, que las ejecuta con la sesión
- * de quien pregunta). Todas son de solo lectura: ninguna cambia nada. El rol de aquí decide qué se le
- * ofrece al modelo; el permiso de verdad lo aplica cada endpoint (docs/API_CONTRACT.md, «Permisos»).
+ * Las herramientas de Clipper: qué puede consultar y proponer, y quién. Las comparten el servidor
+ * (`server/clipper`, que se las declara al modelo) y la app (`src/features/clipper/`, que las ejecuta con
+ * la sesión de quien pregunta). Ninguna cambia nada: las de consulta leen y las de propuesta (`propose`)
+ * dejan una tarjeta con el antes y el después que la persona aplica con un toque. El rol de aquí decide
+ * qué se le ofrece al modelo; el permiso de verdad lo aplica cada endpoint (docs/API_CONTRACT.md).
  *
  * Sin dependencias: este archivo entra en la compilación del servidor.
  */
@@ -14,9 +15,14 @@ const MANAGERS: readonly ClipperRole[] = ["owner", "admin"];
 const DESK: readonly ClipperRole[] = ["owner", "admin", "recepcion"];
 
 const DATE = { type: "string", description: "Fecha AAAA-MM-DD. Si no se da, hoy." } as const;
+const START = { type: "string", description: "Fecha y hora AAAA-MM-DDTHH:mm, en la hora de la sucursal." } as const;
+const CLOCK = { type: "string", description: "Hora HH:mm." } as const;
+const REASON = { type: "string", description: "Por qué, en pocas palabras (queda en el historial)." } as const;
 
 export interface ClipperToolSpec {
   name: string;
+  /** `propose`: no cambia nada, deja una propuesta para aplicar. Sin esto, consulta. */
+  kind?: "propose";
   description: string;
   input_schema: { type: "object"; properties: Record<string, unknown>; required?: readonly string[] };
   roles: readonly ClipperRole[];
@@ -25,7 +31,7 @@ export interface ClipperToolSpec {
 export const CLIPPER_TOOLS = [
   {
     name: "agenda_del_dia",
-    description: "Las citas de un día en la sucursal: hora, cliente, barbero, servicios, estado, si confirmó y el riesgo de que no venga. Trae los conteos por estado ya hechos. Para un barbero, solo sus citas.",
+    description: "Las citas de un día en la sucursal: id, hora, cliente, barbero, servicios, estado, si confirmó y el riesgo de que no venga. Trae los conteos por estado ya hechos. Para un barbero, solo sus citas.",
     input_schema: { type: "object", properties: { fecha: DATE } },
     roles: ALL,
   },
@@ -88,6 +94,47 @@ export const CLIPPER_TOOLS = [
     description: "Lo raro antes de aprobar la nómina o cerrar la caja: dobles cobros, devoluciones grandes, clientes sin cobrar, ajustes repetidos, netos fuera de lo normal.",
     input_schema: { type: "object", properties: { que: { type: "string", enum: ["caja", "nomina"] }, desde: DATE, hasta: DATE }, required: ["que"] },
     roles: DESK,
+  },
+  {
+    name: "catalogo_de_la_sucursal",
+    description: "Los barberos (id, nombre) y los servicios (id, nombre, minutos, precio) de la sucursal: lo que hace falta para proponer una cita o un bloqueo.",
+    input_schema: { type: "object", properties: {} },
+    roles: ALL,
+  },
+  {
+    name: "proponer_mover_cita",
+    kind: "propose",
+    description: "Propone mover una cita a otra hora o a otro barbero. No cambia nada: deja una tarjeta con el antes y el después y avisa si choca. Pide el id y el día de la cita (de agenda_del_dia).",
+    input_schema: { type: "object", properties: { citaId: { type: "string" }, fechaActual: DATE, inicio: START, barberoId: { type: "string", description: "Solo si cambia de barbero." }, motivo: REASON }, required: ["citaId", "fechaActual", "inicio"] },
+    roles: DESK,
+  },
+  {
+    name: "proponer_cita",
+    kind: "propose",
+    description: "Propone una cita nueva. No la crea: deja una tarjeta para aplicar y avisa si choca. Ids de buscar_cliente y catalogo_de_la_sucursal.",
+    input_schema: { type: "object", properties: { clienteId: { type: "string" }, barberoId: { type: "string" }, servicioIds: { type: "array", items: { type: "string" } }, inicio: START, notas: { type: "string" } }, required: ["clienteId", "barberoId", "servicioIds", "inicio"] },
+    roles: DESK,
+  },
+  {
+    name: "proponer_cancelar_cita",
+    kind: "propose",
+    description: "Propone cancelar una cita que aún no se cobró. No la cancela: deja una tarjeta para aplicar.",
+    input_schema: { type: "object", properties: { citaId: { type: "string" }, fechaActual: DATE, motivo: REASON }, required: ["citaId", "fechaActual"] },
+    roles: DESK,
+  },
+  {
+    name: "proponer_bloqueo",
+    kind: "propose",
+    description: "Propone bloquear un rato en la agenda de un barbero (almuerzo, reunión, cita médica…). No lo crea: deja una tarjeta y avisa si hay citas en ese rato.",
+    input_schema: { type: "object", properties: { barberoId: { type: "string" }, fecha: DATE, desde: CLOCK, hasta: CLOCK, tipo: { type: "string", enum: ["lunch", "meeting", "personal", "sick", "vacation", "business", "holiday"] }, motivo: REASON }, required: ["barberoId", "fecha", "desde", "hasta", "tipo"] },
+    roles: DESK,
+  },
+  {
+    name: "proponer_nota_cliente",
+    kind: "propose",
+    description: "Propone anotar algo en la ficha de un cliente: una nota, una alergia o un medicamento. No la guarda: deja una tarjeta para aplicar.",
+    input_schema: { type: "object", properties: { clienteId: { type: "string" }, texto: { type: "string" }, tipo: { type: "string", enum: ["note", "allergy", "medication"] } }, required: ["clienteId", "texto", "tipo"] },
+    roles: ALL,
   },
   {
     name: "buscar_ayuda",

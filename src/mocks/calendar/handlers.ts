@@ -160,7 +160,8 @@ function entry(actor: string, event: string): MockHistoryEntry {
 
 /** Quien firma un cambio: la persona de la sesión o, si lo decidió el asistente, él. */
 const ASSISTANT_ACTOR = "Asistente";
-const actorOf = (accountName: string, input: Record<string, unknown>): string => (input.actor === "assistant" ? ASSISTANT_ACTOR : accountName);
+/** Quién queda en el historial: la persona, el asistente de la agenda o Clipper con quien aprobó el cambio. */
+const actorOf = (accountName: string, input: Record<string, unknown>): string => (input.actor === "assistant" ? ASSISTANT_ACTOR : input.actor === "clipper" ? `Clipper · ${accountName}` : accountName);
 
 /**
  * Por qué una cita no cabe donde se pide: otra cita viva del mismo barbero o
@@ -341,8 +342,8 @@ export const calendarHandlers = [
         seriesId,
         notes: values.notes,
         createdAt: new Date().toISOString(),
-        createdBy: account.user.name,
-        history: [entry(account.user.name, values.walkIn ? "walkin" : "created")],
+        createdBy: actorOf(account.user.name, body),
+        history: [entry(actorOf(account.user.name, body), values.walkIn ? "walkin" : "created")],
         payment: null,
         confirmToken: newConfirmToken(),
       });
@@ -424,7 +425,9 @@ export const calendarHandlers = [
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     // Si cambió de sitio, de barbero o de duración, no puede pisar a nadie.
     const moved = next.start !== existing.start || next.barberId !== existing.barberId || next.durationMin !== existing.durationMin;
-    if (moved && input.force !== true && next.status !== "cancelled" && next.status !== "no_show") {
+    // Devolverle la vida a una cita cancelada tampoco puede pisar a quien tomó el hueco.
+    const revived = (existing.status === "cancelled" || existing.status === "no_show") && next.status === "scheduled";
+    if ((moved || revived) && input.force !== true && next.status !== "cancelled" && next.status !== "no_show") {
       const clash = clashMessage(existing.branchId, next.barberId, next.start.slice(0, 10), parseClock(next.start.slice(11, 16)), next.durationMin, existing.id);
       if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     }
@@ -442,7 +445,7 @@ export const calendarHandlers = [
       if (next.status === "cancelled") offerFreedSlot(existing);
       // Lo que tenía apartado del inventario vuelve a la estantería.
       next = releaseAppointmentStock(next, actor);
-    } else if (next.start !== existing.start && next.status === "scheduled" && phone) rescheduleMessages({ ...next, confirmToken: next.confirmToken ?? newConfirmToken() }, phone);
+    } else if ((next.start !== existing.start || revived) && next.status === "scheduled" && phone) rescheduleMessages({ ...next, confirmToken: next.confirmToken ?? newConfirmToken() }, phone);
     return replaceAppointment({ ...next, confirmToken: next.confirmToken ?? newConfirmToken(), history });
   }),
 

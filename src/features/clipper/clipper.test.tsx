@@ -7,7 +7,7 @@ import { runClipperTool, weekOf } from "./tools";
 
 /** Un día pasado de la demo, con citas cobradas. */
 const PAST_DAY = "2026-09-22";
-const base: ClipperBackendContext = { branchId: "ma", role: "owner", memberId: null, today: PAST_DAY, locale: "es", branch: "Massachusetts", currency: "USD", userName: "Carlos" };
+const base: ClipperBackendContext = { branchId: "ma", role: "owner", memberId: null, today: PAST_DAY, locale: "es", branch: "Massachusetts", currency: "USD", userName: "Carlos", t: (key) => key };
 const fallback: ChatBackend = { reply: async () => ({ text: "Respuesta del centro de ayuda", via: "help" }) };
 const labels = { consulted: "Consulté", tool: (name: string) => name };
 

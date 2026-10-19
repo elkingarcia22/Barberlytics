@@ -58,7 +58,14 @@ describe("Clipper en el servidor", () => {
     expect(refused.status).toBe(502);
     const offered = (desk.calls[0].tools as { name: string }[]).map((tool) => tool.name);
     expect(offered).toContain("caja_del_dia");
+    expect(offered).toContain("proponer_mover_cita");
     expect(offered).not.toContain("nomina");
+    // El barbero propone notas, pero no mueve la agenda de la sucursal.
+    const barber = fakeClaude(text("Listo."));
+    await clipperStep({ context: { ...context, role: "barbero-comision" }, messages: [question] }, config, barber.fetcher);
+    const barberTools = (barber.calls[0].tools as { name: string }[]).map((tool) => tool.name);
+    expect(barberTools).toContain("proponer_nota_cliente");
+    expect(barberTools).not.toContain("proponer_mover_cita");
   });
 
   test("una cifra inventada se corrige una vez; si insiste, no se usa", async () => {

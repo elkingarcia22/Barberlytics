@@ -167,6 +167,17 @@ export const es = {
 
   // ── Chat de IA ──
   "chat.title": "Clipper",
+  "chat.action.proposed": "Propuesta",
+  "chat.action.applying": "Aplicando…",
+  "chat.action.applied": "Aplicado",
+  "chat.action.discarded": "Descartado",
+  "chat.action.undoing": "Deshaciendo…",
+  "chat.action.undone": "Deshecho",
+  "chat.action.failed": "No se aplicó",
+  "chat.action.apply": "Aplicar",
+  "chat.action.discard": "Descartar",
+  "chat.action.undo": "Deshacer",
+  "chat.action.open": "Ver",
   "chat.subtitle": "Asistente de la plataforma",
   "chat.greeting.morning": "¡Buenos días,",
   "chat.greeting.afternoon": "¡Buenas tardes,",

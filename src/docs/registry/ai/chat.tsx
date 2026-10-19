@@ -1,6 +1,7 @@
 import * as React from "react";
-import { ChatComposer, ChatHistoryList, ChatQuestionCard, ChatPanel, ChatScreen, ChatThread, ChatVoiceMode, useActiveConversation, useChatActions, useChatState } from "@/components/chat";
+import { ChatActionCard, ChatComposer, ChatHistoryList, ChatQuestionCard, ChatPanel, ChatScreen, ChatThread, ChatVoiceMode, useActiveConversation, useChatActions, useChatState } from "@/components/chat";
 import { Button } from "@/components/ui/button";
+import type { ChatAction } from "@/lib/chat";
 import { defineEntry, definePlayground } from "../types";
 import { DocsChat, DocsPanelHost } from "./chatDocsHost";
 import { SEED_CONVERSATION, SEED_HISTORY } from "./chatDocsData";
@@ -412,4 +413,79 @@ export const chatQuestionCardEntry = defineEntry({
   related: ["chat-thread", "chat-composer", "chip"],
 });
 
-export const chatEntries = [chatComposerEntry, chatThreadEntry, chatQuestionCardEntry, chatPanelEntry, chatScreenEntry, chatVoiceModeEntry];
+const MOVE_ACTION: ChatAction = {
+  id: "demo",
+  kind: "moveAppointment",
+  title: "Mover la cita",
+  rows: [
+    { label: "Cliente", after: "Santiago Jiménez" },
+    { label: "Servicio", after: "Fade" },
+    { label: "Cuándo", before: "mar, 20 de oct, 10:15 a. m.", after: "mar, 20 de oct, 4:30 p. m." },
+    { label: "Barbero", before: "Andrés Beltrán", after: "Lorena Lemos" },
+  ],
+  warnings: ["Choca con: 16:30 · Camila Rodríguez. Al aplicar, la agenda no dejará pisar esa cita."],
+  payload: {},
+  status: "proposed",
+};
+
+/** La demo recorre los estados sin tocar nada: aplicar, deshacer, descartar. */
+function ActionDemo() {
+  const [action, setAction] = React.useState<ChatAction>(MOVE_ACTION);
+  const run = (status: ChatAction["status"], next: ChatAction["status"], patch: Partial<ChatAction> = {}) => {
+    setAction((current) => ({ ...current, status }));
+    window.setTimeout(() => setAction((current) => ({ ...current, status: next, ...patch })), 600);
+  };
+  return (
+    <div className="flex w-full max-w-md flex-col gap-3">
+      <ChatActionCard
+        action={action}
+        onApply={() => run("applying", "applied", { undo: { demo: true } })}
+        onUndo={() => run("undoing", "undone")}
+        onDiscard={() => setAction((current) => ({ ...current, status: "discarded" }))}
+      />
+      {action.status !== "proposed" && action.status !== "applying" && action.status !== "undoing" && (
+        <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => setAction(MOVE_ACTION)}>
+          Volver a proponer
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export const chatActionCardEntry = defineEntry({
+  id: "chat-action-card",
+  name: "ChatActionCard",
+  group: "ai",
+  description: {
+    es: "Un cambio que el agente propone y la persona aplica: qué cambia (lo de antes tachado, lo nuevo al lado), los avisos y «Aplicar» o «Descartar». Nada se toca hasta aplicar; aplicado, queda «Deshacer» y el enlace para verlo. Es como Clipper mueve, crea o cancela citas, bloquea ratos y anota en la ficha.",
+    en: "A change the agent proposes and the person applies: what changes (the old value struck through, the new one beside it), the warnings and “Apply” or “Discard”. Nothing is touched until applied; once applied, “Undo” and a link to see it remain. It's how Clipper moves, creates or cancels appointments, blocks time and adds client notes.",
+  },
+  importPath: 'import { ChatActionCard } from "@/components/chat"',
+  sourcePath: "src/components/chat/ChatActionCard.tsx",
+  status: "beta",
+  tags: ["ia", "chat", "accion", "propuesta", "deshacer", "agente"],
+  examples: [
+    {
+      id: "move",
+      title: "Mover una cita, con un choque",
+      description: "Aplica para ver el estado aplicado con «Deshacer»; descarta para cerrarla. En la app, el chat la pinta sola cuando la respuesta trae `actions`.",
+      layout: "center",
+      code: `<ChatActionCard action={action} onApply={apply} onUndo={undo} onDiscard={discard} onNavigate={navigate} />`,
+      render: () => <ActionDemo />,
+    },
+  ],
+  props: [
+    { name: "action", type: "ChatAction", description: "title, rows ({ label, before?, after }), warnings?, status (proposed, applying, applied, discarded, undoing, undone, failed), undo?, href? y error?." },
+    { name: "onApply", type: "() => void", description: "Aplicar (o reintentar si falló). Sin esto, la tarjeta solo muestra la propuesta." },
+    { name: "onUndo", type: "() => void", description: "Deshacer; sale cuando está aplicada y trae `undo`." },
+    { name: "onDiscard", type: "() => void", description: "Descartar la propuesta." },
+    { name: "onNavigate", type: "(href: string) => void", description: "El enlace «Ver» al resultado, si trae `href`." },
+  ],
+  guidelines: {
+    do: ["Una tarjeta por cambio: si el agente propone tres, son tres tarjetas que se aplican por separado.", "Pon en los avisos lo que cambia la decisión (un choque, un dato de salud, un pago en línea)."],
+    dont: ["No apliques nada sin el toque de la persona: la tarjeta es la confirmación.", "No escondas el antes: sin él no se puede revisar ni deshacer con confianza."],
+  },
+  related: ["chat-thread", "chat-question-card"],
+});
+
+export const chatEntries = [chatComposerEntry, chatThreadEntry, chatQuestionCardEntry, chatActionCardEntry, chatPanelEntry, chatScreenEntry, chatVoiceModeEntry];

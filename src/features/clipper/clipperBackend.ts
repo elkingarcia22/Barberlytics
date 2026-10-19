@@ -1,4 +1,4 @@
-import type { ChatBackend, ChatMessage, ChatReply } from "@/lib/chat";
+import type { ChatAction, ChatBackend, ChatMessage, ChatReply } from "@/lib/chat";
 import { runClipperTool, type ClipperToolContext } from "./tools";
 
 /**
@@ -72,15 +72,17 @@ export function createClipperBackend({ context, fallback, labels, fetcher = fetc
       if (notConfigured) return fallback.reply(question, history, signal);
       const messages = toModelMessages(question, history);
       const used: string[] = [];
+      // Las propuestas de este turno: van como tarjetas bajo la respuesta.
+      const proposed: ChatAction[] = [];
       try {
         for (let turn = 0; turn < MAX_STEPS; turn++) {
           const result = await step(messages, signal);
           if (result === "fallback") break;
           if (result.kind === "answer") {
             const names = [...new Set(used)];
-            return { text: result.text, sources: names.length > 0 ? [{ label: labels.consulted, detail: names.map(labels.tool).join(" · ") }] : undefined, via: "model" };
+            return { text: result.text, sources: names.length > 0 ? [{ label: labels.consulted, detail: [...new Set(names.map(labels.tool))].join(" · ") }] : undefined, actions: proposed.length > 0 ? proposed : undefined, via: "model" };
           }
-          const results = await Promise.all(result.calls.map(async (call) => ({ call, outcome: await runClipperTool(call.name, call.input, context, signal) })));
+          const results = await Promise.all(result.calls.map(async (call) => ({ call, outcome: await runClipperTool(call.name, call.input, context, signal, (action) => proposed.push(action)) })));
           used.push(...result.calls.map((call) => call.name));
           messages.push({ role: "assistant", content: result.content });
           messages.push({ role: "user", content: results.map(({ call, outcome }) => ({ type: "tool_result" as const, tool_use_id: call.id, content: outcome.content, ...(outcome.isError ? { is_error: true } : {}) })) });

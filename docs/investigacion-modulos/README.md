@@ -1,6 +1,6 @@
 # Investigación por módulo — resumen transversal
 
-2026-10-17 (y 11–14 el 2026-10-18). Catorce investigaciones, una por módulo. Cada una cubre cuatro análisis: qué tiene el módulo
+2026-10-17 (11–14 el 2026-10-18 y 15–17 el 2026-10-19). Diecisiete investigaciones, una por módulo o tema. Cada una cubre cuatro análisis: qué tiene el módulo
 hoy, qué le falta, cómo está frente a la competencia y el mercado, y qué IA de **cualquier industria** se aplica ahí.
 Este archivo cruza las diez: lo que se repite, lo que hay que decidir antes y en qué orden atacarlo.
 
@@ -20,6 +20,9 @@ Este archivo cruza las diez: lo que se repite, lo que hay que decidir antes y en
 | 12 | Acceso y puesta en marcha | [12-acceso-y-puesta-en-marcha.md](12-acceso-y-puesta-en-marcha.md) | Toda la autorización vivía en la interfaz; sin puesta en marcha ni importación |
 | 13 | Avisos y ayuda | [13-avisos-y-ayuda.md](13-avisos-y-ayuda.md) | La campana y Novedades eran de demo; el sistema sabía lo que pasaba y no avisaba a nadie |
 | 14 | Experiencia del barbero | [14-experiencia-del-barbero.md](14-experiencia-del-barbero.md) | Dos «netos» distintos, sin estado del pago y la caja descuadraba con la renta |
+| 15 | Marketing y fidelización | [15-marketing-y-fidelizacion.md](15-marketing-y-fidelizacion.md) | La reactivación por ritmo es mejor que la de la competencia; Métricas › Marketing reparte cifras al azar y la reserva mezcla reseñas de ejemplo |
+| 16 | Front Desk (recepción y kiosco) | [16-front-desk.md](16-front-desk.md) | Producción tiene kiosco; Thema solo el enlace: no sabe su sede, la llegada no avisa a nadie y no hay cola de walk-ins |
+| 17 | Paso a producción y legal | [17-paso-a-produccion-y-legal.md](17-paso-a-produccion-y-legal.md) | Backend real multi-barbería, tarjeta solo en los campos de la pasarela, endpoints pagos con sesión y contratos (DPA, políticas) |
 
 ---
 
@@ -152,6 +155,43 @@ rotación de personal, prueba virtual de cortes (datos biométricos) y precios d
 4. **E. Revisión antes de cerrar** (nómina y caja).
 5. **D + C. Clipper en WhatsApp** con modelo detrás de `interpret`, empezando por las respuestas a los recordatorios.
 6. Reservable por agentes externos (schema.org → MCP).
+
+---
+
+## 5. Lo que cruzan los informes 15–17 (2026-10-19)
+
+Tres temas sin informe hasta ahora. Lo que se repite entre ellos y con los anteriores:
+
+1. **Lo que cuesta dinero o toca a terceros tiene que vivir en el servidor, con sesión.** `/api/whatsapp/send`,
+   `/api/clipper`, `/api/tts` y `/api/narrative` solo miran `Origin`/`Referer` (`server/http/request.ts`), que un
+   script falsifica: con las claves puestas se podrían mandar plantillas (también la de marketing) a cualquier
+   número o gastar Claude y voz. La cola de WhatsApp corre en el navegador. Es el mismo hallazgo de 13 y 15, y P0 en 17.
+2. **La tarjeta no debe pasar por Barberlytics.** La reserva, los paquetes y las tarjetas de regalo mandan número y
+   vencimiento al backend propio, y la versión Conversación pide el número y el CVC como mensajes de chat (17). En
+   producción, la tarjeta se escribe solo en los campos de la pasarela (Stripe Elements, Wompi, Bold): así PCI queda
+   en SAQ A. En el mock es una simulación; la regla es para el backend real.
+3. **Datos honestos.** Métricas › Marketing reparte al azar canales y campañas aunque la reserva guarda la UTM real de
+   cada cita (15); la reserva pública mezcla reseñas de ejemplo con las reales. **Las reseñas y campañas de ejemplo
+   son de la demo y no viajan a producción** (la FTC prohíbe reseñas falsas y Google premios por reseñas).
+4. **Horario legal y baja de verdad.** Los mensajes de promoción respetan la franja de cada país (Ley 2300 en
+   Colombia, TCPA y leyes estatales en EE. UU.), un tope por cliente y la baja con STOP/BAJA leída por webhook (15, 17).
+5. **El kiosco es un dispositivo de la sede.** Cada tablet de recepción va ligada a una sucursal con su propio token
+   (revocable), el check-in pasa la cita a «Llegó» y avisa al barbero, y en modo kiosco no se muestra nada de otro
+   cliente: solo nombre y hora, y la pantalla vuelve sola al inicio (16).
+6. **Contratos antes que clientes.** Términos, política de privacidad, política de tratamiento (Colombia), acuerdo
+   de encargo (DPA) con cada barbería y la lista de subencargados (Anthropic, Meta, ElevenLabs, Vercel…), permiso
+   aparte para alergias y medicamentos, y borrar y exportar un cliente (17). No es asesoría legal: lo valida un abogado
+   de cada país.
+
+**Arquitectura recomendada (17):** Vercel (front y API) + Postgres en Supabase con el id de la barbería en cada tabla
+y seguridad por fila + Inngest o QStash para recordatorios y webhooks + Upstash Redis para los topes + Sentry +
+Resend. Costo aproximado por barbería y mes: 25–45 USD en EE. UU. y 12–35 en Colombia (sin verificar del todo las
+tarifas de WhatsApp en Colombia ni el precio de los modelos); fijo para empezar, 250–450 USD al mes.
+
+**Siguiente, por orden:** (1) endpoints pagos con sesión y la cola de WhatsApp en el servidor; (2) tarjeta solo en
+los campos de la pasarela; (3) kiosco por sede con check-in que avisa y privacidad; (4) Métricas › Marketing con la
+UTM real y sin reseñas de ejemplo fuera de la demo; (5) cola de walk-ins con espera estimada; (6) contratos y
+políticas; (7) el backend real (fase «escudo» de 6–8 semanas en 17) y un piloto con 3–5 barberías.
 
 ---
 

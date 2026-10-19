@@ -4,17 +4,32 @@ import type { MockOutboxMessage } from "./state";
 
 /**
  * Los mensajes que la reserva deja programados, como haría el servidor real con su proveedor de
- * WhatsApp/SMS: la confirmación al reservar (con «Confirmo» / «Reprogramar») y los recordatorios
- * 24 h y 2 h antes. Mover la cita los reprograma; cancelarla los anula. Quedan en
+ * WhatsApp/SMS: la confirmación al reservar (con «Confirmo» / «Reprogramar») y hasta tres
+ * recordatorios a las horas que eligió la barbería (Configuración › Recordatorios, por defecto 24 h y
+ * 2 h). Lo que se apaga ahí para el cliente por WhatsApp no se programa. Mover la cita los reprograma;
+ * cancelarla los anula. Quedan en
  * `db.booking.outbox` y los envía `dispatch.ts` cuando les toca (por WhatsApp si está conectado;
  * si no, simulados). Las citas de recepción y las de la reserva en línea programan lo mismo.
  */
 
 const HOUR_MS = 3_600_000;
-const REMINDERS: readonly { kind: MockOutboxMessage["kind"]; hoursBefore: number }[] = [
-  { kind: "reminder24h", hoursBefore: 24 },
-  { kind: "reminder2h", hoursBefore: 2 },
-];
+const DEFAULT_HOURS = [24, 2];
+const MAX_REMINDERS = 3;
+
+interface NotificationPrefs {
+  toggles?: Record<string, boolean>;
+  reminderHours?: number[];
+}
+const prefs = (): NotificationPrefs => (db.settings.sections.notifications ?? {}) as NotificationPrefs;
+/** Lo que no se ha tocado está encendido, como en la pantalla de Configuración. */
+const clientWhatsApp = (eventId: string): boolean => prefs().toggles?.[`clients.${eventId}.whatsapp`] ?? true;
+
+/** Los recordatorios que tocan: las horas de Configuración, sin repetir, de la más lejana a la más cercana. */
+export function reminderPlan(): { kind: MockOutboxMessage["kind"]; hoursBefore: number }[] {
+  if (!clientWhatsApp("bookingReminder")) return [];
+  const hours = [...new Set((prefs().reminderHours ?? DEFAULT_HOURS).filter((value) => Number.isInteger(value) && value >= 1 && value <= 168))].sort((a, b) => b - a).slice(0, MAX_REMINDERS);
+  return hours.map((hoursBefore) => ({ kind: hoursBefore === 24 ? "reminder24h" : hoursBefore === 2 ? "reminder2h" : "reminder", hoursBefore }));
+}
 
 const outbox = (): MockOutboxMessage[] => db.booking.outbox ?? [];
 let seq = 0;
@@ -24,10 +39,10 @@ const nextId = () => `msg_${Date.now().toString(36)}_${(seq += 1)}`;
 export function scheduleMessages(appointment: MockAppointment, phone: string, now = new Date()): void {
   const start = new Date(appointment.start).getTime();
   const base = { appointmentId: appointment.id, clientId: appointment.clientId, to: phone, channel: "whatsapp" as const, status: "scheduled" as const };
-  const messages: MockOutboxMessage[] = [{ ...base, id: nextId(), kind: "confirmation", sendAt: now.toISOString() }];
-  for (const reminder of REMINDERS) {
+  const messages: MockOutboxMessage[] = clientWhatsApp("bookingConfirmed") ? [{ ...base, id: nextId(), kind: "confirmation", sendAt: now.toISOString() }] : [];
+  for (const reminder of reminderPlan()) {
     const sendAt = start - reminder.hoursBefore * HOUR_MS;
-    if (sendAt > now.getTime()) messages.push({ ...base, id: nextId(), kind: reminder.kind, sendAt: new Date(sendAt).toISOString() });
+    if (sendAt > now.getTime()) messages.push({ ...base, id: nextId(), kind: reminder.kind, sendAt: new Date(sendAt).toISOString(), ...(reminder.kind === "reminder" ? { hoursBefore: reminder.hoursBefore } : {}) });
   }
   db.booking.outbox = [...outbox(), ...messages];
 }
@@ -41,8 +56,12 @@ export function cancelMessages(appointmentId: string): void {
 export function rescheduleMessages(appointment: MockAppointment, phone: string, now = new Date()): void {
   cancelMessages(appointment.id);
   scheduleMessages(appointment, phone, now);
-  // El aviso del cambio sale ya; los recordatorios quedan para la hora nueva.
-  db.booking.outbox = outbox().map((message) => (message.appointmentId === appointment.id && message.kind === "confirmation" && message.status === "scheduled" ? { ...message, kind: "rescheduled" } : message));
+  // El aviso del cambio sale ya (si está encendido); los recordatorios quedan para la hora nueva.
+  const notifyChange = clientWhatsApp("bookingRescheduled");
+  db.booking.outbox = outbox().flatMap((message) => (message.appointmentId === appointment.id && message.kind === "confirmation" && message.status === "scheduled" ? (notifyChange ? [{ ...message, kind: "rescheduled" as const }] : []) : [message]));
+  if (notifyChange && !outbox().some((message) => message.appointmentId === appointment.id && message.kind === "rescheduled" && message.status === "scheduled")) {
+    db.booking.outbox = [...outbox(), { appointmentId: appointment.id, clientId: appointment.clientId, to: phone, channel: "whatsapp", status: "scheduled", id: nextId(), kind: "rescheduled", sendAt: now.toISOString() }];
+  }
 }
 
 /** A cuántos de la lista de espera se avisa por cada hueco que se libera (gana el primero que reserva). */

@@ -136,9 +136,9 @@ describe("catálogo de avisos", () => {
     }
   });
 
-  test("a los clientes se les avisa por correo y SMS, nunca por push", () => {
+  test("a los clientes se les avisa por WhatsApp, correo y SMS, nunca por push", () => {
     const channels = NOTIFICATION_CATALOG.clients.flatMap((group) => group.events.flatMap((event) => event.channels));
-    expect(new Set(channels)).toEqual(new Set(["email", "sms"]));
+    expect(new Set(channels)).toEqual(new Set(["whatsapp", "email", "sms"]));
   });
 });
 
@@ -207,11 +207,11 @@ describe("pantallas de configuración", () => {
   test("apagar todos los avisos de un destinatario no toca los de los demás", async () => {
     renderSection("centro-notificaciones", "?para=clients");
     const user = userEvent.setup();
-    expect(await screen.findByTestId("notify-count")).toHaveTextContent("14 de 14");
+    expect(await screen.findByTestId("notify-count")).toHaveTextContent("17 de 17");
     await user.click(screen.getByTestId("notify-all-off"));
-    expect(screen.getByTestId("notify-count")).toHaveTextContent("0 de 14");
+    expect(screen.getByTestId("notify-count")).toHaveTextContent("0 de 17");
     await user.click(screen.getByTestId("settings-save"));
-    await waitFor(() => expect(Object.keys(db.settings.sections.notifications.toggles as object).length).toBe(14));
+    await waitFor(() => expect(Object.keys(db.settings.sections.notifications.toggles as object).length).toBe(17));
     const toggles = db.settings.sections.notifications.toggles as Record<string, boolean>;
     expect(Object.keys(toggles).every((key) => key.startsWith("clients."))).toBe(true);
   });

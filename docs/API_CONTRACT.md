@@ -261,8 +261,12 @@ El mock genera la agenda de cada día la primera vez que se pide, de forma deter
 ## Mensajes al cliente (WhatsApp)
 
 Cada cita que no es de paso y tiene teléfono deja sus mensajes en la cola (`db.booking.outbox`): la confirmación al
-crearla, la reprogramación si se mueve, los recordatorios 24 h y 2 h antes y, al cancelar, el aviso de hueco libre a la
-lista de espera. Cancelar o marcar «no vino» anula los que faltaban. Cada mensaje: `{ id, appointmentId, to, channel,
+crearla, la reprogramación si se mueve, los recordatorios y, al cancelar, el aviso de hueco libre a la lista de
+espera. Los recordatorios salen a las horas de Configuración › Recordatorios (`notifications.reminderHours`, hasta 3,
+de 1 a 168 h; por defecto 24 y 2): a 24 h es `reminder24h`, a 2 h `reminder2h` y a otra hora `reminder` con
+`hoursBefore` (plantilla `cita_recordatorio`, la hora como último valor). Lo que esté apagado para el cliente por
+WhatsApp (`clients.bookingConfirmed.whatsapp`, `clients.bookingReminder.whatsapp`, `clients.bookingRescheduled.whatsapp`)
+no se programa. Cancelar o marcar «no vino» anula los que faltaban. Cada mensaje: `{ id, appointmentId, to, channel,
 kind, sendAt, status: "scheduled" | "sent" | "failed" | "cancelled", sentAt?, simulated?, providerId?, error? }`.
 
 | Método | Ruta | Notas |
@@ -291,7 +295,7 @@ El directorio de clientes y la ficha de cada uno. Un cliente es **el mismo** `cl
 |---|---|---|
 | GET | `/customers` | `{ items: customer[] }`, por nombre. Sin paginar: el front filtra por segmento y busca en memoria. |
 | GET | `/customers/:id` | `customerDetail`. `404` si no existe. |
-| POST | `/customers` | `{ firstName, lastName, phone, email, branchId, country?, state?, city?, address?, zipcode?, birthDate?, onlineOnly? }`. `201 customerDetail`. `422` con `fields` si falta nombre, apellido, celular o correo válidos, si el celular ya es de otro cliente o si la fecha de nacimiento es futura. |
+| POST | `/customers` | `{ firstName, lastName, phone, email?, branchId, country?, state?, city?, address?, zipcode?, birthDate?, onlineOnly? }`. `201 customerDetail`. El celular identifica al cliente (dos números son el mismo sin contar el indicativo del país, 57 o 1) y el correo es opcional. `422` con `fields` si falta nombre, apellido o celular válidos, si el correo escrito no es válido o si la fecha de nacimiento es futura; si el celular ya es de otro cliente, además `details.duplicateOf: { id, name }` para ofrecer su ficha. Lo mismo al editar (`PATCH`). |
 | PATCH | `/customers/:id` | Los mismos campos del alta, o solo `{ blocked: boolean }` para bloquear y desbloquear sin reenviar la ficha. Devuelve `customerDetail`. `422` · `404`. |
 | POST | `/customers/:id/messages` | `{ purpose: "thanks" \| "rebook" \| "birthday" \| "free", body }`. Anota un mensaje que el equipo abrió en WhatsApp (`wa.me`) desde la ficha; queda en su historial (`kind: "manual"`). `rebook` y `birthday` son promoción: `409 no_consent` si el cliente no aceptó promociones. `201` con la relación. |
 | GET | `/customers/:id/next-visit` | `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, options: [{ start, barberId, barberName, sameBarber }] } \| null }`: cuándo le toca según su frecuencia y huecos reales con su barbero, a su hora de siempre. |
@@ -601,9 +605,9 @@ booking_session` (nunca `401`, que cerraría la sesión de quien esté dentro de
 navegador). Límites: 5 códigos por celular cada 10 minutos y 5 intentos fallidos por código (`429`).
 
 **Mensajes al cliente.** Al reservar, el servidor programa por cada cita la confirmación (WhatsApp,
-con «Confirmo» / «Reprogramar») y los recordatorios 24 h y 2 h antes, solo los que aún estén en el
+con «Confirmo» / «Reprogramar») y los recordatorios a las horas de Configuración (24 h y 2 h por defecto), solo los que aún estén en el
 futuro. Reprogramar los mueve (y avisa del cambio); cancelar anula los pendientes. Al cancelar, la hora se ofrece a la lista de espera: hasta 3 clientes de ese día cuya franja la incluye (mismo barbero si lo pidieron y servicio que quepa) reciben `kind: slotFreed` con `offer: { start, barberId, branchId }`; el primero que reserva se la queda. En el mock quedan
-en `db.booking.outbox` (`{ appointmentId, to, channel, kind: confirmation|rescheduled|reminder24h|reminder2h, sendAt, status }`);
+en `db.booking.outbox` (`{ appointmentId, to, channel, kind: confirmation|rescheduled|reminder24h|reminder2h|reminder, hoursBefore?, sendAt, status }`);
 el backend real los entrega con su proveedor (WhatsApp Business / SMS). El `.ics` de la confirmación
 trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 

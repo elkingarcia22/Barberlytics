@@ -103,7 +103,8 @@ export const customerInputSchema = z.object({
   firstName: z.string().trim().min(2, "customers.form.error.firstName"),
   lastName: z.string().trim().min(2, "customers.form.error.lastName"),
   phone: z.string().refine((value) => value.replace(/\D/g, "").length >= 8, "customers.form.error.phone"),
-  email: z.string().trim().email("customers.form.error.email"),
+  /** Opcional: el celular identifica al cliente. */
+  email: z.string().trim().refine((value) => value === "" || z.string().email().safeParse(value).success, "customers.form.error.email"),
   country: z.string().trim(),
   state: z.string().trim(),
   city: z.string().trim(),

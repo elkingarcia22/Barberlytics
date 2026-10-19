@@ -70,7 +70,7 @@ export function seedSettings(): MockSettingsState {
       cardFee: { enabled: true, name: "Recargo por tarjeta", rate: 3, type: "percent" },
       commissions: { deductDiscounts: true, deductTaxes: true, deductServiceCost: false, deductProductCost: false },
       payrollCycle: { cycle: "weekly", startDay: 1 },
-      notifications: { toggles: {}, thresholds: {} },
+      notifications: { toggles: {}, thresholds: {}, reminderHours: [24, 2] },
       company: { name: "Barbería Demo", legalName: "Barbería Demo LLC", identification: "12-3456789", website: "https://barberia.example.com", phone: "+16175550100", country: "Estados Unidos" },
       billing: {
         plan: { name: "Grow", cycle: "annual", price: 50, nextInvoiceAt: "2026-10-28" },

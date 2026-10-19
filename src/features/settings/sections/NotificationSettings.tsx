@@ -7,8 +7,9 @@ import { ThemaTabs } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/typography";
+import { ThemaIcon } from "@/icons/ThemaIcon";
 import { SettingsCard, SettingsDocument } from "../SettingsFormParts";
-import { notificationsSchema, type NotificationSettings as Notifications } from "../settingsTypes";
+import { DEFAULT_REMINDER_HOURS, MAX_REMINDERS, notificationsSchema, type NotificationSettings as Notifications } from "../settingsTypes";
 import { AUDIENCES, NOTIFICATION_CATALOG, thresholdKey, toggleKey, type NotificationAudience, type NotificationChannel, type NotificationGroup } from "./notificationCatalog";
 
 const AUDIENCE_KEYS: Readonly<Record<NotificationAudience, AppMessageKey>> = {
@@ -19,7 +20,7 @@ const AUDIENCE_KEYS: Readonly<Record<NotificationAudience, AppMessageKey>> = {
   barberRent: "cfg.notify.audience.barberRent",
   clients: "cfg.notify.audience.clients",
 };
-const CHANNEL_KEYS: Readonly<Record<NotificationChannel, AppMessageKey>> = { email: "cfg.notify.channel.email", push: "cfg.notify.channel.push", sms: "cfg.notify.channel.sms" };
+const CHANNEL_KEYS: Readonly<Record<NotificationChannel, AppMessageKey>> = { email: "cfg.notify.channel.email", push: "cfg.notify.channel.push", sms: "cfg.notify.channel.sms", whatsapp: "cfg.notify.channel.whatsapp" };
 
 /** Un aviso sin valor guardado está encendido: es como arranca una cuenta nueva. */
 const isOn = (toggles: Notifications["toggles"], key: string): boolean => toggles[key] ?? true;
@@ -78,6 +79,7 @@ export function NotificationSettings() {
                 </Button>
               </div>
             </div>
+            {audience === "clients" && <ReminderHours hours={draft.reminderHours ?? [...DEFAULT_REMINDER_HOURS]} enabled={isOn(draft.toggles, toggleKey("clients", "bookingReminder", "whatsapp"))} onChange={(hours) => set("reminderHours", hours)} />}
             {groups.map((group) => (
               <SettingsCard key={group.id} title={t(group.labelKey)}>
                 <ul className="divide-y divide-border/60">
@@ -113,6 +115,42 @@ export function NotificationSettings() {
         );
       }}
     </SettingsDocument>
+  );
+}
+
+const DEFAULT_NEW_REMINDER = 1;
+
+/** Cuántas horas antes sale cada recordatorio al cliente: hasta tres, que usa el motor de mensajes. */
+function ReminderHours({ hours, enabled, onChange }: { hours: readonly number[]; enabled: boolean; onChange: (hours: number[]) => void }) {
+  const t = useAppT();
+  return (
+    <SettingsCard title={t("cfg.notify.reminders.title")} description={t("cfg.notify.reminders.hint")}>
+      <div className="space-y-3" data-testid="reminder-hours">
+        {!enabled && <Text variant="muted">{t("cfg.notify.reminders.off")}</Text>}
+        <ul className="flex flex-wrap gap-3">
+          {hours.map((value, index) => (
+            <li key={index} className="flex items-end gap-2">
+              <label className="space-y-1">
+                <span className="block text-xs text-text-secondary">{t("cfg.notify.reminders.item", { n: index + 1 })}</span>
+                <span className="block w-32">
+                  <NumberField size="sm" value={value} min={1} max={168} suffix="h" aria-label={t("cfg.notify.reminders.hours")} onValueChange={(next) => onChange(hours.map((item, position) => (position === index ? (next ?? item) : item)))} data-testid={`reminder-hours-${index}`} />
+                </span>
+              </label>
+              {hours.length > 1 && (
+                <Button type="button" size="icon-sm" variant="ghost" onClick={() => onChange(hours.filter((_, position) => position !== index))} aria-label={t("cfg.notify.reminders.remove", { n: index + 1 })}>
+                  <ThemaIcon className="text-current" name="close" size="sm" decorative />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+        {hours.length < MAX_REMINDERS && (
+          <Button type="button" size="sm" variant="outline" onClick={() => onChange([...hours, DEFAULT_NEW_REMINDER])} data-testid="reminder-add">
+            {t("cfg.notify.reminders.add")}
+          </Button>
+        )}
+      </div>
+    </SettingsCard>
   );
 }
 

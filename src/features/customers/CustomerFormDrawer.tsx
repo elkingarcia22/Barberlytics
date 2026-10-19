@@ -2,6 +2,7 @@ import * as React from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -65,6 +66,14 @@ export function CustomerFormDrawer({ open, onOpenChange, customer = null, branch
   );
 }
 
+/** Del error del servidor, el cliente que ya tiene ese celular. */
+function duplicateFrom(details: unknown): { id: string; name: string } | null {
+  const value = details && typeof details === "object" ? (details as { duplicateOf?: unknown }).duplicateOf : null;
+  if (!value || typeof value !== "object") return null;
+  const { id, name } = value as { id?: unknown; name?: unknown };
+  return typeof id === "string" && typeof name === "string" ? { id, name } : null;
+}
+
 interface CustomerFormBodyProps {
   customer: CustomerDetail | null;
   branchId: string;
@@ -78,6 +87,9 @@ function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCr
   const create = useCreateCustomer();
   const update = useUpdateCustomer();
   const [formError, setFormError] = React.useState<string | null>(null);
+  // El celular ya es de otro cliente: se ofrece abrir su ficha en vez de crear un duplicado.
+  const [duplicateOf, setDuplicateOf] = React.useState<{ id: string; name: string } | null>(null);
+  const navigate = useNavigate();
   const defaults = React.useMemo(() => (customer ? inputFromDetail(customer) : EMPTY_CUSTOMER_INPUT), [customer]);
   /* Al editar, lo opcional se abre si ya tiene algo escrito. */
   const [showMore, setShowMore] = React.useState(() => Boolean(defaults.address || defaults.city || defaults.birthDate || defaults.onlineOnly));
@@ -90,6 +102,7 @@ function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCr
 
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
+    setDuplicateOf(null);
     onSubmittingChange(true);
     try {
       if (customer) {
@@ -103,6 +116,7 @@ function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCr
       onDone();
     } catch (error) {
       const fields = isApiError(error) ? error.fieldErrors : undefined;
+      setDuplicateOf(isApiError(error) ? duplicateFrom(error.details) : null);
       if (fields) {
         for (const [name, messages] of Object.entries(fields)) form.setError(name as keyof CustomerInput, { type: "server", message: messages[0] });
         if (fields.birthDate) setShowMore(true);
@@ -135,7 +149,13 @@ function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCr
         <PhoneInput value={phone} onValueChange={(value) => form.setValue("phone", value, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })} aria-invalid={!!errors.phone} data-testid="customer-form-phone" />
       </Field>
 
-      <Field label={t("customers.form.email")} required error={message(errors.email?.message)}>
+      {duplicateOf && (
+        <Button type="button" size="sm" variant="outline" className="-mt-2" onClick={() => (onDone(), navigate(`/clientes/${duplicateOf.id}`))} data-testid="customer-form-open-duplicate">
+          {t("customers.form.openDuplicate", { name: duplicateOf.name })}
+        </Button>
+      )}
+
+      <Field label={t("customers.form.email")} description={t("customers.form.emailOptional")} error={message(errors.email?.message)}>
         <Input type="email" autoComplete="off" aria-invalid={!!errors.email} data-testid="customer-form-email" {...form.register("email")} />
       </Field>
 

@@ -166,6 +166,7 @@ Lo que responde MSW hoy.
 - `GET /register` · src/mocks/register/handlers.ts
 - `POST /register/close` · src/mocks/register/handlers.ts
 - `GET /reports/income` · src/mocks/reports/income.ts
+- `GET /reports/menu` · src/mocks/reports/menu.ts
 - `GET /reports/week` · src/mocks/reports/week.ts
 - `GET /services` · src/mocks/services/handlers.ts
 - `PUT /services/order` · src/mocks/services/handlers.ts
@@ -714,11 +715,13 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### services
 
 - **CategoriesDrawer.tsx** — Las categorías de servicios: el panel compartido del catálogo, con sus textos y sus mutaciones. · `CategoriesDrawerProps`, `CategoriesDrawer` · usa: @/app/i18n, @/features/catalog
+- **MenuEngineeringView.tsx** — Qué servicio deja más por cada hora de silla, con la agenda real: precio cobrado menos insumos y comisión, di… · `MenuEngineeringView` · piezas: Badge, MetricCard, SegmentedControl, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
 - **ServiceFormDrawer.tsx** — Crear o editar un servicio —o un combo— sin salir de la lista. · `ServiceFormDrawerProps`, `ServiceFormDrawer` · piezas: Alert, AlertDescription, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DrawerShell, Field, Input, MultiSelect, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/features/catalog, @/lib/api, @/lib/utils
 - **ServiceOrderPage.tsx** — El orden en que el cliente ve el catálogo al reservar en línea: primero las categorías y, dentro de cada una,… · `ServiceOrderPage` · piezas: Badge, Breadcrumbs, DataListActionRail, EmptyState, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Sortable, Text, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/team, @/lib/api, @/lib/query
 - **ServiceProfilePage.tsx** · `ServiceProfilePage` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, ListItem, MetricCard, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, Switch, Text, ThemaTabs, initialsOf · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **ServicesPage.tsx** — El catálogo de servicios. · `ServicesPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/catalog, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de servicios; ver docs/API_CONTRACT.md. · `servicesApi` · llama: GET /services, GET /services/${id}, POST /services, PATCH /services/${id}, DELETE /services/${id}, PUT /services/activation, PUT /services/${id}/team, PUT /services/order, POST /service-categories, PATCH /service-categories/${id}, DELETE /service-categories/${id} · usa: @/lib/api
+- **menu.ts** — Margen por hora de silla y matriz del catálogo. · `quadrantSchema`, `Quadrant`, `MenuEngineering`, `MenuItem`, `QUADRANTS`, `QUADRANT_KEYS`, `useMenuEngineering` · llama: GET /reports/menu · usa: @/app/i18n, @/lib/api
 - **queries.ts** · `serviceKeys`, `useServicesQuery`, `useServiceQuery`, `useCreateService`, `useUpdateService`, `useRemoveService`, `useSetServicesActive`, `useSetServiceTeam`, `useSaveServiceOrder`, `useSaveCategory`, `useRemoveCategory`
 - **servicesHome.tsx** — La categoría de la URL, si existe; si no, todas. · `ALL`, `KindFilter`, `parseKind`, `parseCategory`, `serviceColumns`, `ServiceCellContext`, `serviceCells`, `ServiceAlertId`, `ServiceAlertPreset`, `SERVICE_ALERTS`, `ServicesPulse`, `servicesPulse` · piezas: Badge · usa: @/app/i18n
 - **servicesShared.tsx** — La foto del servicio y, mientras no hay o no carga, el icono de su tipo. · `ServiceGlyph`, `ActiveBadge`, `VisibilityBadge` · piezas: Badge, IconTile, StatusBadge · usa: @/app/i18n
@@ -989,6 +992,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### reports
 
 - **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `incomeStatement`, `incomeHandlers`
+- **menu.ts** · `Quadrant`, `menuEngineering`, `menuHandlers`
 - **week.ts** · `weekFacts`, `weekHandlers`
 
 ### services

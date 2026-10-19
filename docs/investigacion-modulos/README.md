@@ -195,11 +195,13 @@ Pendiente, por orden:
 2. **Equipo, segunda parte**: «Mi ficha» editable por el barbero, fichaje, turnos abiertos e intercambio, metas y
    niveles con criterios, cambio de modelo comisión ↔ renta con fecha.
 3. **Calendario recortado en el servidor** para el barbero (hoy la agenda del día llega completa y se filtra en pantalla).
-4. **Fase 3 — IA, lo que queda**: margen por hora de silla, revisión antes de cerrar (nómina y caja), Clipper con
+4. **Fase 3 — IA, lo que queda**: revisión antes de cerrar (nómina y caja), Clipper con
    modelo y herramientas de solo lectura, reservable por agentes. Hechos el 2026-10-18: **A. ritmo del cliente**
    (próxima visita con huecos reales, reactivación aprobada por el dueño solo a quien aceptó, riesgo de inasistencia en
    la cita con sus razones) y **B. hechos → narración** («Cómo te fue» en Métricas y «¿Por qué esta cifra?» en Mi pago;
-   Claude redacta con marcadores y el servidor pone las cifras; sin clave, resumen automático).
+   Claude redacta con marcadores y el servidor pone las cifras; sin clave, resumen automático) y **F. margen por hora
+   de silla y matriz del catálogo** (Servicios › Rentabilidad: estrellas, caballos de tiro, enigmas y perros, con el
+   precio que llevaría cada uno al promedio).
 5. **Fase 3 — IA** (orden original) en el orden de §4: ritmo del cliente, hechos → narración, margen por hora de silla, revisión antes de
    cerrar, Clipper con modelo y herramientas de solo lectura, reservable por agentes.
 5. Integraciones que no se hacen en el mock: factura y documento soporte DIAN (Alegra o Siigo), Bre-B, push web (PWA).

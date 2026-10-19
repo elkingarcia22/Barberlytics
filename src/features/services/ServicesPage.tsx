@@ -24,6 +24,7 @@ import { catalogAccess } from "@/features/catalog/catalogAccess";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CategoriesDrawer } from "./CategoriesDrawer";
+import { MenuEngineeringView } from "./MenuEngineeringView";
 import { ServiceFormDrawer } from "./ServiceFormDrawer";
 import { useRemoveService, useServicesQuery, useSetServicesActive } from "./queries";
 import { ALL, SERVICE_ALERTS, parseCategory, parseKind, serviceCells, serviceColumns, servicesPulse, type ServiceAlertId } from "./servicesHome";
@@ -51,6 +52,11 @@ export function ServicesPage() {
   const navigate = useNavigate();
   const branchId = useBranchId();
   const query = useServicesQuery(branchId);
+  // La rentabilidad lleva costos, comisiones y márgenes: solo para quien ve el dinero del catálogo.
+  const access = useAccess();
+  const seesMoney = React.useMemo(() => catalogAccess(access, "services").seesMoney, [access]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = seesMoney && searchParams.get("vista") === "rentabilidad" ? "menu" : "catalog";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -60,22 +66,49 @@ export function ServicesPage() {
 
       <PageHeader title={t("services.title")} description={t("services.description")} />
 
-      <QueryBoundary
-        query={query}
-        loading={
-          <div className="space-y-section" data-testid="services-loading">
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <div className="grid gap-stack lg:grid-cols-3">
-              {[0, 1, 2].map((item) => (
-                <Skeleton key={item} className="h-[168px] rounded-2xl" />
-              ))}
+      {seesMoney && (
+        <ThemaTabs
+          className="mb-section"
+          fitContent
+          tabs={[
+            { id: "catalog", label: t("services.view.catalog") },
+            { id: "menu", label: t("services.view.menu") },
+          ]}
+          activeTabId={view}
+          onTabChange={(next) =>
+            setSearchParams(
+              (current) => {
+                const params = new URLSearchParams(current);
+                if (next === "menu") params.set("vista", "rentabilidad");
+                else params.delete("vista");
+                return params;
+              },
+              { replace: true }
+            )
+          }
+        />
+      )}
+
+      {view === "menu" ? (
+        <MenuEngineeringView branchId={branchId} />
+      ) : (
+        <QueryBoundary
+          query={query}
+          loading={
+            <div className="space-y-section" data-testid="services-loading">
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <div className="grid gap-stack lg:grid-cols-3">
+                {[0, 1, 2].map((item) => (
+                  <Skeleton key={item} className="h-[168px] rounded-2xl" />
+                ))}
+              </div>
+              <Skeleton className="h-72 w-full rounded-2xl" />
             </div>
-            <Skeleton className="h-72 w-full rounded-2xl" />
-          </div>
-        }
-      >
-        {(data) => <ServicesHome catalog={data} branchId={branchId} />}
-      </QueryBoundary>
+          }
+        >
+          {(data) => <ServicesHome catalog={data} branchId={branchId} />}
+        </QueryBoundary>
+      )}
     </div>
   );
 }

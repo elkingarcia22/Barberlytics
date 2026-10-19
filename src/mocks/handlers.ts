@@ -9,6 +9,7 @@ import { customerImportHandlers } from "./customers/import";
 import { rhythmHandlers } from "./customers/rhythm";
 import { incomeHandlers } from "./reports/income";
 import { weekHandlers } from "./reports/week";
+import { menuHandlers } from "./reports/menu";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
@@ -515,6 +516,7 @@ export const handlers = [
   ...rhythmHandlers,
   ...incomeHandlers,
   ...weekHandlers,
+  ...menuHandlers,
   ...inventoryHandlers,
   ...notificationsHandlers,
   ...onboardingHandlers,

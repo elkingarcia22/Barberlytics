@@ -27,6 +27,8 @@ export interface ProfileFormProps {
   onChange: (value: ProfileInput) => void;
   levels: readonly Level[];
   errors?: Record<string, string>;
+  /** Su propia ficha sin gestionar al equipo: el nivel, la visibilidad en la reserva y «también atiende» los cambia gerencia. */
+  selfService?: boolean;
 }
 
 const MAX_GALLERY = 5;
@@ -39,7 +41,7 @@ const readAsDataUrl = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-export function ProfileForm({ role, value, onChange, levels, errors = {} }: ProfileFormProps) {
+export function ProfileForm({ role, value, onChange, levels, errors = {}, selfService = false }: ProfileFormProps) {
   const t = useAppT();
   const isBarber = isBarberRole(role);
   const [cropSource, setCropSource] = React.useState<string | null>(null);
@@ -126,6 +128,12 @@ export function ProfileForm({ role, value, onChange, levels, errors = {} }: Prof
               <Input type="url" inputMode="url" placeholder="https://facebook.com/…" value={value.facebook} onChange={(event) => set("facebook", event.target.value)} data-testid="profile-facebook" />
             </Field>
           </div>
+          {selfService ? (
+            <Text variant="muted" data-testid="profile-self-locked">
+              {t("teamMember.profile.selfLocked", { level: levels.find((level) => level.id === value.levelId)?.name ?? t("teamMember.noLevel") })}
+            </Text>
+          ) : (
+          <>
           <label className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
             <Switch checked={value.bookingVisible} onCheckedChange={(checked) => set("bookingVisible", checked)} data-testid="profile-visibility" />
             <span className="flex flex-col">
@@ -147,6 +155,8 @@ export function ProfileForm({ role, value, onChange, levels, errors = {} }: Prof
               </SelectContent>
             </Select>
           </Field>
+          </>
+          )}
           <Field label={t("teamMember.profile.skills")} description={t("teamMember.profile.skillsHint")}>
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
@@ -195,7 +205,7 @@ export function ProfileForm({ role, value, onChange, levels, errors = {} }: Prof
             </div>
           </Field>
         </>
-      ) : (
+      ) : selfService ? null : (
         <label className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
           <Switch checked={value.isAlsoBarber} onCheckedChange={(checked) => set("isAlsoBarber", checked)} />
           <span className="flex flex-col">

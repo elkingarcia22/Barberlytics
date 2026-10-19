@@ -15,6 +15,10 @@ import { OptionTile } from "@/components/selection";
 import { DataListActionRail, ScreenHeaderActions, type RailActionSpec } from "@/components/action-rail";
 import { CreateMemberDrawer } from "./CreateMemberDrawer";
 import { ActivateTeamDrawer } from "./ActivateTeamDrawer";
+import { ImportMembersDrawer } from "./ImportMembersDrawer";
+import { ConfirmDialog } from "@/components/overlays";
+import { toast } from "sonner";
+import { describeError } from "@/lib/api";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
 import { DataListBlock } from "@/components/blocks";
 import type { TableActionsPlacement } from "@/components/data-display/table-config";
@@ -28,7 +32,7 @@ import { useAccess } from "@/features/access";
 import { useBranchCurrency } from "@/features/branches";
 import { useBranchId } from "./teamUtils";
 import { creatableRoles, seesBarberMoney, seesManagers } from "./teamAccess";
-import { useMembersQuery } from "./queries";
+import { useDeactivateMembers, useMembersQuery, useRemindMembers } from "./queries";
 import { TeamPersonAvatar } from "./teamShared";
 import {
   ALL_ROLES,
@@ -82,6 +86,9 @@ interface TeamHomeHandlers {
   edit: () => void;
   schedule: () => void;
   absences: () => void;
+  bulkImport: () => void;
+  remind: () => void;
+  deactivate: () => void;
 }
 
 /** Qué casilla de la matriz abre cada acción; las que no salen aquí no se ofrecen. */
@@ -94,12 +101,12 @@ function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers, al
     { id: "create-level", label: t("team.action.createLevel"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.createLevel },
     { id: "walk-in-order", label: t("team.action.walkInOrder"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.walkInOrder },
     { id: "enable-in-branch", label: t("team.action.enableInBranch"), icon: <ToggleRight className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.enableInBranch },
-    { id: "bulk-import", label: t("team.action.bulkImport"), icon: <Upload className="size-5" strokeWidth={2} />, scope: ["screen"] },
+    { id: "bulk-import", label: t("team.action.bulkImport"), icon: <Upload className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.bulkImport },
     { id: "create-member", label: t("team.action.createMember"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.createMember },
     { id: "edit", label: t("action.edit"), icon: <Pencil className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.edit },
     { id: "schedule", label: t("team.action.schedule"), icon: <CalendarCheck className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.schedule },
-    { id: "remind", label: t("team.action.remind"), icon: <BellRing className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true },
-    { id: "deactivate", label: t("team.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], tone: "danger", countInLabel: true },
+    { id: "remind", label: t("team.action.remind"), icon: <BellRing className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true, onSelect: on.remind },
+    { id: "deactivate", label: t("team.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], tone: "danger", countInLabel: true, onSelect: on.deactivate },
   ];
   return all.filter((action) => allowed(action.id));
 }
@@ -184,7 +191,23 @@ export function TeamHomePage() {
   );
   const showContact = React.useCallback((row: { id: string }) => manages || row.id === access.member?.id, [manages, access.member]);
   const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set());
-  const [drawer, setDrawer] = React.useState<"create" | "activate" | null>(null);
+  const [drawer, setDrawer] = React.useState<"create" | "activate" | "import" | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = React.useState<readonly string[] | null>(null);
+  const remind = useRemindMembers();
+  const deactivate = useDeactivateMembers();
+  const sendReminders = React.useCallback(
+    (ids: readonly string[]) =>
+      remind.mutate(ids, {
+        onSuccess: (result) => {
+          const skipped = result.skipped.length ? t("team.remind.skipped", { count: result.skipped.length }) : undefined;
+          if (result.sent > 0) toast.success(t("team.remind.sent", { count: result.sent }), { description: [result.simulated ? t("team.remind.simulated") : null, skipped].filter(Boolean).join(" ") || undefined });
+          else toast.info(t("team.remind.none"), { description: skipped });
+          setSelected(new Set());
+        },
+        onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+      }),
+    [remind, t]
+  );
   /* Las acciones de la barra llevan a las pantallas del módulo: la ficha, el
      orden, los niveles, la fila y la activación por sucursal. */
   const actions = React.useMemo(() => {
@@ -198,13 +221,18 @@ export function TeamHomePage() {
       createMember: () => setDrawer("create"),
       edit: () => single && navigate(`/usuarios/miembros/${single}?editar=1`),
       schedule: () => single && navigate(`/calendario?equipo=${single}`),
+      bulkImport: () => setDrawer("import"),
+      remind: () => sendReminders([...selected]),
+      deactivate: () => setConfirmDeactivate([...selected]),
     }, allowAction);
-  }, [allowAction, navigate, selected, t]);
+  }, [allowAction, navigate, selected, sendReminders, t]);
   const selectable = actions.some((action) => action.scope.includes("single") || action.scope.includes("bulk"));
   const columns = React.useMemo(() => teamColumns(t, { money }), [t, money]);
   /* Las fotos vienen con el equipo de la API (todas las sucursales); mientras
      llega, o si falla, cada fila enseña las iniciales. */
   const membersQuery = useMembersQuery(branchId, true);
+  const deactivateTarget = confirmDeactivate?.length === 1 ? membersQuery.data?.items.find((item) => item.id === confirmDeactivate[0]) : undefined;
+  const deactivateName = deactivateTarget ? `${deactivateTarget.firstName} ${deactivateTarget.lastName}` : null;
   const avatarOf = React.useMemo(() => {
     const byId = new Map((membersQuery.data?.items ?? []).map((item) => [item.id, item.avatarUrl] as const));
     return (id: string) => byId.get(id) ?? null;
@@ -550,12 +578,39 @@ export function TeamHomePage() {
           apilan las de la pantalla con las de las filas. */}
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="f" isBlocked={drawer !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="f" isBlocked={drawer !== null || confirmDeactivate !== null} />
         </ShellRailSlot>
       )}
 
       <CreateMemberDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} />
       <ActivateTeamDrawer open={drawer === "activate"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} />
+      <ImportMembersDrawer open={drawer === "import"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} />
+      <ConfirmDialog
+        open={confirmDeactivate !== null}
+        onOpenChange={(open) => !open && setConfirmDeactivate(null)}
+        title={deactivateName ? t("team.deactivate.titleOne", { name: deactivateName }) : t("team.deactivate.title", { count: confirmDeactivate?.length ?? 0 })}
+        description={t("team.deactivate.description")}
+        confirmLabel={t("team.action.deactivate")}
+        variant="destructive"
+        loading={deactivate.isPending}
+        onConfirm={() =>
+          confirmDeactivate &&
+          deactivate.mutate(confirmDeactivate, {
+            onSuccess: (result) => {
+              const upcoming = result.deactivated.filter((item) => item.upcoming > 0);
+              const notes = [
+                ...upcoming.map((item) => t("team.deactivate.upcoming", { name: item.name, count: item.upcoming })),
+                ...(result.skipped.length ? [t("team.deactivate.skipped", { count: result.skipped.length })] : []),
+              ];
+              if (result.deactivated.length > 0) toast.success(t("team.deactivate.done", { count: result.deactivated.length }), { description: notes.join(" ") || undefined });
+              else toast.info(t("team.deactivate.none"), { description: notes.join(" ") || undefined });
+              setConfirmDeactivate(null);
+              setSelected(new Set());
+            },
+            onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+          })
+        }
+      />
     </div>
   );
 }

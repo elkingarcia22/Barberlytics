@@ -21,11 +21,13 @@ export interface MemberTabFormProps {
   services: readonly Service[];
   errors: Record<string, string>;
   formatMoney: (value: number) => string;
+  /** Su propia ficha sin gestionar al equipo (ver `ProfileForm`). */
+  selfService?: boolean;
 }
 
-export function MemberTabForm({ tab, draft, onChange, levels, services, errors, formatMoney }: MemberTabFormProps) {
+export function MemberTabForm({ tab, draft, onChange, levels, services, errors, formatMoney, selfService = false }: MemberTabFormProps) {
   const set = <K extends keyof MemberDraft>(key: K, value: MemberDraft[K]) => onChange({ ...draft, [key]: value });
-  if (tab === "profile") return <ProfileForm role={draft.role} value={draft.profile} onChange={(profile) => set("profile", profile)} levels={levels} errors={errors} />;
+  if (tab === "profile") return <ProfileForm role={draft.role} value={draft.profile} onChange={(profile) => set("profile", profile)} levels={levels} errors={errors} selfService={selfService} />;
   if (tab === "services") return <ServicesForm services={services} value={draft.services} onChange={(value) => set("services", value)} formatMoney={formatMoney} />;
   if (tab === "compensation" && draft.compensation) return <CompensationForm value={draft.compensation} onChange={(value) => set("compensation", value)} errors={errors} formatMoney={formatMoney} />;
   if (tab === "payments" && draft.payments) return <PaymentsForm value={draft.payments} onChange={(value) => set("payments", value)} errors={errors} />;
@@ -49,7 +51,7 @@ export function MemberTabView({ tab, member, levels, services, formatMoney, show
   if (tab === "profile") return <ProfileView member={member} levels={levels} showPrivate={showPrivate} />;
   if (tab === "services") return <ServicesView services={services} value={member.services} formatMoney={formatMoney} />;
   if (tab === "compensation" && member.compensation) return <CompensationView value={member.compensation} formatMoney={formatMoney} />;
-  if (tab === "payments" && member.payments) return <PaymentsView value={member.payments} formatMoney={formatMoney} />;
+  if (tab === "payments" && member.payments) return <PaymentsView memberId={member.id} value={member.payments} formatMoney={formatMoney} />;
   if (tab === "schedule") return <ScheduleView value={member.schedule} />;
   if (tab === "permissions") return <PermissionsForm role={member.role} value={member.permissions} />;
   if (tab === "options") return <OptionsView value={member.options} />;

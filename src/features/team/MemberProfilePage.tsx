@@ -257,7 +257,7 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
       {formTab === null ? (
         <MemberPerformance memberId={member.id} branchId={branchId} />
       ) : editingTab ? (
-        <TabEditor key={`${member.id}-${formTab}`} tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
+        <TabEditor key={`${member.id}-${formTab}`} tab={formTab} selfService={viewer.selfService} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
       ) : (
         <MemberTabView tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
       )}
@@ -271,7 +271,7 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
   );
 }
 
-function TabEditor({ tab, member, levels, services, formatMoney, saving, onSave, onCancel }: { tab: MemberTab; member: TeamMember; levels: readonly Level[]; services: MemberProfileProps["services"]; formatMoney: (value: number) => string; saving: boolean; onSave: MemberProfileProps["onSave"]; onCancel: () => void }) {
+function TabEditor({ tab, selfService, member, levels, services, formatMoney, saving, onSave, onCancel }: { tab: MemberTab; selfService: boolean; member: TeamMember; levels: readonly Level[]; services: MemberProfileProps["services"]; formatMoney: (value: number) => string; saving: boolean; onSave: MemberProfileProps["onSave"]; onCancel: () => void }) {
   const t = useAppT();
   const [draft, setDraft] = React.useState<MemberDraft>(() => draftFromMember(member));
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -287,7 +287,7 @@ function TabEditor({ tab, member, levels, services, formatMoney, saving, onSave,
 
   return (
     <div className="space-y-4" data-testid="member-editor">
-      <MemberTabForm tab={tab} draft={draft} onChange={setDraft} levels={levels} services={services} errors={errors} formatMoney={formatMoney} />
+      <MemberTabForm tab={tab} draft={draft} onChange={setDraft} levels={levels} services={services} errors={errors} formatMoney={formatMoney} selfService={selfService} />
       <div className="sticky bottom-4 z-sticky flex justify-end gap-2 rounded-xl border border-border bg-surface/95 p-3 shadow-card backdrop-blur">
         <Button variant="outline" onClick={onCancel} disabled={saving}>
           <X /> {t("teamMember.action.cancel")}

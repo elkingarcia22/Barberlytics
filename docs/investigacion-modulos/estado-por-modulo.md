@@ -123,8 +123,8 @@ pronóstico del costo de personal.
 ## 08 Equipo
 
 **Pendiente**
-- P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro;
-  `/usuarios/lista` con el enum de la plantilla.
+- ~~P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro~~
+  (hecho el 2026-10-19, ver abajo); `/usuarios/lista` con el enum de la plantilla.
 - P1 · Fichaje; turnos abiertos e intercambio; metas y niveles con criterios; cambio comisión ↔ renta con fecha; estado
   de cuenta de renta; invitación real e importación; turnos partidos.
 - P2 · Portafolio, formación, documentos firmados, ranking.
@@ -286,4 +286,9 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Tope de una promoción por cliente cada 30 días en la cola del servidor y en la app (la reactivación y el «te toca volver» o cumpleaños escritos a mano cuentan juntos).
   - Festivos de EE. UU. (federales, con el día observado) y de México (LFT art. 74) fuera de la franja, por regla de producto.
   - Falta: festivos estatales de EE. UU., 10DLC y el envío real de SMS (hoy simulado), y la revisión del abogado.
-
+- **Equipo: acciones y permisos en el servidor (08 P0).**
+  - «Cargar miembros» (lista pegada o CSV, vista previa, entran invitados), «Recordar» (a invitados, una vez al día; envío simulado) y «Desactivar» en lote (sale de la fila y de «sin preferencia», avisa sus citas por venir).
+  - El servidor exige quién gestiona a quién: antes cualquiera con sesión podía editar cualquier ficha y ver la de un colega completa.
+  - «Mi ficha»: el barbero y recepción editan cómo se presentan y su contacto; nivel, servicios, dinero y permisos siguen con gerencia.
+  - La cuenta bancaria sale enmascarada; «Ver número» y cambiarla piden confirmar la identidad. La renta usa el símbolo de la moneda de la sede.
+  - Falta: invitación real por SMS o correo, reasignar las citas del desactivado desde el aviso y `/usuarios/lista`.

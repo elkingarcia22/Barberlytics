@@ -15,6 +15,7 @@ import { SidePanelShell } from "@/components/overlays"
 | `open / onOpenChange` | `boolean / (open: boolean) => void` |  | Estado controlado del panel. Escape y la X llaman a `onOpenChange(false)`. |
 | `title / description` | `string` |  | Cabecera; el título es también el nombre accesible del panel. |
 | `leading` | `React.ReactNode` |  | Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo). |
+| `headerActions` | `React.ReactNode` |  | Botones de icono en la cabecera, antes del cierre: terciarios (`ghost`, `icon-sm`) y con su tooltip. El panel de una cita pone aquí la actividad y Clipper. |
 | `children` | `React.ReactNode` |  | Cuerpo con scroll propio. Solo se monta mientras está abierto. |
 | `actions` | `React.ReactNode` |  | Botones del pie, alineados a la derecha. |
 | `footer` | `React.ReactNode` |  | Pie completamente personalizado; reemplaza a `actions`. |

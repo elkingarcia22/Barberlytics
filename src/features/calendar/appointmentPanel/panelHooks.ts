@@ -13,8 +13,14 @@ export function useAskClipper(model: AppointmentModel, ctx: ModelContext): () =>
   return React.useCallback(() => agentFocus.open(appointmentAgentFocus({ model, ctx, t, formatDate })), [model, ctx, t, formatDate]);
 }
 
+export interface PanelPages<T extends string> {
+  page: T | null;
+  open: (page: T) => void;
+  back: () => void;
+}
+
 /** Ir y volver entre las páginas del panel; volver siempre lleva al inicio de la cita. */
-export function usePanelPages<T extends string>(): { page: T | null; open: (page: T) => void; back: () => void } {
+export function usePanelPages<T extends string>(): PanelPages<T> {
   const [page, setPage] = React.useState<T | null>(null);
   return { page, open: setPage, back: () => setPage(null) };
 }

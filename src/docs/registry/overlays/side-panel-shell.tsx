@@ -63,6 +63,7 @@ export const sidePanelShellEntry = defineEntry({
     { name: "open / onOpenChange", type: "boolean / (open: boolean) => void", description: "Estado controlado del panel. Escape y la X llaman a `onOpenChange(false)`." },
     { name: "title / description", type: "string", description: "Cabecera; el título es también el nombre accesible del panel." },
     { name: "leading", type: "React.ReactNode", description: "Avatar o icono a la izquierda del título: quién o qué se abrió (el cliente de una cita, por ejemplo)." },
+    { name: "headerActions", type: "React.ReactNode", description: "Botones de icono en la cabecera, antes del cierre: terciarios (`ghost`, `icon-sm`) y con su tooltip. El panel de una cita pone aquí la actividad y Clipper." },
     { name: "children", type: "React.ReactNode", description: "Cuerpo con scroll propio. Solo se monta mientras está abierto." },
     { name: "actions", type: "React.ReactNode", description: "Botones del pie, alineados a la derecha." },
     { name: "footer", type: "React.ReactNode", description: "Pie completamente personalizado; reemplaza a `actions`." },

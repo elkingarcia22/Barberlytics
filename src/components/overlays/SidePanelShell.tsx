@@ -28,7 +28,7 @@ import { DrawerShell, type DrawerShellProps } from "./DrawerShell";
  * la vez; quien lo monta decide cuál.
  */
 
-export type SidePanelShellProps = Pick<DrawerShellProps, "open" | "onOpenChange" | "title" | "description" | "leading" | "children" | "footer" | "actions" | "size" | "className" | "showCloseButton" | "disablePadding">;
+export type SidePanelShellProps = Pick<DrawerShellProps, "open" | "onOpenChange" | "title" | "description" | "leading" | "headerActions" | "children" | "footer" | "actions" | "size" | "className" | "showCloseButton" | "disablePadding">;
 
 /** A partir de este ancho de ventana caben la página y el panel uno junto al otro. */
 const SIDE_BY_SIDE_QUERY = "(min-width: 1024px)";
@@ -44,7 +44,7 @@ function subscribe(onChange: () => void) {
 const fits = () => typeof window.matchMedia === "function" && window.matchMedia(SIDE_BY_SIDE_QUERY).matches;
 
 export function SidePanelShell(props: SidePanelShellProps) {
-  const { open = false, onOpenChange, title, description, leading, children, footer, actions, className, showCloseButton = true, disablePadding = false } = props;
+  const { open = false, onOpenChange, title, description, leading, headerActions, children, footer, actions, className, showCloseButton = true, disablePadding = false } = props;
   const t = useT();
   const host = useShellSidePanelHost();
   const sideBySide = React.useSyncExternalStore(subscribe, fits, () => false);
@@ -89,6 +89,7 @@ export function SidePanelShell(props: SidePanelShellProps) {
                   {title && <h2 className="truncate font-heading text-base font-semibold text-text-primary">{title}</h2>}
                   {description && <p className="truncate text-sm text-text-secondary">{description}</p>}
                 </div>
+                {headerActions && <div className="flex shrink-0 items-center gap-1">{headerActions}</div>}
                 {showCloseButton && (
                   <Button variant="ghost" size="icon-sm" aria-label={t("common.close")} onClick={() => onOpenChange?.(false)}>
                     <X />

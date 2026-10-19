@@ -116,7 +116,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.client.noMatch": "No one matches «{query}».",
   "calendar.panel.client.seeAll": "See everything about the client",
   "calendar.panel.fields.request": "Comments and haircut photo",
-  "calendar.panel.request.empty": "No comments or photos",
   "calendar.panel.request.onlyPhotos": "Haircut photo only",
   "calendar.panel.request.photos": "{count} haircut photo(s)",
   "calendar.panel.request.view": "What they asked for",

@@ -18,9 +18,9 @@ export function isSameOrigin(request: Request): boolean {
 }
 
 /** Lee el cuerpo como JSON con un tope de tamaño; `undefined` si es demasiado grande o no es JSON. */
-export async function readJsonBody(request: Request): Promise<unknown> {
+export async function readJsonBody(request: Request, maxBytes = MAX_BODY_BYTES): Promise<unknown> {
   const text = await request.text();
-  if (Buffer.byteLength(text) > MAX_BODY_BYTES) return undefined;
+  if (Buffer.byteLength(text) > maxBytes) return undefined;
   try {
     return JSON.parse(text);
   } catch {

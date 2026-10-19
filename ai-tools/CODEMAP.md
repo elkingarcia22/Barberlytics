@@ -220,7 +220,7 @@ Router, providers, layout, navegación y páginas de error.
 
 ### chat
 
-- **index.ts** — Al cerrar sesión, las conversaciones se van con ella. · `chatStore`, `clearChatOnLogout`, `AppChatLabels`, `createAppChatBackend` · usa: @/help/chat, @/help/content, @/lib/chat
+- **index.ts** — Al cerrar sesión, las conversaciones se van con ella. · `chatStore`, `clearChatOnLogout`, `AppChatLabels`, `AppClipperOptions`, `createAppChatBackend` · usa: @/features/clipper, @/help/chat, @/help/content, @/lib/chat
 
 ### components
 
@@ -250,7 +250,7 @@ Router, providers, layout, navegación y páginas de error.
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/chat, @/themes
 
 - **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
@@ -577,6 +577,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CategoriesDrawer.tsx** — Las categorías de un catálogo —servicios, productos— en un solo panel: la lista con cuántos registros tiene c… · `CategoryVisibility`, `CatalogCategory`, `CategoryDraft`, `CategoriesDrawerMessages`, `CategoriesDrawerProps`, `CategoriesDrawer` · piezas: Button, ConfirmDialog, DrawerShell, Field, Input, ListItem, Switch, Text, Textarea · usa: @/lib/api
 - **catalogAccess.ts** — Qué deja hacer el rol con un catálogo —servicios o productos— y si ve sus cifras de negocio. · `CatalogKind`, `CatalogAccess`, `catalogAccess` · usa: @/features/access
 
+### clipper
+
+- **clipperBackend.ts** — Clipper con modelo detrás del chat. · `ClipperBackendContext`, `ClipperBackendOptions`, `resetClipperAvailability`, `toModelMessages`, `createClipperBackend` · usa: @/lib/chat
+- **tools.ts** — Lo que hace cada herramienta de Clipper (el catálogo está en `src/lib/clipper/toolCatalog.ts`). · `ClipperToolContext`, `weekOf`, `TOOL_LABEL_KEYS`, `isToolName`, `runClipperTool` · llama: GET /reports/week, GET /customers/${id}/next-visit, GET /customers/reactivation, GET /reports/menu, GET /team/lineup/turn · usa: @/features/calendar, @/features/customers, @/features/payroll, @/features/review, @/features/transactions, @/help/content, @/lib/api, @/lib/clipper, @/lib/help
+
 ### customers
 
 - **CustomerFormDrawer.tsx** — Crear o editar un cliente sin salir de donde se está. · `CustomerFormDrawerProps`, `CustomerFormDrawer` · piezas: Alert, AlertDescription, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DrawerShell, Field, Input, PhoneInput, Switch, Text · usa: @/app/i18n, @/lib/api, @/lib/utils
@@ -872,6 +877,10 @@ Cliente de API, consultas y utilidades sin interfaz.
 - **speech.ts** — Un reconocedor continuo con resultados parciales; `null` si el navegador no puede. · `isSpeechRecognitionSupported`, `Recognizer`, `RecognizerOptions`, `createRecognizer`, `isSpeechSynthesisSupported`, `VoiceLike`, `VoiceGender`, `pickVoice`, `toSpeech`, `loadVoices`, `SpeakOptions`, `speak`
 - **store.ts** — Las conversaciones, en un solo sitio. · `ChatPersistence`, `ChatStoreOptions`, `createChatStore`, `ChatStore`
 - **types.ts** — El modelo de una conversación con el agente. · `ChatRole`, `ChatSource`, `ChatQuestion`, `ChatQuestionChoice`, `ChatCard`, `ChatLink`, `ChatMessageStatus`, `ChatMessage`, `Conversation`, `ChatReply`, `ChatBackend`, `ChatState`
+
+### clipper
+
+- **toolCatalog.ts** — Las herramientas de Clipper: qué puede consultar y quién. · `ClipperRole`, `ClipperToolSpec`, `CLIPPER_TOOLS`, `ClipperToolName`, `isClipperRole`, `toolsFor`
 
 ### help
 

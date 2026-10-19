@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react"
 import { readTtsConfig, synthesize } from "./server/tts/tts"
 import { readWhatsAppConfig, sendTemplate } from "./server/whatsapp/whatsapp"
 import { narrate, readNarrativeConfig } from "./server/narrative/narrative"
+import { clipperStep, readClipperConfig } from "./server/clipper/clipper"
 
 /**
  * La voz de Clipper (y el envío por WhatsApp) también en local: con `npm run dev` las funciones de `api/` no corren, así que el
@@ -43,6 +44,22 @@ function clipperVoiceInDev(): Plugin {
           payload = undefined
         }
         const response = await sendTemplate(payload, readWhatsAppConfig({ ...process.env, ...env }))
+        res.statusCode = response.status
+        response.headers.forEach((value, key) => res.setHeader(key, value))
+        res.end(Buffer.from(await response.arrayBuffer()))
+      })
+      // Clipper con modelo (ANTHROPIC_API_KEY de `.env.local`); sin clave, 501 y responde el centro de ayuda.
+      server.middlewares.use("/api/clipper", async (req, res, next) => {
+        if (req.method !== "POST") return next()
+        let body = ""
+        for await (const chunk of req) body += chunk
+        let payload: unknown
+        try {
+          payload = JSON.parse(body)
+        } catch {
+          payload = undefined
+        }
+        const response = await clipperStep(payload, readClipperConfig({ ...process.env, ...env }))
         res.statusCode = response.status
         response.headers.forEach((value, key) => res.setHeader(key, value))
         res.end(Buffer.from(await response.arrayBuffer()))

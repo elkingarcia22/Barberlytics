@@ -160,7 +160,7 @@ export const en: MessageCatalog = {
   "chat.placeholder.new": "Write a task or a question",
   "chat.placeholder.followup": "Ask for a change or continue with another task",
   "chat.placeholder.answer": "Pick an option or write your answer…",
-  "chat.disclaimer": "The agent can make mistakes. It answers from the help center and tells you which article; it doesn't make changes for you yet.",
+  "chat.disclaimer": "The agent can make mistakes. It answers from your data, looked up with your permissions, or from the help center, and tells you where each answer comes from. It doesn't make changes for you yet.",
   "chat.send": "Send",
   "chat.enterToSend": "to send",
   "chat.messageLabel": "Message for the agent",

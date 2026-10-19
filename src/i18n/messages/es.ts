@@ -176,7 +176,7 @@ export const es = {
   "chat.placeholder.new": "Escribe una tarea o una pregunta",
   "chat.placeholder.followup": "Pide un cambio o continúa con otra tarea",
   "chat.placeholder.answer": "Elige una opción o escribe tu respuesta…",
-  "chat.disclaimer": "El agente puede equivocarse. Responde con el centro de ayuda y te dice de qué artículo sale; aún no hace cambios por ti.",
+  "chat.disclaimer": "El agente puede equivocarse. Responde con tus datos, consultados con tus permisos, o con el centro de ayuda, y te dice de dónde sale cada cosa. Aún no hace cambios por ti.",
   "chat.send": "Enviar",
   "chat.enterToSend": "para enviar",
   "chat.messageLabel": "Mensaje para el agente",

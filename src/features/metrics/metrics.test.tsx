@@ -15,6 +15,9 @@ import { buildBusinessMetrics, resolveMetricsBarber } from "@/mocks/metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics } from "@/mocks/metricsTabs";
 import { MetricsPage } from "./MetricsPage";
 
+/** La portada lee la agenda real de la sucursal: con la suite entera en paralelo tarda más de un segundo. */
+const PULSE_TIMEOUT = 8_000;
+
 function LocationProbe() {
   const location = useLocation();
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
@@ -47,7 +50,7 @@ describe("Métricas", () => {
     mount("/metricas?period=week&date=2026-09-21");
     const expected = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "all" });
 
-    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" });
+    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
     expect(within(pulse).getByText("Ventas")).toBeInTheDocument();
     expect(within(pulse).getByText(`${expected.appointments.total}`)).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Periodo" })).toHaveTextContent("Semana");
@@ -56,7 +59,7 @@ describe("Métricas", () => {
   test("cambiar el grano y el barbero se escribe en la URL", async () => {
     mount("/metricas");
     const user = userEvent.setup();
-    await screen.findByRole("region", { name: "Indicadores del periodo" });
+    await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
 
     await user.click(screen.getByRole("radio", { name: "Día" }));
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("period=day"));
@@ -89,7 +92,7 @@ describe("Métricas", () => {
 describe("Métricas de un barbero", () => {
   test("el de comisión ve sus tres pestañas, sin selector de barbero ni IA", async () => {
     mount("/metricas?period=week&date=2026-09-21", "barbero-comision");
-    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" });
+    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
     const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-04" });
     expect(within(pulse).getByText(`${own.appointments.total}`)).toBeInTheDocument();
     expect(screen.queryByTestId("metrics-barber")).toBeNull();
@@ -98,7 +101,7 @@ describe("Métricas de un barbero", () => {
 
   test("un enlace con otro barbero o con la IA no le abre nada ajeno", async () => {
     mount("/metricas?tab=insights&barber=b6&period=week&date=2026-09-21", "barbero-renta");
-    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" });
+    const pulse = await screen.findByRole("region", { name: "Indicadores del periodo" }, { timeout: PULSE_TIMEOUT });
     const own = buildBusinessMetrics({ granularity: "week", date: "2026-09-21", barberId: "team-30" });
     expect(within(pulse).getByText(`${own.appointments.total}`)).toBeInTheDocument();
     expect(screen.queryByText("Salud del negocio")).toBeNull();

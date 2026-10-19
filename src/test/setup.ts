@@ -10,7 +10,13 @@ import { db } from "@/mocks/db";
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 // La voz natural de Clipper (api/tts) no existe en pruebas: responde «sin servicio» y se usa la
 // del navegador. No va en los mocks de desarrollo, que dejarían sin voz real al servidor local.
-beforeEach(() => server.use(http.post("*/api/tts", () => HttpResponse.json({ code: "tts_not_configured" }, { status: 501 }))));
+// Lo mismo con Clipper (api/clipper): sin clave, responde el centro de ayuda.
+beforeEach(() =>
+  server.use(
+    http.post("*/api/tts", () => HttpResponse.json({ code: "tts_not_configured" }, { status: 501 })),
+    http.post("*/api/clipper", () => HttpResponse.json({ code: "not_configured" }, { status: 501 }))
+  )
+);
 afterEach(() => {
   server.resetHandlers();
   db.reset();

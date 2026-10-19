@@ -1,5 +1,5 @@
 import * as React from "react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import { Ban } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -16,8 +16,8 @@ import { Text } from "@/components/typography";
 import { parseClock } from "@/components/scheduling";
 import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
 import { blockClashes, workingHoursOn } from "./calendarModel";
-import { useCreateBlock } from "./queries";
-import { BLOCK_CATEGORY_KEYS, BLOCK_REPEAT_KEYS, blockCategorySchema, blockInputSchema, blockRepeatSchema, type Barber, type BlockCategory, type BlockRepeat, type CalendarDay } from "./types";
+import { useCreateBlock, useUpdateBlock } from "./queries";
+import { BLOCK_CATEGORY_KEYS, BLOCK_REPEAT_KEYS, blockCategorySchema, blockInputSchema, blockRepeatSchema, type Barber, type BlockCategory, type BlockRepeat, type CalendarDay, type TimeBlock } from "./types";
 
 /**
  * Crear bloqueo: una franja del barbero que deja de estar disponible —
@@ -35,6 +35,8 @@ export interface BlockDrawerProps {
   day?: CalendarDay;
   /** Un barbero bloquea su propia agenda: el barbero viene fijo y no hay «cierre del negocio». */
   ownOnly?: boolean;
+  /** Editar uno que ya existe (desde la agenda): viene con lo suyo y se guarda encima. */
+  block?: TimeBlock | null;
 }
 
 const HOURS = halfHourOptions(6, 24);
@@ -43,18 +45,20 @@ export function BlockDrawer(props: BlockDrawerProps) {
   return <BlockPanel key={useOpenKey(props.open)} {...props} />;
 }
 
-function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day, ownOnly = false }: BlockDrawerProps) {
+function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day, ownOnly = false, block = null }: BlockDrawerProps) {
   const t = useAppT();
   const { current } = useLocale();
   const create = useCreateBlock();
-  const [barberId, setBarberId] = React.useState(initialBarberId ?? barbers[0]?.id ?? "");
-  const [category, setCategory] = React.useState<BlockCategory>("lunch");
-  const [repeat, setRepeat] = React.useState<BlockRepeat>("none");
-  const [startDate, setStartDate] = React.useState<Date | null>(date);
-  const [endDate, setEndDate] = React.useState<Date | null>(date);
-  const [startTime, setStartTime] = React.useState("13:00");
-  const [endTime, setEndTime] = React.useState("14:00");
-  const [description, setDescription] = React.useState("");
+  const update = useUpdateBlock();
+  const saving = create.isPending || update.isPending;
+  const [barberId, setBarberId] = React.useState(block?.barberId ?? initialBarberId ?? barbers[0]?.id ?? "");
+  const [category, setCategory] = React.useState<BlockCategory>(block?.category ?? "lunch");
+  const [repeat, setRepeat] = React.useState<BlockRepeat>(block?.repeat ?? "none");
+  const [startDate, setStartDate] = React.useState<Date | null>(block ? parseISO(block.startDate) : date);
+  const [endDate, setEndDate] = React.useState<Date | null>(block ? parseISO(block.endDate) : date);
+  const [startTime, setStartTime] = React.useState(block?.startTime ?? "13:00");
+  const [endTime, setEndTime] = React.useState(block?.endTime ?? "14:00");
+  const [description, setDescription] = React.useState(block?.description ?? "");
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const barber = barbers.find((item) => item.id === barberId);
@@ -66,7 +70,7 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day, o
     setEndTime(hours[hours.length - 1].end);
   };
   const sameDay = startDate !== null && isSameDay(startDate, date);
-  const clashes = day && sameDay ? blockClashes(day.appointments, barberId, parseClock(startTime), parseClock(endTime)) : 0;
+  const clashes = day && sameDay && !block ? blockClashes(day.appointments, barberId, parseClock(startTime), parseClock(endTime)) : 0;
 
   const submit = () => {
     const parsed = blockInputSchema.safeParse({
@@ -83,31 +87,33 @@ function BlockPanel({ open, onOpenChange, barbers, initialBarberId, date, day, o
       setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
       return;
     }
-    create.mutate(parsed.data, {
+    const handlers = {
       onSuccess: () => {
-        toast.success(t("calendar.block.created"));
+        toast.success(t(block ? "calendar.block.saved" : "calendar.block.created"));
         onOpenChange(false);
       },
-      onError: (error) => {
+      onError: (error: unknown) => {
         if (isApiError(error) && error.fieldErrors) setErrors(Object.fromEntries(Object.entries(error.fieldErrors).map(([key, messages]) => [key, messages[0]])));
         toast.error(describeError(error).title, { description: describeError(error).description });
       },
-    });
+    };
+    if (block) update.mutate({ id: block.id, input: parsed.data }, handlers);
+    else create.mutate(parsed.data, handlers);
   };
 
   return (
     <SidePanelShell
       open={open}
       onOpenChange={onOpenChange}
-      title={t("calendar.block.title")}
+      title={t(block ? "calendar.block.editTitle" : "calendar.block.title")}
       description={t("calendar.block.hint")}
       actions={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
-          <Button onClick={submit} disabled={create.isPending} data-testid="block-submit">
-            {t("calendar.block.create")}
+          <Button onClick={submit} disabled={saving} data-testid="block-submit">
+            {t(block ? "calendar.block.save" : "calendar.block.create")}
           </Button>
         </>
       }

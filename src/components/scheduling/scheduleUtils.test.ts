@@ -54,18 +54,28 @@ describe("scheduleUtils", () => {
     expect(earliestWorkingMinute([{ id: "b", name: "B" }])).toBeNull();
   });
 
-  test("dos citas que se pisan se reparten la columna y un bloqueo va a todo el ancho", () => {
+  test("dos citas que se pisan se reparten la columna y un bloqueo libre va a todo el ancho", () => {
+    const placed = layoutEvents([event("a", 600, 660), event("b", 630, 690), event("c", 720, 750), event("blk", 780, 840, { kind: "block" })], 360, 1440);
+    const byId = Object.fromEntries(placed.map((item) => [item.event.id, item]));
+    expect(byId.a.columns).toBe(2);
+    expect(byId.b.column).toBe(1);
+    expect(byId.c.columns).toBe(1);
+    expect(byId.blk).toMatchObject({ column: 0, columns: 1 });
+    expect(byId.a.top).toBeCloseTo(((600 - 360) / 1080) * 100);
+  });
+
+  test("un bloqueo encima de citas toma la mitad izquierda y ellas la derecha, sin montarse", () => {
     const placed = layoutEvents(
       [event("a", 600, 660), event("b", 630, 690), event("c", 720, 750), event("blk", 600, 720, { kind: "block" })],
       360,
       1440
     );
     const byId = Object.fromEntries(placed.map((item) => [item.event.id, item]));
-    expect(byId.a.columns).toBe(2);
-    expect(byId.b.column).toBe(1);
-    expect(byId.c.columns).toBe(1);
-    expect(byId.blk.columns).toBe(1);
-    expect(byId.a.top).toBeCloseTo(((600 - 360) / 1080) * 100);
+    expect(byId.blk).toMatchObject({ column: 0, columns: 2 });
+    expect(byId.a).toMatchObject({ column: 2, columns: 4 });
+    expect(byId.b).toMatchObject({ column: 3, columns: 4 });
+    // La que queda fuera del bloqueo vuelve a todo el ancho.
+    expect(byId.c).toMatchObject({ column: 0, columns: 1 });
   });
 
   test("la ocupación es minutos de cita sobre minutos de jornada", () => {

@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/components/overlays";
 import { DataListActionRail, ScreenHeaderActions, useActionsPlacement } from "@/components/action-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ScheduleDrop, ScheduleEvent, ScheduleResourceAlert, ScheduleSlot } from "@/components/scheduling";
-import { atMinutes, formatClock, formatClockRange, minutesOfDay } from "@/components/scheduling";
+import { atMinutes, formatClock, formatClockRange, minutesOfDay, parseClock } from "@/components/scheduling";
 import { DEFAULT_BRANCH_ID } from "@/features/branches";
 import { useAccess } from "@/features/access";
 import { CalendarToolbar } from "./CalendarToolbar";
@@ -58,7 +58,8 @@ import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
 import { DayPanel } from "./dayPanel/DayPanel";
-import { isAbsenceBlock } from "./timeOff/timeOffModel";
+import { BlockOptionsDialog } from "./BlockOptionsDialog";
+import { ABSENCE_BLOCK_PREFIX, isAbsenceBlock } from "./timeOff/timeOffModel";
 import { resourceConflict, resourceDay, resourceReason } from "./resourceModel";
 import { useResourcesQuery } from "@/features/services/queries";
 import { dayWeightOf } from "./dayWeight";
@@ -113,7 +114,8 @@ type Panel =
   | { kind: "create"; initial: CreateAppointmentInitial | null }
   | { kind: "assistant" }
   | { kind: "checkout"; appointment: Appointment }
-  | { kind: "block"; barberId: string | null }
+  | { kind: "block"; barberId: string | null; block?: TimeBlock }
+  | { kind: "blockOptions"; block: TimeBlock }
   | { kind: "collections" }
   | { kind: "waitlist" }
   | { kind: "quickSale" }
@@ -482,6 +484,14 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     gaps: () => openPanel({ kind: "gaps" }),
   });
 
+  // Tocar un bloqueo: si espera aprobación o es una ausencia, su revisión; si quien mira agenda sin
+  // las reglas (todos menos el barbero de comisión), qué hacer con él; si no, quitarlo cuando puede.
+  const openBlock = (block: TimeBlock) => {
+    if (block.status === "pending") return openPanel({ kind: "timeOff", focus: { type: "block", id: block.id } });
+    if (block.id.startsWith(ABSENCE_BLOCK_PREFIX)) return openPanel({ kind: "timeOff", focus: { type: "absence", id: block.id.slice(ABSENCE_BLOCK_PREFIX.length) } });
+    if (can.canForce) return setPanel({ kind: "blockOptions", block });
+    if (canRemoveBlock(can, block)) setPanel({ kind: "removeBlock", block });
+  };
   const onSlotClick = (slot: ScheduleSlot) => openPanel({ kind: "create", initial: { barberId: slot.resourceId, start: slot.start } });
 
   /* ------------------------------------------------------- mover y estirar */
@@ -888,7 +898,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   };
 
   // Las confirmaciones son diálogos encima de lo que haya; lo demás ocupa el panel lateral.
-  const sidePanelOpen = panel !== null && panel.kind !== "confirm" && panel.kind !== "removeBlock";
+  const sidePanelOpen = panel !== null && panel.kind !== "confirm" && panel.kind !== "removeBlock" && panel.kind !== "blockOptions";
   const confirm = panel?.kind === "confirm" ? panel : null;
   const confirmClient = confirm && ctx ? (findClient(ctx.catalog, confirm.appointment.clientId)?.name ?? "") : "";
   const revenue = pulse ? { collected: formatMoney(pulse.collected), total: formatMoney(pulse.expected) } : null;
@@ -1067,7 +1077,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onDropRejected={onDropRejected}
                         onSlotClick={onSlotClick}
                         onOpenAppointment={openAppointment}
-                        onOpenBlock={(block) => (block.status === "pending" ? openPanel({ kind: "timeOff", focus: { type: "block", id: block.id } }) : canRemoveBlock(can, block) && setPanel({ kind: "removeBlock", block }))}
+                        onOpenBlock={openBlock}
                         appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
                         blockActions={(block) => blockContextActions(block, ctx, (target) => setPanel({ kind: "removeBlock", block: target }))}
                         onAcceptProposal={acceptProposal}
@@ -1173,9 +1183,19 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onOpenChange={(open) => !open && closePanel()}
                 barbers={barbers}
                 initialBarberId={panel?.kind === "block" ? panel.barberId : null}
+                block={panel?.kind === "block" ? (panel.block ?? null) : null}
                 date={state.date}
                 day={day.data}
                 ownOnly={Boolean(ownBarberId)}
+              />
+
+              <BlockOptionsDialog
+                block={panel?.kind === "blockOptions" ? panel.block : null}
+                ctx={ctx}
+                onOpenChange={(open) => !open && closePanel()}
+                onCreate={(block) => openPanel({ kind: "create", initial: { barberId: block.barberId, start: atMinutes(state.date, parseClock(block.startTime)) } })}
+                onEdit={(block) => openPanel({ kind: "block", barberId: block.barberId, block })}
+                onRemove={panel?.kind === "blockOptions" && canRemoveBlock(can, panel.block) ? (block) => setPanel({ kind: "removeBlock", block }) : undefined}
               />
 
               <CollectionsDrawer
@@ -1223,6 +1243,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 focus={panel?.kind === "timeOff" ? panel.focus : null}
                 // La deja sola en la rejilla, en su primer día; el panel sigue abierto para decidir.
                 onShowInCalendar={(focus, on) => state.showTimeOff(focus, on)}
+                onDecided={() => state.showTimeOff(null)}
                 onOpenAppointment={(date, id) => {
                   closePanel();
                   state.openAppointmentOn(date, id);
@@ -1332,7 +1353,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail actions={railActions} selectedCount={0} onClearSelection={() => undefined} isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock"} />
+          <DataListActionRail actions={railActions} selectedCount={0} onClearSelection={() => undefined} isBlocked={panel?.kind === "confirm" || panel?.kind === "removeBlock" || panel?.kind === "blockOptions"} />
         </ShellRailSlot>
       )}
     </div>

@@ -715,6 +715,20 @@ describe("Calendario", () => {
     await waitFor(() => expect(rows()).toBe(ritual + fade));
   }, 15_000);
 
+  test("tocar un bloqueo ofrece agendar encima, editarlo o quitarlo a quien agenda sin reglas", async () => {
+    const user = userEvent.setup();
+    mount();
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    const lunch = await waitFor(() => within(grid).getAllByRole("button", { name: /^Abrir Almuerzo/ })[0]);
+    await user.click(lunch);
+    const options = await screen.findByTestId("block-options");
+    expect(within(options).getByText("Agendar una cita aquí")).toBeInTheDocument();
+    expect(within(options).getByText("Quitar el bloqueo")).toBeInTheDocument();
+    await user.click(within(options).getByTestId("block-options-edit"));
+    expect(await screen.findByTestId("block-drawer")).toBeInTheDocument();
+    expect(screen.getByTestId("block-submit")).toHaveTextContent("Guardar");
+  }, 15_000);
+
   test("«Ausencias y bloqueos» deja a la vista solo lo elegido, como «solo huecos»", async () => {
     const user = userEvent.setup();
     mount();

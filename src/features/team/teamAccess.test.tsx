@@ -48,11 +48,12 @@ describe("quién gestiona a quién en el equipo", () => {
     expect(viewer.canDelete).toBe(false);
   });
 
-  test("su propia ficha la ve entera, con su compensación, pero en lectura", () => {
+  test("su propia ficha la ve entera; edita solo cómo se presenta (el resto se lo pide a gerencia)", () => {
     const viewer = memberAccess(buildAccess({ role: "barbero-comision" }), person("team-04", "barbero-comision"));
     expect(viewer.isSelf).toBe(true);
+    expect(viewer.selfService).toBe(true);
     expect(viewer.tabs).toContain("compensation");
-    expect(viewer.tabs.every((tab) => !viewer.canEdit(tab))).toBe(true);
+    expect(viewer.tabs.filter((tab) => viewer.canEdit(tab))).toEqual(["profile"]);
   });
 
   test("el admin gestiona a un barbero sin ver su dinero, y no toca al dueño", () => {

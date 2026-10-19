@@ -105,6 +105,10 @@ export interface MockTeamMember {
   permissions: MockPermissions;
   options: MockMemberOptions;
   createdAt: string;
+  /** La última vez que se le mandó (o recordó) la invitación; con ella no se le insiste dos veces el mismo día. */
+  lastInviteAt?: string;
+  /** Cuándo se desactivó: deja de salir en la agenda y en la reserva, pero su historia queda. */
+  deactivatedAt?: string;
 }
 
 /**
@@ -261,7 +265,7 @@ const DEFAULT_OPTIONS: MockMemberOptions = {
 
 const DEFAULT_COMMISSION: MockCompensation = { type: "commission", basic: 40, recurring: 45, walkIn: 35, noPreference: 35, newClient: 50, productPercent: 10, salary: null, scale: [] };
 
-const DEFAULT_PAYMENTS: MockPayments = { rentBase: 320, walkInDeduction: 20, newClientDeduction: 20, noPreferenceDeduction: 15, bankName: "Bank of America", accountNumber: "**** 4471" };
+const DEFAULT_PAYMENTS: MockPayments = { rentBase: 320, walkInDeduction: 20, newClientDeduction: 20, noPreferenceDeduction: 15, bankName: "Bank of America", accountNumber: "000123454471" };
 
 type Days = readonly number[];
 const MON_SAT: Days = [1, 2, 3, 4, 5, 6];

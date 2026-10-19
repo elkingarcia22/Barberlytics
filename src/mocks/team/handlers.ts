@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
+import { forbidden, hasStepUp, sessionOf, stepUpRequired } from "../session";
+import { isMaskedAccount, managesMember, redactFor, SELF_EDITABLE, withMaskedBank } from "./memberAccess";
 import {
   isBarberRole,
   memberName,
@@ -50,7 +51,7 @@ const findMember = (id: string | readonly string[] | undefined) => db.team.membe
 function saveMember(updated: MockTeamMember) {
   db.team.members = db.team.members.map((item) => (item.id === updated.id ? updated : item));
   db.persist();
-  return HttpResponse.json(updated);
+  return HttpResponse.json(withMaskedBank(updated));
 }
 
 /** Recorta la matriz a las columnas que existen en cada fila. */
@@ -65,7 +66,7 @@ function sanitizePermissions(input: unknown, fallback: MockPermissions): MockPer
   return result;
 }
 
-function validateProfile(input: Record<string, unknown>, existing?: MockTeamMember) {
+export function validateProfile(input: Record<string, unknown>, existing?: MockTeamMember) {
   const fields: Record<string, string[]> = {};
   const firstName = text(input.firstName) || existing?.firstName || "";
   const lastName = text(input.lastName) || existing?.lastName || "";
@@ -112,6 +113,59 @@ const lineupFrom = (input: unknown, ids: readonly string[]): MockLineupEntry[] |
   return entries;
 };
 
+/** Una ficha nueva con lo de su rol por defecto; entra «invitada» hasta que active su cuenta. */
+export function buildMember(input: Record<string, unknown>, role: MockTeamRole, values: ReturnType<typeof validateProfile>["values"], branchId: string): MockTeamMember {
+  const id = `team-${String(db.team.members.length + 1).padStart(2, "0")}-${Date.now().toString(36).slice(-3)}${Math.random().toString(36).slice(2, 4)}`;
+  return {
+    id,
+    ...values,
+    role,
+    homeBranchId: branchId,
+    branchIds: role === "owner" ? ["ma", "nc", "ri", "ut"] : [branchId],
+    status: "invited",
+    avatarUrl: text(input.avatarUrl) || null,
+    code: String(1000 + Math.floor(Math.random() * 9000)),
+    description: text(input.description),
+    instagram: text(input.instagram),
+    facebook: text(input.facebook),
+    bookingVisible: input.bookingVisible !== false,
+    skills: Array.isArray(input.skills) ? input.skills.filter((item): item is string => typeof item === "string") : [],
+    gallery: Array.isArray(input.gallery) ? input.gallery.filter((item): item is string => typeof item === "string").slice(0, 5) : [],
+    isAlsoBarber: input.isAlsoBarber === true,
+    services: Array.isArray(input.services) ? (input.services as MockTeamMember["services"]) : [],
+    compensation: role === "barbero-comision" ? ((input.compensation as MockTeamMember["compensation"]) ?? { type: "commission", basic: 40, recurring: null, walkIn: null, noPreference: null, newClient: null, productPercent: null, salary: null, scale: [] }) : null,
+    payments: role === "barbero-renta" ? ((input.payments as MockTeamMember["payments"]) ?? { rentBase: 0, walkInDeduction: 0, newClientDeduction: 0, noPreferenceDeduction: 0, bankName: "", accountNumber: "" }) : null,
+    schedule: validateSchedule(input.schedule) ?? Object.fromEntries(["0", "1", "2", "3", "4", "5", "6"].map((day) => [day, null])),
+    permissions: sanitizePermissions(input.permissions, ROLE_PERMISSION_DEFAULTS[role]),
+    options: (input.options as MockTeamMember["options"]) ?? {
+      tips: true,
+      multipleAppointments: false,
+      newClients: true,
+      clientCancel: { enabled: false, channels: [], hours: 0, minutes: 0 },
+      intervalMinutes: 30,
+      reminders: [],
+      social: "",
+      link: "",
+    },
+    createdAt: new Date().toISOString(),
+    // Al crearla ya sale su invitación: recordársela el mismo día sería insistir.
+    lastInviteAt: new Date().toISOString(),
+  };
+}
+
+/** La suma al equipo y, si atiende, al final del orden de su sucursal. */
+export function addMember(member: MockTeamMember): void {
+  const branchId = member.homeBranchId;
+  const id = member.id;
+  db.team.members = [member, ...db.team.members];
+  if (!isBarberRole(member.role)) return;
+  db.team.orders = db.team.orders.map((order) =>
+    order.branchId === branchId
+      ? { ...order, calendar: [...order.calendar, id], walkIn: [...order.walkIn, { memberId: id, enabled: true }], noPreference: [...order.noPreference, { memberId: id, enabled: true }] }
+      : order
+  );
+}
+
 export const teamHandlers = [
   http.get(`${BASE}/team/members`, async ({ request }) => {
     await delay(LATENCY_MS);
@@ -120,16 +174,16 @@ export const teamHandlers = [
     const all = new URL(request.url).searchParams.get("all") === "true";
     const members = all ? db.team.members : db.team.members.filter((member) => member.branchIds.includes(branchId));
     // Sin gestionar al equipo no se ven el dinero ni los contactos de los colegas (sí los propios).
+    // La cuenta bancaria sale enmascarada para todos (el número completo, con `GET …/bank`).
     const session = sessionOf(request);
-    const redact = (member: MockTeamMember): MockTeamMember => (session && !isManager(session) && member.id !== session.memberId ? { ...member, phone: "", email: "", compensation: null, payments: null } : member);
-    return HttpResponse.json({ items: members.map(redact), levels: db.team.levels });
+    return HttpResponse.json({ items: members.map((member) => redactFor(session, member)), levels: db.team.levels });
   }),
 
   http.get(`${BASE}/team/members/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const member = findMember(params.id);
-    return member ? HttpResponse.json(member) : error(404, "not_found", "Esa persona no existe.");
+    return member ? HttpResponse.json(redactFor(sessionOf(request), member)) : error(404, "not_found", "Esa persona no existe.");
   }),
 
   http.post(`${BASE}/team/members`, async ({ request }) => {
@@ -139,65 +193,45 @@ export const teamHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const role = text(input.role) as MockTeamRole;
     if (!ROLES.includes(role)) return error(422, "validation", "Elige un rol.", { fields: { role: ["Elige un rol."] } });
+    const session = sessionOf(request);
+    if (!session || !managesMember(session, role)) return forbidden("Dar de alta a alguien con ese rol lo hace quien gestiona al equipo.");
     // Dar acceso de dueño o administrador abre toda la barbería: pide confirmar que eres tú.
     if ((role === "owner" || role === "admin") && !hasStepUp(request)) return stepUpRequired();
     const { fields, values } = validateProfile(input);
     const isBarber = isBarberRole(role);
     if (isBarber && !values.levelId) fields.levelId = ["Elige el nivel del barbero."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const branchId = text(input.branchId) || "ma";
-    const id = `team-${String(db.team.members.length + 1).padStart(2, "0")}-${Date.now().toString(36).slice(-3)}`;
-    const member: MockTeamMember = {
-      id,
-      ...values,
-      role,
-      homeBranchId: branchId,
-      branchIds: role === "owner" ? ["ma", "nc", "ri", "ut"] : [branchId],
-      status: "invited",
-      avatarUrl: text(input.avatarUrl) || null,
-      code: String(1000 + Math.floor(Math.random() * 9000)),
-      description: text(input.description),
-      instagram: text(input.instagram),
-      facebook: text(input.facebook),
-      bookingVisible: input.bookingVisible !== false,
-      skills: Array.isArray(input.skills) ? input.skills.filter((item): item is string => typeof item === "string") : [],
-      gallery: Array.isArray(input.gallery) ? input.gallery.filter((item): item is string => typeof item === "string").slice(0, 5) : [],
-      isAlsoBarber: input.isAlsoBarber === true,
-      services: Array.isArray(input.services) ? (input.services as MockTeamMember["services"]) : [],
-      compensation: role === "barbero-comision" ? ((input.compensation as MockTeamMember["compensation"]) ?? { type: "commission", basic: 40, recurring: null, walkIn: null, noPreference: null, newClient: null, productPercent: null, salary: null, scale: [] }) : null,
-      payments: role === "barbero-renta" ? ((input.payments as MockTeamMember["payments"]) ?? { rentBase: 0, walkInDeduction: 0, newClientDeduction: 0, noPreferenceDeduction: 0, bankName: "", accountNumber: "" }) : null,
-      schedule: validateSchedule(input.schedule) ?? Object.fromEntries(["0", "1", "2", "3", "4", "5", "6"].map((day) => [day, null])),
-      permissions: sanitizePermissions(input.permissions, ROLE_PERMISSION_DEFAULTS[role]),
-      options: (input.options as MockTeamMember["options"]) ?? {
-        tips: true,
-        multipleAppointments: false,
-        newClients: true,
-        clientCancel: { enabled: false, channels: [], hours: 0, minutes: 0 },
-        intervalMinutes: 30,
-        reminders: [],
-        social: "",
-        link: "",
-      },
-      createdAt: new Date().toISOString(),
-    };
-    db.team.members = [member, ...db.team.members];
-    if (isBarber) {
-      db.team.orders = db.team.orders.map((order) =>
-        order.branchId === branchId
-          ? { ...order, calendar: [...order.calendar, id], walkIn: [...order.walkIn, { memberId: id, enabled: true }], noPreference: [...order.noPreference, { memberId: id, enabled: true }] }
-          : order
-      );
-    }
+    const member = buildMember(input, role, values, text(input.branchId) || "ma");
+    addMember(member);
     db.persist();
-    return HttpResponse.json(member, { status: 201 });
+    return HttpResponse.json(withMaskedBank(member), { status: 201 });
   }),
+
 
   http.patch(`${BASE}/team/members/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const existing = findMember(params.id);
     if (!existing) return error(404, "not_found", "Esa persona no existe.");
+    const session = sessionOf(request);
+    if (!session) return error(401, "unauthorized", "Tu sesión expiró.");
     const input = asRecord(await request.json().catch(() => ({})));
+    const manages = managesMember(session, existing.role);
+    const isSelf = existing.id === session.memberId;
+    if (!manages && !isSelf) return forbidden("Esa ficha la edita quien gestiona al equipo.");
+    if (!manages) {
+      // Su propia ficha: cómo se presenta y su contacto. Lo demás (nivel, servicios, dinero, permisos) se lo pide a gerencia.
+      const locked = Object.keys(input).filter((key) => !SELF_EDITABLE.has(key) && JSON.stringify(input[key]) !== JSON.stringify((existing as unknown as Record<string, unknown>)[key]));
+      if (locked.length > 0) return forbidden("Eso lo cambia quien gestiona al equipo.");
+    }
+    // La cuenta bancaria llega enmascarada si no se tocó; cambiarla desvía la plata: pide confirmar la identidad.
+    if (input.payments && typeof input.payments === "object") {
+      const payments = input.payments as Record<string, unknown>;
+      const current = existing.payments?.accountNumber ?? "";
+      const keep = isMaskedAccount(payments.accountNumber) || payments.accountNumber === current;
+      if (!keep && !hasStepUp(request)) return stepUpRequired();
+      input.payments = { ...payments, accountNumber: keep ? current : String(payments.accountNumber ?? "").replace(/\s/g, "") };
+    }
     const fields: Record<string, string[]> = {};
     let next: MockTeamMember = { ...existing };
 
@@ -243,6 +277,8 @@ export const teamHandlers = [
     const member = findMember(params.id);
     if (!member) return error(404, "not_found", "Esa persona no existe.");
     if (member.role === "owner") return error(403, "forbidden", "Un dueño no se borra: inactívalo.");
+    const session = sessionOf(request);
+    if (!session || !managesMember(session, member.role) || member.id === session.memberId) return forbidden("Quitar a alguien del equipo lo hace quien gestiona al equipo.");
     db.team.members = db.team.members.filter((item) => item.id !== member.id);
     db.team.orders = db.team.orders.map((order) => ({
       ...order,

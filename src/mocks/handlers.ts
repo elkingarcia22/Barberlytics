@@ -3,6 +3,7 @@ import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBrandin
 import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } from "./session";
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
+import { memberActionHandlers } from "./team/memberActions";
 import { customersHandlers } from "./customers/handlers";
 import { relationshipHandlers } from "./customers/relationship";
 import { customerImportHandlers } from "./customers/import";
@@ -571,6 +572,7 @@ export const handlers = [
 
   // ---------- Equipo ----------
   ...workforceHandlers,
+  ...memberActionHandlers,
   ...teamHandlers,
 
   // ---------- Clientes ----------

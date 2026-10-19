@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/queries";
-import { teamApi } from "./api";
+import { teamApi, type MemberImportRow } from "./api";
 import type { BranchOrder, MemberDraft, MemberPatch, TeamMember, WorkingRange } from "./types";
 
 /**
@@ -115,4 +115,22 @@ export function useSetOverride() {
 export function useClearOverride() {
   const invalidate = useInvalidateTeam();
   return useMutation({ mutationFn: ({ memberId, date }: { memberId: string; date: string }) => teamApi.clearOverride(memberId, date), onSuccess: invalidate });
+}
+
+export function useRemindMembers() {
+  return useMutation({ mutationFn: (ids: readonly string[]) => teamApi.remind(ids) });
+}
+
+export function useDeactivateMembers() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (ids: readonly string[]) => teamApi.deactivate(ids), onSuccess: invalidate });
+}
+
+export function useImportMembers() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: ({ branchId, items }: { branchId: string; items: readonly MemberImportRow[] }) => teamApi.importMembers(branchId, items), onSuccess: invalidate });
+}
+
+export function useRevealBank() {
+  return useMutation({ mutationFn: (id: string) => teamApi.bank(id) });
 }

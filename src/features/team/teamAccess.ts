@@ -41,6 +41,8 @@ export interface MemberAccess {
   tabs: MemberTab[];
   /** Si esa pestaña se puede pasar a edición. */
   canEdit: (tab: MemberTab) => boolean;
+  /** Edita su propia ficha sin gestionar al equipo: nivel, visibilidad y «también atiende» quedan bloqueados. */
+  selfService: boolean;
   /** Activar o inactivar a la persona. */
   canChangeStatus: boolean;
   canDelete: boolean;
@@ -55,6 +57,7 @@ export interface MemberAccess {
  */
 export function memberAccess(access: Access, member: TeamMember): MemberAccess {
   const isSelf = access.member?.id === member.id;
+  const selfManages = access.role === "owner" || access.role === "admin";
   const manages = access.can("team", "edit") && managesRole(access, member.role);
   const seesPrivate = isSelf || manages;
   const seesMoney = seesBarberMoney(access) || isSelf;
@@ -69,8 +72,9 @@ export function memberAccess(access: Access, member: TeamMember): MemberAccess {
 
   const canEdit = (tab: MemberTab): boolean => {
     if (!tabs.includes(tab)) return false;
-    // El barbero lee su ficha; lo que quiera cambiar se lo pide a quien gestiona.
-    if (isSelf && access.isBarber) return false;
+    // En su propia ficha, quien no gestiona al equipo (barbero, recepción) cambia cómo se presenta y su
+    // contacto; nivel, servicios, dinero, horario y permisos se los pide a gerencia (el servidor lo exige).
+    if (isSelf && !selfManages) return tab === "profile";
     if (tab === "permissions") return !isSelf && access.can("permissions", "edit") && managesRole(access, member.role);
     if (tab === "compensation" || tab === "payments") return seesBarberMoney(access) && (manages || isSelf);
     // Su propio perfil lo edita quien no es barbero (el barbero ya salió arriba).
@@ -82,6 +86,7 @@ export function memberAccess(access: Access, member: TeamMember): MemberAccess {
     seesPrivate,
     tabs,
     canEdit,
+    selfService: isSelf && !selfManages,
     canChangeStatus: !isSelf && access.can("team", "delete") && managesRole(access, member.role),
     canDelete: !isSelf && access.can("team", "delete") && managesRole(access, member.role),
     canSeeAgenda: isSelf || manages,

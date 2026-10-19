@@ -113,8 +113,14 @@ Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId
 - **Barbero** (comisión o renta): `GET /payroll` solo su nómina; `GET /customers` solo sus clientes. «Cliente suyo» es
   una sola regla, la misma en Clientes y en la agenda: lo prefiere, o lo atendió o lo tiene agendado en el último año,
   según el historial de la ficha o la agenda real (cita viva, no cancelada ni sin presentarse) y `GET /customers/:id` de otro es `403`; `GET /transactions` solo sus cuentas (sin ventas de
-  mostrador); `GET /metrics/*` con el barbero fijo en él y `GET /metrics/insights` `403`; `GET /team/members` sin teléfono,
-  correo, compensación ni pagos de los colegas; rendimiento solo el suyo.
+  mostrador); `GET /metrics/*` con el barbero fijo en él y `GET /metrics/insights` `403`; `GET /team/members` y
+  `/team/members/:id` sin teléfono, correo, código, compensación ni pagos de los colegas; rendimiento solo el suyo.
+- **Fichas del equipo**: crear, editar, desactivar y borrar las hace quien gestiona a esa persona (el dueño a todos;
+  el administrador, de recepción para abajo); si no, `403`. En su propia ficha, quien no gestiona cambia solo cómo se
+  presenta y su contacto (`firstName`, `lastName`, `phone`, `email`, `description`, `instagram`, `facebook`,
+  `avatarUrl`, `skills`, `gallery`); mandar otro campo con un valor distinto es `403`. La cuenta bancaria
+  (`payments.accountNumber`) sale siempre enmascarada («•••• 4471»); guardarla enmascarada la deja igual y cambiarla
+  pide `X-Step-Up`.
 - **Barbero en la agenda**: `GET /calendar/day`, `/calendar/appointments` y `/calendar/month` traen solo su columna
   (sus citas, sus bloqueos, su horario y su ocupación, pida el barbero que pida); `GET /calendar/catalog` trae solo a
   él en `barbers` y, en `clients`, la ficha completa de los suyos (la misma regla que Clientes) y de
@@ -492,6 +498,10 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 
 | Método | Ruta | Notas |
 |---|---|---|
+| POST | `/team/members/remind` | `{ ids }`. Recuerda la invitación a los invitados que gestiona quien llama, una vez cada 24 h (al crear a alguien ya sale la primera). `{ sent, simulated, skipped: [{ id, name, reason: "notInvited" \| "recent" \| "forbidden" }] }`. |
+| POST | `/team/members/deactivate` | `{ ids }`. Pasa a `inactive` (con `deactivatedAt`) y apaga su lugar en la fila sin cita y en «sin preferencia»; su historia y su nómina quedan. `{ deactivated: [{ id, name, upcoming }], skipped: [{ id, name, reason: "self" \| "forbidden" \| "inactive" }] }`; `upcoming` son sus citas por venir, para reasignarlas. |
+| POST | `/team/members/import` | `{ branchId, items: [{ firstName, lastName, phone, email, role }] }` (hasta 100). Solo `barbero-comision`, `barbero-renta` y `recepcion`; entran `invited` con el primer nivel si atienden. `201 { created: [{ id, name }], rejected: [{ row, message }] }` (celular o correo repetido, datos inválidos, rol que no gestiona). |
+| GET | `/team/members/:id/bank` | Quien gestiona a esa persona o ella misma, con `X-Step-Up`. `{ bankName, accountNumber }` completo. |
 | GET | `/team/lineup/turn?branchId&kind=walkIn\|noPreference` | `{ kind, next, items: [{ memberId, name, avatarUrl, position, count, working, free }] }`. A quién le toca: los encendidos en esa fila que trabajan hoy, primero quien menos clientes de ese tipo lleva hoy y, a igualdad, el que va antes en la fila; `next` es el primero libre ahora. La venta sin cita lo preselecciona y la reserva «sin preferencia» reparte en ese orden. |
 | GET | `/team/home?branchId` | La portada: `members` (cada persona con `chair`, `occupancy`, `services` y `revenue` de la semana, `payout`, `retention` a 90 días, `rentDueOffset`, `openRegisters`), `openShifts` (turnos de la semana que viene sin cubrir por una ausencia aprobada), `series` (7 semanas de ocupación, servicios y turnos), `pendingAbsences`, `absentToday`. |
 | GET | `/team/members/:id/performance?branchId` | Últimos 90 días: `services`, `occupancy`, `rebookRate` (dejó otra cita con él en la semana), `retention`, `avgTicket` (sin impuesto), `productsPerService`, `tips`, `noShows`, `noShowRate`, `rating`, `reviews`. Un barbero solo el suyo (`403`). |

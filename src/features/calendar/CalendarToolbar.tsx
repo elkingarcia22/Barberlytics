@@ -49,6 +49,8 @@ export interface CalendarToolbarProps {
   viewSettings?: React.ReactNode;
   /** Las acciones de la pantalla, al final de la fila. */
   actions?: React.ReactNode;
+  /** Una marca del día junto a la fecha (si suele ser pesado o suave). */
+  dateBadge?: React.ReactNode;
 }
 
 /** Las vistas con su atajo de una letra (`useCalendarShortcuts`): el menú los enseña para que se aprendan. */
@@ -61,7 +63,7 @@ const VIEWS: readonly { value: CalendarView; label: AppMessageKey; shortcut: str
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, showTeam = true, status, summary, search, viewSettings, actions }: CalendarToolbarProps) {
+export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChange, onViewChange, onTeamChange, showTeam = true, status, summary, search, viewSettings, actions, dateBadge }: CalendarToolbarProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const dateLocale = calendarLocale(locale);
@@ -115,6 +117,7 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
             {t("date.today")}
           </Button>
         )}
+        {dateBadge}
       </div>
 
       {status}

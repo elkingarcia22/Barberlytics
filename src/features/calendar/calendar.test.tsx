@@ -842,7 +842,7 @@ describe("Calendario", () => {
     expect(screen.getByTestId("checkout-total")).toHaveTextContent("$70");
   });
 
-  test("la vista Semana cruza barberos y días, y una celda abre ese día con ese barbero", async () => {
+  test("la vista Semana cruza barberos y días; un día abre su panel al lado y desde ahí el día de un barbero", async () => {
     const user = userEvent.setup();
     mount("/calendario?vista=week");
     // Siete días de once barberos: la semana tarda algo más que un día en llegar.
@@ -855,6 +855,12 @@ describe("Calendario", () => {
     expect(screen.queryByTestId("calendar-filters")).toBeNull();
 
     await user.click(within(week).getByRole("button", { name: /^Andrés Beltrán, miércoles 23/ }));
+    // No deja la semana: el día se resume en el panel de la derecha.
+    const panel = await screen.findByTestId("day-panel", {}, { timeout: 5000 });
+    expect(screen.getByTestId("calendar-week")).toBeInTheDocument();
+    expect(within(panel).getByTestId("day-panel-stats")).toHaveTextContent("Citas");
+    expect(within(panel).getByRole("tab", { name: /^Citas/ })).toHaveAttribute("aria-selected", "true");
+    await user.click(within(panel).getByRole("button", { name: /^Andrés Beltrán: .*Abrir su día/ }));
     const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
     expect(screen.getByTestId("calendar-date")).toHaveTextContent("Miércoles 23 sep");
     expect(within(grid).getByText("Andrés Beltrán")).toBeInTheDocument();

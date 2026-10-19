@@ -218,6 +218,20 @@ export const calendarRangeSchema = z.object({ from: z.string(), to: z.string(), 
 export type CalendarRange = z.infer<typeof calendarRangeSchema>;
 export type CalendarMonth = z.infer<typeof calendarMonthSchema>;
 
+/**
+ * El ritmo de la barbería: cuántas citas suele tener cada día de la semana,
+ * sacado de las últimas semanas. De ahí sale si un día es suave o pesado.
+ */
+export const dayRhythmSchema = z.object({
+  /** Cuántas semanas hacia atrás se miraron. */
+  weeks: z.number(),
+  /** Citas de un día abierto cualquiera, en promedio. */
+  average: z.number(),
+  /** Por día de la semana (0 = domingo): el promedio de citas y cuántos de esos días hubo con agenda. */
+  weekdays: z.array(z.object({ weekday: z.number().int().min(0).max(6), average: z.number(), samples: z.number() })),
+});
+export type DayRhythm = z.infer<typeof dayRhythmSchema>;
+
 export const waitlistEntrySchema = z.object({
   id: z.string(),
   branchId: z.string(),

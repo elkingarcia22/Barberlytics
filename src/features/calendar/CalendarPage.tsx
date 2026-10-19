@@ -24,7 +24,7 @@ import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import { CalendarSearch } from "./CalendarSearch";
-import { CalendarFilters, type ClientTypeFilterOption, type ServiceFilterOption } from "./CalendarFilters";
+import { CalendarFilters, type ClientTypeFilterOption, type ResourceFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions, blockContextActions } from "./calendarContextActions";
@@ -48,12 +48,17 @@ import { useCalendarDensity } from "./calendarDensity";
 import { useCalendarColumnWidths } from "./calendarColumnWidths";
 import { useCalendarShortcuts } from "./useCalendarShortcuts";
 import { useCalendarState } from "./useCalendarState";
-import { useCatalogQuery, useDayQuery, useRemoveBlock, useUpdateAppointment, useWaitlistQuery } from "./queries";
+import { useCatalogQuery, useDayQuery, useRemoveBlock, useRhythmQuery, useUpdateAppointment, useWaitlistQuery } from "./queries";
 import { CalendarWeekView } from "./CalendarWeekView";
 import { moveStart, reflowPlan, type ReflowPlan } from "./reflowModel";
 import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
+import { DayPanel } from "./dayPanel/DayPanel";
+import { resourceDay } from "./resourceModel";
+import { useResourcesQuery } from "@/features/services/queries";
+import { dayWeightOf } from "./dayWeight";
+import { DayWeightBadge } from "./DayWeightBadge";
 import { ABSENCE_KIND_KEYS, useAbsences } from "@/features/team/workforce";
 import {
   appointmentEnd,
@@ -111,6 +116,7 @@ type Panel =
   | { kind: "walkInSale" }
   | { kind: "gaps" }
   | { kind: "timeOff"; focus: TimeOffFocus }
+  | { kind: "day"; date: Date }
   | { kind: "removeBlock"; block: TimeBlock }
   | { kind: "confirm"; action: "cancel" | "noShow"; appointment: Appointment };
 
@@ -169,6 +175,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const state = useCalendarState(today);
   const catalog = useCatalogQuery(branchId);
   const dayQuery = useDayQuery(branchId, state.dateKey);
+  const rhythm = useRhythmQuery(branchId);
   const waitlistQuery = useWaitlistQuery(branchId, null);
   // Con alcance propio, el día y la lista de espera llegan ya recortados a lo suyo: de ahí
   // salen la rejilla, el pulso, los contadores, la Agenda, los huecos y el asistente.
@@ -197,6 +204,16 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   /** Lo último que se movió, para la tecla Z. */
   const undoRef = React.useRef<(() => void) | null>(null);
   const closePanel = () => setPanel(null);
+  // Tocar un día en la Semana o el Mes no lleva a la rejilla: abre el panel del día al lado.
+  const openDayPanel = React.useCallback(
+    (date: Date) => {
+      state.openAppointment(null);
+      state.setDate(date);
+      setPanel({ kind: "day", date });
+    },
+    [state]
+  );
+  const dayPanelDate = panel?.kind === "day" ? panel.date : null;
 
   // Un solo panel a la vez junto a la agenda: abrir una cita cierra lo que hubiera, y al revés.
   const openAppointment = React.useCallback(
@@ -395,6 +412,17 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name))
       .map((service) => ({ id: service.id, name: service.name, color: serviceColor(dayCatalog, service.id) ?? 1, count: active.filter((item) => item.serviceIds.includes(service.id)).length }));
   }, [dayCatalog, day.data]);
+  // Los recursos especiales: cuántas citas de hoy los ocupan y si alguna vez se piden más de los que hay.
+  const resourcesQuery = useResourcesQuery();
+  const resourceOptions = React.useMemo<ResourceFilterOption[]>(() => {
+    if (!dayCatalog) return [];
+    const appointments = day.data?.appointments ?? [];
+    return (resourcesQuery.data?.items ?? []).map((resource) => {
+      const usage = resourceDay(resource, appointments, dayCatalog);
+      const names = resource.serviceIds.map((id) => dayCatalog.services.find((service) => service.id === id)?.name).filter(Boolean);
+      return { id: resource.id, name: resource.name, serviceIds: resource.serviceIds, servicesLabel: names.join(", "), count: new Set(usage.uses.map((use) => use.appointment.id)).size, clashes: usage.clashes.length };
+    });
+  }, [dayCatalog, day.data, resourcesQuery.data]);
   // Los tipos de cliente, en el orden de la escalera y con cuántas citas vivas tiene cada uno hoy.
   const clientTypeOptions = React.useMemo<ClientTypeFilterOption[]>(() => {
     if (!dayCatalog) return [];
@@ -813,6 +841,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         onViewChange={state.setView}
         onTeamChange={state.setTeam}
         showTeam={!ownBarberId}
+        dateBadge={isDayView ? <DayWeightBadge weight={dayWeightOf(rhythm.data, state.date)} booked={day.data?.appointments.filter(isActive).length} /> : undefined}
         search={
           ctx && (
             <CalendarSearch
@@ -857,6 +886,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               focuses={state.focuses}
               services={serviceOptions}
               serviceIds={state.serviceIds}
+              resources={resourceOptions}
               clientTypeOptions={clientTypeOptions}
               clientTypes={state.clientTypes}
               onChange={state.setFilters}
@@ -908,13 +938,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   onTeamChange={state.setTeam}
                   showTeam={!ownBarberId}
                   today={nowDate}
-                  onSelectDay={(date) => {
-                    state.setDate(date);
-                    state.setView("day");
-                  }}
+                  selectedDay={dayPanelDate}
+                  rhythm={rhythm.data}
+                  onSelectDay={openDayPanel}
                 />
               ) : state.view === "week" ? (
-                <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} onSelectDay={(date, barberId) => state.openDay(date, ownBarberId ? null : barberId)} />
+                <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} selectedDay={dayPanelDate} rhythm={rhythm.data} onSelectDay={openDayPanel} />
               ) : (
                 <QueryBoundary query={day} loading={<GridSkeleton />}>
                   {(data: CalendarDay) =>
@@ -1074,6 +1103,26 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               />
 
               <WaitlistDrawer open={panel?.kind === "waitlist"} onOpenChange={(open) => !open && closePanel()} branchId={branchId} ctx={ctx} date={state.date} day={day.data} onSchedule={scheduleFromWaitlist} />
+
+              <DayPanel
+                open={panel?.kind === "day"}
+                onOpenChange={(open) => !open && closePanel()}
+                date={dayPanelDate}
+                branchId={branchId}
+                ctx={ctx}
+                onOpenDay={(date, barberId) => {
+                  closePanel();
+                  state.openDay(date, ownBarberId ? null : barberId);
+                }}
+                onOpenAppointment={(date, id) => {
+                  // La cita se abre junto a la semana o el mes, sin cambiar de vista.
+                  closePanel();
+                  state.openAppointmentKeepingView(date, id);
+                }}
+                onOpenClient={(clientId) => navigate(`/clientes/${clientId}`)}
+                onOpenTimeOff={(focus) => openPanel({ kind: "timeOff", focus })}
+                onBook={(date) => openPanel({ kind: "create", initial: { start: date } })}
+              />
 
               <TimeOffDrawer
                 open={panel?.kind === "timeOff"}

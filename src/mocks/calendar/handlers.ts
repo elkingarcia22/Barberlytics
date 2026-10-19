@@ -151,6 +151,38 @@ function peekAppointmentsOn(branchId: string, day: string): MockAppointment[] {
   return generateDay(branchId, day);
 }
 
+/** El ritmo se saca de estas semanas hacia atrás (sin contar hoy). */
+export const RHYTHM_WEEKS = 8;
+const rhythmCache = new Map<string, ReturnType<typeof computeRhythm>>();
+
+const dayKeyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+function computeRhythm(branchId: string, own: string | null, now: Date) {
+  const totals = Array.from({ length: 7 }, () => ({ sum: 0, samples: 0 }));
+  for (let back = 1; back <= RHYTHM_WEEKS * 7; back++) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+    const count = peekAppointmentsOn(branchId, dayKeyOf(date)).filter((item) => (!own || item.barberId === own) && item.status !== "cancelled" && item.status !== "no_show").length;
+    // Un día sin una sola cita estaba cerrado: no cuenta para el promedio.
+    if (count === 0) continue;
+    totals[date.getDay()].sum += count;
+    totals[date.getDay()].samples += 1;
+  }
+  const weekdays = totals.map((item, weekday) => ({ weekday, average: item.samples > 0 ? item.sum / item.samples : 0, samples: item.samples }));
+  const open = totals.filter((item) => item.samples > 0);
+  const average = open.reduce((sum, item) => sum + item.sum, 0) / Math.max(1, open.reduce((sum, item) => sum + item.samples, 0));
+  return { weeks: RHYTHM_WEEKS, average, weekdays };
+}
+
+/** Cuántas citas suele tener cada día de la semana en una sucursal (o en la columna de un barbero). */
+export function rhythmOf(branchId: string, own: string | null, now = new Date()) {
+  const key = `${branchId}:${own ?? "all"}:${dayKeyOf(now)}`;
+  const cached = rhythmCache.get(key);
+  if (cached) return cached;
+  const rhythm = computeRhythm(branchId, own, now);
+  rhythmCache.set(key, rhythm);
+  return rhythm;
+}
+
 /** Lo más que se puede pedir de una vez: tres meses. */
 const MAX_RANGE_DAYS = 92;
 
@@ -315,6 +347,14 @@ export const calendarHandlers = [
       return peekAppointmentsOn(branchId, `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`);
     }).flat();
     return HttpResponse.json({ from, to, items: ownAppointments(items, barberOf(request)) });
+  }),
+
+  http.get(`${BASE}/calendar/rhythm`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    // Un barbero ve el ritmo de su columna: lo suyo es lo que le dice si el día viene pesado.
+    return HttpResponse.json(rhythmOf(branchId, barberOf(request)));
   }),
 
   http.get(`${BASE}/calendar/month`, async ({ request }) => {

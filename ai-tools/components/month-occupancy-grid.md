@@ -13,7 +13,7 @@ import { MonthOccupancyGrid } from "@/components/scheduling"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `month` | `Date` |  | Cualquier día del mes a mostrar. |
-| `days` | `{ date: Date; occupancy: number \| null; count: number }[]` |  | Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas. |
+| `days` | `{ date: Date; occupancy: number \| null; count: number; marker?: ReactNode }[]` |  | Un elemento por día: `occupancy` de 0 a 1, o `null` si no trabaja; `count` de citas; `marker`, una marca pequeña en la esquina (en la agenda, «día pesado» o «día suave» con su tooltip). |
 | `selected` | `Date \| null` |  | El día marcado. |
 | `onSelectDay` | `(date: Date) => void` |  | Se llama al tocar un día del mes. |
 | `today` | `Date` |  | Qué día lleva el círculo de «hoy». Inyectable para la doc y las pruebas. |

@@ -5,26 +5,17 @@ import { appointmentStart, isActive, type ModelContext } from "../calendarModel"
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { STATUS_KEYS } from "../types";
 import { ActionButton, MoreActionsMenu } from "./PanelParts";
-import { TRACK, mainAction, restActions, showsRequest, trackIndexOf } from "./panelLogic";
-import { NextVisitBooker } from "./NextVisitBooker";
-import { BookingRequest, TicketSummary } from "./StageParts";
+import { TRACK, mainAction, restActions, trackIndexOf } from "./panelLogic";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
- * Lo que comparten las cinco versiones: el avance arriba (como en el panel de
+ * Lo que comparten las versiones nuevas: el avance arriba (como en el panel de
  * siempre) con la hora real de cada paso, el bloque que cambia con el momento
  * de la cita y el pie con la acción principal, ancha y dorada como «Continuar»
  * en la reserva.
  */
 
-export interface PanelStepperProps {
-  model: AppointmentModel;
-  ctx: ModelContext;
-  /** Volver clicables los pasos hechos y el actual (la versión «Paso a paso»). */
-  onStepClick?: (index: number) => void;
-}
-
-export function PanelStepper({ model, ctx, onStepClick }: PanelStepperProps) {
+export function PanelStepper({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
   const t = useAppT();
   const index = trackIndexOf(model);
   if (index < 0) return null;
@@ -40,22 +31,9 @@ export function PanelStepper({ model, ctx, onStepClick }: PanelStepperProps) {
       size="sm"
       aria-label={t("calendar.detail.track")}
       current={model.appointment.status === "paid" ? TRACK.length : index}
-      onStepClick={onStepClick}
       steps={TRACK.map((status) => ({ id: status, label: t(status === "scheduled" ? "calendar.detail.trackScheduled" : STATUS_KEYS[status]), description: times[status] }))}
     />
   );
-}
-
-/**
- * Lo que el momento pide además del titular: antes de cobrar, lo que el
- * cliente pidió al reservar; al terminar, el ticket; cobrada (o cerrada sin
- * atender), agendar la próxima ahí mismo.
- */
-export function StageBlock({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
-  const stage = model.playbook.stage;
-  if (stage === "paid" || stage === "noShow" || stage === "cancelled") return <NextVisitBooker model={model} ctx={ctx} />;
-  if (stage === "toCollect") return <TicketSummary model={model} ctx={ctx} />;
-  return showsRequest(model) ? <BookingRequest model={model} /> : null;
 }
 
 /** Las citas enlazadas y enlazar otra: van con la cita, en la página o el bloque que la muestra. */

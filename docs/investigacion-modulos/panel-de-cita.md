@@ -6,12 +6,16 @@ de fitness y productos como Linear o Notion). Con eso se construyeron **cinco ve
 que se pueden comparar en la app, más la actual.
 
 **Cómo verlas:** abre una cita en `/calendario`; arriba del panel está el selector «Diseño del panel».
-La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=index|cards|tabsNow|moment|steps`
+La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=tabs|cards|moment`
 abre directo una versión. Código en `src/features/calendar/appointmentPanel/`.
 
 > **2026-10-18: segunda ronda.** Las cinco versiones de la sección 4 (Como la reserva, Mostrador, Ficha
 > del cliente, Recorrido y Modo silla) se reemplazaron por otras cinco que siguen las reglas del usuario.
 > Están en la sección 7; la 4 queda como historia.
+>
+> **2026-10-18, elección:** quedan **Pestañas (actual)**, **Arma la cita** y **Tarjeta del momento**.
+> Se quitaron «Lo de ahora + índice», «Pestañas por estado» y «Paso a paso» (código incluido); su
+> descripción sigue en la tabla de la sección 7.
 
 ---
 

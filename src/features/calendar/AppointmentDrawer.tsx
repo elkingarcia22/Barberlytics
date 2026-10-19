@@ -21,7 +21,7 @@ import { usePanelVersion } from "./appointmentPanel/panelVersion";
 import { PanelVersionPicker } from "./appointmentPanel/PanelParts";
 import { useAppointmentModel } from "./appointmentPanel/useAppointmentModel";
 import { PanelFooter } from "./appointmentPanel/PanelShared";
-import { CardsVersion, IndexVersion, MomentVersion, StepsVersion, TabsVersion } from "./appointmentPanel/PanelVersions";
+import { CardsVersion, MomentVersion } from "./appointmentPanel/PanelVersions";
 
 /**
  * El panel de una cita. Se abre al lado de la agenda: en la cabecera, quién
@@ -33,7 +33,7 @@ import { CardsVersion, IndexVersion, MomentVersion, StepsVersion, TabsVersion } 
  * - Clipper: lo que sugiere el agente, aparte para que se lea como IA.
  * - Notas, Cliente e Historial: el resto, por tema.
  *
- * Arriba, un selector deja comparar ese diseño con cinco propuestas
+ * Arriba, un selector deja comparar ese diseño con las dos propuestas que quedaron
  * (`appointmentPanel/`, docs/investigacion-modulos/panel-de-cita.md). Todas
  * leen la misma cita con `useAppointmentModel` y corren las mismas acciones.
  */
@@ -68,7 +68,7 @@ export function AppointmentDrawer(props: AppointmentDrawerProps) {
   return <AppointmentVersionPanel key={`${key}-${version}`} {...props} appointment={props.appointment} />;
 }
 
-/** Las cinco propuestas: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
+/** Las propuestas que quedaron: mismo marco y mismos datos; cambia cómo se ordena lo de adentro. */
 function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: Appointment }) {
   const { appointment, open, onOpenChange, ctx, onOpenClient, onPatch } = props;
   const { locale } = useLocale();
@@ -92,11 +92,8 @@ function AppointmentVersionPanel(props: AppointmentDrawerProps & { appointment: 
     >
       <div className="space-y-5" data-testid="appointment-drawer" data-panel-version={version}>
         <PanelVersionPicker />
-        {version === "index" && <IndexVersion {...versionProps} />}
         {version === "cards" && <CardsVersion {...versionProps} />}
-        {version === "tabsNow" && <TabsVersion {...versionProps} />}
         {version === "moment" && <MomentVersion {...versionProps} />}
-        {version === "steps" && <StepsVersion {...versionProps} />}
       </div>
     </SidePanelShell>
   );

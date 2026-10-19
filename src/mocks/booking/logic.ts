@@ -5,12 +5,13 @@ import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/ha
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
-import { accountTaxPercent, branchCurrency, branchNow, branchOnlineMethods, branchTaxPercent, branchTimeZone, itemTaxPercent, startInstant, taxInclusive } from "../settings/branchRules";
+import { accountTaxPercent, branchCountry, branchCurrency, branchNow, branchOnlineMethods, branchTaxPercent, branchTimeZone, itemTaxPercent, startInstant, taxInclusive } from "../settings/branchRules";
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
 import { stockLevel } from "../inventory/stock";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
+import { consentCountryOf } from "@/features/legal/consent";
 
 /**
  * Las derivaciones de la reserva en línea: lo que ve el cliente sale de lo
@@ -109,6 +110,8 @@ export function shop() {
       currency: branchCurrency(branch.id),
       taxPercent: branchTaxPercent(branch.id),
       onlineMethods: branchOnlineMethods(branch.id),
+      /** El país de la sede (para el texto del consentimiento). */
+      country: consentCountryOf(branchCountry(branch.id)),
     }));
   return {
     // La marca de la barbería tal como la subió en Identidad; sin ella, Barberlytics.

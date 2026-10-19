@@ -5,6 +5,7 @@ import { readTtsConfig, synthesize } from "./server/tts/tts"
 import { readWhatsAppConfig, sendTemplate } from "./server/whatsapp/whatsapp"
 import { narrate, readNarrativeConfig } from "./server/narrative/narrative"
 import { clipperStep, readClipperConfig } from "./server/clipper/clipper"
+import { clipperFeedback } from "./server/clipper/turnLog"
 
 /**
  * La voz de Clipper (y el envío por WhatsApp) también en local: con `npm run dev` las funciones de `api/` no corren, así que el
@@ -49,8 +50,22 @@ function clipperVoiceInDev(): Plugin {
         res.end(Buffer.from(await response.arrayBuffer()))
       })
       // Clipper con modelo (ANTHROPIC_API_KEY de `.env.local`); sin clave, 501 y responde el centro de ayuda.
+      // El 👍/👎 va a /api/clipper/feedback; el registro sale en la consola de este servidor.
       server.middlewares.use("/api/clipper", async (req, res, next) => {
         if (req.method !== "POST") return next()
+        if (req.url?.startsWith("/feedback")) {
+          let raw = ""
+          for await (const chunk of req) raw += chunk
+          let payload: unknown
+          try {
+            payload = JSON.parse(raw)
+          } catch {
+            payload = undefined
+          }
+          const response = clipperFeedback(payload)
+          res.statusCode = response.status
+          return res.end()
+        }
         let body = ""
         for await (const chunk of req) body += chunk
         let payload: unknown

@@ -35,7 +35,8 @@ export interface MockCustomerProfile {
    * Aceptó recibir promociones: cuándo y desde dónde. Sin esto, no se le escribe más que lo de sus
    * citas (Ley 1581: consentimiento previo, expreso e informado, y que se pueda probar).
    */
-  marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" };
+  /** El permiso de promociones, con el texto que se aceptó (versión y país): es la prueba. */
+  marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app"; version?: string; country?: string };
   /** Borrado del directorio; la agenda conserva sus citas. */
   deleted?: boolean;
   /** La tanda de importación que lo trajo (para poder deshacerla). */

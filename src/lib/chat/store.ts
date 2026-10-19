@@ -133,6 +133,7 @@ export function createChatStore(options: ChatStoreOptions = {}) {
           link: reply.link,
           actions: reply.actions,
           via: reply.via,
+          traceId: reply.traceId,
         }));
         // Si no se está mirando esta conversación, la respuesta queda sin leer.
         patchConversation(conversationId, (conversation) => ({ ...conversation, updatedAt: now(), unread: state.activeId !== conversationId }));

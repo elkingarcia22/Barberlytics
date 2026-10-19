@@ -320,7 +320,7 @@ La relación que la reserva ya conoce va aparte, para no cargar la ficha:
 | Método | Ruta | Notas |
 |---|---|---|
 | GET | `/customers/:id/relationship` | `{ membership: { every, progress, available, reward, rewardValue } \| null, packages: [{ id, name, service, remaining, total, expiresAt }], credit, giftCards: [{ code, recipientName, initial, balance, createdAt }] (las que compró), cards: [{ id, brand, last4, expMonth, expYear }], reviews: [{ id, rating, comment, barber, createdAt }], waitlist: [{ id, branchId, service, barber, slots, createdAt }] (solo huecos por venir), messages: [{ id, appointmentId, kind, channel, status: "sent" \| "failed", at, simulated, error }] (los 12 últimos), consent: { marketing: { accepted, at, source: "booking" \| "app" } \| null } }`. `404`. |
-| PATCH | `/customers/:id/consent` | `{ marketing: boolean }`. Guarda el permiso de promociones con la fecha y `source: "app"` (recepción) y devuelve la relación. Retirarlo siempre se puede; darlo, solo si el cliente lo dijo (Ley 1581: previo, expreso, informado y demostrable). Los mensajes de sus citas no dependen de este permiso. `422` sin `marketing` · `404`. |
+| PATCH | `/customers/:id/consent` | `{ marketing: boolean }`. Guarda el permiso de promociones con la fecha y `source: "app"` (recepción) y devuelve la relación. Retirarlo siempre se puede; darlo, solo si el cliente lo dijo (Ley 1581: previo, expreso, informado y demostrable). Los mensajes de sus citas no dependen de este permiso. El permiso guarda también `version` y `country`: con qué texto se aceptó (el del país de la sede del cliente). `422` sin `marketing` · `404`. |
 
 Las notas se crean, corrigen y borran con `/clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
 
@@ -462,7 +462,8 @@ con la sesión de quien pregunta, así que cada endpoint aplica su permiso (ver 
 
 | Método | Ruta | Respuesta |
 |---|---|---|
-| POST | `/api/clipper` | Cuerpo `{ context: { locale, role, today, branch, currency, userName }, messages }`. `200 { kind: "tools", content, calls: [{ id, name, input }] }` si pide consultas, o `200 { kind: "answer", text, model }`. `400` conversación inválida; `501 not_configured` sin clave (la app responde con el centro de ayuda); `502 unsafe_output` si pidió una herramienta que no es de su rol o si la respuesta trae cifras que no salen de las consultas; `429` con más de 30 pasos por minuto por IP; `403` si no viene de la app. |
+| POST | `/api/clipper` | Cuerpo `{ context: { locale, role, today, branch, currency, userName, turnId? }, messages }`. `200 { kind: "tools", content, calls: [{ id, name, input }], usage }` si pide consultas, o `200 { kind: "answer", text, model, usage }` (`usage: { input, output }` en tokens). `400` conversación inválida; `501 not_configured` sin clave (la app responde con el centro de ayuda); `502 unsafe_output` si pidió una herramienta que no es de su rol o si la respuesta trae cifras que no salen de las consultas; `429` con más de 30 pasos por minuto por IP; `403` si no viene de la app. |
+| POST | `/api/clipper/feedback` | `{ turnId, value: "up" \| "down" \| null, reasons?, comment?, share?, question?, answer? }` → `204`. El 👍/👎 de una respuesta; la pregunta y la respuesta solo se guardan con `share: true`. `400` sin `turnId` · `429` con más de 30 por minuto por IP. |
 
 `messages` es la conversación en el formato de Claude: el usuario manda texto y `tool_result`; el asistente, texto y
 `tool_use`. Hasta 40 mensajes y 200 KB; cada resultado, hasta 12 000 caracteres. Debe empezar y terminar en el usuario.
@@ -482,6 +483,16 @@ después, avisos) con «Aplicar». Al modelo le vuelve que la propuesta espera a
 en `createdBy` de la cita nueva); el servidor sigue negándose a pisar otra cita (`409`) y la tarjeta muestra el motivo.
 «Deshacer» devuelve lo que había: la hora y el barbero, el estado anterior (una cita cancelada vuelve a agendada si
 nadie tomó el hueco; si no, `409`), cancela la cita creada, borra el bloqueo o la nota.
+
+**Registro.** Cada pregunta lleva un `turnId` que une sus pasos. Cada paso deja una línea JSON en los logs del
+servidor (`type: "clipper_step"`: `turnId`, `role`, `locale`, `outcome` —`tools`, `answer`, `corrected`, `unsafe_tool`,
+`unsafe_numbers`, `provider_error`, `not_configured`, `invalid`—, `tools`, `model`, `inputTokens`, `outputTokens`, `ms`)
+sin la pregunta ni la respuesta, que pueden traer datos de clientes; cada 👍/👎 deja `type: "clipper_feedback"`.
+
+**Evaluación.** `src/features/clipper/evals/questions.ts` tiene 60 preguntas (español de Colombia, de EE. UU. con
+spanglish e inglés; los cinco roles) con la herramienta que debe usar o si debe proponer o mandar a la ayuda. Con
+`ANTHROPIC_API_KEY`, `npx vitest run src/features/clipper/evals/runEvals.test.tsx` pregunta al modelo con la demo y
+exige 90 % bien; sin clave se salta.
 
 **Cifras verificadas**: cada número de la respuesta tiene que aparecer en los resultados de las consultas o en lo que
 preguntó la persona (en cualquiera de sus lecturas: `1.239` puede ser mil doscientos treinta y nueve o uno coma dos;
@@ -608,6 +619,15 @@ Reglas que el cliente da por hechas:
 Los permisos por rol no están aquí: viven en Equipo.
 
 ## Reserva en línea (`/booking`)
+
+**Texto del consentimiento según el país.** El permiso de promociones y el aviso de privacidad salen de
+`src/features/legal/consent.ts`, según el país de la sede: Colombia (Ley 1581 de 2012: autorización previa, expresa e
+informada, responsable, finalidades y derechos), Estados Unidos (TCPA: consentimiento escrito, no es condición de
+compra, frecuencia, tarifas y STOP), México (LFPDPPP: finalidad secundaria voluntaria y derechos ARCO) y uno general.
+Cada texto lleva su versión (`co-2026-10`…), que el servidor guarda con la aceptación (`marketingConsent.version` y
+`country`) como prueba; la sede viaja en `POST /booking/customers` como `branchId` y cada sede del catálogo trae
+`country`. Es texto de producto escrito a partir de esas normas: debe revisarlo un abogado de cada país antes de
+producción.
 
 **Hora de la sede.** Las horas viajan como hora local de la sucursal sin zona (`2026-10-20T10:30:00`), y la zona es la de
 la sucursal (`timezone` en Configuración › Sucursales; si no tiene, la del negocio). «Hoy», las horas que ya pasaron, la

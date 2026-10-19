@@ -5,15 +5,15 @@ import { Field, InputOtp, PhoneInput } from "@/components/forms";
 import { Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { formatPhone } from "../../bookingFormat";
 import { useBookingFlow } from "../../flow/BookingContext";
 import { toastMissing } from "../../flow/missingData";
 import { useCreateCustomerMutation, useRecentCode, useRequestCodeMutation, useVerifyCodeMutation } from "../../queries";
+import { ConsentFields } from "../../flow/ConsentFields";
+import { useConsentBranchId } from "../../flow/consentPack";
 
 const MIN_DIGITS = 10;
 const CODE_LENGTH = 6;
@@ -150,6 +150,7 @@ export function ProfileForm() {
   const t = useAppT();
   const { state, dispatch } = useBookingFlow();
   const create = useCreateCustomerMutation(state.token);
+  const consentBranchId = useConsentBranchId();
   const [values, setValues] = React.useState(() => state.pendingProfile ?? { firstName: "", lastName: "", email: "", marketing: false });
   const [touched, setTouched] = React.useState(false);
   // Ya los escribió en «Conozcámonos» (sin código): al confirmar el código la ficha se crea sola. Si falla
@@ -175,7 +176,7 @@ export function ProfileForm() {
     setTouched(true);
     if (toastMissing(t, [errors.firstName, errors.lastName, errors.email])) return;
     // El perfil se guarda sin moverse de la agenda: lo armado sigue en su sitio.
-    create.mutate({ firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing }, { onSuccess: (customer) => dispatch({ type: "customerUpdated", customer }) });
+    create.mutate({ firstName: values.firstName.trim(), lastName: values.lastName.trim(), email: values.email.trim(), marketing: values.marketing, branchId: consentBranchId }, { onSuccess: (customer) => dispatch({ type: "customerUpdated", customer }) });
   };
 
   if (pending && !create.isError) {
@@ -203,12 +204,7 @@ export function ProfileForm() {
       <Field label={t("booking.profile.email")} required description={t("booking.profile.emailHint")} error={touched ? errors.email : undefined}>
         <Input type="email" inputMode="email" value={values.email} onChange={set("email")} autoComplete="email" />
       </Field>
-      <div className="flex items-start gap-3">
-        <Checkbox id="agenda-marketing" checked={values.marketing} onCheckedChange={(checked) => setValues((current) => ({ ...current, marketing: checked === true }))} />
-        <Label htmlFor="agenda-marketing" className="font-normal">
-          {t("booking.profile.marketing")}
-        </Label>
-      </div>
+      <ConsentFields id="agenda-marketing" marketing={values.marketing} onMarketingChange={(marketing) => setValues((current) => ({ ...current, marketing }))} />
       {create.isError && !serverFields && (
         <Text size="sm" tone="negative" role="alert">
           {describeError(create.error).description}

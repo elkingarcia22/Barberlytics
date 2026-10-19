@@ -47,9 +47,12 @@ describe("ficha 360 del cliente", () => {
         body: JSON.stringify({ marketing: true }),
       })
     ).json();
+    // La prueba del permiso: con qué texto se aceptó (la versión del país de su sede).
     expect(granted.consent.marketing).toMatchObject({
       accepted: true,
       source: "app",
+      version: expect.stringMatching(/^(us|co|mx|gen)-/),
+      country: expect.any(String),
     });
     const revoked = await (
       await api("/customers/cli_001/consent", {

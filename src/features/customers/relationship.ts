@@ -9,7 +9,7 @@ import { messageKindSchema } from "@/features/calendar/messages";
  * docs/API_CONTRACT.md («Clientes»).
  */
 
-const consentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app"]) });
+const consentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app"]), version: z.string().optional(), country: z.string().optional() });
 
 export const relationshipSchema = z.object({
   membership: z.object({ every: z.number(), progress: z.number(), available: z.number(), reward: z.string(), rewardValue: z.number() }).nullable(),

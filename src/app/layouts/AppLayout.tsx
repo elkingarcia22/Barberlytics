@@ -30,6 +30,7 @@ import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
 import { chatStore, clearChatOnLogout, createAppChatBackend } from "../chat";
 import { TOOL_LABEL_KEYS } from "@/features/clipper/tools";
 import { runClipperAction } from "@/features/clipper/proposals";
+import { sendClipperFeedback } from "@/features/clipper/clipperBackend";
 import { useQueryClient } from "@tanstack/react-query";
 import { describeError } from "@/lib/api";
 import { useSettingsList } from "@/features/settings/settingsQueries";
@@ -227,6 +228,14 @@ export function AppLayout() {
         setShellMode("agent");
       },
       onOpenVoice: () => setIsVoiceOpen(true),
+      // El 👍/👎 de una respuesta del modelo va a su registro; la conversación, solo si la persona la compartió.
+      onFeedback: (message, value, detail) => {
+        if (message.via !== "model" || !message.traceId) return;
+        const conversation = chatStore.getState().conversations.find((item) => item.messages.some((entry) => entry.id === message.id));
+        const index = conversation?.messages.findIndex((entry) => entry.id === message.id) ?? -1;
+        const question = conversation && index > 0 ? [...conversation.messages.slice(0, index)].reverse().find((entry) => entry.role === "user")?.text : undefined;
+        void sendClipperFeedback({ turnId: message.traceId, value, reasons: detail?.reasons, comment: detail?.comment, share: detail?.share, question, answer: message.text });
+      },
       // Lo que propuso Clipper se aplica (o se deshace) con los endpoints de siempre; después, todo se vuelve a leer.
       onAction: async (action, op) => {
         try {

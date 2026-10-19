@@ -48,8 +48,10 @@ export interface MockInboundReply {
   id: string;
   at: string;
   from: string;
-  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "other";
+  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "help" | "other";
   text: string;
+  /** Por dónde llegó; sin él, WhatsApp. */
+  channel?: "whatsapp" | "sms";
   appointmentId: string | null;
   clientId: string | null;
 }

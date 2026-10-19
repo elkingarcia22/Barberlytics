@@ -128,6 +128,44 @@ describe("mensajes de WhatsApp", () => {
     expect(await syncOutbox(new Date(), queue)).toMatchObject({ replies: 0 });
   });
 
+  test("STOP por SMS corta los SMS del cliente (también los de su cita) y queda en el registro; ALTA los devuelve", async () => {
+    const appointment = { ...upcoming(), status: "paid" as const };
+    db.calendar.appointments = db.calendar.appointments.map((item) => (item.id === appointment.id ? appointment : item));
+    const client = db.calendar.clients.find((item) => item.id === appointment.clientId)!;
+    const { queue, reply } = fakeQueue();
+    const sendSms = () => api(`/appointments/${appointment.id}/messages`, { method: "POST", body: JSON.stringify({ kind: "receipt", channel: "sms", to: client.phone, body: "Tu recibo" }) });
+
+    // Antes de STOP, el SMS sale con el pie que dice cómo darse de baja.
+    expect((await sendSms()).status).toBe(201);
+    expect(db.booking.outbox?.at(-1)?.body).toMatch(/Tu recibo\n\nResponde STOP o BAJA/);
+
+    reply({ wamid: "sms:SM1", from: client.phone.replace(/\D/g, ""), intent: "stop", text: "STOP", messageId: null, channel: "sms" });
+    await syncOutbox(new Date(), queue);
+    expect(profileOf(client)).toMatchObject({ smsStop: { at: expect.any(String) }, marketingConsent: { accepted: false, source: "sms" } });
+    expect(db.customers.privacyRequests?.[0]).toMatchObject({ clientId: client.id, type: "revoke", channel: "sms", status: "done" });
+    const stopped = await sendSms();
+    expect(stopped.status).toBe(409);
+    expect((await stopped.json()).code).toBe("sms_stopped");
+    // El correo sí sale.
+    expect((await api(`/appointments/${appointment.id}/messages`, { method: "POST", body: JSON.stringify({ kind: "receipt", channel: "email", to: "cliente@correo.com", body: "Tu recibo" }) })).status).toBe(201);
+
+    reply({ wamid: "sms:SM2", from: client.phone.replace(/\D/g, ""), intent: "start", text: "ALTA", messageId: null, channel: "sms" });
+    await syncOutbox(new Date(), queue);
+    expect(profileOf(client).smsStop).toBeNull();
+    expect((await sendSms()).status).toBe(201);
+  });
+
+  test("la cola recibe la sede de cada mensaje para la franja legal de las promociones", async () => {
+    const appointment = upcoming();
+    const { queue, items } = fakeQueue();
+    const phone = db.calendar.clients.find((item) => item.id === appointment.clientId)!.phone;
+    scheduleMessages(appointment, phone);
+    await syncOutbox(new Date(), queue);
+    const sent = [...items.values()];
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0].place).toMatchObject({ country: "US", state: "Massachusetts", timeZone: "America/New_York" });
+  });
+
   test("la plantilla lleva nombre, servicio, cuándo y la sucursal", () => {
     const appointment = upcoming();
     scheduleMessages(appointment, "+573001112233");

@@ -4,10 +4,11 @@ import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { activePackages } from "../booking/packages";
 import { cardsOf, loyaltyOf, serviceName } from "../booking/logic";
 import { barberName, profileOf, saveProfile } from "./handlers";
-import { consentProof } from "../settings/branchRules";
+import { consentProof, promoWindowOf } from "../settings/branchRules";
 import { isBarber, sessionOf } from "../session";
 import { HEALTH_CONSENT_VERSION } from "@/features/legal/consent";
 import { logPrivacyRequest } from "./privacy";
+import { PROMO_CAP_DAYS, promoNear } from "./promoCap";
 
 /**
  * La relación con el cliente que la reserva ya conoce y la ficha no enseñaba (docs/API_CONTRACT.md,
@@ -109,7 +110,11 @@ export function relationshipOf(client: MockClient, now = new Date()) {
         body: message.body ?? null,
         by: message.by ?? null,
       })),
-    consent: { marketing: profile.marketingConsent ?? null, health: profile.healthConsent ?? null },
+    consent: { marketing: profile.marketingConsent ?? null, health: profile.healthConsent ?? null, smsStop: profile.smsStop ?? null },
+    // La franja legal de promociones en su sede (Ley 2300, TCPA): el mensaje manual de «volver» o cumpleaños la respeta.
+    promoWindow: promoWindowOf(profile.branchId, now),
+    // El tope por cliente: si ya tiene una promoción cerca, cuándo fue (o será).
+    promoCap: promoNear(client.id, now),
   };
 }
 
@@ -137,6 +142,8 @@ export const relationshipHandlers = [
     const body = typeof input?.body === "string" ? input.body.trim() : "";
     if (!purpose || body.length < 2 || body.length > MAX_BODY) return HttpResponse.json({ code: "validation", message: "Escribe el mensaje.", fields: { body: ["Escribe el mensaje."] } }, { status: 422 });
     if (PROMOTIONAL.has(purpose) && profileOf(client).marketingConsent?.accepted !== true) return error(409, "no_consent", "Este cliente no aceptó recibir promociones. Pregúntale antes de escribirle.");
+    if (PROMOTIONAL.has(purpose) && promoNear(client.id)) return error(409, "promo_cap", `Ya recibió una promoción en los últimos ${PROMO_CAP_DAYS} días: es el tope por cliente.`);
+    if (PROMOTIONAL.has(purpose) && !promoWindowOf(profileOf(client).branchId).allowed) return error(409, "outside_window", "Fuera del horario legal para promociones en su sede. Escríbele cuando abra la franja.");
     const now = new Date().toISOString();
     const message = { id: `msg_${Date.now().toString(36)}`, appointmentId: "", clientId: client.id, to: client.phone, channel: "whatsapp" as const, kind: "manual" as const, sendAt: now, sentAt: now, status: "sent" as const, body, purpose, by: account.user.name };
     db.booking.outbox = [message, ...(db.booking.outbox ?? [])];

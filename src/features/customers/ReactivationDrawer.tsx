@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Send } from "lucide-react";
+import { Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -68,7 +68,9 @@ function ReactivationBody({ branchId, onDone }: { branchId: string; onDone: () =
             chosen.map((item) => item.clientId),
             {
               onSuccess: (result) => {
-                toast.success(t("customers.reactivate.queued", { count: result.queued }), { description: result.skipped.length ? t("customers.reactivate.skipped", { count: result.skipped.length }) : undefined });
+                const later = result.sendAt && data.window && !data.window.allowed ? t("customers.reactivate.queuedLater", { when: formatDate(new Date(result.sendAt), { ...SLOT, timeZone: data.window.timeZone }) }) : null;
+                const skipped = result.skipped.length ? t("customers.reactivate.skipped", { count: result.skipped.length }) : null;
+                toast.success(t("customers.reactivate.queued", { count: result.queued }), { description: [later, skipped].filter(Boolean).join(" ") || undefined });
                 onDone();
               },
               onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
@@ -80,6 +82,12 @@ function ReactivationBody({ branchId, onDone }: { branchId: string; onDone: () =
             <Alert>
               <AlertDescription>{t("customers.reactivate.template")}</AlertDescription>
             </Alert>
+            {data.window && !data.window.allowed && (
+              <Alert data-testid="reactivation-window">
+                <Clock />
+                <AlertDescription>{t("customers.reactivate.outsideWindow", { when: formatDate(new Date(data.window.nextAt), { ...SLOT, timeZone: data.window.timeZone }) })}</AlertDescription>
+              </Alert>
+            )}
             <Text variant="muted">{t("customers.reactivate.summary", { total: data.items.length, eligible: eligible.length })}</Text>
             <ul className="divide-y divide-border/60" data-testid="reactivation-list">
               {data.items.map((item) => {

@@ -2,6 +2,7 @@ import { db } from "../db";
 import type { MockAppointment } from "../calendar/seed";
 import { findByPhone, profileOf, saveProfile } from "../customers/handlers";
 import type { MockInboundReply } from "./state";
+import { logPrivacyRequest } from "../customers/privacy";
 
 /**
  * Las respuestas de los clientes por WhatsApp, aplicadas a la cita y a su ficha. Llegan clasificadas
@@ -25,6 +26,8 @@ export interface InboxEvent {
   intent: MockInboundReply["intent"];
   text: string;
   messageId: string | null;
+  /** Por dónde llegó; sin él, WhatsApp. */
+  channel?: "whatsapp" | "sms";
   /** Solo la demo: la cita a la que va, cuando no hay mensaje al que responder. */
   appointmentId?: string;
 }
@@ -91,10 +94,15 @@ export function applyReply(event: InboxEvent, now: Date = new Date()): MockInbou
   const client = clientId ? db.calendar.clients.find((item) => item.id === clientId) : undefined;
   if (client && (event.intent === "stop" || event.intent === "start")) {
     const profile = profileOf(client);
+    const sms = event.channel === "sms";
     // Volver a aceptar promociones pide el texto del permiso: con ALTA solo se anota; con BAJA se retira ya.
-    if (event.intent === "stop") saveProfile(client.id, { ...profile, marketingConsent: { accepted: false, at: event.at, source: "whatsapp" } });
+    // STOP por SMS además corta todos los SMS a ese número (también los de sus citas) hasta que responda ALTA.
+    if (event.intent === "stop") {
+      saveProfile(client.id, { ...profile, marketingConsent: { accepted: false, at: event.at, source: sms ? "sms" : "whatsapp" }, ...(sms ? { smsStop: { at: event.at } } : {}) });
+      logPrivacyRequest(client, "revoke", sms ? "sms" : "whatsapp", sms ? "Respondió STOP por SMS: sin promociones ni SMS." : "Respondió BAJA por WhatsApp: sin promociones.", "Cliente", true, new Date(event.at));
+    } else if (sms && profile.smsStop) saveProfile(client.id, { ...profile, smsStop: null });
   }
-  const reply: MockInboundReply = { id: event.wamid, at: event.at, from: event.from, intent: event.intent, text: event.text, appointmentId: appointment?.id ?? null, clientId };
+  const reply: MockInboundReply = { id: event.wamid, at: event.at, from: event.from, intent: event.intent, text: event.text, channel: event.channel, appointmentId: appointment?.id ?? null, clientId };
   db.booking.inbound = [...(db.booking.inbound ?? []), reply];
   db.persist();
   return reply;

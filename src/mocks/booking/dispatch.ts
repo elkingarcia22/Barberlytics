@@ -2,6 +2,8 @@ import { db } from "../db";
 import type { MockAppointment } from "../calendar/seed";
 import { profileOf } from "../customers/handlers";
 import { serverFetch } from "@/lib/api/serverSession";
+import type { SendPlace } from "@/features/legal/sendWindow";
+import { branchSendPlace } from "../settings/branchRules";
 import { applyReply, type InboxEvent } from "./replies";
 import type { MockOutboxMessage } from "./state";
 
@@ -26,6 +28,8 @@ export interface QueueRequest extends WhatsAppPayload {
   id: string;
   sendAt: string;
   consent: { version: string; at: string } | null;
+  /** La sede (país, estado, zona): la cola solo manda promociones en su franja legal. */
+  place: SendPlace | null;
 }
 
 /** Lo que la cola dice de cada mensaje. */
@@ -140,6 +144,14 @@ function consentOf(message: MockOutboxMessage): QueueRequest["consent"] {
   return consent?.accepted ? { version: consent.version ?? "sin-version", at: consent.at } : null;
 }
 
+/** La sede del mensaje: la de la oferta, la de la cita o, si no, la del cliente. */
+function placeOf(message: MockOutboxMessage): SendPlace | null {
+  const appointment = db.calendar.appointments.find((item) => item.id === message.appointmentId);
+  const client = db.calendar.clients.find((item) => item.id === message.clientId);
+  const branchId = message.offer?.branchId ?? appointment?.branchId ?? (client ? profileOf(client).branchId : null);
+  return branchId ? branchSendPlace(branchId) : null;
+}
+
 const MIRRORED: Partial<Record<QueueView["status"], MockOutboxMessage["status"]>> = { sent: "sent", simulated: "sent", failed: "failed" };
 
 export interface SyncCounts {
@@ -176,7 +188,7 @@ export async function syncOutbox(now: Date = new Date(), queue: Queue = httpQueu
       changes.set(message.id, { status: "failed", error: "Falta el número o la cita.", sentAt: at });
       continue;
     }
-    requests.push({ ...payload, id: message.id, sendAt: message.sendAt, consent: consentOf(message) });
+    requests.push({ ...payload, id: message.id, sendAt: message.sendAt, consent: consentOf(message), place: placeOf(message) });
   }
   let hasQueue = true;
   for (const batch of chunks(requests)) {

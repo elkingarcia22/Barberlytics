@@ -6,6 +6,9 @@ import { forbidden, isManager, sessionOf, unauthorized } from "../session";
 import { memberName } from "../team/seed";
 import { isOverdue } from "@/features/customers/overdue";
 import { lifecycleOf } from "./seed";
+import { promoNear } from "./promoCap";
+import { branchSendPlace, promoWindowOf } from "../settings/branchRules";
+import { nextPromoSlot } from "@/features/legal/sendWindow";
 import { profileOf } from "./handlers";
 
 /**
@@ -18,7 +21,6 @@ import { profileOf } from "./handlers";
 const BASE = "*/api";
 const LATENCY_MS = 200;
 const DAY_MS = 86_400_000;
-const RECENT_DAYS = 30;
 const MAX_CANDIDATES = 40;
 const REACTIVATE: ReadonlySet<string> = new Set(["atRisk", "lost"]);
 
@@ -35,7 +37,8 @@ export function nextVisitOf(client: MockClient) {
   return { ...suggestion, options: suggestion.options.map((option) => ({ ...option, barberName: barberLabel(option.barberId) })) };
 }
 
-const contactedRecently = (clientId: string, now: Date) => (db.booking.outbox ?? []).some((message) => message.clientId === clientId && message.kind === "reactivation" && message.status !== "cancelled" && now.getTime() - new Date(message.sendAt).getTime() < RECENT_DAYS * DAY_MS);
+/** Ya tiene una promoción a menos de 30 días (automática o escrita a mano): el tope por cliente. */
+const contactedRecently = (clientId: string, now: Date) => promoNear(clientId, now) !== null;
 
 /** Los que ya se pasaron de su ritmo (le toca, en riesgo o perdidos) en la sucursal, con lo que se sabe para decidir si escribirles. */
 export function reactivationCandidates(branchId: string, now = new Date()) {
@@ -77,7 +80,8 @@ export const rhythmHandlers = [
     const session = sessionOf(request);
     if (!session) return unauthorized();
     if (!isManager(session)) return forbidden("La reactivación la aprueba el dueño o el administrador.");
-    return HttpResponse.json({ items: reactivationCandidates(new URL(request.url).searchParams.get("branchId") ?? "ma") });
+    const branchId = new URL(request.url).searchParams.get("branchId") ?? "ma";
+    return HttpResponse.json({ items: reactivationCandidates(branchId), window: promoWindowOf(branchId) });
   }),
 
   /** Aprobar: pone en la cola de WhatsApp a los elegidos que se pueden escribir; dice por qué se salta a los demás. */
@@ -99,10 +103,12 @@ export const rhythmHandlers = [
         return [];
       }
       const client = findClient(item.clientId) as MockClient;
-      return [{ id: `msg_${Date.now().toString(36)}_${item.clientId}`, appointmentId: "", clientId: item.clientId, to: client.phone, channel: "whatsapp" as const, kind: "reactivation" as const, sendAt: now.toISOString(), status: "scheduled" as const, by: session.account.user.name, offer: { start: item.offer!.start, barberId: item.offer!.barberId, branchId: item.offer!.branchId } }];
+      // Es promoción: sale en la franja legal de la sede (Ley 2300, TCPA); si ahora no se puede, a la próxima apertura.
+      const sendAt = nextPromoSlot(branchSendPlace(item.offer!.branchId), now).toISOString();
+      return [{ id: `msg_${Date.now().toString(36)}_${item.clientId}`, appointmentId: "", clientId: item.clientId, to: client.phone, channel: "whatsapp" as const, kind: "reactivation" as const, sendAt, status: "scheduled" as const, by: session.account.user.name, offer: { start: item.offer!.start, barberId: item.offer!.barberId, branchId: item.offer!.branchId } }];
     });
     db.booking.outbox = [...queued, ...(db.booking.outbox ?? [])];
     db.persist();
-    return HttpResponse.json({ queued: queued.length, skipped });
+    return HttpResponse.json({ queued: queued.length, skipped, sendAt: queued[0]?.sendAt ?? null });
   }),
 ];

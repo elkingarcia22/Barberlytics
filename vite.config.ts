@@ -10,6 +10,7 @@ import { POST as guestSession } from "./api/session/guest"
 import * as whatsappQueue from "./api/whatsapp/queue"
 import * as whatsappWebhook from "./api/whatsapp/webhook"
 import { GET as whatsappInbox } from "./api/whatsapp/inbox"
+import { POST as smsInbound } from "./api/sms/inbound"
 import { serverFunctionsInDev } from "./server/http/devServer"
 import { runDue } from "./server/whatsapp/queue"
 
@@ -29,6 +30,7 @@ const serverFunctions = serverFunctionsInDev(
     "/api/whatsapp/queue": { POST: whatsappQueue.POST, GET: whatsappQueue.GET, DELETE: whatsappQueue.DELETE },
     "/api/whatsapp/webhook": { GET: whatsappWebhook.GET, POST: whatsappWebhook.POST },
     "/api/whatsapp/inbox": { GET: whatsappInbox },
+    "/api/sms/inbound": { POST: smsInbound },
   },
   { tick: () => runDue() }
 )

@@ -9,7 +9,7 @@ import { messageKindSchema } from "@/features/calendar/messages";
  * docs/API_CONTRACT.md («Clientes»).
  */
 
-const consentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app", "whatsapp"]), version: z.string().optional(), country: z.string().optional() });
+const consentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app", "whatsapp", "sms"]), version: z.string().optional(), country: z.string().optional() });
 
 /** El permiso aparte para anotar alergias y medicamentos (dato sensible): quién lo anotó y con qué texto. */
 const healthConsentSchema = z.object({ accepted: z.boolean(), at: z.string(), source: z.enum(["booking", "app"]), version: z.string(), by: z.string().optional() });
@@ -23,7 +23,11 @@ export const relationshipSchema = z.object({
   reviews: z.array(z.object({ id: z.string(), rating: z.number(), comment: z.string(), barber: z.string(), createdAt: z.string() })),
   waitlist: z.array(z.object({ id: z.string(), branchId: z.string(), service: z.string(), barber: z.string().nullable(), slots: z.array(z.object({ date: z.string(), time: z.string() })), createdAt: z.string() })),
   messages: z.array(z.object({ id: z.string(), appointmentId: z.string(), kind: messageKindSchema, channel: z.enum(["whatsapp", "sms"]), status: z.enum(["sent", "failed"]), at: z.string(), simulated: z.boolean(), error: z.string().nullable(), body: z.string().nullable().optional(), by: z.string().nullable().optional() })),
-  consent: z.object({ marketing: consentSchema.nullable(), health: healthConsentSchema.nullable().optional() }),
+  consent: z.object({ marketing: consentSchema.nullable(), health: healthConsentSchema.nullable().optional(), smsStop: z.object({ at: z.string() }).nullable().optional() }),
+  /** La franja legal de promociones en su sede ahora: si no, desde cuándo se puede. */
+  promoWindow: z.object({ allowed: z.boolean(), nextAt: z.string(), timeZone: z.string().optional() }).optional(),
+  /** El tope por cliente (una promoción cada 30 días): la que ya tiene cerca, si la hay. */
+  promoCap: z.object({ sendAt: z.string() }).nullable().optional(),
 });
 
 export type CustomerRelationship = z.infer<typeof relationshipSchema>;

@@ -3,6 +3,7 @@ import { blendedPercent, linePercent } from "@/features/branches/tax";
 import { db } from "../db";
 import { instantOf, isTimeZone, wallClock } from "@/lib/time/zoned";
 import { consentCountryOf, consentVersionOf } from "@/features/legal/consent";
+import { isPromoAllowed, nextPromoSlot, type SendPlace } from "@/features/legal/sendWindow";
 import type { MockListItem } from "./seed";
 
 /**
@@ -41,6 +42,19 @@ export const branchNow = (branchId: string, at: Date = new Date()): string => wa
 export const branchCountry = (branchId: string): string => {
   const country = branchOf(branchId)?.country;
   return typeof country === "string" ? country : "";
+};
+
+/** Dónde está la sede para la franja legal de promociones: país, estado y zona (la hora del cliente). */
+export const branchSendPlace = (branchId: string): SendPlace => {
+  const state = branchOf(branchId)?.state;
+  return { country: consentCountryOf(branchCountry(branchId)), state: typeof state === "string" ? state : null, timeZone: branchTimeZone(branchId) };
+};
+
+/** Si ahora se puede mandar una promoción en esa sede y, si no, desde cuándo. */
+/** `timeZone` va para mostrar la hora como la de la sede, no la de quien mira. */
+export const promoWindowOf = (branchId: string, at: Date = new Date()): { allowed: boolean; nextAt: string; timeZone: string } => {
+  const place = branchSendPlace(branchId);
+  return { allowed: isPromoAllowed(place, at), nextAt: nextPromoSlot(place, at).toISOString(), timeZone: place.timeZone };
 };
 
 /** Con qué texto se aceptó un consentimiento en esa sucursal: la versión vigente de su país (la prueba). */

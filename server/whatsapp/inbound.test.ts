@@ -70,7 +70,7 @@ describe("respuestas por WhatsApp", () => {
     ]);
     expect((await store.get("demo", "msg-1"))?.delivery).toBe("read");
 
-    const promo = await enqueue(store, "demo", "usr_0001", [{ id: "promo-1", to: "+573001234567", kind: "reactivation", params: ["Ana", "mañana", "Juan"], sendAt: new Date(NOW).toISOString(), consent: { version: "co-2026-10", at: new Date(NOW).toISOString() } }], NOW);
+    const promo = await enqueue(store, "demo", "usr_0001", [{ id: "promo-1", to: "+573001234567", kind: "reactivation", params: ["Ana", "mañana", "Juan"], sendAt: new Date(NOW).toISOString(), consent: { version: "co-2026-10", at: new Date(NOW).toISOString() }, place: { country: "CO", timeZone: "America/Bogota" } }], NOW);
     expect(promo.rejected).toEqual([{ id: "promo-1", message: expect.stringContaining("BAJA") }]);
   });
 

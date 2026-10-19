@@ -26,6 +26,7 @@ export const SUBPROCESSORS: LegalDoc = {
           "- Meta Platforms (WhatsApp Business Cloud API, EE. UU.): envía los mensajes de las citas y recibe las respuestas. La cuenta de WhatsApp Business es de cada barbería.",
           "- Anthropic PBC (EE. UU.): el modelo de Clipper y de las narraciones («Cómo te fue», «¿Por qué esta cifra?»). Recibe preguntas y resultados de consultas, sin teléfonos ni notas de salud; por la API comercial, sin entrenar con esos datos.",
           "- Proveedor de voz de Clipper (EE. UU.), el que se configure: ElevenLabs Inc., Microsoft Azure Speech u OpenAI. Recibe el texto que Clipper dice en voz alta. Siempre con plan pago [por confirmar cuál].",
+          "- Proveedor de SMS (EE. UU.) [por confirmar, p. ej. Twilio Inc.]: envía los SMS de las citas y recibe las respuestas (STOP, ALTA, AYUDA). Ve el celular y el texto del mensaje.",
           "- Google LLC (EE. UU.): hojas de cálculo y carpetas de las campañas de opinión y de los comentarios de revisión, cuando la barbería las usa.",
           "- Base de datos, correo transaccional y registro de errores: [proveedores por elegir, p. ej. Supabase, Resend y Sentry]; se agregan aquí con 30 días de aviso antes de usarlos.",
         ],
@@ -35,6 +36,7 @@ export const SUBPROCESSORS: LegalDoc = {
           "- Meta Platforms (WhatsApp Business Cloud API, U.S.): sends appointment messages and receives replies. The WhatsApp Business account belongs to each shop.",
           "- Anthropic PBC (U.S.): the model behind Clipper and narratives (“How did it go”, “Why this figure?”). Receives questions and lookup results, without phone numbers or health notes; through the commercial API, without training on that data.",
           "- Clipper's voice provider (U.S.), whichever is configured: ElevenLabs Inc., Microsoft Azure Speech or OpenAI. Receives the text Clipper speaks aloud. Always on a paid plan [to be confirmed which].",
+          "- SMS provider (U.S.) [to be confirmed, e.g. Twilio Inc.]: sends appointment texts and receives replies (STOP, START, HELP). Sees the phone number and message text.",
           "- Google LLC (U.S.): spreadsheets and folders for feedback campaigns and review comments, when the shop uses them.",
           "- Database, transactional email and error logging: [providers to be chosen, e.g. Supabase, Resend and Sentry]; added here with 30 days' notice before use.",
         ]

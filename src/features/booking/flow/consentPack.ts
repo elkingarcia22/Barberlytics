@@ -8,7 +8,8 @@ export function useConsentPack(): ConsentPack {
   const { state, shop } = useBookingFlow();
   const { locale } = useLocale();
   const branch = shop.branches.find((item) => item.id === state.branchId) ?? shop.branches[0];
-  return React.useMemo(() => consentPack(branch?.country, locale === "en" ? "en" : "es", shop.name), [branch?.country, locale, shop.name]);
+  const contact = branch?.phone || shop.phone || null;
+  return React.useMemo(() => consentPack(branch?.country, locale === "en" ? "en" : "es", shop.name, contact), [branch?.country, locale, shop.name, contact]);
 }
 
 /** La sede que decide el texto: la elegida o la primera. */

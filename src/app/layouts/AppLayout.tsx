@@ -1,4 +1,5 @@
 import * as React from "react";
+import { legalHref } from "@/features/legal/documents";
 import { ClipperIcon } from "@/components/ai-interaction";
 import { RailAgentProvider, type RailActionSpec } from "@/components/action-rail";
 import { AiSparkGlyph } from "@/components/ai-interaction";
@@ -279,6 +280,8 @@ export function AppLayout() {
       tagline: "Barbería",
       logo: branding?.logo ? { src: branding.logo, darkSrc: branding.logoDark } : null,
       display: "isologo" as const,
+      termsHref: legalHref("terms"),
+      privacyHref: legalHref("privacy"),
     }),
     [branding]
   );

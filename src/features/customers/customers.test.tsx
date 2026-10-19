@@ -180,6 +180,25 @@ describe("pantallas de clientes", () => {
     await vi.waitFor(() => expect(screen.queryByText("Prefiere la máquina en el 2")).toBeNull());
   });
 
+  test("el permiso de salud se pide con el guion y la copia de datos queda en el registro", async () => {
+    db.reset();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:x", revokeObjectURL: () => undefined }));
+    const client = db.calendar.clients.find((item) => item.id !== "cli_walkin" && item.notes.length === 0 && !db.customers.profiles[item.id]);
+    renderApp(`/clientes/${client?.id}`);
+    const user = userEvent.setup();
+    const privacy = await screen.findByTestId("customer-privacy");
+    expect(within(privacy).getByTestId("customer-health-consent")).toHaveTextContent(/sin permiso/i);
+
+    await user.click(within(privacy).getByTestId("customer-health-grant"));
+    expect(await screen.findByText(/es voluntario/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Sí, lo aceptó hoy" }));
+    await vi.waitFor(() => expect(db.customers.profiles[client?.id ?? ""]?.healthConsent?.accepted).toBe(true));
+
+    await user.click(within(privacy).getByTestId("customer-privacy-export"));
+    expect(await within(privacy).findByText("Copia de sus datos")).toBeInTheDocument();
+    expect(db.customers.privacyRequests?.[0]).toMatchObject({ clientId: client?.id, type: "export", status: "done" });
+  });
+
   test("un cliente que no existe ofrece volver a la lista", async () => {
     renderApp("/clientes/no-existe");
     expect(await screen.findByText("No encontramos a este cliente")).toBeInTheDocument();
@@ -260,5 +279,6 @@ describe("clientes según el rol", () => {
     expect(screen.queryByTestId("customer-medical")).not.toBeInTheDocument();
     expect(screen.queryByText(/•••/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("customer-edit-contact")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("customer-privacy")).not.toBeInTheDocument();
   });
 });

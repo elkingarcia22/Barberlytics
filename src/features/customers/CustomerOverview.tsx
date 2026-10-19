@@ -12,6 +12,7 @@ import { ClientNoteList, NoteKindChips } from "@/features/calendar/clientNotes/C
 import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
 import { CustomerContactLog, CustomerWallet } from "./CustomerRelationship";
 import { CustomerNextVisit } from "./CustomerNextVisit";
+import { CustomerPrivacy } from "./CustomerPrivacy";
 import { APPOINTMENT_STATUS_BADGE, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
 import { APPOINTMENT_STATUS_KEYS, type CustomerAppointment, type CustomerDetail } from "./types";
 
@@ -99,6 +100,8 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
           <CustomerNotes customer={customer} onAddNote={onAddNote} showMedical={showContact} />
 
           <CustomerContactLog customerId={customer.id} />
+
+          <CustomerPrivacy customer={customer} />
         </div>
 
         <div className="space-y-stack">

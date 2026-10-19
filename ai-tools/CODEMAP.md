@@ -39,6 +39,8 @@ De `src/app/router.tsx`.
 - `/reservar/confirmar` → ConfirmAppointmentPage
 - `/kiosco` → KioskPage
 - `/turnos` → TurnBoardPage
+- `/legal` → LegalPage
+- `/legal/:slug` → LegalPage
 - `/ayuda/*` → HelpApp
 - `/docs/*` → DocsApp
 - `*` → NotFoundPage
@@ -107,6 +109,11 @@ Lo que responde MSW hoy.
 - `DELETE /customers/:id/guests/:guestId` · src/mocks/customers/handlers.ts
 - `POST /customers/import` · src/mocks/customers/import.ts
 - `DELETE /customers/import/:batchId` · src/mocks/customers/import.ts
+- `GET /customers/:id/export` · src/mocks/customers/privacy.ts
+- `POST /customers/:id/erase` · src/mocks/customers/privacy.ts
+- `POST /customers/:id/privacy-requests` · src/mocks/customers/privacy.ts
+- `GET /privacy-requests` · src/mocks/customers/privacy.ts
+- `POST /privacy-requests/:id/done` · src/mocks/customers/privacy.ts
 - `GET /customers/:id/relationship` · src/mocks/customers/relationship.ts
 - `POST /customers/:id/messages` · src/mocks/customers/relationship.ts
 - `PATCH /customers/:id/consent` · src/mocks/customers/relationship.ts
@@ -164,6 +171,8 @@ Lo que responde MSW hoy.
 - `POST /inventory/movements` · src/mocks/inventory/handlers.ts
 - `PATCH /inventory/:productId` · src/mocks/inventory/handlers.ts
 - `GET /inventory/:productId/movements` · src/mocks/inventory/handlers.ts
+- `GET /legal/acceptances` · src/mocks/legal/handlers.ts
+- `POST /legal/dpa/accept` · src/mocks/legal/handlers.ts
 - `POST */api/messages/dispatch` · src/mocks/messages/handlers.ts
 - `GET */api/appointments/:id/messages` · src/mocks/messages/handlers.ts
 - `POST */api/appointments/:id/simulate-reply` · src/mocks/messages/handlers.ts
@@ -288,12 +297,17 @@ Router, providers, layout, navegación y páginas de error.
 - **frontDesk.en.ts** — Front desk: the walk-in queue (Calendar), kiosks (Settings) and the kiosk screen. · `frontDeskEn`
 - **frontDesk.es.ts** — Recepción: la fila sin cita (Calendario), los kioscos (Configuración) y la pantalla del kiosco. · `frontDeskEs`
 
+### i18n/legal
+
+- **legal.en.ts** · `legalEn`
+- **legal.es.ts** — Los documentos legales (`/legal`), la aceptación del acuerdo de encargo y los enlaces del registro. · `legalEs`
+
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Los avisos como los pinta la campana: el texto en el idioma de quien lee y, al tocarlo, leído y abierto. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -324,10 +338,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **LoginPage.tsx** — Entrada a la aplicación en dos mitades. · `LoginPage` · piezas: BarberlyticsLogo, Enter, Foil, Grain, HairCanvas, Halo, Heading, Text, Vignette · usa: @/app/i18n, @/i18n, @/lib/utils, @/themes
 - **RecoveryPanel.tsx** — Olvidé mi número: se escribe el correo registrado y el celular llega allí. · `RecoveryPanelProps`, `RecoveryPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, Input, Label, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
-- **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **SignupPanel.tsx** · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/legal, @/icons, @/lib/api
 - **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
-- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/lib/api
+- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/features/legal, @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
 - **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom` · usa: @/lib/api
 - **authFormParts.tsx** — Etiqueta, control y mensaje de error enlazados por `id`. · `FieldControlProps`, `AuthField`, `FormErrorAlert`, `BackButton` · piezas: Alert, AlertDescription, AlertTitle, Button, Label, Text · usa: @/icons
@@ -675,12 +689,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerHistoryTabs.tsx** · `CustomerAppointmentsTab`, `CustomerPaymentsTab`, `CustomerProductsTab`, `CustomerGuestsTab` · piezas: Badge, Button, ConfirmDialog, DrawerShell, EmptyState, Field, IconTile, Input, ListItem, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell · usa: @/app/i18n, @/i18n, @/lib/api
 - **CustomerImportDrawer.tsx** — Traer los clientes de otro software sin pedírselos a soporte: se sube el CSV, se revisa qué columna es cada d… · `CustomerImportDrawerProps`, `CustomerImportDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/lib/api, @/lib/csvParse
 - **CustomerNextVisit.tsx** — Cuándo le toca volver según su frecuencia, y los huecos reales con su barbero (a su hora de siempre) para age… · `CustomerNextVisit` · piezas: Button, Skeleton, Text · usa: @/app/i18n, @/features/team, @/i18n
-- **CustomerNoteDrawer.tsx** — Una nota nueva del cliente: qué tipo es —una alergia no se lee igual que una preferencia— y el texto. · `CustomerNoteDrawerProps`, `CustomerNoteDrawer` · piezas: Button, DrawerShell, Field, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api
+- **CustomerNoteDrawer.tsx** — Una nota nueva del cliente: qué tipo es —una alergia no se lee igual que una preferencia— y el texto. · `CustomerNoteDrawerProps`, `CustomerNoteDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Field, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **CustomerOverview.tsx** — El resumen de un cliente: lo que hay que saber antes de atenderle arriba —alergias y medicamentos—, cuánto va… · `CustomerOverviewProps`, `CustomerOverview` · piezas: Alert, AlertDescription, AlertTitle, Button, MetricCard, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n
+- **CustomerPrivacy.tsx** — Los datos del cliente y sus derechos, en su ficha: el permiso aparte para anotar alergias y medicamentos (dat… · `CustomerPrivacy`, `RequestItem` · piezas: Badge, Button, ConfirmDialog, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea · usa: @/app/i18n, @/features/legal, @/features/team, @/i18n, @/lib/api
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
 - **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/features/team, @/i18n, @/lib/api
 - **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/lib/api
 - **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **PrivacyRequestsDrawer.tsx** — Todas las solicitudes de datos de la barbería, las abiertas primero: qué pidió cada cliente y hasta cuándo ha… · `PrivacyRequestsDrawer` · piezas: DrawerShell, Skeleton, Text, ThemaTabs · usa: @/app/i18n
 - **ReactivationDrawer.tsx** — Reactivar a los que ya se pasaron de su ritmo. · `ReactivationDrawerProps`, `ReactivationDrawer` · piezas: Alert, AlertDescription, Button, Checkbox, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de clientes; ver docs/API_CONTRACT.md. · `customersApi` · llama: GET /customers, GET /customers/${id}, POST /customers, PATCH /customers/${id}, DELETE /customers/${id}, POST /clients/${id}/notes, POST /customers/${id}/guests, DELETE /customers/${id}/guests/${guestId} · usa: @/features/calendar, @/lib/api
 - **customerAccess.ts** — Si quien mira puede ver a ese cliente: todo, o solo los suyos. · `isOwnCustomer`, `canSeeCustomer`, `CustomerPermissions`, `customerPermissions`, `useCustomerPermissions` · usa: @/features/access
@@ -691,8 +707,9 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **importApi.ts** · `ImportReason`, `ImportResult`, `useImportCustomers`, `useUndoImport` · llama: POST /customers/import, DELETE /customers/import/${batchId} · usa: @/lib/api
 - **importColumns.ts** — Qué columna del archivo es cada dato: se adivina por el nombre de la cabecera (en español o inglés, con o sin… · `IMPORT_FIELDS`, `ImportField`, `ColumnMap`, `guessColumns`, `toIsoDate`, `ImportRow`, `rowsFrom`
 - **overdue.ts** · `OverdueFacts`, `isOverdue`
+- **privacy.ts** — Los derechos del cliente sobre sus datos (docs/API_CONTRACT.md, «Clientes › Datos y privacidad»): la copia de… · `PRIVACY_REQUEST_TYPES`, `PRIVACY_CHANNELS`, `PrivacyRequestType`, `PrivacyChannel`, `PRIVACY_TYPE_KEYS`, `PRIVACY_CHANNEL_KEYS`, `privacyRequestSchema`, `PrivacyRequest`, `privacyApi`, `usePrivacyRequests`, `useLogPrivacyRequest`, `useClosePrivacyRequest`, `downloadJson`, `useExportCustomerData`, `useEraseCustomer` · llama: GET /privacy-requests${query ? `?${query}` : ""}, POST /customers/${clientId}/privacy-requests, POST /privacy-requests/${id}/done, GET /customers/${clientId}/export?channel=${channel}, POST /customers/${clientId}/erase · usa: @/lib/api
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
-- **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
+- **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `MarketingConsent`, `HealthConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent`, `useSetHealthConsent` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent · usa: @/features/calendar, @/lib/api
 - **rhythm.ts** — Se le puede escribir: aceptó promociones, no se le escribió hace poco, tiene celular y hay hueco que ofrecer. · `NextVisit`, `ReactivationCandidate`, `skipReasonSchema`, `SkipReason`, `canReactivate`, `useNextVisit`, `useReactivationCandidates`, `useApproveReactivation` · llama: GET /customers/${customerId}/next-visit, GET /customers/reactivation, POST /customers/reactivation · usa: @/lib/api
 - **types.ts** — En qué momento de la relación está un cliente. · `customerSegmentSchema`, `CustomerSegment`, `customerSchema`, `Customer`, `customersResponseSchema`, `CustomersResponse`, `customerAppointmentStatusSchema`, `CustomerAppointmentStatus`, `customerAppointmentSchema`, `CustomerAppointment`, `customerPaymentSchema`, `CustomerPayment`, `customerGuestSchema`, `CustomerGuest`, `customerProductSchema`, `CustomerProduct`, `customerDetailSchema`, `CustomerDetail`, `customerInputSchema`, `CustomerInput`, `EMPTY_CUSTOMER_INPUT`, `GuestInput`, `SEGMENT_KEYS`, `SEGMENT_HINT_KEYS`, `APPOINTMENT_STATUS_KEYS`, `APPOINTMENT_SOURCE_KEYS`, `PAYMENT_METHOD_KEYS`, `splitName`, `inputFromDetail` · usa: @/app/i18n, @/features/calendar
 - **whatsappTemplates.ts** — El texto de partida para cada propósito; «libre» arranca con el saludo. · `PURPOSE_KEYS`, `TemplateContext`, `templateBody` · usa: @/app/i18n
@@ -740,8 +757,21 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### legal
 
-- **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`
-- **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack` · usa: @/features/settings, @/i18n
+- **DpaCard.tsx** — El acuerdo de encargo de datos de la barbería: si se aceptó, quién, cuándo y qué versión; si hay una nueva, s… · `DpaCard` · piezas: Button, IconTile, Text · usa: @/app/i18n, @/features/access, @/i18n, @/lib/api
+- **LegalPage.tsx** · `LegalPage` · piezas: Alert, AlertDescription, Badge, BarberlyticsLogo, Heading, PageShell, Text · usa: @/app/i18n, @/i18n, @/lib/utils
+- **acceptances.ts** · `acceptancesSchema`, `LegalAcceptances`, `useLegalAcceptances`, `useAcceptDpa` · llama: GET /legal/acceptances, POST /legal/dpa/accept · usa: @/lib/api
+- **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`, `HEALTH_CONSENT_VERSION`, `HealthConsentTexts`, `healthConsentTexts`
+- **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack`, `useHealthConsentTexts` · usa: @/features/settings, @/i18n
+
+### legal/documents
+
+- **dataPolicy.ts** · `DATA_POLICY`
+- **dpa.ts** — Acuerdo de encargo de datos (DPA): la barbería es responsable (controller) de los datos de sus clientes y de… · `DPA`
+- **index.ts** — Los documentos en el orden en que se listan. · `LEGAL_DOCS`, `legalDocBySlug`, `legalDoc`, `legalHref`, `legalVersion`
+- **privacy.ts** — Política de privacidad de Barberlytics. · `PRIVACY`
+- **subprocessors.ts** — Los subencargados: los proveedores que tratan datos para dar el servicio. · `SUBPROCESSORS`
+- **terms.ts** — Términos de servicio: lo que acepta la barbería (y quien la administra) al registrarse. · `TERMS`
+- **types.ts** — Los documentos legales de Barberlytics, como datos: cada uno con su versión (la que se guarda cuando alguien… · `LegalDocId`, `LegalLocale`, `LegalSection`, `LegalDoc`, `LEGAL_ENTITY`, `DRAFT_NOTICE`, `both`, `titled`
 
 ### metrics
 
@@ -861,7 +891,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### settings/sections
 
-- **BillingSettings.tsx** — Plan y facturación: qué plan tiene la barbería, a nombre de quién salen las facturas, con qué tarjeta se paga… · `BillingSettings` · piezas: Badge, Button, Field, IconTile, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/features/calendar, @/i18n
+- **BillingSettings.tsx** — Plan y facturación: qué plan tiene la barbería, a nombre de quién salen las facturas, con qué tarjeta se paga… · `BillingSettings` · piezas: Badge, Button, Field, IconTile, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/i18n
 - **BookingFunnelCard.tsx** — Cómo convierte la reserva en línea: de cuántos que abren el enlace, cuántos llegan a cada paso y reservan, dó… · `BookingFunnelCard` · piezas: Badge, Progress, Skeleton, Text · usa: @/app/i18n, @/features/booking, @/i18n
 - **BookingSettings.tsx** — Reservas online, en dos vistas: las **reglas** —con cuánta anticipación se reserva, cuándo se puede cancelar,… · `BookingSettings` · piezas: Button, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/frontDesk
 - **BranchesSettings.tsx** — Sucursales: los locales del negocio. · `BranchesSettings` · piezas: Field, IconTile, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Textarea · usa: @/app/i18n, @/i18n
@@ -1056,7 +1086,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **browser.ts** — Service worker para el navegador; se arranca desde `main.tsx` cuando `env.useMocks`. · `worker`
 - **catalogPrices.ts** — El precio de un servicio en una sucursal: el suyo de esa sucursal o el general. · `servicePriceIn`, `productPriceIn`, `barberServicePrice`, `withBranchPrice`
 - **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockDb`, `createDb`, `db`
-- **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers`
+- **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers` · usa: @/features/legal
 - **media.ts** — El retrato de cada persona del equipo. · `TEAM_PHOTOS`, `galleryFor`, `REFERENCE_PHOTO_NOTE`, `referencePhotosFor`, `SERVICE_PHOTOS`, `PRODUCT_PHOTOS`, `clientPhoto`, `userPhoto`, `ACCOUNT_PHOTOS`, `imageOrNull`
 - **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
 - **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
@@ -1078,9 +1108,10 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `isOwnClient`, `saveProfile`, `findByPhone`, `customersHandlers`
 - **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
-- **relationship.ts** · `relationshipOf`, `relationshipHandlers`
+- **privacy.ts** — El plazo para responder según el país de la sede del cliente: Colombia 10 días hábiles para consultas (ver, e… · `dueDateOf`, `logPrivacyRequest`, `exportOf`, `eraseClient`, `privacyHandlers` · usa: @/features/legal
+- **relationship.ts** · `relationshipOf`, `relationshipHandlers` · usa: @/features/legal
 - **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers
-- **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf`
+- **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `MockPrivacyRequest`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf` · usa: @/features/legal
 
 ### expenses
 
@@ -1098,6 +1129,10 @@ MSW: implementa docs/API_CONTRACT.md.
 - **handlers.ts** · `inventoryHandlers`
 - **state.ts** — El estado del inventario ligero; la lógica está en `stock.ts`. · `MockStockReason`, `MockStockMovement`, `MockInventoryState`, `emptyInventory`
 - **stock.ts** — Lo que hay: lo guardado o, la primera vez, una cifra fija por sucursal y producto (alguno bajo o agotado, par… · `stockLevel`, `stockStatus`, `setMin`, `moveStock`, `syncAppointmentStock`, `releaseAppointmentStock`, `soldByProduct`
+
+### legal
+
+- **handlers.ts** · `MockLegalAcceptance`, `legalHandlers` · usa: @/features/legal
 
 ### messages
 

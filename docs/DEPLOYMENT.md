@@ -105,3 +105,4 @@ hace falta Pro (o un cron externo que llame a la ruta con el `CRON_SECRET`).
 - [ ] `SESSION_SECRET` definido (sin él, voz, Clipper, narración y WhatsApp responden 503) y `SESSION_DEMO_LOGIN=off` si ya hay backend real.
 - [ ] WhatsApp: Upstash y `CRON_SECRET` definidos, plan con crons cada 5 minutos.
 - [ ] Pasarela real conectada en `tokenizeCard` y su script en la CSP; el número de tarjeta nunca llega al servidor.
+- [ ] Documentos de `/legal` revisados por un abogado de cada país, sin «[por completar]» (razón social, dirección, correos de privacidad y seguridad, ley aplicable, proveedores por elegir); al cambiar uno, subir su versión.

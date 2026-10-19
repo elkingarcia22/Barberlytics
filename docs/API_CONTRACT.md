@@ -254,8 +254,8 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | POST | `/appointments` | `{ clientId, barberId, serviceIds, start, walkIn, repeat, requestedBarberId?, notes? }`. `201 appointment`. Con `repeat` distinto de `none` crea una serie de 12 con el mismo `seriesId` y devuelve la primera. `422`. `409 conflict` si el tramo pisa otra cita viva o un bloqueo del barbero (el mensaje dice con quién), o si pide un recurso especial (`/service-resources`) que a esa hora ya está completo, salvo con `force: true`, que usan los roles que agendan sin reglas (dueño, administrador, recepción, barbero de renta). |
 | PATCH | `/appointments/:id` | Cualquiera de `{ status, barberReady, start, barberId, clientId, durationMin (15–480), serviceIds, notes, referencePhotos, reason?, actor? }`. `clientId` cambia de cliente mientras la cita no esté cerrada (cobrada, cancelada o sin presentarse: `422`): quita la confirmación, anula los avisos del anterior y se los programa al nuevo. `referencePhotos` reemplaza las fotos del corte (hasta 3 data URL de imagen, las mismas reglas que en la reserva en línea; `422` si alguna no sirve). Cada cambio deja una línea en `history`; `reason` («Movida 15 min porque la cita anterior se alargó») se guarda tal cual como `reason:…` y `actor: "assistant"` firma la línea como «Asistente» en vez de la persona de la sesión; `actor: "clipper"`, como «Clipper · persona de la sesión» (el cambio lo propuso Clipper y lo aprobó ella). `409 conflict` si al cambiar `start`, `barberId` o `durationMin` el tramo pisa otra cita viva, un bloqueo o un recurso especial completo, o si una cita cancelada o sin presentarse vuelve a `scheduled` sobre un hueco ya ocupado, salvo con `force: true`. `status: "paid"` no se acepta aquí (`422`): una cita queda cobrada solo con `POST /appointments/:id/checkout`, que guarda el pago. `422` · `404`. |
 | POST | `/appointments/:id/checkout` | `{ serviceIds, products, tip, method: "cash" \| "card" \| "link" \| "mixed", surcharge?, split?, servicePrices?, productPrices? }`. `servicePrices` (en el orden de `serviceIds`, `null` = el de lista) y `productPrices` (`{ productId: precio unitario }`) cambian el precio en la caja y quedan en la cita; el barbero de comisión no puede (`403`). Además: `discount: { type: "percent" | "amount", value, reason? }` (sobre la cuenta antes de impuestos; queda como `checkoutDiscount`), `giftCode` + `giftAmount` (paga con una tarjeta de regalo: se descuenta su saldo), `giftSale: { amount, recipientName, recipientContact? }` (vende una tarjeta de regalo en el mismo cobro), `deviceId` (el datáfono) y `parts: [{ method: "cash" | "card" | "link", amount, deviceId? }]` (pago dividido, al menos dos partes que sumen lo que se cobra; con métodos distintos, `method: "mixed"`). Todo queda en `payment` (`discount`, `discountReason`, `gift`, `giftSale`, `parts`, `deviceId`). `422` si algo no cuadra. Con `mixed`, `split: { cash, card }` tiene que sumar lo que se cobra ahora (saldo + propina + recargo): si no, `422`; el recargo va solo sobre la parte de tarjeta. `surcharge` (el recargo por tarjeta de Configuración) solo cuenta con `card` y se suma al total. Cierra la cita como `paid` con su `payment`: `tax` es el de la sucursal y, si la cita vino de la reserva en línea, `payment.prepaid` es lo que ya estaba pagado (su `online.paid` + `online.tip`): en caja se cobra solo el resto. `409` si ya estaba cobrada o anulada. |
-| POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. |
-| PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404`. |
+| POST | `/clients/:id/notes` | `{ kind, text }`. `201 client` con la nota al frente. `kind: "allergy" \| "medication"` es dato de salud: `409 health_consent_required` si el cliente no dio el permiso aparte (`PATCH /customers/:id/consent { health }`). |
+| PATCH | `/clients/:id/notes/:noteId` | Cualquiera de `{ kind, text }`; conserva `createdAt`. `200 client`. `422` · `404` · `409 health_consent_required` (igual que al crear). |
 | DELETE | `/clients/:id/notes/:noteId` | `200 client` sin la nota. `404`. |
 | POST | `/blocks` | El bloqueo de arriba, sin `id`. `201 block`. `422` si la hora de cierre no es posterior a la de inicio. |
 | DELETE | `/blocks/:id` | `204`. |
@@ -337,10 +337,26 @@ La relación que la reserva ya conoce va aparte, para no cargar la ficha:
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/customers/:id/relationship` | `{ membership: { every, progress, available, reward, rewardValue } \| null, packages: [{ id, name, service, remaining, total, expiresAt }], credit, giftCards: [{ code, recipientName, initial, balance, createdAt }] (las que compró), cards: [{ id, brand, last4, expMonth, expYear }], reviews: [{ id, rating, comment, barber, createdAt }], waitlist: [{ id, branchId, service, barber, slots, createdAt }] (solo huecos por venir), messages: [{ id, appointmentId, kind, channel, status: "sent" \| "failed", at, simulated, error }] (los 12 últimos), consent: { marketing: { accepted, at, source: "booking" \| "app" } \| null } }`. `404`. |
-| PATCH | `/customers/:id/consent` | `{ marketing: boolean }`. Guarda el permiso de promociones con la fecha y `source: "app"` (recepción) y devuelve la relación. Retirarlo siempre se puede; darlo, solo si el cliente lo dijo (Ley 1581: previo, expreso, informado y demostrable). Los mensajes de sus citas no dependen de este permiso. El permiso guarda también `version` y `country`: con qué texto se aceptó (el del país de la sede del cliente). `422` sin `marketing` · `404`. |
+| GET | `/customers/:id/relationship` | `{ membership: { every, progress, available, reward, rewardValue } \| null, packages: [{ id, name, service, remaining, total, expiresAt }], credit, giftCards: [{ code, recipientName, initial, balance, createdAt }] (las que compró), cards: [{ id, brand, last4, expMonth, expYear }], reviews: [{ id, rating, comment, barber, createdAt }], waitlist: [{ id, branchId, service, barber, slots, createdAt }] (solo huecos por venir), messages: [{ id, appointmentId, kind, channel, status: "sent" \| "failed", at, simulated, error }] (los 12 últimos), consent: { marketing: { accepted, at, source: "booking" \| "app" } \| null, health: { accepted, at, source, version, by } \| null } }`. `404`. |
+| PATCH | `/customers/:id/consent` | `{ marketing?: boolean, health?: boolean }` (al menos uno). Guarda el permiso de promociones con la fecha y `source: "app"` (recepción) y devuelve la relación. Retirarlo siempre se puede; darlo, solo si el cliente lo dijo (Ley 1581: previo, expreso, informado y demostrable). Los mensajes de sus citas no dependen de este permiso. El permiso guarda también `version` y `country`: con qué texto se aceptó (el del país de la sede del cliente). **`health`** es el permiso aparte para anotar alergias y medicamentos (dato sensible; Ley 1581 art. 6, facultativo): lo anota recepción o gerencia (`403` al barbero) con `version: "health-…"` y quién lo anotó; retirarlo **borra** las notas `allergy` y `medication`. Retirar cualquiera de los dos queda en el registro de solicitudes (`type: "revoke"`, resuelta). `422` sin ninguno · `404`. |
 
 Las notas se crean, corrigen y borran con `/clients/:id/notes` (sección Calendario): son las mismas que se ven al abrir una cita.
+
+### Datos y privacidad
+
+Los derechos del cliente sobre sus datos (`src/mocks/customers/privacy.ts`). Cada solicitud queda en un registro con su
+plazo según el país de la sede: **Colombia** 10 días hábiles para consultas (`access`, `export`) y 15 para reclamos
+(`rectify`, `erase`, `revoke`); **México** 20 hábiles; **EE. UU.** y el resto, 45 días. Los festivos aún no se descuentan.
+
+`privacyRequest`: `{ id, clientId, clientName, type: "access" | "export" | "rectify" | "erase" | "revoke" | "other", channel: "app" | "phone" | "email" | "in_person" | "whatsapp", status: "open" | "done", note, requestedAt, dueAt, doneAt | null, by, overdue }`.
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/customers/:id/export?channel` | Dueño o administrador. Todo lo del cliente en JSON: datos, permisos, notas, invitados, citas (servicios, barbero, cobro), mensajes, respuestas, reseñas, tarjetas (marca y últimos 4) y saldo, y sus solicitudes. Anota una solicitud `export` resuelta. `403` · `404` (también si ya se borró). |
+| POST | `/customers/:id/erase` | Dueño o administrador, con `X-Step-Up`. `{ channel?, note? }`. **Anonimiza**: nombre «Cliente borrado», sin celular, correo, dirección, cumpleaños, invitados, notas, permisos ni tarjetas; borra el texto y el destino de sus mensajes, sus respuestas, el nombre de sus reseñas, notas y fotos de sus citas y su lugar en la cola. Las citas y los cobros quedan (contabilidad) sin datos personales. Anota la solicitud `erase` antes de borrar (con el nombre que tenía). `200 { erasedAt }` · `403 step_up_required` · `404`. |
+| POST | `/customers/:id/privacy-requests` | Recepción o gerencia. `{ type, channel, note? }`: lo que pidió por teléfono, correo o en el local; queda abierta con `dueAt`. `201` · `422` sin `type` o `channel`. |
+| GET | `/privacy-requests?clientId&status` | Recepción o gerencia. `{ items, open }` (las más nuevas primero; `overdue` si sigue abierta y venció). `403` al barbero. |
+| POST | `/privacy-requests/:id/done` | Dueño o administrador. `{ note? }` (se suma a la nota). `200 privacyRequest` · `404`. |
 
 ## Servicios (`/services`)
 
@@ -519,6 +535,22 @@ fila cambia o alguien la mira (recepción, kiosco, pantalla de turnos). «Ya no 
 barberos que atienden sin cita hoy (fila de Equipo, sin ausencias), cada uno cuando se libera (lo que le queda a quien
 está en la silla y sus citas de hoy), con la duración de catálogo del servicio. Quien pidió un barbero espera a ese.
 Se da como rango de 10 minutos; `null` si hoy ya no alcanza.
+
+## Legal (`/legal`)
+
+Los documentos (`src/features/legal/documents/`) son datos versionados y públicos en `/legal/<slug>`: términos
+(`terminos`, `terms-2026-10`), privacidad (`privacidad`, `privacy-2026-10`), tratamiento de datos de Colombia
+(`tratamiento-datos`, `data-policy-co-2026-10`), acuerdo de encargo (`encargo`, `dpa-2026-10`) y subencargados
+(`subencargados`). Son borradores de producto: un abogado de cada país los aprueba antes de publicarse.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/signup` | Además de `acceptTerms: true`, `termsVersion`, `privacyVersion` y `dpaVersion` iguales a las vigentes; si no, `422` en `fields.acceptTerms` («los términos cambiaron»). El backend real guarda las tres versiones con la fecha. |
+| GET | `/legal/acceptances` | Dueño o administrador. `{ current: { terms, privacy, dpa }, dpa: { version, at, by } \| null, terms: … \| null }`. |
+| POST | `/legal/dpa/accept` | Dueño o administrador. `{ version }` igual a la vigente (si no, `422 outdated_version`) → la misma vista con la aceptación guardada (versión, fecha y quién). |
+
+El aviso de privacidad de la reserva (`consentPack`, versiones `…-2026-10b`) cierra con el contacto de la sede (su
+teléfono), que los datos se guardan en servidores de proveedores en EE. UU. y el enlace a `/legal/privacidad`.
 
 ## Sesión firmada de las funciones de servidor
 

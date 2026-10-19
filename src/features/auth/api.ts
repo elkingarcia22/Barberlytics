@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { legalVersion } from "@/features/legal/documents";
 import {
   authUserSchema,
   backupEmailSchema,
@@ -41,7 +42,8 @@ export const authApi = {
     verify: (body: BackupEmailVerify) => api.post<BackupEmail>("/auth/backup-email/verify", body, { schema: backupEmailSchema }),
     remove: () => api.delete<void>("/auth/backup-email"),
   },
-  signup: (body: SignupRequest) => api.post<void>("/auth/signup", body),
+  /** Con la versión de cada documento que se aceptó: términos, privacidad y acuerdo de encargo. */
+  signup: (body: SignupRequest) => api.post<void>("/auth/signup", { ...body, termsVersion: legalVersion("terms"), privacyVersion: legalVersion("privacy"), dpaVersion: legalVersion("dpa") }),
   /** Manda el código al celular del registro, para verificarlo antes de crear la cuenta. */
   signupCode: (phone: string) => api.post<void>("/auth/signup/code", { phone }),
   /** Sin sesión: se abre desde el login (no llegó el correo, acceso bloqueado). */

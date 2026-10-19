@@ -1,4 +1,5 @@
 import { PRODUCTS, SERVICES, type MockClient } from "../calendar/seed";
+import { HEALTH_CONSENT_VERSION } from "@/features/legal/consent";
 import { PRODUCT_PHOTOS } from "../media";
 
 /**
@@ -37,6 +38,10 @@ export interface MockCustomerProfile {
    */
   /** El permiso de promociones, con el texto que se aceptó (versión y país): es la prueba. */
   marketingConsent?: { accepted: boolean; at: string; source: "booking" | "app" | "whatsapp"; version?: string; country?: string };
+  /** El permiso aparte para anotar alergias y medicamentos: sin él no se guardan. */
+  healthConsent?: { accepted: boolean; at: string; source: "booking" | "app"; version: string; by?: string };
+  /** Se borraron sus datos personales por solicitud (el historial contable queda, anónimo). */
+  erasedAt?: string;
   /** Borrado del directorio; la agenda conserva sus citas. */
   deleted?: boolean;
   /** La tanda de importación que lo trajo (para poder deshacerla). */
@@ -44,8 +49,26 @@ export interface MockCustomerProfile {
 }
 
 /** Solo lo que cambió o se creó; el resto se deriva al vuelo. */
+/** Una solicitud de un titular sobre sus datos: lo que pidió, por dónde, el plazo y cómo se resolvió. */
+export interface MockPrivacyRequest {
+  id: string;
+  clientId: string;
+  /** El nombre al momento de pedirlo (si luego se borra, el registro dice de quién era). */
+  clientName: string;
+  type: "access" | "export" | "rectify" | "erase" | "revoke" | "other";
+  channel: "app" | "phone" | "email" | "in_person" | "whatsapp";
+  status: "open" | "done";
+  note: string;
+  requestedAt: string;
+  /** Hasta cuándo hay que responder según el país de la sede. */
+  dueAt: string;
+  doneAt: string | null;
+  by: string;
+}
+
 export interface MockCustomersState {
   profiles: Record<string, MockCustomerProfile>;
+  privacyRequests?: MockPrivacyRequest[];
 }
 
 export const emptyCustomers = (): MockCustomersState => ({ profiles: {} });
@@ -108,6 +131,8 @@ export function deriveProfile(client: MockClient, now = new Date()): MockCustome
     blocked: h % 23 === 7,
     createdAt: new Date(now.getTime() - (60 + (hashOf(client.id, 2) % 700)) * DAY_MS).toISOString(),
     guests,
+    // En la demo, quien ya trae alergias o medicamentos anotados dio el permiso al anotarlos.
+    ...(client.notes.some((note) => note.kind !== "note") ? { healthConsent: { accepted: true, at: new Date(now.getTime() - (30 + (hashOf(client.id, 4) % 300)) * DAY_MS).toISOString(), source: "app" as const, version: HEALTH_CONSENT_VERSION } } : {}),
   };
 }
 

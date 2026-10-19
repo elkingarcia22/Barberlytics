@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { legalVersion } from "@/features/legal/documents";
 import { Route, Routes } from "react-router";
 import { renderWithProviders, screen, waitFor, userEvent, within } from "@/test/render";
 import { db } from "@/mocks/db";
@@ -312,8 +313,12 @@ describe("crear cuenta", () => {
 
   test("el servidor solo crea la cuenta con los términos aceptados y el celular verificado", async () => {
     const post = (path: string, body: unknown) => fetch(`http://localhost/api${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    const form = { firstName: "Ana", lastName: "Ríos", company: "Barbería Ana", email: "ana@barberiaana.co", phone: "+573117778899", barbers: 3, country: "CO", timezone: "America/Bogota" };
+    // Se acepta la versión vigente de cada documento legal; una vieja no vale.
+    const versions = { termsVersion: legalVersion("terms"), privacyVersion: legalVersion("privacy"), dpaVersion: legalVersion("dpa") };
+    const form = { firstName: "Ana", lastName: "Ríos", company: "Barbería Ana", email: "ana@barberiaana.co", phone: "+573117778899", barbers: 3, country: "CO", timezone: "America/Bogota", ...versions };
     expect((await post("/auth/signup", { ...form, code: OTP_CODE })).status).toBe(422);
+    const outdated = await post("/auth/signup", { ...form, termsVersion: "terms-2020-01", acceptTerms: true, code: OTP_CODE });
+    expect(((await outdated.json()) as { fields?: Record<string, unknown> }).fields).toHaveProperty("acceptTerms");
     expect((await post("/auth/signup/code", { phone: form.phone })).status).toBe(204);
     const withoutCode = await post("/auth/signup", { ...form, acceptTerms: true });
     expect(((await withoutCode.json()) as { fields?: Record<string, unknown> }).fields).toHaveProperty("code");

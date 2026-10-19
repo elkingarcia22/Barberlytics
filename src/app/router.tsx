@@ -18,6 +18,7 @@ import {
   ConfirmAppointmentPage,
   KioskPage,
   TurnBoardPage,
+  LegalPage,
   CustomerProfilePage,
   CustomersPage,
   ExpensesPage,
@@ -136,6 +137,9 @@ export const router = createBrowserRouter([
   { path: "/kiosco", element: lazy(<KioskPage />), errorElement: <RouteError /> },
   // La pantalla de turnos del televisor de la sala: con el token de un kiosco de la sede.
   { path: "/turnos", element: lazy(<TurnBoardPage />), errorElement: <RouteError /> },
+  // Términos, privacidad, tratamiento de datos, acuerdo de encargo y subencargados: públicos.
+  { path: "/legal", element: lazy(<LegalPage />), errorElement: <RouteError /> },
+  { path: "/legal/:slug", element: lazy(<LegalPage />), errorElement: <RouteError /> },
   // El centro de ayuda es público: hace falta antes de entrar (el login tiene
   // sus propios artículos) y trae su propio shell, como la doc.
   { path: "/ayuda/*", element: lazy(<HelpApp />), errorElement: <RouteError /> },

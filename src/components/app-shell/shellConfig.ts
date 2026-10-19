@@ -51,6 +51,9 @@ export interface ShellBrand {
    * doc. Con un logo de empresa siempre es `isologo`. Por defecto `wordmark`.
    */
   display?: "isologo" | "wordmark";
+  /** Adónde llevan «Términos» y «Política de privacidad» del pie. Sin ellos son texto sin enlace. */
+  termsHref?: string;
+  privacyHref?: string;
 }
 
 /**

@@ -28,6 +28,7 @@ import {
   type MockBarber,
   type MockBlockCategory,
   type MockBlockRepeat,
+  type MockClient,
   type MockClientNote,
   type MockHistoryEntry,
   type MockPaymentMethod,
@@ -192,6 +193,10 @@ export const blocksOn = (branchId: string, day: string): MockTimeBlock[] =>
   db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day));
 
 const findAppointment = (id: string | readonly string[] | undefined) => db.calendar.appointments.find((item) => item.id === id);
+
+/** El permiso aparte para anotar alergias y medicamentos (ver features/legal/consent.ts). */
+const hasHealthConsent = (client: MockClient): boolean => (db.customers.profiles[client.id] ?? deriveProfile(client)).healthConsent?.accepted === true;
+const healthConsentRequired = () => error(409, "health_consent_required", "Para anotar alergias o medicamentos, primero pide al cliente su permiso (en su ficha).");
 
 function entry(actor: string, event: string): MockHistoryEntry {
   return { id: `h_${Math.random().toString(36).slice(2, 9)}`, at: new Date().toISOString(), actor, event };
@@ -708,6 +713,7 @@ export const calendarHandlers = [
     return replaceAppointment({ ...released, status: "seated", payment: null, checkoutDiscount: undefined, servicePrices: undefined, productPrices: undefined, stockTaken: [], history: [...existing.history, entry(account.user.name, `voided:${reason}`)] });
   }),
 
+  // Alergias y medicamentos son datos sensibles: sin el permiso aparte del cliente no se guardan (409).
   http.post(`${BASE}/clients/:id/notes`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
@@ -721,6 +727,7 @@ export const calendarHandlers = [
     if (!["note", "medication", "allergy"].includes(kind)) fields.kind = ["Elige el tipo de nota."];
     if (body.length < 3) fields.text = ["Escribe la nota."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    if (kind !== "note" && !hasHealthConsent(client)) return healthConsentRequired();
     const note: MockClientNote = { id: `note_${Date.now().toString(36)}`, kind, text: body, createdAt: new Date().toISOString() };
     const updated = { ...client, notes: [note, ...client.notes] };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
@@ -743,6 +750,7 @@ export const calendarHandlers = [
     if (!["note", "medication", "allergy"].includes(kind)) fields.kind = ["Elige el tipo de nota."];
     if (body.length < 3) fields.text = ["Escribe la nota."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    if (kind !== "note" && !hasHealthConsent(client)) return healthConsentRequired();
     const updated = { ...client, notes: client.notes.map((note) => (note.id === current.id ? { ...note, kind, text: body } : note)) };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
     db.persist();

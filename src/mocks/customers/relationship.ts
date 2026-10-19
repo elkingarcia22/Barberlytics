@@ -5,6 +5,9 @@ import { activePackages } from "../booking/packages";
 import { cardsOf, loyaltyOf, serviceName } from "../booking/logic";
 import { barberName, profileOf, saveProfile } from "./handlers";
 import { consentProof } from "../settings/branchRules";
+import { isBarber, sessionOf } from "../session";
+import { HEALTH_CONSENT_VERSION } from "@/features/legal/consent";
+import { logPrivacyRequest } from "./privacy";
 
 /**
  * La relación con el cliente que la reserva ya conoce y la ficha no enseñaba (docs/API_CONTRACT.md,
@@ -106,7 +109,7 @@ export function relationshipOf(client: MockClient, now = new Date()) {
         body: message.body ?? null,
         by: message.by ?? null,
       })),
-    consent: { marketing: profile.marketingConsent ?? null },
+    consent: { marketing: profile.marketingConsent ?? null, health: profile.healthConsent ?? null },
   };
 }
 
@@ -152,8 +155,9 @@ export const relationshipHandlers = [
     if (!client) return error(404, "not_found", "Ese cliente no existe.");
     const input = (await request.json().catch(() => null)) as {
       marketing?: unknown;
+      health?: unknown;
     } | null;
-    if (typeof input?.marketing !== "boolean")
+    if (typeof input?.marketing !== "boolean" && typeof input?.health !== "boolean")
       return HttpResponse.json(
         {
           code: "validation",
@@ -162,15 +166,32 @@ export const relationshipHandlers = [
         },
         { status: 422 }
       );
-    saveProfile(client.id, {
-      ...profileOf(client),
-      marketingConsent: {
-        accepted: input.marketing,
-        at: new Date().toISOString(),
-        source: "app",
-        ...consentProof(profileOf(client).branchId),
-      },
-    });
-    return HttpResponse.json(relationshipOf(client));
+    const session = sessionOf(request);
+    const now = new Date().toISOString();
+    if (typeof input.marketing === "boolean") {
+      saveProfile(client.id, {
+        ...profileOf(client),
+        marketingConsent: {
+          accepted: input.marketing,
+          at: now,
+          source: "app",
+          ...consentProof(profileOf(client).branchId),
+        },
+      });
+      if (!input.marketing) logPrivacyRequest(client, "revoke", "app", "Retiró el permiso de promociones.", session?.account.user.name ?? "", true);
+    }
+    if (typeof input.health === "boolean") {
+      // El de salud lo anota quien recibe al cliente (recepción o gerencia), no el barbero de turno.
+      if (session && isBarber(session)) return error(403, "forbidden", "El permiso de salud lo anota recepción o gerencia.");
+      saveProfile(client.id, { ...profileOf(client), healthConsent: { accepted: input.health, at: now, source: "app", version: HEALTH_CONSENT_VERSION, by: session?.account.user.name } });
+      if (!input.health) {
+        // Retirarlo borra lo anotado: alergias y medicamentos no se guardan sin permiso.
+        const updated = { ...client, notes: client.notes.filter((note) => note.kind === "note") };
+        db.calendar.clients = db.calendar.clients.map((item) => (item.id === client.id ? updated : item));
+        logPrivacyRequest(client, "revoke", "app", "Retiró el permiso de salud: se borraron sus alergias y medicamentos.", session?.account.user.name ?? "", true);
+      }
+      db.persist();
+    }
+    return HttpResponse.json(relationshipOf(db.calendar.clients.find((item) => item.id === client.id) ?? client));
   }),
 ];

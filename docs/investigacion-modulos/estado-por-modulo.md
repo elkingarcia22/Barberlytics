@@ -67,7 +67,7 @@ priorizada → cita hecha; Clipper en WhatsApp; repartir la tarde de quien se va
 ## 03 Clientes
 
 **Pendiente**
-- P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple; permiso aparte para salud (solo texto).
+- P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple. (Permiso aparte para salud: hecho, ver abajo.)
 - P1 · Fotos y fórmula del corte; etiquetas y grupos; automatizaciones (cumpleaños, gracias, reseña); historial con
   entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
 - P2 · Origen y referidos, motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
@@ -216,7 +216,7 @@ respuestas; retorno por canal con UTM.
 
 **Pendiente**
 - P0 · Backend real con `tenant_id` y RLS; cookie `httpOnly`; pasarela real; horarios legales y STOP/HELP; permiso de
-  salud; paquete legal y DPA; borrar y exportar cliente; voz con plan pago; Sentry, copias, PITR; aviso de privacidad CO.
+  ~~salud~~; ~~paquete legal y DPA~~ (borradores); ~~borrar y exportar cliente~~; voz con plan pago; Sentry, copias, PITR; aviso de privacidad CO.
 - P1 · Límites compartidos; archivos privados; auditoría; DIAN; 10DLC; entornos; cuenta bancaria enmascarada; insignias
   «IA» sobre reglas; Clipper se presenta como IA; accesibilidad con axe; retención.
 
@@ -266,4 +266,18 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Las reseñas de ejemplo existen solo en la demo (`VITE_SAMPLE_DATA`), van marcadas y nunca se mezclan con las reales: la primera real las reemplaza. Sin reseñas no se muestra calificación.
   - Falta: campañas administrables, el origen del cliente (no solo de la cita) y referidos.
 - **Fila viva, segunda parte (16 fase 2).** «Ya casi te toca» por mensaje, una vez, con «Voy» / «Ya no voy» (que lo saca de la fila), y la pantalla de turnos `/turnos` para el televisor (solo nombre de pila, turno y espera), con el token de un kiosco de la sede.
+- **Contratos y políticas (17 P0, borradores).**
+  - Términos, privacidad, tratamiento de datos de Colombia, acuerdo de encargo (DPA) y subencargados, versionados y públicos en `/legal`.
+  - El registro los enlaza y manda la versión aceptada.
+  - La barbería acepta el acuerdo en Configuración › Plan y facturación (versión, fecha y quién).
+  - El pie de la app enlaza términos y privacidad.
+  - El aviso de la reserva dice el contacto de la sede, que los datos están en EE. UU. y enlaza la política.
+  - Falta:
+    - la revisión del abogado y completar lo que va entre corchetes;
+    - horarios legales de envío y STOP en SMS.
+- **Datos de salud y derechos del cliente (17 P0).**
+  - Permiso aparte para alergias y medicamentos (versión `health-…`, quién lo anotó): sin él el servidor rechaza esas notas (`409 health_consent_required`) y el formulario lo avisa; retirarlo las borra. Lo anota recepción o gerencia, no el barbero.
+  - Ficha › «Datos y privacidad»: exportar todo lo del cliente en JSON, borrarlo (anonimiza, con confirmación de identidad; citas y cobros quedan sin datos personales) y anotar lo que pidió por teléfono, correo o en el local.
+  - Registro de solicitudes con plazo por país (CO 10/15 días hábiles, MX 20, EE. UU. 45) y «Vencida»; cajón global en Clientes › «Solicitudes de datos».
+  - Falta: festivos en el plazo, el permiso de salud desde la reserva, avisar al cliente al responder y borrar también de las copias de seguridad (backend real).
 

@@ -30,6 +30,8 @@ export interface CalendarAccess {
   canRestrictClients: boolean;
   /** Cambiar el precio de un servicio o producto al cobrar. El barbero de comisión cobra a precio de lista. */
   canEditPrices: boolean;
+  /** Borrar una venta hecha por error (la cita vuelve a «en silla» sin pago): dueño y administrador. */
+  canVoidSales: boolean;
 }
 
 /** Fuera del layout (la doc, las pruebas de piezas sueltas) el calendario se ve entero, como el dueño. */
@@ -44,6 +46,7 @@ export const FULL_CALENDAR_ACCESS: CalendarAccess = {
   locksAfterCheckIn: false,
   canRestrictClients: true,
   canEditPrices: true,
+  canVoidSales: true,
 };
 
 /**
@@ -67,6 +70,7 @@ export function calendarAccess(access: Access): CalendarAccess {
     locksAfterCheckIn: access.role === "barbero-comision",
     canRestrictClients: access.role !== "barbero-comision",
     canEditPrices: access.role !== "barbero-comision",
+    canVoidSales: access.role === "owner" || access.role === "admin",
   };
 }
 

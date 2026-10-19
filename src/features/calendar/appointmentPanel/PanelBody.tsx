@@ -11,6 +11,7 @@ import { AppointmentFields } from "./AppointmentFields";
 import { ClientPageContent } from "./ClientPage";
 import { ClientField } from "./ClientField";
 import { HistoryTimeline } from "./HistoryTimeline";
+import { RefundPage } from "./RefundPage";
 import { AfterVisit } from "./AfterVisit";
 import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
 import { CareAlerts } from "./CareAlerts";
@@ -44,7 +45,7 @@ export interface PanelBodyProps extends AppointmentLinkProps {
   pages: PanelPages<PanelPage>;
 }
 
-export type PanelPage = "client" | "history";
+export type PanelPage = "client" | "history" | "refund";
 
 /** Las páginas a las que se navega dentro del panel: el cliente y el historial. */
 function Subpage({ page, back, props }: { page: PanelPage; back: () => void; props: PanelBodyProps }) {
@@ -54,6 +55,13 @@ function Subpage({ page, back, props }: { page: PanelPage; back: () => void; pro
     return (
       <PanelSubpage title={model.clientName} onBack={back}>
         <ClientPageContent model={model} ctx={ctx} onOpenClient={onOpenClient} />
+      </PanelSubpage>
+    );
+  }
+  if (page === "refund") {
+    return (
+      <PanelSubpage title={t("calendar.refund.title")} onBack={back}>
+        <RefundPage model={model} ctx={ctx} onDone={back} />
       </PanelSubpage>
     );
   }
@@ -102,7 +110,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   const fieldsRef = React.useRef<HTMLDivElement>(null);
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
-  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => pages.open("client")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenRefund={() => pages.open("refund")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const { appointment } = model;
   const stage = model.playbook.stage;
   // Al «⋯» va lo que no está ya en los atajos (cancelar, no asistió… cuando ya está en la barbería).

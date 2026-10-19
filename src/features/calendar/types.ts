@@ -123,7 +123,10 @@ export const onlineSettlementSchema = z.object({ reservation: z.string(), method
 export type OnlineSettlement = z.infer<typeof onlineSettlementSchema>;
 
 /** Una devolución de la cuenta: desde la caja (efectivo o tarjeta) o al cancelar la reserva (tarjeta o saldo). */
-export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string() });
+/** Lo devuelto de una línea de la cuenta: un servicio, un producto (vuelve al inventario) o la propina. */
+export const refundItemSchema = z.object({ kind: z.enum(["service", "product", "tip"]), id: z.string(), qty: z.number(), amount: z.number() });
+export type RefundItem = z.infer<typeof refundItemSchema>;
+export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string(), items: z.array(refundItemSchema).optional() });
 export type Refund = z.infer<typeof refundSchema>;
 
 export const productLineSchema = z.object({ productId: z.string(), qty: z.number() });

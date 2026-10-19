@@ -612,9 +612,45 @@ export const calendarHandlers = [
     else if (amount > refundable) fields.amount = [`Se puede devolver hasta ${refundable}.`];
     if (reason.length < 3) fields.reason = ["Di por qué se devuelve."];
     if (to !== "cash" && to !== "card") fields.to = ["Elige a dónde vuelve el dinero."];
+    // Las líneas que se devuelven: un producto no puede volver más veces de las que se vendió.
+    const items = (Array.isArray(input.items) ? input.items : [])
+      .map((item) => asRecord(item as DefaultBodyType))
+      .filter((item) => (item.kind === "service" || item.kind === "product" || item.kind === "tip") && typeof item.id === "string")
+      .map((item) => ({ kind: item.kind as "service" | "product" | "tip", id: item.id as string, qty: Math.max(1, Math.round(Number(item.qty) || 1)), amount: round2(Number(item.amount) || 0) }));
+    const returnedBefore = (productId: string) => (existing.refunds ?? []).flatMap((item) => item.items ?? []).filter((item) => item.kind === "product" && item.id === productId).reduce((sum, item) => sum + item.qty, 0);
+    for (const item of items.filter((line) => line.kind === "product")) {
+      const sold = existing.products.find((line) => line.productId === item.id)?.qty ?? 0;
+      if (item.qty > sold - returnedBefore(item.id)) fields.items = ["Ese producto ya se devolvió."];
+    }
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const refund = { id: `rf_${Date.now().toString(36)}`, amount, to: to as "cash" | "card", reason, at: new Date().toISOString(), by: account.user.name };
+    // Los productos devueltos vuelven a la estantería de la sucursal.
+    for (const item of items.filter((line) => line.kind === "product")) moveStock({ branchId: existing.branchId, productId: item.id, delta: item.qty, reason: "return", ref: existing.id, by: account.user.name });
+    const refund = { id: `rf_${Date.now().toString(36)}`, amount, to: to as "cash" | "card", reason, at: new Date().toISOString(), by: account.user.name, ...(items.length > 0 ? { items } : {}) };
     return replaceAppointment({ ...existing, refunds: [...(existing.refunds ?? []), refund], history: [...existing.history, entry(account.user.name, `refund:${amount}`)] });
+  }),
+
+  /**
+   * Borrar la venta (se cobró por error): la cita vuelve a «en silla» sin pago, para cobrarla bien. Lo
+   * vendido vuelve al inventario, la tarjeta de regalo usada recupera su saldo y la que se vendió queda
+   * sin saldo. Solo dueño y administrador, y sin devoluciones de por medio.
+   */
+  http.post(`${BASE}/appointments/:id/void-payment`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const existing = findAppointment(params.id);
+    if (!existing) return error(404, "not_found", "Esa cita no existe.");
+    const role = sessionOf(request)?.teamRole;
+    if (role && role !== "owner" && role !== "admin") return forbidden("Borrar una venta es del dueño o del administrador.");
+    if (existing.status !== "paid" || !existing.payment) return error(409, "conflict", "Solo se borra una venta cobrada.");
+    if ((existing.refunds ?? []).length > 0) return error(409, "conflict", "Esta venta tiene devoluciones: deshazla desde Transacciones.");
+    const reason = text(asRecord(await request.json().catch(() => ({}))).reason);
+    if (reason.length < 3) return error(422, "validation", "Di por qué se borra la venta.", { fields: { reason: ["Di por qué se borra la venta."] } });
+    const payment = existing.payment;
+    if (payment.gift) spendGiftCard(payment.gift.code, -payment.gift.amount);
+    if (payment.giftSale) spendGiftCard(payment.giftSale.code, payment.giftSale.amount);
+    const released = releaseAppointmentStock(existing, account.user.name);
+    return replaceAppointment({ ...released, status: "seated", payment: null, checkoutDiscount: undefined, servicePrices: undefined, productPrices: undefined, stockTaken: [], history: [...existing.history, entry(account.user.name, `voided:${reason}`)] });
   }),
 
   http.post(`${BASE}/clients/:id/notes`, async ({ request, params }) => {

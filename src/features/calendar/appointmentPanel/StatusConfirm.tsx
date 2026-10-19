@@ -1,6 +1,11 @@
+import * as React from "react";
+import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
+import { describeError } from "@/lib/api";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PopoverDescription, PopoverHeader, PopoverTitle } from "@/components/ui/popover";
+import { useVoidPayment } from "../queries";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -51,5 +56,46 @@ export function StatusConfirmContent({ model, action, onClose }: { model: Appoin
       onConfirm={() => model.run(action)}
       onClose={onClose}
     />
+  );
+}
+
+/** Borrar la venta (se cobró por error): pide el motivo y deja la cita sin pago para cobrarla bien. */
+export function VoidSaleContent({ model, onClose }: { model: AppointmentModel; onClose: () => void }) {
+  const t = useAppT();
+  const voidPayment = useVoidPayment();
+  const [reason, setReason] = React.useState("");
+  return (
+    <div className="flex flex-col gap-3" data-testid="panel-void">
+      <PopoverHeader>
+        <PopoverTitle>{t("calendar.void.title")}</PopoverTitle>
+        <PopoverDescription>{t("calendar.void.hint")}</PopoverDescription>
+      </PopoverHeader>
+      <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("calendar.void.reason")} aria-label={t("calendar.void.reason")} autoFocus />
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onClose}>
+          {t("calendar.cancel.keep")}
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={reason.trim().length < 3 || voidPayment.isPending}
+          onClick={() =>
+            voidPayment.mutate(
+              { id: model.appointment.id, reason: reason.trim() },
+              {
+                onSuccess: () => {
+                  toast.success(t("calendar.void.done"), { description: t("calendar.void.doneHint") });
+                  onClose();
+                },
+                onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+              }
+            )
+          }
+          data-testid="panel-void-yes"
+        >
+          {t("calendar.void.action")}
+        </Button>
+      </div>
+    </div>
   );
 }

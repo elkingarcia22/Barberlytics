@@ -1230,6 +1230,8 @@ export const appEs = {
   "calendar.history.moved": "Movida a {value}",
   "calendar.history.barber": "Cambio de barbero a {value}",
   "calendar.history.client": "Cambio de cliente a {value}",
+  "calendar.history.refund": "Devolución de {value}",
+  "calendar.history.voided": "Venta borrada: {value}",
   "calendar.history.duration": "Duración cambiada a {value} min",
   "calendar.history.linked": "Se enlazó con otras citas",
   "calendar.history.unlinked": "Se desenlazó",

@@ -125,6 +125,8 @@ export interface MockRefund {
   reason: string;
   at: string;
   by: string;
+  /** Lo que se devolvió, línea por línea (los productos vuelven al inventario). */
+  items?: { kind: "service" | "product" | "tip"; id: string; qty: number; amount: number }[];
 }
 
 /**

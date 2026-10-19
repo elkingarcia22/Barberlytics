@@ -15,6 +15,7 @@ import {
   type AppointmentInput,
   type AppointmentPatch,
   type ClientRestriction,
+  type RefundItem,
   type BlockInput,
   type CalendarCatalog,
   type CalendarDay,
@@ -43,6 +44,10 @@ export const calendarApi = {
   createAppointment: (input: AppointmentInput) => api.post<Appointment>("/appointments", input, { schema: appointmentSchema }),
   /** El saldo de una tarjeta de regalo, para pagar con ella en la caja. */
   checkGiftCard: (code: string) => api.post<{ code: string; balance: number }>(`/booking/gift-cards/check`, { code }, { schema: z.object({ code: z.string(), balance: z.number() }) }),
+  /** Devolver (todo o en parte) una cuenta cobrada; los productos devueltos vuelven al inventario. */
+  refund: (id: string, input: { amount: number; reason: string; to: "cash" | "card"; items?: RefundItem[] }) => api.post<Appointment>(`/appointments/${id}/refund`, input, { schema: appointmentSchema }),
+  /** Borrar una venta hecha por error: la cita vuelve a «en silla» sin pago (dueño y administrador). */
+  voidPayment: (id: string, reason: string) => api.post<Appointment>(`/appointments/${id}/void-payment`, { reason }, { schema: appointmentSchema }),
   /** Restringir al cliente desde la agenda (bloquearlo o pedirle pago en línea): va a su ficha. */
   restrictClient: (clientId: string, patch: ClientRestriction) => api.patch<unknown>(`/customers/${clientId}`, patch),
   updateAppointment: (id: string, patch: AppointmentPatch) => api.patch<Appointment>(`/appointments/${id}`, patch, { schema: appointmentSchema }),

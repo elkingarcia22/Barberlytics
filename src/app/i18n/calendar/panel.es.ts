@@ -77,7 +77,7 @@ export const calendarPanelEs = {
   "calendar.panel.after.receipt": "Ver recibo",
   "calendar.panel.after.receiptTitle": "Ver la cuenta y su recibo en Transacciones",
   "calendar.panel.after.refund": "Devolver",
-  "calendar.panel.after.refundTitle": "Devolver dinero: abre la cuenta en Transacciones",
+  "calendar.panel.after.refundTitle": "Devolver todo o una parte, aquí mismo",
   "calendar.panel.restrict.prepay": "Prepago",
   "calendar.panel.restrict.prepayTitle": "Que {name} solo reserve pagando en línea",
   "calendar.panel.restrict.prepayDone": "{name} ahora reserva pagando por adelantado",

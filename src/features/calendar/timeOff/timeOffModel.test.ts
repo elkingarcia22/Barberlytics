@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Barber } from "../types";
-import { blockAppliesOn, coverageFor, daysOf, isShortHanded } from "./timeOffModel";
+import { blockAppliesOn, coverageFor, daysOf, isAbsenceBlock, isShortHanded } from "./timeOffModel";
 
 const weekdays = { "1": [{ start: "09:00", end: "18:00" }], "2": [{ start: "09:00", end: "18:00" }], "3": [{ start: "09:00", end: "18:00" }] };
 const barber = (id: string, name: string): Barber => ({ id, branchId: "ma", name, avatarUrl: null, level: null, workingHours: weekdays, acceptsWalkIns: true });
@@ -41,5 +41,19 @@ describe("blockAppliesOn", () => {
     expect(blockAppliesOn(weekly, new Date(2026, 10, 2))).toBe(true);
     expect(blockAppliesOn(weekly, new Date(2026, 10, 3))).toBe(false);
     expect(blockAppliesOn({ ...weekly, repeat: "none" }, new Date(2026, 11, 1))).toBe(false);
+  });
+});
+
+describe("isAbsenceBlock", () => {
+  test("cuenta como ausencia la que deja una ausencia aprobada y las vacaciones o incapacidades puestas a mano", () => {
+    expect(isAbsenceBlock({ id: "blk_abs_abs-1", category: "personal" })).toBe(true);
+    expect(isAbsenceBlock({ id: "blk_1", category: "vacation" })).toBe(true);
+    expect(isAbsenceBlock({ id: "blk_2", category: "sick" })).toBe(true);
+  });
+
+  test("el almuerzo, una reunión o un permiso corto son bloqueos", () => {
+    expect(isAbsenceBlock({ id: "blk_3", category: "lunch" })).toBe(false);
+    expect(isAbsenceBlock({ id: "blk_4", category: "meeting" })).toBe(false);
+    expect(isAbsenceBlock({ id: "blk_5", category: "personal" })).toBe(false);
   });
 });

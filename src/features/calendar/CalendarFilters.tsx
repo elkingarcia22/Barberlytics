@@ -76,6 +76,16 @@ export interface CalendarFiltersProps {
   /** Resaltar las citas enlazadas; solo en la rejilla del día. */
   showLinked?: boolean;
   onShowLinkedChange?: (next: boolean) => void;
+  /** Ver u ocultar en la rejilla las ausencias y los bloqueos (juntos, como en las acciones); con cuántos hay hoy. */
+  timeOff?: TimeOffVisibility;
+  onTimeOffChange?: (next: Pick<TimeOffVisibility, "showAbsences" | "showBlocks">) => void;
+}
+
+export interface TimeOffVisibility {
+  showAbsences: boolean;
+  showBlocks: boolean;
+  absences: number;
+  blocks: number;
 }
 
 const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
@@ -89,11 +99,12 @@ const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
 
 
 
-export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange }: CalendarFiltersProps) {
+export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange, timeOff, onTimeOffChange }: CalendarFiltersProps) {
   const t = useAppT();
   const freeId = React.useId();
   const linkedId = React.useId();
-  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0);
+  const hiddenTimeOff = timeOff ? (timeOff.showAbsences ? 0 : 1) + (timeOff.showBlocks ? 0 : 1) : 0;
+  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0) + hiddenTimeOff;
   const emit = (next: Partial<CalendarFilterSelection>) =>
     onChange({ focuses: [...focuses], serviceIds: [...serviceIds], clientTypes: [...clientTypes], ...next });
 
@@ -139,6 +150,14 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
             </label>
             <Switch id={linkedId} checked={showLinked} onCheckedChange={onShowLinkedChange} data-testid="calendar-filter-linked" />
           </div>
+        )}
+
+        {timeOff && onTimeOffChange && (
+          <section className="space-y-1.5" aria-label={t("calendar.filters.timeOff")} data-testid="calendar-filter-timeoff">
+            <Text variant="label">{t("calendar.filters.timeOff")}</Text>
+            <ToggleRow label={t("calendar.filters.showAbsences")} count={timeOff.absences} checked={timeOff.showAbsences} onChange={(next) => onTimeOffChange({ showAbsences: next, showBlocks: timeOff.showBlocks })} testId="calendar-filter-absences" />
+            <ToggleRow label={t("calendar.filters.showBlocks")} count={timeOff.blocks} checked={timeOff.showBlocks} onChange={(next) => onTimeOffChange({ showAbsences: timeOff.showAbsences, showBlocks: next })} testId="calendar-filter-blocks" />
+          </section>
         )}
 
         <FilterSelect
@@ -199,6 +218,7 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
               onChange({ focuses: [], serviceIds: [], clientTypes: [] });
               if (freeOnly) onFreeOnlyChange?.(false);
               if (showLinked) onShowLinkedChange?.(false);
+              if (hiddenTimeOff > 0) onTimeOffChange?.({ showAbsences: true, showBlocks: true });
             }}
             data-testid="calendar-filters-clear">
             {t("calendar.filters.clear")}
@@ -206,6 +226,24 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Un interruptor de una línea con cuántos hay hoy: «Bloqueos  3  ●». */
+function ToggleRow({ label, count, checked, onChange, testId }: { label: string; count: number; checked: boolean; onChange: (next: boolean) => void; testId: string }) {
+  const id = React.useId();
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <label htmlFor={id} className="flex min-w-0 flex-1 items-center justify-between gap-2">
+        <Text as="span" size="sm">
+          {label}
+        </Text>
+        <Text as="span" size="xs" tone="muted" tabular>
+          {count}
+        </Text>
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} data-testid={testId} />
+    </div>
   );
 }
 

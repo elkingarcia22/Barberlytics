@@ -50,6 +50,8 @@ export interface CalendarDayViewProps {
   onColumnResize?: (barberId: string, width: number | null) => void;
   /** Propuestas que se dibujan encima de la agenda (huecos sugeridos, reacomodos). */
   extraEvents?: readonly ScheduleEvent[];
+  /** Bloqueos que no se pintan (los filtros «Vacaciones y ausencias» y «Bloqueos»); siguen contando para huecos y choques. */
+  hideBlock?: (block: TimeBlock) => boolean;
   /** Citas que una propuesta movería: se apagan mientras se decide. */
   fadedIds?: ReadonlySet<string>;
   /** Resaltar las citas enlazadas: cada grupo con un borde discontinuo de su color. */
@@ -100,6 +102,7 @@ export function CalendarDayView({
   columnWidths,
   onColumnResize,
   extraEvents = [],
+  hideBlock,
   fadedIds,
   highlightLinks = false,
   alerts,
@@ -143,10 +146,10 @@ export function CalendarDayView({
           continuesVisit: continuations.has(appointment.id),
         });
       }),
-      ...day.blocks.map((block) => blockToEvent(block, date, ctx)),
+      ...day.blocks.filter((block) => !hideBlock?.(block)).map((block) => blockToEvent(block, date, ctx)),
       ...extraEvents,
     ],
-    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents, groups, continuations, highlightLinks]
+    [day.appointments, day.blocks, date, ctx, filters, fadedIds, extraEvents, groups, continuations, highlightLinks, hideBlock]
   );
 
   // La rejilla enseña la jornada real: de una hora antes de que abra el

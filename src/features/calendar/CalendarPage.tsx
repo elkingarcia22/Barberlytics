@@ -49,7 +49,9 @@ import { useCalendarDensity } from "./calendarDensity";
 import { useCalendarColumnWidths } from "./calendarColumnWidths";
 import { useCalendarShortcuts } from "./useCalendarShortcuts";
 import { useCalendarState } from "./useCalendarState";
-import { useCatalogQuery, useDayQuery, useRemoveBlock, useRhythmQuery, useUpdateAppointment, useWaitlistQuery } from "./queries";
+import { useBlocksQuery, useCatalogQuery, useDayQuery, useRemoveBlock, useRhythmQuery, useUpdateAppointment, useWaitlistQuery } from "./queries";
+import { Palmtree, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CalendarWeekView } from "./CalendarWeekView";
 import { moveStart, reflowPlan, type ReflowPlan } from "./reflowModel";
 import type { SlotSuggestion } from "./slotSuggestions";
@@ -688,12 +690,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         ...(reflow && isSameDay(reflow.plan.date, state.date) ? [...reflow.plan.moves.map((move) => move.appointment.id), ...(reflow.anchorPatch ? [reflow.plan.anchor.id] : [])] : []),
         // Mirando solo los huecos, todas las citas se apagan.
         ...(state.freeOnly ? (day.data?.appointments ?? []).map((item) => item.id) : []),
-        // Mirando solo ausencias o bloqueos, también.
-        ...(state.timeOffOnly.length > 0 ? (day.data?.appointments ?? []).map((item) => item.id) : []),
+        // Mirando solo ausencias o bloqueos (o una sola, desde su revisión), también.
+        ...(state.timeOffOnly.length > 0 || state.timeOffFocus ? (day.data?.appointments ?? []).map((item) => item.id) : []),
         // Mirando las enlazadas, las sueltas se apagan.
         ...(state.showLinked ? (day.data?.appointments ?? []).filter((item) => !linkGroups.has(item.id)).map((item) => item.id) : []),
       ]),
-    [reflow, state.date, state.freeOnly, state.timeOffOnly.length, state.showLinked, day.data, linkGroups]
+    [reflow, state.date, state.freeOnly, state.timeOffOnly.length, state.timeOffFocus, state.showLinked, day.data, linkGroups]
   );
 
   // Las ausencias que esperan aprobación se ven rayadas en la columna del barbero (tocarlas abre su revisión).
@@ -702,6 +704,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     if (!ctx || state.view !== "day") return [];
     const day = format(state.date, "yyyy-MM-dd");
     return (absences.data?.items ?? [])
+      // Las por aprobar todavía no bloquean la agenda: se pintan solo si se piden (filtro o «Ver en el calendario»).
       .filter((item) => item.status === "pending" && item.startDate <= day && day <= item.endDate)
       .flatMap((item) => {
         const barber = ctx.catalog.barbers.find((entry) => entry.id === item.memberId);
@@ -725,17 +728,59 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   }, [absences.data, ctx, state.date, state.view, t]);
 
   // Ver solo ausencias y/o bloqueos, como «solo huecos»: lo no elegido deja de pintarse (sigue ocupando su hueco).
+  // O una sola, puesta a la vista desde su revisión («Ver en el calendario»): queda ella y nada más.
   const timeOffOnly = state.timeOffOnly;
+  const shown = state.timeOffFocus;
   const onlyAbsences = timeOffOnly.includes("absences");
   const onlyBlocks = timeOffOnly.includes("blocks");
-  const hideAbsences = timeOffOnly.length > 0 && !onlyAbsences;
-  const hideBlock = React.useCallback((block: TimeBlock) => timeOffOnly.length > 0 && (isAbsenceBlock(block) ? !onlyAbsences : !onlyBlocks), [timeOffOnly.length, onlyAbsences, onlyBlocks]);
+  const visibleAbsenceGhosts = React.useMemo(
+    () => (shown ? absenceGhosts.filter((event) => shown.type === "absence" && event.id === `absence-${shown.id}`) : onlyAbsences ? absenceGhosts : []),
+    [absenceGhosts, shown, onlyAbsences]
+  );
+  const hideBlock = React.useCallback(
+    (block: TimeBlock) => {
+      if (shown) return !(shown.type === "block" ? block.id === shown.id : block.id === `blk_abs_${shown.id}`);
+      return timeOffOnly.length > 0 && (isAbsenceBlock(block) ? !onlyAbsences : !onlyBlocks);
+    },
+    [shown, timeOffOnly.length, onlyAbsences, onlyBlocks]
+  );
+  // Puesta a la vista desde su revisión: la rejilla va hasta ella (puede quedar fuera, a la derecha o más abajo).
+  const shownEventIds = shown ? (shown.type === "block" ? [shown.id] : [`absence-${shown.id}`, `blk_abs_${shown.id}`]) : [];
+  const shownKey = shown ? `${shown.type}:${shown.id}:${state.dateKey}:${visibleAbsenceGhosts.length}:${day.data?.blocks.length ?? 0}` : "";
+  React.useEffect(() => {
+    if (!shownKey) return;
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const target = shownEventIds.map((id) => document.querySelector<HTMLElement>(`[data-schedule-event="${CSS.escape(id)}"]`)).find(Boolean);
+        target?.scrollIntoView({ block: "center", inline: "center", behavior: reduced ? "auto" : "smooth" });
+      })
+    );
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- la clave ya dice qué cambió
+  }, [shownKey]);
   const timeOffFilter = React.useMemo(() => {
     const blocks = day.data?.blocks ?? [];
     return { selected: timeOffOnly, counts: { absences: blocks.filter(isAbsenceBlock).length + absenceGhosts.length, blocks: blocks.filter((block) => !isAbsenceBlock(block)).length } };
   }, [day.data, absenceGhosts.length, timeOffOnly]);
+  // Lo que falta aprobar (ausencias y bloqueos), para el aviso junto al buscador: solo a quien decide.
+  const pendingBlocks = useBlocksQuery(branchId, can.canDecideTimeOff);
+  const pendingTimeOff = React.useMemo(() => {
+    if (!can.canDecideTimeOff) return 0;
+    const today = format(nowDate, "yyyy-MM-dd");
+    return (absences.data?.items ?? []).filter((item) => item.status === "pending" && item.endDate >= today).length + (pendingBlocks.data?.items ?? []).filter((block) => block.status === "pending" && block.endDate >= today).length;
+  }, [absences.data, pendingBlocks.data, can.canDecideTimeOff, nowDate]);
+  const shownLabel = React.useMemo(() => {
+    if (!shown || !ctx) return null;
+    if (shown.type === "absence") {
+      const absence = absences.data?.items.find((item) => item.id === shown.id);
+      return absence ? t("calendar.timeOff.whose", { kind: t(ABSENCE_KIND_KEYS[absence.kind]), name: absence.memberName.split(" ")[0] }) : t("calendar.timeOff.title");
+    }
+    const block = [...(pendingBlocks.data?.items ?? []), ...(day.data?.blocks ?? [])].find((item) => item.id === shown.id);
+    return block ? `${t(BLOCK_CATEGORY_KEYS[block.category])} · ${findBarber(ctx.catalog, block.barberId)?.name.split(" ")[0] ?? ""}` : t("calendar.timeOff.title");
+  }, [shown, ctx, absences.data, pendingBlocks.data, day.data, t]);
 
-  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...(hideAbsences ? [] : absenceGhosts)], [freeGhosts, reflowGhosts, suggestionGhosts, absenceGhosts, hideAbsences]);
+  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...visibleAbsenceGhosts], [freeGhosts, reflowGhosts, suggestionGhosts, visibleAbsenceGhosts]);
 
   const onSuggestions = React.useCallback((next: readonly SlotSuggestion[], nextDraft: CreateAppointmentDraft) => {
     setSuggestions((current) => (sameSuggestions(current, next) ? current : next));
@@ -872,6 +917,17 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         onTeamChange={state.setTeam}
         showTeam={!ownBarberId}
         dateBadge={isDayView ? <DayWeightBadge weight={dayWeightOf(rhythm.data, state.date)} booked={day.data?.appointments.filter(isActive).length} bare /> : undefined}
+        beforeView={
+          shown && shownLabel ? (
+            <Button variant="outline" size="sm" className="gap-1.5 border-primary/40 bg-primary/10" onClick={() => state.showTimeOff(null)} aria-label={t("calendar.timeOff.stopShowing", { name: shownLabel })} data-testid="calendar-time-off-shown">
+              <Palmtree className="text-primary" /> {shownLabel} <X className="text-text-muted" />
+            </Button>
+          ) : pendingTimeOff > 0 ? (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openPanel({ kind: "timeOff", focus: null })} aria-label={t("calendar.timeOff.pendingCount", { count: pendingTimeOff })} data-testid="calendar-time-off-pending">
+              <Palmtree className="text-warning" /> <span className="tabular-nums">{pendingTimeOff}</span> {t("calendar.timeOff.pendingLower")}
+            </Button>
+          ) : undefined
+        }
         search={
           ctx && (
             <CalendarSearch
@@ -1165,6 +1221,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 ctx={ctx}
                 branchId={branchId}
                 focus={panel?.kind === "timeOff" ? panel.focus : null}
+                // La deja sola en la rejilla, en su primer día; el panel sigue abierto para decidir.
+                onShowInCalendar={(focus, on) => state.showTimeOff(focus, on)}
                 onOpenAppointment={(date, id) => {
                   closePanel();
                   state.openAppointmentOn(date, id);

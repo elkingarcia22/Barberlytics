@@ -674,6 +674,9 @@ describe("Calendario", () => {
     // Solo las filas de cita: los iconos de cada fila son otra lista dentro.
     const rows = () => screen.getByTestId("calendar-agenda").querySelectorAll('[data-slot="list-item"]').length;
     const all = agenda.querySelectorAll('[data-slot="list-item"]').length;
+    // Sin filtros puestos, el botón no lleva número: el número es solo de filtros aplicados.
+    expect(screen.getByTestId("calendar-filters")).toHaveTextContent(/^Filtros$/);
+    expect(screen.queryByTestId("calendar-filters-count")).toBeNull();
     // Estados y servicios viven en el mismo panel, cada grupo como un campo de varias opciones con su cuenta.
     await user.click(screen.getByTestId("calendar-filters"));
     const panel = await screen.findByTestId("calendar-filters-panel");

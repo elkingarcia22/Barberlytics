@@ -1,5 +1,5 @@
 import * as React from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { CalendarX2, Palmtree, Plus, Stethoscope, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -47,6 +47,8 @@ export interface TimeOffDrawerProps {
   focus?: TimeOffFocus;
   /** Ir a una cita afectada (a moverla). */
   onOpenAppointment: (date: Date, id: string) => void;
+  /** Ponerla sola en la rejilla, en su primer día («Ver en el calendario»). */
+  onShowInCalendar?: (focus: { type: "absence" | "block"; id: string }, on: Date) => void;
 }
 
 type Kind = "all" | AbsenceKind | "block";
@@ -54,7 +56,7 @@ type Status = "pending" | "approved" | "all";
 const KIND_ICON = { vacation: Palmtree, sick: Stethoscope, personal: UserRound } as const;
 const KINDS: readonly Kind[] = ["all", "vacation", "sick", "personal", "block"];
 
-export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null, onOpenAppointment }: TimeOffDrawerProps) {
+export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null, onOpenAppointment, onShowInCalendar }: TimeOffDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const dateLocale = calendarLocale(locale);
@@ -90,7 +92,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
       if (absence)
         return (
           <PanelSubpage title={t("calendar.timeOff.review")} onBack={() => setSelected(null)}>
-            <AbsenceReview absence={absence} absences={absencesQuery.data?.items ?? []} ctx={ctx} canDecide={canDecide} onOpenAppointment={onOpenAppointment} onDone={() => setSelected(null)} />
+            <AbsenceReview absence={absence} absences={absencesQuery.data?.items ?? []} ctx={ctx} canDecide={canDecide} onOpenAppointment={onOpenAppointment} onShowInCalendar={onShowInCalendar && ((on) => onShowInCalendar({ type: "absence", id: absence.id }, on))} onDone={() => setSelected(null)} />
           </PanelSubpage>
         );
     }
@@ -99,7 +101,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
       if (block)
         return (
           <PanelSubpage title={t("calendar.timeOff.review")} onBack={() => setSelected(null)}>
-            <BlockReview block={block} ctx={ctx} canDecide={canDecide} onDone={() => setSelected(null)} />
+            <BlockReview block={block} ctx={ctx} canDecide={canDecide} onShowInCalendar={onShowInCalendar && (() => onShowInCalendar({ type: "block", id: block.id }, parseISO(block.startDate)))} onDone={() => setSelected(null)} />
           </PanelSubpage>
         );
     }

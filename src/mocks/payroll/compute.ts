@@ -46,12 +46,15 @@ const cycleSettings = (): CycleSettings => db.settings.sections.payrollCycle as 
 
 const payoutOf = (member: MockTeamMember): Payout => (member.role === "barbero-renta" ? "rent" : member.compensation?.type === "salary" ? "salary" : "commission");
 
-/** Quién trajo al cliente decide la regla; la más específica gana. */
-function ruleOf(appointment: MockAppointment): Rule {
+/**
+ * Quién trajo al cliente decide la regla; la más específica gana. Un cliente es nuevo una sola vez:
+ * con la etiqueta «nuevo», solo su primera cita cobrada del periodo (`firstVisits`) paga como nueva.
+ */
+function ruleOf(appointment: MockAppointment, firstVisits: ReadonlySet<string>): Rule {
   if (appointment.walkIn) return "walkIn";
   if (appointment.requestedBarberId === null) return "noPreference";
   const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
-  if (client?.type === "new") return "newClient";
+  if (client?.type === "new" && firstVisits.has(appointment.id)) return "newClient";
   if (client && client.type !== "walkin") return "recurring";
   return "basic";
 }
@@ -143,6 +146,17 @@ function shopShareOf(item: MockAppointment, total: number): number {
   return 1;
 }
 
+/** La primera cita cobrada de cada cliente en estas citas: la única que puede contar como «cliente nuevo». */
+function firstVisitsOf(appointments: readonly MockAppointment[]): Set<string> {
+  const firstByClient = new Map<string, MockAppointment>();
+  for (const item of appointments) {
+    if (!isPaid(item)) continue;
+    const current = firstByClient.get(item.clientId);
+    if (!current || item.start < current.start) firstByClient.set(item.clientId, item);
+  }
+  return new Set([...firstByClient.values()].map((item) => item.id));
+}
+
 const ADJUSTMENT_SIGN: Record<MockPayrollAdjustment["kind"], 1 | -1> = { bonus: 1, deduction: -1, advance: -1 };
 
 export function payrollOf(member: MockTeamMember, appointments: readonly MockAppointment[], weeks: number, branchId: string, adjustments: readonly MockPayrollAdjustment[]) {
@@ -150,12 +164,13 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
   const cycleSales = cycleSalesFor(branchId, settings);
   const payout = payoutOf(member);
   const mine = appointments.filter((item) => item.barberId === member.id && isPaid(item));
+  const firstVisits = firstVisitsOf(appointments);
   const compensation = member.compensation;
   const payments = member.payments;
 
   const entries = mine
     .map((item) => {
-      const rule = ruleOf(item);
+      const rule = ruleOf(item, firstVisits);
       const bases = basesOf(item, settings);
       const sale = bases.service;
       const rate = payout === "commission" && compensation ? rateOf(compensation, rule, cycleSales(member.id, item.start)) : null;

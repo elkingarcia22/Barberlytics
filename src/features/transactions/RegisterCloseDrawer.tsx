@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Text } from "@/components/typography";
+import { ReviewFindings } from "@/features/review/ReviewFindings";
+import { needsAcknowledge, useRegisterReview } from "@/features/review/review";
 import { expectedInDrawer, useCloseRegister, useRegisterDay, type RegisterDay } from "./register";
 
 export interface RegisterCloseDrawerProps {
@@ -49,11 +51,15 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
   const [opening, setOpening] = React.useState<number | null>(0);
   const [counted, setCounted] = React.useState<number | null>(null);
   const [note, setNote] = React.useState("");
+  const [acknowledged, setAcknowledged] = React.useState(false);
   const { expected, closure } = data;
+  // Antes de contar: lo raro del día (dobles cobros, devoluciones, cuentas sin cobrar).
+  const review = useRegisterReview(data.branchId, data.date, closure === null);
+  const blockedByReview = review.isPending || (needsAcknowledge(review.data?.items ?? []) && !acknowledged);
   const shouldHave = expectedInDrawer(opening ?? 0, expected.cash);
   const difference = counted === null ? null : Math.round((counted - shouldHave) * 100) / 100;
   const needsNote = difference !== null && difference !== 0;
-  const valid = opening !== null && counted !== null && (!needsNote || note.trim().length >= 3);
+  const valid = opening !== null && counted !== null && (!needsNote || note.trim().length >= 3) && !blockedByReview;
 
   const submit = () => {
     if (!valid || opening === null || counted === null) return;
@@ -88,6 +94,7 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
         </section>
       ) : (
         <section aria-label={t("transactions.register.count")} className="space-y-4">
+          <ReviewFindings items={review.data?.items} loading={review.isPending} formatMoney={formatMoney} acknowledged={acknowledged} onAcknowledgedChange={setAcknowledged} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("transactions.register.opening")} required description={t("transactions.register.openingHint")}>
               <NumberField value={opening} onValueChange={setOpening} min={0} precision={2} data-testid="register-opening" />

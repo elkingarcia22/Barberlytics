@@ -169,6 +169,8 @@ Lo que responde MSW hoy.
 - `GET /reports/income` · src/mocks/reports/income.ts
 - `GET /reports/menu` · src/mocks/reports/menu.ts
 - `GET /reports/week` · src/mocks/reports/week.ts
+- `GET /payroll/review` · src/mocks/review/checks.ts
+- `GET /register/review` · src/mocks/review/checks.ts
 - `GET /services` · src/mocks/services/handlers.ts
 - `PUT /services/order` · src/mocks/services/handlers.ts
 - `PUT /services/activation` · src/mocks/services/handlers.ts
@@ -684,7 +686,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PayrollAdjustments.tsx** — Lo que no sale de las citas: un bono, un descuento (un faltante de caja, producto que usó) o un adelanto que… · `PayrollAdjustmentsProps`, `PayrollAdjustments` · piezas: Button, Field, Input, NumberField, SegmentedControl, Text · usa: @/app/i18n, @/i18n
 - **PayrollMemberDrawer.tsx** — Cómo se llega al pago de un barbero: su forma de pago y sus reglas, la cuenta —lo que suma y lo que resta— y… · `PayrollMemberDrawerProps`, `PayrollMemberDrawer` · piezas: Badge, Button, DrawerShell, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/i18n
 - **PayrollPage.tsx** — La nómina del periodo: cuánto se le paga a cada barbero y cuánto le deben a la barbería los que rentan su pue… · `PayrollPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
-- **PayrollRunBar.tsx** — El estado del periodo y lo siguiente que toca: abierto → aprobar; aprobado → marcar pagado (o reabrir con mot… · `PayrollRunBarProps`, `PayrollRunBar` · piezas: Button, ConfirmDialog, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Text, Textarea · usa: @/app/i18n, @/i18n
+- **PayrollRunBar.tsx** — El estado del periodo y lo siguiente que toca: abierto → aprobar; aprobado → marcar pagado (o reabrir con mot… · `PayrollRunBarProps`, `PayrollRunBar` · piezas: Button, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Text, Textarea · usa: @/app/i18n, @/features/calendar, @/features/review, @/i18n
 - **RentPayments.tsx** — Lo que el barbero de renta le entregó a la barbería en el periodo. · `RentPaymentsProps`, `RentPayments` · piezas: Button, Field, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/i18n
 - **api.ts** — Contrato de nómina; ver docs/API_CONTRACT.md. · `payrollApi` · llama: GET /payroll, POST /payroll/adjustments, DELETE /payroll/adjustments/${id}, POST /payroll/runs, POST /payroll/runs/${id}/pay, POST /payroll/runs/${id}/reopen, POST /payroll/rent-payments, DELETE /payroll/rent-payments/${id} · usa: @/lib/api
 - **myPayHome.tsx** · `myPayColumns`, `MyPayCellContext`, `myPayCells` · usa: @/app/i18n
@@ -711,6 +713,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **productsShared.tsx** — La foto del producto y, mientras no hay o no carga, el icono. · `ProductGlyph`, `ProductActiveBadge`, `SellableBadge`, `ProductVisibilityBadge` · piezas: Badge, IconTile, StatusBadge · usa: @/app/i18n
 - **queries.ts** · `productKeys`, `useProductsQuery`, `useProductQuery`, `useCreateProduct`, `useUpdateProduct`, `useRemoveProduct`, `useSetProductsActive`, `useSaveProductCategory`, `useRemoveProductCategory`
 - **types.ts** — La categoría a la que caen los productos cuando se borra la suya. · `productVisibilitySchema`, `ProductVisibility`, `productCategorySchema`, `ProductCategory`, `catalogProductSchema`, `CatalogProduct`, `productsCatalogSchema`, `ProductsCatalog`, `UNCATEGORIZED_PRODUCT_ID`, `productInputSchema`, `ProductInput`, `emptyProductInput`, `inputFromProduct`, `ProductCategoryInput`, `PRODUCT_VISIBILITY_KEYS` · usa: @/app/i18n
+
+### review
+
+- **ReviewFindings.tsx** — Lo que conviene mirar antes de aprobar o cerrar, de lo grave a lo informativo. · `ReviewFindingsProps`, `ReviewFindings` · piezas: Badge, Checkbox, Skeleton, Text · usa: @/app/i18n
+- **review.ts** — Revisión antes de cerrar: lo raro de una nómina o de una caja frente al historial y a las reglas, para mirarl… · `findingSchema`, `Finding`, `Severity`, `reviewApi`, `usePayrollReview`, `useRegisterReview`, `needsAcknowledge`, `SEVERITY_KEYS`, `KIND_KEYS`, `MONEY_PARAMS`, `ADJUSTMENT_KIND_KEYS` · llama: GET /payroll/review?${new URLSearchParams(period)}, GET /register/review?${new URLSearchParams({ branchId, date })} · usa: @/app/i18n, @/lib/api
 
 ### sections
 
@@ -814,7 +821,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **AccountDrawer.tsx** — El detalle de una cuenta, en un panel: qué se cobró línea por línea, las cuentas —subtotal, impuesto, total,… · `AccountDrawerProps`, `AccountDrawer` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/features/calendar, @/features/customers, @/features/services, @/i18n
 - **RefundDialog.tsx** — Devolver una cuenta cobrada, entera o en parte: cuánto, a dónde vuelve (efectivo o la tarjeta) y por qué. · `RefundDialogProps`, `RefundDialog` · piezas: Button, Field, Input, ModalShell, NumberField, SegmentedControl · usa: @/app/i18n
-- **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, NumberField, Skeleton, Text, Textarea · usa: @/app/i18n, @/i18n, @/lib/query
+- **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, NumberField, Skeleton, Text, Textarea · usa: @/app/i18n, @/features/review, @/i18n, @/lib/query
 - **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `RefundInput`, `transactionsApi` · llama: GET /transactions, POST /appointments/${appointmentId}/refund · usa: @/features/calendar, @/lib/api
 - **queries.ts** — Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. · `transactionKeys`, `useTransactionsQuery`, `useRefundAccount` · usa: @/lib/api
@@ -998,6 +1005,10 @@ MSW: implementa docs/API_CONTRACT.md.
 - **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `incomeStatement`, `incomeHandlers`
 - **menu.ts** · `Quadrant`, `menuEngineering`, `menuHandlers`
 - **week.ts** · `weekFacts`, `weekHandlers`
+
+### review
+
+- **checks.ts** — Lo raro de una nómina antes de aprobarla. · `Severity`, `Finding`, `payrollReview`, `registerReview`, `reviewHandlers`
 
 ### services
 

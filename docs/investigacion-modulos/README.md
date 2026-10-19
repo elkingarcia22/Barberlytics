@@ -195,13 +195,16 @@ Pendiente, por orden:
 2. **Equipo, segunda parte**: «Mi ficha» editable por el barbero, fichaje, turnos abiertos e intercambio, metas y
    niveles con criterios, cambio de modelo comisión ↔ renta con fecha.
 3. **Calendario recortado en el servidor** para el barbero (hoy la agenda del día llega completa y se filtra en pantalla).
-4. **Fase 3 — IA, lo que queda**: revisión antes de cerrar (nómina y caja), Clipper con
-   modelo y herramientas de solo lectura, reservable por agentes. Hechos el 2026-10-18: **A. ritmo del cliente**
+4. **Fase 3 — IA, lo que queda**: Clipper con modelo y herramientas de solo lectura, reservable por agentes.
+   Revisión de Gastos (duplicados y atípicos) cuando haya historia de gastos. Hechos el 2026-10-18: **A. ritmo del cliente**
    (próxima visita con huecos reales, reactivación aprobada por el dueño solo a quien aceptó, riesgo de inasistencia en
    la cita con sus razones) y **B. hechos → narración** («Cómo te fue» en Métricas y «¿Por qué esta cifra?» en Mi pago;
    Claude redacta con marcadores y el servidor pone las cifras; sin clave, resumen automático) y **F. margen por hora
    de silla y matriz del catálogo** (Servicios › Rentabilidad: estrellas, caballos de tiro, enigmas y perros, con el
-   precio que llevaría cada uno al promedio).
+   precio que llevaría cada uno al promedio) y **E. revisión antes de cerrar** (al aprobar la nómina y al cerrar la
+   caja: neto fuera de lo normal, ajustes repetidos, propinas atípicas, comisión de cliente nuevo a quien ya vino,
+   doble cobro, ventas duplicadas, devoluciones grandes o hechas por quien cobró, clientes sin cobrar; lo grave pide
+   «Lo revisé»). La nómina ya paga «cliente nuevo» solo en la primera cita del periodo.
 5. **Fase 3 — IA** (orden original) en el orden de §4: ritmo del cliente, hechos → narración, margen por hora de silla, revisión antes de
    cerrar, Clipper con modelo y herramientas de solo lectura, reservable por agentes.
 5. Integraciones que no se hacen en el mock: factura y documento soporte DIAN (Alegra o Siigo), Bre-B, push web (PWA).

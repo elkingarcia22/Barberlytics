@@ -194,7 +194,8 @@ Pendiente, por orden:
    no en el navegador; leer las respuestas (webhook).
 2. **Equipo, segunda parte**: «Mi ficha» editable por el barbero, fichaje, turnos abiertos e intercambio, metas y
    niveles con criterios, cambio de modelo comisión ↔ renta con fecha.
-3. **Calendario recortado en el servidor** para el barbero (hoy la agenda del día llega completa y se filtra en pantalla).
+3. ~~**Calendario recortado en el servidor**~~ **hecho**: el barbero recibe su columna y solo el nombre de los clientes
+   ajenos; escribe solo en lo suyo, sin forzar; el de comisión no bloquea y el de renta solo su agenda.
 4. **Fase 3 — IA, lo que queda**: reservable por agentes; evaluaciones con preguntas reales y registro de cada turno;
    revisión de Gastos (duplicados y atípicos); acciones de Clipper fuera de la agenda (configuración, avisos por
    WhatsApp). **Acciones con vista previa hechas**: mover, crear o cancelar una cita, bloquear un rato y anotar en la

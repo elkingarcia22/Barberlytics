@@ -443,6 +443,9 @@ export function appointmentMarkers(appointment: Appointment, client: Client | un
   else if (client?.notes.some((note) => note.kind !== "allergy")) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.clientNote") });
   // Confirmó que viene (por el enlace del mensaje o con recepción): se ve mientras la cita está por llegar.
   if (appointment.status === "scheduled" && appointment.confirmation?.status === "confirmed") markers.push({ id: "confirmed", icon: "confirmed", label: ctx.t("calendar.marker.confirmed") });
+  // Respondió por WhatsApp que quiere otra hora o que no puede venir: recepción tiene que resolverlo.
+  if (appointment.status === "scheduled" && appointment.confirmation?.status === "reschedule_requested") markers.push({ id: "reschedule", icon: "reschedule", label: ctx.t("calendar.marker.rescheduleRequested") });
+  if (appointment.status === "scheduled" && appointment.confirmation?.status === "declined") markers.push({ id: "declined", icon: "declined", label: ctx.t("calendar.marker.declined") });
   // Riesgo alto de no venir: una marca en la tarjeta para confirmar o pedir anticipo a tiempo.
   if (appointment.risk?.level === "high") markers.push({ id: "risk", icon: "risk", label: ctx.t("calendar.marker.risk", { percent: Math.round(appointment.risk.probability * 100) }) });
   if (appointment.status === "paid") markers.push({ id: "paid", icon: "paid", label: ctx.t("calendar.marker.paid") });
@@ -458,6 +461,8 @@ const MARKER_PREF: Record<string, CalendarCardPref | null> = {
   repeat: "repeat",
   note: "notes",
   confirmed: "status",
+  reschedule: "status",
+  declined: "status",
   risk: "status",
   paid: null,
 };
@@ -645,7 +650,12 @@ export function historyLabel(event: string, ctx: ModelContext): string {
     paid: "calendar.history.paidWith",
     linked: "calendar.history.linked",
     unlinked: "calendar.history.unlinked",
+    confirmed: "calendar.history.confirmed",
   };
+  if (kind === "reply") {
+    const replies: Record<string, AppMessageKey> = { reschedule: "calendar.history.reply.reschedule", cancel: "calendar.history.reply.cancel" };
+    return ctx.t(replies[value] ?? "calendar.history.reply.other");
+  }
   const key = map[kind] ?? "calendar.history.created";
   return ctx.t(key, { value: kind === "moved" ? value.replace("T", " ") : value });
 }

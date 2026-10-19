@@ -81,6 +81,10 @@ compartido; sin él, en Vercel responde 501 y los mensajes quedan como simulados
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Dónde vive la cola (Upstash Redis por REST; la integración de Vercel las pone sola). En local se usa la memoria del servidor de desarrollo, que hace de cron cada 30 s. |
 | `CRON_SECRET` | Vercel lo manda al cron como `Authorization: Bearer`; sin él, el cron no atiende. |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | La cuenta de WhatsApp Cloud API. Sin ellas los mensajes se dan por enviados en modo simulado. |
+| `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | El webhook (`/api/whatsapp/webhook`) que recibe las respuestas de los clientes y el estado de lo enviado. En Meta › WhatsApp › Configuración se pone la URL `https://<dominio>/api/whatsapp/webhook`, el token de verificación y se suscribe a `messages`. Sin ellos el webhook no atiende. |
+
+Las plantillas deberían llevar botones de respuesta rápida con payload `CONFIRM`, `RESCHEDULE` y `CANCEL`: se
+entienden sin adivinar. El texto libre también se clasifica (reglas en `server/whatsapp/inbound.ts`).
 
 En el plan Hobby de Vercel los crons corren como mucho una vez al día: para recordatorios a tiempo
 hace falta Pro (o un cron externo que llame a la ruta con el `CRON_SECRET`).

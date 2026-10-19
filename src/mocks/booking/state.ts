@@ -42,6 +42,18 @@ export interface MockSavedCard {
 }
 
 /** Un mensaje programado al cliente (WhatsApp por defecto): lo envía el backend real a su hora. */
+/** Lo que respondió un cliente por WhatsApp, ya clasificado y ligado a su cita. */
+export interface MockInboundReply {
+  /** El id de WhatsApp del mensaje (para no aplicarlo dos veces). */
+  id: string;
+  at: string;
+  from: string;
+  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "other";
+  text: string;
+  appointmentId: string | null;
+  clientId: string | null;
+}
+
 export interface MockOutboxMessage {
   id: string;
   appointmentId: string;
@@ -142,6 +154,10 @@ export interface MockBookingState {
   reviews?: MockReview[];
   /** Confirmaciones y recordatorios programados por cada reserva (ver reminders.ts). */
   outbox?: MockOutboxMessage[];
+  /** Las respuestas de los clientes por WhatsApp ya aplicadas (ver replies.ts). */
+  inbound?: MockInboundReply[];
+  /** Hasta qué respuesta de la bandeja del servidor se aplicó. */
+  inboxCursor?: number;
   /** id de cliente → sus tarjetas tokenizadas. Sin entrada, la clienta de la demo trae las suyas (`DEMO_CARDS`). */
   cards?: Record<string, MockSavedCard[]>;
   /** Ya se le pusieron a la clienta de la demo sus personas guardadas (una sola vez). */

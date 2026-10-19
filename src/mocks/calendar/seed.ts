@@ -176,7 +176,7 @@ export interface MockAppointment {
   /** Lo devuelto de esta cuenta. */
   refunds?: MockRefund[];
   /** Si el cliente confirmó que viene: por el enlace del mensaje o porque recepción lo marcó. */
-  confirmation?: { status: "confirmed" | "declined"; at: string; via: "link" | "reception" } | null;
+  confirmation?: { status: "confirmed" | "declined" | "reschedule_requested"; at: string; via: "link" | "reception" | "whatsapp" } | null;
   /** El token del enlace «Confirmar» del mensaje de WhatsApp. */
   confirmToken?: string;
   /** Lo que ya se descontó del inventario por esta cita (al reservarla en línea o al cobrarla). */

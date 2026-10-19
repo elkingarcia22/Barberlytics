@@ -26,6 +26,8 @@ export interface QueueItem extends SendInput {
   error: string | null;
   sentAt: string | null;
   createdBy: string;
+  /** Lo que WhatsApp dice después de aceptarlo (por el webhook): entregado o leído. */
+  delivery?: "delivered" | "read" | null;
 }
 
 /** Lo que la app ve de cada mensaje encolado. */
@@ -36,6 +38,23 @@ export interface QueueView {
   error: string | null;
   sentAt: string | null;
   attempts: number;
+  delivery: "delivered" | "read" | null;
+}
+
+/** Una respuesta del cliente que llegó por el webhook, ya clasificada. */
+export interface InboxEvent {
+  /** Orden de llegada dentro de la barbería: la app pide «lo que vino después de N». */
+  seq: number;
+  /** El id de WhatsApp del mensaje entrante (para no aplicarlo dos veces). */
+  wamid: string;
+  at: string;
+  /** El celular del cliente, solo dígitos. */
+  from: string;
+  intent: "confirm" | "reschedule" | "cancel" | "stop" | "start" | "other";
+  /** Lo que escribió o el botón que tocó, recortado. */
+  text: string;
+  /** El mensaje de la app al que responde (el id del outbox), si se sabe. */
+  messageId: string | null;
 }
 
 export interface OutboxStore {
@@ -45,6 +64,15 @@ export interface OutboxStore {
   due(now: number, limit: number): Promise<QueueItem[]>;
   /** Toma un mensaje para enviarlo; `false` si otro envío ya lo tiene (dos crons a la vez). */
   claim(item: QueueItem): Promise<boolean>;
+  /** El id de WhatsApp de lo enviado → de qué mensaje es, para entender respuestas y entregas. */
+  indexProvider(providerId: string, tid: string, id: string): Promise<void>;
+  byProvider(providerId: string): Promise<{ tid: string; id: string } | null>;
+  /** Guarda una respuesta (una sola vez por `wamid`) y le pone su número de orden. */
+  pushInbox(tid: string, event: Omit<InboxEvent, "seq">): Promise<InboxEvent | null>;
+  inbox(tid: string, after: number, limit: number): Promise<InboxEvent[]>;
+  /** Quien escribió BAJA/STOP: no recibe promociones. */
+  setOptOut(tid: string, phone: string, optedOut: boolean): Promise<void>;
+  isOptedOut(tid: string, phone: string): Promise<boolean>;
 }
 
 /** Lo que Meta cuenta como marketing: solo a quien aceptó promociones. */
@@ -62,7 +90,10 @@ const TTL_SECONDS = 60 * 86_400;
 
 const serverEnv = (): Record<string, string | undefined> => (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 
-export const viewOf = (item: QueueItem): QueueView => ({ id: item.id, status: item.status, providerId: item.providerId, error: item.error, sentAt: item.sentAt, attempts: item.attempts });
+export const viewOf = (item: QueueItem): QueueView => ({ id: item.id, status: item.status, providerId: item.providerId, error: item.error, sentAt: item.sentAt, attempts: item.attempts, delivery: item.delivery ?? null });
+
+/** Respuestas que se guardan por barbería: las más viejas se descartan (la app ya las aplicó). */
+const INBOX_KEEP = 500;
 
 // ── Almacenes ────────────────────────────────────────────────────────────────────────────────────
 
@@ -71,6 +102,9 @@ const keyOf = (tid: string, id: string) => `${tid}:${id}`;
 export function createMemoryStore(): OutboxStore {
   const items = new Map<string, QueueItem>();
   const claimed = new Set<string>();
+  const providers = new Map<string, { tid: string; id: string }>();
+  const inboxes = new Map<string, InboxEvent[]>();
+  const optOuts = new Set<string>();
   return {
     get: async (tid, id) => items.get(keyOf(tid, id)) ?? null,
     put: async (item) => {
@@ -88,6 +122,23 @@ export function createMemoryStore(): OutboxStore {
       claimed.add(key);
       return true;
     },
+    indexProvider: async (providerId, tid, id) => {
+      providers.set(providerId, { tid, id });
+    },
+    byProvider: async (providerId) => providers.get(providerId) ?? null,
+    pushInbox: async (tid, event) => {
+      const list = inboxes.get(tid) ?? [];
+      if (list.some((item) => item.wamid === event.wamid)) return null;
+      const saved: InboxEvent = { ...event, seq: (list.at(-1)?.seq ?? 0) + 1 };
+      inboxes.set(tid, [...list, saved].slice(-INBOX_KEEP));
+      return saved;
+    },
+    inbox: async (tid, after, limit) => (inboxes.get(tid) ?? []).filter((item) => item.seq > after).slice(0, limit),
+    setOptOut: async (tid, phone, optedOut) => {
+      if (optedOut) optOuts.add(keyOf(tid, phone));
+      else optOuts.delete(keyOf(tid, phone));
+    },
+    isOptedOut: async (tid, phone) => optOuts.has(keyOf(tid, phone)),
   };
 }
 
@@ -134,6 +185,47 @@ export function createUpstashStore(url: string, token: string, fetcher: Fetcher 
     claim: async (item) => {
       const [result] = await pipeline([["SET", `wa:lock:${keyOf(item.tid, item.id)}`, "1", "NX", "EX", 120]]);
       return result === "OK";
+    },
+    indexProvider: async (providerId, tid, id) => {
+      await pipeline([["SET", `wa:provider:${providerId}`, keyOf(tid, id), "EX", TTL_SECONDS]]);
+    },
+    byProvider: async (providerId) => {
+      const [raw] = await pipeline([["GET", `wa:provider:${providerId}`]]);
+      if (typeof raw !== "string") return null;
+      const split = raw.indexOf(":");
+      return split > 0 ? { tid: raw.slice(0, split), id: raw.slice(split + 1) } : null;
+    },
+    pushInbox: async (tid, event) => {
+      // Una sola vez por mensaje de WhatsApp: Meta reintenta el webhook si no contestamos a tiempo.
+      const [fresh] = await pipeline([["SET", `wa:seen:${event.wamid}`, "1", "NX", "EX", TTL_SECONDS]]);
+      if (fresh !== "OK") return null;
+      const [seq] = await pipeline([["INCR", `wa:inboxseq:${tid}`]]);
+      const saved: InboxEvent = { ...event, seq: Number(seq) };
+      await pipeline([
+        ["RPUSH", `wa:inbox:${tid}`, JSON.stringify(saved)],
+        ["LTRIM", `wa:inbox:${tid}`, -INBOX_KEEP, -1],
+      ]);
+      return saved;
+    },
+    inbox: async (tid, after, limit) => {
+      const [raws] = await pipeline([["LRANGE", `wa:inbox:${tid}`, 0, -1]]);
+      return (Array.isArray(raws) ? raws : [])
+        .map((raw) => {
+          try {
+            return JSON.parse(String(raw)) as InboxEvent;
+          } catch {
+            return null;
+          }
+        })
+        .filter((item): item is InboxEvent => item !== null && item.seq > after)
+        .slice(0, limit);
+    },
+    setOptOut: async (tid, phone, optedOut) => {
+      await pipeline([[optedOut ? "SADD" : "SREM", `wa:optout:${tid}`, phone]]);
+    },
+    isOptedOut: async (tid, phone) => {
+      const [member] = await pipeline([["SISMEMBER", `wa:optout:${tid}`, phone]]);
+      return member === 1;
     },
   };
 }
@@ -192,6 +284,10 @@ export async function enqueue(store: OutboxStore, tid: string, by: string, raws:
     if (typeof input === "string") {
       const id = raw && typeof raw === "object" && typeof (raw as { id?: unknown }).id === "string" ? (raw as { id: string }).id : null;
       result.rejected.push({ id, message: input });
+      continue;
+    }
+    if (MARKETING_KINDS.includes(input.kind) && (await store.isOptedOut(tid, input.to))) {
+      result.rejected.push({ id: input.id, message: "El cliente pidió no recibir promociones (BAJA)." });
       continue;
     }
     const existing = await store.get(tid, input.id);
@@ -273,6 +369,7 @@ export async function runDue(store: OutboxStore | null = readOutboxStore(), conf
     const status: QueueStatus = outcome.kind === "sent" ? "sent" : outcome.kind === "simulated" ? "simulated" : "failed";
     counts[status] += 1;
     await store.put({ ...item, attempts, status, providerId: outcome.id, error: outcome.message, sentAt: at });
+    if (outcome.id) await store.indexProvider(outcome.id, item.tid, item.id);
   }
   return counts;
 }

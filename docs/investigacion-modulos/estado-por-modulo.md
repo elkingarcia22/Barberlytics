@@ -1,0 +1,247 @@
+# Estado por módulo frente a la investigación
+
+Revisión del 2026-10-19 (sobre `c53ff85`). Cruza cada informe (01–17) con el código: qué recomendaciones están hechas,
+cuáles faltan (con la prioridad que les dio su informe), qué IA tiene hoy cada módulo y cuál le falta. Fuera de la IA
+genérica de Clipper.
+
+Cómo leer la columna «IA hoy»: **modelo** = llama a Claude u otro modelo; **estadística** = cálculo con datos reales
+(sin modelo); **reglas** = condiciones fijas; **etiqueta** = dice «IA» sin serlo.
+
+## Resumen
+
+| Módulo | Hecho | Pendiente más importante | IA hoy | La IA que más le sumaría |
+|---|---|---|---|---|
+| 01 Métricas | Agenda real, moneda, atajos, neto único, «Cómo te fue» | «Todas las sucursales», ocupación real, metas, Marketing real | Modelo («Cómo te fue») + reglas | Alertas de anomalías y resumen semanal por WhatsApp |
+| 02 Calendario | Confirmación, motor de mensajes, riesgo, recursos, propuestas de Clipper | Reprogramación pedida, anticipo, lista de espera priorizada, walk-ins | Estadística (riesgo) + reglas | Actuar ante el riesgo; hueco liberado que se llena solo |
+| 03 Clientes | Ficha 360, WhatsApp 1 a 1, permiso, importar, ritmo | Fotos y fórmula, etiquetas, automatizaciones, fusionar | Estadística | Mensajes redactados; perfil en 3 líneas |
+| 04 Servicios y Productos | Precio por sede, impuesto por línea, existencias, rentabilidad | Precio por nivel, add-ons, desempeño en la ficha | Estadística | Venta cruzada; reposición sugerida |
+| 05 Transacciones | Caja sin doble cobro, devoluciones, mixto, cierre, libro | Libro de solo agregar, arqueo, propinas, factura DIAN | Reglas (revisión de caja) | Explicar la diferencia de caja; pronóstico |
+| 06 Gastos | Fecha, categoría, comprobantes, estado de resultados | Periodos, categorías propias, cuentas por pagar | Ninguna | Foto → gasto; duplicados |
+| 07 Nómina | 4 errores corregidos, periodos, ajustes, renta | Quincena, comprobante PDF, dispersión, metas | Estadística + modelo («¿Por qué?») | Simulador de esquemas de comisión |
+| 08 Equipo | Portada real, ausencias, fila viva, rendimiento | Mi ficha, botones sin acción, datos bancarios, fichaje | Ninguna | Cubrir ausencias; coaching semanal |
+| 09 Configuración | Sucursales, pasarelas, recordatorios, puesta en marcha | Festivos por país, plantillas editables, horario por sede | Ninguna | Configurar conversando; auditoría con cifras |
+| 10 Reserva en línea | Cola real, zona horaria, token de tarjeta, voz | Respuestas de WhatsApp, pasarela real, reservable por agentes | Estadística + reglas + modelo (voz) | Clipper en WhatsApp; «lo de siempre» con un sí |
+| 11 Clipper | Modelo, sesión, herramientas, acciones, evaluaciones | Aviso que contradice, foco por ficha, resumen del día | Modelo | Resumen del día; núcleo compartido con la reserva |
+| 12 Acceso | Roles en servidor, código endurecido, step-up, registro | Avisos de dispositivo, invitar equipo, Google sin sesión | Ninguna | Lista de precios desde una foto |
+| 13 Avisos y ayuda | Bandeja real por rol, preferencias | Reprogramación, PWA/push, WhatsApp al dueño | Modelo (semanal) + reglas | Resumen diario por WhatsApp |
+| 14 Barbero | Neto único, Mi pago, ausencias | Mi ficha, «mis clientes por volver», metas | Modelo («¿Por qué?») | Mis clientes por volver con el mensaje listo |
+| 15 Marketing | Promoción exige permiso en la cola | STOP/BAJA, franja horaria, Marketing real, reseñas de ejemplo | Reglas + etiqueta | Reactivación automática con tope |
+| 16 Front Desk | Cobro solo por la caja, turno de barberos | Kiosco, check-in que avisa, cola de walk-ins | Reglas | Espera estimada |
+| 17 Producción y legal | Sesión firmada, cola, token de tarjeta, CSP | Backend real, cookie httpOnly, borrar/exportar cliente, contratos | Modelo con controles | Avisar que Clipper es IA; quitar «IA» de las reglas |
+
+**Cosas que se ven mal** (se corrigen el 2026-10-19, ver abajo): la pestaña «IA» de Métricas con cifras al azar, la
+«confianza alta» del asistente del Calendario sobre reglas, `AiGeneratedBadge` en reglas (crear cita, reacomodo) y el
+aviso de Clipper «Aún no hace cambios por ti».
+
+---
+
+## 01 Métricas
+
+**Pendiente**
+- P0 · «Todas las sucursales» para el dueño.
+- P0 · Pestaña «IA» con cifras al azar (`metricsTabs.ts`): «nunca han reservado» y retención del medidor de salud.
+- P1 · Utilidad del periodo dentro de Métricas (hoy solo en Gastos › Estado de resultados).
+- P1 · Re-reserva, producto/servicio, retención por cohorte a 90 días; el tipo de cliente se reparte al azar.
+- P1 · Ocupación sobre el horario real (siguen `CHAIR_SLOTS_PER_DAY` y `CHAIRS`).
+- P1 · Metas y ritmo a la meta; exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
+- P2 · Comparar sucursales, LTV por canal, vistas guardadas, Marketing real (canales y campañas al azar), borrar `features/dashboard`.
+
+**IA que falta**: alertas de anomalías con estacionalidad + resumen semanal por WhatsApp; pronóstico de la semana;
+herramientas de Clipper en las cinco pestañas; impulsores y detractores; coaching por barbero; comparación con pares.
+
+## 02 Calendario
+
+**Pendiente**
+- P0 · Estados `reschedule_requested` y `no_answer`; filtro «Sin confirmar mañana».
+- P0 · Anticipo o tarjeta en archivo con «Pedir anticipo» desde la cita.
+- P1 · Acción directa ante el riesgo (hoy es texto); WhatsApp desde la agenda (solo SMS/correo).
+- P1 · Lista de espera priorizada; cola de walk-ins con espera; buffers (`prep`) en choques y sugerencias.
+- P1 · Mover en táctil; partir `CalendarPage.tsx` (1.270 líneas); pila de deshacer.
+- P2 · Apertura y cierre del día, paleta ⌘K, precio por franja aplicado, mover citas enlazadas juntas, duración aprendida.
+
+**IA hoy**: riesgo de inasistencia (logística con pesos a mano), sugerencias, reacomodo, huecos y resumen del día
+(reglas), agendar escribiendo (expresiones regulares), propuestas de Clipper (modelo).
+**IA que falta**: acciones contra la inasistencia y guardar la respuesta para entrenar; hueco liberado → oferta
+priorizada → cita hecha; Clipper en WhatsApp; repartir la tarde de quien se va; precio por franja sugerido.
+
+## 03 Clientes
+
+**Pendiente**
+- P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple; permiso aparte para salud (solo texto).
+- P1 · Fotos y fórmula del corte; etiquetas y grupos; automatizaciones (cumpleaños, gracias, reseña); historial con
+  entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
+- P2 · Origen y referidos, motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
+
+**IA que falta**: borradores de reactivación redactados; perfil en 3 líneas; riesgo de abandono con motivos; siguiente
+mejor acción; agente de WhatsApp que deja la cita hecha; notas por voz; sentimiento de reseñas.
+
+## 04 Servicios y Productos
+
+**Pendiente**
+- P0 · `$` fijo en formularios de Equipo (servicios y compensación); grupo de impuestos por artículo (no verificado).
+- P1 · Precio y duración por nivel; add-ons; desempeño en la ficha; margen por hora en la lista; avisos de combos.
+- P2 · Proveedores y órdenes de compra, insumos por servicio, código de barras, transferencias, variantes, kits, DIAN.
+
+**IA que falta**: venta cruzada por afinidad; combos sugeridos; reposición con la agenda futura; precio por franja
+asistido; alerta de duración real; asistente de catálogo con descripciones.
+
+## 05 Transacciones
+
+**Pendiente**
+- P0 · Libro de pagos de solo agregar (anular un cobro lo borra del libro); arqueo por denominación, a ciegas, entradas y
+  salidas, cierre por turno; factura o POS electrónico DIAN; recargo por tarjeta como línea.
+- P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; propinas por medio y reparto; filtros por barbero y
+  método; cobro atómico de la visita; vendedor en la venta de mostrador; aviso de cuentas abiertas.
+- P2 · Vender paquetes y membresías en la caja; conciliación; autocobro por QR.
+
+**IA que falta**: agente de cierre que explica la diferencia; pronóstico de caja; cobro de cuentas abiertas con link;
+conciliación; propinas sugeridas.
+
+## 06 Gastos
+
+**Pendiente**
+- P0 · Valor con `$` y 2 decimales fijos; sin `PeriodNavigator` ni `from/to`; sin `dueDay`; corte por hora del dispositivo;
+  categorías cerradas.
+- P1 · Cuentas por pagar; caja menor ligada al cierre; proveedores como entidad; comprobantes en el CSV; registro de
+  cambios; ficha de solo lectura; búsqueda por proveedor.
+- P2 · Presupuestos, rentabilidad por silla, documento soporte DIAN, contabilidad, aprobación.
+
+**IA que falta**: foto → gasto; categoría que aprende por proveedor; duplicados y atípicos; CFO en Clipper; captura por
+WhatsApp; pronóstico de caja a 90 días.
+
+## 07 Nómina
+
+**Pendiente**
+- P0 (parcial) · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja.
+- P1 · Comprobante PDF y por WhatsApp; dispersión bancaria; propinas efectivo/tarjeta; clasificación laboral; exportar a
+  Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; metas; comparación con el periodo anterior.
+- P2 · Horas y recargos, PILA/IBC, nómina electrónica, bolsa de propinas, multi-sucursal.
+
+**IA que falta**: simulador de esquemas; asistente del barbero en Mi pago; metas con progreso; cumplimiento Colombia;
+pronóstico del costo de personal.
+
+## 08 Equipo
+
+**Pendiente**
+- P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro;
+  `/usuarios/lista` con el enum de la plantilla.
+- P1 · Fichaje; turnos abiertos e intercambio; metas y niveles con criterios; cambio comisión ↔ renta con fecha; estado
+  de cuenta de renta; invitación real e importación; turnos partidos.
+- P2 · Portafolio, formación, documentos firmados, ranking.
+
+**IA que falta**: agente que cubre ausencias; coaching semanal; asignación por habilidad para «sin preferencia»; reseñas
+por barbero; horas según demanda; sobrecarga.
+
+## 09 Configuración
+
+**Pendiente**
+- P0 · Paquete por país (festivos, zonas, NIT); pasarela real y Bre-B; puesta en marcha precargada y con inicio propio.
+- P1 · Plantillas de mensajes editables; horario por sucursal y por día; importar catálogo y equipo; registro de cambios;
+  integraciones (Google, Instagram); plan y facturación; búsqueda por campo.
+- P2 · Exportar todo, ajustes heredados por sucursal, preferencias en el servidor, dominio propio.
+
+**IA que falta**: configurar conversando con borrador; importación asistida; auditoría con cifras propias; redactor de
+políticas; búsqueda en lenguaje natural.
+
+## 10 Reserva en línea
+
+**Pendiente**
+- P0 · Pasarela real, Bre-B; **leer las respuestas de WhatsApp** (se hace el 2026-10-19); contrato de `phone/check`.
+- P1 · Versión elegida por barbería y embudo por versión; cliente de confianza sin anticipo y cargo por inasistencia;
+  `surge`, promos y populares fijos; JSON-LD, `llms.txt`, Reserva con Google, Instagram, Wallet; modelo detrás de
+  `interpret`; partir archivos grandes.
+- P2 · Referidos, MCP público, reglas de lista de espera, recepcionista por voz, prueba virtual.
+
+**IA que falta**: Clipper en WhatsApp; «lo de siempre» con un sí; reservable por agentes; riesgo que ajusta anticipo y
+recordatorios; foto de referencia descrita; horas y barbero recomendados.
+
+## 11 Clipper
+
+**Pendiente**
+- P0 · Correr la evaluación con clave real; caducidad del historial; aviso «Aún no hace cambios por ti» (se corrige);
+  cupos compartidos (hoy en memoria).
+- P1 · Un solo núcleo con la reserva; foco por cliente, barbero, nómina y métricas; resumen del día; conversación por voz;
+  historial en el servidor.
+- P2 · WhatsApp entrante, notas por voz, recepcionista telefónico, MCP para el dueño, cupo de IA en la facturación.
+
+## 12 Acceso y puesta en marcha
+
+**Pendiente**
+- P0 · «Ver como» de solo lectura (no verificado); cuenta regresiva y desbloqueo con correo; avisos de nuevo dispositivo;
+  el registro no abre sesión y no detecta celular repetido.
+- P1 · Invitar al equipo por WhatsApp; importar catálogo, equipo y citas; código por WhatsApp; cambiar número; passkeys;
+  sesiones y dispositivos; modo tablet con PIN; cookie `httpOnly`; sesión firmada con Google y Microsoft.
+
+**IA que falta**: lista de precios desde una foto; puesta en marcha conversacional; «qué te falta para abrir» redactado.
+
+## 13 Avisos y ayuda
+
+**Pendiente**
+- P0 · Evento «reprogramación»; WhatsApp fallido con «llamar / reintentar».
+- P1 · PWA y push; WhatsApp al dueño; preferencias por persona; ⌘K sobre datos; ayuda por pantalla; «¿Te sirvió?» en el
+  servidor; Centro de procesos con trabajos del servidor.
+
+**IA que falta**: resumen diario por WhatsApp; prioridad y agrupación; ayuda que sabe la pantalla; explicar un descuadre.
+
+## 14 Experiencia del barbero
+
+**Pendiente**
+- P0 (parcial) · «Hoy» en el celular muestra lo cobrado, no lo que gana.
+- P1 · Quincena; % de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
+  certificado; avisos de dinero; «Esto no cuadra»; Mi ficha.
+
+**IA que falta**: mis clientes por volver con mensaje aprobado; resumen semanal con una acción; lo que dicen de mí;
+revisión de su pago.
+
+## 15 Marketing y fidelización
+
+**Pendiente**
+- P0 · STOP/BAJA por webhook (se hace el 2026-10-19); franja horaria y tope mensual; Métricas › Marketing al azar; reseñas
+  de ejemplo en la reserva pública; tarjeta de regalo sin envío; membresía fija en el panel de la cita.
+- P1 · Campañas, automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos, correo.
+
+**IA que falta**: reactivación automática con tope y hora habitual; texto de campaña; segmentos sugeridos; clasificador de
+respuestas; retorno por canal con UTM.
+
+## 16 Front Desk
+
+**Pendiente**
+- P0 · Kiosco por sede; check-in que avisa (`clientArrived`); `phone/check` sin perfil; cola de walk-ins; la cita nueva
+  cae en la primera sucursal; el walk-in nace «programado»; `waitlistJoined` sin emitir.
+- P1 · «Ya casi te toca», QR de fila, pantalla `/turnos`, PIN del personal, terminal, propina en pantalla, idioma grande.
+
+**IA que falta**: espera estimada; «¿hay turno?» por WhatsApp; afluencia del día; barbero sugerido para el walk-in.
+
+## 17 Paso a producción y legal
+
+**Pendiente**
+- P0 · Backend real con `tenant_id` y RLS; cookie `httpOnly`; pasarela real; horarios legales y STOP/HELP; permiso de
+  salud; paquete legal y DPA; borrar y exportar cliente; voz con plan pago; Sentry, copias, PITR; aviso de privacidad CO.
+- P1 · Límites compartidos; archivos privados; auditoría; DIAN; 10DLC; entornos; cuenta bancaria enmascarada; insignias
+  «IA» sobre reglas; Clipper se presenta como IA; accesibilidad con axe; retención.
+
+---
+
+## Hecho el 2026-10-19 después de esta revisión
+
+Se va completando aquí lo que se corrige a partir de esta lista.
+
+- **Lo que se veía mal.**
+  - Métricas › «IA» pasó a llamarse «Sugerencias», y la retención, las fichas sin visita y el ritmo medio salen de los datos.
+  - `AIInsightCard` ya no muestra «confianza alta» por defecto.
+  - Sin `AiGeneratedBadge` en las sugerencias de hora ni en el reacomodo.
+  - Clipper se presenta como asistente de IA y dice que los cambios se aplican solo con aprobación (01, 02, 11, 17).
+- **Respuestas de WhatsApp (02 P0, 10 P0, 13 P0, 15 P0).**
+  - Webhook firmado (`/api/whatsapp/webhook`) que clasifica con reglas: confirmar, otra hora, no puede, BAJA/STOP, ALTA y otra cosa.
+  - BAJA bloquea las promociones en el servidor. Los estados entregado y leído quedan en el mensaje, y un fallo después de aceptado lo marca fallido.
+  - Bandeja por barbería (`/api/whatsapp/inbox`) que la app aplica:
+    - la cita queda confirmada, «pidió otra hora» (`reschedule_requested`) o «no puede venir» (`declined`), con marca en la tarjeta e historial;
+    - BAJA retira el permiso del cliente;
+    - lo que hay que resolver avisa a recepción (`whatsappReply`).
+  - «Cancelar» no cancela sola la cita: recepción decide.
+  - En la demo, «Simular respuesta del cliente» en la cita.
+  - Falta:
+    - las plantillas con botones aprobadas en Meta;
+    - mover la cita desde la respuesta en un toque;
+    - reflejar «entregado/leído» en la pantalla;
+    - el filtro «Sin confirmar mañana».

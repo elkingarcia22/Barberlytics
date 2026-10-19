@@ -39,6 +39,23 @@ export const appointmentMessageSchema = z.object({
 });
 export type AppointmentMessage = z.infer<typeof appointmentMessageSchema>;
 
+/** Lo que respondió el cliente por WhatsApp, ya clasificado por el servidor. */
+export const replyIntentSchema = z.enum(["confirm", "reschedule", "cancel", "stop", "start", "other"]);
+export type ReplyIntent = z.infer<typeof replyIntentSchema>;
+export const appointmentReplySchema = z.object({ id: z.string(), at: z.string(), intent: replyIntentSchema, text: z.string() });
+export type AppointmentReply = z.infer<typeof appointmentReplySchema>;
+
+export const REPLY_INTENT_KEYS: Readonly<Record<ReplyIntent, AppMessageKey>> = {
+  confirm: "calendar.messages.intent.confirm",
+  reschedule: "calendar.messages.intent.reschedule",
+  cancel: "calendar.messages.intent.cancel",
+  stop: "calendar.messages.intent.stop",
+  start: "calendar.messages.intent.start",
+  other: "calendar.messages.intent.other",
+};
+
+const messagesListSchema = z.object({ items: z.array(appointmentMessageSchema), replies: z.array(appointmentReplySchema).default([]) });
+
 const dispatchSchema = z.object({ sent: z.number(), simulated: z.number(), failed: z.number() });
 
 /** Lo que el equipo manda desde el panel de la cita: el recibo o el enlace para reagendar, por SMS o correo. */
@@ -52,10 +69,21 @@ export interface SendToClientInput {
 const sentSchema = z.object({ channel: z.enum(["email", "sms"]), to: z.string() });
 
 export const messagesApi = {
-  list: (appointmentId: string, signal?: AbortSignal) => api.get<{ items: AppointmentMessage[] }>(`/appointments/${appointmentId}/messages`, { schema: z.object({ items: z.array(appointmentMessageSchema) }), signal }),
+  list: (appointmentId: string, signal?: AbortSignal) => api.get<z.infer<typeof messagesListSchema>>(`/appointments/${appointmentId}/messages`, { schema: messagesListSchema, signal }),
   send: (appointmentId: string, input: SendToClientInput) => api.post<z.infer<typeof sentSchema>>(`/appointments/${appointmentId}/messages`, input, { schema: sentSchema }),
+  /** Solo en la demo: como si el cliente respondiera por WhatsApp. */
+  simulateReply: (appointmentId: string, intent: ReplyIntent) => api.post<unknown>(`/appointments/${appointmentId}/simulate-reply`, { intent }),
   dispatch: () => api.post<z.infer<typeof dispatchSchema>>("/messages/dispatch", {}, { schema: dispatchSchema }),
 };
+
+/** Demo: simular la respuesta del cliente refresca la cita (su confirmación) y sus mensajes. */
+export function useSimulateReply(appointmentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (intent: ReplyIntent) => messagesApi.simulateReply(appointmentId, intent),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ["messages", appointmentId] }), queryClient.invalidateQueries({ queryKey: ["calendar"] }), queryClient.invalidateQueries({ queryKey: ["notifications"] })]),
+  });
+}
 
 export function useAppointmentMessages(appointmentId: string, enabled: boolean) {
   return useQuery({ queryKey: ["messages", appointmentId], queryFn: ({ signal }) => messagesApi.list(appointmentId, signal), enabled });

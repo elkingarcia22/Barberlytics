@@ -74,7 +74,7 @@ export function InsightsDashboard({ data }: { data: MetricsInsights }) {
           caption={t("metrics.insights.healthCaption")}
           hint={t("metrics.insights.healthHint")}
           tone={data.health.score >= 80 ? "positive" : data.health.score >= 50 ? "warning" : "negative"}
-          icon="sparkles"
+          icon="dashboard"
           chart={<MetricDial value={data.health.score} ariaLabel={`${data.health.score} / 100`} />}
         />
         <MetricCard label={t("metrics.insights.completion")} value={format.percent(data.health.completionRate)} tone={data.health.completionRate >= 70 ? "positive" : "warning"} icon="check" />

@@ -37,9 +37,19 @@ export interface ExpensesSummary {
   fixedShare: number;
 }
 
-export function summarizeExpenses(expenses: readonly Expense[], now = new Date()): ExpensesSummary {
+/** ¿Estuvo vivo en el mes «AAAA-MM»? Un variable, si se gastó en él; un fijo, si corría algún día del mes. */
+export function activeInMonth(expense: Pick<Expense, "kind" | "date" | "createdAt" | "endDate">, month: string): boolean {
+  const from = `${month}-01`;
+  const to = `${month}-31`;
+  const start = expenseDateOf(expense);
+  if (expense.kind === "variable") return start >= from && start <= to;
+  return start <= to && (!expense.endDate || expense.endDate >= from);
+}
+
+/** `now`: un día del mes que se resume; `today`: desde cuándo un fijo terminado deja de pesar. */
+export function summarizeExpenses(expenses: readonly Expense[], now = new Date(), today?: string): ExpensesSummary {
   /* Un fijo terminado ya no pesa en el mes que viene. */
-  const fixed = expenses.filter((expense) => expense.kind === "fixed" && !isEnded(expense));
+  const fixed = expenses.filter((expense) => expense.kind === "fixed" && !isEnded(expense, today));
   const variable = expenses.filter((expense) => expense.kind === "variable");
   const fixedMonthly = round(fixed.reduce((sum, expense) => sum + (monthlyEquivalent(expense) ?? 0), 0));
   const thisMonth = variable.filter((expense) => sameMonth(expenseDateOf(expense), now));

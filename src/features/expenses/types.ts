@@ -39,7 +39,10 @@ export const expenseSchema = z.object({
   date: z.string().optional(),
   /** Un fijo terminado deja de contar desde el día siguiente. */
   endDate: z.string().nullable().optional(),
-  categoryId: expenseCategorySchema.optional(),
+  /** Una de las de siempre (`expenseCategorySchema`) o una propia de la barbería (`cat_…`). */
+  categoryId: z.string().optional(),
+  /** En los fijos: qué día del mes se paga. */
+  dueDay: z.number().nullable().optional(),
   paymentMethod: expensePaymentMethodSchema.nullable().optional(),
   supplier: z.string().optional(),
   attachments: z.array(expenseAttachmentSchema).optional(),
@@ -59,7 +62,8 @@ export const expenseInputSchema = z
     frequency: expenseFrequencySchema.nullable(),
     description: z.string().trim(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expenses.form.error.date"),
-    categoryId: expenseCategorySchema,
+    categoryId: z.string().min(1),
+    dueDay: z.number().int().min(1, "expenses.form.error.dueDay").max(31, "expenses.form.error.dueDay").nullable(),
     paymentMethod: expensePaymentMethodSchema.nullable(),
     supplier: z.string().trim(),
     attachments: z.array(expenseAttachmentSchema).max(MAX_EXPENSE_ATTACHMENTS),
@@ -84,7 +88,8 @@ export const expenseDateOf = (expense: Pick<Expense, "date" | "createdAt">): str
 /** Un fijo que ya se terminó (su fin es anterior a hoy) no cuenta para lo que viene. */
 export const isEnded = (expense: Pick<Expense, "endDate">, today = todayKey()): boolean => Boolean(expense.endDate && expense.endDate < today);
 
-export const emptyExpenseInput = (kind: ExpenseKind): ExpenseInput => ({ kind, name: "", amount: Number.NaN, frequency: kind === "fixed" ? "monthly" : null, description: "", date: todayKey(), categoryId: kind === "fixed" ? "rent" : "supplies", paymentMethod: null, supplier: "", attachments: [] });
+/** `today`: el día de hoy en la sucursal (su zona); sin él, el del dispositivo. */
+export const emptyExpenseInput = (kind: ExpenseKind, today = todayKey()): ExpenseInput => ({ kind, name: "", amount: Number.NaN, frequency: kind === "fixed" ? "monthly" : null, description: "", date: today, categoryId: kind === "fixed" ? "rent" : "supplies", dueDay: null, paymentMethod: null, supplier: "", attachments: [] });
 
 export const inputFromExpense = (expense: Expense): ExpenseInput => ({
   kind: expense.kind,
@@ -94,6 +99,7 @@ export const inputFromExpense = (expense: Expense): ExpenseInput => ({
   description: expense.description,
   date: expenseDateOf(expense),
   categoryId: expense.categoryId ?? "other",
+  dueDay: expense.dueDay ?? null,
   paymentMethod: expense.paymentMethod ?? null,
   supplier: expense.supplier ?? "",
   attachments: expense.attachments ?? [],
@@ -112,6 +118,20 @@ export const CATEGORY_KEYS: Readonly<Record<ExpenseCategory, AppMessageKey>> = {
   taxes: "expenses.category.taxes",
   other: "expenses.category.other",
 };
+
+/** Una categoría propia de la barbería. */
+export const customCategorySchema = z.object({ id: z.string(), name: z.string(), createdAt: z.string() });
+export type CustomCategory = z.infer<typeof customCategorySchema>;
+export const categoriesResponseSchema = z.object({ defaults: z.array(z.string()), custom: z.array(customCategorySchema) });
+
+const isDefaultCategory = (id: string): id is ExpenseCategory => expenseCategorySchema.safeParse(id).success;
+
+/** El nombre de una categoría: la de siempre, traducida; la propia, como la escribió la barbería; si ya no existe, «Otros». */
+export function categoryLabel(t: (key: AppMessageKey) => string, id: string | undefined, custom: readonly CustomCategory[]): string {
+  const value = id ?? "other";
+  if (isDefaultCategory(value)) return t(CATEGORY_KEYS[value]);
+  return custom.find((item) => item.id === value)?.name ?? t(CATEGORY_KEYS.other);
+}
 
 export const PAYMENT_METHOD_KEYS: Readonly<Record<ExpensePaymentMethod, AppMessageKey>> = { cash: "expenses.method.cash", bank: "expenses.method.bank", card: "expenses.method.card", wallet: "expenses.method.wallet" };
 

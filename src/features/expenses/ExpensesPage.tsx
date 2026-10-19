@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CalendarOff, CalendarSync, Download, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { CalendarOff, CalendarSync, ChevronLeft, ChevronRight, Download, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -25,11 +25,12 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { IncomeStatementView } from "./IncomeStatementView";
-import { monthKey } from "./income";
+import { shiftMonth } from "./income";
+import { useBranchToday } from "@/features/branches";
 import { ALL, expenseCells, expenseColumns, expensesCsvRows, parseCategory, parseKind } from "./expensesHome";
 import { ExpenseGlyph, ExpenseKindBadge } from "./expensesShared";
-import { monthlyEquivalent, summarizeExpenses } from "./expensesUtils";
-import { useEndExpense, useExpensesQuery, useRemoveExpense } from "./queries";
+import { activeInMonth, monthlyEquivalent, summarizeExpenses } from "./expensesUtils";
+import { useEndExpense, useExpenseCategories, useExpensesQuery, useRemoveExpense } from "./queries";
 import { CATEGORY_KEYS, FREQUENCY_KEYS, expenseCategorySchema, isEnded, type Expense, type ExpenseKind } from "./types";
 
 const PAGE_SIZE = 10;
@@ -62,7 +63,8 @@ export function ExpensesPage() {
   const canSeeIncome = ownerMemberId === null && access.can("payroll") && access.can("transactions");
   const view = canSeeIncome && searchParams.get("vista") === "resultado" ? "income" : "expenses";
   const monthParam = searchParams.get("mes") ?? "";
-  const month = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : monthKey(new Date());
+  const today = useBranchToday();
+  const month = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : today.slice(0, 7);
   const setParam = (key: string, value: string | null) =>
     setSearchParams(
       (current) => {
@@ -111,7 +113,7 @@ export function ExpensesPage() {
             </div>
           }
         >
-          {(data) => <ExpensesHome expenses={data.items} branchId={branchId} ownerMemberId={ownerMemberId} />}
+          {(data) => <ExpensesHome expenses={data.items} branchId={branchId} ownerMemberId={ownerMemberId} month={month} today={today} onMonthChange={(next) => setParam("mes", next === today.slice(0, 7) ? null : next)} />}
         </QueryBoundary>
       )}
     </div>
@@ -120,7 +122,18 @@ export function ExpensesPage() {
 
 type Drawer = { kind: "create"; of: ExpenseKind } | { kind: "edit"; expense: Expense };
 
-function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonly Expense[]; branchId: string; ownerMemberId: string | null }) {
+interface ExpensesHomeProps {
+  expenses: readonly Expense[];
+  branchId: string;
+  ownerMemberId: string | null;
+  /** «AAAA-MM»: el mes que se mira (en la URL, `?mes=`). */
+  month: string;
+  /** Hoy en la sucursal (su zona). */
+  today: string;
+  onMonthChange: (month: string) => void;
+}
+
+function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, today, onMonthChange }: ExpensesHomeProps) {
   const t = useAppT();
   const access = useAccess();
   const canCreate = access.can("expenses", "create");
@@ -131,6 +144,13 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   const [searchParams, setSearchParams] = useSearchParams();
   const remove = useRemoveExpense();
   const end = useEndExpense();
+  const categoriesQuery = useExpenseCategories();
+  const customCategories = React.useMemo(() => categoriesQuery.data?.custom ?? [], [categoriesQuery.data]);
+  // El mes que se mira: los variables de ese mes y los fijos que corrían en él.
+  const expenses = React.useMemo(() => allExpenses.filter((expense) => activeInMonth(expense, month)), [allExpenses, month]);
+  const isCurrentMonth = month >= today.slice(0, 7);
+  const rawLabel = formatDate(new Date(`${month}-15T12:00:00`), { month: "long", year: "numeric" });
+  const monthLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
 
   const kind = parseKind(searchParams.get("tipo"));
   const category = parseCategory(searchParams.get("categoria"));
@@ -165,14 +185,18 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
   const railOwnsActions = actionsPlacement === "rail";
 
-  const summary = React.useMemo(() => summarizeExpenses(expenses), [expenses]);
+  // El resumen del mes, con los variables del mes anterior para comparar.
+  const summary = React.useMemo(() => {
+    const previous = allExpenses.filter((expense) => expense.kind === "variable" && activeInMonth(expense, shiftMonth(month, -1)));
+    return summarizeExpenses([...expenses, ...previous], new Date(`${month}-15T12:00:00`), isCurrentMonth ? today : `${month}-01`);
+  }, [allExpenses, expenses, month, isCurrentMonth, today]);
   const filtered = React.useMemo(() => expenses.filter((expense) => (kind === ALL || expense.kind === kind) && (category === null || (expense.categoryId ?? "other") === category)), [expenses, kind, category]);
   const countOf = (of: ExpenseKind) => expenses.filter((expense) => expense.kind === of).length;
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
 
   const columns = React.useMemo(() => expenseColumns(t), [t]);
   /* Sin permiso de editar, abrir un gasto no lleva al formulario. */
-  const cells = React.useMemo(() => expenseCells(t, { formatMoney, formatDate, onOpen: (expense) => canEdit && setDrawer({ kind: "edit", expense }) }), [t, formatMoney, formatDate, canEdit]);
+  const cells = React.useMemo(() => expenseCells(t, { formatMoney, formatDate, onOpen: (expense) => canEdit && setDrawer({ kind: "edit", expense }), customCategories }), [t, formatMoney, formatDate, canEdit, customCategories]);
 
   const single = selected.size === 1 ? expenses.find((expense) => expense.id === [...selected][0]) : undefined;
   /* Al registrar, el tipo arranca en lo que se está mirando: en la pestaña de variables, un variable. */
@@ -182,7 +206,7 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
   const endFixed = React.useCallback(
     (expense: Expense) =>
       end.mutate(
-        { id: expense.id, endDate: new Date().toISOString().slice(0, 10) },
+        { id: expense.id, endDate: today },
         {
           onSuccess: () => {
             toast.success(t("expenses.end.done"), { description: expense.name });
@@ -191,12 +215,12 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
           onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
         }
       ),
-    [end, t]
+    [end, t, today]
   );
   const exportCsv = React.useCallback(() => {
-    const csv = expensesCsvRows(t, filtered);
-    downloadCsv(`gastos-${branchId}-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(csv.header, csv.rows));
-  }, [t, filtered, branchId]);
+    const csv = expensesCsvRows(t, filtered, customCategories);
+    downloadCsv(`gastos-${branchId}-${month}.csv`, toCsv(csv.header, csv.rows));
+  }, [t, filtered, branchId, month, customCategories]);
 
   /* Cada acción, solo si el rol tiene esa casilla de `expenses`. */
   const actions = React.useMemo<readonly RailActionSpec[]>(
@@ -216,7 +240,7 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
     <ExpenseFormDrawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} expense={drawer?.kind === "edit" ? drawer.expense : null} kind={drawer?.kind === "create" ? drawer.of : "fixed"} branchId={branchId} ownerMemberId={ownerMemberId} />
   );
 
-  if (expenses.length === 0) {
+  if (allExpenses.length === 0) {
     return (
       <>
         <EmptyState
@@ -238,6 +262,15 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
 
   return (
     <>
+      <div className="mb-stack flex shrink-0 items-center gap-2" role="group" aria-label={t("expenses.monthAria")} data-testid="expenses-month">
+        <Button variant="outline" size="icon-sm" onClick={() => onMonthChange(shiftMonth(month, -1))} aria-label={t("metrics.period.previous")}>
+          <ChevronLeft />
+        </Button>
+        <span className="min-w-36 text-center text-sm font-medium text-text-primary">{monthLabel}</span>
+        <Button variant="outline" size="icon-sm" onClick={() => onMonthChange(shiftMonth(month, 1))} disabled={isCurrentMonth} aria-label={t("metrics.period.next")}>
+          <ChevronRight />
+        </Button>
+      </div>
       <section aria-label={t("expenses.summaryAria")} className="mb-section shrink-0">
         <React.Suspense
           fallback={
@@ -293,6 +326,11 @@ function ExpensesHome({ expenses, branchId, ownerMemberId }: { expenses: readonl
             {expenseCategorySchema.options.map((option) => (
               <SelectItem key={option} value={option}>
                 {t(CATEGORY_KEYS[option])}
+              </SelectItem>
+            ))}
+            {customCategories.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.name}
               </SelectItem>
             ))}
           </SelectContent>

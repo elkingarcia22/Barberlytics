@@ -14,7 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { monthlyEquivalent } from "./expensesUtils";
-import { useCreateExpense, useUpdateExpense } from "./queries";
+import { useCreateExpense, useCreateExpenseCategory, useExpenseCategories, useUpdateExpense } from "./queries";
+import { useAccess } from "@/features/access";
+import { useBranchToday, useCurrencyInput } from "@/features/branches";
 import {
   CATEGORY_KEYS,
   EXPENSE_KIND_KEYS,
@@ -30,7 +32,6 @@ import {
   inputFromExpense,
   type Expense,
   type ExpenseAttachment,
-  type ExpenseCategory,
   type ExpenseFrequency,
   type ExpenseInput,
   type ExpenseKind,
@@ -97,6 +98,9 @@ export function ExpenseFormDrawer({ open, onOpenChange, expense = null, kind = "
   );
 }
 
+/** La opción del selector que abre «Nueva categoría». */
+const NEW_CATEGORY = "__nueva";
+
 interface ExpenseFormBodyProps {
   expense: Expense | null;
   kind: ExpenseKind;
@@ -113,7 +117,14 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
   const formatMoney = useMoney();
   const create = useCreateExpense(branchId, ownerMemberId);
   const update = useUpdateExpense();
-  const [draft, setDraft] = React.useState<ExpenseInput>(() => (expense ? inputFromExpense(expense) : emptyExpenseInput(kind)));
+  // La moneda y el «hoy» son los de la sucursal: ni un `$` fijo ni el día del dispositivo.
+  const money = useCurrencyInput();
+  const today = useBranchToday();
+  const access = useAccess();
+  const customCategories = useExpenseCategories().data?.custom ?? [];
+  const createCategory = useCreateExpenseCategory();
+  const [newCategory, setNewCategory] = React.useState<string | null>(null);
+  const [draft, setDraft] = React.useState<ExpenseInput>(() => (expense ? inputFromExpense(expense) : emptyExpenseInput(kind, today)));
   const [errors, setErrors] = React.useState<Errors>({});
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -196,7 +207,7 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
 
       <div className={isFixed ? "grid gap-4 sm:grid-cols-2" : undefined}>
         <Field label={t("expenses.form.amount")} required error={message(errors.amount)}>
-          <NumberField value={Number.isFinite(draft.amount) ? draft.amount : null} onValueChange={(value) => set("amount", value ?? Number.NaN)} min={0} precision={2} prefix="$" aria-invalid={!!errors.amount} data-testid="expense-form-amount" />
+          <NumberField value={Number.isFinite(draft.amount) ? draft.amount : null} onValueChange={(value) => set("amount", value ?? Number.NaN)} min={0} precision={money.decimals} prefix={money.symbol} aria-invalid={!!errors.amount} data-testid="expense-form-amount" />
         </Field>
         {isFixed && (
           <Field label={t("expenses.form.frequency")} required error={message(errors.frequency)} description={frequencyHint}>
@@ -216,12 +227,18 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
         )}
       </div>
 
+      {isFixed && (
+        <Field label={t("expenses.form.dueDay")} description={t("expenses.form.dueDayHint")} error={message(errors.dueDay)}>
+          <NumberField value={draft.dueDay} onValueChange={(value) => set("dueDay", value === null ? null : Math.round(value))} min={1} max={31} step={1} size="sm" data-testid="expense-form-due-day" />
+        </Field>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t(isFixed ? "expenses.form.startDate" : "expenses.form.date")} required error={message(errors.date)}>
           <Input type="date" value={draft.date} onChange={(event) => set("date", event.target.value)} aria-invalid={!!errors.date} data-testid="expense-form-date" />
         </Field>
         <Field label={t("expenses.form.category")} required>
-          <Select value={draft.categoryId} onValueChange={(value) => set("categoryId", value as ExpenseCategory)}>
+          <Select value={draft.categoryId} onValueChange={(value) => (value === NEW_CATEGORY ? setNewCategory("") : set("categoryId", value))}>
             <SelectTrigger data-testid="expense-form-category">
               <SelectValue />
             </SelectTrigger>
@@ -231,8 +248,36 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
                   {t(CATEGORY_KEYS[option])}
                 </SelectItem>
               ))}
+              {customCategories.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.name}
+                </SelectItem>
+              ))}
+              {(access.role === "owner" || access.role === "admin") && <SelectItem value={NEW_CATEGORY}>{t("expenses.form.newCategory")}</SelectItem>}
             </SelectContent>
           </Select>
+          {newCategory !== null && (
+            <div className="mt-2 flex gap-2">
+              <Input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} maxLength={40} placeholder={t("expenses.form.newCategoryPlaceholder")} autoFocus data-testid="expense-form-new-category" />
+              <Button
+                type="button"
+                size="sm"
+                disabled={newCategory.trim().length < 2 || createCategory.isPending}
+                onClick={() =>
+                  createCategory.mutate(newCategory.trim(), {
+                    onSuccess: (created) => {
+                      set("categoryId", created.id);
+                      setNewCategory(null);
+                    },
+                    onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+                  })
+                }
+                data-testid="expense-form-new-category-save"
+              >
+                {t("expenses.form.newCategorySave")}
+              </Button>
+            </div>
+          )}
         </Field>
         <Field label={t("expenses.form.supplier")}>
           <Input value={draft.supplier} onChange={(event) => set("supplier", event.target.value)} maxLength={80} autoComplete="off" data-testid="expense-form-supplier" />

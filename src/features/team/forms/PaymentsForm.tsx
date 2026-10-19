@@ -2,10 +2,9 @@ import * as React from "react";
 import { Eye, EyeOff, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
-import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { useBranchCurrency } from "@/features/branches";
+import { useCurrencyInput } from "@/features/branches";
 import { useRevealBank } from "../queries";
 import { Field, NumberField } from "@/components/forms";
 import { Input } from "@/components/ui/input";
@@ -30,16 +29,9 @@ const DEDUCTIONS = [
   { key: "noPreferenceDeduction", labelKey: "teamMember.payments.noPreferenceDeduction" },
 ] as const;
 
-/** El símbolo de la moneda de la sucursal («$», «€», «COP»), no un `$` fijo. */
-function useCurrencySymbol(): string {
-  const currency = useBranchCurrency();
-  const { current } = useLocale();
-  return React.useMemo(() => new Intl.NumberFormat(current.intl, { style: "currency", currency, currencyDisplay: "narrowSymbol" }).formatToParts(0).find((part) => part.type === "currency")?.value ?? currency, [currency, current.intl]);
-}
-
 export function PaymentsForm({ value, onChange, errors = {} }: PaymentsFormProps) {
   const t = useAppT();
-  const symbol = useCurrencySymbol();
+  const { symbol } = useCurrencyInput();
   const set = <K extends keyof Payments>(key: K, next: Payments[K]) => onChange({ ...value, [key]: next });
   return (
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]" data-testid="payments-form">

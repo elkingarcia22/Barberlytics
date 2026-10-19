@@ -1,9 +1,10 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { forbidden, isBarber, sessionOf } from "../session";
+import { forbidden, isBarber, isManager, sessionOf } from "../session";
+import { countTotal } from "@/features/transactions/denominations";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
-import type { MockRegisterClosure } from "./state";
+import type { MockCashMovement, MockRegisterClosure } from "./state";
 
 /**
  * El cierre de caja de una sucursal y un día. Reproduce docs/API_CONTRACT.md (sección «Caja»).
@@ -49,6 +50,9 @@ export interface RegisterExpected {
   accounts: number;
   /** El efectivo que cobraron los barberos de renta: es de ellos y no entra al cajón. */
   renterCash: number;
+  /** Entradas y salidas de efectivo del día que no son cobros (ya sumadas o restadas en `cash`). */
+  movementsIn: number;
+  movementsOut: number;
 }
 
 const isRenter = (barberId: string): boolean => db.team.members.find((member) => member.id === barberId)?.role === "barbero-renta";
@@ -81,6 +85,9 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
       else if (refund.to === "card") totals.refundsCard += refund.amount;
     }
   }
+  const movements = movementsOf(branchId, date);
+  const movementsIn = round(movements.filter((item) => item.type === "in").reduce((sum, item) => sum + item.amount, 0));
+  const movementsOut = round(movements.filter((item) => item.type === "out").reduce((sum, item) => sum + item.amount, 0));
   for (const sale of db.calendar.sales.filter((item) => item.branchId === branchId && dateKey(new Date(item.paidAt)) === date)) {
     totals.accounts += 1;
     if (sale.method === "cash") totals.cash += sale.total;
@@ -88,7 +95,7 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
     else totals.card += sale.total;
   }
   return {
-    cash: round(totals.cash - totals.refundsCash),
+    cash: round(totals.cash - totals.refundsCash + movementsIn - movementsOut),
     card: round(totals.card - totals.refundsCard),
     link: round(totals.link),
     online: round(totals.online),
@@ -96,8 +103,12 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
     refundsCard: round(totals.refundsCard),
     accounts: totals.accounts,
     renterCash: round(totals.renterCash),
+    movementsIn,
+    movementsOut,
   };
 }
+
+const movementsOf = (branchId: string, date: string): MockCashMovement[] => (db.register?.movements ?? []).filter((item) => item.branchId === branchId && item.date === date);
 
 const closureOf = (branchId: string, date: string): MockRegisterClosure | undefined => (db.register?.closures ?? []).find((item) => item.branchId === branchId && item.date === date);
 
@@ -109,7 +120,36 @@ export const registerHandlers = [
     const branchId = params.get("branchId") ?? "";
     const date = params.get("date") ?? "";
     if (!branchId || !DAY_KEY.test(date)) return error(422, "validation", "Falta la sucursal o la fecha no es válida.");
-    return HttpResponse.json({ branchId, date, expected: expectedOf(branchId, date), closure: closureOf(branchId, date) ?? null });
+    const closure = closureOf(branchId, date) ?? null;
+    const expected = expectedOf(branchId, date);
+    // A ciegas: quien cuenta sin gestionar (recepción) no ve el efectivo esperado hasta cerrar.
+    const blind = !closure && !isManager(sessionOf(request)!);
+    return HttpResponse.json({ branchId, date, blind, expected: blind ? { ...expected, cash: null } : expected, closure, movements: movementsOf(branchId, date) });
+  }),
+
+  // Una entrada o salida de efectivo del cajón que no es un cobro: queda con quién y por qué, y mueve lo esperado.
+  http.post(`${BASE}/register/movements`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (isBarber(sessionOf(request)!)) return forbidden("El cajón lo mueven recepción, el administrador o el dueño.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const branchId = text(input.branchId);
+    const date = text(input.date);
+    const type = input.type === "in" || input.type === "out" ? input.type : null;
+    const amount = Number(input.amount);
+    const reason = text(input.reason).slice(0, MAX_NOTE);
+    const fields: Record<string, string[]> = {};
+    if (!branchId || !DAY_KEY.test(date)) fields.date = ["Falta la sucursal o la fecha no es válida."];
+    if (!type) fields.type = ["Elige si entra o sale."];
+    if (!Number.isFinite(amount) || amount <= 0) fields.amount = ["Escribe cuánto."];
+    if (reason.length < 3) fields.reason = ["Di por qué."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    if (closureOf(branchId, date)) return error(409, "conflict", "La caja de ese día ya está cerrada.");
+    const movement: MockCashMovement = { id: `mov_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, branchId, date, type: type!, amount: round(amount), reason, at: new Date().toISOString(), by: account.user.name };
+    db.register = { closures: db.register?.closures ?? [], movements: [...(db.register?.movements ?? []), movement] };
+    db.persist();
+    return HttpResponse.json(movement, { status: 201 });
   }),
 
   http.post(`${BASE}/register/close`, async ({ request }) => {
@@ -121,7 +161,9 @@ export const registerHandlers = [
     const branchId = text(input.branchId);
     const date = text(input.date);
     const opening = Number(input.opening);
-    const counted = Number(input.counted);
+    // Contado por denominación: el servidor vuelve a sumar (no se confía en el total que manda la pantalla).
+    const denominations = input.denominations && typeof input.denominations === "object" ? Object.fromEntries(Object.entries(input.denominations as Record<string, unknown>).filter(([value, count]) => Number(value) > 0 && Number.isInteger(count) && (count as number) >= 0).map(([value, count]) => [value, count as number])) : null;
+    const counted = denominations ? countTotal(denominations) : Number(input.counted);
     const fields: Record<string, string[]> = {};
     if (!branchId) fields.branchId = ["Falta la sucursal."];
     if (!DAY_KEY.test(date)) fields.date = ["La fecha no es válida."];
@@ -132,10 +174,11 @@ export const registerHandlers = [
     const expectedCash = expectedOf(branchId, date).cash;
     const difference = round(counted - (opening + expectedCash));
     const note = text(input.note).slice(0, MAX_NOTE);
-    // Una diferencia se explica: sin nota no se cierra con faltante ni sobrante.
-    if (difference !== 0 && note.length < 3) return error(422, "validation", "Explica la diferencia antes de cerrar.", { fields: { note: ["Explica por qué sobra o falta."] } });
-    const closure: MockRegisterClosure = { id: `reg_${Date.now().toString(36)}`, branchId, date, opening: round(opening), expectedCash, counted: round(counted), difference, note, closedAt: new Date().toISOString(), closedBy: account.user.name };
-    db.register = { closures: [...(db.register?.closures ?? []), closure] };
+    // Quien ve lo esperado explica la diferencia antes de cerrar; quien cuenta a ciegas no la conoce: la revisa gerencia.
+    const blind = !isManager(sessionOf(request)!);
+    if (!blind && difference !== 0 && note.length < 3) return error(422, "validation", "Explica la diferencia antes de cerrar.", { fields: { note: ["Explica por qué sobra o falta."] } });
+    const closure: MockRegisterClosure = { id: `reg_${Date.now().toString(36)}`, branchId, date, opening: round(opening), expectedCash, counted: round(counted), difference, note, closedAt: new Date().toISOString(), closedBy: account.user.name, denominations, blind };
+    db.register = { closures: [...(db.register?.closures ?? []), closure], movements: db.register?.movements ?? [] };
     db.persist();
     return HttpResponse.json(closure, { status: 201 });
   }),

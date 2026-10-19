@@ -20,7 +20,7 @@ export interface LedgerDrawerProps {
   formatMoney: (value: number) => string;
 }
 
-const KIND_BADGE = { charge: "positive", online: "info", tip: "neutral", refund: "negative", sale: "positive" } as const satisfies Record<LedgerKind, "positive" | "info" | "neutral" | "negative">;
+const KIND_BADGE = { charge: "positive", online: "info", tip: "neutral", refund: "negative", sale: "positive", void: "negative" } as const satisfies Record<LedgerKind, "positive" | "info" | "neutral" | "negative">;
 const WHEN: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
 
 /**

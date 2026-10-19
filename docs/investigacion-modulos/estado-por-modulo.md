@@ -88,8 +88,8 @@ asistido; alerta de duración real; asistente de catálogo con descripciones.
 ## 05 Transacciones
 
 **Pendiente**
-- P0 · Libro de pagos de solo agregar (anular un cobro lo borra del libro); arqueo por denominación, a ciegas, entradas y
-  salidas, cierre por turno; factura o POS electrónico DIAN; recargo por tarjeta como línea.
+- P0 · ~~Libro de pagos de solo agregar; arqueo por denominación, a ciegas, entradas y salidas~~ (hecho el 2026-10-19);
+  cierre por turno; factura o POS electrónico DIAN; recargo por tarjeta como línea.
 - P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; propinas por medio y reparto; filtros por barbero y
   método; cobro atómico de la visita; vendedor en la venta de mostrador; aviso de cuentas abiertas.
 - P2 · Vender paquetes y membresías en la caja; conciliación; autocobro por QR.
@@ -100,8 +100,8 @@ conciliación; propinas sugeridas.
 ## 06 Gastos
 
 **Pendiente**
-- P0 · Valor con `$` y 2 decimales fijos; sin `PeriodNavigator` ni `from/to`; sin `dueDay`; corte por hora del dispositivo;
-  categorías cerradas.
+- ~~P0 · Valor con `$` y 2 decimales fijos; sin periodo ni `from/to`; sin `dueDay`; corte por hora del dispositivo;
+  categorías cerradas~~ (hecho el 2026-10-19, ver abajo).
 - P1 · Cuentas por pagar; caja menor ligada al cierre; proveedores como entidad; comprobantes en el CSV; registro de
   cambios; ficha de solo lectura; búsqueda por proveedor.
 - P2 · Presupuestos, rentabilidad por silla, documento soporte DIAN, contabilidad, aprobación.
@@ -292,3 +292,10 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - «Mi ficha»: el barbero y recepción editan cómo se presentan y su contacto; nivel, servicios, dinero y permisos siguen con gerencia.
   - La cuenta bancaria sale enmascarada; «Ver número» y cambiarla piden confirmar la identidad. La renta usa el símbolo de la moneda de la sede.
   - Falta: invitación real por SMS o correo, reasignar las citas del desactivado desde el aviso y `/usuarios/lista`.
+- **Transacciones: libro de solo agregar y caja (05 P0).**
+  - Borrar una venta ya no la saca del libro de pagos: queda el cobro con su fecha y un contramovimiento «Anulación» con quién y por qué.
+  - Cierre de caja: conteo por billetes y monedas de la moneda de la sede (el servidor vuelve a sumar), a ciegas para recepción (la diferencia aparece al cerrar y la revisa gerencia) y entradas y salidas de efectivo del cajón con motivo.
+  - Falta: cierre por turno, DIAN, recargo por tarjeta como línea, aviso a gerencia de un cierre a ciegas con diferencia.
+- **Gastos (06 P0).**
+  - Navegación por mes (el resumen y la lista son del mes; `from/to` en la API), día de pago en los fijos, categorías propias (las crea gerencia; al borrarlas sus gastos pasan a «Otros»), el valor con la moneda y los decimales de la sede, y el «hoy» con la zona de la sede.
+  - Falta: avisos de pagos por vencer, cuentas por pagar, proveedores como entidad.

@@ -8,7 +8,7 @@ import { ACCOUNT_PHOTOS, userPhoto, TEAM_PHOTOS } from "./media";
 import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
-import { seedExpenses, type MockExpense } from "./expenses/seed";
+import { seedExpenses, type MockExpense, type MockExpenseCustomCategory } from "./expenses/seed";
 import { seedSettings, type MockSettingsState } from "./settings/seed";
 import { emptyPayroll, type MockPayrollState } from "./payroll/state";
 import { emptyRegister, type MockRegisterState } from "./register/state";
@@ -188,6 +188,8 @@ export interface MockDb {
   products: MockProductsState;
   /** Lo que sale de caja, por sucursal. */
   expenses: MockExpense[];
+  /** Las categorías de gasto propias de la barbería (además de las de siempre). */
+  expenseCategories: MockExpenseCustomCategory[];
   /** La configuración: un documento por ajuste y las listas (sucursales, cierres, impuestos, datáfonos). */
   settings: MockSettingsState;
   /** La reserva en línea: recibos, saldo a favor y cancelaciones de cada cliente. */
@@ -237,6 +239,7 @@ interface PersistedDb {
   services?: MockServicesState;
   products?: MockProductsState;
   expenses?: MockExpense[];
+  expenseCategories?: MockExpenseCustomCategory[];
   settings?: MockSettingsState;
   booking?: MockBookingState;
   payroll?: MockPayrollState;
@@ -281,6 +284,7 @@ export function createDb(): MockDb {
     services: saved?.services ?? seedServices(),
     products: saved?.products ?? seedProducts(),
     expenses: saved?.expenses ?? seedExpenses(),
+    expenseCategories: saved?.expenseCategories ?? [],
     settings: saved?.settings ?? seedSettings(),
     booking: saved?.booking ?? emptyBooking(),
     payroll: saved?.payroll ?? emptyPayroll(),
@@ -302,7 +306,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -317,6 +321,7 @@ export function createDb(): MockDb {
       db.services = seedServices();
       db.products = seedProducts();
       db.expenses = seedExpenses();
+      db.expenseCategories = [];
       db.settings = seedSettings();
       db.booking = emptyBooking();
       db.payroll = emptyPayroll();

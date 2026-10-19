@@ -21,6 +21,13 @@ export interface MockExpenseAttachment {
   dataUrl: string;
 }
 
+/** Una categoría de gasto que la barbería crea (además de las de siempre): «Café para clientes», «Uniformes». */
+export interface MockExpenseCustomCategory {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface MockExpense {
   id: string;
   branchId: string;
@@ -37,7 +44,10 @@ export interface MockExpense {
   date?: string;
   /** Un fijo terminado deja de contar desde el día siguiente. */
   endDate?: string | null;
-  categoryId?: MockExpenseCategory;
+  /** Una de las de siempre o una propia (`cat_…`, ver `MockExpenseCustomCategory`). */
+  categoryId?: MockExpenseCategory | string;
+  /** En los fijos: qué día del mes se paga (1–31; si el mes es más corto, el último). */
+  dueDay?: number | null;
   paymentMethod?: MockExpensePaymentMethod | null;
   supplier?: string;
   attachments?: MockExpenseAttachment[];

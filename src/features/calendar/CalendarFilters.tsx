@@ -1,13 +1,12 @@
 import * as React from "react";
-import { ListFilter } from "lucide-react";
+import { ListFilter, TriangleAlert } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
-import { cn } from "@/lib/utils";
 import { resourceSelected, toggleResource } from "./resourceModel";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Text } from "@/components/typography";
+import { MultiSelect, type MultiSelectOption } from "@/components/forms";
 import { ScheduleColorDot } from "@/components/scheduling";
 import { Switch } from "@/components/ui/switch";
 import { PULSE_FOCUSES, type DayPulse, type PulseFocus } from "./pulseModel";
@@ -17,11 +16,12 @@ import type { ClientType } from "./types";
  * El control de filtros de la agenda: qué citas se miran —en qué estado
  * están, de qué servicio son y qué tipo de cliente las tiene— y si solo se ven los huecos. Cómo se pinta la
  * agenda (color de las tarjetas, densidad) no filtra nada y vive aparte, en
- * `CalendarViewOptions`. Estado y
- * servicio son listas de casillas —se marcan varias a la vez— con cuántas
- * citas hay en cada una; el punto de cada servicio es el color de sus
- * tarjetas, así que la lista hace también de leyenda. Sin nada marcado se ve
- * todo. El botón dice cuántos filtros hay puestos.
+ * `CalendarViewOptions`. Estado, tipo de cliente, recurso especial y
+ * servicio son campos de varias opciones —lo marcado sale como chips— y cada
+ * opción dice cuántas citas hay; el punto de cada servicio es el color de sus
+ * tarjetas, así que la lista hace también de leyenda. Así el panel no crece
+ * con el catálogo. Sin nada marcado se ve todo. El botón dice cuántos
+ * filtros hay puestos.
  */
 
 export interface ServiceFilterOption {
@@ -88,7 +88,6 @@ const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
 };
 
 
-const toggle = <T,>(list: readonly T[], value: T): T[] => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
 export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange }: CalendarFiltersProps) {
   const t = useAppT();
@@ -113,7 +112,7 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 space-y-4 p-3" data-testid="calendar-filters-panel">
+      <PopoverContent align="start" className="w-80 space-y-4 p-3" data-testid="calendar-filters-panel">
         {onFreeOnlyChange && (
           <div className="flex items-start justify-between gap-3">
             <label htmlFor={freeId} className="min-w-0 space-y-0.5">
@@ -142,65 +141,57 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
           </div>
         )}
 
-        <FilterList label={t("calendar.filters.status")}>
-          {PULSE_FOCUSES.map((id) => (
-            <FilterRow
-              key={id}
-              testId={`calendar-filter-status-${id}`}
-              label={t(STATUS_LABEL[id])}
-              count={pulse.counts[id]}
-              checked={focuses.includes(id)}
-              onToggle={() => emit({ focuses: toggle(focuses, id) })}
-            />
-          ))}
-        </FilterList>
+        <FilterSelect
+          id="status"
+          label={t("calendar.filters.status")}
+          placeholder={t("calendar.filters.anyStatus")}
+          options={PULSE_FOCUSES.map((id) => ({ value: id, label: t(STATUS_LABEL[id]), meta: pulse.counts[id] }))}
+          value={focuses}
+          onChange={(next) => emit({ focuses: next as PulseFocus[] })}
+        />
 
         {clientTypeOptions.length > 0 && (
-          <FilterList label={t("calendar.filters.clientType")}>
-            {clientTypeOptions.map((option) => (
-              <FilterRow
-                key={option.id}
-                testId={`calendar-filter-client-${option.id}`}
-                label={option.label}
-                count={option.count}
-                checked={clientTypes.includes(option.id)}
-                onToggle={() => emit({ clientTypes: toggle(clientTypes, option.id) })}
-              />
-            ))}
-          </FilterList>
+          <FilterSelect
+            id="client"
+            label={t("calendar.filters.clientType")}
+            placeholder={t("calendar.filters.anyClient")}
+            options={clientTypeOptions.map((option) => ({ value: option.id, label: option.label, meta: option.count }))}
+            value={clientTypes}
+            onChange={(next) => emit({ clientTypes: next as ClientType[] })}
+          />
         )}
 
         {resources.length > 0 && (
-          <FilterList label={t("calendar.filters.resource")}>
-            {resources.map((resource) => (
-              <FilterRow
-                key={resource.id}
-                testId={`calendar-filter-resource-${resource.id}`}
-                label={resource.name}
-                hint={resource.clashes > 0 ? t("calendar.filters.resourceClashes", { count: resource.clashes }) : resource.servicesLabel}
-                warning={resource.clashes > 0}
-                count={resource.count}
-                checked={resourceSelected(resource, serviceIds)}
-                onToggle={() => emit({ serviceIds: toggleResource(resource, serviceIds) })}
-              />
-            ))}
-          </FilterList>
+          <FilterSelect
+            id="resource"
+            label={t("calendar.filters.resource")}
+            placeholder={t("calendar.filters.anyResource")}
+            options={resources.map((resource) => ({
+              value: resource.id,
+              label: resource.name,
+              meta: resource.count,
+              description: resource.clashes > 0 ? t("calendar.filters.resourceClashes", { count: resource.clashes }) : resource.servicesLabel,
+              leading: resource.clashes > 0 ? <TriangleAlert className="size-3.5 shrink-0 text-status-warning" aria-hidden /> : undefined,
+            }))}
+            value={resources.filter((resource) => resourceSelected(resource, serviceIds)).map((resource) => resource.id)}
+            // Marcar un recurso suma sus servicios al filtro; quitarlo, los quita.
+            onChange={(next) => {
+              const before = resources.filter((resource) => resourceSelected(resource, serviceIds)).map((resource) => resource.id);
+              const changed = resources.filter((resource) => next.includes(resource.id) !== before.includes(resource.id));
+              emit({ serviceIds: changed.reduce<string[]>((ids, resource) => toggleResource(resource, ids), [...serviceIds]) });
+            }}
+          />
         )}
 
         {services.length > 0 && (
-          <FilterList label={t("calendar.filters.service")} scroll>
-            {services.map((service) => (
-              <FilterRow
-                key={service.id}
-                testId={`calendar-filter-service-${service.id}`}
-                label={service.name}
-                count={service.count}
-                color={service.color}
-                checked={serviceIds.includes(service.id)}
-                onToggle={() => emit({ serviceIds: toggle(serviceIds, service.id) })}
-              />
-            ))}
-          </FilterList>
+          <FilterSelect
+            id="service"
+            label={t("calendar.filters.service")}
+            placeholder={t("calendar.filters.anyService")}
+            options={services.map((service) => ({ value: service.id, label: service.name, meta: service.count, leading: <ScheduleColorDot color={service.color} /> }))}
+            value={serviceIds}
+            onChange={(next) => emit({ serviceIds: next })}
+          />
         )}
 
         {active > 0 && (
@@ -218,47 +209,27 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
   );
 }
 
-function FilterList({ label, scroll = false, children }: { label: string; scroll?: boolean; children: React.ReactNode }) {
+/** Un grupo de filtros como un campo de varias opciones: lo marcado sale como chips, cada opción con su cuenta. */
+function FilterSelect({ id, label, placeholder, options, value, onChange }: { id: string; label: string; placeholder: string; options: MultiSelectOption[]; value: readonly string[]; onChange: (next: string[]) => void }) {
+  const t = useAppT();
+  const fieldId = `calendar-filter-${id}`;
   return (
-    <section className="space-y-1" aria-label={label}>
-      <Text variant="label">{label}</Text>
-      <ul className={cn("-mx-1", scroll && "max-h-56 overflow-y-auto overscroll-contain")}>{children}</ul>
-    </section>
-  );
-}
-
-interface FilterRowProps {
-  label: string;
-  count: number;
-  checked: boolean;
-  onToggle: () => void;
-  /** El color de la paleta de la agenda, cuando la fila es también leyenda. */
-  color?: number;
-  /** Una segunda línea corta; en tono de aviso con `warning`. */
-  hint?: string;
-  warning?: boolean;
-  testId: string;
-}
-
-function FilterRow({ label, count, checked, onToggle, color, hint, warning = false, testId }: FilterRowProps) {
-  const id = React.useId();
-  return (
-    <li data-testid={testId}>
-      <label htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-sm text-text-primary transition-colors duration-fast hover:bg-surface-subtle motion-reduce:transition-none">
-        <Checkbox id={id} checked={checked} onCheckedChange={onToggle} />
-        {color !== undefined && <ScheduleColorDot color={color} />}
-        {hint ? (
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">{label}</span>
-            <span className={cn("truncate text-xs", warning ? "text-status-warning" : "text-text-muted")}>{hint}</span>
-          </span>
-        ) : (
-          <span className="min-w-0 flex-1 truncate">{label}</span>
-        )}
-        <span className="tabular-nums text-text-muted" data-count>
-          {count}
-        </span>
+    <div className="space-y-1.5">
+      <label htmlFor={fieldId} className="block">
+        <Text as="span" variant="label">
+          {label}
+        </Text>
       </label>
-    </li>
+      <MultiSelect
+        id={fieldId}
+        data-testid={fieldId}
+        options={options}
+        value={[...value]}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder={t("calendar.filters.search")}
+        className="min-h-9 px-3 py-1.5"
+      />
+    </div>
   );
 }

@@ -7,17 +7,11 @@ export const calendarPanelEs = {
   // ── Selector ──
   "calendar.panel.version.label": "Diseño del panel",
   "calendar.panel.version.tabs": "Pestañas (actual)",
-  "calendar.panel.version.index": "Lo de ahora + índice",
   "calendar.panel.version.cards": "Arma la cita",
-  "calendar.panel.version.tabsNow": "Pestañas por estado",
   "calendar.panel.version.moment": "Tarjeta del momento",
-  "calendar.panel.version.steps": "Paso a paso",
   "calendar.panel.hint.tabs": "El de hoy: resumen, Clipper, notas, cliente e historial por pestañas.",
-  "calendar.panel.hint.index": "Arriba solo lo del momento; debajo, un índice que abre la cita, el cliente y el historial en su página.",
   "calendar.panel.hint.cards": "Con la cara de «Arma tu cita» de la reserva: la cita en tarjetas que se cambian en su sitio.",
-  "calendar.panel.hint.tabsNow": "Las pestañas de siempre, pero la primera es «Ahora» y cambia con el estado de la cita.",
   "calendar.panel.hint.moment": "Una tarjeta grande con lo que toca y su botón; lo demás, en tarjetas que abren su página.",
-  "calendar.panel.hint.steps": "El avance de arriba es el menú: cada paso muestra lo suyo; abre en el paso en curso.",
 
   // ── El momento ──
   "calendar.panel.stage.upcoming": "Llega a las {time}",
@@ -48,14 +42,13 @@ export const calendarPanelEs = {
 
   // ── Atajos ──
   "calendar.panel.quick.title": "Atajos de la cita",
-  "calendar.panel.quick.whatsappHint": "Escribirle ahora",
-  "calendar.panel.quick.noShowHint": "Libera el hueco",
-  "calendar.panel.quick.cancelHint": "Queda en el historial",
   "calendar.panel.quick.change": "Cambiar la cita",
-  "calendar.panel.quick.changeHint": "Servicio, barbero u hora",
   "calendar.panel.quick.addService": "Sumar un servicio",
-  "calendar.panel.quick.addServiceHint": "«Y de paso la barba»",
-  "calendar.panel.quick.readyHint": "Avisa que {barber} puede atender",
+  "calendar.panel.quick.writeShort": "Escribir",
+  "calendar.panel.quick.changeShort": "Cambiar",
+  "calendar.panel.quick.addServiceShort": "Sumar",
+  "calendar.panel.quick.readyShort": "Listo",
+  "calendar.panel.clipper.short": "Clipper",
   "calendar.panel.more": "Más acciones",
 
   // ── La cita en tarjetas ──
@@ -91,17 +84,7 @@ export const calendarPanelEs = {
   "calendar.panel.next.bookedLine": "{when} con {barber}",
 
   // ── Índice y pestañas ──
-  "calendar.panel.index.title": "Más de esta cita",
   "calendar.panel.index.historyHint": "Quién la creó, cuándo llegó, qué cambió",
-  "calendar.panel.tabs.now": "Ahora",
-  "calendar.panel.tabs.appointment": "La cita",
-
-  // ── Paso a paso ──
-  "calendar.panel.steps.expected": "Su hora",
-  "calendar.panel.steps.barberReady": "Barbero listo",
-  "calendar.panel.steps.yes": "Sí",
-  "calendar.panel.steps.notYet": "Todavía no",
-  "calendar.panel.steps.viewing": "Estás viendo un paso anterior. Toca el paso en curso para volver.",
 
   // ── El cliente ──
   "calendar.panel.client.rowTitle": "Cliente · {type}",
@@ -163,7 +146,6 @@ export const calendarPanelEs = {
 
   // ── Clipper ──
   "calendar.panel.clipper.ask": "Pregúntale a Clipper",
-  "calendar.panel.clipper.hint": "Sobre la cita y el cliente",
   "calendar.agent.title": "Cita de {name} · {time}",
   "calendar.agent.opening": "¿Qué tengo que saber de la cita de {name}?",
   "calendar.agent.source": "Ficha y cita de {name}",

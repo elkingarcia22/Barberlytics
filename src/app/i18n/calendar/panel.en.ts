@@ -3,17 +3,11 @@ import type { calendarPanelEs } from "./panel.es";
 export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.version.label": "Panel design",
   "calendar.panel.version.tabs": "Tabs (current)",
-  "calendar.panel.version.index": "Right now + index",
   "calendar.panel.version.cards": "Build the booking",
-  "calendar.panel.version.tabsNow": "Tabs by status",
   "calendar.panel.version.moment": "Moment card",
-  "calendar.panel.version.steps": "Step by step",
   "calendar.panel.hint.tabs": "Today's panel: summary, Clipper, notes, client and history in tabs.",
-  "calendar.panel.hint.index": "Only what the moment needs on top; below, an index that opens the booking, the client and the history on their own page.",
   "calendar.panel.hint.cards": "Looks like «Build your booking» in online booking: the appointment as cards you change in place.",
-  "calendar.panel.hint.tabsNow": "The usual tabs, but the first one is «Now» and changes with the appointment's status.",
   "calendar.panel.hint.moment": "One big card with what's next and its button; the rest in cards that open their page.",
-  "calendar.panel.hint.steps": "The progress bar on top is the menu: each step shows its own; it opens on the current one.",
 
   "calendar.panel.stage.upcoming": "Arrives at {time}",
   "calendar.panel.stage.upcomingLine": "With {barber}. You can still change the appointment.",
@@ -41,14 +35,13 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.source.walkin": "Walked in",
 
   "calendar.panel.quick.title": "Appointment shortcuts",
-  "calendar.panel.quick.whatsappHint": "Text them now",
-  "calendar.panel.quick.noShowHint": "Frees the slot",
-  "calendar.panel.quick.cancelHint": "Stays in the history",
   "calendar.panel.quick.change": "Change the appointment",
-  "calendar.panel.quick.changeHint": "Service, barber or time",
   "calendar.panel.quick.addService": "Add a service",
-  "calendar.panel.quick.addServiceHint": "«And the beard too»",
-  "calendar.panel.quick.readyHint": "Let them know {barber} is ready",
+  "calendar.panel.quick.writeShort": "Text",
+  "calendar.panel.quick.changeShort": "Change",
+  "calendar.panel.quick.addServiceShort": "Add",
+  "calendar.panel.quick.readyShort": "Ready",
+  "calendar.panel.clipper.short": "Clipper",
   "calendar.panel.more": "More actions",
 
   "calendar.panel.page.appointment": "The appointment",
@@ -81,16 +74,8 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.next.bookedHint": "{name}: {when}.",
   "calendar.panel.next.bookedLine": "{when} with {barber}",
 
-  "calendar.panel.index.title": "More about this appointment",
   "calendar.panel.index.historyHint": "Who booked it, when they arrived, what changed",
-  "calendar.panel.tabs.now": "Now",
-  "calendar.panel.tabs.appointment": "Appointment",
 
-  "calendar.panel.steps.expected": "Their time",
-  "calendar.panel.steps.barberReady": "Barber ready",
-  "calendar.panel.steps.yes": "Yes",
-  "calendar.panel.steps.notYet": "Not yet",
-  "calendar.panel.steps.viewing": "You're looking at an earlier step. Tap the current one to go back.",
 
   "calendar.panel.client.rowTitle": "Client · {type}",
   "calendar.panel.client.membershipShort": "Membership {count}/{total}",
@@ -148,7 +133,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.visit.now": "Now",
 
   "calendar.panel.clipper.ask": "Ask Clipper",
-  "calendar.panel.clipper.hint": "About the appointment and client",
   "calendar.agent.title": "{name}'s appointment · {time}",
   "calendar.agent.opening": "What should I know about {name}'s appointment?",
   "calendar.agent.source": "{name}'s profile and appointment",

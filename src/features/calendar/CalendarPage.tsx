@@ -705,6 +705,21 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     openPanel({ kind: "create", initial: { clientId: entry.clientId, serviceId: entry.serviceId, barberId: match?.barber.id ?? entry.barberId ?? undefined, start } });
   };
 
+  /**
+   * Cancelar la cita o marcar que no asistió, ya confirmado: el panel lo confirma en un popover junto
+   * al botón (un modal sobre el panel queda mal); el clic derecho de la agenda, con el diálogo.
+   */
+  const closeAppointmentAs = (appointment: Appointment, action: "cancel" | "noShow", then?: () => void) => {
+    const status: AppointmentStatus = action === "cancel" ? "cancelled" : "no_show";
+    const client = ctx ? (findClient(ctx.catalog, appointment.clientId)?.name ?? "") : "";
+    patch(appointment, { status }, (updated) => {
+      then?.();
+      toast.success(t("calendar.statusChanged"), { description: t("calendar.statusChangedHint", { client, status: t(STATUS_KEYS[status]) }) });
+      // El hueco que deja se ofrece enseguida a la lista de espera.
+      if (isSameDay(appointmentStart(updated), state.date) && appointmentEnd(updated) > nowDate) releaseSlot(updated);
+    });
+  };
+
   // Las confirmaciones son diálogos encima de lo que haya; lo demás ocupa el panel lateral.
   const sidePanelOpen = panel !== null && panel.kind !== "confirm" && panel.kind !== "removeBlock";
   const confirm = panel?.kind === "confirm" ? panel : null;
@@ -911,8 +926,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   state.openAppointment(null);
                   setPanel({ kind: "create", initial });
                 }}
-                onCancel={(appointment) => setPanel({ kind: "confirm", action: "cancel", appointment })}
-                onNoShow={(appointment) => setPanel({ kind: "confirm", action: "noShow", appointment })}
+                // El panel ya lo confirmó en su popover: aquí solo se hace.
+                onCancel={(appointment) => closeAppointmentAs(appointment, "cancel")}
+                onNoShow={(appointment) => closeAppointmentAs(appointment, "noShow")}
                 onOpenClient={(clientId) => navigate(`/clientes/${clientId}`)}
                 linked={currentLinked}
                 linkCandidates={linkCandidates}
@@ -1061,13 +1077,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 loading={update.isPending}
                 onConfirm={() => {
                   if (!confirm) return;
-                  const status: AppointmentStatus = confirm.action === "cancel" ? "cancelled" : "no_show";
-                  patch(confirm.appointment, { status }, (updated) => {
+                  closeAppointmentAs(confirm.appointment, confirm.action, () => {
                     closePanel();
                     state.openAppointment(null);
-                    toast.success(t("calendar.statusChanged"), { description: t("calendar.statusChangedHint", { client: confirmClient, status: t(STATUS_KEYS[status]) }) });
-                    // El hueco que deja se ofrece enseguida a la lista de espera.
-                    if (isSameDay(appointmentStart(updated), state.date) && appointmentEnd(updated) > nowDate) releaseSlot(updated);
                   });
                 }}
               />

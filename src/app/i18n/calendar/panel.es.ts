@@ -79,6 +79,7 @@ export const calendarPanelEs = {
   "calendar.panel.after.receiptTitle": "Ver la cuenta y su recibo en Transacciones",
   "calendar.panel.after.refund": "Devolver",
   "calendar.panel.after.refundTitle": "Devolver dinero: abre la cuenta en Transacciones",
+  "calendar.panel.after.rebook": "Reagendar",
   "calendar.panel.after.charged": "Lo que se cobró",
   "calendar.panel.after.receiptMessage": "Hola {name}, este es el recibo de tu visita del {date}:\n{lines}\nPropina: {tip}\nTotal: {total} · {method}\n¡Gracias por venir!",
   "calendar.panel.pin.short": "Fijar",

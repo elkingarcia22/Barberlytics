@@ -70,6 +70,7 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.after.receiptTitle": "View the account and its receipt in Transactions",
   "calendar.panel.after.refund": "Refund",
   "calendar.panel.after.refundTitle": "Refund money: opens the account in Transactions",
+  "calendar.panel.after.rebook": "Rebook",
   "calendar.panel.after.charged": "What was charged",
   "calendar.panel.after.receiptMessage": "Hi {name}, here is the receipt for your visit on {date}:\n{lines}\nTip: {tip}\nTotal: {total} · {method}\nThanks for coming!",
   "calendar.panel.pin.short": "Pin",

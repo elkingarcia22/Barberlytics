@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Link2 } from "lucide-react";
 import { isActive, type ModelContext } from "../calendarModel";
@@ -13,6 +14,7 @@ import { HistoryTimeline } from "./HistoryTimeline";
 import { AfterVisit } from "./AfterVisit";
 import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
 import { CareAlerts } from "./CareAlerts";
+import { StatusConfirmContent, type ClosingAction } from "./StatusConfirm";
 import { SourceLine } from "./SourceLine";
 import { LinkedBlock, PanelStepper } from "./PanelShared";
 import { PanelQuestion, PanelSubpage } from "./bookingStyle";
@@ -84,7 +86,7 @@ const MOMENT_TINT: Record<AppointmentModel["playbook"]["stage"], string> = {
   seated: "from-primary/15 via-primary/5",
   toCollect: "from-warning/15 via-warning/5",
   paid: "from-success/15 via-success/5",
-  noShow: "from-warning/15 via-warning/5",
+  noShow: "from-destructive/15 via-destructive/5",
   cancelled: "from-destructive/15 via-destructive/5",
 };
 
@@ -93,6 +95,9 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   const { model, ctx, onPatch } = props;
   const { pages } = props;
   const [linking, setLinking] = React.useState(false);
+  // Cancelar o «No asistió» pedidos desde el «⋯»: su popover se abre bajo la acción principal, un
+  // cuadro después de cerrarse el menú.
+  const [confirming, setConfirming] = React.useState<ClosingAction | null>(null);
   const fieldsRef = React.useRef<HTMLDivElement>(null);
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
@@ -120,10 +125,18 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
           </div>
         </PanelQuestion>
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
-        <div className="flex items-center gap-2">
-          <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
-          <MoreActionsMenu model={model} actions={more} extra={menuExtra} />
-        </div>
+        <Popover open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
+          <PopoverAnchor asChild>
+            <div className="flex items-center gap-2">
+              <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
+              <MoreActionsMenu model={model} actions={more} extra={menuExtra} onConfirm={(action) => requestAnimationFrame(() => setConfirming(action))} />
+            </div>
+          </PopoverAnchor>
+          {/* Lo cierra un clic fuera o Escape, no el foco que el menú devuelve a su botón al cerrarse. */}
+          <PopoverContent align="end" className="w-72" onFocusOutside={(event) => event.preventDefault()}>
+            {confirming && <StatusConfirmContent model={model} action={confirming} onClose={() => setConfirming(null)} />}
+          </PopoverContent>
+        </Popover>
       </section>
       <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
       {/* Si confirmó que viene y qué mensajes se le mandaron por correo o SMS (confirmación, recordatorios). */}

@@ -7,6 +7,7 @@ import { useLocale } from "@/i18n";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
@@ -22,19 +23,19 @@ import { ClientTags } from "./PanelParts";
 import { PanelStepper } from "./PanelShared";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
-import { StageHeading, TicketSummary, TileRow, type Tile } from "./StageParts";
+import { StageHeading, TileRow, type Tile } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
  * La cita ya cerrada —cobrada, o que no se atendió—. Lo que importa ya no es
- * la cita sino lo que sigue con el cliente: agendarle la próxima antes de que
- * se vaya, mandarle el recibo, verlo o devolver dinero si hace falta; lo que
- * se cobró y con qué citas iba enlazada. Lo demás (cambiar servicio o
- * barbero, la nota para el barbero, las alertas) ya no tiene uso y se queda
- * fuera; sigue en la ficha del cliente y en el historial.
+ * la cita sino lo que sigue con el cliente: reagendarla (el botón principal),
+ * fijarla, mandarle el recibo, verlo (ahí está lo que se cobró) o devolver
+ * dinero si hace falta, y con qué citas iba enlazada. Lo demás (cambiar
+ * servicio o barbero, la nota para el barbero, las alertas) ya no tiene uso
+ * y se queda fuera; sigue en la ficha del cliente y en el historial.
  *
- * Se cuenta con la tarjeta grande teñida del estado (verde cobrada, roja
- * cancelada, ámbar si no asistió), con el cliente, lo que se hizo y sus atajos dentro.
+ * Se cuenta con la tarjeta grande teñida del estado (verde cobrada; roja
+ * cancelada o si no asistió), con el cliente, lo que se hizo y sus atajos dentro.
  */
 
 export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "onSelectAppointment" | "onUnlink" | "onShowLinked"> {
@@ -43,8 +44,8 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
   onOpenClient: () => void;
 }
 
-/** El tinte de la tarjeta según cómo se cerró: verde cobrada, rojo cancelada, ámbar si no asistió. */
-const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-destructive/15 via-destructive/5", noShow: "from-warning/15 via-warning/5" } as const;
+/** El tinte de la tarjeta según cómo se cerró: verde cobrada; rojo cancelada o si no asistió. */
+const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-destructive/15 via-destructive/5", noShow: "from-destructive/15 via-destructive/5" } as const;
 
 /** Los atajos de después: recibo y devolución si se cobró; llamar y escribir si no vino. */
 function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void): Tile[] {
@@ -97,10 +98,10 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
 /** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
 export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
-  const [pinning, setPinning] = React.useState(false);
-  // Con la cita fijada (o fijándose), la próxima ya no se agenda aparte.
-  const [pinned, setPinned] = React.useState(false);
-  const tiles = useAfterTiles(model, ctx, () => setPinning((value) => !value));
+  // Lo que se abre debajo de la tarjeta: fijar la cita o reagendarla (una cosa a la vez).
+  const [open, setOpen] = React.useState<"pin" | "rebook" | null>(null);
+  const toggle = (next: "pin" | "rebook") => setOpen((current) => (current === next ? null : next));
+  const tiles = useAfterTiles(model, ctx, () => toggle("pin"));
   const { appointment, services, barber } = model;
   const paid = appointment.status === "paid" && appointment.payment !== null;
   const products = appointment.products.flatMap((line) => {
@@ -129,17 +130,14 @@ export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppo
           </div>
         </div>
         <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
+        {/* La acción principal de la cita cerrada: agendarle la próxima. Lo cobrado está en «Ver recibo». */}
+        <Button size="lg" className="w-full" aria-expanded={open === "rebook"} onClick={() => toggle("rebook")} data-testid="panel-rebook">
+          <ThemaIcon name="calendarAdd" />
+          {t("calendar.panel.after.rebook")}
+        </Button>
       </section>
-      {pinning && <PinSeries model={model} ctx={ctx} onClose={() => setPinning(false)} onPinned={() => setPinned(true)} />}
-      {!pinning && !pinned && <NextVisitBooker model={model} ctx={ctx} />}
-      {paid && (
-        <section aria-label={t("calendar.panel.after.charged")} className="flex flex-col gap-2">
-          <Text size="sm" weight="medium">
-            {t("calendar.panel.after.charged")}
-          </Text>
-          <TicketSummary model={model} ctx={ctx} />
-        </section>
-      )}
+      {open === "pin" && <PinSeries model={model} ctx={ctx} onClose={() => setOpen(null)} />}
+      {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} />}
       {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
     </div>
   );

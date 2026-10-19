@@ -38,6 +38,7 @@ export function AppointmentNotesTab({ client }: AppointmentNotesTabProps) {
   }
 
   const visible = client.notes.filter((note) => note.kind === kind);
+  const hasAny = client.notes.length > 0;
 
   const submit = () => {
     addNote.mutate(
@@ -62,13 +63,17 @@ export function AppointmentNotesTab({ client }: AppointmentNotesTabProps) {
       hint={t("calendar.notes.hint")}
       badge={String(client.notes.length)}
       action={
-        <Button size="xs" variant="outline" onClick={() => setAdding((current) => !current)}>
-          <Plus /> {t("calendar.notes.add")}
-        </Button>
+        // Sin ninguna nota, el botón vive en el estado vacío: dos «Agregar nota» juntos sobran.
+        hasAny ? (
+          <Button size="xs" variant="outline" onClick={() => setAdding((current) => !current)}>
+            <Plus /> {t("calendar.notes.add")}
+          </Button>
+        ) : undefined
       }
     >
       <div className="space-y-3">
-        <NoteKindChips kinds={noteKindSchema.options} value={kind} onChange={setKind} notes={client.notes} />
+        {/* Los filtros por tipo solo cuando hay algo que filtrar. */}
+        {hasAny && <NoteKindChips kinds={noteKindSchema.options} value={kind} onChange={setKind} notes={client.notes} />}
         {adding && (
           <form
             className="space-y-3 rounded-lg bg-surface-subtle p-3"

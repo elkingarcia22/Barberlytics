@@ -84,9 +84,11 @@ describe("quickActions", () => {
     expect(quickActions(model())).toEqual(["noShow", "cancel"]);
   });
 
-  test("a paid visit offers writing and Clipper", () => {
-    const paid = model({ phone: "+573001112233", playbook: { stage: "paid", primary: ["rebook"], secondary: ["whatsapp"], more: [] } });
-    expect(quickActions(paid)).toEqual(["whatsapp", "clipper"]);
+  test("once in the shop there are no shortcuts: the action is the footer's", () => {
+    const waiting = model({ phone: "+573001112233", playbook: { stage: "waiting", primary: ["seat"], secondary: ["pay"], more: ["cancel"] } });
+    const seated = model({ phone: "+573001112233", playbook: { stage: "seated", primary: ["pay"], secondary: [], more: ["cancel"] } });
+    expect(quickActions(waiting)).toEqual([]);
+    expect(quickActions(seated)).toEqual([]);
   });
 });
 

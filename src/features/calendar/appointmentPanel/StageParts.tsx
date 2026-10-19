@@ -3,7 +3,6 @@ import { useAppT } from "@/app/i18n";
 import { AIButton } from "@/components/ai-interaction";
 import { formatClock } from "@/components/scheduling";
 import { Heading, Text } from "@/components/typography";
-import { ThemaIcon } from "@/icons";
 import { cn } from "@/lib/utils";
 import { OrderSummary, type OrderLine } from "@/features/booking/flow/OrderSummary";
 import type { Totals } from "@/features/booking/pricing";
@@ -67,17 +66,15 @@ export function TicketSummary({ model, ctx }: { model: AppointmentModel; ctx: Mo
   );
 }
 
-/** «Pregúntale a Clipper» como botón, cuando los atajos del momento no lo traen ya en tarjeta. */
+/** «Pregúntale a Clipper», siempre como este botón y en el mismo sitio, sea cual sea el momento de la cita. */
 export function ClipperButton({ model, ctx, className }: { model: AppointmentModel; ctx: ModelContext; className?: string }) {
   const t = useAppT();
   const ask = useAskClipper(model, ctx);
-  if (quickActions(model).includes("clipper")) return null;
   return <AIButton variant="secondary" size="sm" label={t("calendar.panel.clipper.ask")} onClick={ask} className={className} />;
 }
 
 export interface QuickTilesProps {
   model: AppointmentModel;
-  ctx: ModelContext;
   /** Cambiar la cita: abre sus campos (en su sitio o en su página, según la versión). */
   onChange: () => void;
 }
@@ -105,9 +102,8 @@ export interface Tile {
 }
 
 /** Los atajos del momento en una sola fila, como los de la reserva en línea: icono y una palabra. */
-export function QuickTiles({ model, ctx, onChange }: QuickTilesProps) {
+export function QuickTiles({ model, onChange }: QuickTilesProps) {
   const t = useAppT();
-  const ask = useAskClipper(model, ctx);
   const ids = quickActions(model);
   if (ids.length === 0) return null;
   const glyph = (Icon: React.ComponentType<{ className?: string }>, tone = "text-primary") => <Icon className={cn("size-5", tone)} />;
@@ -124,8 +120,6 @@ export function QuickTiles({ model, ctx, onChange }: QuickTilesProps) {
       title: t(scheduled ? "calendar.panel.quick.change" : "calendar.panel.quick.addService"),
       onClick: onChange,
     },
-    ready: { id: "ready", icon: glyph(ACTION_ICON.ready, "text-success"), label: t("calendar.panel.quick.readyShort"), title: t("calendar.step.ready"), onClick: () => model.run("ready") },
-    clipper: { id: "clipper", icon: <ThemaIcon name="sparkles" tone="primary" />, label: t("calendar.panel.clipper.short"), title: t("calendar.panel.clipper.ask"), onClick: ask },
   };
   return <TileRow tiles={ids.map((id) => tiles[id])} label={t("calendar.panel.quick.title")} />;
 }

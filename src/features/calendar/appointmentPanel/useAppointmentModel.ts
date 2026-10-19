@@ -1,10 +1,11 @@
 import { addDays } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { formatClock } from "@/components/scheduling";
-import { appointmentEnd, appointmentStart, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, servicesOf, servicesPrice, type ModelContext } from "../calendarModel";
+import { appointmentEnd, appointmentStart, durationLabel, findBarber, findClient, isUnpaid, lateMinutes, servicesOf, type ModelContext } from "../calendarModel";
 import { appointmentPlaybook, type AppointmentActionId, type AppointmentPlaybook } from "../appointmentPlaybook";
 import { appointmentInsights, type AppointmentInsight } from "../appointmentInsights";
 import { ACTION_LABEL } from "../appointmentActions";
+import { appointmentBill } from "../checkoutMath";
 import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
 import { PAYMENT_METHOD_KEYS, type Appointment, type AppointmentStatus, type Barber, type Client, type ClientNote, type Service } from "../types";
 
@@ -85,7 +86,9 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
   const clientName = client?.name ?? t("calendar.clientType.walkin");
   const firstName = clientName.split(" ")[0];
   const services = servicesOf(ctx.catalog, appointment);
-  const price = appointment.payment?.total ?? servicesPrice(services);
+  // Lo que vale y lo que falta cobrar en caja: con el impuesto de la sucursal y sin lo ya pagado al reservar en línea.
+  const bill = appointmentBill(ctx.catalog, appointment.serviceIds, appointment.products, appointment.online, appointment.barberId);
+  const price = appointment.payment?.total ?? bill.total;
   const canContact = ctx.access?.canContact ?? true;
   const phone = known?.phone && canContact ? digits(known.phone) : "";
   const playbook = appointmentPlaybook(appointment, ctx.now, { hasPhone: phone !== "" });
@@ -156,6 +159,6 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
     run,
     rebookOn: (date) => handlers.onRebook({ clientId: appointment.clientId, serviceId: appointment.serviceIds[0], barberId: appointment.barberId, start: date }),
     href,
-    label: (action) => (action === "pay" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(price) }) : t(ACTION_LABEL[action])),
+    label: (action) => (action === "pay" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(bill.due) }) : t(ACTION_LABEL[action])),
   };
 }

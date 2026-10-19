@@ -6,7 +6,7 @@ de fitness y productos como Linear o Notion). Con eso se construyeron **cinco ve
 que se pueden comparar en la app, más la actual.
 
 **Cómo verlas:** abre una cita en `/calendario`; arriba del panel está el selector «Diseño del panel».
-La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=tabs|cards|moment`
+La elección se recuerda por persona (`localStorage`) y un enlace con `?panel=cards|moment`
 abre directo una versión. Código en `src/features/calendar/appointmentPanel/`.
 
 > **2026-10-18: segunda ronda.** Las cinco versiones de la sección 4 (Como la reserva, Mostrador, Ficha
@@ -208,3 +208,22 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   campo; busca por nombre, celular, barbero, servicio, estado, tipo, origen, notas, día y hora entre un
   mes atrás y 45 días adelante (`GET /calendar/appointments`).
 - **Foto del corte** en la demo: las citas cuya nota dice «Trae foto de referencia» la traen.
+- **2026-10-18, más tarde:** se quitó el diseño de **pestañas** (quedan «Arma la cita», por defecto, y
+  «Tarjeta del momento»). Ya en la barbería (esperando, en silla, por cobrar) no hay atajos: la acción
+  es la del pie y lo raro queda en «⋯». Clipper va siempre como su botón, también en la cobrada. Del
+  panel de pestañas se conservan la confirmación y los mensajes de WhatsApp (`AppointmentMessages`) y
+  el cobro por lo que falta (`appointmentBill`: impuesto de la sucursal, menos lo pagado en línea).
+
+## 9. Tercera versión y «Fijar la cita» (2026-10-18, noche)
+
+- **«Tarjeta + Arma la cita»** (`?panel=mix`, `MixVersion` en `PanelVersions.tsx`): el paso a paso
+  arriba; la tarjeta del momento con *¿Qué se va a hacer?* editable en las mismas tarjetas de «Arma la
+  cita» y la acción principal dentro; debajo, alertas, *Comentarios y foto del corte*, los atajos, la
+  confirmación por WhatsApp, enlazadas y *¿Quién viene?* como en «Arma la cita»; Clipper y la actividad
+  de la cita como en «Tarjeta». Cobrada, no asistió o cancelada: igual que en «Tarjeta».
+- **Fijar la cita** (`PinSeries.tsx` + `pinPlan.ts`), como en la reserva en línea: atajo «Fijar» en la
+  cobrada (las tres versiones). Cada 1–4 semanas (por defecto, el ritmo del cliente), 2/3/4/6 más, y
+  *Así quedarían* antes de confirmar. Para cada fecha se pide la agenda del día: misma hora si el
+  barbero está libre; si no, la libre más cercana (marcada «Otra hora»); «Sin hueco» si no cabe, y «Ya
+  agendada» si el cliente ya tiene cita ese día. Solo se agendan las que caben; mientras se fija,
+  *¿Le agendamos la próxima?* se oculta.

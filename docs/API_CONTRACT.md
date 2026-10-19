@@ -258,6 +258,8 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | DELETE | `/clients/:id/notes/:noteId` | `200 client` sin la nota. `404`. |
 | POST | `/blocks` | El bloqueo de arriba, sin `id`. `201 block`. `422` si la hora de cierre no es posterior a la de inicio. |
 | DELETE | `/blocks/:id` | `204`. |
+| GET | `/calendar/blocks?branchId` | `{ items: [timeBlock] }`: todos los bloqueos de la sucursal (un barbero, solo los suyos), para la lista de ausencias y bloqueos. Un bloqueo puede traer `status: "pending"` y `requestedBy`. |
+| POST | `/blocks/:id/approve` | Aprueba un bloqueo pendiente (dueño, administrador o recepción; `403` a los barberos). Con `booking.blocksNeedApproval` encendido en Configuración, el bloqueo que crea un barbero nace `pending`; rechazarlo es `DELETE`. |
 | GET | `/waitlist?branchId&date?` | `{ items: [{ id, branchId, clientId, serviceId, barberId, slots: [{ date, time }], createdAt }] }`. |
 | POST | `/waitlist` | `{ branchId, clientId, serviceId, barberId \| null, slots }`. `201`. |
 | DELETE | `/waitlist/:id` | `204`. |
@@ -450,7 +452,7 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | GET | `/team/members/:id/performance?branchId` | Últimos 90 días: `services`, `occupancy`, `rebookRate` (dejó otra cita con él en la semana), `retention`, `avgTicket` (sin impuesto), `productsPerService`, `tips`, `noShows`, `noShowRate`, `rating`, `reviews`. Un barbero solo el suyo (`403`). |
 | GET | `/team/absences?branchId` | `{ items: [{ id, memberId, memberName, branchId, kind: "vacation" \| "sick" \| "personal", startDate, endDate, note, status: "pending" \| "approved" \| "rejected", requestedBy, requestedAt, decidedBy, decidedAt, reason, affected: [{ id, start, client }] }] }`. Un barbero solo las suyas. `affected` son sus citas por atender esos días. |
 | POST | `/team/absences` | `{ branchId, kind, startDate, endDate?, note?, memberId? }`. Comisión, salario y recepción la piden para sí: queda `pending`. El barbero de renta y quien gestiona (para cualquiera, con `memberId`): queda `approved`. `409` si se cruza con otra. |
-| POST | `/team/absences/:id/approve` · `/reject` | Solo dueño o administrador. Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
+| POST | `/team/absences/:id/approve` · `/reject` | Dueño, administrador o recepción (los barberos no). Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
 | DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
 
 ## Clipper (`/api/clipper`, función de servidor)

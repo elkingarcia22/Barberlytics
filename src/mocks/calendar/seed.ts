@@ -198,6 +198,10 @@ export interface MockTimeBlock {
   startTime: string;
   endTime: string;
   description: string | null;
+  /** Pendiente de aprobar (lo puso un barbero con la aprobación encendida); sin él, aprobado. */
+  status?: "pending";
+  /** Quién lo pidió, si está pendiente. */
+  requestedBy?: string;
 }
 
 export interface MockWaitlistEntry {

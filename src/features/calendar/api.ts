@@ -57,6 +57,10 @@ export const calendarApi = {
   removeClientNote: (clientId: string, noteId: string) => api.delete<Client>(`/clients/${clientId}/notes/${noteId}`, { schema: clientSchema }),
   createBlock: (input: BlockInput) => api.post<TimeBlock>("/blocks", input, { schema: timeBlockSchema }),
   removeBlock: (id: string) => api.delete<void>(`/blocks/${id}`),
+  /** Todos los bloqueos de la sucursal (con su repetición), para la lista de ausencias y bloqueos. */
+  blocks: (branchId: string, signal?: AbortSignal) => api.get<{ items: TimeBlock[] }>("/calendar/blocks", { query: { branchId }, schema: z.object({ items: z.array(timeBlockSchema) }), signal }),
+  /** Aprobar un bloqueo que puso un barbero (con la aprobación encendida en Configuración). */
+  approveBlock: (id: string) => api.post<TimeBlock>(`/blocks/${id}/approve`, {}, { schema: timeBlockSchema }),
   waitlist: (branchId: string, date: string | null, signal?: AbortSignal) =>
     api.get<{ items: WaitlistEntry[] }>("/waitlist", { query: { branchId, date }, schema: waitlistSchema, signal }),
   addToWaitlist: (input: WaitlistInput) => api.post<WaitlistEntry>("/waitlist", input, { schema: waitlistEntrySchema }),

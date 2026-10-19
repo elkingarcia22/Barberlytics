@@ -1,4 +1,4 @@
-import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, ShoppingBag } from "lucide-react";
+import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, Palmtree, ShoppingBag } from "lucide-react";
 import { ClipperIcon } from "@/components/ai-interaction";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -21,6 +21,8 @@ export interface CalendarRailHandlers {
   workHours: () => void;
   assistant: () => void;
   gaps: () => void;
+  /** Ausencias y bloqueos del equipo, con lo que falta aprobar. */
+  timeOff: () => void;
 }
 
 export function calendarRailActions(t: (key: AppMessageKey) => string, on: CalendarRailHandlers): readonly RailActionSpec[] {
@@ -29,6 +31,7 @@ export function calendarRailActions(t: (key: AppMessageKey) => string, on: Calen
     { id: "walk-in-sale", label: t("calendar.action.walkInSale"), icon: <Footprints className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.walkInSale },
     { id: "collections", label: t("calendar.action.collections"), icon: <ListChecks className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.collections },
     { id: "gaps", label: t("calendar.action.gaps"), icon: <CalendarSearch className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.gaps },
+    { id: "time-off", label: t("calendar.action.timeOff"), icon: <Palmtree className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.timeOff },
     { id: "waitlist", label: t("calendar.action.waitlist"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.waitlist },
     { id: "block", label: t("calendar.action.block"), icon: <Ban className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.block },
     { id: "work-hours", label: t("calendar.action.workHours"), icon: <Clock className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.workHours },

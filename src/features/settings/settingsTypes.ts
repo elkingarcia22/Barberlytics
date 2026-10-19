@@ -42,6 +42,8 @@ export const bookingSchema = z.object({
   /** Paquetes prepagados que se venden en la reserva: N visitas de un servicio, con vencimiento. */
   packages: z.array(z.object({ id: z.string(), name: z.string(), serviceId: z.string(), sessions: z.number(), price: z.number(), validDays: z.number() })).default([]),
   cancelHours: z.number(),
+  /** Los bloqueos que pone un barbero quedan pendientes hasta que el dueño, el administrador o recepción los aprueban. */
+  blocksNeedApproval: z.boolean().default(false),
   lateFeePercent: z.number(),
   maxCancellations: z.number(),
   policy: z.string(),

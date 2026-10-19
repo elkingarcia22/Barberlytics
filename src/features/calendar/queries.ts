@@ -29,6 +29,7 @@ export const calendarKeys = {
   ranges: () => [...calendarKeys.all, "range"] as const,
   range: (branchId: string, from: string, to: string) => [...calendarKeys.ranges(), branchId, from, to] as const,
   waitlist: (branchId: string, date: string | null) => [...calendarKeys.all, "waitlist", branchId, date] as const,
+  blocks: (branchId: string) => [...calendarKeys.all, "blocks", branchId] as const,
 };
 
 export function useCatalogQuery(branchId: string) {
@@ -82,6 +83,7 @@ function useInvalidateAgenda() {
     void queryClient.invalidateQueries({ queryKey: calendarKeys.days() });
     void queryClient.invalidateQueries({ queryKey: calendarKeys.months() });
     void queryClient.invalidateQueries({ queryKey: calendarKeys.ranges() });
+    void queryClient.invalidateQueries({ queryKey: [...calendarKeys.all, "blocks"] });
   };
 }
 
@@ -206,6 +208,16 @@ export function useRemoveClientNote() {
 export function useCreateBlock() {
   const invalidate = useInvalidateAgenda();
   return useMutation({ mutationFn: (input: BlockInput) => calendarApi.createBlock(input), onSuccess: invalidate });
+}
+
+/** Todos los bloqueos de la sucursal: solo se piden con la lista de ausencias abierta. */
+export function useBlocksQuery(branchId: string, enabled: boolean) {
+  return useQuery({ queryKey: calendarKeys.blocks(branchId), queryFn: ({ signal }) => calendarApi.blocks(branchId, signal), enabled });
+}
+
+export function useApproveBlock() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({ mutationFn: (id: string) => calendarApi.approveBlock(id), onSuccess: invalidate });
 }
 
 export function useRemoveBlock() {

@@ -195,6 +195,9 @@ export const timeBlockSchema = z.object({
   startTime: z.string(),
   endTime: z.string(),
   description: z.string().nullable(),
+  /** Pendiente de aprobar (lo puso un barbero con la aprobación encendida); sin él, aprobado. */
+  status: z.literal("pending").optional(),
+  requestedBy: z.string().optional(),
 });
 export type TimeBlock = z.infer<typeof timeBlockSchema>;
 

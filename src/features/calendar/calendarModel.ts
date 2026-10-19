@@ -603,9 +603,11 @@ export function blockToEvent(block: TimeBlock, date: Date, ctx: ModelContext): S
     start: parseLocal(`${day}T${block.startTime}:00`),
     end: parseLocal(`${day}T${block.endTime}:00`),
     kind: "block",
-    title: ctx.t(BLOCK_CATEGORY_KEYS[block.category]),
+    // Pendiente de aprobar (lo puso un barbero): rayado y dicho, hasta que la barbería lo apruebe.
+    title: block.status === "pending" ? ctx.t("calendar.timeOff.ghost", { kind: ctx.t(BLOCK_CATEGORY_KEYS[block.category]) }) : ctx.t(BLOCK_CATEGORY_KEYS[block.category]),
     subtitle: block.description ?? undefined,
-    tone: "neutral",
+    tone: block.status === "pending" ? "warning" : "neutral",
+    ghost: block.status === "pending" || undefined,
     locked: true,
   };
 }

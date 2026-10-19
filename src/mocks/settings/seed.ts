@@ -59,6 +59,8 @@ export function seedSettings(): MockSettingsState {
           { id: "pkg_fade6", name: "6 fades", serviceId: "svc_fade", sessions: 6, price: 230, validDays: 180 },
         ],
         cancelHours: 3,
+        // Los bloqueos que pone un barbero (de renta) esperan aprobación: se ven rayados hasta entonces.
+        blocksNeedApproval: true,
         lateFeePercent: 10,
         maxCancellations: 5,
         policy: DEFAULT_POLICY,

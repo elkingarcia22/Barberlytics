@@ -53,6 +53,21 @@ describe("agenda del barbero recortada en el servidor", () => {
     expect(others.every((client) => client.notes.length === 0 && client.name.length > 0)).toBe(true);
   });
 
+  test("«cliente suyo» es lo mismo en Clientes y en la agenda, y no es la base entera", async () => {
+    // La agenda de unas semanas atrás y por venir: lo que de verdad atendió y tiene agendado.
+    for (let offset = -21; offset <= 7; offset++) appointmentsOn("ma", new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10));
+    signIn("acc_barber");
+    const customers = await api.get<{ items: { id: string }[] }>("/customers");
+    const catalog = await calendarApi.catalog("ma");
+    const full = catalog.clients.filter((client) => client.phone !== "" && client.type !== "walkin").map((client) => client.id).sort();
+    expect(customers.items.map((item) => item.id).sort()).toEqual(full);
+    expect(full.length).toBeGreaterThan(0);
+    expect(full.length).toBeLessThan(catalog.clients.length * 0.6);
+    // Todo cliente con el que tiene una cita en la agenda es suyo en Clientes.
+    const booked = new Set(db.calendar.appointments.filter((item) => item.barberId === BARBER && item.status !== "cancelled" && item.status !== "no_show").map((item) => item.clientId));
+    expect([...booked].every((id) => full.includes(id))).toBe(true);
+  });
+
   test("escribe solo en lo suyo: no toca citas ajenas, no las pasa a otro, no fuerza ni devuelve dinero", async () => {
     const theirs = appointmentsOn("ma", DAY).find((item) => item.barberId !== BARBER && item.status === "scheduled")!;
     const mine = appointmentsOn("ma", DAY).find((item) => item.barberId === BARBER && item.status === "scheduled")!;

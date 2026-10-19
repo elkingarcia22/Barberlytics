@@ -101,13 +101,14 @@ hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payroll
 
 Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId`), no con lo que la pantalla esconda:
 
-- **Barbero** (comisión o renta): `GET /payroll` solo su nómina; `GET /customers` solo sus clientes (barbero preferido o
-  atendido en el último año) y `GET /customers/:id` de otro es `403`; `GET /transactions` solo sus cuentas (sin ventas de
+- **Barbero** (comisión o renta): `GET /payroll` solo su nómina; `GET /customers` solo sus clientes. «Cliente suyo» es
+  una sola regla, la misma en Clientes y en la agenda: lo prefiere, o lo atendió o lo tiene agendado en el último año,
+  según el historial de la ficha o la agenda real (cita viva, no cancelada ni sin presentarse) y `GET /customers/:id` de otro es `403`; `GET /transactions` solo sus cuentas (sin ventas de
   mostrador); `GET /metrics/*` con el barbero fijo en él y `GET /metrics/insights` `403`; `GET /team/members` sin teléfono,
   correo, compensación ni pagos de los colegas; rendimiento solo el suyo.
 - **Barbero en la agenda**: `GET /calendar/day`, `/calendar/appointments` y `/calendar/month` traen solo su columna
   (sus citas, sus bloqueos, su horario y su ocupación, pida el barbero que pida); `GET /calendar/catalog` trae solo a
-  él en `barbers` y, en `clients`, la ficha completa de los suyos (los de Clientes y los que tiene en la agenda) y de
+  él en `barbers` y, en `clients`, la ficha completa de los suyos (la misma regla que Clientes) y de
   los demás solo nombre y foto (sin teléfono, notas ni historial); `GET /waitlist` las suyas y las de cualquier
   barbero. Escribe solo en lo suyo: crear, cambiar y cobrar citas de su columna (`403` si no; tampoco la pasa a otro
   barbero), sin `force` (se ignora: la agenda no lo deja pisar), notas solo en la ficha de sus clientes, lista de

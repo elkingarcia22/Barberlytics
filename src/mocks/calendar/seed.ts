@@ -387,6 +387,12 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
   let counter = 0;
 
   for (const barber of barbers) {
+    // Cada barbero atiende a quien lo prefiere o no tiene preferencia, no a los clientes de otro: así
+    // «sus clientes» (Clientes y la agenda) es un grupo creíble y no la base entera.
+    const book = realClients.filter((client) => client.preferredBarberId === barber.id || client.preferredBarberId === null);
+    const pool = book.length > 0 ? book : realClients;
+    // Nadie va dos veces el mismo día con el mismo barbero (las citas enlazadas se arman aparte).
+    const seen = new Set<string>();
     const ranges = barber.workingHours[weekday] ?? [];
     for (const range of ranges) {
       let cursor = parseClock(range.start) + (rand() < 0.5 ? 0 : 30);
@@ -405,7 +411,9 @@ export function seedDay({ branchId, day, barbers, clients, now, blocks = [] }: S
           cursor = parseClock(blocked.endTime);
           continue;
         }
-        const client = pick(realClients);
+        const fresh = pool.filter((item) => !seen.has(item.id));
+        const client = pick(fresh.length > 0 ? fresh : pool);
+        seen.add(client.id);
         const startMinutes = cursor;
         const endMinutes = cursor + service.durationMin;
         const status = appointmentStatus({ isPast, isToday, nowMinutes, startMinutes, endMinutes, roll: rand() });

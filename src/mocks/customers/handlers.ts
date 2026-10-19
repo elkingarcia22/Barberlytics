@@ -56,7 +56,25 @@ function servedBy(history: readonly MockCustomerAppointment[], now = Date.now())
   return [...new Set(ids)];
 }
 
-function summary(client: MockClient) {
+/** Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). */
+export type AgendaBarbers = ReadonlyMap<string, ReadonlySet<string>>;
+
+/**
+ * La agenda real cuenta igual que el historial de la ficha: un cliente atendido (o agendado) con un barbero
+ * es suyo, lo haya traído la semilla o una cita creada en la app. Se lee una sola vez por petición.
+ */
+export function agendaBarbers(now = Date.now()): AgendaBarbers {
+  const map = new Map<string, Set<string>>();
+  for (const item of db.calendar.appointments) {
+    if (item.status === "cancelled" || item.status === "no_show" || now - new Date(item.start).getTime() > OWN_WINDOW_MS) continue;
+    const set = map.get(item.clientId) ?? new Set<string>();
+    set.add(item.barberId);
+    map.set(item.clientId, set);
+  }
+  return map;
+}
+
+function summary(client: MockClient, agenda: AgendaBarbers = agendaBarbers()) {
   const profile = profileOf(client);
   const { segment, lastVisitAt } = lifecycleOf(client, profile.blocked);
   const history = historyOf(client, lastVisitAt, segment, barberIdsOfTeam());
@@ -78,16 +96,19 @@ function summary(client: MockClient) {
     visitEveryDays: client.visitEveryDays,
     preferredBarber: barberName(client.preferredBarberId),
     preferredBarberId: client.preferredBarberId,
-    barberIds: servedBy(history),
+    barberIds: [...new Set([...servedBy(history), ...(agenda.get(client.id) ?? [])])],
     birthDate: profile.birthDate,
     createdAt: profile.createdAt,
     medicalNotes,
   };
 }
 
-/** Si el cliente es de ese barbero: lo prefiere o lo atendió (o lo tiene agendado) en el último año. */
-export function isOwnClient(client: MockClient, memberId: string): boolean {
-  const item = summary(client);
+/**
+ * «Cliente suyo» (la misma regla en Clientes y en la agenda): lo prefiere, o lo atendió o lo tiene agendado
+ * en el último año, según el historial de la ficha o la agenda real.
+ */
+export function isOwnClient(client: MockClient, memberId: string, agenda: AgendaBarbers = agendaBarbers()): boolean {
+  const item = summary(client, agenda);
   return item.preferredBarberId === memberId || item.barberIds.includes(memberId);
 }
 
@@ -154,8 +175,9 @@ export const customersHandlers = [
     // Un barbero recibe solo sus clientes (su preferido o atendido en el último año), no la base entera.
     const session = sessionOf(request);
     const own = session && isBarber(session) ? session.memberId : null;
+    const agenda = agendaBarbers();
     const items = realClients()
-      .map(summary)
+      .map((client) => summary(client, agenda))
       .filter((item) => own === null || item.preferredBarberId === own || item.barberIds.includes(own))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
     return HttpResponse.json({ items });

@@ -966,7 +966,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### customers
 
-- **handlers.ts** — Si el cliente es de ese barbero: lo prefiere o lo atendió (o lo tiene agendado) en el último año. · `profileOf`, `barberName`, `isOwnClient`, `saveProfile`, `customersHandlers`
+- **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `isOwnClient`, `saveProfile`, `customersHandlers`
 - **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers`
 - **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers

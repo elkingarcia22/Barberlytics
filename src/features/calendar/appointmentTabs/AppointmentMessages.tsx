@@ -1,20 +1,17 @@
 import * as React from "react";
-import { CalendarClock, CheckCheck, ChevronDown, CircleSlash, Info, MessageSquareText, Reply } from "lucide-react";
+import { ChevronDown, Info, MessageSquareText, Reply } from "lucide-react";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { useLocale } from "@/i18n";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { env } from "@/lib/api";
-import { IconTile } from "@/components/utility/IconTile";
 import { Text } from "@/components/typography";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MESSAGE_KIND_KEYS, REPLY_INTENT_KEYS, replyIntentSchema, useAppointmentMessages, useSimulateReply, type AppointmentMessage } from "../messages";
-import type { Appointment, AppointmentPatch } from "../types";
+import type { Appointment } from "../types";
 
 export interface AppointmentMessagesProps {
   appointment: Appointment;
-  onPatch: (appointment: Appointment, patch: AppointmentPatch) => void;
 }
 
 const WHEN: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
@@ -22,70 +19,31 @@ const WHEN: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", hour:
 const statusKey = (message: AppointmentMessage): AppMessageKey =>
   message.status === "failed" ? "calendar.messages.status.failed" : message.status === "cancelled" ? "calendar.messages.status.cancelled" : message.status === "scheduled" ? "calendar.messages.status.scheduled" : message.simulated ? "calendar.messages.status.simulated" : "calendar.messages.status.sent";
 
-const VIA_KEY: Readonly<Record<"link" | "reception" | "whatsapp", AppMessageKey>> = {
-  link: "calendar.messages.confirmedLink",
-  reception: "calendar.messages.confirmedReception",
-  whatsapp: "calendar.messages.confirmedWhatsapp",
-};
 
 /**
- * Si el cliente confirmó que viene, como una tarjeta más de la cita: el estado
- * (confirmada o no, y cómo) con su interruptor —recepción lo cambia mientras
- * la cita está por llegar— y, dentro, los mensajes que se le mandaron por
- * correo o SMS, plegados. El riesgo de que no venga va con las demás alertas
- * (`CareAlerts`); que los envíos sean simulados se avisa con un icono y su tooltip.
+ * Lo que se habló con el cliente sobre la cita, como una tarjeta más: lo que
+ * respondió al mensaje y los mensajes que se le mandaron por correo o SMS,
+ * plegados. Si confirmó o no va en el badge junto al título
+ * (`ConfirmationBadge`) y se cambia desde el «⋯»; el riesgo de que no venga va
+ * con las demás alertas (`CareAlerts`). Que los envíos sean simulados se avisa
+ * con un icono y su tooltip. Sin nada que contar, no se pinta.
  */
-export function AppointmentMessages({ appointment, onPatch }: AppointmentMessagesProps) {
+export function AppointmentMessages({ appointment }: AppointmentMessagesProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const messages = useAppointmentMessages(appointment.id, true);
   const [showMessages, setShowMessages] = React.useState(false);
-  // Si ya llegó, vino: queda confirmada sola, sin interruptor.
-  const arrived = appointment.status === "arrived" || appointment.status === "seated" || appointment.status === "paid";
-  const confirmed = arrived || appointment.confirmation?.status === "confirmed";
-  // Lo que respondió por WhatsApp y recepción tiene que resolver: otra hora o que no puede venir.
-  const asked = !arrived && appointment.confirmation?.status === "reschedule_requested" ? "reschedule" : !arrived && appointment.confirmation?.status === "declined" ? "declined" : null;
   const items = messages.data?.items ?? [];
   const replies = messages.data?.replies ?? [];
   const editable = appointment.status === "scheduled";
   const simulate = useSimulateReply(appointment.id);
-  const how = arrived
-    ? t("calendar.messages.confirmedArrived")
-    : confirmed
-      ? t(VIA_KEY[appointment.confirmation?.via ?? "reception"])
-      : asked === "reschedule"
-        ? t("calendar.messages.rescheduleHint")
-        : asked === "declined"
-          ? t("calendar.messages.declinedHint")
-          : editable
-            ? t("calendar.messages.pendingHint")
-            : null;
-  const title = confirmed ? t("calendar.messages.confirmed") : asked === "reschedule" ? t("calendar.messages.rescheduleRequested") : asked === "declined" ? t("calendar.messages.declined") : t("calendar.messages.notConfirmed");
-  const tone = confirmed ? "positive" : asked === "reschedule" ? "warning" : asked === "declined" ? "negative" : "neutral";
-  const icon = asked === "reschedule" ? <CalendarClock /> : asked === "declined" ? <CircleSlash /> : <CheckCheck />;
-  const switchId = `confirm-${appointment.id}`;
+  const canSimulate = env.useMocks && editable;
+  if (items.length === 0 && replies.length === 0 && !canSimulate) return null;
 
   return (
-    <section aria-label={t("calendar.messages.confirmation")} className="flex flex-col rounded-xl border border-input bg-surface shadow-xs" data-testid="appointment-messages">
-      <div className="flex min-h-16 items-center gap-3 px-3 py-2.5">
-        <IconTile size="md" shape="circle" tone={tone} icon={icon} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <Text as="span" size="xs" tone="muted">
-            {t("calendar.messages.confirmation")}
-          </Text>
-          <label htmlFor={editable ? switchId : undefined} className="truncate font-medium text-text-primary" data-testid="appointment-confirmation">
-            {title}
-          </label>
-          {how && (
-            <Text as="span" size="xs" tone="muted" truncate>
-              {how}
-            </Text>
-          )}
-        </span>
-        {editable && <Switch id={switchId} checked={confirmed} onCheckedChange={(next) => onPatch(appointment, { confirmation: next ? "confirmed" : "pending" })} data-testid="appointment-confirm-switch" />}
-      </div>
+    <section aria-label={t("calendar.messages.title")} className="flex flex-col divide-y divide-border rounded-xl border border-input bg-surface shadow-xs" data-testid="appointment-messages">
       {replies.length > 0 && (
-        <div className="border-t border-border px-3 py-2" data-testid="appointment-replies">
+        <div className="px-3 py-2" data-testid="appointment-replies">
           <Text as="p" size="xs" weight="medium" tone="muted" className="flex items-center gap-1.5 py-1">
             <Reply className="size-3.5" aria-hidden />
             {t("calendar.messages.replies", { count: replies.length })}
@@ -104,7 +62,7 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
         </div>
       )}
       {items.length > 0 && (
-        <div className="border-t border-border px-3 py-2">
+        <div className="px-3 py-2">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -142,8 +100,8 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
           )}
         </div>
       )}
-      {env.useMocks && editable && (
-        <div className="border-t border-border px-3 py-1.5">
+      {canSimulate && (
+        <div className="px-3 py-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="ghost" size="sm" className="-ml-2 h-auto min-h-8 max-w-full whitespace-normal text-left text-text-muted" disabled={simulate.isPending} data-testid="appointment-simulate-reply">

@@ -2,7 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Link2, Undo2 } from "lucide-react";
+import { CheckCheck, CircleDashed, Link2, Undo2 } from "lucide-react";
 import { isActive, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
@@ -13,6 +13,8 @@ import { ClientField } from "./ClientField";
 import { HistoryTimeline } from "./HistoryTimeline";
 import { RefundPage } from "./RefundPage";
 import { AfterVisit } from "./AfterVisit";
+import { ConfirmationBadge } from "./ConfirmationBadge";
+import { confirmationOf } from "./confirmation";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { SendReceiptPage } from "./SendReceiptPage";
 import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
@@ -136,7 +138,12 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   const canLink = Boolean(props.onLink) && isActive(appointment) && (props.linkCandidates?.length ?? 0) > 0;
   // Deshacer el último paso (ingresó o lo sentó por error): vuelve al estado anterior.
   const previous = previousStatus(appointment.status);
+  // Confirmar que viene (lo dijo por teléfono o en persona), o quitarlo: del «⋯», mientras no ha llegado.
+  const confirmation = confirmationOf(appointment);
+  const canConfirm = appointment.status === "scheduled" && !appointment.walkIn;
   const menuExtra: MenuExtra[] = [
+    ...(canConfirm && confirmation.kind !== "confirmed" ? [{ id: "confirm", label: t("calendar.panel.confirm"), icon: CheckCheck, onSelect: () => onPatch(appointment, { confirmation: "confirmed" }) }] : []),
+    ...(canConfirm && confirmation.kind === "confirmed" ? [{ id: "unconfirm", label: t("calendar.panel.unconfirm"), icon: CircleDashed, onSelect: () => onPatch(appointment, { confirmation: "pending" }) }] : []),
     ...(previous ? [{ id: "undo", label: t("calendar.panel.undo", { status: t(STATUS_KEYS[previous]) }), icon: Undo2, onSelect: () => model.setStatus(previous) }] : []),
     ...(canLink ? [{ id: "link", label: t("calendar.link.add"), icon: Link2, onSelect: () => setLinking(true) }] : []),
   ];
@@ -144,7 +151,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
     <div className="flex flex-col gap-5" data-testid="panel-body">
       <PanelStepper model={model} ctx={ctx} />
       <section className={cn("flex flex-col gap-4 rounded-2xl bg-gradient-to-b to-transparent p-4", MOMENT_TINT[stage])} data-testid="panel-moment-card">
-        <StageHeading model={model} ctx={ctx} size="lg" />
+        <StageHeading model={model} ctx={ctx} size="lg" badge={!appointment.walkIn && <ConfirmationBadge appointment={appointment} />} />
         <VisitContext model={model} />
         <PanelQuestion title={t("calendar.panel.cards.who")}>
           <ClientField model={model} ctx={ctx} onOpenPage={() => pages.open("client")} onPatch={onPatch} />
@@ -154,9 +161,9 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
             <AppointmentFields model={model} ctx={ctx} onPatch={onPatch} />
           </div>
         </PanelQuestion>
-        {/* Si viene (confirmación y mensajes) y con qué citas va: tarjetas como las de arriba, solo si aplican. */}
+        {/* Los mensajes y lo que respondió, y con qué citas va: tarjetas como las de arriba, solo si aplican. */}
         <div className="flex flex-col gap-2 empty:hidden">
-          {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
+          {!appointment.walkIn && <AppointmentMessages appointment={appointment} />}
           <LinkedField model={model} ctx={ctx} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />
           {linking && <LinkPickerField model={model} ctx={ctx} linkCandidates={props.linkCandidates} onLink={props.onLink} onDone={() => setLinking(false)} />}
         </div>

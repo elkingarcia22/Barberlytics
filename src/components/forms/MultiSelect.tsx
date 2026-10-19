@@ -147,23 +147,20 @@ export function MultiSelect({
                   keywords={[option.label, option.description ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => handleSelect(option.value)}
-                  className="flex flex-col items-stretch px-4 py-3 rounded-xl cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-1 hover:bg-surface-subtle"
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer [&>svg:last-child]:hidden data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-0.5 hover:bg-surface-subtle"
                 >
-                  <div className="flex items-center w-full gap-3">
-                    {option.leading}
-                    <span className="flex-1 text-[13px] font-bold tracking-tight leading-none">{option.label}</span>
-                    {option.meta !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{option.meta}</span>}
-                    {value.includes(option.value) && (
-                      <div className="bg-primary/10 p-1 rounded-full">
-                        <Check className={cn("h-3 w-3 text-primary")} />
-                      </div>
-                    )}
-                  </div>
-                  {option.description && (
-                    <span className="text-[11px] text-muted-foreground leading-tight mt-1 font-medium">
-                      {option.description}
-                    </span>
-                  )}
+                  {/* El check propio de CommandItem se oculta (último svg): aquí la marca va en su círculo. */}
+                  {option.leading}
+                  {/* El nombre y, debajo, su descripción: en columna para que la fila no se parta. */}
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[13px] font-bold tracking-tight leading-tight">{option.label}</span>
+                    {option.description && <span className="text-[11px] text-muted-foreground leading-tight font-medium">{option.description}</span>}
+                  </span>
+                  {option.meta !== undefined && <span className="text-xs tabular-nums text-muted-foreground">{option.meta}</span>}
+                  {/* El hueco de la marca está siempre: así todas las filas miden lo mismo. */}
+                  <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full", value.includes(option.value) && "bg-primary/10")}>
+                    {value.includes(option.value) && <Check className="h-3 w-3 text-primary" />}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>

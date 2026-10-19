@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
 import { cycleWindow } from "../payroll/compute";
@@ -28,7 +29,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided";
 
 export interface MockNotification {
   id: string;
@@ -130,12 +131,23 @@ function reviewEvents(now: Date): MockNotification[] {
     .map((review) => ({ id: `review:${review.id}`, kind: "lowReview", at: review.createdAt, href: review.clientId ? `/clientes/${review.clientId}` : "/metricas", tone: "negative", params: { client: review.clientName, rating: review.rating, comment: review.comment.slice(0, 120) }, roles: ["owner"] }));
 }
 
+function absenceEvents(branchId: string, now: Date): MockNotification[] {
+  return (db.team.absences ?? [])
+    .filter((item) => item.branchId === branchId)
+    .flatMap((item): MockNotification[] => {
+      const params = { name: db.team.members.find((member) => member.id === item.memberId)?.firstName ?? "", from: item.startDate, to: item.endDate };
+      if (item.status === "pending") return [{ id: `absence:${item.id}`, kind: "absenceRequested", at: item.requestedAt, href: "/usuarios/ausencias", tone: "info", params, roles: MANAGERS }];
+      if (item.decidedAt && item.requestedBy !== item.decidedBy && recent(item.decidedAt, now)) return [{ id: `absence-decided:${item.id}`, kind: "absenceDecided", at: item.decidedAt, href: "/usuarios/ausencias", tone: item.status === "approved" ? "positive" : "warning", params: { ...params, status: item.status }, roles: ["recepcion", "barbero-comision", "barbero-renta"], memberId: item.memberId }];
+      return [];
+    });
+}
+
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). */
 export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date()): MockNotification[] {
-  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now)];
+  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
   return all
-    .filter((item) => (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role)))
+    .filter((item) => (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, MAX_ITEMS);
 }
@@ -148,7 +160,11 @@ export const notificationsHandlers = [
     const account = requireAuth(request);
     if (!account) return HttpResponse.json({ code: "unauthorized", message: "Tu sesión expiró." }, { status: 401 });
     const params = new URL(request.url).searchParams;
-    const items = notificationsFor(params.get("branchId") ?? "ma", parseRole(params.get("role")), params.get("memberId"));
+    // El rol sale de la sesión; solo quien gestiona puede pedir los de otro rol («ver como»).
+    const session = sessionOf(request)!;
+    const role = isManager(session) ? parseRole(params.get("role") ?? session.teamRole) : session.teamRole;
+    const memberId = isManager(session) ? (params.get("memberId") ?? session.memberId) : session.memberId;
+    const items = notificationsFor(params.get("branchId") ?? "ma", role, memberId);
     const read = new Set(db.notificationsRead.filter((key) => key.startsWith(`${account.id}:`)).map((key) => key.slice(account.id.length + 1)));
     const view = items.map((item) => ({ id: item.id, kind: item.kind, at: item.at, href: item.href, tone: item.tone, params: item.params, read: read.has(item.id) }));
     return HttpResponse.json({ items: view, unread: view.filter((item) => !item.read).length });

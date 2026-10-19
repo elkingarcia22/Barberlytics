@@ -52,7 +52,7 @@ Cualquier estado ≥ 400 devuelve:
 | DELETE | `/auth/backup-email` | — | `204` |
 | POST | `/auth/logout` | — | `204` |
 
-`user`: `{ id, name, phone, email, role: "admin" | "manager" | "member", avatarUrl?: string | null }`.
+`user`: `{ id, name, phone, email, role: "admin" | "manager" | "member", avatarUrl?: string | null, teamRole, memberId }`. `teamRole` (`owner`, `admin`, `recepcion`, `barbero-comision`, `barbero-renta`) y `memberId` (su ficha de equipo) son con lo que el servidor recorta: ver «Permisos en el servidor».
 
 No hay contraseña: la llave de entrada es el **celular** en E.164 (`+573001234567`) y cada entrada se confirma con un
 código de 6 dígitos por SMS que vence a los 10 minutos. Quien olvida su número lo pide por correo (`/auth/recovery/request`).
@@ -68,7 +68,9 @@ en `/auth/signup` es ISO 3166-1 alfa-2 y `timezone` un nombre IANA (`America/Bog
 `credential` en `/auth/oauth` es el ID token que entrega el SDK del proveedor en el navegador (Google Identity
 Services, MSAL para Outlook/Microsoft); el backend lo valida contra el proveedor y busca la cuenta vinculada. El
 mock ignora la credencial y entra con la primera cuenta que tenga ese proveedor (`admin` → Google, `lider` → Outlook).
-En el mock el código por SMS es siempre `246810` y solo entran los celulares de las cuentas de demostración.
+En el mock el código por SMS es siempre `246810` y solo entran los celulares de las cuentas de demostración: dueño
+`3001234567`, administrador `3007654321`, recepción `3005550103`, barbero por comisión `3005550104` y barbero de renta
+`3005550130` (todos +57).
 
 Recomendación de producción: emitir el token como cookie `httpOnly` + `SameSite=Lax` y dejar `sessionTokenStorage` sin uso (ver `src/features/auth/tokenStorage.ts`).
 
@@ -94,6 +96,20 @@ hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payroll
 | Método | Ruta | Notas |
 |---|---|---|
 | GET | `/onboarding?branchId` | `{ steps: [{ id, done, href }], done, total }`. Pasos: `company` (nombre y teléfono), `branch` (moneda, impuesto y zona horaria), `hours` (horario), `services` (alguno activo con precio), `team` (algún barbero), `payments` (pasarela conectada en la sucursal), `booking` (algún medio de pago en la reserva), `clients` (algún cliente). Nadie los marca: cada uno se da por hecho cuando el dato existe. |
+
+## Permisos en el servidor
+
+Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId`), no con lo que la pantalla esconda:
+
+- **Barbero** (comisión o renta): `GET /payroll` solo su nómina; `GET /customers` solo sus clientes (barbero preferido o
+  atendido en el último año) y `GET /customers/:id` de otro es `403`; `GET /transactions` solo sus cuentas (sin ventas de
+  mostrador); `GET /metrics/*` con el barbero fijo en él y `GET /metrics/insights` `403`; `GET /team/members` sin teléfono,
+  correo, compensación ni pagos de los colegas; rendimiento solo el suyo.
+- **Barbero por comisión**: `GET/POST /expenses` `403`. **De renta**: solo sus gastos (`ownerMemberId` = su ficha).
+- **Solo dueño o administrador**: mover la nómina (ajustes, pagos de renta, aprobar, pagar, reabrir), escribir en
+  Configuración, aprobar o rechazar ausencias, los avisos de negocio. **Solo el dueño**: eliminar la barbería.
+- **Caja**: no la cierra un barbero. **Avisos**: el rol sale de la sesión; solo quien gestiona puede pedir los de otro
+  rol («ver como»).
 
 ## Dashboard
 
@@ -387,6 +403,20 @@ El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes
 | GET | `/reports/income?branchId&month=AAAA-MM` | Estado de resultados del mes, hasta hoy si es el mes en curso. `{ month, days, elapsedDays, revenue: { services, products, rent, refunds, total }, costs: { products, commissions, salaries, adjustments, expensesFixed, expensesVariable }, contribution, fixedCosts, net, marginPercent, breakEven: { revenue, perDay, servicesPerDay, actualPerDay, avgTicket, openDays, contributionPercent } \| null, previous: { month, elapsedDays, revenue, net } }`. `422` sin sucursal o mes. |
 
 Todo va sin impuesto ni propina. **Ingresos**: lo cobrado por el equipo propio (servicios y productos, también ventas de mostrador) más la renta de sillas y las deducciones de los barberos de renta (lo que ellos cobran es suyo), menos devoluciones. **Variables** (crecen con lo vendido): costo del producto vendido (`products.cost`) y comisiones. **Fijos**: salarios, bonos y ajustes de nómina, gastos fijos de la sucursal llevados al mes —en proporción a los días vividos si el mes va a medias— y gastos variables del mes. `contribution = revenue − variables`; `net = contribution − fixedCosts`. **Punto de equilibrio**: lo fijo del mes completo ÷ (`contribution / revenue`); `servicesPerDay` lo divide por el ticket promedio y los días con agenda; `actualPerDay` es lo que se lleva. Un mes a medias se compara con el mismo tramo del anterior (`previous.elapsedDays`).
+
+## Equipo en operación (`/team`)
+
+Además de las fichas (`/team/members`), niveles, orden y horarios:
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/team/lineup/turn?branchId&kind=walkIn\|noPreference` | `{ kind, next, items: [{ memberId, name, avatarUrl, position, count, working, free }] }`. A quién le toca: los encendidos en esa fila que trabajan hoy, primero quien menos clientes de ese tipo lleva hoy y, a igualdad, el que va antes en la fila; `next` es el primero libre ahora. La venta sin cita lo preselecciona y la reserva «sin preferencia» reparte en ese orden. |
+| GET | `/team/home?branchId` | La portada: `members` (cada persona con `chair`, `occupancy`, `services` y `revenue` de la semana, `payout`, `retention` a 90 días, `rentDueOffset`, `openRegisters`), `openShifts` (turnos de la semana que viene sin cubrir por una ausencia aprobada), `series` (7 semanas de ocupación, servicios y turnos), `pendingAbsences`, `absentToday`. |
+| GET | `/team/members/:id/performance?branchId` | Últimos 90 días: `services`, `occupancy`, `rebookRate` (dejó otra cita con él en la semana), `retention`, `avgTicket` (sin impuesto), `productsPerService`, `tips`, `noShows`, `noShowRate`, `rating`, `reviews`. Un barbero solo el suyo (`403`). |
+| GET | `/team/absences?branchId` | `{ items: [{ id, memberId, memberName, branchId, kind: "vacation" \| "sick" \| "personal", startDate, endDate, note, status: "pending" \| "approved" \| "rejected", requestedBy, requestedAt, decidedBy, decidedAt, reason, affected: [{ id, start, client }] }] }`. Un barbero solo las suyas. `affected` son sus citas por atender esos días. |
+| POST | `/team/absences` | `{ branchId, kind, startDate, endDate?, note?, memberId? }`. Comisión, salario y recepción la piden para sí: queda `pending`. El barbero de renta y quien gestiona (para cualquiera, con `memberId`): queda `approved`. `409` si se cruza con otra. |
+| POST | `/team/absences/:id/approve` · `/reject` | Solo dueño o administrador. Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
+| DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
 
 ## Nómina (`/payroll`)
 

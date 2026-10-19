@@ -107,6 +107,31 @@ export interface MockTeamMember {
   createdAt: string;
 }
 
+/**
+ * Una ausencia: vacaciones, incapacidad, un permiso. Quien va por comisión o salario la pide y el
+ * dueño o el administrador la aprueba; el barbero de renta la registra sin aprobación (ROLES_PLAN #4).
+ * Aprobada, se vuelve un bloqueo en el calendario.
+ */
+export interface MockAbsence {
+  id: string;
+  memberId: string;
+  branchId: string;
+  kind: "vacation" | "sick" | "personal";
+  /** AAAA-MM-DD, ambos incluidos. */
+  startDate: string;
+  endDate: string;
+  note: string;
+  status: "pending" | "approved" | "rejected";
+  requestedBy: string;
+  requestedAt: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  /** Por qué se rechazó. */
+  reason: string | null;
+  /** El bloqueo que creó al aprobarse. */
+  blockId: string | null;
+}
+
 export interface MockLineupEntry {
   memberId: string;
   enabled: boolean;

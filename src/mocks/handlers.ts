@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { forbidden, isBarber, isManager, sessionOf } from "./session";
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
 import { customersHandlers } from "./customers/handlers";
@@ -9,6 +10,7 @@ import { incomeHandlers } from "./reports/income";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
+import { workforceHandlers } from "./team/workforce";
 import { servicesHandlers } from "./services/handlers";
 import { productsHandlers } from "./products/handlers";
 import { transactionsHandlers } from "./transactions/handlers";
@@ -384,11 +386,13 @@ export const handlers = [
       await delay(LATENCY_MS);
       if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
       const url = new URL(request.url);
+      // Un barbero ve sus cifras: el barbero queda fijo en él aunque pida otro.
+      const session = sessionOf(request);
       return HttpResponse.json(
         build({
           granularity: url.searchParams.get("granularity"),
           date: url.searchParams.get("date"),
-          barberId: url.searchParams.get("barberId"),
+          barberId: session && isBarber(session) ? session.memberId : url.searchParams.get("barberId"),
           branchId: url.searchParams.get("branchId"),
         })
       );
@@ -398,6 +402,7 @@ export const handlers = [
   http.get(`${BASE}/metrics/insights`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Los avisos del negocio son del dueño y el administrador.");
     return HttpResponse.json(buildInsightsMetrics(new Date(), new URL(request.url).searchParams.get("branchId") ?? "ma"));
   }),
 
@@ -499,6 +504,7 @@ export const handlers = [
   ...calendarHandlers,
 
   // ---------- Equipo ----------
+  ...workforceHandlers,
   ...teamHandlers,
 
   // ---------- Clientes ----------

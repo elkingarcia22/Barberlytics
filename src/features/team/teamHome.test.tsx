@@ -21,7 +21,7 @@ import {
 describe("datos del home de equipo", () => {
   test("cada aviso solo alcanza a los roles que declara", () => {
     for (const alert of TEAM_ALERTS) {
-      const alcanzados = TEAM_MEMBERS.filter(alert.matches).map((member) => member.role);
+      const alcanzados = TEAM_MEMBERS.filter((member) => alert.matches(member)).map((member) => member.role);
       for (const role of alcanzados) {
         expect(alert.roles, `${alert.id} señaló a un ${role}`).toContain(role);
       }
@@ -32,7 +32,7 @@ describe("datos del home de equipo", () => {
     // Un aviso que nunca se enciende no se puede revisar ni en la pantalla ni
     // en una captura: los datos de ejemplo tienen que ejercitarlos todos.
     for (const alert of TEAM_ALERTS) {
-      expect(TEAM_MEMBERS.filter(alert.matches).length, alert.id).toBeGreaterThan(0);
+      expect(TEAM_MEMBERS.filter((member) => alert.matches(member)).length, alert.id).toBeGreaterThan(0);
     }
   });
 
@@ -92,7 +92,7 @@ describe("datos del home de equipo", () => {
     // Si un aviso de «lo que maneja» alcanzara a un barbero, le estaría
     // pidiendo que resuelva algo que no está en su mano.
     for (const alert of TEAM_ALERTS.filter((item) => item.scope === "managed")) {
-      for (const member of TEAM_MEMBERS.filter(alert.matches)) {
+      for (const member of TEAM_MEMBERS.filter((member) => alert.matches(member))) {
         expect(isManagerRole(member.role), `${alert.id} / ${member.role}`).toBe(true);
       }
     }

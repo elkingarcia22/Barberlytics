@@ -21,6 +21,7 @@ import { useMembersQuery, useOrderQuery, useSaveOrder } from "./queries";
 import { MemberAvatar } from "./teamShared";
 import { memberName, type BranchOrder, type LineupEntry, type TeamMember } from "./types";
 import { useBranchId } from "./teamUtils";
+import { useLineupTurn } from "./workforce";
 
 /**
  * Ordenamiento para agendamiento sin cita y sin preferencia: dos filas —una
@@ -51,6 +52,7 @@ export function LineupPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab: LineupTab = searchParams.get("pestana") === TAB_PARAM.noPreference ? "noPreference" : "walkIn";
   const members = useMembersQuery(branchId);
+  const turn = useLineupTurn(branchId, tab);
   const order = useOrderQuery(branchId);
   const save = useSaveOrder();
   const [drafts, setDrafts] = React.useState<Partial<Record<LineupTab, LineupItem[]>>>({});
@@ -82,6 +84,14 @@ export function LineupPage() {
         <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("teamLineup.title")]} />
       </ShellHeaderSlot>
       <PageHeader title={t("teamLineup.title")} description={t("teamLineup.description")} />
+      {/* La fila gobierna de verdad: la venta sin cita y la reserva sin preferencia van a quien le toca. */}
+      {turn.data && turn.data.items.length > 0 && (
+        <Text variant="muted" className="mb-3" data-testid="lineup-now">
+          {turn.data.next
+            ? t("teamLineup.now", { name: turn.data.items.find((item) => item.memberId === turn.data?.next)?.name ?? "", count: turn.data.items.find((item) => item.memberId === turn.data?.next)?.count ?? 0 })
+            : t("teamLineup.nobody")}
+        </Text>
+      )}
       <ThemaTabs
         className="mb-2"
         fitContent

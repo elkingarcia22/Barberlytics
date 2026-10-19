@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -35,6 +35,8 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   payrollDue: { title: "notifications.payrollDue.title", body: "notifications.payrollDue.body" },
   payrollPaid: { title: "notifications.payrollPaid.title", body: "notifications.payrollPaid.body" },
   lowReview: { title: "notifications.lowReview.title", body: "notifications.lowReview.body" },
+  absenceRequested: { title: "notifications.absenceRequested.title", body: "notifications.absenceRequested.body" },
+  absenceDecided: { title: "notifications.absenceDecided.title", body: "notifications.absenceDecided.body" },
 };
 
 const POLL_MS = 60_000;
@@ -72,6 +74,7 @@ function formatParams(params: AppNotification["params"], deps: ShellNotification
   const out: Record<string, string | number> = { ...params };
   for (const key of ["day", "from", "to"] as const) if (typeof params[key] === "string") out[key] = deps.formatDate(new Date(`${params[key]}T12:00:00`), DAY_FORMAT);
   if (typeof params.amount === "number") out.amount = deps.formatMoney(Math.abs(params.amount));
+  if (params.status === "approved" || params.status === "rejected") out.status = deps.t(params.status === "approved" ? "notifications.absenceApproved" : "notifications.absenceRejected");
   if (typeof params.amount === "number") out.direction = deps.t(params.amount < 0 ? "notifications.missing" : "notifications.over");
   return out;
 }

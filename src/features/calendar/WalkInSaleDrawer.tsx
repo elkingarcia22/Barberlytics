@@ -15,6 +15,8 @@ import { atMinutes, formatClock, minutesOfDay } from "@/components/scheduling";
 import { clockLabel, halfHourOptions, useOpenKey } from "./calendarFormat";
 import { nextFreeMinute, type ModelContext } from "./calendarModel";
 import { useCreateAppointment } from "./queries";
+import { useBranchId } from "@/features/team/teamUtils";
+import { useLineupTurn } from "@/features/team/workforce";
 import { CLIENT_TYPE_KEYS, type Appointment, type CalendarDay } from "./types";
 
 /**
@@ -53,13 +55,20 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCr
   const [time, setTime] = React.useState(roundedClock(now ?? new Date()));
   const [clientId, setClientId] = React.useState("cli_walkin");
   const [serviceId, setServiceId] = React.useState("");
-  // Quien llega sin cita quiere al primero que quede libre: los barberos salen
-  // en ese orden y el más pronto viene ya elegido.
+  // Quien llega sin cita va a quien le toca en la fila de Equipo (el que menos lleva hoy y está
+  // libre); sin fila, al primero que quede libre.
   const nowDate = now ?? new Date();
+  const today = isSameDay(date, nowDate);
+  const turn = useLineupTurn(useBranchId(), "walkIn", open && today);
+  const turnOrder = turn.data?.items.map((item) => item.memberId) ?? [];
+  const turnIndex = (id: string) => (turnOrder.indexOf(id) === -1 ? Number.MAX_SAFE_INTEGER : turnOrder.indexOf(id));
   const ranked = ctx.catalog.barbers
-    .map((barber) => ({ barber, free: agenda && isSameDay(date, nowDate) ? nextFreeMinute(barber, date, agenda.appointments, agenda.blocks, minutesOfDay(nowDate)) : null }))
-    .sort((a, b) => (a.free ?? Infinity) - (b.free ?? Infinity));
-  const [barberId, setBarberId] = React.useState(() => ranked.find((item) => item.free !== null && item.barber.acceptsWalkIns)?.barber.id ?? "");
+    .map((barber) => ({ barber, free: agenda && today ? nextFreeMinute(barber, date, agenda.appointments, agenda.blocks, minutesOfDay(nowDate)) : null }))
+    .sort((a, b) => turnIndex(a.barber.id) - turnIndex(b.barber.id) || (a.free ?? Infinity) - (b.free ?? Infinity));
+  const firstFree = ranked.find((item) => item.free !== null && item.barber.acceptsWalkIns)?.barber.id ?? "";
+  const [picked, setBarberId] = React.useState<string | null>(null);
+  const barberId = picked ?? turn.data?.next ?? firstFree;
+  const next = turn.data?.items.find((item) => item.memberId === turn.data?.next);
 
   const submit = () => {
     if (!day || !serviceId || !barberId) return;
@@ -127,7 +136,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCr
               options={ctx.catalog.services.map((item) => ({ value: item.id, label: item.name, description: t("calendar.create.durationPrice", { minutes: item.durationMin, price: ctx.formatMoney(item.price) }), leading: <ServiceThumb service={item} /> }))}
             />
           </Field>
-          <Field label={t("calendar.field.barber")} required>
+          <Field label={t("calendar.field.barber")} required description={next ? t("calendar.walkInSale.turn", { name: next.name, count: next.count }) : undefined}>
             <Select value={barberId} onValueChange={setBarberId}>
               <SelectTrigger data-testid="walk-in-sale-barber">
                 <SelectValue placeholder={t("calendar.create.pickBarber")} />

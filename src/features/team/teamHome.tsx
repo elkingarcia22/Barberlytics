@@ -337,15 +337,15 @@ const managedBranches = (member: TeamMember): readonly string[] =>
   ROLE_BY_ID[member.role].scope === "shop" ? BRANCH_IDS : [member.branchId];
 
 /** La gente que cae bajo el cargo de estas personas, sin repetir a nadie. */
-function managedTeam(managers: readonly TeamMember[]): readonly TeamMember[] {
+function managedTeam(managers: readonly TeamMember[], data: TeamSnapshot = demoSnapshot): readonly TeamMember[] {
   const branches = new Set(managers.flatMap(managedBranches));
-  return TEAM_MEMBERS.filter((member) => branches.has(member.branchId));
+  return data.members.filter((member) => branches.has(member.branchId));
 }
 
 /** Le pasa algo a alguien de las sucursales de las que responde. */
-const managesSomeone = (member: TeamMember, problem: (other: TeamMember) => boolean): boolean =>
+const managesSomeone = (member: TeamMember, problem: (other: TeamMember) => boolean, data: TeamSnapshot = demoSnapshot): boolean =>
   managedBranches(member).some((branch) =>
-    TEAM_MEMBERS.some((other) => other.branchId === branch && problem(other))
+    data.members.some((other) => other.branchId === branch && problem(other))
   );
 
 /* ── Turnos sin cubrir ──────────────────────────────────────── */
@@ -368,6 +368,18 @@ export const OPEN_SHIFTS: readonly OpenShift[] = [
   { id: "shift-5", dayOffset: 3, slot: "15:00 – 20:00", branchId: "ut", chair: 3, reasonKey: "team.shifts.reason.open" },
   { id: "shift-6", dayOffset: 4, slot: "09:00 – 14:00", branchId: "nc", chair: 4, reasonKey: "team.shifts.reason.vacation" },
 ];
+
+/**
+ * Lo que la portada lee: las personas, los turnos sin cubrir y, si llegan de la API, la serie real
+ * de las últimas semanas de cada lectura del pulso. Sin API (documentación, pruebas) se usa la demo.
+ */
+export interface TeamSnapshot {
+  members: readonly TeamMember[];
+  openShifts: readonly OpenShift[];
+  series?: Partial<Record<string, readonly number[]>>;
+}
+
+export const demoSnapshot: TeamSnapshot = { members: TEAM_MEMBERS, openShifts: OPEN_SHIFTS };
 
 /* ── Métricas ──────────────────────────────────────────────── */
 
@@ -421,7 +433,13 @@ interface MetricDraft {
 }
 
 /** Cierra una métrica: su serie, su corte anterior y de cuánta gente sale. */
-function metric({ id, labelKey, hintKey, unit, value, basis, lowerIsBetter }: MetricDraft): TeamMetric {
+function metric({ id, labelKey, hintKey, unit, value, basis, lowerIsBetter }: MetricDraft, real?: readonly number[] | null): TeamMetric {
+  // Datos reales sin historia de esta lectura: sin variación, en vez de inventar una.
+  if (real === null) return { id, labelKey, hintKey, unit, value, basis, lowerIsBetter, previous: value, series: Array.from({ length: 7 }, (_, index) => ({ label: `S${index + 1}`, value })) };
+  // Con la serie real de la API, el corte anterior es la semana pasada de verdad.
+  if (real && real.length >= 2) {
+    return { id, labelKey, hintKey, unit, value, basis, lowerIsBetter, previous: real[real.length - 2], series: real.map((point, index) => ({ label: `S${index + 1}`, value: point })) };
+  }
   const shape = HISTORY[id];
   const week = (offset: number) => {
     const point = value + offset;
@@ -445,8 +463,9 @@ function metric({ id, labelKey, hintKey, unit, value, basis, lowerIsBetter }: Me
  * El pulso de quien atiende: cómo va la silla. Las tres lecturas salen de las
  * mismas filas que están abajo, así que no pueden contradecir a la tabla.
  */
-function chairMetrics(members: readonly TeamMember[]): readonly TeamMetric[] {
+function chairMetrics(members: readonly TeamMember[], data: TeamSnapshot = demoSnapshot): readonly TeamMetric[] {
   const working = members.filter(isWorkingBarber);
+  const real = (id: string) => (data.series ? (data.series[id] ?? null) : undefined);
   return [
     metric({
       id: "ocupacion",
@@ -455,7 +474,7 @@ function chairMetrics(members: readonly TeamMember[]): readonly TeamMetric[] {
       unit: "percent",
       value: average(working.map((member) => member.occupancy ?? 0)),
       basis: working.length,
-    }),
+    }, real("ocupacion")),
     metric({
       id: "servicios",
       labelKey: "team.metric.services",
@@ -463,7 +482,7 @@ function chairMetrics(members: readonly TeamMember[]): readonly TeamMetric[] {
       unit: "count",
       value: sum(working.map((member) => member.services ?? 0)),
       basis: working.length,
-    }),
+    }, real("servicios")),
     metric({
       id: "retencion",
       labelKey: "team.metric.retention",
@@ -471,7 +490,7 @@ function chairMetrics(members: readonly TeamMember[]): readonly TeamMetric[] {
       unit: "percent",
       value: average(working.map((member) => member.retention ?? 0)),
       basis: working.length,
-    }),
+    }, real("retencion")),
   ];
 }
 
@@ -482,11 +501,12 @@ function chairMetrics(members: readonly TeamMember[]): readonly TeamMetric[] {
  * tienen en pie, cuántos turnos les quedan por cubrir y cómo van las sillas
  * de las que responden.
  */
-function managedMetrics(managers: readonly TeamMember[]): readonly TeamMetric[] {
-  const team = managedTeam(managers);
+function managedMetrics(managers: readonly TeamMember[], data: TeamSnapshot = demoSnapshot): readonly TeamMetric[] {
+  const team = managedTeam(managers, data);
   const working = team.filter(isWorkingBarber);
   const branches = new Set(managers.flatMap(managedBranches));
-  const shifts = OPEN_SHIFTS.filter((shift) => branches.has(shift.branchId)).length;
+  const shifts = data.openShifts.filter((shift) => branches.has(shift.branchId)).length;
+  const real = (id: string) => (data.series ? (data.series[id] ?? null) : undefined);
 
   return [
     metric({
@@ -496,7 +516,7 @@ function managedMetrics(managers: readonly TeamMember[]): readonly TeamMetric[] 
       unit: "percent",
       value: share(team.filter((member) => member.status === "active").length, team.length),
       basis: team.length,
-    }),
+    }, real("equipoActivo")),
     metric({
       id: "turnos",
       labelKey: "team.metric.openShifts",
@@ -505,7 +525,7 @@ function managedMetrics(managers: readonly TeamMember[]): readonly TeamMetric[] 
       value: shifts,
       basis: team.length,
       lowerIsBetter: true,
-    }),
+    }, real("turnos")),
     metric({
       id: "agenda",
       labelKey: "team.metric.teamAgenda",
@@ -513,7 +533,7 @@ function managedMetrics(managers: readonly TeamMember[]): readonly TeamMetric[] 
       unit: "percent",
       value: average(working.map((member) => member.occupancy ?? 0)),
       basis: working.length,
-    }),
+    }, real("agenda")),
   ];
 }
 
@@ -525,9 +545,9 @@ export const membersOfRole = (role: TeamRoleFilter, members: readonly TeamMember
  * El pulso del equipo, leído desde el rol que esté puesto: la silla para quien
  * atiende, el equipo a cargo para quien administra.
  */
-export function teamMetrics(role: TeamRoleFilter = ALL_ROLES): readonly TeamMetric[] {
-  const members = membersOfRole(role);
-  return isManagerRole(role) ? managedMetrics(members) : chairMetrics(members);
+export function teamMetrics(role: TeamRoleFilter = ALL_ROLES, data: TeamSnapshot = demoSnapshot): readonly TeamMetric[] {
+  const members = membersOfRole(role, data.members);
+  return isManagerRole(role) ? managedMetrics(members, data) : chairMetrics(members, data);
 }
 
 /* ── Avisos ────────────────────────────────────────────────── */
@@ -557,7 +577,7 @@ export interface TeamAlertPreset {
    * admin que la tiene a cargo—.
    */
   scope: "person" | "managed";
-  matches: (member: TeamMember) => boolean;
+  matches: (member: TeamMember, data?: TeamSnapshot) => boolean;
 }
 
 /** Por debajo de esto una silla está parada, no floja. */
@@ -619,9 +639,9 @@ export const TEAM_ALERTS: readonly TeamAlertPreset[] = [
     tone: "negative",
     roles: RUNS_FLOOR,
     scope: "managed",
-    matches: (member) =>
+    matches: (member, data = demoSnapshot) =>
       RUNS_FLOOR.includes(member.role) &&
-      OPEN_SHIFTS.some((shift) => isToday(shift) && managedBranches(member).includes(shift.branchId)),
+      data.openShifts.some((shift) => isToday(shift) && managedBranches(member).includes(shift.branchId)),
   },
   {
     id: "branchIdle",
@@ -631,9 +651,9 @@ export const TEAM_ALERTS: readonly TeamAlertPreset[] = [
     tone: "warning",
     roles: OWNS_BRANCH,
     scope: "managed",
-    matches: (member) =>
+    matches: (member, data = demoSnapshot) =>
       OWNS_BRANCH.includes(member.role) &&
-      managesSomeone(member, (other) => isWorkingBarber(other) && (other.occupancy ?? 0) < IDLE_OCCUPANCY),
+      managesSomeone(member, (other) => isWorkingBarber(other) && (other.occupancy ?? 0) < IDLE_OCCUPANCY, data),
   },
   {
     id: "branchRent",
@@ -643,9 +663,9 @@ export const TEAM_ALERTS: readonly TeamAlertPreset[] = [
     tone: "warning",
     roles: OWNS_BRANCH,
     scope: "managed",
-    matches: (member) =>
+    matches: (member, data = demoSnapshot) =>
       OWNS_BRANCH.includes(member.role) &&
-      managesSomeone(member, (other) => other.rentDueOffset !== null && other.rentDueOffset < 0),
+      managesSomeone(member, (other) => other.rentDueOffset !== null && other.rentDueOffset < 0, data),
   },
 ];
 

@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { forbidden, isBarber, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import type { MockRegisterClosure } from "./state";
@@ -115,6 +116,7 @@ export const registerHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (isBarber(sessionOf(request)!)) return forbidden("La caja la cierran recepción, el administrador o el dueño.");
     const input = asRecord(await request.json().catch(() => ({})));
     const branchId = text(input.branchId);
     const date = text(input.date);

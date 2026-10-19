@@ -89,13 +89,19 @@ export function AppLayout() {
   // Mirar como otro rol es estado de la app, no de la sesión: el token sigue
   // siendo el mismo. Se recuerda entre recargas (features/access/viewAs).
   const [storedViewRole, setViewRoleId] = React.useState<TeamRole | null>(() => readViewAs());
-  const ownRole = teamRoleFromSession(user?.role);
+  // El rol en la barbería viene de la sesión; las cuentas antiguas solo traen el de la plantilla.
+  const ownRole = teamRoleFromSession(user?.teamRole ?? user?.role);
   // Solo hacia abajo: un «ver como» guardado que este rol no puede usar se ignora.
   const viewRoleId = storedViewRole && canViewAs(ownRole, storedViewRole) ? storedViewRole : null;
   const roles = React.useMemo(() => allRoles.filter((role) => canViewAs(ownRole, role.id as TeamRole)), [allRoles, ownRole]);
   const effectiveRole = viewRoleId ?? ownRole;
   // Quién mira y qué puede: el menú, las rutas y cada pantalla preguntan aquí.
-  const access = React.useMemo(() => buildAccess({ role: effectiveRole, previewing: viewRoleId !== null && viewRoleId !== ownRole }), [effectiveRole, viewRoleId, ownRole]);
+  const previewing = viewRoleId !== null && viewRoleId !== ownRole;
+  // Sin «ver como», la persona es la de la sesión (su ficha real); mirando otro rol, la de ejemplo de ese rol.
+  const access = React.useMemo(
+    () => buildAccess({ role: effectiveRole, previewing, ...(!previewing && user?.memberId ? { member: { id: user.memberId, name: user.name } } : {}) }),
+    [effectiveRole, previewing, user]
+  );
   const selectRole = React.useCallback(
     (roleId: string) => {
       if (!canViewAs(ownRole, roleId as TeamRole)) return;

@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { forbidden, isBarber, sessionOf } from "../session";
 import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { memberName } from "../team/seed";
 import { deriveProfile, historyOf, lifecycleOf, paymentsOf, productsOf, ticketOf, type MockCustomerAppointment, type MockCustomerProfile, type MockGuest } from "./seed";
@@ -144,8 +145,12 @@ export const customersHandlers = [
   http.get(`${BASE}/customers`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    // Un barbero recibe solo sus clientes (su preferido o atendido en el último año), no la base entera.
+    const session = sessionOf(request);
+    const own = session && isBarber(session) ? session.memberId : null;
     const items = realClients()
       .map(summary)
+      .filter((item) => own === null || item.preferredBarberId === own || item.barberIds.includes(own))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
     return HttpResponse.json({ items });
   }),
@@ -155,6 +160,11 @@ export const customersHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const client = findClient(params.id);
     if (!client) return error(404, "not_found", "Ese cliente no existe.");
+    const session = sessionOf(request);
+    if (session && isBarber(session)) {
+      const item = summary(client);
+      if (item.preferredBarberId !== session.memberId && !item.barberIds.includes(session.memberId)) return forbidden("Ese cliente no es tuyo.");
+    }
     return HttpResponse.json(detail(client));
   }),
 

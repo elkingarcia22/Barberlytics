@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { isBarber, sessionOf } from "../session";
 import { appointmentAccount } from "../calendar/account";
 import { barberServicePrice, productPriceIn } from "../catalogPrices";
 import { appointmentsOn } from "../calendar/handlers";
@@ -162,7 +163,10 @@ export const transactionsHandlers = [
       const day = dateKey(new Date(sale.paidAt));
       return sale.branchId === branchId && day >= from && day <= to;
     });
-    const items = [...appointments.map(fromAppointment), ...sales.map(fromSale)].sort((a, b) => b.date.localeCompare(a.date));
+    // Un barbero ve solo sus cuentas; las ventas de mostrador no son de nadie en particular.
+    const session = sessionOf(request);
+    const own = session && isBarber(session) ? session.memberId : null;
+    const items = [...appointments.filter((item) => own === null || item.barberId === own).map(fromAppointment), ...(own === null ? sales.map(fromSale) : [])].sort((a, b) => b.date.localeCompare(a.date));
     return HttpResponse.json({ from, to, items });
   }),
 ];

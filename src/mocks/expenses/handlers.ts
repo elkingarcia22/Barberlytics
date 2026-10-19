@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { EXPENSE_CATEGORY_IDS, EXPENSE_PAYMENT_METHODS, expenseDate, type MockExpense, type MockExpenseAttachment, type MockExpenseFrequency } from "./seed";
 
 /**
@@ -80,7 +81,10 @@ export const expensesHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const params = new URL(request.url).searchParams;
     const branchId = params.get("branchId") ?? "ma";
-    const owner = params.get("ownerMemberId") || null;
+    // El barbero de renta ve solo sus gastos; el de comisión no tiene gastos que ver.
+    const session = sessionOf(request);
+    if (session?.teamRole === "barbero-comision") return forbidden("Los gastos son de la barbería.");
+    const owner = session?.teamRole === "barbero-renta" ? session.memberId : params.get("ownerMemberId") || null;
     const items = db.expenses
       .map(view)
       .filter((item) => item.branchId === branchId && item.ownerMemberId === owner)
@@ -95,7 +99,10 @@ export const expensesHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const { fields, values } = validate(input);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
-    const expense: MockExpense = { ...values, id: `exp_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", ownerMemberId: text(input.ownerMemberId) || null, createdAt: new Date().toISOString(), endDate: null, createdBy: account.user.name };
+    const session = sessionOf(request)!;
+    if (!isManager(session) && session.teamRole !== "barbero-renta") return forbidden("Los gastos los registran el dueño, el administrador o el barbero de renta (los suyos).");
+    const ownerMemberId = session.teamRole === "barbero-renta" ? session.memberId : text(input.ownerMemberId) || null;
+    const expense: MockExpense = { ...values, id: `exp_${Date.now().toString(36)}`, branchId: text(input.branchId) || "ma", ownerMemberId, createdAt: new Date().toISOString(), endDate: null, createdBy: account.user.name };
     db.expenses = [expense, ...db.expenses];
     db.persist();
     return HttpResponse.json(view(expense), { status: 201 });
@@ -106,6 +113,8 @@ export const expensesHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const expense = findExpense(params.id);
     if (!expense) return error(404, "not_found", "Ese gasto no existe.");
+    const session = sessionOf(request)!;
+    if (!isManager(session) && !(isBarber(session) && expense.ownerMemberId === session.memberId)) return forbidden("Ese gasto no es tuyo.");
     /* Un gasto no cambia de tipo: fijo y variable se cuentan distinto. */
     const { fields, values } = validate({ ...asRecord(await request.json().catch(() => ({}))), kind: expense.kind });
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
@@ -121,6 +130,8 @@ export const expensesHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const expense = findExpense(params.id);
     if (!expense) return error(404, "not_found", "Ese gasto no existe.");
+    const session = sessionOf(request)!;
+    if (!isManager(session) && !(isBarber(session) && expense.ownerMemberId === session.memberId)) return forbidden("Ese gasto no es tuyo.");
     if (expense.kind !== "fixed") return error(409, "conflict", "Solo un gasto fijo se termina.");
     const input = asRecord(await request.json().catch(() => ({})));
     const endDate = input.endDate === null ? null : text(input.endDate) || today();
@@ -136,6 +147,8 @@ export const expensesHandlers = [
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const expense = findExpense(params.id);
     if (!expense) return error(404, "not_found", "Ese gasto no existe.");
+    const session = sessionOf(request)!;
+    if (!isManager(session) && !(isBarber(session) && expense.ownerMemberId === session.memberId)) return forbidden("Ese gasto no es tuyo.");
     db.expenses = db.expenses.filter((item) => item.id !== expense.id);
     db.persist();
     return new HttpResponse(null, { status: 204 });

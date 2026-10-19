@@ -4,7 +4,7 @@
  * son reproducibles. Se reinicia al recargar la página.
  */
 import { seededRandom } from "./random";
-import { ACCOUNT_PHOTOS, userPhoto } from "./media";
+import { ACCOUNT_PHOTOS, userPhoto, TEAM_PHOTOS } from "./media";
 import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
@@ -16,7 +16,7 @@ import { emptyInventory, type MockInventoryState } from "./inventory/state";
 import { emptyBooking, type MockBookingState } from "./booking/state";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { withBarberPrices } from "./team/pricing";
-import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember } from "./team/seed";
+import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember, type MockAbsence } from "./team/seed";
 
 export type MockUserStatus = "active" | "invited" | "inactive";
 export type MockUserRole = "admin" | "manager" | "member";
@@ -42,8 +42,11 @@ export interface MockAccount {
   email: string;
   /** Cuentas externas vinculadas: entrar con Google o con Outlook cae aquí. */
   providers: readonly MockAuthProvider[];
-  user: { id: string; name: string; phone: string; email: string; role: MockUserRole; avatarUrl: string | null };
+  user: { id: string; name: string; phone: string; email: string; role: MockUserRole; avatarUrl: string | null; teamRole: MockTeamRole; memberId: string };
 }
+
+/** El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. */
+export type MockTeamRole = "owner" | "admin" | "recepcion" | "barbero-comision" | "barbero-renta";
 
 const FIRST = ["Ana", "Luis", "María", "Carlos", "Antonia", "Andrés", "Valentina", "Diego", "Renata", "Mateo", "Camila", "Juan", "Daniela", "Santiago", "Paula", "Nicolás", "Isabella", "Sebastián", "Gabriela", "Tomás"];
 const LAST = ["Pérez", "Gómez", "Ruiz", "Díaz", "Torres", "Rojas", "Castro", "Herrera", "Méndez", "Vargas", "Moreno", "Jiménez", "Ortiz", "Silva", "Ramírez"];
@@ -89,14 +92,36 @@ export const ACCOUNTS: readonly MockAccount[] = [
     phone: "+573001234567",
     email: "admin@thema.dev",
     providers: ["google"],
-    user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: ACCOUNT_PHOTOS.owner },
+    user: { id: "usr_0001", name: "Carolina Vargas", phone: "+573001234567", email: "admin@thema.dev", role: "admin", avatarUrl: ACCOUNT_PHOTOS.owner, teamRole: "owner", memberId: "team-01" },
   },
   {
     id: "acc_manager",
     phone: "+573007654321",
     email: "lider@thema.dev",
     providers: ["microsoft"],
-    user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: ACCOUNT_PHOTOS.manager },
+    user: { id: "usr_0002", name: "Julián Ospina", phone: "+573007654321", email: "lider@thema.dev", role: "manager", avatarUrl: ACCOUNT_PHOTOS.manager, teamRole: "admin", memberId: "team-02" },
+  },
+  /* Una cuenta por rol del equipo, para probar lo que el servidor deja ver a cada uno. */
+  {
+    id: "acc_reception",
+    phone: "+573005550103",
+    email: "recepcion@thema.dev",
+    providers: [],
+    user: { id: "usr_0003", name: "Lucía Bernal", phone: "+573005550103", email: "recepcion@thema.dev", role: "member", avatarUrl: TEAM_PHOTOS["team-03"] ?? null, teamRole: "recepcion", memberId: "team-03" },
+  },
+  {
+    id: "acc_barber",
+    phone: "+573005550104",
+    email: "barbero@thema.dev",
+    providers: [],
+    user: { id: "usr_0004", name: "Andrés Beltrán", phone: "+573005550104", email: "barbero@thema.dev", role: "member", avatarUrl: TEAM_PHOTOS["team-04"] ?? null, teamRole: "barbero-comision", memberId: "team-04" },
+  },
+  {
+    id: "acc_renter",
+    phone: "+573005550130",
+    email: "renta@thema.dev",
+    providers: [],
+    user: { id: "usr_0030", name: "Paola Zuluaga", phone: "+573005550130", email: "renta@thema.dev", role: "member", avatarUrl: TEAM_PHOTOS["team-30"] ?? null, teamRole: "barbero-renta", memberId: "team-30" },
   },
 ];
 
@@ -136,6 +161,8 @@ export interface MockTeamState {
   levels: MockLevel[];
   orders: MockBranchOrder[];
   overrides: MockScheduleOverride[];
+  /** Ausencias pedidas, aprobadas o rechazadas. */
+  absences?: MockAbsence[];
 }
 
 const emptyTeam = (): MockTeamState => {

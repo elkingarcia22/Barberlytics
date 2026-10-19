@@ -34,6 +34,9 @@ export const authUserSchema = z.object({
   email: z.string().email(),
   role: userRoleSchema,
   avatarUrl: z.string().url().optional().nullable(),
+  /** El rol en la barbería y la ficha de equipo (el servidor recorta con ellos). */
+  teamRole: z.enum(["owner", "admin", "recepcion", "barbero-comision", "barbero-renta"]).optional(),
+  memberId: z.string().optional(),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 

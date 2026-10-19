@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { ArrowUpNarrowWide, BellRing, CalendarCheck, CheckCircle2, Layers, ListOrdered, Pencil, ToggleRight, TriangleAlert, Upload, UserMinus, UserPlus, Users } from "lucide-react";
+import { format } from "date-fns";
+import { ArrowUpNarrowWide, BellRing, CalendarCheck, CheckCircle2, Layers, ListOrdered, Pencil, Plane, ToggleRight, TriangleAlert, Upload, UserMinus, UserPlus, Users } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,21 +33,25 @@ import { TeamPersonAvatar } from "./teamShared";
 import {
   ALL_ROLES,
   IDLE_OCCUPANCY,
-  OPEN_SHIFTS,
   ROLE_BY_ID,
-  TEAM_MEMBERS,
   TEAM_ROLES,
   TEAM_STATUS_KEYS,
   alertsForRole,
   branchName,
   formatRowDate,
   membersOfRole,
+  offsetToDate,
   teamCells,
   teamColumns,
   teamMetrics,
   type TeamAlertId,
   type TeamRoleFilter,
+  type TeamSnapshot,
 } from "./teamHome";
+import { useTeamHome, type AbsenceKind } from "./workforce";
+
+/** Por qué quedó un turno sin cubrir, según la ausencia que lo causó. */
+const SHIFT_REASON_KEYS: Readonly<Record<AbsenceKind, AppMessageKey>> = { vacation: "team.shifts.reason.vacation", sick: "team.shifts.reason.sick", personal: "team.shifts.reason.personal" };
 
 const PAGE_SIZE = 10;
 
@@ -75,13 +81,15 @@ interface TeamHomeHandlers {
   createMember: () => void;
   edit: () => void;
   schedule: () => void;
+  absences: () => void;
 }
 
 /** Qué casilla de la matriz abre cada acción; las que no salen aquí no se ofrecen. */
-type TeamActionId = "sort-barbers" | "create-level" | "walk-in-order" | "enable-in-branch" | "bulk-import" | "create-member" | "edit" | "schedule" | "remind" | "deactivate";
+type TeamActionId = "absences" | "sort-barbers" | "create-level" | "walk-in-order" | "enable-in-branch" | "bulk-import" | "create-member" | "edit" | "schedule" | "remind" | "deactivate";
 
 function railActions(t: (key: AppMessageKey) => string, on: TeamHomeHandlers, allowed: (id: TeamActionId) => boolean): readonly RailActionSpec[] {
   const all: readonly (RailActionSpec & { id: TeamActionId })[] = [
+    { id: "absences", label: t("team.action.absences"), icon: <Plane className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.absences },
     { id: "sort-barbers", label: t("team.action.sortBarbers"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.sortBarbers },
     { id: "create-level", label: t("team.action.createLevel"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.createLevel },
     { id: "walk-in-order", label: t("team.action.walkInOrder"), icon: <ListOrdered className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.walkInOrder },
@@ -154,6 +162,9 @@ export function TeamHomePage() {
   const allowAction = React.useCallback(
     (id: TeamActionId): boolean => {
       switch (id) {
+        // Todos piden sus ausencias; quien gestiona, además, las aprueba.
+        case "absences":
+          return true;
         case "sort-barbers":
           return access.can("barber-order", "edit");
         case "create-level":
@@ -182,6 +193,7 @@ export function TeamHomePage() {
       sortBarbers: () => navigate("/usuarios/orden"),
       createLevel: () => navigate("/usuarios/niveles"),
       walkInOrder: () => navigate("/usuarios/fila"),
+      absences: () => navigate("/usuarios/ausencias"),
       enableInBranch: () => setDrawer("activate"),
       createMember: () => setDrawer("create"),
       edit: () => single && navigate(`/usuarios/miembros/${single}?editar=1`),
@@ -217,9 +229,20 @@ export function TeamHomePage() {
      suyo es cómo va su equipo—, y los avisos porque cada rol solo puede
      resolver los que le tocan. */
   const visibleIds = React.useMemo(() => new Set<string>(visibleRoles.map((spec) => spec.id)), [visibleRoles]);
-  const everyone = React.useMemo(() => TEAM_MEMBERS.filter((member) => visibleIds.has(member.role)), [visibleIds]);
+  /* La portada sale de la agenda de la sucursal (`/team/home`): personas, turnos sin cubrir por
+     ausencias y la serie real de las últimas semanas. Mientras llega, vacía. */
+  const home = useTeamHome(branchId);
+  const snapshot = React.useMemo<TeamSnapshot>(
+    () => ({
+      members: home.data?.members ?? [],
+      openShifts: (home.data?.openShifts ?? []).map((shift) => ({ ...shift, reasonKey: SHIFT_REASON_KEYS[shift.reason] })),
+      series: home.data?.series,
+    }),
+    [home.data]
+  );
+  const everyone = React.useMemo(() => snapshot.members.filter((member) => visibleIds.has(member.role)), [snapshot, visibleIds]);
   const pool = React.useMemo(() => membersOfRole(role, everyone), [role, everyone]);
-  const metrics = React.useMemo(() => teamMetrics(role), [role]);
+  const metrics = React.useMemo(() => teamMetrics(role, snapshot), [role, snapshot]);
   const alerts = React.useMemo(() => alertsForRole(role), [role]);
 
   /* La descripción del rol elegido sube al título de la sección; en las fichas
@@ -231,11 +254,11 @@ export function TeamHomePage() {
      `DataListBlock`. */
   const preset = alerts.find((item) => item.id === alert);
   const filtered = React.useMemo(
-    () => pool.filter((member) => !preset || preset.matches(member)),
-    [pool, preset]
+    () => pool.filter((member) => !preset || preset.matches(member, snapshot)),
+    [pool, preset, snapshot]
   );
 
-  const attention = pool.filter((member) => alerts.some((item) => item.matches(member))).length;
+  const attention = pool.filter((member) => alerts.some((item) => item.matches(member, snapshot))).length;
   const calm = attention === 0;
 
   /* Cambiar de rol con un aviso puesto puede dejar la lista en blanco —«caja
@@ -303,7 +326,7 @@ export function TeamHomePage() {
               option={{
                 value: spec.id,
                 label: t(spec.shortKey),
-                badge: formatCount(TEAM_MEMBERS.filter((member) => member.role === spec.id).length),
+                badge: formatCount(snapshot.members.filter((member) => member.role === spec.id).length),
                 icon: spec.icon,
               }}
               selected={role === spec.id}
@@ -363,6 +386,19 @@ export function TeamHomePage() {
       </section>
       )}
 
+      {manages && (home.data?.pendingAbsences ?? 0) > 0 && (
+        <Alert className="mb-section shrink-0" data-testid="team-pending-absences">
+          <Plane />
+          <AlertTitle>{t("team.absence.pendingTitle", { count: home.data?.pendingAbsences ?? 0 })}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            {t("team.absence.pendingHint")}
+            <Button size="xs" variant="outline" onClick={() => navigate("/usuarios/ausencias")}>
+              {t("team.absence.review")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Un aviso por cosa que alguien tiene que resolver hoy, y cada uno dice
           a qué roles le pasa. Al pulsarlo filtra la lista, así que también
           trae adelante su pestaña si se estaba en la otra. */}
@@ -376,7 +412,7 @@ export function TeamHomePage() {
         detail={calm ? t("team.alert.calmDetail") : t("team.alert.detail")}
       >
         {alerts.map((item) => {
-          const count = pool.filter(item.matches).length;
+          const count = pool.filter((member) => item.matches(member, snapshot)).length;
           if (count === 0 && alert !== item.id) return null;
           const roles = item.roles.map((id) => t(ROLE_BY_ID[id].shortKey)).join(" · ");
           const appliesTo = item.scope === "managed" ? "team.alert.managedBy" : "team.alert.appliesTo";
@@ -483,7 +519,14 @@ export function TeamHomePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {OPEN_SHIFTS.map((shift) => (
+              {snapshot.openShifts.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-sm text-text-muted">
+                    {t("team.shifts.empty")}
+                  </TableCell>
+                </TableRow>
+              )}
+              {snapshot.openShifts.map((shift) => (
                 <TableRow key={shift.id}>
                   <TableCell className="font-medium text-text-primary">{formatRowDate(shift.dayOffset, current.intl)}</TableCell>
                   <TableCell className="text-text-secondary tabular-nums">{shift.slot}</TableCell>
@@ -491,7 +534,8 @@ export function TeamHomePage() {
                   <TableCell className="text-text-secondary">{t("team.chair", { number: shift.chair })}</TableCell>
                   <TableCell className="text-text-secondary">{t(shift.reasonKey)}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="xs" variant="outline">
+                    {/* Cubrir el turno es mover sus citas a otro barbero: se abre ese día en la agenda. */}
+                    <Button size="xs" variant="outline" onClick={() => navigate(`/calendario?fecha=${format(offsetToDate(shift.dayOffset), "yyyy-MM-dd")}`)}>
                       {t("team.shifts.assign")}
                     </Button>
                   </TableCell>

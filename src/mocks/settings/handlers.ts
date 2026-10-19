@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { forbidden, isManager, sessionOf } from "../session";
 import { GATEWAY_SPECS, isGatewayProvider, keyLooksValid } from "@/features/settings/gatewayProviders";
 import type { MockListItem, MockSettingsList, MockSettingsSection } from "./seed";
 
@@ -185,6 +186,7 @@ export const settingsHandlers = [
   http.post(`${BASE}/settings/lists/:list`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador cambian la configuración.");
     const list = params.list;
     if (!isList(list)) return error(404, "not_found", "Esa lista no existe.");
     const body = asRecord(await request.json().catch(() => ({})));
@@ -200,6 +202,7 @@ export const settingsHandlers = [
   http.patch(`${BASE}/settings/lists/:list/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador cambian la configuración.");
     const list = params.list;
     if (!isList(list)) return error(404, "not_found", "Esa lista no existe.");
     const current = db.settings.lists[list].find((item) => item.id === params.id);
@@ -217,6 +220,7 @@ export const settingsHandlers = [
   http.delete(`${BASE}/settings/lists/:list/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador cambian la configuración.");
     const list = params.list;
     if (!isList(list)) return error(404, "not_found", "Esa lista no existe.");
     if (!db.settings.lists[list].some((item) => item.id === params.id)) return error(404, "not_found", "Ese registro no existe.");
@@ -239,6 +243,7 @@ export const settingsHandlers = [
   http.post(`${BASE}/settings/gateways/test`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador cambian la configuración.");
     const body = asRecord(await request.json().catch(() => ({})));
     const provider = body.provider;
     if (!isGatewayProvider(provider)) return error(422, "validation", "Elige la pasarela.", { fields: { provider: ["Elige la pasarela."] } });
@@ -275,6 +280,7 @@ export const settingsHandlers = [
   http.put(`${BASE}/settings/:section`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador cambian la configuración.");
     const section = params.section;
     if (!isSection(section)) return error(404, "not_found", "Ese ajuste no existe.");
     const body = asRecord(await request.json().catch(() => ({})));

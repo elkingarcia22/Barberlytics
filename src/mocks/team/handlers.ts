@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { isManager, sessionOf } from "../session";
 import {
   isBarberRole,
   memberName,
@@ -118,7 +119,10 @@ export const teamHandlers = [
     const branchId = branchOf(request);
     const all = new URL(request.url).searchParams.get("all") === "true";
     const members = all ? db.team.members : db.team.members.filter((member) => member.branchIds.includes(branchId));
-    return HttpResponse.json({ items: members, levels: db.team.levels });
+    // Sin gestionar al equipo no se ven el dinero ni los contactos de los colegas (sí los propios).
+    const session = sessionOf(request);
+    const redact = (member: MockTeamMember): MockTeamMember => (session && !isManager(session) && member.id !== session.memberId ? { ...member, phone: "", email: "", compensation: null, payments: null } : member);
+    return HttpResponse.json({ items: members.map(redact), levels: db.team.levels });
   }),
 
   http.get(`${BASE}/team/members/:id`, async ({ request, params }) => {

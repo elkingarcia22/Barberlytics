@@ -18,6 +18,7 @@ import { useAccess } from "@/features/access";
 import { useCatalogQuery } from "@/features/calendar/queries";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { MemberTabForm, MemberTabView } from "./MemberTabEditor";
+import { MemberPerformance } from "./MemberPerformance";
 import { memberAccess } from "./teamAccess";
 import { draftFromMember, patchForTab, serverFieldErrors, validateTab } from "./memberDraft";
 import { useLevelsQuery, useMemberQuery, useRemoveMember, useUpdateMember } from "./queries";
@@ -36,7 +37,9 @@ import { useBranchId, branchName } from "./teamUtils";
  * a quien tiene esas casillas.
  */
 
-const TAB_PARAM: Record<MemberTab, string> = { profile: "perfil", services: "servicios", compensation: "compensacion", payments: "pagos", schedule: "calendario", permissions: "permisos", options: "opciones" };
+/** «Rendimiento» es solo de lectura y no es una pestaña del alta: vive aquí, no en `MemberTab`. */
+type ProfileTab = MemberTab | "performance";
+const TAB_PARAM: Record<ProfileTab, string> = { profile: "perfil", services: "servicios", compensation: "compensacion", payments: "pagos", schedule: "calendario", permissions: "permisos", options: "opciones", performance: "rendimiento" };
 
 export function MemberProfilePage() {
   const t = useAppT();
@@ -187,7 +190,7 @@ interface MemberProfileProps {
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
   tabParam: string | null;
-  onTabChange: (tab: MemberTab) => void;
+  onTabChange: (tab: ProfileTab) => void;
   saving: boolean;
   onSave: (tab: MemberTab, draft: MemberDraft) => Promise<Record<string, string>>;
   onStatus: (status: "active" | "inactive") => void;
@@ -199,10 +202,14 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
   const navigate = useNavigate();
   const access = useAccess();
   const viewer = React.useMemo(() => memberAccess(access, member), [access, member]);
-  const tabs = viewer.tabs;
+  // Rendimiento: de quien atiende, para quien gestiona o para la propia persona.
+  const branchId = useBranchId();
+  const showsPerformance = attendsChair(member) && (access.role === "owner" || access.role === "admin" || access.member?.id === member.id);
+  const tabs: ProfileTab[] = showsPerformance ? [...viewer.tabs, "performance"] : viewer.tabs;
   const tab = tabs.find((item) => TAB_PARAM[item] === tabParam) ?? tabs[0];
+  const formTab: MemberTab | null = tab === "performance" ? null : tab;
   // `?editar=1` en la URL no abre la edición a quien no puede editar esa pestaña.
-  const editingTab = editing && viewer.canEdit(tab);
+  const editingTab = editing && formTab !== null && viewer.canEdit(formTab);
   const level = levels.find((item) => item.id === member.levelId);
   const subtitle = [t(TEAM_ROLE_KEYS[member.role]), attendsChair(member) ? (level?.name ?? t("teamMember.noLevel")) : null, member.branchIds.map(branchName).join(", ")].filter(Boolean).join(" · ");
 
@@ -218,9 +225,9 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
               ? [{ id: "activate", label: t("teamMember.action.activate"), icon: <UserPlus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("active") }]
               : [{ id: "deactivate", label: t("teamMember.action.deactivate"), icon: <UserMinus className="size-5" strokeWidth={2} />, scope: ["screen"] as const, onSelect: () => onStatus("inactive") }]),
             ...(viewer.canDelete ? [{ id: "delete", label: t("teamMember.action.delete"), icon: <Trash2 className="size-5" strokeWidth={2} />, scope: ["screen"] as const, tone: "danger" as const, overflow: true, blockedReason: member.role === "owner" ? t("teamMember.deactivate.hint") : null, onSelect: onDelete }] : []),
-            ...(viewer.canEdit(tab) ? [{ id: "edit", label: t("teamMember.action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => onEditingChange(true) }] : []),
+            ...(formTab && viewer.canEdit(formTab) ? [{ id: "edit", label: t("teamMember.action.edit"), icon: <Pencil className="size-4" strokeWidth={2.5} />, scope: ["screen"] as const, primary: true, onSelect: () => onEditingChange(true) }] : []),
           ],
-    [editingTab, member, navigate, onDelete, onEditingChange, onStatus, t, tab, viewer]
+    [editingTab, member, navigate, onDelete, onEditingChange, onStatus, t, formTab, viewer]
   );
 
   return (
@@ -245,12 +252,14 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
         }
       />
 
-      <ThemaTabs className="mb-4" variant="page" fitContent tabs={tabs.map((item) => ({ id: item, label: t(MEMBER_TAB_KEYS[item]) }))} activeTabId={tab} onTabChange={(id) => onTabChange(id as MemberTab)} />
+      <ThemaTabs className="mb-4" variant="page" fitContent tabs={tabs.map((item) => ({ id: item, label: item === "performance" ? t("team.performance.tab") : t(MEMBER_TAB_KEYS[item]) }))} activeTabId={tab} onTabChange={(id) => onTabChange(id as ProfileTab)} />
 
-      {editingTab ? (
-        <TabEditor key={`${member.id}-${tab}`} tab={tab} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
+      {formTab === null ? (
+        <MemberPerformance memberId={member.id} branchId={branchId} />
+      ) : editingTab ? (
+        <TabEditor key={`${member.id}-${formTab}`} tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
       ) : (
-        <MemberTabView tab={tab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
+        <MemberTabView tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
       )}
 
       {!editingTab && (

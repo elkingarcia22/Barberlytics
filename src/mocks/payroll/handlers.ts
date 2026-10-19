@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import { barbersOf } from "../team/seed";
@@ -98,7 +99,9 @@ export const payrollHandlers = [
     // Aprobado o pagado: la foto fija. Abierto: lo calculado hoy, con sus ajustes.
     const all = (run ? run.members : computeMembers(branchId, from, period.days, period.weeks)) as { memberId: string }[];
     /* `memberId`: la nómina de una sola persona («Lo que llevo» / «Mi negocio» del barbero). */
-    const memberId = params.get("memberId");
+    // Un barbero solo recibe su propia nómina, la pida como la pida.
+    const session = sessionOf(request);
+    const memberId = session && isBarber(session) ? session.memberId : params.get("memberId");
     // Los pagos de renta no se congelan al aprobar: se cuentan siempre, con la fecha en que se hicieron.
     const members = all.filter((member) => !memberId || member.memberId === memberId).map((member) => withRentPayments(member as PayrollMemberRow, branchId, from, to));
     const history = db.payroll.history.filter((item) => item.branchId === branchId && item.from === from && item.to === to).map(({ at, actor, event, reason }) => ({ at, actor, event, reason }));
@@ -109,6 +112,7 @@ export const payrollHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const input = asRecord(await request.json().catch(() => ({})));
     const branchId = text(input.branchId);
     const from = text(input.from);
@@ -135,6 +139,7 @@ export const payrollHandlers = [
   http.delete(`${BASE}/payroll/adjustments/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const adjustment = db.payroll.adjustments.find((item) => item.id === params.id);
     if (!adjustment) return error(404, "not_found", "Ese ajuste no existe.");
     if (runOf(adjustment.branchId, adjustment.from, adjustment.to)) return error(409, "conflict", "El periodo ya está aprobado. Reábrelo para cambiar sus ajustes.");
@@ -148,6 +153,7 @@ export const payrollHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const input = asRecord(await request.json().catch(() => ({})));
     const branchId = text(input.branchId);
     const memberId = text(input.memberId);
@@ -171,6 +177,7 @@ export const payrollHandlers = [
   http.delete(`${BASE}/payroll/rent-payments/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     if (!(db.payroll.rentPayments ?? []).some((item) => item.id === params.id)) return error(404, "not_found", "Ese pago no existe.");
     db.payroll = { ...db.payroll, rentPayments: db.payroll.rentPayments.filter((item) => item.id !== params.id) };
     db.persist();
@@ -182,6 +189,7 @@ export const payrollHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const input = asRecord(await request.json().catch(() => ({})));
     const branchId = text(input.branchId);
     const from = text(input.from);
@@ -216,6 +224,7 @@ export const payrollHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const run = db.payroll.runs.find((item) => item.id === params.id);
     if (!run) return error(404, "not_found", "Ese periodo no existe.");
     if (run.status === "paid") return error(409, "conflict", "Ese periodo ya está pagado.");
@@ -233,6 +242,7 @@ export const payrollHandlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
     const run = db.payroll.runs.find((item) => item.id === params.id);
     if (!run) return error(404, "not_found", "Ese periodo no existe.");
     if (run.status === "paid") return error(409, "conflict", "Un periodo pagado no se reabre: corrígelo con un ajuste en el siguiente.");

@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
+import { lineupRank } from "../team/workforce";
 import { releaseAppointmentStock, stockLevel, syncAppointmentStock } from "../inventory/stock";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
@@ -198,7 +199,12 @@ function planItems(branchId: string, items: unknown[], client: MockClient): { pl
     appointmentsOn(branchId, day);
     const overlapsTaken = (barberId: string) => taken.some((slot) => slot.barberId === barberId && slot.day === day && minute < slot.end && slot.start < minute + durationMin);
     const wanted = text(item.barberId);
-    const candidates = bookableBarbers(branchId).filter((barber) => (wanted ? barber.id === wanted : true) && serviceIds.every((id) => barberPrice(barber.id, id) !== null));
+    // Sin preferencia, el cliente va a quien le toca en la fila de Equipo (el que menos lleva hoy), no al primero.
+    const rank = wanted ? [] : lineupRank(branchId, day);
+    const position = (id: string) => (rank.indexOf(id) === -1 ? Number.MAX_SAFE_INTEGER : rank.indexOf(id));
+    const candidates = bookableBarbers(branchId)
+      .filter((barber) => (wanted ? barber.id === wanted : true) && serviceIds.every((id) => barberPrice(barber.id, id) !== null))
+      .sort((a, b) => position(a.id) - position(b.id));
     const chosen = candidates.find((barber) => !overlapsTaken(barber.id) && barberFree(branchId, barber.id, day, minute, durationMin));
     if (!chosen) return { problem: wanted ? "El barbero no está disponible a esa hora. Por favor elige otra." : "Ese horario acaba de ser tomado. Por favor elige otro." };
     const guestId = text(item.guestId);

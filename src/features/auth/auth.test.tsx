@@ -305,9 +305,20 @@ describe("crear cuenta", () => {
     await user.click(await screen.findByTestId("login-signup"));
     expect(await screen.findByRole("heading", { name: /empieza ahora/i })).toBeInTheDocument();
     await user.click(screen.getByTestId("signup-submit"));
-    for (const message of ["Escribe tu nombre", "Escribe tus apellidos", "Escribe el nombre de tu barbería", "Escribe tu correo", "Escribe tu celular", "Escribe cuántos barberos tiene tu equipo", "Elige tu país", "Elige tu zona horaria"]) {
+    for (const message of ["Escribe tu nombre", "Escribe tus apellidos", "Escribe el nombre de tu barbería", "Escribe tu correo", "Escribe tu celular", "Escribe cuántos barberos tiene tu equipo", "Elige tu país", "Elige tu zona horaria", "Acepta los términos y el tratamiento de datos para seguir"]) {
       expect(await screen.findByText(message)).toBeInTheDocument();
     }
+  });
+
+  test("el servidor solo crea la cuenta con los términos aceptados y el celular verificado", async () => {
+    const post = (path: string, body: unknown) => fetch(`http://localhost/api${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const form = { firstName: "Ana", lastName: "Ríos", company: "Barbería Ana", email: "ana@barberiaana.co", phone: "+573117778899", barbers: 3, country: "CO", timezone: "America/Bogota" };
+    expect((await post("/auth/signup", { ...form, code: OTP_CODE })).status).toBe(422);
+    expect((await post("/auth/signup/code", { phone: form.phone })).status).toBe(204);
+    const withoutCode = await post("/auth/signup", { ...form, acceptTerms: true });
+    expect(((await withoutCode.json()) as { fields?: Record<string, unknown> }).fields).toHaveProperty("code");
+    expect((await post("/auth/signup", { ...form, acceptTerms: true, code: "000000" })).status).toBe(401);
+    expect((await post("/auth/signup", { ...form, acceptTerms: true, code: OTP_CODE })).status).toBe(204);
   });
 
   test("la zona horaria espera al país", async () => {

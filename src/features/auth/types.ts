@@ -93,6 +93,10 @@ export const signupRequestSchema = z.object({
     .min(1, "Al menos 1 barbero"),
   country: required("Elige tu país"),
   timezone: required("Elige tu zona horaria"),
+  /** Términos y tratamiento de datos: sin aceptarlos no se crea la cuenta. */
+  acceptTerms: z.boolean().refine((value) => value, "Acepta los términos y el tratamiento de datos para seguir"),
+  /** El código que llegó al celular: lo verifica en el mismo registro. Vacío hasta pedirlo. */
+  code: z.string().optional(),
 });
 export type SignupRequest = z.infer<typeof signupRequestSchema>;
 

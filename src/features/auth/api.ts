@@ -42,6 +42,8 @@ export const authApi = {
     remove: () => api.delete<void>("/auth/backup-email"),
   },
   signup: (body: SignupRequest) => api.post<void>("/auth/signup", body),
+  /** Manda el código al celular del registro, para verificarlo antes de crear la cuenta. */
+  signupCode: (phone: string) => api.post<void>("/auth/signup/code", { phone }),
   /** Sin sesión: se abre desde el login (no llegó el correo, acceso bloqueado). */
   createTicket: (body: SupportTicketRequest) =>
     api.post<SupportTicketResponse>("/support/tickets", body, { schema: supportTicketResponseSchema }),

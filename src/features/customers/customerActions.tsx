@@ -1,4 +1,4 @@
-import { Ban, CalendarPlus, Download, Eye, NotebookPen, ShieldCheck, Trash2, Upload, UserPlus } from "lucide-react";
+import { Ban, CalendarPlus, Download, Eye, HeartHandshake, NotebookPen, ShieldCheck, Trash2, Upload, UserPlus } from "lucide-react";
 import type { AppMessageKey } from "@/app/i18n/types";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { CustomerPermissions } from "./customerAccess";
@@ -7,6 +7,8 @@ export interface CustomerListHandlers {
   create: () => void;
   exportList: () => void;
   importList: () => void;
+  /** Reactivar a los que ya se pasaron de su ritmo (con aprobación). Sin él, la acción no sale. */
+  reactivate?: () => void;
   open: () => void;
   book: () => void;
   note: () => void;
@@ -18,6 +20,7 @@ export interface CustomerListHandlers {
 export function customerListActions(t: (key: AppMessageKey) => string, on: CustomerListHandlers, blocked: boolean, perms: CustomerPermissions): readonly RailActionSpec[] {
   const actions: (RailActionSpec | false)[] = [
     perms.canCreate && { id: "create", label: t("customers.action.create"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
+    Boolean(on.reactivate) && { id: "reactivate", label: t("customers.action.reactivate"), icon: <HeartHandshake className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.reactivate },
     perms.canImport && { id: "import", label: t("customers.action.import"), icon: <Upload className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.importList },
     perms.canExport && { id: "export", label: t("customers.action.export"), icon: <Download className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.exportList },
     { id: "open", label: t("customers.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.open },

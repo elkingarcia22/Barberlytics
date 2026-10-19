@@ -18,6 +18,8 @@ import type { TeamMember } from "./types";
 const TOKEN = "mock-acc_admin-test";
 const ROLES_ARIA = appEs["team.rolesAria"];
 
+const HOME_TIMEOUT = 8_000;
+
 function renderAs(role: TeamRole, ui: React.ReactElement, route = "/") {
   db.sessions.set(TOKEN, "acc_admin");
   return renderWithProviders(<AccessProvider value={buildAccess({ role })}>{ui}</AccessProvider>, { route, token: TOKEN });
@@ -82,7 +84,8 @@ describe("pantallas de equipo según el rol", () => {
 
   test("el barbero por comisión ve a sus colegas sin correo, sin gerentes y sin pulso", async () => {
     renderAs("barbero-comision", <TeamHomePage />);
-    expect(await screen.findByRole("link", { name: "Nicolás Duarte" })).toBeInTheDocument();
+    // La portada calcula 90 días de agenda real: con la suite entera cargada tarda más de un segundo.
+    expect(await screen.findByRole("link", { name: "Nicolás Duarte" }, { timeout: HOME_TIMEOUT })).toBeInTheDocument();
     // Su propio correo sí; el de un colega no.
     expect(screen.getByText("andres.beltran@barberia.com")).toBeInTheDocument();
     expect(screen.queryByText("nicolas.duarte@barberia.com")).toBeNull();
@@ -94,7 +97,7 @@ describe("pantallas de equipo según el rol", () => {
 
   test("el dueño ve los correos y el reparto completo", async () => {
     renderAs("owner", <TeamHomePage />);
-    expect(await screen.findByText("nicolas.duarte@barberia.com")).toBeInTheDocument();
+    expect(await screen.findByText("nicolas.duarte@barberia.com", {}, { timeout: HOME_TIMEOUT })).toBeInTheDocument();
     expect(within(screen.getByRole("radiogroup", { name: ROLES_ARIA })).getByRole("button", { name: /Owner/ })).toBeInTheDocument();
   });
 

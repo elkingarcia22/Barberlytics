@@ -83,6 +83,7 @@ const MARKER_ICON: Record<ScheduleMarkerIcon, LucideIcon> = {
   repeat: Repeat,
   requested: Star,
   confirmed: CheckCheck,
+  risk: TriangleAlert,
 };
 
 /** Con menos minutos que esto la tarjeta se considera corta (se usa cuando no llega el alto en píxeles). */

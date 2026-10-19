@@ -23,6 +23,8 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerImportDrawer } from "./CustomerImportDrawer";
+import { ReactivationDrawer } from "./ReactivationDrawer";
+import { useAccess } from "@/features/access";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { useCustomerPermissions } from "./customerAccess";
 import { customerListActions } from "./customerActions";
@@ -117,6 +119,10 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const [drawer, setDrawer] = React.useState<"create" | "note" | null>(null);
   const [confirmBlock, setConfirmBlock] = React.useState<Customer | null>(null);
   const [importing, setImporting] = React.useState(false);
+  const [reactivating, setReactivating] = React.useState(false);
+  // Reactivar escribe a clientes en nombre de la barbería: lo aprueba quien gestiona.
+  const access = useAccess();
+  const manages = access.role === "owner" || access.role === "admin";
   const [confirmDelete, setConfirmDelete] = React.useState<Customer | null>(null);
   const [actionsPlacement, setActionsPlacement] = React.useState<TableActionsPlacement>("rail");
   const railOwnsActions = actionsPlacement === "rail";
@@ -150,6 +156,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           create: () => setDrawer("create"),
           exportList,
           importList: () => setImporting(true),
+          reactivate: manages ? () => setReactivating(true) : undefined,
           open: () => single && navigate(`/clientes/${single.id}`),
           book: () => single && navigate(`/calendario?cliente=${single.id}`),
           note: () => single && setDrawer("note"),
@@ -159,7 +166,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         single?.blocked ?? false,
         perms
       ),
-    [exportList, navigate, perms, single, t]
+    [exportList, manages, navigate, perms, single, t]
   );
 
   /* Cambiar de segmento con un aviso puesto puede dejar la lista en blanco
@@ -197,6 +204,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         />
         <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
+      <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
       </>
     );
   }
@@ -325,6 +333,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
 
       <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
+      <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 
       <ConfirmDialog

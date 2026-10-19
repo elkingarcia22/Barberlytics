@@ -139,6 +139,11 @@ export const appointmentSchema = z.object({
   refunds: z.array(refundSchema.extend({ id: z.string() })).optional(),
   /** Si el cliente confirmó que viene (por el enlace de WhatsApp o porque recepción lo marcó); sin él, sin confirmar. */
   confirmation: z.object({ status: z.enum(["confirmed", "declined"]), at: z.string(), via: z.enum(["link", "reception"]) }).nullable().optional(),
+  /** Riesgo de que no venga, por su historial (ver docs/API_CONTRACT.md). */
+  risk: z
+    .object({ level: z.enum(["low", "medium", "high"]), probability: z.number(), reasons: z.array(z.enum(["pastNoShows", "cancels", "newClient", "farAhead", "unconfirmed", "prepaid", "confirmed"])) })
+    .nullable()
+    .optional(),
   /**
    * Las citas enlazadas comparten este id: las que salieron de un mismo
    * agendamiento (varias personas o varias citas de una vez) o las que se

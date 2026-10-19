@@ -49,6 +49,7 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
             </Button>
           ))}
       </div>
+      {appointment.risk && appointment.status === "scheduled" && <RiskLine risk={appointment.risk} />}
       {items.length > 0 && (
         <ul className="space-y-1 text-sm">
           {items.map((message) => (
@@ -63,5 +64,31 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
       )}
       {items.some((message) => message.simulated) && <Text variant="muted">{t("calendar.messages.simulatedHint")}</Text>}
     </section>
+  );
+}
+
+const RISK_LEVEL_KEYS: Record<NonNullable<Appointment["risk"]>["level"], AppMessageKey> = { low: "calendar.risk.level.low", medium: "calendar.risk.level.medium", high: "calendar.risk.level.high" };
+const RISK_REASON_KEYS: Record<NonNullable<Appointment["risk"]>["reasons"][number], AppMessageKey> = {
+  pastNoShows: "calendar.risk.reason.pastNoShows",
+  cancels: "calendar.risk.reason.cancels",
+  newClient: "calendar.risk.reason.newClient",
+  farAhead: "calendar.risk.reason.farAhead",
+  unconfirmed: "calendar.risk.reason.unconfirmed",
+  prepaid: "calendar.risk.reason.prepaid",
+  confirmed: "calendar.risk.reason.confirmed",
+};
+const REASONS_SHOWN = 3;
+
+/** El riesgo de que no venga, con sus razones y qué hacer si es alto. Es una estimación por historial, no una promesa. */
+function RiskLine({ risk }: { risk: NonNullable<Appointment["risk"]> }) {
+  const t = useAppT();
+  return (
+    <div className="space-y-0.5 text-sm" data-testid="appointment-risk">
+      <p>
+        <span className={risk.level === "high" ? "font-semibold text-status-warning" : "text-text-secondary"}>{t(RISK_LEVEL_KEYS[risk.level], { percent: Math.round(risk.probability * 100) })}</span>
+        <span className="text-text-muted"> · {risk.reasons.slice(0, REASONS_SHOWN).map((reason) => t(RISK_REASON_KEYS[reason])).join(", ")}</span>
+      </p>
+      {risk.level === "high" && <p className="text-xs text-text-muted">{t("calendar.risk.action")}</p>}
+    </div>
   );
 }

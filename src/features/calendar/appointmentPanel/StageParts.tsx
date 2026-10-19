@@ -2,6 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { ClipperIcon } from "@/components/ai-interaction";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemaIcon } from "@/icons";
 import { formatClock } from "@/components/scheduling";
@@ -15,6 +16,7 @@ import { useAskClipper } from "./panelHooks";
 import { quickActions, stageTitle, type QuickId } from "./panelLogic";
 import type { AppointmentModel } from "./useAppointmentModel";
 import { LinkMenu } from "./WriteMenu";
+import { StatusConfirmContent } from "./StatusConfirm";
 import { writeMenu, type MenuLink } from "./writeChannels";
 
 /**
@@ -82,7 +84,7 @@ export function PanelHeaderActions({ model, ctx, onOpenHistory, historyOpen }: {
   return (
     <>
       <IconAction label={t("calendar.history.title")} onClick={onOpenHistory} pressed={historyOpen} testId="panel-history-open">
-        <ThemaIcon name="clock" />
+        <ThemaIcon name="clock" size="sm" />
       </IconAction>
       <IconAction label={t("calendar.panel.clipper.ask")} onClick={ask} testId="panel-ask-clipper">
         <ClipperIcon size={16} />
@@ -132,6 +134,8 @@ export interface Tile {
   onClick?: () => void;
   /** Varios destinos (SMS o correo): se elige en un menú; con uno solo, va directo. */
   menu?: readonly MenuLink[];
+  /** Lo que pide confirmar (cancelar, no asistió): un popover junto a la tarjeta, con su cierre. */
+  confirm?: (close: () => void) => React.ReactNode;
 }
 
 /** Los atajos del momento en una sola fila, como los de la reserva en línea: icono y una palabra. */
@@ -144,8 +148,8 @@ export function QuickTiles({ model, onChange }: QuickTilesProps) {
   const tiles: Record<QuickId, Tile> = {
     call: { id: "call", icon: glyph(ACTION_ICON.call), label: t("calendar.detail.call"), title: `${t("calendar.detail.call")} ${model.known?.phone ?? ""}`.trim(), href: model.href("call") ?? undefined },
     message: { id: "message", icon: glyph(ACTION_ICON.message), label: t("calendar.detail.message"), title: t("calendar.panel.write.title"), menu: writeMenu(model, t) },
-    noShow: { id: "noShow", icon: glyph(ACTION_ICON.noShow, "text-warning"), label: t("calendar.step.noShow"), title: t("calendar.step.noShow"), onClick: () => model.run("noShow") },
-    cancel: { id: "cancel", icon: glyph(ACTION_ICON.cancel, "text-destructive"), label: t("calendar.step.cancel"), title: t("calendar.step.cancel"), onClick: () => model.run("cancel") },
+    noShow: { id: "noShow", icon: glyph(ACTION_ICON.noShow, "text-destructive"), label: t("calendar.step.noShow"), title: t("calendar.step.noShow"), confirm: (close) => <StatusConfirmContent model={model} action="noShow" onClose={close} /> },
+    cancel: { id: "cancel", icon: glyph(ACTION_ICON.cancel, "text-destructive"), label: t("calendar.step.cancel"), title: t("calendar.step.cancel"), confirm: (close) => <StatusConfirmContent model={model} action="cancel" onClose={close} /> },
     change: {
       id: "change",
       icon: glyph(ACTION_ICON.edit),
@@ -179,6 +183,7 @@ export function TileRow({ tiles, label }: { tiles: readonly Tile[]; label: strin
             </Text>
           </>
         );
+        if (tile.confirm) return <ConfirmTile key={tile.id} tile={tile} body={body} />;
         const only = tile.menu?.length === 1 ? tile.menu[0] : undefined;
         if (tile.menu && tile.menu.length > 1) {
           return (
@@ -201,5 +206,22 @@ export function TileRow({ tiles, label }: { tiles: readonly Tile[]; label: strin
         );
       })}
     </nav>
+  );
+}
+
+/** Una tarjeta que pide confirmar: abre su popover encima, sin modal sobre el panel. */
+function ConfirmTile({ tile, body }: { tile: Tile; body: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className={TILE} aria-label={tile.title} title={tile.title} data-testid={`panel-tile-${tile.id}`}>
+          {body}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        {tile.confirm?.(() => setOpen(false))}
+      </PopoverContent>
+    </Popover>
   );
 }

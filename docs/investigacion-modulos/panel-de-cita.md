@@ -269,3 +269,13 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   confirmar»), no un botón. Debajo, los mensajes de correo y SMS si los hay.
 - **Enlazar con otra cita** es una opción del «⋯» junto a la acción principal (solo si hay con cuál);
   abre la lista en su sitio. La sección de citas enlazadas aparece solo si la cita tiene enlazadas.
+
+## 13. Confirmar en popover y la cerrada más corta (2026-10-19)
+
+- **Cancelar y «No asistió»** se confirman en un popover junto al botón que lo pidió (el atajo o el
+  «⋯»), no en un modal encima del panel (`StatusConfirm.tsx`). Al confirmar, el panel se queda y muestra
+  la cita cerrada. El clic derecho de la agenda sigue con el diálogo (ahí no hay panel debajo).
+- **No asistió** se tiñe de rojo, como la cancelada.
+- **La cerrada**: sin *Lo que se cobró* (está en *Ver recibo*) ni el agendador de la próxima a la
+  vista; el botón principal es **Reagendar**, que lo abre debajo. *Fijar* abre lo suyo (uno a la vez).
+- Los tres iconos de la cabecera (actividad, Clipper, cerrar) miden lo mismo (16 px).

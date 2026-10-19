@@ -164,7 +164,7 @@ export interface MenuExtra {
 }
 
 /** Lo que no tiene sitio a la vista: al menú de los tres puntos (con lo de la cita, como enlazarla). Cancelar va en rojo. */
-export function MoreActionsMenu({ model, actions, extra = [], className }: { model: AppointmentModel; actions: readonly AppointmentActionId[]; extra?: readonly MenuExtra[]; className?: string }) {
+export function MoreActionsMenu({ model, actions, extra = [], onConfirm, className }: { model: AppointmentModel; actions: readonly AppointmentActionId[]; extra?: readonly MenuExtra[]; /** Cancelar y «No asistió» piden confirmar: quien monta el menú abre su popover. */ onConfirm?: (action: "noShow" | "cancel") => void; className?: string }) {
   const t = useAppT();
   if (actions.length === 0 && extra.length === 0) return null;
   return (
@@ -183,7 +183,7 @@ export function MoreActionsMenu({ model, actions, extra = [], className }: { mod
         {actions.map((action) => {
           const Icon = ACTION_ICON[action];
           return (
-            <DropdownMenuItem key={action} variant={action === "cancel" ? "destructive" : undefined} onSelect={() => model.run(action)}>
+            <DropdownMenuItem key={action} variant={action === "cancel" || action === "noShow" ? "destructive" : undefined} onSelect={() => (onConfirm && (action === "cancel" || action === "noShow") ? onConfirm(action) : model.run(action))}>
               <Icon className="size-4" /> {model.label(action)}
             </DropdownMenuItem>
           );

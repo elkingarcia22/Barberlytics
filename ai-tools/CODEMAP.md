@@ -551,7 +551,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **HistoryTimeline.tsx** — La visita contada con horas reales: lo hecho, lo que va ahora y lo que falta. · `HistoryTimeline` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
 - **NextVisitBooker.tsx** · `NextVisitBooker` · piezas: Button, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons, @/lib/api
 - **PanelBody.tsx** — El cuerpo del panel de una cita («Tarjeta + Arma la cita», la que eligió el usuario el 2026-10-18; las demás… · `PanelBodyProps`, `PanelPage`, `AppointmentPanelBody` · usa: @/app/i18n, @/lib/utils
-- **PanelParts.tsx** — Las piezas del panel de una cita: las etiquetas del cliente, las alertas, la membresía, las fotos del corte y… · `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MoreActionsMenu` · piezas: Alert, AlertDescription, AlertTitle, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Tag, Text · usa: @/app/i18n, @/lib/utils
+- **PanelParts.tsx** — Las piezas del panel de una cita: las etiquetas del cliente, las alertas, la membresía, las fotos del corte y… · `ClientTags`, `CriticalAlerts`, `LoyaltyStrip`, `ReferencePhotos`, `ActionButtonProps`, `ActionButton`, `MenuExtra`, `MoreActionsMenu` · piezas: Alert, AlertDescription, AlertTitle, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ProgressRing, Tag, Text · usa: @/app/i18n, @/lib/utils
 - **PanelShared.tsx** — El avance arriba (como en el panel de siempre) con la hora real de cada paso, y el bloque de las citas enlaza… · `PanelStepper`, `LinkedBlock` · piezas: Stepper, formatClock · usa: @/app/i18n
 - **PinSeries.tsx** · `PinSeries` · piezas: Alert, AlertDescription, AlertTitle, Button, Text, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons, @/lib/api, @/lib/utils
 - **SourceLine.tsx** — De dónde salió la cita y cuándo: «Reservó en línea hace 2 días». · `SourceLine` · piezas: Text, calendarLocale · usa: @/app/i18n, @/i18n, @/icons
@@ -569,7 +569,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### calendar/appointmentTabs
 
 - **AppointmentLinkSection.tsx** — Lo que el panel de una cita necesita para sus citas enlazadas. · `AppointmentLinkProps`, `AppointmentLinkSectionProps`, `AppointmentLinkSection`, `LinkPickerProps`, `LinkPicker` · piezas: Button, ListItem, ListItemGroup, SearchableSelect, Text · usa: @/app/i18n
-- **AppointmentMessages.tsx** — Si el cliente confirmó que viene y qué mensajes se le mandaron (por correo o SMS). · `AppointmentMessagesProps`, `AppointmentMessages` · piezas: Badge, Button, Text, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n, @/i18n
+- **AppointmentMessages.tsx** — Si el cliente confirmó que viene y qué mensajes se le mandaron (por correo o SMS). · `AppointmentMessagesProps`, `AppointmentMessages` · piezas: Switch, Text, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n, @/i18n
 - **AppointmentNotesTab.tsx** — Notas: las del cliente filtradas por tipo —Notas, Medicamento, Alergias— con chips y su contador, el formular… · `AppointmentNotesTabProps`, `AppointmentNotesTab` · piezas: Button, DrawerSection, EmptyState, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea · usa: @/app/i18n, @/lib/api
 
 ### calendar/clientNotes

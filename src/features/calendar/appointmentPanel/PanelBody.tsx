@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { cn } from "@/lib/utils";
-import type { ModelContext } from "../calendarModel";
+import { Link2 } from "lucide-react";
+import { isActive, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
 import type { Appointment, AppointmentPatch } from "../types";
@@ -10,7 +11,7 @@ import { ClientPageContent } from "./ClientPage";
 import { ClientField } from "./ClientField";
 import { HistoryTimeline } from "./HistoryTimeline";
 import { AfterVisit } from "./AfterVisit";
-import { ActionButton, ClientTags, MoreActionsMenu } from "./PanelParts";
+import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
 import { CareAlerts } from "./CareAlerts";
 import { SourceLine } from "./SourceLine";
 import { LinkedBlock, PanelStepper } from "./PanelShared";
@@ -91,6 +92,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   const t = useAppT();
   const { model, ctx, onPatch } = props;
   const { pages } = props;
+  const [linking, setLinking] = React.useState(false);
   const fieldsRef = React.useRef<HTMLDivElement>(null);
   if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
@@ -100,6 +102,9 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   // Al «⋯» va lo que no está ya en los atajos (cancelar, no asistió… cuando ya está en la barbería).
   const quick: readonly string[] = quickActions(model);
   const more = restActions(model).filter((action) => !quick.includes(action));
+  // Enlazarla con otra cita del día: una opción del «⋯», solo si hay con cuál.
+  const canLink = Boolean(props.onLink) && isActive(appointment) && (props.linkCandidates?.length ?? 0) > 0;
+  const menuExtra: MenuExtra[] = canLink ? [{ id: "link", label: t("calendar.link.add"), icon: Link2, onSelect: () => setLinking(true) }] : [];
   return (
     <div className="flex flex-col gap-5" data-testid="panel-body">
       <PanelStepper model={model} ctx={ctx} />
@@ -117,13 +122,13 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
         <div className="flex items-center gap-2">
           <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
-          <MoreActionsMenu model={model} actions={more} />
+          <MoreActionsMenu model={model} actions={more} extra={menuExtra} />
         </div>
       </section>
       <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
       {/* Si confirmó que viene y qué mensajes se le mandaron por correo o SMS (confirmación, recordatorios). */}
       {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}
-      <LinkedBlock {...props} />
+      <LinkedBlock {...props} linking={linking} onLinkingDone={() => setLinking(false)} />
     </div>
   );
 }

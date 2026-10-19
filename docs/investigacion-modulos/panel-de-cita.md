@@ -257,3 +257,15 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   API acepta `clientId` en el PATCH (solo `scheduled`): quita la confirmación y pasa los avisos al nuevo.
 - **Ver en la agenda** (citas enlazadas) además de resaltarlas lleva la rejilla hasta la primera:
   antes el filtro se activaba pero las citas quedaban fuera de la vista.
+
+## 12. Cabecera con iconos, confirmación como estado y enlazar desde «⋯» (2026-10-19)
+
+- **Cabecera**: *Actividad de la cita* (reloj) y *Pregúntale a Clipper* son botones terciarios solo
+  icono, con su nombre en el tooltip (`headerActions` de `DrawerShell` y `SidePanelShell`). Ya no van
+  al final del panel.
+- **Comentarios y foto del corte** solo aparece si hay algo; sin nada no se ofrece dejarlos.
+- **Tintes de la cerrada**: verde cobrada, rojo cancelada, ámbar si no asistió.
+- **Confirmación**: un estado con interruptor («Confirmada · por el enlace / por recepción» o «Sin
+  confirmar»), no un botón. Debajo, los mensajes de correo y SMS si los hay.
+- **Enlazar con otra cita** es una opción del «⋯» junto a la acción principal (solo si hay con cuál);
+  abre la lista en su sitio. La sección de citas enlazadas aparece solo si la cita tiene enlazadas.

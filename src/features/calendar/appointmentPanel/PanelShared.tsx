@@ -5,6 +5,7 @@ import { appointmentStart, isActive, type ModelContext } from "../calendarModel"
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { STATUS_KEYS } from "../types";
 import { TRACK, trackIndexOf } from "./panelLogic";
+import { InlineList } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -33,12 +34,28 @@ export function PanelStepper({ model, ctx }: { model: AppointmentModel; ctx: Mod
   );
 }
 
-/** Las citas enlazadas y enlazar otra: van con la cita, en la página o el bloque que la muestra. */
-export function LinkedBlock({ model, ctx, linked = [], linkCandidates = [], onSelectAppointment, onUnlink, onLink, onShowLinked }: AppointmentLinkProps & { model: AppointmentModel; ctx: ModelContext }) {
+/**
+ * Las citas enlazadas, solo si las hay. Enlazar otra se pide desde el «⋯» de
+ * la acción principal y se elige aquí, en una lista que se abre en su sitio.
+ */
+export function LinkedBlock({ model, ctx, linked = [], linkCandidates = [], onSelectAppointment, onUnlink, onLink, onShowLinked, linking, onLinkingDone }: AppointmentLinkProps & { model: AppointmentModel; ctx: ModelContext; linking: boolean; onLinkingDone: () => void }) {
+  const t = useAppT();
   return (
     <>
+      {linking && onLink && isActive(model.appointment) && (
+        <InlineList title={t("calendar.link.add")} description={t("calendar.link.pickHint")} onClose={onLinkingDone}>
+          <LinkPicker
+            current={model.appointment}
+            candidates={linkCandidates}
+            ctx={ctx}
+            onLink={(appointment, target) => {
+              onLink(appointment, target);
+              onLinkingDone();
+            }}
+          />
+        </InlineList>
+      )}
       {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={model.appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
-      {onLink && isActive(model.appointment) && <LinkPicker current={model.appointment} candidates={linkCandidates} ctx={ctx} onLink={onLink} />}
     </>
   );
 }

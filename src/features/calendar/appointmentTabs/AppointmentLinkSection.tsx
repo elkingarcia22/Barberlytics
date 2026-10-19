@@ -109,7 +109,7 @@ export function LinkPicker({ current, candidates, ctx, onLink }: LinkPickerProps
           const target = candidates.find((item) => item.id === id);
           if (target) onLink(current, target);
         }}
-        placeholder={t("calendar.link.add")}
+        placeholder={t("calendar.link.pick")}
         searchPlaceholder={t("calendar.link.search")}
         emptyMessage={t("calendar.link.none")}
         disabled={candidates.length === 0}

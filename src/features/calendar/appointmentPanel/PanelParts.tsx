@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Ellipsis, Pill, TriangleAlert } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { cn } from "@/lib/utils";
@@ -155,10 +156,17 @@ export function ActionButton({ model, action, variant = "secondary", size = "def
   );
 }
 
-/** Lo que no tiene sitio a la vista: al menú de los tres puntos. Cancelar va en rojo. */
-export function MoreActionsMenu({ model, actions, className }: { model: AppointmentModel; actions: readonly AppointmentActionId[]; className?: string }) {
+export interface MenuExtra {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onSelect: () => void;
+}
+
+/** Lo que no tiene sitio a la vista: al menú de los tres puntos (con lo de la cita, como enlazarla). Cancelar va en rojo. */
+export function MoreActionsMenu({ model, actions, extra = [], className }: { model: AppointmentModel; actions: readonly AppointmentActionId[]; extra?: readonly MenuExtra[]; className?: string }) {
   const t = useAppT();
-  if (actions.length === 0) return null;
+  if (actions.length === 0 && extra.length === 0) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -167,6 +175,11 @@ export function MoreActionsMenu({ model, actions, className }: { model: Appointm
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        {extra.map((item) => (
+          <DropdownMenuItem key={item.id} onSelect={item.onSelect} data-testid={`appointment-menu-${item.id}`}>
+            <item.icon className="size-4" /> {item.label}
+          </DropdownMenuItem>
+        ))}
         {actions.map((action) => {
           const Icon = ACTION_ICON[action];
           return (

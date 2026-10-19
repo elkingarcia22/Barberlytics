@@ -48,14 +48,13 @@ export const calendarPanelEs = {
 
   // ── Atajos ──
   "calendar.panel.quick.title": "Atajos de la cita",
-  "calendar.panel.quick.whatsappHint": "Escribirle ahora",
-  "calendar.panel.quick.noShowHint": "Libera el hueco",
-  "calendar.panel.quick.cancelHint": "Queda en el historial",
   "calendar.panel.quick.change": "Cambiar la cita",
-  "calendar.panel.quick.changeHint": "Servicio, barbero u hora",
   "calendar.panel.quick.addService": "Sumar un servicio",
-  "calendar.panel.quick.addServiceHint": "«Y de paso la barba»",
-  "calendar.panel.quick.readyHint": "Avisa que {barber} puede atender",
+  "calendar.panel.quick.writeShort": "Escribir",
+  "calendar.panel.quick.changeShort": "Cambiar",
+  "calendar.panel.quick.addServiceShort": "Sumar",
+  "calendar.panel.quick.readyShort": "Listo",
+  "calendar.panel.clipper.short": "Clipper",
   "calendar.panel.more": "Más acciones",
 
   // ── La cita en tarjetas ──
@@ -163,7 +162,6 @@ export const calendarPanelEs = {
 
   // ── Clipper ──
   "calendar.panel.clipper.ask": "Pregúntale a Clipper",
-  "calendar.panel.clipper.hint": "Sobre la cita y el cliente",
   "calendar.agent.title": "Cita de {name} · {time}",
   "calendar.agent.opening": "¿Qué tengo que saber de la cita de {name}?",
   "calendar.agent.source": "Ficha y cita de {name}",

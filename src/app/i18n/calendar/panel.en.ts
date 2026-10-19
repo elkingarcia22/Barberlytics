@@ -41,14 +41,13 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.source.walkin": "Walked in",
 
   "calendar.panel.quick.title": "Appointment shortcuts",
-  "calendar.panel.quick.whatsappHint": "Text them now",
-  "calendar.panel.quick.noShowHint": "Frees the slot",
-  "calendar.panel.quick.cancelHint": "Stays in the history",
   "calendar.panel.quick.change": "Change the appointment",
-  "calendar.panel.quick.changeHint": "Service, barber or time",
   "calendar.panel.quick.addService": "Add a service",
-  "calendar.panel.quick.addServiceHint": "«And the beard too»",
-  "calendar.panel.quick.readyHint": "Let them know {barber} is ready",
+  "calendar.panel.quick.writeShort": "Text",
+  "calendar.panel.quick.changeShort": "Change",
+  "calendar.panel.quick.addServiceShort": "Add",
+  "calendar.panel.quick.readyShort": "Ready",
+  "calendar.panel.clipper.short": "Clipper",
   "calendar.panel.more": "More actions",
 
   "calendar.panel.page.appointment": "The appointment",
@@ -148,7 +147,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.visit.now": "Now",
 
   "calendar.panel.clipper.ask": "Ask Clipper",
-  "calendar.panel.clipper.hint": "About the appointment and client",
   "calendar.agent.title": "{name}'s appointment · {time}",
   "calendar.agent.opening": "What should I know about {name}'s appointment?",
   "calendar.agent.source": "{name}'s profile and appointment",

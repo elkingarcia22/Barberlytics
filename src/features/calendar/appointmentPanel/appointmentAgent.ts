@@ -33,7 +33,7 @@ const TOPICS = [
   ["rhythm", ["cada cuanto", "frecuen", "ritmo", "ultima", "visitas", "often", "rhythm", "last", "visits"]],
   ["barber", ["barber", "prefier", "con quien", "prefer"]],
   ["upsell", ["ofrec", "vend", "producto", "upsell", "sell", "offer"]],
-  ["contact", ["telefono", "celular", "llamar", "whatsapp", "contact", "phone", "call"]],
+  ["contact", ["telefono", "celular", "llamar", "escribir", "sms", "correo", "email", "mensaje", "contact", "phone", "call"]],
   ["price", ["precio", "cuanto", "cobr", "pag", "price", "pay", "cost"]],
 ] as const;
 

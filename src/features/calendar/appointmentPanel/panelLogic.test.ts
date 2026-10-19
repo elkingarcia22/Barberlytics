@@ -4,7 +4,6 @@ import type { AppointmentPlaybook } from "../appointmentPlaybook";
 import type { Appointment, Client } from "../types";
 import { clientTags, clockRelation, mainAction, quickActions, restActions, showsRequest } from "./panelLogic";
 import { topicOf } from "./appointmentAgent";
-import { isPanelVersion } from "./panelVersion";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
 const t = ((key: string, params?: Record<string, unknown>) => (params ? `${key} ${JSON.stringify(params)}` : key)) as ReturnType<typeof useAppT>;
@@ -24,7 +23,7 @@ const client = { id: "c1", name: "Marcela Gómez", type: "frequent", visits: 12,
 
 function model(overrides: Partial<AppointmentModel> = {}): AppointmentModel {
   // phone vacío: sin contacto, salvo que la prueba lo ponga.
-  const playbook: AppointmentPlaybook = { stage: "late", primary: ["call", "whatsapp", "checkIn"], secondary: ["noShow", "edit"], more: ["cancel"] };
+  const playbook: AppointmentPlaybook = { stage: "late", primary: ["call", "message", "checkIn"], secondary: ["noShow", "edit"], more: ["cancel"] };
   return { appointment, client, known: client, requested: undefined, playbook, loyaltyProgress: 3, phone: "", stepTimes: { arrived: null, seated: null, paid: null }, ...overrides } as unknown as AppointmentModel;
 }
 
@@ -64,19 +63,10 @@ describe("clockRelation", () => {
   });
 });
 
-describe("isPanelVersion", () => {
-  test("accepts only the known versions", () => {
-    expect(isPanelVersion("moment")).toBe(true);
-    expect(isPanelVersion("desk")).toBe(false);
-    expect(isPanelVersion("popover")).toBe(false);
-    expect(isPanelVersion(null)).toBe(false);
-  });
-});
-
 describe("quickActions", () => {
   test("a late client gets call, write, no-show and cancel, while check-in stays the main action", () => {
     const late = model({ phone: "+573001112233" });
-    expect(quickActions(late)).toEqual(["call", "whatsapp", "noShow", "cancel"]);
+    expect(quickActions(late)).toEqual(["call", "message", "noShow", "cancel"]);
     expect(mainAction(late)).toBe("checkIn");
   });
 

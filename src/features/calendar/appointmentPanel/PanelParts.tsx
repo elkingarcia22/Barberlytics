@@ -5,48 +5,20 @@ import { Text } from "@/components/typography";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ProgressRing } from "@/components/data-display/ProgressRing";
 import { Tag } from "@/components/utility";
-import { ThemaIcon } from "@/icons";
 import { ACTION_ICON } from "../appointmentActions";
 import type { AppointmentActionId } from "../appointmentPlaybook";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 import { clientTags } from "./panelLogic";
-import { PANEL_VERSIONS, PANEL_VERSION_HINT, PANEL_VERSION_LABEL, isPanelVersion, usePanelVersion } from "./panelVersion";
+import { LinkMenu } from "./WriteMenu";
+import { writeMenu } from "./writeChannels";
 
 /**
- * Las piezas que comparten las versiones del panel de una cita: el selector
- * de diseño, las etiquetas del cliente, las alertas, la membresía, las notas
- * y los botones de acción. Una alergia, una inasistencia o «Cobrar» se ven igual
- * en todas; lo que cambia entre versiones es el orden y el peso.
+ * Las piezas del panel de una cita: las etiquetas del cliente, las alertas,
+ * la membresía, las fotos del corte y los botones de acción. Una alergia,
+ * una inasistencia o «Cobrar» se ven igual en la cita, la cobrada y el cliente.
  */
-
-/** El selector para comparar los diseños del panel, con una línea de qué propone cada uno. */
-export function PanelVersionPicker({ className }: { className?: string }) {
-  const t = useAppT();
-  const [version, setVersion] = usePanelVersion();
-  return (
-    <div className={cn("flex flex-col gap-1", className)} data-testid="panel-version">
-      <Select value={version} onValueChange={(value) => isPanelVersion(value) && setVersion(value)}>
-        <SelectTrigger size="sm" className="w-full" aria-label={t("calendar.panel.version.label")}>
-          <ThemaIcon name="layers" size="sm" decorative />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PANEL_VERSIONS.map((id) => (
-            <SelectItem key={id} value={id}>
-              {t(PANEL_VERSION_LABEL[id])}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Text size="xs" tone="muted">
-        {t(PANEL_VERSION_HINT[version])}
-      </Text>
-    </div>
-  );
-}
 
 export function ClientTags({ model, operational, className }: { model: AppointmentModel; operational?: boolean; className?: string }) {
   const t = useAppT();
@@ -159,9 +131,20 @@ export function ActionButton({ model, action, variant = "secondary", size = "def
     </>
   );
   const buttonSize = iconOnly ? (size === "sm" ? "icon-sm" : "icon") : size;
+  // Escribir: por SMS o por correo; con los dos, se elige en un menú.
+  const channels = action === "message" ? writeMenu(model, t) : [];
+  if (channels.length > 1) {
+    return (
+      <LinkMenu items={channels} align="end">
+        <Button variant={variant} size={buttonSize} className={className} aria-label={iconOnly ? t("calendar.panel.write.title") : undefined}>
+          {body}
+        </Button>
+      </LinkMenu>
+    );
+  }
   return link ? (
     <Button asChild variant={variant} size={buttonSize} className={className} aria-label={iconOnly ? label : undefined}>
-      <a href={link} target={action === "whatsapp" ? "_blank" : undefined} rel="noreferrer">
+      <a href={link} target={action === "message" ? "_blank" : undefined} rel="noreferrer">
         {body}
       </a>
     </Button>

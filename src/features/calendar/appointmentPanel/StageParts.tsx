@@ -11,6 +11,8 @@ import { ACTION_ICON } from "../appointmentActions";
 import { useAskClipper } from "./panelHooks";
 import { quickActions, stageTitle, type QuickId } from "./panelLogic";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { LinkMenu } from "./WriteMenu";
+import { writeMenu, type MenuLink } from "./writeChannels";
 
 /**
  * Lo que va arriba según el momento de la cita, con la cara de la reserva en
@@ -91,14 +93,16 @@ export interface Tile {
   icon: React.ReactNode;
   /** Lo que se ve: una palabra. */
   label: string;
-  /** La palabra para el celular, donde cada tarjeta mide unos 53 px («WhatsApp» no cabe). */
+  /** La palabra para el celular, donde cada tarjeta mide unos 53 px. */
   narrowLabel?: string;
   /** Lo que se anuncia y sale al pasar el ratón: la acción completa. */
   title: string;
   href?: string;
-  /** Abre en otra pestaña (WhatsApp). */
+  /** Abre en otra pestaña. */
   external?: boolean;
   onClick?: () => void;
+  /** Varios destinos (SMS o correo): se elige en un menú; con uno solo, va directo. */
+  menu?: readonly MenuLink[];
 }
 
 /** Los atajos del momento en una sola fila, como los de la reserva en línea: icono y una palabra. */
@@ -110,7 +114,7 @@ export function QuickTiles({ model, onChange }: QuickTilesProps) {
   const scheduled = model.appointment.status === "scheduled";
   const tiles: Record<QuickId, Tile> = {
     call: { id: "call", icon: glyph(ACTION_ICON.call), label: t("calendar.detail.call"), title: `${t("calendar.detail.call")} ${model.known?.phone ?? ""}`.trim(), href: model.href("call") ?? undefined },
-    whatsapp: { id: "whatsapp", icon: glyph(ACTION_ICON.whatsapp), label: t("calendar.detail.whatsapp"), narrowLabel: t("calendar.panel.quick.writeShort"), title: t("calendar.detail.whatsapp"), href: model.href("whatsapp") ?? undefined, external: true },
+    message: { id: "message", icon: glyph(ACTION_ICON.message), label: t("calendar.detail.message"), title: t("calendar.panel.write.title"), menu: writeMenu(model, t) },
     noShow: { id: "noShow", icon: glyph(ACTION_ICON.noShow, "text-warning"), label: t("calendar.step.noShow"), title: t("calendar.step.noShow"), onClick: () => model.run("noShow") },
     cancel: { id: "cancel", icon: glyph(ACTION_ICON.cancel, "text-destructive"), label: t("calendar.step.cancel"), title: t("calendar.step.cancel"), onClick: () => model.run("cancel") },
     change: {
@@ -146,8 +150,19 @@ export function TileRow({ tiles, label }: { tiles: readonly Tile[]; label: strin
             </Text>
           </>
         );
-        return tile.href ? (
-          <a key={tile.id} href={tile.href} target={tile.external ? "_blank" : undefined} rel="noreferrer" className={TILE} aria-label={tile.title} title={tile.title}>
+        const only = tile.menu?.length === 1 ? tile.menu[0] : undefined;
+        if (tile.menu && tile.menu.length > 1) {
+          return (
+            <LinkMenu key={tile.id} items={tile.menu}>
+              <button type="button" className={TILE} aria-label={tile.title} title={tile.title} data-testid={`panel-tile-${tile.id}`}>
+                {body}
+              </button>
+            </LinkMenu>
+          );
+        }
+        const href = only?.href ?? tile.href;
+        return href ? (
+          <a key={tile.id} href={href} target={tile.external || only ? "_blank" : undefined} rel="noreferrer" className={TILE} aria-label={tile.title} title={tile.title} data-testid={`panel-tile-${tile.id}`}>
             {body}
           </a>
         ) : (

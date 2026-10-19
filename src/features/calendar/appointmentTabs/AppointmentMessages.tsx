@@ -1,4 +1,4 @@
-import { CheckCheck, MessageCircle, Undo2 } from "lucide-react";
+import { CheckCheck, MessageSquareText, Undo2 } from "lucide-react";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,8 @@ const statusKey = (message: AppointmentMessage): AppMessageKey =>
   message.status === "failed" ? "calendar.messages.status.failed" : message.status === "cancelled" ? "calendar.messages.status.cancelled" : message.status === "scheduled" ? "calendar.messages.status.scheduled" : message.simulated ? "calendar.messages.status.simulated" : "calendar.messages.status.sent";
 
 /**
- * Si el cliente confirmó que viene y qué mensajes se le mandaron. Confirma con el enlace del
- * WhatsApp; si lo dice por teléfono o en persona, recepción lo marca aquí.
+ * Si el cliente confirmó que viene y qué mensajes se le mandaron (por correo o SMS). Confirma con el enlace del
+ * mensaje; si lo dice por teléfono o en persona, recepción lo marca aquí.
  */
 export function AppointmentMessages({ appointment, onPatch }: AppointmentMessagesProps) {
   const t = useAppT();
@@ -32,7 +32,7 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
     <section aria-label={t("calendar.messages.title")} className="space-y-2" data-testid="appointment-messages">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-2">
-          <MessageCircle className="size-4 text-text-muted" aria-hidden />
+          <MessageSquareText className="size-4 text-text-muted" aria-hidden />
           <Text variant="label">{t("calendar.messages.title")}</Text>
           <Badge variant={confirmed ? "positive" : "neutral"} data-testid="appointment-confirmation">
             {confirmed ? t(appointment.confirmation?.via === "link" ? "calendar.messages.confirmedLink" : "calendar.messages.confirmedReception") : t("calendar.messages.notConfirmed")}

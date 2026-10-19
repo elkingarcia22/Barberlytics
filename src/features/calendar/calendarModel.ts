@@ -436,7 +436,7 @@ export function appointmentMarkers(appointment: Appointment, client: Client | un
   if (appointment.notes) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.note") });
   // Las notas de la ficha (preferencias, medicación); la alergia ya avisa aparte con su alerta.
   else if (client?.notes.some((note) => note.kind !== "allergy")) markers.push({ id: "note", icon: "note", label: ctx.t("calendar.marker.clientNote") });
-  // Confirmó que viene (por el enlace de WhatsApp o con recepción): se ve mientras la cita está por llegar.
+  // Confirmó que viene (por el enlace del mensaje o con recepción): se ve mientras la cita está por llegar.
   if (appointment.status === "scheduled" && appointment.confirmation?.status === "confirmed") markers.push({ id: "confirmed", icon: "confirmed", label: ctx.t("calendar.marker.confirmed") });
   // Riesgo alto de no venir: una marca en la tarjeta para confirmar o pedir anticipo a tiempo.
   if (appointment.risk?.level === "high") markers.push({ id: "risk", icon: "risk", label: ctx.t("calendar.marker.risk", { percent: Math.round(appointment.risk.probability * 100) }) });

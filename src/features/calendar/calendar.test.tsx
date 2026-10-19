@@ -360,7 +360,7 @@ describe("modelo del calendario", () => {
     const at = (h: number, m: number) => new Date(2026, 8, 25, h, m);
     const phone = { hasPhone: true };
     // Tarde: primero saber si viene.
-    expect(appointmentPlaybook(APPOINTMENT, at(10, 45), phone)).toMatchObject({ stage: "late", primary: ["call", "whatsapp", "checkIn"] });
+    expect(appointmentPlaybook(APPOINTMENT, at(10, 45), phone)).toMatchObject({ stage: "late", primary: ["call", "message", "checkIn"] });
     expect(appointmentPlaybook(APPOINTMENT, at(10, 45), { hasPhone: false }).primary).toEqual(["checkIn"]);
     expect(appointmentPlaybook(APPOINTMENT, at(10, 0), phone)).toMatchObject({ stage: "upcoming", primary: ["checkIn"] });
     expect(appointmentPlaybook({ ...APPOINTMENT, status: "arrived" }, at(10, 35), phone)).toMatchObject({ stage: "waiting", primary: ["seat"], secondary: ["ready", "pay", "edit"] });
@@ -368,7 +368,7 @@ describe("modelo del calendario", () => {
     expect(appointmentPlaybook({ ...APPOINTMENT, status: "seated" }, at(10, 40), phone)).toMatchObject({ stage: "seated", primary: ["pay"] });
     expect(appointmentPlaybook({ ...APPOINTMENT, status: "seated" }, at(11, 10), phone).stage).toBe("toCollect");
     expect(appointmentPlaybook({ ...APPOINTMENT, status: "paid" }, at(12, 0), phone)).toMatchObject({ stage: "paid", primary: ["rebook"] });
-    expect(appointmentPlaybook({ ...APPOINTMENT, status: "no_show" }, at(12, 0), phone)).toMatchObject({ stage: "noShow", primary: ["rebook"], secondary: ["call", "whatsapp"] });
+    expect(appointmentPlaybook({ ...APPOINTMENT, status: "no_show" }, at(12, 0), phone)).toMatchObject({ stage: "noShow", primary: ["rebook"], secondary: ["call", "message"] });
   });
 
   test("una cita no cabe si pisa a otra, a un bloqueo o cae fuera de horario", () => {
@@ -455,15 +455,15 @@ describe("modelo del calendario", () => {
     // Recepción cobra pero sin cifras del día; los barberos ven las suyas.
     expect(recepcion.showTotals).toBe(false);
     expect(comision.showTotals && renta.showTotals && owner.showTotals).toBe(true);
-    // Sin «Información del cliente» no se ofrece llamar ni WhatsApp.
+    // Sin «Información del cliente» no se ofrece llamar ni escribir.
     expect(comision.canContact).toBe(false);
     expect(recepcion.canContact).toBe(true);
     const late = { ...APPOINTMENT, start: "2026-09-25T09:30:00" };
     const lateCtx = { ...ctx, now: NOW };
     const ids = (access: typeof owner) => appointmentContextActions(late, { ...lateCtx, access }, { open: () => undefined, run: () => undefined, openClient: () => undefined }).map((action) => action.id);
-    expect(ids(recepcion)).toEqual(expect.arrayContaining(["call", "whatsapp"]));
+    expect(ids(recepcion)).toEqual(expect.arrayContaining(["call", "message"]));
     expect(ids(comision)).not.toEqual(expect.arrayContaining(["call"]));
-    expect(ids(comision)).not.toContain("whatsapp");
+    expect(ids(comision)).not.toContain("message");
   });
 
   test("con alcance propio el día y la lista de espera se recortan a lo suyo", () => {
@@ -737,8 +737,9 @@ describe("Calendario", () => {
     const cards = await within(grid).findAllByRole("button", { name: /^Abrir / });
     await user.click(cards.find((card) => !/Sin cita|Cliente de paso/i.test(card.getAttribute("aria-label") ?? "")) as HTMLElement);
     const drawer = await screen.findByTestId("appointment-drawer");
-    // Las notas viven en la página del cliente, dentro del panel.
-    await user.click(within(drawer).getByRole("button", { name: /Cliente ·/ }));
+    // El cliente es una tarjeta de la cita; abierta («¿Quién viene?») lleva a su página, donde viven las notas.
+    await user.click(within(drawer).getByTestId("panel-field-client"));
+    await user.click(await within(drawer).findByRole("button", { name: /Cliente ·/ }));
 
     await user.click(await within(drawer).findByRole("button", { name: "Acciones de Prefiere tijera arriba" }));
     await user.click(await screen.findByRole("menuitem", { name: "Editar" }));

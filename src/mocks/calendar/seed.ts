@@ -57,6 +57,8 @@ export interface MockClient {
   notes: MockClientNote[];
   /** La foto que subió el cliente, o `null` (se pintan sus iniciales). */
   avatarUrl: string | null;
+  /** Su correo, para el recibo y los avisos; no todos lo dejan. */
+  email?: string | null;
 }
 
 export interface MockService {
@@ -257,6 +259,16 @@ export const WALK_IN_CLIENT: MockClient = {
   avatarUrl: null,
 };
 
+/** Uno de cada cinco no dejó correo: así se ve el caso de solo SMS. */
+const WITHOUT_EMAIL_EVERY = 5;
+const emailSlug = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+/** El correo de la demo, sacado del nombre (no consume el dado). */
+const demoEmail = (name: string, index: number): string | null => {
+  if (index % WITHOUT_EMAIL_EVERY === WITHOUT_EMAIL_EVERY - 1) return null;
+  const [first = "", last = ""] = name.split(" ");
+  return `${emailSlug(first)}.${emailSlug(last)}@gmail.com`;
+};
+
 /**
  * Dos clientes no se llaman igual: si el nombre ya salió, se cambia el
  * apellido por el siguiente libre. No consume el dado, así el resto de la
@@ -296,6 +308,7 @@ export function seedClients(count = 44, seed = 11): MockClient[] {
       visitEveryDays: type === "new" ? null : 7 * (1 + Math.floor(rand() * 4)),
       notes,
       avatarUrl: clientPhoto(index + 1, name),
+      email: demoEmail(name, index),
     } satisfies MockClient;
   });
   return [WALK_IN_CLIENT, ...clients];

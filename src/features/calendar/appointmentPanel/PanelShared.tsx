@@ -4,15 +4,12 @@ import { formatClock } from "@/components/scheduling";
 import { appointmentStart, isActive, type ModelContext } from "../calendarModel";
 import { AppointmentLinkSection, LinkPicker, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { STATUS_KEYS } from "../types";
-import { ActionButton, MoreActionsMenu } from "./PanelParts";
-import { TRACK, mainAction, restActions, trackIndexOf } from "./panelLogic";
+import { TRACK, trackIndexOf } from "./panelLogic";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
- * Lo que comparten las versiones nuevas: el avance arriba (como en el panel de
- * siempre) con la hora real de cada paso, el bloque que cambia con el momento
- * de la cita y el pie con la acción principal, ancha y dorada como «Continuar»
- * en la reserva.
+ * El avance arriba (como en el panel de siempre) con la hora real de cada
+ * paso, y el bloque de las citas enlazadas.
  */
 
 export function PanelStepper({ model, ctx }: { model: AppointmentModel; ctx: ModelContext }) {
@@ -43,15 +40,5 @@ export function LinkedBlock({ model, ctx, linked = [], linkCandidates = [], onSe
       {linked.length > 1 && onSelectAppointment && <AppointmentLinkSection linked={linked} current={model.appointment} ctx={ctx} onSelect={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />}
       {onLink && isActive(model.appointment) && <LinkPicker current={model.appointment} candidates={linkCandidates} ctx={ctx} onLink={onLink} />}
     </>
-  );
-}
-
-/** El pie: la acción principal ancha y dorada; lo demás, al menú. */
-export function PanelFooter({ model }: { model: AppointmentModel }) {
-  return (
-    <footer className="flex shrink-0 items-center gap-2 border-t border-border/60 px-5 py-4" data-testid="appointment-primary">
-      <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
-      <MoreActionsMenu model={model} actions={restActions(model)} />
-    </footer>
   );
 }

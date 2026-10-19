@@ -145,3 +145,13 @@ export function PanelSubpage({ title, onBack, aside, children }: { title: string
     </div>
   );
 }
+
+/** Un enlace discreto a otra página del panel. */
+export function NavRowLink({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 rounded-md text-sm font-medium text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
+      {label}
+      <ThemaIcon name="chevronRight" size="sm" />
+    </button>
+  );
+}

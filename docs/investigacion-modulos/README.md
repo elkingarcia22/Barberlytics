@@ -211,6 +211,8 @@ Falta de esto:
 - Webhook de WhatsApp: las respuestas confirman, piden otra hora o avisan que no puede venir, y BAJA retira el permiso.
 - Front Desk: kiosco por sede con check-in que avisa al barbero, y fila sin cita con espera estimada.
 - Métricas › Marketing con la UTM real de cada cita; reseñas de ejemplo solo en la demo, marcadas y sin mezclarse.
+- Fila viva: «ya casi te toca» por mensaje y pantalla de turnos `/turnos`.
+- Contratos y políticas en borrador, públicos en `/legal`: términos, privacidad, tratamiento (Colombia), acuerdo de encargo y subencargados; la barbería acepta el acuerdo en Configuración.
 
 **Siguiente, por orden:** (3) ~~kiosco por sede con check-in que avisa y privacidad~~ hecho; (4) ~~Métricas › Marketing con la
 UTM real y sin reseñas de ejemplo fuera de la demo~~ hecho; (5) cola de walk-ins con espera estimada; (6) contratos y

@@ -2,6 +2,7 @@ import { calendarPanelEs } from "./calendar/panel.es";
 import { calendarCheckoutEs } from "./calendar/checkout.es";
 import { calendarTimeOffEs } from "./calendar/timeOff.es";
 import { frontDeskEs } from "./frontDesk/frontDesk.es";
+import { legalEs } from "./legal/legal.es";
 import { calendarDayPanelEs } from "./calendar/dayPanel.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
@@ -632,7 +633,6 @@ export const appEs = {
   "auth.signup.timezonePlaceholder": "Selecciona",
   "auth.signup.timezoneNeedsCountry": "Primero elige el país",
   "auth.signup.submit": "Crear cuenta",
-  "auth.signup.terms": "Acepto los términos de servicio y el tratamiento de mis datos y los de mis clientes.",
   "auth.signup.code": "Código que te enviamos",
   "auth.signup.codeHint": "Llega por SMS a tu celular: así comprobamos que es tuyo.",
   "auth.signup.sendCode": "Verificar mi celular",
@@ -3912,5 +3912,6 @@ export const appEs = {
   ...calendarCheckoutEs,
   ...calendarTimeOffEs,
   ...frontDeskEs,
+  ...legalEs,
   ...calendarDayPanelEs,
 } as const;

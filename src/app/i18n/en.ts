@@ -2,6 +2,7 @@ import { calendarPanelEn } from "./calendar/panel.en";
 import { calendarCheckoutEn } from "./calendar/checkout.en";
 import { calendarTimeOffEn } from "./calendar/timeOff.en";
 import { frontDeskEn } from "./frontDesk/frontDesk.en";
+import { legalEn } from "./legal/legal.en";
 import { calendarDayPanelEn } from "./calendar/dayPanel.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
@@ -603,7 +604,6 @@ export const appEn: AppMessageCatalog = {
   "auth.signup.timezonePlaceholder": "Select",
   "auth.signup.timezoneNeedsCountry": "Choose the country first",
   "auth.signup.submit": "Create account",
-  "auth.signup.terms": "I accept the terms of service and the processing of my data and my clients' data.",
   "auth.signup.code": "Code we sent you",
   "auth.signup.codeHint": "It arrives by SMS: that's how we check the number is yours.",
   "auth.signup.sendCode": "Verify my phone",
@@ -3875,5 +3875,6 @@ export const appEn: AppMessageCatalog = {
   ...calendarCheckoutEn,
   ...calendarTimeOffEn,
   ...frontDeskEn,
+  ...legalEn,
   ...calendarDayPanelEn,
 };

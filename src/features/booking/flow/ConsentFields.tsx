@@ -53,6 +53,9 @@ export function ConsentFields({ id, marketing, onMarketingChange }: ConsentField
               {paragraph}
             </Text>
           ))}
+          <a href={pack.policyHref} target="_blank" rel="noreferrer" className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline" data-testid="booking-privacy-policy">
+            {t("legal.booking.policy")}
+          </a>
         </CollapsibleContent>
       </Collapsible>
     </div>

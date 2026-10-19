@@ -12,6 +12,7 @@ import { IconTile } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { SettingsCard, SettingsDocument, type FieldErrors } from "../SettingsFormParts";
 import { billingSchema, type BillingSettings as Billing } from "../settingsTypes";
+import { DpaCard } from "@/features/legal/DpaCard";
 
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -52,6 +53,10 @@ export function BillingSettings() {
                 </div>
                 <p className="text-2xl font-semibold tabular-nums text-text-primary">{formatMoney(draft.plan.price)}</p>
               </div>
+            </SettingsCard>
+
+            <SettingsCard title={t("legal.dpa.title")}>
+              <DpaCard />
             </SettingsCard>
 
             <SettingsCard title={t("cfg.billing.details")} description={t("cfg.billing.detailsHint")}>

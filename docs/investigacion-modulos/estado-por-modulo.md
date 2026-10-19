@@ -266,4 +266,16 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Las reseñas de ejemplo existen solo en la demo (`VITE_SAMPLE_DATA`), van marcadas y nunca se mezclan con las reales: la primera real las reemplaza. Sin reseñas no se muestra calificación.
   - Falta: campañas administrables, el origen del cliente (no solo de la cita) y referidos.
 - **Fila viva, segunda parte (16 fase 2).** «Ya casi te toca» por mensaje, una vez, con «Voy» / «Ya no voy» (que lo saca de la fila), y la pantalla de turnos `/turnos` para el televisor (solo nombre de pila, turno y espera), con el token de un kiosco de la sede.
+- **Contratos y políticas (17 P0, borradores).**
+  - Términos, privacidad, tratamiento de datos de Colombia, acuerdo de encargo (DPA) y subencargados, versionados y públicos en `/legal`.
+  - El registro los enlaza y manda la versión aceptada.
+  - La barbería acepta el acuerdo en Configuración › Plan y facturación (versión, fecha y quién).
+  - El pie de la app enlaza términos y privacidad.
+  - El aviso de la reserva dice el contacto de la sede, que los datos están en EE. UU. y enlaza la política.
+  - Falta:
+    - la revisión del abogado y completar lo que va entre corchetes;
+    - permiso aparte para datos de salud;
+    - borrar y exportar un cliente;
+    - registro de solicitudes de titulares;
+    - horarios legales de envío y STOP en SMS.
 

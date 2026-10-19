@@ -23,6 +23,8 @@ import { expensesHandlers } from "./expenses/handlers";
 import { payrollHandlers } from "./payroll/handlers";
 import { registerHandlers } from "./register/handlers";
 import { frontDeskHandlers } from "./frontDesk/handlers";
+import { legalHandlers } from "./legal/handlers";
+import { legalVersion } from "@/features/legal/documents";
 import { messagesHandlers } from "./messages/handlers";
 import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
@@ -268,6 +270,8 @@ export const handlers = [
     const barbers = Number(body.barbers);
     if (!Number.isInteger(barbers) || barbers < 1) fields.barbers = ["Escribe cuántos barberos tiene tu equipo."];
     if (body.acceptTerms !== true) fields.acceptTerms = ["Acepta los términos y el tratamiento de datos para seguir."];
+    // Se acepta la versión vigente de cada documento: el backend real la guarda con la fecha.
+    else if (body.termsVersion !== legalVersion("terms") || body.privacyVersion !== legalVersion("privacy") || body.dpaVersion !== legalVersion("dpa")) fields.acceptTerms = ["Los términos cambiaron: recarga la página y vuelve a aceptarlos."];
     if (Object.keys(fields).length) return error(422, "validation_error", "Revisa los campos marcados.", { fields });
     // El celular se verifica en el mismo registro: sin el código que le llegó no hay cuenta.
     const phone = normalizePhone(body.phone);
@@ -598,6 +602,7 @@ export const handlers = [
   ...payrollHandlers,
   ...registerHandlers,
   ...frontDeskHandlers,
+  ...legalHandlers,
   ...messagesHandlers,
 
   // ---------- Configuración ----------

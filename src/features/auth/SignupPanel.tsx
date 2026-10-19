@@ -1,4 +1,5 @@
 import * as React from "react";
+import { legalHref } from "@/features/legal/documents";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -27,6 +28,31 @@ const COUNTRIES = [...PHONE_COUNTRIES].sort((a, b) => a.name.localeCompare(b.nam
  * Crear cuenta: los datos de la persona y de la barbería. La zona horaria se
  * elige entre las del país; si el país tiene una sola, queda puesta.
  */
+/** «Acepto los términos, la política de privacidad y el acuerdo de encargo», cada uno con su enlace (pestaña nueva). */
+function AcceptLegal() {
+  const t = useAppT();
+  const links: Record<string, { href: string; label: string }> = {
+    "§1§": { href: legalHref("terms"), label: t("legal.signup.terms") },
+    "§2§": { href: legalHref("privacy"), label: t("legal.signup.privacy") },
+    "§3§": { href: legalHref("dpa"), label: t("legal.signup.dpa") },
+  };
+  const text = t("legal.signup.accept", { terms: "§1§", privacy: "§2§", dpa: "§3§" });
+  return (
+    <span>
+      {text.split(/(§\d§)/).map((part, index) => {
+        const link = links[part];
+        return link ? (
+          <a key={index} href={link.href} target="_blank" rel="noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+            {link.label}
+          </a>
+        ) : (
+          <React.Fragment key={index}>{part}</React.Fragment>
+        );
+      })}
+    </span>
+  );
+}
+
 export function SignupPanel({ onBack }: SignupPanelProps) {
   const t = useAppT();
   const [done, setDone] = React.useState<Pick<SignupRequest, "email" | "company"> | null>(null);
@@ -196,7 +222,7 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
             <div className="space-y-1">
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-text-secondary">
                 <Checkbox checked={field.value} onCheckedChange={(value) => field.onChange(value === true)} disabled={isSubmitting} className="mt-0.5" aria-invalid={!!errors.acceptTerms} data-testid="signup-terms" />
-                {t("auth.signup.terms")}
+                <AcceptLegal />
               </label>
               {errors.acceptTerms?.message && (
                 <Text size="sm" tone="negative">

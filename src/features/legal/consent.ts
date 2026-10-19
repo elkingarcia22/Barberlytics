@@ -14,6 +14,9 @@
  * Es texto de producto escrito a partir de esas normas, no asesoría legal: un abogado de cada país debe revisarlo
  * antes de producción. Cada texto lleva su versión, que se guarda con la aceptación como prueba.
  * Sin dependencias: lo usan la reserva, la app y el backend.
+ *
+ * Todos los avisos terminan igual: el contacto de la barbería (su teléfono) para ejercer los derechos y que
+ * los datos se guardan en servidores de proveedores en Estados Unidos (versión «…-2026-10b»).
  */
 
 export type ConsentCountry = "CO" | "US" | "MX" | "GENERIC";
@@ -33,6 +36,8 @@ export interface ConsentPack {
   privacyNotice: readonly string[];
   /** Lo que el equipo le dice al cliente antes de anotar el permiso a mano. */
   staffScript: string;
+  /** La política de privacidad completa (`/legal/privacidad`). */
+  policyHref: string;
 }
 
 const COUNTRY_NAMES: Readonly<Record<string, ConsentCountry>> = {
@@ -52,12 +57,12 @@ export function consentCountryOf(country: string | null | undefined): ConsentCou
   return COUNTRY_NAMES[(country ?? "").trim().toLowerCase()] ?? "GENERIC";
 }
 
-type Texts = Omit<ConsentPack, "country" | "version">;
+type Texts = Omit<ConsentPack, "country" | "version" | "policyHref">;
 const fill = (text: string, shop: string) => text.replace(/\{shop\}/g, shop);
 
 const PACKS: Readonly<Record<ConsentCountry, { version: string; es: Texts; en: Texts }>> = {
   CO: {
-    version: "co-2026-10",
+    version: "co-2026-10b",
     es: {
       marketingLabel: "Autorizo a {shop} a enviarme promociones y novedades por WhatsApp, SMS y correo.",
       marketingDisclosure: "Es voluntario y no cambia tus citas. Puedes retirar esta autorización cuando quieras respondiendo «BAJA» o pidiéndolo en la barbería.",
@@ -84,7 +89,7 @@ const PACKS: Readonly<Record<ConsentCountry, { version: string; es: Texts; en: T
     },
   },
   US: {
-    version: "us-2026-10",
+    version: "us-2026-10b",
     es: {
       marketingLabel: "Sí, quiero recibir promociones de {shop} por mensaje de texto, WhatsApp y correo.",
       marketingDisclosure: "Al marcarla aceptas recibir mensajes de promoción automatizados al número que diste. No es condición para reservar ni comprar. Hasta 4 mensajes al mes; pueden aplicar tarifas de mensajes y datos. Responde STOP para darte de baja o HELP para ayuda.",
@@ -109,7 +114,7 @@ const PACKS: Readonly<Record<ConsentCountry, { version: string; es: Texts; en: T
     },
   },
   MX: {
-    version: "mx-2026-10",
+    version: "mx-2026-10b",
     es: {
       marketingLabel: "Acepto que {shop} use mis datos para enviarme promociones y novedades.",
       marketingDisclosure: "Es una finalidad secundaria y voluntaria: si no la aceptas, igual puedes reservar. Puedes oponerte cuando quieras respondiendo «BAJA» o pidiéndolo en la barbería.",
@@ -134,7 +139,7 @@ const PACKS: Readonly<Record<ConsentCountry, { version: string; es: Texts; en: T
     },
   },
   GENERIC: {
-    version: "gen-2026-10",
+    version: "gen-2026-10b",
     es: {
       marketingLabel: "Quiero recibir promociones y novedades de {shop}.",
       marketingDisclosure: "Es voluntario y no cambia tus citas. Puedes darte de baja cuando quieras.",
@@ -152,19 +157,29 @@ const PACKS: Readonly<Record<ConsentCountry, { version: string; es: Texts; en: T
   },
 };
 
-/** Los textos de ese país, en ese idioma y con el nombre de la barbería puesto. */
-export function consentPack(country: string | null | undefined, locale: ConsentLocale, shop: string): ConsentPack {
+/** Lo que llevan todos los avisos al final: con quién hablar y dónde están los datos. */
+const CLOSING: Readonly<Record<ConsentLocale, { contact: string; hosting: string }>> = {
+  es: { contact: "Contacto de {shop} para tus datos: {contact}.", hosting: "Tus datos se guardan en servidores de proveedores en Estados Unidos." },
+  en: { contact: "Contact {shop} about your data: {contact}.", hosting: "Your data is stored on provider servers in the United States." },
+};
+
+const POLICY_HREF = "/legal/privacidad";
+
+/** Los textos de ese país, en ese idioma, con el nombre de la barbería y, si lo hay, su teléfono. */
+export function consentPack(country: string | null | undefined, locale: ConsentLocale, shop: string, contact?: string | null): ConsentPack {
   const code = consentCountryOf(country);
   const pack = PACKS[code];
   const texts = pack[locale];
+  const closing = [...(contact ? [CLOSING[locale].contact.replace("{contact}", contact)] : []), CLOSING[locale].hosting];
   return {
     country: code,
     version: pack.version,
     marketingLabel: fill(texts.marketingLabel, shop),
     marketingDisclosure: fill(texts.marketingDisclosure, shop),
     privacyShort: fill(texts.privacyShort, shop),
-    privacyNotice: texts.privacyNotice.map((paragraph) => fill(paragraph, shop)),
+    privacyNotice: [...texts.privacyNotice, ...closing].map((paragraph) => fill(paragraph, shop)),
     staffScript: fill(texts.staffScript, shop),
+    policyHref: POLICY_HREF,
   };
 }
 

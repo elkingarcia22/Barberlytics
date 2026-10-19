@@ -520,6 +520,22 @@ barberos que atienden sin cita hoy (fila de Equipo, sin ausencias), cada uno cua
 está en la silla y sus citas de hoy), con la duración de catálogo del servicio. Quien pidió un barbero espera a ese.
 Se da como rango de 10 minutos; `null` si hoy ya no alcanza.
 
+## Legal (`/legal`)
+
+Los documentos (`src/features/legal/documents/`) son datos versionados y públicos en `/legal/<slug>`: términos
+(`terminos`, `terms-2026-10`), privacidad (`privacidad`, `privacy-2026-10`), tratamiento de datos de Colombia
+(`tratamiento-datos`, `data-policy-co-2026-10`), acuerdo de encargo (`encargo`, `dpa-2026-10`) y subencargados
+(`subencargados`). Son borradores de producto: un abogado de cada país los aprueba antes de publicarse.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/signup` | Además de `acceptTerms: true`, `termsVersion`, `privacyVersion` y `dpaVersion` iguales a las vigentes; si no, `422` en `fields.acceptTerms` («los términos cambiaron»). El backend real guarda las tres versiones con la fecha. |
+| GET | `/legal/acceptances` | Dueño o administrador. `{ current: { terms, privacy, dpa }, dpa: { version, at, by } \| null, terms: … \| null }`. |
+| POST | `/legal/dpa/accept` | Dueño o administrador. `{ version }` igual a la vigente (si no, `422 outdated_version`) → la misma vista con la aceptación guardada (versión, fecha y quién). |
+
+El aviso de privacidad de la reserva (`consentPack`, versiones `…-2026-10b`) cierra con el contacto de la sede (su
+teléfono), que los datos se guardan en servidores de proveedores en EE. UU. y el enlace a `/legal/privacidad`.
+
 ## Sesión firmada de las funciones de servidor
 
 La voz (`/api/tts`), Clipper (`/api/clipper`, `/api/clipper/feedback`), la narración (`/api/narrative`) y la

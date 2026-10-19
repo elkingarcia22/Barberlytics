@@ -20,5 +20,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api", "server", "src/features/feedback/types.ts", "src/features/feedback/campaignRegistry.ts"]
+  "include": ["api", "server", "src/features/feedback/types.ts", "src/features/feedback/campaignRegistry.ts", "src/lib/clipper/toolCatalog.ts"]
 }

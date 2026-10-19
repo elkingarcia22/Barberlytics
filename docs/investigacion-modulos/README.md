@@ -195,8 +195,10 @@ Pendiente, por orden:
 2. **Equipo, segunda parte**: «Mi ficha» editable por el barbero, fichaje, turnos abiertos e intercambio, metas y
    niveles con criterios, cambio de modelo comisión ↔ renta con fecha.
 3. **Calendario recortado en el servidor** para el barbero (hoy la agenda del día llega completa y se filtra en pantalla).
-4. **Fase 3 — IA, lo que queda**: Clipper con modelo y herramientas de solo lectura, reservable por agentes.
-   Revisión de Gastos (duplicados y atípicos) cuando haya historia de gastos. Hechos el 2026-10-18: **A. ritmo del cliente**
+4. **Fase 3 — IA, lo que queda**: reservable por agentes; Clipper que actúa con vista previa (fase 2 del informe 11),
+   evaluaciones con preguntas reales y registro de cada turno; revisión de Gastos (duplicados y atípicos).
+   **C hecha**: Clipper con modelo (`/api/clipper`) y 12 herramientas de solo lectura que la app ejecuta con la sesión
+   de quien pregunta; cifras verificadas contra lo consultado; sin clave, responde el centro de ayuda. Hechos el 2026-10-18: **A. ritmo del cliente**
    (próxima visita con huecos reales, reactivación aprobada por el dueño solo a quien aceptó, riesgo de inasistencia en
    la cita con sus razones) y **B. hechos → narración** («Cómo te fue» en Métricas y «¿Por qué esta cifra?» en Mi pago;
    Claude redacta con marcadores y el servidor pone las cifras; sin clave, resumen automático) y **F. margen por hora

@@ -28,6 +28,9 @@ import { PageLoader } from "../components/PageLoader";
 import { HelpGuidesDrawer } from "@/help/HelpGuidesDrawer";
 import { helpPath, toHelpLocale, useHelpIndex } from "@/help/content";
 import { chatStore, clearChatOnLogout, createAppChatBackend } from "../chat";
+import { TOOL_LABEL_KEYS } from "@/features/clipper/tools";
+import { useSettingsList } from "@/features/settings/settingsQueries";
+import { branchSchema } from "@/features/settings/settingsTypes";
 import { agentFocus, withAgentFocus } from "@/lib/chat";
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
@@ -148,16 +151,29 @@ export function AppLayout() {
     [notificationsQuery.data, t, formatMoney, formatDate, navigate, markRead]
   );
   const chatState = React.useSyncExternalStore(chatStore.subscribe, chatStore.getState, chatStore.getState);
-  const chatBackend = React.useMemo(
-    () =>
-      createAppChatBackend({
+  // Clipper consulta con la sesión de quien pregunta: su rol, su ficha, su sucursal y su moneda.
+  const branchSettings = useSettingsList("branches", branchSchema);
+  const currency = branchSettings.data?.items.find((branch) => branch.id === branchId)?.currency ?? "USD";
+  const branchName = branches.find((branch) => branch.id === branchId)?.name ?? "";
+  const memberId = access.member?.id ?? null;
+  const userName = user?.name ?? "";
+  const chatBackend = React.useMemo(() => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    return createAppChatBackend(
+      {
         from: (title) => t("help.chatFrom", { title }),
         notFound: t("help.chatNotFound"),
         openArticle: t("help.chatOpenArticle"),
         seeMore: t("help.chatSeeMore"),
-      }, toHelpLocale(locale)),
-    [t, locale]
-  );
+      },
+      toHelpLocale(locale),
+      {
+        context: { branchId, role: effectiveRole, memberId, today, locale: toHelpLocale(locale), branch: branchName, currency, userName },
+        labels: { consulted: t("clipper.consulted"), tool: (name) => t(TOOL_LABEL_KEYS[name as keyof typeof TOOL_LABEL_KEYS] ?? "clipper.consulted") },
+      }
+    );
+  }, [t, locale, branchId, effectiveRole, memberId, branchName, currency, userName]);
   // Lo que una pantalla le pidió al agente que mire (una cita): mientras esté, responde primero eso.
   const { focus: agentFocusValue } = React.useSyncExternalStore(agentFocus.subscribe, agentFocus.getState, agentFocus.getState);
   const answeringBackend = React.useMemo(() => (agentFocusValue ? withAgentFocus(chatBackend, agentFocusValue) : chatBackend), [agentFocusValue, chatBackend]);

@@ -1,15 +1,17 @@
 import { createChatStore, type ChatBackend, type ChatPersistence } from "@/lib/chat";
 import { createHelpBackend } from "@/help/chat/helpBackend";
+import { createClipperBackend, type ClipperBackendContext } from "@/features/clipper/clipperBackend";
 import type { HelpLocale } from "@/help/content";
 
 /**
  * El chat de la app: un solo almacén de conversaciones para el panel, la
  * pantalla completa y el modo voz, y quien responde.
  *
- * Mientras no hay un modelo detrás, responde el centro de ayuda cuando un
- * artículo cubre la pregunta y, si no, lo dice y ofrece el artículo más
- * cercano: nunca respuestas de ejemplo con cifras inventadas. Cambiar esto por
- * un modelo es cambiar `createAppChatBackend`.
+ * Responde Clipper con modelo y consultas de solo lectura sobre los datos de
+ * la barbería (`features/clipper`). Sin clave en el servidor, o si algo
+ * falla, responde el centro de ayuda cuando un artículo cubre la pregunta y,
+ * si no, lo dice y ofrece el artículo más cercano: nunca respuestas de
+ * ejemplo con cifras inventadas.
  *
  * Las conversaciones hablan de clientes (a veces de alergias o teléfonos):
  * viven en la pestaña (`sessionStorage`), no en el navegador para siempre, y se
@@ -55,6 +57,12 @@ export interface AppChatLabels {
   seeMore: string;
 }
 
-export function createAppChatBackend(labels: AppChatLabels, locale: HelpLocale): ChatBackend {
-  return createHelpBackend({ labels, locale });
+export interface AppClipperOptions {
+  context: ClipperBackendContext;
+  labels: { consulted: string; tool: (name: string) => string };
+}
+
+export function createAppChatBackend(labels: AppChatLabels, locale: HelpLocale, clipper?: AppClipperOptions): ChatBackend {
+  const help = createHelpBackend({ labels, locale });
+  return clipper ? createClipperBackend({ ...clipper, fallback: help }) : help;
 }

@@ -108,6 +108,7 @@ Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId
 - **Barbero por comisión**: `GET/POST /expenses` `403`. **De renta**: solo sus gastos (`ownerMemberId` = su ficha).
 - **Solo dueño o administrador**: mover la nómina (ajustes, pagos de renta, aprobar, pagar, reabrir), escribir en
   Configuración, aprobar o rechazar ausencias, los avisos de negocio. **Solo el dueño**: eliminar la barbería.
+- **Recepción**: `GET /payroll` `403` (lo que gana cada quien es del dueño, el administrador y cada barbero).
 - **Caja**: no la cierra un barbero. **Avisos**: el rol sale de la sesión; solo quien gestiona puede pedir los de otro
   rol («ver como»).
 
@@ -421,6 +422,30 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | POST | `/team/absences` | `{ branchId, kind, startDate, endDate?, note?, memberId? }`. Comisión, salario y recepción la piden para sí: queda `pending`. El barbero de renta y quien gestiona (para cualquiera, con `memberId`): queda `approved`. `409` si se cruza con otra. |
 | POST | `/team/absences/:id/approve` · `/reject` | Solo dueño o administrador. Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
 | DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
+
+## Clipper (`/api/clipper`, función de servidor)
+
+Clipper responde con los datos de la barbería usando herramientas **de solo lectura**. El servidor guarda la clave
+(`ANTHROPIC_API_KEY`; modelo en `CLIPPER_MODEL`, por defecto `claude-sonnet-5-5`), elige qué herramientas ve el modelo
+según el rol (`src/lib/clipper/toolCatalog.ts`) y hace **un paso** de la conversación. La app ejecuta las consultas
+con la sesión de quien pregunta, así que cada endpoint aplica su permiso (ver «Permisos en el servidor»).
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| POST | `/api/clipper` | Cuerpo `{ context: { locale, role, today, branch, currency, userName }, messages }`. `200 { kind: "tools", content, calls: [{ id, name, input }] }` si pide consultas, o `200 { kind: "answer", text, model }`. `400` conversación inválida; `501 not_configured` sin clave (la app responde con el centro de ayuda); `502 unsafe_output` si pidió una herramienta que no es de su rol o si la respuesta trae cifras que no salen de las consultas; `429` con más de 30 pasos por minuto por IP; `403` si no viene de la app. |
+
+`messages` es la conversación en el formato de Claude: el usuario manda texto y `tool_result`; el asistente, texto y
+`tool_use`. Hasta 40 mensajes y 200 KB; cada resultado, hasta 12 000 caracteres. Debe empezar y terminar en el usuario.
+
+Herramientas: `agenda_del_dia`, `cuentas_del_periodo`, `buscar_cliente`, `proxima_visita_cliente` y `buscar_ayuda`
+(todos); `caja_del_dia`, `turno_sin_cita` y `revision_antes_de_cerrar` (dueño, administrador, recepción); `nomina`
+(dueño, administrador y barberos, la suya); `resumen_semana`, `clientes_para_reactivar` y `rentabilidad_servicios`
+(dueño y administrador). Cada una devuelve un resumen con los conteos y totales ya hechos.
+
+**Cifras verificadas**: cada número de la respuesta tiene que aparecer en los resultados de las consultas o en lo que
+preguntó la persona (en cualquiera de sus lecturas: `1.239` puede ser mil doscientos treinta y nueve o uno coma dos;
+se admite el redondeo a entero o a un decimal). Los enteros sueltos hasta 10 no necesitan consulta. Si alguno no
+cuadra, el servidor le pide al modelo una corrección sin herramientas; si insiste, `502` y la app usa el centro de ayuda.
 
 ## Narración (`/api/narrative`, función de servidor)
 

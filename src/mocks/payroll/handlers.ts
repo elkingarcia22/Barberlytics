@@ -101,6 +101,8 @@ export const payrollHandlers = [
     /* `memberId`: la nómina de una sola persona («Lo que llevo» / «Mi negocio» del barbero). */
     // Un barbero solo recibe su propia nómina, la pida como la pida.
     const session = sessionOf(request);
+    // Recepción no ve lo que gana cada quien: la nómina es del dueño, el administrador y cada barbero (la suya).
+    if (session && !isManager(session) && !isBarber(session)) return forbidden("La nómina es del dueño, el administrador y cada barbero (la suya).");
     const memberId = session && isBarber(session) ? session.memberId : params.get("memberId");
     // Los pagos de renta no se congelan al aprobar: se cuentan siempre, con la fecha en que se hicieron.
     const members = all.filter((member) => !memberId || member.memberId === memberId).map((member) => withRentPayments(member as PayrollMemberRow, branchId, from, to));

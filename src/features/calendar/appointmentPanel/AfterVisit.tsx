@@ -23,7 +23,7 @@ import { ConfirmContent } from "./StatusConfirm";
 import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
-import { ClientTags } from "./PanelParts";
+import { ClientTags, MoreActionsMenu } from "./PanelParts";
 import { LinkedField, PanelStepper } from "./PanelShared";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
@@ -173,10 +173,14 @@ export function AfterVisit({ model, ctx, onOpenClient, linked = [], onSelectAppo
         <LinkedField model={model} ctx={ctx} linked={linked} onSelectAppointment={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />
         <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
         {/* La acción principal de la cita cerrada: agendarle la próxima. Lo cobrado está en «Ver recibo». */}
-        <Button size="lg" className="w-full" aria-expanded={open === "rebook"} onClick={() => toggle("rebook")} data-testid="panel-rebook">
-          <ThemaIcon name="calendarAdd" />
-          {t("calendar.panel.after.rebook")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="lg" className="flex-1" aria-expanded={open === "rebook"} onClick={() => toggle("rebook")} data-testid="panel-rebook">
+            <ThemaIcon name="calendarAdd" />
+            {t("calendar.panel.after.rebook")}
+          </Button>
+          {/* Cancelada o no asistió por error: se reactiva (vuelve a pendiente). Cobrada no: eso es una devolución. */}
+          {!paid && <MoreActionsMenu model={model} actions={[]} extra={[{ id: "undo", label: t("calendar.panel.reactivate"), icon: Undo2, onSelect: () => model.setStatus("scheduled") }]} />}
+        </div>
       </section>
       {open === "pin" && <PinSeries model={model} ctx={ctx} onClose={() => setOpen(null)} />}
       {open === "rebook" && <NextVisitBooker model={model} ctx={ctx} />}

@@ -59,17 +59,23 @@ export interface AppointmentBill {
  * línea con la tasa de la sucursal (o la suya), menos lo ya resuelto en la
  * reserva en línea. Una reserva pagada no se vuelve a cobrar.
  */
-export function appointmentBill(catalog: Pick<CalendarCatalog, "barbers" | "services" | "products" | "taxInclusive">, serviceIds: readonly string[], products: readonly ProductLine[], online?: OnlineSettlement | null, barberId?: string): AppointmentBill {
+/** Precios cambiados en la caja: por servicio (en el orden de la cuenta; `null` = el de lista) y por producto (unitario). */
+export interface PriceOverrides {
+  servicePrices?: readonly (number | null)[];
+  productPrices?: Readonly<Record<string, number>>;
+}
+
+export function appointmentBill(catalog: Pick<CalendarCatalog, "barbers" | "services" | "products" | "taxInclusive">, serviceIds: readonly string[], products: readonly ProductLine[], online?: OnlineSettlement | null, barberId?: string, prices: PriceOverrides = {}): AppointmentBill {
   const lines = [
-    ...serviceIds.flatMap((id) => {
+    ...serviceIds.flatMap((id, index) => {
       const service = catalog.services.find((item) => item.id === id);
-      // Cada servicio al precio del barbero que lo hace, como en la reserva en línea.
-      const price = service && (barberId ? catalog.barbers.find((barber) => barber.id === barberId)?.prices?.[service.id] : undefined);
+      // Cada servicio al precio del barbero que lo hace, como en la reserva en línea; o al que se puso en la caja.
+      const price = prices.servicePrices?.[index] ?? (service && barberId ? catalog.barbers.find((barber) => barber.id === barberId)?.prices?.[service.id] : undefined);
       return service ? [{ amount: price ?? service.price, percent: service.taxPercent ?? 0 }] : [];
     }),
     ...products.flatMap((line) => {
       const product = catalog.products.find((item) => item.id === line.productId);
-      return product ? [{ amount: product.price * line.qty, percent: product.taxPercent ?? 0 }] : [];
+      return product ? [{ amount: (prices.productPrices?.[line.productId] ?? product.price) * line.qty, percent: product.taxPercent ?? 0 }] : [];
     }),
   ];
   const { subtotal, discount, tax, total } = cartTotals(lines, online?.discount ?? 0, catalog.taxInclusive === true);

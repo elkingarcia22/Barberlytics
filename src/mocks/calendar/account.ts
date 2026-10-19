@@ -35,11 +35,17 @@ const serviceOf = (id: string) => db.services.items.find((item) => item.id === i
 export { barberServicePrice };
 const productOf = (id: string) => db.products.items.find((item) => item.id === id);
 
-export function appointmentAccount(appointment: MockAppointment, serviceIds: readonly string[] = appointment.serviceIds, products: readonly { productId: string; qty: number }[] = appointment.products): AppointmentAccount {
+export function appointmentAccount(
+  appointment: MockAppointment,
+  serviceIds: readonly string[] = appointment.serviceIds,
+  products: readonly { productId: string; qty: number }[] = appointment.products,
+  prices: Pick<MockAppointment, "servicePrices" | "productPrices"> = appointment
+): AppointmentAccount {
   const branchId = appointment.branchId;
+  // El precio que se puso en la caja manda sobre el de lista.
   const lines = [
-    ...serviceIds.map((id) => ({ amount: barberServicePrice(appointment.barberId, id, branchId), percent: itemTaxPercent(serviceOf(id)?.taxRate, branchId) })),
-    ...products.map((line) => ({ amount: productPriceIn(line.productId, branchId) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
+    ...serviceIds.map((id, index) => ({ amount: prices.servicePrices?.[index] ?? barberServicePrice(appointment.barberId, id, branchId), percent: itemTaxPercent(serviceOf(id)?.taxRate, branchId) })),
+    ...products.map((line) => ({ amount: (prices.productPrices?.[line.productId] ?? productPriceIn(line.productId, branchId)) * line.qty, percent: itemTaxPercent(productOf(line.productId)?.taxRate, branchId) })),
   ];
   const online = appointment.online ?? null;
   const computed = cartTotals(lines, online?.discount ?? 0, taxInclusive());

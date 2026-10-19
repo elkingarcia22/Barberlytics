@@ -209,6 +209,25 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     },
     [state]
   );
+  /**
+   * Antes de cobrar, un aviso (no un freno): si el mismo barbero tiene otra cita que ya sentó antes que
+   * esta y sigue sin cobrar —se le pasó cobrarla—, se dice cuál y se puede ir a cobrar esa primero.
+   * Las de su misma visita (enlazadas) no cuentan: se cobran juntas.
+   */
+  const [checkoutWarning, setCheckoutWarning] = React.useState<{ appointment: Appointment; open: readonly Appointment[] } | null>(null);
+  const startCheckout = React.useCallback(
+    (appointment: Appointment) => {
+      const open = (day.data?.appointments ?? []).filter(
+        (item) => item.id !== appointment.id && item.barberId === appointment.barberId && item.status === "seated" && appointmentStart(item) < appointmentStart(appointment) && !(appointment.linkId && item.linkId === appointment.linkId)
+      );
+      if (open.length > 0) {
+        setCheckoutWarning({ appointment, open });
+        return;
+      }
+      openPanel({ kind: "checkout", appointment });
+    },
+    [day.data, openPanel]
+  );
   const currentAppointment = React.useMemo(() => day.data?.appointments.find((item) => item.id === state.appointmentId) ?? null, [day.data, state.appointmentId]);
   // Al cobrar una cita enlazada, las otras sin cobrar de su grupo se ofrecen juntas.
   const checkoutAppointment = panel?.kind === "checkout" ? panel.appointment : null;
@@ -311,7 +330,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const changeStatus = React.useCallback(
     (appointment: Appointment, status: AppointmentStatus) => {
       if (status === "paid") {
-        openPanel({ kind: "checkout", appointment });
+        startCheckout(appointment);
         return;
       }
       patch(appointment, { status }, (updated) => {
@@ -321,7 +340,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         });
       });
     },
-    [catalog.data, openPanel, patch, t]
+    [catalog.data, startCheckout, patch, t]
   );
 
   // Las franjas del día (con las excepciones de la semana) pisan el horario
@@ -683,7 +702,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const runAppointmentAction = (action: AppointmentActionId, appointment: Appointment) => {
     if (action === "checkIn") changeStatus(appointment, "arrived");
     if (action === "seat") changeStatus(appointment, "seated");
-    if (action === "pay") openPanel({ kind: "checkout", appointment });
+    if (action === "pay") startCheckout(appointment);
     if (action === "ready") onBarberReady(appointment);
     if (action === "rebook") openPanel({ kind: "create", initial: { clientId: appointment.clientId, serviceId: appointment.serviceIds[0], barberId: appointment.barberId } });
     if (action === "noShow") openPanel({ kind: "confirm", action: "noShow", appointment });
@@ -910,11 +929,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 ctx={ctx}
                 onStatus={changeStatus}
                 onBarberReady={onBarberReady}
-                onPay={(appointment) => {
-                  // El cobro sustituye al detalle: dos paneles apilados tapan el que importa.
-                  state.openAppointment(null);
-                  setPanel({ kind: "checkout", appointment });
-                }}
+                // El cobro sustituye al detalle: dos paneles apilados tapan el que importa.
+                onPay={startCheckout}
                 onPatch={(appointment, changes) =>
                   patch(appointment, changes, (updated) => {
                     toast.success(t("calendar.detail.updated"));
@@ -1003,7 +1019,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 branchId={branchId}
                 ctx={ctx}
                 initialDate={state.date}
-                onPay={(appointment) => openPanel({ kind: "checkout", appointment })}
+                onPay={startCheckout}
                 onOpenAppointment={(appointment, date) => {
                   closePanel();
                   state.setDate(date);
@@ -1036,6 +1052,32 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onCreated={(appointment) => {
                   state.setDate(parseLocal(appointment.start));
                   setPanel({ kind: "checkout", appointment });
+                }}
+              />
+
+              <ConfirmDialog
+                open={checkoutWarning !== null}
+                onOpenChange={(open) => !open && setCheckoutWarning(null)}
+                variant="warning"
+                title={checkoutWarning ? t("calendar.checkout.openTitle", { barber: findBarber(ctx.catalog, checkoutWarning.appointment.barberId)?.name.split(" ")[0] ?? "", count: checkoutWarning.open.length }) : ""}
+                description={
+                  checkoutWarning
+                    ? t("calendar.checkout.openHint", {
+                        list: checkoutWarning.open.map((item) => `${findClient(ctx.catalog, item.clientId)?.name ?? t("calendar.clientType.walkin")} (${clockLabel(item.start.slice(11, 16), ctx.intl)})`).join(", "),
+                      })
+                    : undefined
+                }
+                confirmLabel={t("calendar.checkout.openContinue")}
+                cancelLabel={checkoutWarning ? t("calendar.checkout.openFirst", { name: (findClient(ctx.catalog, checkoutWarning.open[0].clientId)?.name ?? "").split(" ")[0] }) : undefined}
+                onConfirm={() => {
+                  if (!checkoutWarning) return;
+                  openPanel({ kind: "checkout", appointment: checkoutWarning.appointment });
+                  setCheckoutWarning(null);
+                }}
+                onCancel={() => {
+                  if (!checkoutWarning) return;
+                  openPanel({ kind: "checkout", appointment: checkoutWarning.open[0] });
+                  setCheckoutWarning(null);
                 }}
               />
 

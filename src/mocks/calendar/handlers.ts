@@ -527,8 +527,14 @@ export const calendarHandlers = [
       : existing.products;
     const tip = Math.max(0, Number(input.tip) || 0);
     const surcharge = method === "card" || method === "mixed" ? Math.max(0, Number(input.surcharge) || 0) : 0;
+    // Los precios cambiados en la caja: el barbero de comisión cobra a precio de lista.
+    const priceInput = { servicePrices: input.servicePrices, productPrices: input.productPrices };
+    const changesPrices = Array.isArray(priceInput.servicePrices) || (typeof priceInput.productPrices === "object" && priceInput.productPrices !== null);
+    if (changesPrices && sessionOf(request)?.teamRole === "barbero-comision") return forbidden("El precio lo cambia la barbería.");
+    const servicePrices = Array.isArray(priceInput.servicePrices) ? serviceIds.map((_, index) => { const value = (priceInput.servicePrices as unknown[])[index]; return typeof value === "number" && value >= 0 ? round2(value) : null; }) : undefined;
+    const productPrices = typeof priceInput.productPrices === "object" && priceInput.productPrices !== null ? Object.fromEntries(Object.entries(priceInput.productPrices as Record<string, unknown>).filter(([id, value]) => products.some((line) => line.productId === id) && typeof value === "number" && value >= 0).map(([id, value]) => [id, round2(value as number)])) : undefined;
     // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
-    const bill = appointmentAccount(existing, serviceIds, products);
+    const bill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
     const paidAt = new Date().toISOString();
     // Pago mixto: lo que entra en caja ahora se reparte entre efectivo y tarjeta, y tiene que cuadrar.
     const dueNow = round2(bill.due + tip + surcharge);
@@ -542,6 +548,8 @@ export const calendarHandlers = [
           ...existing,
           serviceIds,
           products,
+          ...(servicePrices ? { servicePrices } : {}),
+          ...(productPrices ? { productPrices } : {}),
           status: "paid",
           payment: { method, tip: round2(bill.prepaidTip + tip), tax: bill.tax, total: round2(bill.total + bill.prepaidTip + tip + surcharge), prepaid: round2(bill.prepaid + bill.prepaidTip), paidAt, ...(split ? { split } : {}) },
           history: [...existing.history, entry(account.user.name, `paid:${method}`)],

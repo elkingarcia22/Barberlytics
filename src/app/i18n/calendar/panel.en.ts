@@ -82,6 +82,8 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.restrict.unblockDone": "{name} can book again",
   "calendar.panel.tag.blocked": "Blocked",
   "calendar.panel.tag.prepay": "Pays upfront",
+  "calendar.panel.undo": "Back to «{status}»",
+  "calendar.panel.reactivate": "Reactivate the appointment",
   "calendar.panel.after.rebook": "Rebook",
   "calendar.panel.after.charged": "What was charged",
   "calendar.panel.after.receiptMessage": "Hi {name}, here is the receipt for your visit on {date}:\n{lines}\nTip: {tip}\nTotal: {total} · {method}\nThanks for coming!",

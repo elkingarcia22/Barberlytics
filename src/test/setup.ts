@@ -4,6 +4,10 @@ import { http, HttpResponse } from "msw";
 import { cleanup } from "@testing-library/react";
 import { server } from "@/mocks/server";
 import { db } from "@/mocks/db";
+import { setClipperLogSink } from "../../server/clipper/turnLog";
+
+// El registro de Clipper sale por consola en el servidor; en las pruebas no hace falta verlo.
+setClipperLogSink(() => undefined);
 
 // El backend simulado responde en todas las pruebas; cualquier petición no
 // prevista es un error, nunca una llamada real.
@@ -14,7 +18,8 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 beforeEach(() =>
   server.use(
     http.post("*/api/tts", () => HttpResponse.json({ code: "tts_not_configured" }, { status: 501 })),
-    http.post("*/api/clipper", () => HttpResponse.json({ code: "not_configured" }, { status: 501 }))
+    http.post("*/api/clipper", () => HttpResponse.json({ code: "not_configured" }, { status: 501 })),
+    http.post("*/api/clipper/feedback", () => new HttpResponse(null, { status: 204 }))
   )
 );
 afterEach(() => {

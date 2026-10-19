@@ -27,6 +27,8 @@ export const bookingBranchSchema = z.object({
   taxPercent: z.number().optional(),
   /** Cómo se paga en línea ahí: lo que deja su pasarela. Vacío = solo en la barbería. */
   onlineMethods: z.array(z.enum(ONLINE_METHODS)).optional(),
+  /** El país de la sede (CO, US, MX…): decide el texto del consentimiento. */
+  country: z.string().optional(),
 });
 export type BookingBranch = z.infer<typeof bookingBranchSchema>;
 
@@ -389,6 +391,8 @@ export interface NewCustomerInput {
   lastName: string;
   email: string;
   marketing: boolean;
+  /** La sede por la que entra: su país decide el texto que aceptó. */
+  branchId?: string | null;
 }
 
 export interface ReservationItemInput {

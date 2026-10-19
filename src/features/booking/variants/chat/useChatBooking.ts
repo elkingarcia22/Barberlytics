@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
+import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { splitMultipleAnswer } from "@/lib/chat";
 import { bookingApi } from "../../api";
@@ -147,9 +148,11 @@ export function useChatBooking({
     say({ text });
   };
 
+  const { locale } = useLocale();
   const identity = useChatIdentity({
     t,
     shop,
+    locale,
     apply,
     say,
     ask,

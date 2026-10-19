@@ -80,7 +80,7 @@ export function ChatThread({ conversation, onMore, className }: ChatThreadProps)
             onStop={(shown) => actions.stop(message.id, shown)}
             onFinish={() => actions.finish(message.id)}
             onProgress={() => scrollToEnd("auto")}
-            onFeedback={(value) => actions.feedback(message.id, value)}
+            onFeedback={(value, detail) => actions.feedback(message.id, value, detail)}
             onRegenerate={index === messages.length - 1 ? actions.regenerate : undefined}
             onFollowup={actions.send}
             onAnswer={(option) => actions.answer(message.id, option)}

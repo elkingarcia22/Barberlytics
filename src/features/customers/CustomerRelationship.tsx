@@ -14,6 +14,8 @@ import { MESSAGE_KIND_KEYS } from "@/features/calendar/messages";
 import { InfoCard, InfoRow } from "@/features/team/teamShared";
 import { branchName } from "./customersUtils";
 import { useCustomerRelationship, useSetMarketingConsent, type CustomerRelationship } from "./relationship";
+import { useBranchConsentPack } from "@/features/legal/useConsentPack";
+import { useCustomerQuery } from "./queries";
 
 const DAY: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
 const DAY_TIME: Intl.DateTimeFormatOptions = {
@@ -183,6 +185,8 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
   const { formatDate } = useLocale();
   const setConsent = useSetMarketingConsent();
   const [asking, setAsking] = React.useState(false);
+  // Lo que el equipo le dice al cliente antes de anotarlo depende del país de su sede (ver features/legal).
+  const pack = useBranchConsentPack(useCustomerQuery(customerId).data?.branchId);
   const accepted = consent?.accepted === true;
   const save = (marketing: boolean) =>
     setConsent.mutate(
@@ -202,7 +206,7 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
     ? t(consent.accepted ? "customers.rel.consentYes" : "customers.rel.consentNo", {
         date: formatDate(new Date(consent.at), DAY),
         source: t(consent.source === "booking" ? "customers.rel.sourceBooking" : "customers.rel.sourceApp"),
-      })
+      }) + (consent.version ? ` · ${t("customers.rel.consentVersion", { version: consent.version })}` : "")
     : t("customers.rel.consentUnknown");
 
   return (
@@ -225,7 +229,7 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
         open={asking}
         onOpenChange={setAsking}
         title={t("customers.rel.consentGrantTitle")}
-        description={t("customers.rel.consentGrantHint")}
+        description={pack.staffScript}
         confirmLabel={t("customers.rel.consentGrantConfirm")}
         loading={setConsent.isPending}
         onConfirm={() => save(true)}

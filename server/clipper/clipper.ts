@@ -1,4 +1,5 @@
 import { isClipperRole, toolsFor, type ClipperRole } from "../../src/lib/clipper/toolCatalog.js";
+import { logClipper, parseTurnId, type ClipperStepOutcome } from "./turnLog.js";
 
 /**
  * Clipper con modelo (docs/API_CONTRACT.md, «Clipper»). El servidor guarda la clave, decide qué
@@ -27,7 +28,10 @@ export interface ClipperConfig {
   model: string;
 }
 
-export const readClipperConfig = (env: Record<string, string | undefined> = process.env): ClipperConfig => ({ apiKey: env.ANTHROPIC_API_KEY?.trim() || null, model: env.CLIPPER_MODEL?.trim() || DEFAULT_MODEL });
+/** Las variables del servidor; sin depender de los tipos de Node (este archivo también lo importa la evaluación). */
+const serverEnv = (): Record<string, string | undefined> => (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+
+export const readClipperConfig = (env: Record<string, string | undefined> = serverEnv()): ClipperConfig => ({ apiKey: env.ANTHROPIC_API_KEY?.trim() || null, model: env.CLIPPER_MODEL?.trim() || DEFAULT_MODEL });
 
 type TextBlock = { type: "text"; text: string };
 type ToolUseBlock = { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
@@ -43,6 +47,8 @@ export interface ClipperContext {
   branch: string;
   currency: string;
   userName: string;
+  /** El id de la pregunta: une los pasos en el registro y el 👍/👎. */
+  turnId: string | null;
 }
 
 export interface ClipperInput {
@@ -80,6 +86,7 @@ export function parseClipperInput(body: unknown): ClipperInput | null {
     branch: clip(raw.branch, MAX_LABEL) ?? "",
     currency: clip(raw.currency, 8) ?? "USD",
     userName: clip(raw.userName, MAX_LABEL) ?? "",
+    turnId: parseTurnId(raw.turnId),
   };
   if (body.messages.length === 0 || body.messages.length > MAX_MESSAGES) return null;
   const messages: ClipperMessage[] = [];
@@ -186,7 +193,8 @@ export function unsupportedNumbers(text: string, messages: readonly ClipperMessa
 }
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
-type ModelReply = { ok: true; content: (TextBlock | ToolUseBlock)[]; stop: string; model: string } | { ok: false };
+type Usage = { input: number; output: number };
+type ModelReply = { ok: true; content: (TextBlock | ToolUseBlock)[]; stop: string; model: string; usage: Usage } | { ok: false; usage: Usage };
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -197,10 +205,11 @@ async function callModel(input: ClipperInput, config: ClipperConfig, fetcher: Fe
     headers: { "x-api-key": config.apiKey ?? "", "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json" },
     body: JSON.stringify({ model: config.model, max_tokens: MAX_OUTPUT_TOKENS, temperature: 0.2, system: systemOf(input.context), tools, ...(allowTools ? {} : { tool_choice: { type: "none" } }), messages }),
   });
-  const data = (await response.json().catch(() => null)) as { model?: string; stop_reason?: string; content?: Block[] } | null;
-  if (!response.ok || !data) return { ok: false };
+  const data = (await response.json().catch(() => null)) as { model?: string; stop_reason?: string; content?: Block[]; usage?: { input_tokens?: number; output_tokens?: number } } | null;
+  const usage = { input: data?.usage?.input_tokens ?? 0, output: data?.usage?.output_tokens ?? 0 };
+  if (!response.ok || !data) return { ok: false, usage };
   const content = (data.content ?? []).filter((block): block is TextBlock | ToolUseBlock => block.type === "text" || block.type === "tool_use");
-  return { ok: true, content, stop: data.stop_reason ?? "end_turn", model: data.model ?? config.model };
+  return { ok: true, content, stop: data.stop_reason ?? "end_turn", model: data.model ?? config.model, usage };
 }
 
 const textOf = (content: readonly (TextBlock | ToolUseBlock)[]) =>
@@ -210,34 +219,68 @@ const textOf = (content: readonly (TextBlock | ToolUseBlock)[]) =>
     .join("")
     .trim();
 
-/**
- * Un paso: `{ kind: "tools", content, calls }` si el modelo pide consultas (la app las ejecuta y vuelve
- * con los resultados) o `{ kind: "answer", text, model }`. Sin clave, 501 y la app usa el centro de ayuda.
- */
-export async function clipperStep(body: unknown, config: ClipperConfig, fetcher: Fetcher = fetch): Promise<Response> {
+async function step(body: unknown, config: ClipperConfig, fetcher: Fetcher, trace: Trace): Promise<Response> {
   const input = parseClipperInput(body);
-  if (!input) return json(400, { code: "validation", message: "Conversación inválida." });
-  if (!config.apiKey) return json(501, { code: "not_configured", message: "Sin clave de Claude: responde el centro de ayuda." });
+  if (!input) return trace.done("invalid", json(400, { code: "validation", message: "Conversación inválida." }));
+  trace.context = input.context;
+  if (!config.apiKey) return trace.done("not_configured", json(501, { code: "not_configured", message: "Sin clave de Claude: responde el centro de ayuda." }));
   const allowed = new Set(toolsFor(input.context.role).map((tool) => tool.name));
   try {
     const first = await callModel(input, config, fetcher, input.messages, true);
-    if (!first.ok) return json(502, { code: "provider_error", message: "Claude no respondió." });
+    trace.add(first.usage, first.ok ? first.model : null);
+    if (!first.ok) return trace.done("provider_error", json(502, { code: "provider_error", message: "Claude no respondió." }));
     const calls = first.content.filter((block): block is ToolUseBlock => block.type === "tool_use");
     if (calls.length > 0) {
+      trace.tools = calls.map((call) => call.name);
       // Una herramienta que no es de su rol (o que no existe) no se ejecuta.
-      if (calls.some((call) => !allowed.has(call.name))) return json(502, { code: "unsafe_output", message: "El modelo pidió una consulta no permitida." });
-      return json(200, { kind: "tools", content: first.content, calls: calls.map(({ id, name, input: args }) => ({ id, name, input: args })) });
+      if (calls.some((call) => !allowed.has(call.name))) return trace.done("unsafe_tool", json(502, { code: "unsafe_output", message: "El modelo pidió una consulta no permitida." }));
+      return trace.done("tools", json(200, { kind: "tools", content: first.content, calls: calls.map(({ id, name, input: args }) => ({ id, name, input: args })), usage: trace.usage }));
     }
     const text = textOf(first.content);
     const unsupported = unsupportedNumbers(text, input.messages);
-    if (text && unsupported.length === 0) return json(200, { kind: "answer", text, model: first.model });
+    if (text && unsupported.length === 0) return trace.done("answer", json(200, { kind: "answer", text, model: first.model, usage: trace.usage }));
     // Una corrección: se le muestran los números que no salen de las consultas y se le pide reescribir.
     const correction = input.context.locale === "en" ? `These numbers don't appear in the tool results: ${unsupported.join(", ")}. Rewrite the answer using only figures from the results, or say the figure isn't available.` : `Estos números no aparecen en los resultados: ${unsupported.join(", ")}. Reescribe la respuesta usando solo cifras de los resultados, o di que esa cifra no está disponible.`;
     const retry = await callModel(input, config, fetcher, [...input.messages, { role: "assistant", content: text || "…" }, { role: "user", content: correction }], false);
+    trace.add(retry.usage, retry.ok ? retry.model : null);
     const fixed = retry.ok ? textOf(retry.content) : "";
-    if (fixed && unsupportedNumbers(fixed, input.messages).length === 0) return json(200, { kind: "answer", text: fixed, model: retry.ok ? retry.model : config.model });
-    return json(502, { code: "unsafe_output", message: "La respuesta traía cifras que no salen de los datos." });
+    if (fixed && unsupportedNumbers(fixed, input.messages).length === 0) return trace.done("corrected", json(200, { kind: "answer", text: fixed, model: retry.ok ? retry.model : config.model, usage: trace.usage }));
+    return trace.done("unsafe_numbers", json(502, { code: "unsafe_output", message: "La respuesta traía cifras que no salen de los datos." }));
   } catch {
-    return json(502, { code: "provider_error", message: "No se pudo hablar con Claude." });
+    return trace.done("provider_error", json(502, { code: "provider_error", message: "No se pudo hablar con Claude." }));
   }
+}
+
+/** Lo que se va juntando de un paso para el registro. */
+interface Trace {
+  context: ClipperContext | null;
+  tools: string[];
+  model: string | null;
+  usage: { input: number; output: number };
+  add: (usage: { input: number; output: number }, model: string | null) => void;
+  done: (outcome: ClipperStepOutcome, response: Response) => Response;
+}
+
+/**
+ * Un paso: `{ kind: "tools", content, calls, usage }` si el modelo pide consultas (la app las ejecuta y vuelve
+ * con los resultados) o `{ kind: "answer", text, model, usage }`. Sin clave, 501 y la app usa el centro de ayuda.
+ * Cada paso deja una línea en el registro (`server/clipper/turnLog.ts`).
+ */
+export async function clipperStep(body: unknown, config: ClipperConfig, fetcher: Fetcher = fetch): Promise<Response> {
+  const started = Date.now();
+  const trace: Trace = {
+    context: null,
+    tools: [],
+    model: null,
+    usage: { input: 0, output: 0 },
+    add(usage, model) {
+      trace.usage = { input: trace.usage.input + usage.input, output: trace.usage.output + usage.output };
+      trace.model = model ?? trace.model;
+    },
+    done(outcome, response) {
+      logClipper({ type: "clipper_step", at: new Date().toISOString(), turnId: trace.context?.turnId ?? null, role: trace.context?.role ?? null, locale: trace.context?.locale ?? null, outcome, tools: trace.tools, model: trace.model, inputTokens: trace.usage.input, outputTokens: trace.usage.output, ms: Date.now() - started });
+      return response;
+    },
+  };
+  return step(body, config, fetcher, trace);
 }

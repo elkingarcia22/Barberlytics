@@ -217,7 +217,9 @@ Pendiente, por orden:
    canal; el celular identifica al cliente (duplicados con «Abrir la ficha», correo opcional); la campana respeta lo
    apagado en Configuración; la reserva, los recordatorios y el `.ics` usan la zona de la sede; libro de pagos en
    Transacciones; confirmar la identidad en lo sensible (`/auth/step-up`); el registro verifica el celular y pide
-   aceptar los términos. Quedan: estados de confirmación y anticipo en el panel de la cita (otra sesión lo está
-   rediseñando), texto legal del consentimiento según el país, evaluaciones y registro de turnos de Clipper, y abrir
-   sesión con una barbería nueva al registrarse (necesita el backend real, el mock tiene una sola barbería).
+   aceptar los términos; consentimiento con texto versionado según el país (Colombia, EE. UU., México y general;
+   pendiente de revisión de un abogado); registro de cada paso de Clipper, 👍/👎 al servidor y conjunto de 60
+   preguntas con corredor contra el modelo real. Quedan: estados de confirmación y anticipo en el panel de la cita
+   (otra sesión lo está rediseñando), correr la evaluación con una clave real, y abrir sesión con una barbería nueva
+   al registrarse (necesita el backend real, el mock tiene una sola barbería).
 

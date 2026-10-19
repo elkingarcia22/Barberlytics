@@ -358,6 +358,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CheckoutRecap.tsx** — En el cierre, los productos que se lleva: junto a la cita, en la parte de arriba del panel. · `CheckoutProducts`, `CheckoutSummary`, `OrderEstimate` · piezas: Text · usa: @/app/i18n, @/icons
 - **ConfirmedActions.tsx** — Lo que se hace con la cita ya confirmada: enviar el recibo, agregarla al calendario, dejarla fija y ver su de… · `ConfirmedActions` · piezas: ActionTile, IconTile · usa: @/app/i18n, @/icons
 - **ConfirmedBarberNote.tsx** — Nota y foto para el barbero, ya con la cita confirmada: se escriben aquí y se mandan a la reserva. · `ConfirmedBarberNote` · piezas: Button, Field, Text, Textarea · usa: @/app/i18n, @/icons
+- **ConsentFields.tsx** — El permiso de promociones y el aviso de privacidad con el texto del país de la sede: la casilla empieza sin m… · `ConsentFieldsProps`, `ConsentFields` · piezas: Checkbox, Collapsible, CollapsibleContent, CollapsibleTrigger, Label, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **EarliestSlot.tsx** — «Lo antes posible»: deshabilitado por requerimiento de diseño. · `EarliestSlot`
 - **GalleryViewer.tsx** — La galería a pantalla completa: la foto ocupa el dispositivo, se pasa con el dedo (o con las flechas y el tec… · `GalleryViewer` · piezas: Button, Carousel, CarouselContent, CarouselItem, Dialog, DialogContent, DialogDescription, DialogTitle, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **GiftCardField.tsx** — Usar una tarjeta de regalo: se valida el código en el servidor y su saldo paga primero. · `GiftCardField` · piezas: Button, Chip, Field, Input, Text · usa: @/app/i18n, @/lib/api
@@ -399,6 +400,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **bookingSkin.ts** — Con qué cara se pintan los pasos: «guided» (Paso a paso) o «agenda» (la de Agenda en lista: foto arriba con e… · `BookingSkin`, `BookingSkinContext`, `useBookingSkin`
 - **bookingToast.ts** — Los avisos de la reserva salen dentro de su propia pantalla (el marco del celular, la tablet o el monitor de… · `BOOKING_TOASTER_ID`, `toast`
 - **cardValidation.ts** — La tarjeta escrita a mano: cómo se agrupa mientras se teclea y qué le falta para poder cobrarse. · `digitsOf`, `groupCard`, `groupExpiry`, `CardBrand`, `cardBrandOf`, `brandFromName`, `cvcLengthOf`, `CardValues`, `savedCardExpiry`, `firstUsableCard`, `expiryOk`, `cardErrors`, `isCardComplete`, `isCvcComplete`
+- **consentPack.ts** — El texto del consentimiento para la sede por la que entra el cliente (o la primera), en su idioma. · `useConsentPack`, `useConsentBranchId` · usa: @/features/legal, @/i18n
 - **drawerFit.ts** — El drawer de abajo se limita por defecto al alto de la ventana (`100dvh`). · `DRAWER_FIT_STYLE`, `overlayKind`, `HIDE_SCROLLBAR`
 - **missingData.ts** — Lo que falta para seguir, dicho en un toast, además del error en su campo. · `toastMissing`, `cardMissing` · usa: @/app/i18n
 - **referencePhoto.ts** — La foto de referencia del corte, preparada en el celular antes de subirla: se reduce a 1024 px por el lado la… · `MAX_PHOTO_SIDE`, `MAX_REFERENCE_PHOTOS`, `MAX_PHOTO_CHARS`, `PHOTO_PATTERN`, `fitWithin`, `prepareReferencePhoto`
@@ -427,7 +429,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PackagesStep.tsx** — Paquetes prepagados: N visitas de un servicio por menos de lo que valen sueltas. · `PackagesStep` · piezas: Badge, Button, Heading, IconTile, MagicCard, SelectMark, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/utils
 - **PaymentStep.tsx** — Pagar: la propina para el barbero, un cupón y cómo se paga. · `PaymentStep` · piezas: Text · usa: @/app/i18n
 - **PhoneStep.tsx** — La puerta: el celular. · `PhoneStep`
-- **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para su ficha en la barbería. · `ProfileStep` · piezas: Button, Checkbox, Field, Input, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **ProfileStep.tsx** — Quien reserva por primera vez: lo justo para su ficha en la barbería. · `ProfileStep` · piezas: Button, Field, Input, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **ReviewStep.tsx** — El carrito: cada cita en su tarjeta (con cambiar y quitar), sumar otra —para la misma persona otro día o para… · `ReviewStep` · piezas: Button, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, Collapsible, CollapsibleContent, CollapsibleTrigger, EmptyState, Heading, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **ServicesStep.tsx** — Los servicios: varios en la misma cita (corte + barba), con foto, cuánto duran y desde cuánto. · `ServicesStep` · piezas: Badge, Button, Chip, EmptyState, IconTile, Input, MagicCard, SelectMark, Skeleton, Text · usa: @/app/i18n, @/hooks/useDragScroll, @/icons, @/lib/utils
 - **TimeStep.tsx** — Cuándo: el día en una tira y solo las horas libres de ese día, para el barbero elegido o para cualquiera. · `TimeStep` · piezas: Avatar, AvatarFallback, AvatarImage, Button, DayStrip, EmptyState, IconTile, Skeleton, Text, TimeSlotPicker · usa: @/app/i18n, @/icons
@@ -453,7 +455,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaCheckout.tsx** — Una parte del cierre: número, título y lo que va dentro. · `CheckoutSection`, `CheckoutFooter`, `AgendaCheckout` · piezas: Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons
 - **AgendaFlow.tsx** — Agenda: la reserva que parte del «¿cuándo?». · `AgendaFlow` · piezas: Button · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaHeader.tsx** — La cabecera de la agenda: la barbería, «Agenda con Clipper», entrar como cliente (no hace falta para mirar ho… · `AgendaHeader` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
-- **AgendaIdentity.tsx** — Primera vez: lo justo para su ficha. · `ProfileForm`, `AgendaIdentity` · piezas: Alert, AlertDescription, AlertTitle, Button, Checkbox, Field, Input, InputOtp, Label, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **AgendaIdentity.tsx** — Primera vez: lo justo para su ficha. · `ProfileForm`, `AgendaIdentity` · piezas: Alert, AlertDescription, AlertTitle, Button, Field, Input, InputOtp, PhoneInput, Spinner, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **AgendaLanes.tsx** — Las horas del día sin pensar en quién: `TimeSlotGroups` del sistema, con las caras de quienes pueden a la der… · `TimeWindows` · piezas: Avatar, AvatarFallback, AvatarGroup, AvatarImage, TimeSlotGroups · usa: @/app/i18n, @/icons
 - **AgendaPicker.tsx** — Se abre donde se siente nativa en cada pantalla: en celular y en el widget sube desde abajo, al alcance del p… · `PickerField`, `PickerOverlay`, `PickerSearch`, `PickerRow` · piezas: Button, IconTile, Input, SelectableRow, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaProductField.tsx** — Lo que se lleva de la tienda en la Agenda: el mismo campo y la misma ventana que los servicios. · `AgendaProductField` · piezas: ActionTile, Button, IconTile, NumberField, Text · usa: @/app/i18n, @/icons
@@ -473,7 +475,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatCard.ts** — Los pasos de la tarjeta nueva en la caja: número, titular, vencimiento y CVC. · `CardStep`, `isCardStep`, `normalizeExpiry`, `ExpiryProblem`, `expiryProblem`, `maskCardInput`, `CardDraft`, `EMPTY_CARD`, `CardKit`, `useChatNewCard` · usa: @/app/i18n
 - **chatCheckout.ts** — Lo que la conversación le presta al cobro: cómo hablar, el estado al día y a dónde volver. · `CheckoutKit`, `adjustmentRows`, `useChatCheckout` · usa: @/app/i18n, @/lib/api
 - **chatExtras.ts** — Lo que se suma a la reserva después de apartar: productos de la tienda (cada uno con su cantidad, − 1 + en la… · `ExtrasKit`, `useChatExtras` · usa: @/app/i18n, @/lib/chat
-- **chatIdentity.ts** — Quién es, conversando: el celular (solo números) al empezar. · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/lib/api
+- **chatIdentity.ts** — Quién es, conversando: el celular (solo números) al empezar. · `IdentityKit`, `useChatIdentity` · usa: @/app/i18n, @/features/legal, @/lib/api
 - **chatIntents.ts** — Lo que se pide «de pasada» en cualquier momento de la conversación, como se le hablaría a una persona: volver… · `ChatAside`, `detectAside`, `IntentsKit`, `useChatIntents` · usa: @/app/i18n
 - **chatKit.ts** — Lo que se pide desde la cabecera de la conversación. · `ChatReplyId`, `ChatTurn`, `Message`, `MessageInput`, `Expecting`, `PaymentEvent`, `TYPING_MS`, `DAYS_OFFERED`, `PHONE_DIGITS`, `EMAIL`, `RELATIONS`, `reducedMotion`, `capitalize`, `firstName`, `nextId`, `activeQuestionTurn`, `isKnownAnswer`, `Handlers` · usa: @/app/i18n, @/lib/chat
 - **chatProfiles.ts** — Si lo escrito pide conocer a un barbero o una sede antes de elegir. · `looksLikeDetail`, `ProfilesKit`, `useChatProfiles` · usa: @/app/i18n, @/lib/api
@@ -481,7 +483,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **chatReceipt.ts** — Lo que se va armando: a dónde va el recibo y qué falta que escriba. · `ReceiptPlan`, `ReceiptStep`, `isReceiptStep`, `ReceiptKit`, `createChatReceipt` · usa: @/app/i18n, @/lib/api, @/lib/chat
 - **parseBookingText.ts** — Lo que se entiende de una frase del cliente en la conversación: qué se quiere hacer, con quién, qué día y a q… · `ChatIntent`, `ParsedRequest`, `parseBookingText`, `phoneFromText`, `codeFromText`
 - **spokenNumbers.ts** — Cambia por cifras los celulares, códigos y horas dichos con palabras; lo demás queda igual. · `numberWordsToDigits`
-- **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/lib/api, @/lib/chat
+- **useChatBooking.ts** — La conversación de la reserva. · `useChatBooking`, `ChatEngine` · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/chat
 - **useVoiceBridge.ts** — De qué experiencia llega la voz: Paso a paso pide quién eres; el resto, qué quieres hacer. · `VoiceOrigin`, `useVoiceBridge` · usa: @/app/i18n, @/i18n, @/lib/chat
 - **voiceReply.ts** — El texto de Clipper como se dice en una llamada: «Dime tu número» en vez de «Escríbeme tu número», y las fech… · `VoiceReplyLabels`, `forVoice`, `fromVoice`, `matchSpokenOption`, `saysOnlyOption`, `voiceReplyFromTurns` · usa: @/lib/chat
 
@@ -614,9 +616,13 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### clipper
 
-- **clipperBackend.ts** — Clipper con modelo detrás del chat. · `ClipperBackendContext`, `ClipperBackendOptions`, `resetClipperAvailability`, `toModelMessages`, `createClipperBackend` · usa: @/lib/chat
+- **clipperBackend.ts** — Clipper con modelo detrás del chat. · `ClipperBackendContext`, `ClipperBackendOptions`, `sendClipperFeedback`, `resetClipperAvailability`, `toModelMessages`, `createClipperBackend` · usa: @/lib/chat
 - **proposals.ts** — Las propuestas de Clipper (docs/API_CONTRACT.md, «Clipper»): mover, crear o cancelar una cita, bloquear un ra… · `Translate`, `ProposalContext`, `Proposer`, `ProposalError`, `PROPOSERS`, `ProposalName`, `isProposalName`, `proposalSummary`, `runClipperAction` · usa: @/app/i18n, @/features/calendar, @/i18n, @/lib/chat
 - **tools.ts** — Lo que hace cada herramienta de Clipper (el catálogo está en `src/lib/clipper/toolCatalog.ts`). · `ClipperToolContext`, `weekOf`, `TOOL_LABEL_KEYS`, `isToolName`, `runClipperTool` · llama: GET /reports/week, GET /customers/${id}/next-visit, GET /customers/reactivation, GET /reports/menu, GET /team/lineup/turn · usa: @/features/calendar, @/features/customers, @/features/payroll, @/features/review, @/features/transactions, @/help/content, @/lib/api, @/lib/chat, @/lib/clipper, @/lib/help
+
+### clipper/evals
+
+- **questions.ts** — El conjunto de evaluación de Clipper (informe 11, P0 «Evaluaciones y registro»): preguntas como las hace el e… · `EvalVariant`, `EvalExpect`, `EvalQuestion`, `CLIPPER_EVALS` · usa: @/lib/clipper
 
 ### customers
 
@@ -627,7 +633,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerNoteDrawer.tsx** — Una nota nueva del cliente: qué tipo es —una alergia no se lee igual que una preferencia— y el texto. · `CustomerNoteDrawerProps`, `CustomerNoteDrawer` · piezas: Button, DrawerShell, Field, Textarea, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **CustomerOverview.tsx** — El resumen de un cliente: lo que hay que saber antes de atenderle arriba —alergias y medicamentos—, cuánto va… · `CustomerOverviewProps`, `CustomerOverview` · piezas: Alert, AlertDescription, AlertTitle, Button, MetricCard, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n
 - **CustomerProfilePage.tsx** · `CustomerProfilePage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, EmptyState, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/calendar, @/lib/api, @/lib/query
-- **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api
+- **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/features/team, @/i18n, @/lib/api
 - **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/lib/api
 - **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **ReactivationDrawer.tsx** — Reactivar a los que ya se pasaron de su ritmo. · `ReactivationDrawerProps`, `ReactivationDrawer` · piezas: Alert, AlertDescription, Button, Checkbox, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/query
@@ -677,6 +683,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **pageLabel.ts** — El rótulo de menú de la entrada activa, buscado en los tres niveles. · `findNavLabel`
 - **queries.ts** · `useSubmitFeedback`
 - **types.ts** — Largo máximo de un comentario; el panel corta ahí y el backend lo vuelve a comprobar. · `FEEDBACK_MAX_LENGTH`, `FEEDBACK_MIN_LENGTH`, `FEEDBACK_MAX_ATTACHMENTS`, `FEEDBACK_TYPES`, `FEEDBACK_NO_PAGE`, `FEEDBACK_ATTACHMENT_LIMITS`, `FeedbackAttachmentType`, `feedbackUploadRequestSchema`, `FeedbackUploadRequest`, `feedbackUploadTicketSchema`, `FeedbackUploadTicket`, `feedbackUploadedFileSchema`, `feedbackSubmissionSchema`, `FeedbackSubmission`, `feedbackReceiptSchema`, `FeedbackReceipt`
+
+### legal
+
+- **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`
+- **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack` · usa: @/features/settings, @/i18n
 
 ### metrics
 
@@ -973,7 +984,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/lib/time
-- **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking
+- **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking, @/features/legal
 - **packages.ts** — Paquetes prepagados: la barbería los ofrece en Ajustes (N visitas de un servicio con descuento y vencimiento)… · `PackageOffer`, `packageOffers`, `activePackages`, `buyPackage`, `spendPackages`
 - **recurring.ts** — Dejar una cita fija («cada 3 semanas»): las próximas con el mismo barbero y a la misma hora. · `REPEAT_WEEKS`, `RepeatWeeks`, `MAX_REPEATS`, `repeatAppointment`
 - **reminders.ts** — Los recordatorios que tocan: las horas de Configuración, sin repetir, de la más lejana a la más cercana. · `reminderPlan`, `scheduleMessages`, `cancelMessages`, `rescheduleMessages`, `offerFreedSlot`, `newConfirmToken`
@@ -1065,7 +1076,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### settings
 
-- **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/settings, @/lib/time
+- **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchCountry`, `consentProof`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/legal, @/features/settings, @/lib/time
 - **handlers.ts** · `settingsHandlers` · usa: @/features/settings
 - **seed.ts** — La configuración del backend simulado. · `MockSettingsSection`, `MockSettingsList`, `MockListItem`, `MockSettingsState`, `DEFAULT_POLICY`, `seedSettings`
 

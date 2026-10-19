@@ -4,6 +4,7 @@ import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { activePackages } from "../booking/packages";
 import { cardsOf, loyaltyOf, serviceName } from "../booking/logic";
 import { barberName, profileOf, saveProfile } from "./handlers";
+import { consentProof } from "../settings/branchRules";
 
 /**
  * La relación con el cliente que la reserva ya conoce y la ficha no enseñaba (docs/API_CONTRACT.md,
@@ -167,6 +168,7 @@ export const relationshipHandlers = [
         accepted: input.marketing,
         at: new Date().toISOString(),
         source: "app",
+        ...consentProof(profileOf(client).branchId),
       },
     });
     return HttpResponse.json(relationshipOf(client));

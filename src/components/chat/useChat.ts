@@ -1,5 +1,6 @@
 import * as React from "react";
-import type { ChatAction, ChatBackend, ChatState, ChatStore, Conversation } from "@/lib/chat";
+import type { ChatAction, ChatBackend, ChatMessage, ChatState, ChatStore, Conversation } from "@/lib/chat";
+import type { ChatFeedbackPayload } from "./ChatFeedbackForm";
 
 export interface ChatConnector {
   id: string;
@@ -39,6 +40,8 @@ export interface ChatContextValue {
    * tienen botón.
    */
   onAction?: (action: ChatAction, op: "apply" | "undo") => Promise<Partial<ChatAction>>;
+  /** El 👍/👎 de una respuesta, con los motivos si los dio: para que quien respondió aprenda. */
+  onFeedback?: (message: ChatMessage, value: "up" | "down" | undefined, detail?: ChatFeedbackPayload) => void;
 }
 
 export const ChatContext = React.createContext<ChatContextValue | null>(null);
@@ -63,7 +66,7 @@ export function useActiveConversation(): Conversation | null {
 
 /** Las acciones del chat, ya atadas al almacén y a quien responde. */
 export function useChatActions() {
-  const { store, backend, onAction } = useChatContext();
+  const { store, backend, onAction, onFeedback } = useChatContext();
   return React.useMemo(
     () => ({
       /** Aplica o deshace un cambio propuesto; el estado va quedando en el mensaje. */
@@ -83,11 +86,15 @@ export function useChatActions() {
       edit: (messageId: string, text: string) => store.edit(messageId, text, backend),
       stop: store.stop,
       finish: store.finish,
-      feedback: store.feedback,
+      feedback: (messageId: string, value: "up" | "down" | undefined, detail?: ChatFeedbackPayload) => {
+        store.feedback(messageId, value);
+        const message = store.getState().conversations.flatMap((conversation) => conversation.messages).find((item) => item.id === messageId);
+        if (message) onFeedback?.(message, value, detail);
+      },
       setActive: store.setActive,
       remove: store.remove,
       newConversation: () => store.setActive(null),
     }),
-    [store, backend, onAction]
+    [store, backend, onAction, onFeedback]
   );
 }

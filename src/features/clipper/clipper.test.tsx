@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { renderWithProviders } from "@/test/render";
 import { db } from "@/mocks/db";
 import type { ChatBackend } from "@/lib/chat";
-import { createClipperBackend, resetClipperAvailability, toModelMessages, type ClipperBackendContext } from "./clipperBackend";
+import { createClipperBackend, resetClipperAvailability, sendClipperFeedback, toModelMessages, type ClipperBackendContext } from "./clipperBackend";
 import { runClipperTool, weekOf } from "./tools";
 
 /** Un día pasado de la demo, con citas cobradas. */
@@ -43,6 +43,21 @@ describe("Clipper con modelo", () => {
     expect(result.cuentas).toBeGreaterThan(0);
     expect(reply).toMatchObject({ text: `Cobraste ${result.cobrado} en ${result.cuentas} cuentas.`, via: "model", sources: [{ label: "Consulté", detail: "cuentas_del_periodo" }] });
     expect(server.bodies[0]).toMatchObject({ context: { role: "owner", branch: "Massachusetts", today: PAST_DAY } });
+    // Un id por pregunta: lo llevan sus pasos y la respuesta, para el registro y el 👍/👎.
+    const turnId = (server.bodies[0] as unknown as { context: { turnId: string } }).context.turnId;
+    expect(turnId).toMatch(/^[\w-]{8,}$/);
+    expect((server.bodies[1] as unknown as { context: { turnId: string } }).context.turnId).toBe(turnId);
+    expect(reply.traceId).toBe(turnId);
+  });
+
+  test("el 👍/👎 va con sus motivos; la conversación, solo si se compartió", async () => {
+    const sent: Record<string, unknown>[] = [];
+    const fetcher = (async (_url: string, init?: RequestInit) => (sent.push(JSON.parse(String(init?.body))), new Response(null, { status: 204 }))) as typeof fetch;
+    await sendClipperFeedback({ turnId: "turn-1234abcd", value: "down", reasons: ["wrong"], comment: "no cuadra", share: false, question: "¿Cuánto llevo?", answer: "US$ 10" }, fetcher);
+    await sendClipperFeedback({ turnId: "turn-1234abcd", value: "down", share: true, question: "¿Cuánto llevo?", answer: "US$ 10" }, fetcher);
+    expect(sent[0]).toMatchObject({ turnId: "turn-1234abcd", value: "down", reasons: ["wrong"], share: false });
+    expect(sent[0]).not.toHaveProperty("question");
+    expect(sent[1]).toMatchObject({ share: true, question: "¿Cuánto llevo?", answer: "US$ 10" });
   });
 
   test("sin clave en el servidor responde el centro de ayuda y no vuelve a preguntar", async () => {

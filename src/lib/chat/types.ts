@@ -117,6 +117,8 @@ export interface ChatMessage {
   feedback?: "up" | "down";
   /** Quién respondió (`help`, `demo`, `model`…), para que el siguiente turno siga con el mismo. */
   via?: string;
+  /** Con qué id registró el turno quien respondió: el 👍/👎 se le manda con él. */
+  traceId?: string;
 }
 
 export interface Conversation {
@@ -139,6 +141,7 @@ export interface ChatReply {
   link?: ChatLink;
   actions?: readonly ChatAction[];
   via?: string;
+  traceId?: string;
 }
 
 /**

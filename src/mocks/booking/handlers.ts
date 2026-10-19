@@ -47,7 +47,7 @@ import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 const GIFT_MIN = 10;
 const GIFT_MAX = 500;
 import { MAX_PHOTO_CHARS, MAX_REFERENCE_PHOTOS, PHOTO_PATTERN } from "@/features/booking/flow/referencePhoto";
-import { branchOnlineMethods, branchTimeZone, startInstant, taxInclusive } from "../settings/branchRules";
+import { branchOnlineMethods, branchTimeZone, consentProof, startInstant, taxInclusive } from "../settings/branchRules";
 import { instantOf } from "@/lib/time/zoned";
 import { settlementsOf } from "./settlement";
 import { productPriceIn } from "../catalogPrices";
@@ -252,6 +252,9 @@ function seedDemoGuests(client: MockClient | undefined) {
   db.persist();
 }
 
+/** La sucursal por la que entra quien no eligió una todavía: la primera activa. */
+const firstBranchId = (): string => (db.settings.lists.branches.find((item) => item.status === "active")?.id as string | undefined) ?? "ma";
+
 export const bookingHandlers = [
   http.get(`${BASE}/shop`, async () => {
     await delay(LATENCY_MS);
@@ -395,7 +398,7 @@ export const bookingHandlers = [
     const client: MockClient = { id: `cli_web_${Date.now().toString(36)}`, name: `${firstName} ${lastName}`, phone, type: "new", visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null, preferredBarberId: null, visitEveryDays: null, notes: [], avatarUrl: null };
     db.calendar.clients = [...db.calendar.clients, client];
     const now = new Date().toISOString();
-    saveProfile(client.id, { ...profileOf(client), email, onlineOnly: false, blocked: false, guests: [], createdAt: now, marketingConsent: { accepted: input.marketing === true, at: now, source: "booking" } });
+    saveProfile(client.id, { ...profileOf(client), email, onlineOnly: false, blocked: false, guests: [], createdAt: now, marketingConsent: { accepted: input.marketing === true, at: now, source: "booking", ...consentProof(text(input.branchId) || firstBranchId()) } });
     // La sesión del celular pasa a ser la del cliente recién creado.
     db.bookingSessions.set(token, client.id);
     return HttpResponse.json(customerOf(client), { status: 201 });

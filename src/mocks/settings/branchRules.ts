@@ -2,6 +2,7 @@ import { GATEWAY_SPECS, isGatewayProvider, type OnlineMethod } from "@/features/
 import { blendedPercent, linePercent } from "@/features/branches/tax";
 import { db } from "../db";
 import { instantOf, isTimeZone, wallClock } from "@/lib/time/zoned";
+import { consentCountryOf, consentVersionOf } from "@/features/legal/consent";
 import type { MockListItem } from "./seed";
 
 /**
@@ -35,6 +36,15 @@ export const startInstant = (item: { start: string; branchId: string }): Date =>
 
 /** «Ahora» en la sucursal, como hora de pared («AAAA-MM-DDTHH:mm»). */
 export const branchNow = (branchId: string, at: Date = new Date()): string => wallClock(branchTimeZone(branchId), at);
+
+/** El país de la sucursal (Configuración › Sucursales), tal como está escrito. */
+export const branchCountry = (branchId: string): string => {
+  const country = branchOf(branchId)?.country;
+  return typeof country === "string" ? country : "";
+};
+
+/** Con qué texto se aceptó un consentimiento en esa sucursal: la versión vigente de su país (la prueba). */
+export const consentProof = (branchId: string): { version: string; country: string } => ({ version: consentVersionOf(branchCountry(branchId)), country: consentCountryOf(branchCountry(branchId)) });
 
 /** El impuesto de la sucursal: la suma de las tasas de su grupo (estatal + condado, por ejemplo). */
 export function branchTaxPercent(branchId: string): number {

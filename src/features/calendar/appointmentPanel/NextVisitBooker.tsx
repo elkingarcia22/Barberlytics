@@ -1,6 +1,6 @@
 import * as React from "react";
 import { addWeeks, differenceInMinutes, addMinutes, format } from "date-fns";
-import { Mail, MessageSquareText } from "lucide-react";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -17,6 +17,8 @@ import { useCreateAppointment, useUpdateAppointment } from "../queries";
 import type { Appointment } from "../types";
 import { useFreeSlots } from "./useFreeSlots";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { TileRow, type Tile } from "./StageParts";
+import { writeMenu } from "./writeChannels";
 
 /**
  * «¿Le agendamos la próxima?»: lo que se le dice al cliente antes de que se
@@ -115,39 +117,34 @@ export function NextVisitBooker({ model, ctx, bare = false, group = [] }: { mode
   );
 }
 
-/** Que elija él: el enlace de la reserva en línea con lo de esta cita, por SMS o correo; ahí escoge la hora y paga. */
+/**
+ * Que elija él: el enlace de la reserva en línea con lo de esta cita, como se
+ * manda el recibo —una tarjeta con su menú de SMS o correo—; ahí escoge la
+ * hora y paga.
+ */
 function SendRebookLink({ model }: { model: AppointmentModel }) {
   const t = useAppT();
   if (!model.phone && !model.email) return null;
   const link = buildRebookLink(window.location.origin, { branchId: model.appointment.branchId, serviceIds: model.appointment.serviceIds, barberId: model.appointment.barberId });
-  const text = t("calendar.panel.next.linkMessage", { name: model.firstName, link });
-  const channels = [
-    ...(model.phone ? [{ id: "sms", label: t("calendar.panel.write.sms"), href: `sms:${model.phone}?body=${encodeURIComponent(text)}`, icon: <MessageSquareText /> }] : []),
-    ...(model.email ? [{ id: "email", label: t("calendar.panel.write.email"), href: `mailto:${model.email}?subject=${encodeURIComponent(t("calendar.panel.next.linkSubject"))}&body=${encodeURIComponent(text)}`, icon: <Mail /> }] : []),
-  ];
+  const tile: Tile = {
+    id: "rebook-link",
+    icon: <Send className="size-5 text-primary" />,
+    label: t("calendar.panel.next.linkSend"),
+    title: t("calendar.panel.next.linkSendTitle"),
+    menu: writeMenu(model, t, { subject: t("calendar.panel.next.linkSubject"), text: t("calendar.panel.next.linkMessage", { name: model.firstName, link }) }),
+  };
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border p-3" data-testid="panel-next-link">
-      <Text size="sm" weight="medium">
-        {t("calendar.panel.next.linkTitle")}
-      </Text>
-      <Text size="xs" tone="muted">
-        {t("calendar.panel.next.linkHint")}
-      </Text>
-      <div className="flex gap-2">
-        {channels.map((channel) => (
-          <Button
-            key={channel.id}
-            asChild
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => toast.success(t("calendar.panel.next.linkSent"), { description: t("calendar.panel.next.linkSentHint", { name: model.firstName }) })}
-          >
-            <a href={channel.href} target="_blank" rel="noreferrer" data-testid={`panel-next-link-${channel.id}`}>
-              {channel.icon} {channel.label}
-            </a>
-          </Button>
-        ))}
+    <div className="flex items-center gap-3 rounded-xl border border-border/60 p-3" data-testid="panel-next-link">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <Text size="sm" weight="medium">
+          {t("calendar.panel.next.linkTitle")}
+        </Text>
+        <Text size="xs" tone="muted">
+          {t("calendar.panel.next.linkHint")}
+        </Text>
+      </span>
+      <div className="w-24 shrink-0">
+        <TileRow tiles={[tile]} label={t("calendar.panel.next.linkSendTitle")} />
       </div>
     </div>
   );

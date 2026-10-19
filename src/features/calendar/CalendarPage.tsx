@@ -871,7 +871,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         onViewChange={state.setView}
         onTeamChange={state.setTeam}
         showTeam={!ownBarberId}
-        dateBadge={isDayView ? <DayWeightBadge weight={dayWeightOf(rhythm.data, state.date)} booked={day.data?.appointments.filter(isActive).length} /> : undefined}
+        dateBadge={isDayView ? <DayWeightBadge weight={dayWeightOf(rhythm.data, state.date)} booked={day.data?.appointments.filter(isActive).length} bare /> : undefined}
         search={
           ctx && (
             <CalendarSearch

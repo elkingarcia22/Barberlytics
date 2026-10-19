@@ -22,13 +22,15 @@ export interface DayWeightBadgeProps {
   weight: DayWeight | null;
   /** Cuántas citas lleva ya el día, para decirlo en el tooltip. */
   booked?: number;
-  /** Solo el icono (para la celda del mes, que es estrecha). */
+  /** Solo el icono en su círculo (para la celda del mes, que es estrecha). */
   compact?: boolean;
+  /** Solo el icono, en tono secundario y sin círculo: dentro de otro control (el campo de la fecha). */
+  bare?: boolean;
   showNormal?: boolean;
   className?: string;
 }
 
-export function DayWeightBadge({ weight, booked, compact = false, showNormal = false, className }: DayWeightBadgeProps) {
+export function DayWeightBadge({ weight, booked, compact = false, bare = false, showNormal = false, className }: DayWeightBadgeProps) {
   const t = useAppT();
   if (!weight || (weight.level === "normal" && !showNormal)) return null;
   const level = LEVEL[weight.level];
@@ -42,10 +44,14 @@ export function DayWeightBadge({ weight, booked, compact = false, showNormal = f
           role="img"
           aria-label={`${label}. ${detail}`}
           data-testid={`day-weight-${weight.level}`}
-          className={cn("inline-flex shrink-0 items-center gap-1 rounded-full border font-medium", compact ? "size-5 justify-center" : "h-6 px-2 text-xs", level.tone, className)}
+          className={cn(
+            "inline-flex shrink-0 items-center",
+            bare ? "justify-center text-text-secondary" : cn("gap-1 rounded-full border font-medium", compact ? "size-5 justify-center" : "h-6 px-2 text-xs", level.tone),
+            className
+          )}
         >
-          <Icon className="size-3" aria-hidden="true" />
-          {!compact && label}
+          <Icon className={bare ? "size-4" : "size-3"} aria-hidden="true" />
+          {!compact && !bare && label}
         </span>
       </TooltipTrigger>
       <TooltipContent className="max-w-64">

@@ -49,7 +49,7 @@ export interface CalendarToolbarProps {
   viewSettings?: React.ReactNode;
   /** Las acciones de la pantalla, al final de la fila. */
   actions?: React.ReactNode;
-  /** Una marca del día junto a la fecha (si suele ser pesado o suave). */
+  /** Una marca del día dentro del campo de la fecha, junto al texto (si suele ser pesado o suave). */
   dateBadge?: React.ReactNode;
 }
 
@@ -92,7 +92,10 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="min-w-[10.5rem] justify-between" aria-label={t("calendar.jumpToDate")} data-testid="calendar-date">
-              <span className="font-semibold">{label}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="font-semibold">{label}</span>
+                {dateBadge}
+              </span>
               <CalendarIcon className="text-text-muted" />
             </Button>
           </PopoverTrigger>
@@ -117,7 +120,6 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
             {t("date.today")}
           </Button>
         )}
-        {dateBadge}
       </div>
 
       {status}

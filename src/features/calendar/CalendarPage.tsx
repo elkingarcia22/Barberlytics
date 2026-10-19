@@ -24,7 +24,7 @@ import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import { CalendarSearch } from "./CalendarSearch";
-import { CalendarFilters, type ClientTypeFilterOption, type ServiceFilterOption } from "./CalendarFilters";
+import { CalendarFilters, type ClientTypeFilterOption, type ResourceFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions, blockContextActions } from "./calendarContextActions";
@@ -55,6 +55,8 @@ import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
 import { DayPanel } from "./dayPanel/DayPanel";
+import { resourceDay } from "./resourceModel";
+import { useResourcesQuery } from "@/features/services/queries";
 import { dayWeightOf } from "./dayWeight";
 import { DayWeightBadge } from "./DayWeightBadge";
 import { ABSENCE_KIND_KEYS, useAbsences } from "@/features/team/workforce";
@@ -410,6 +412,17 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || a.name.localeCompare(b.name))
       .map((service) => ({ id: service.id, name: service.name, color: serviceColor(dayCatalog, service.id) ?? 1, count: active.filter((item) => item.serviceIds.includes(service.id)).length }));
   }, [dayCatalog, day.data]);
+  // Los recursos especiales: cuántas citas de hoy los ocupan y si alguna vez se piden más de los que hay.
+  const resourcesQuery = useResourcesQuery();
+  const resourceOptions = React.useMemo<ResourceFilterOption[]>(() => {
+    if (!dayCatalog) return [];
+    const appointments = day.data?.appointments ?? [];
+    return (resourcesQuery.data?.items ?? []).map((resource) => {
+      const usage = resourceDay(resource, appointments, dayCatalog);
+      const names = resource.serviceIds.map((id) => dayCatalog.services.find((service) => service.id === id)?.name).filter(Boolean);
+      return { id: resource.id, name: resource.name, serviceIds: resource.serviceIds, servicesLabel: names.join(", "), count: new Set(usage.uses.map((use) => use.appointment.id)).size, clashes: usage.clashes.length };
+    });
+  }, [dayCatalog, day.data, resourcesQuery.data]);
   // Los tipos de cliente, en el orden de la escalera y con cuántas citas vivas tiene cada uno hoy.
   const clientTypeOptions = React.useMemo<ClientTypeFilterOption[]>(() => {
     if (!dayCatalog) return [];
@@ -873,6 +886,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               focuses={state.focuses}
               services={serviceOptions}
               serviceIds={state.serviceIds}
+              resources={resourceOptions}
               clientTypeOptions={clientTypeOptions}
               clientTypes={state.clientTypes}
               onChange={state.setFilters}

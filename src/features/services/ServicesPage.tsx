@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ArrowUpNarrowWide, CheckCircle2, Eye, FolderTree, LayoutGrid, Layers, Pencil, Plus, Power, PowerOff, Scissors, Trash2, TriangleAlert } from "lucide-react";
+import { Armchair, ArrowUpNarrowWide, CheckCircle2, Eye, FolderTree, LayoutGrid, Layers, Pencil, Plus, Power, PowerOff, Scissors, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -25,6 +25,7 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CategoriesDrawer } from "./CategoriesDrawer";
 import { MenuEngineeringView } from "./MenuEngineeringView";
+import { ResourcesDrawer } from "./ResourcesDrawer";
 import { ServiceFormDrawer } from "./ServiceFormDrawer";
 import { useRemoveService, useServicesQuery, useSetServicesActive } from "./queries";
 import { ALL, SERVICE_ALERTS, parseCategory, parseKind, serviceCells, serviceColumns, servicesPulse, type ServiceAlertId } from "./servicesHome";
@@ -113,7 +114,7 @@ export function ServicesPage() {
   );
 }
 
-type Drawer = { kind: "create"; of: ServiceKind } | { kind: "edit"; service: CatalogService } | { kind: "categories" };
+type Drawer = { kind: "create"; of: ServiceKind } | { kind: "edit"; service: CatalogService } | { kind: "categories" } | { kind: "resources" };
 
 function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchId: string }) {
   const t = useAppT();
@@ -184,10 +185,11 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
 
   const actions = React.useMemo<readonly RailActionSpec[]>(
     () => {
-      const allowed: Readonly<Record<string, boolean>> = { order: can.canOrder, categories: can.categories.view, "create-combo": can.canCreate, create: can.canCreate, open: true, edit: can.canEdit, toggle: can.canToggle, delete: can.canDelete };
+      const allowed: Readonly<Record<string, boolean>> = { order: can.canOrder, categories: can.categories.view, resources: true, "create-combo": can.canCreate, create: can.canCreate, open: true, edit: can.canEdit, toggle: can.canToggle, delete: can.canDelete };
       const all: readonly RailActionSpec[] = [
       { id: "order", label: t("services.action.order"), icon: <ArrowUpNarrowWide className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => navigate("/servicios/orden") },
       { id: "categories", label: t("services.action.categories"), icon: <FolderTree className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "categories" }) },
+      { id: "resources", label: t("services.action.resources"), icon: <Armchair className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "resources" }) },
       { id: "create-combo", label: t("services.action.createCombo"), icon: <Layers className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: () => setDrawer({ kind: "create", of: "combo" }) },
       { id: "create", label: t("services.action.create"), icon: <Plus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: () => setDrawer({ kind: "create", of: "service" }) },
       { id: "open", label: t("services.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: () => single && navigate(`/servicios/${single.id}`) },
@@ -237,6 +239,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
         onCreated={(service) => navigate(`/servicios/${service.id}?pestana=equipo`)}
       />
       <CategoriesDrawer open={drawer?.kind === "categories"} onOpenChange={(open) => !open && setDrawer(null)} categories={categories} items={items} canCreate={can.categories.create} canEdit={can.categories.edit} canDelete={can.categories.delete} />
+      <ResourcesDrawer open={drawer?.kind === "resources"} onOpenChange={(open) => !open && setDrawer(null)} items={items} canEdit={can.canEdit} />
     </>
   );
 

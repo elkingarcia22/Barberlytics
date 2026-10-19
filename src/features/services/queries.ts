@@ -1,12 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { servicesApi } from "./api";
-import type { CategoryInput, ServiceInput, ServiceOrderInput } from "./types";
+import type { CategoryInput, ResourceInput, ServiceInput, ServiceOrderInput } from "./types";
 
 export const serviceKeys = {
   all: ["services"] as const,
   catalog: (branchId: string) => [...serviceKeys.all, "catalog", branchId] as const,
   detail: (id: string, branchId: string) => [...serviceKeys.all, "detail", id, branchId] as const,
+  resources: () => [...serviceKeys.all, "resources"] as const,
 };
+
+/** Los recursos especiales; también los lee la agenda para filtrar por ellos. */
+export function useResourcesQuery(enabled = true) {
+  return useQuery({ queryKey: serviceKeys.resources(), queryFn: ({ signal }) => servicesApi.resources(signal), enabled, staleTime: 5 * 60_000 });
+}
 
 export function useServicesQuery(branchId: string) {
   return useQuery({ queryKey: serviceKeys.catalog(branchId), queryFn: ({ signal }) => servicesApi.catalog(branchId, signal) });
@@ -67,4 +73,14 @@ export function useSaveCategory() {
 export function useRemoveCategory() {
   const invalidate = useInvalidateCatalog();
   return useMutation({ mutationFn: (id: string) => servicesApi.removeCategory(id), onSuccess: invalidate });
+}
+
+export function useSaveResource() {
+  const invalidate = useInvalidateCatalog();
+  return useMutation({ mutationFn: ({ id, input }: { id: string | null; input: ResourceInput }) => (id ? servicesApi.updateResource(id, input) : servicesApi.createResource(input)), onSuccess: invalidate });
+}
+
+export function useRemoveResource() {
+  const invalidate = useInvalidateCatalog();
+  return useMutation({ mutationFn: (id: string) => servicesApi.removeResource(id), onSuccess: invalidate });
 }

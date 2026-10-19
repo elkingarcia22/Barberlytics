@@ -3,6 +3,7 @@ import { ListFilter } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { cn } from "@/lib/utils";
+import { resourceSelected, toggleResource } from "./resourceModel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,6 +32,19 @@ export interface ServiceFilterOption {
   count: number;
 }
 
+/** Un recurso especial (sillón de lavado, vaporizador…): marcarlo filtra por los servicios que lo usan. */
+export interface ResourceFilterOption {
+  id: string;
+  name: string;
+  serviceIds: readonly string[];
+  /** Los servicios que lo usan, en una línea. */
+  servicesLabel: string;
+  /** Cuántas citas de hoy lo ocupan. */
+  count: number;
+  /** Cuántas veces hoy se pide más de lo que hay. */
+  clashes: number;
+}
+
 export interface ClientTypeFilterOption {
   id: ClientType;
   label: string;
@@ -49,6 +63,8 @@ export interface CalendarFiltersProps {
   focuses: readonly PulseFocus[];
   services: readonly ServiceFilterOption[];
   serviceIds: readonly string[];
+  /** Los recursos especiales del local, con lo que los ocupa hoy. */
+  resources?: readonly ResourceFilterOption[];
   /** Los tipos de cliente con cuántas citas tiene cada uno hoy. */
   clientTypeOptions?: readonly ClientTypeFilterOption[];
   clientTypes?: readonly ClientType[];
@@ -74,7 +90,7 @@ const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
 
 const toggle = <T,>(list: readonly T[], value: T): T[] => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
-export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange }: CalendarFiltersProps) {
+export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange }: CalendarFiltersProps) {
   const t = useAppT();
   const freeId = React.useId();
   const linkedId = React.useId();
@@ -154,6 +170,23 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, clientTy
           </FilterList>
         )}
 
+        {resources.length > 0 && (
+          <FilterList label={t("calendar.filters.resource")}>
+            {resources.map((resource) => (
+              <FilterRow
+                key={resource.id}
+                testId={`calendar-filter-resource-${resource.id}`}
+                label={resource.name}
+                hint={resource.clashes > 0 ? t("calendar.filters.resourceClashes", { count: resource.clashes }) : resource.servicesLabel}
+                warning={resource.clashes > 0}
+                count={resource.count}
+                checked={resourceSelected(resource, serviceIds)}
+                onToggle={() => emit({ serviceIds: toggleResource(resource, serviceIds) })}
+              />
+            ))}
+          </FilterList>
+        )}
+
         {services.length > 0 && (
           <FilterList label={t("calendar.filters.service")} scroll>
             {services.map((service) => (
@@ -201,17 +234,27 @@ interface FilterRowProps {
   onToggle: () => void;
   /** El color de la paleta de la agenda, cuando la fila es también leyenda. */
   color?: number;
+  /** Una segunda línea corta; en tono de aviso con `warning`. */
+  hint?: string;
+  warning?: boolean;
   testId: string;
 }
 
-function FilterRow({ label, count, checked, onToggle, color, testId }: FilterRowProps) {
+function FilterRow({ label, count, checked, onToggle, color, hint, warning = false, testId }: FilterRowProps) {
   const id = React.useId();
   return (
     <li data-testid={testId}>
       <label htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-sm text-text-primary transition-colors duration-fast hover:bg-surface-subtle motion-reduce:transition-none">
         <Checkbox id={id} checked={checked} onCheckedChange={onToggle} />
         {color !== undefined && <ScheduleColorDot color={color} />}
-        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {hint ? (
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate">{label}</span>
+            <span className={cn("truncate text-xs", warning ? "text-status-warning" : "text-text-muted")}>{hint}</span>
+          </span>
+        ) : (
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+        )}
         <span className="tabular-nums text-text-muted" data-count>
           {count}
         </span>

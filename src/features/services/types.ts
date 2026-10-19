@@ -59,6 +59,35 @@ export type ServiceTeamRow = z.infer<typeof serviceTeamRowSchema>;
 export const serviceDetailSchema = catalogServiceSchema.extend({ team: z.array(serviceTeamRowSchema) });
 export type ServiceDetail = z.infer<typeof serviceDetailSchema>;
 
+/**
+ * Un recurso especial: algo del local que no es un barbero pero limita la
+ * agenda —un sillón de lavado, el vaporizador de toallas, una silla de color—.
+ * Lo usan ciertos servicios; si hay una sola unidad, dos citas de esos
+ * servicios a la misma hora chocan aunque sean de barberos distintos.
+ */
+export const serviceResourceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  /** Cuántos hay en el local. */
+  units: z.number().int().min(1),
+  /** Los servicios que lo ocupan mientras duran. */
+  serviceIds: z.array(z.string()),
+});
+export type ServiceResource = z.infer<typeof serviceResourceSchema>;
+export const serviceResourcesSchema = z.object({ items: z.array(serviceResourceSchema) });
+
+export const MAX_RESOURCE_UNITS = 20;
+
+/** Lo que captura el formulario de recurso. Los mensajes son claves del diccionario. */
+export const resourceInputSchema = z.object({
+  name: z.string().trim().min(2, "services.resource.error.name"),
+  description: z.string().trim(),
+  units: z.number({ error: "services.resource.error.units" }).int("services.resource.error.units").min(1, "services.resource.error.units").max(MAX_RESOURCE_UNITS, "services.resource.error.units"),
+  serviceIds: z.array(z.string()).min(1, "services.resource.error.services"),
+});
+export type ResourceInput = z.infer<typeof resourceInputSchema>;
+
 /** La categoría a la que caen los servicios cuando se borra la suya. */
 export const UNCATEGORIZED_ID = "cat_none";
 

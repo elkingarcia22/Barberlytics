@@ -10,6 +10,7 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test/
 import { db } from "@/mocks/db";
 import { ServiceProfilePage } from "./ServiceProfilePage";
 import { ServicesPage } from "./ServicesPage";
+import { ResourcesDrawer } from "./ResourcesDrawer";
 import { servicesApi } from "./api";
 import { ALL, SERVICE_ALERTS, parseCategory, parseKind, servicesPulse } from "./servicesHome";
 import { comboTotals, formatDuration, groupByCategory, marginOf } from "./servicesUtils";
@@ -193,5 +194,26 @@ describe("contrato de servicios (mock)", () => {
     const detail = await servicesApi.setTeam("svc_fade", "ma", []);
     expect(detail.offeredBy).toBe(0);
     expect(detail.team.every((row) => !row.offered)).toBe(true);
+  });
+
+  test("un recurso especial pide al menos un servicio, se crea y se borra sin tocar los servicios", async () => {
+    await withSession();
+    const before = await servicesApi.resources();
+    expect(before.items.map((item) => item.id)).toContain("res_lavado");
+    await expect(servicesApi.createResource({ name: "Silla de color", description: "", units: 1, serviceIds: [] })).rejects.toMatchObject({ status: 422 });
+    const created = await servicesApi.createResource({ name: "Silla de color", description: "", units: 2, serviceIds: ["svc_tinte", "no-existe"] });
+    expect(created.serviceIds).toEqual(["svc_tinte"]);
+    await servicesApi.removeResource(created.id);
+    const after = await servicesApi.resources();
+    expect(after.items.some((item) => item.id === created.id)).toBe(false);
+    expect(db.services.items.some((item) => item.id === "svc_tinte")).toBe(true);
+  });
+
+  test("el panel de recursos lista los del local con sus servicios", async () => {
+    db.sessions.set(TOKEN, "acc_admin");
+    renderWithProviders(<ResourcesDrawer open onOpenChange={() => undefined} items={[service({ id: "svc_tratamiento", name: "Tratamiento capilar" })]} />, { token: TOKEN });
+    const list = await screen.findByTestId("resources-list");
+    expect(within(list).getByText("Sillón de lavado")).toBeInTheDocument();
+    expect(within(list).getByText(/Tratamiento capilar/)).toBeInTheDocument();
   });
 });

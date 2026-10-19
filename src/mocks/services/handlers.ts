@@ -2,7 +2,7 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { barbersOf, memberName, type MockServiceOverride, type MockTeamMember } from "../team/seed";
 import { imageOrNull } from "../media";
-import { UNCATEGORIZED_ID, type MockCatalogService, type MockServiceCategory } from "./seed";
+import { UNCATEGORIZED_ID, seedResources, type MockCatalogService, type MockServiceCategory, type MockServiceResource } from "./seed";
 import { servicePriceIn, withBranchPrice } from "../catalogPrices";
 
 /**
@@ -33,6 +33,22 @@ const numberOrNull = (value: unknown): number | null => (typeof value === "numbe
 const branchOf = (request: Request) => new URL(request.url).searchParams.get("branchId") ?? "ma";
 
 const findService = (id: string | readonly string[] | undefined) => db.services.items.find((item) => item.id === id);
+/** Los recursos, con solo los servicios que siguen existiendo (borrar un servicio lo saca de su recurso). */
+const resources = (): MockServiceResource[] => (db.services.resources ?? seedResources()).map((item) => ({ ...item, serviceIds: item.serviceIds.filter((id) => findService(id)) }));
+const MAX_RESOURCE_UNITS = 20;
+
+function validateResource(input: Record<string, unknown>) {
+  const fields: Record<string, string[]> = {};
+  const name = text(input.name);
+  const units = numberOrNull(input.units);
+  const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string" && Boolean(findService(id))) : [];
+  if (name.length < 2) fields.name = ["Ponle un nombre de al menos dos letras."];
+  if (resources().some((item) => item.name.toLowerCase() === name.toLowerCase() && item.id !== input.id)) fields.name = ["Ya hay un recurso con ese nombre."];
+  if (units === null || !Number.isInteger(units) || units < 1 || units > MAX_RESOURCE_UNITS) fields.units = [`Entre 1 y ${MAX_RESOURCE_UNITS} unidades.`];
+  if (serviceIds.length === 0) fields.serviceIds = ["Elige al menos un servicio que lo use."];
+  return { fields, values: { name, description: text(input.description), units: units ?? 1, serviceIds: [...new Set(serviceIds)] } };
+}
+
 const findCategory = (id: string | readonly string[] | undefined) => db.services.categories.find((item) => item.id === id);
 
 /** Sin fila propia, un barbero ofrece el servicio con lo del catálogo. */
@@ -238,6 +254,45 @@ export const servicesHandlers = [
     });
     db.persist();
     return HttpResponse.json(detail(service, branchId));
+  }),
+
+  http.get(`${BASE}/service-resources`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    return HttpResponse.json({ items: resources() });
+  }),
+
+  http.post(`${BASE}/service-resources`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const { fields, values } = validateResource(asRecord(await request.json().catch(() => ({}))));
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const resource: MockServiceResource = { ...values, id: `res_${Date.now().toString(36)}` };
+    db.services = { ...db.services, resources: [...resources(), resource] };
+    db.persist();
+    return HttpResponse.json(resource, { status: 201 });
+  }),
+
+  http.patch(`${BASE}/service-resources/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const current = resources().find((item) => item.id === params.id);
+    if (!current) return error(404, "not_found", "Ese recurso no existe.");
+    const { fields, values } = validateResource({ ...asRecord(await request.json().catch(() => ({}))), id: current.id });
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const updated: MockServiceResource = { ...current, ...values };
+    db.services = { ...db.services, resources: resources().map((item) => (item.id === updated.id ? updated : item)) };
+    db.persist();
+    return HttpResponse.json(updated);
+  }),
+
+  http.delete(`${BASE}/service-resources/:id`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!resources().some((item) => item.id === params.id)) return error(404, "not_found", "Ese recurso no existe.");
+    db.services = { ...db.services, resources: resources().filter((item) => item.id !== params.id) };
+    db.persist();
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post(`${BASE}/service-categories`, async ({ request }) => {

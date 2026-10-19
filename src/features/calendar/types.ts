@@ -238,6 +238,8 @@ export interface AppointmentPatch {
   barberReady?: boolean;
   start?: string;
   barberId?: string;
+  /** Otro cliente: solo mientras la cita sigue agendada (no ha llegado). */
+  clientId?: string;
   durationMin?: number;
   serviceIds?: string[];
   notes?: string | null;

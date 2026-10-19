@@ -15,7 +15,7 @@ import { appointmentEnd, appointmentStart, type ModelContext } from "../calendar
 import { AppointmentLinkSection, type AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { ACTION_ICON } from "../appointmentActions";
 import { PAYMENT_METHOD_KEYS } from "../types";
-import { ClientField } from "./ClientPage";
+import { ClientField } from "./ClientField";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { PinSeries } from "./PinSeries";
 import { ClientTags } from "./PanelParts";

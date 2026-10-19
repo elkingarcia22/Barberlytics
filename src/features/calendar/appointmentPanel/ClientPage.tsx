@@ -1,4 +1,3 @@
-import * as React from "react";
 import { differenceInCalendarDays } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -8,17 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/navigation";
 import { AppointmentNotesTab } from "../appointmentTabs/AppointmentNotesTab";
 import { JOURNEY, type ModelContext } from "../calendarModel";
-import { ClientAvatar } from "../calendarShared";
 import { CLIENT_TYPE_KEYS } from "../types";
 import { ActionButton, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
-import { InlineList, NavRow, PanelField } from "./bookingStyle";
+import { NavRow } from "./bookingStyle";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
 /**
- * El cliente dentro del panel. En la cita es una tarjeta más, como el
- * servicio o el barbero: foto, nombre, tipo y membresía; al abrirla, «¿Quién
- * viene?» con lo que se pregunta en el mostrador (membresía y ritmo, visitas,
- * barbero de siempre, contacto) y el paso a su página. La página agrupa lo demás por lo que
+ * El cliente dentro del panel (la tarjeta de la cita está en `ClientField`):
+ * la fila que resume quién es y lleva a su página; la página agrupa lo demás por lo que
  * se pregunta: su membresía, cada cuánto viene, si cumple, en qué punto del
  * recorrido va (nuevo → VIP), lo que hay que cuidar, sus notas (dejar,
  * corregir, borrar), sus preferencias y contacto, y al final la ficha completa.
@@ -49,72 +45,6 @@ export function ClientSummaryRow({ model, onOpen }: { model: AppointmentModel; o
   );
 }
 
-/** El cliente como tarjeta de la cita; abierta, «¿Quién viene?» y el paso a su página. */
-export function ClientField({ model, ctx, onOpenPage }: { model: AppointmentModel; ctx: ModelContext; onOpenPage: () => void }) {
-  const t = useAppT();
-  const { formatDate } = useLocale();
-  const [open, setOpen] = React.useState(false);
-  const { known } = model;
-  const avatar = <ClientAvatar client={model.client} name={model.clientName} />;
-  if (!known) {
-    return <PanelField eyebrow={t("calendar.panel.fields.client")} value={model.clientName} detail={t("calendar.panel.client.walkInHint")} leading={avatar} round testId="panel-field-client" />;
-  }
-  const preferred = known.preferredBarberId ? ctx.catalog.barbers.find((barber) => barber.id === known.preferredBarberId) : undefined;
-  const today = ctx.now ?? new Date();
-  const daysSince = model.lastVisit ? differenceInCalendarDays(today, model.lastVisit) : null;
-  return (
-    <>
-      <PanelField
-        eyebrow={t("calendar.panel.fields.client")}
-        value={model.clientName}
-        // La membresía ya va en las etiquetas de arriba: aquí, el tipo y cómo ubicarlo.
-        detail={[t(CLIENT_TYPE_KEYS[known.type]), model.phone ? known.phone : null].filter(Boolean).join(" · ")}
-        leading={avatar}
-        round
-        open={open}
-        onOpen={() => setOpen((current) => !current)}
-        testId="panel-field-client"
-      />
-      {open && (
-        <InlineList
-          title={t("calendar.panel.client.about", { name: model.firstName })}
-          onClose={() => setOpen(false)}
-          footer={
-            <Button variant="outline" className="flex-1" onClick={onOpenPage} data-testid="panel-client-more">
-              {t("calendar.panel.client.seeAll")}
-            </Button>
-          }
-        >
-          <div className="flex flex-col gap-3" data-testid="panel-client-who">
-            <ClientSummaryRow model={model} onOpen={onOpenPage} />
-            <div className="px-1">
-              <Fact label={t("calendar.panel.client.visits")} value={String(known.visits)} />
-              <Fact label={t("calendar.client.lastVisit")} value={model.lastVisit ? `${formatDate(model.lastVisit, { day: "numeric", month: "short" })}${daysSince !== null ? ` · ${t("calendar.panel.client.lastValue", { days: daysSince })}` : ""}` : "—"} />
-              <Fact label={t("calendar.panel.client.usualBarberLabel")} value={preferred?.name ?? t("calendar.loyalty.noPreference")} />
-              {model.phone && (
-                <div className="flex items-center justify-between gap-4 py-1.5">
-                  <span className="flex min-w-0 flex-col">
-                    <Text size="sm" tone="secondary" tabular>
-                      {known.phone}
-                    </Text>
-                    <Text size="xs" tone="muted" truncate>
-                      {model.email || t("calendar.panel.write.noEmail")}
-                    </Text>
-                  </span>
-                  <span className="flex shrink-0 gap-1">
-                    <ActionButton model={model} action="call" variant="ghost" size="sm" iconOnly />
-                    <ActionButton model={model} action="message" variant="ghost" size="sm" iconOnly />
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </InlineList>
-      )}
-    </>
-  );
-}
-
 /** Un grupo de la página del cliente: su título y lo suyo en una tarjeta. */
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -127,7 +57,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+export function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
       <Text size="sm" tone="secondary">

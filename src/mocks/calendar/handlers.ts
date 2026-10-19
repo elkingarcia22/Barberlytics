@@ -395,6 +395,16 @@ export const calendarHandlers = [
         history.push(entry(actor, `barber:${memberName(barber)}`));
       }
     }
+    // Cambiar de cliente solo mientras la cita no ha empezado: después ya es la visita de quien vino.
+    if (typeof input.clientId === "string" && input.clientId !== existing.clientId) {
+      const client = db.calendar.clients.find((item) => item.id === input.clientId);
+      if (!client || client.type === "walkin") fields.clientId = ["Ese cliente no existe."];
+      else if (existing.status !== "scheduled") fields.clientId = ["Ya llegó: el cliente de esta cita no cambia."];
+      else {
+        next = { ...next, clientId: client.id, confirmation: null };
+        history.push(entry(actor, `client:${client.name}`));
+      }
+    }
     if (typeof input.durationMin === "number") {
       if (input.durationMin < 15 || input.durationMin > 480) fields.durationMin = ["La duración va de 15 minutos a 8 horas."];
       else {
@@ -439,13 +449,16 @@ export const calendarHandlers = [
     const reason = text(input.reason);
     if (reason) history.push(entry(actor, `reason:${reason}`));
     // Los mensajes siguen a la cita: moverla los reprograma; cancelarla los anula y ofrece el hueco a la lista de espera.
-    const phone = db.calendar.clients.find((client) => client.id === existing.clientId)?.phone;
+    const phone = db.calendar.clients.find((client) => client.id === next.clientId)?.phone;
+    const otherClient = next.clientId !== existing.clientId;
+    // Otro cliente: los avisos del anterior se anulan y se le programan al nuevo.
+    if (otherClient) cancelMessages(existing.id);
     if ((next.status === "cancelled" || next.status === "no_show") && existing.status !== next.status) {
       cancelMessages(existing.id);
       if (next.status === "cancelled") offerFreedSlot(existing);
       // Lo que tenía apartado del inventario vuelve a la estantería.
       next = releaseAppointmentStock(next, actor);
-    } else if ((next.start !== existing.start || revived) && next.status === "scheduled" && phone) rescheduleMessages({ ...next, confirmToken: next.confirmToken ?? newConfirmToken() }, phone);
+    } else if ((next.start !== existing.start || revived || otherClient) && next.status === "scheduled" && phone) rescheduleMessages({ ...next, confirmToken: next.confirmToken ?? newConfirmToken() }, phone);
     return replaceAppointment({ ...next, confirmToken: next.confirmToken ?? newConfirmToken(), history });
   }),
 

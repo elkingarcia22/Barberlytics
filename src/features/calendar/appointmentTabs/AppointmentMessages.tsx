@@ -1,9 +1,10 @@
-import { CheckCheck, MessageSquareText, Undo2 } from "lucide-react";
+import { CheckCheck, Info, MessageSquareText, Undo2 } from "lucide-react";
 import { useAppT, type AppMessageKey } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MESSAGE_KIND_KEYS, useAppointmentMessages, type AppointmentMessage } from "../messages";
 import type { Appointment, AppointmentPatch } from "../types";
 
@@ -19,7 +20,9 @@ const statusKey = (message: AppointmentMessage): AppMessageKey =>
 
 /**
  * Si el cliente confirmó que viene y qué mensajes se le mandaron (por correo o SMS). Confirma con el enlace del
- * mensaje; si lo dice por teléfono o en persona, recepción lo marca aquí.
+ * mensaje; si lo dice por teléfono o en persona, recepción lo marca aquí. El riesgo de que no
+ * venga va con las demás alertas de la cita (`CareAlerts`); que los envíos sean simulados se avisa
+ * con un icono y su tooltip, no con un párrafo.
  */
 export function AppointmentMessages({ appointment, onPatch }: AppointmentMessagesProps) {
   const t = useAppT();
@@ -34,6 +37,16 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
         <span className="flex items-center gap-2">
           <MessageSquareText className="size-4 text-text-muted" aria-hidden />
           <Text variant="label">{t("calendar.messages.title")}</Text>
+          {items.some((message) => message.simulated) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="rounded-full text-text-muted outline-none hover:text-text-primary focus-visible:ring-2 focus-visible:ring-ring/50" aria-label={t("calendar.messages.simulatedHint")} data-testid="appointment-messages-simulated">
+                  <Info className="size-3.5" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">{t("calendar.messages.simulatedHint")}</TooltipContent>
+            </Tooltip>
+          )}
           <Badge variant={confirmed ? "positive" : "neutral"} data-testid="appointment-confirmation">
             {confirmed ? t(appointment.confirmation?.via === "link" ? "calendar.messages.confirmedLink" : "calendar.messages.confirmedReception") : t("calendar.messages.notConfirmed")}
           </Badge>
@@ -49,7 +62,6 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
             </Button>
           ))}
       </div>
-      {appointment.risk && appointment.status === "scheduled" && <RiskLine risk={appointment.risk} />}
       {items.length > 0 && (
         <ul className="space-y-1 text-sm">
           {items.map((message) => (
@@ -62,33 +74,6 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
           ))}
         </ul>
       )}
-      {items.some((message) => message.simulated) && <Text variant="muted">{t("calendar.messages.simulatedHint")}</Text>}
     </section>
-  );
-}
-
-const RISK_LEVEL_KEYS: Record<NonNullable<Appointment["risk"]>["level"], AppMessageKey> = { low: "calendar.risk.level.low", medium: "calendar.risk.level.medium", high: "calendar.risk.level.high" };
-const RISK_REASON_KEYS: Record<NonNullable<Appointment["risk"]>["reasons"][number], AppMessageKey> = {
-  pastNoShows: "calendar.risk.reason.pastNoShows",
-  cancels: "calendar.risk.reason.cancels",
-  newClient: "calendar.risk.reason.newClient",
-  farAhead: "calendar.risk.reason.farAhead",
-  unconfirmed: "calendar.risk.reason.unconfirmed",
-  prepaid: "calendar.risk.reason.prepaid",
-  confirmed: "calendar.risk.reason.confirmed",
-};
-const REASONS_SHOWN = 3;
-
-/** El riesgo de que no venga, con sus razones y qué hacer si es alto. Es una estimación por historial, no una promesa. */
-function RiskLine({ risk }: { risk: NonNullable<Appointment["risk"]> }) {
-  const t = useAppT();
-  return (
-    <div className="space-y-0.5 text-sm" data-testid="appointment-risk">
-      <p>
-        <span className={risk.level === "high" ? "font-semibold text-status-warning" : "text-text-secondary"}>{t(RISK_LEVEL_KEYS[risk.level], { percent: Math.round(risk.probability * 100) })}</span>
-        <span className="text-text-muted"> · {risk.reasons.slice(0, REASONS_SHOWN).map((reason) => t(RISK_REASON_KEYS[reason])).join(", ")}</span>
-      </p>
-      {risk.level === "high" && <p className="text-xs text-text-muted">{t("calendar.risk.action")}</p>}
-    </div>
   );
 }

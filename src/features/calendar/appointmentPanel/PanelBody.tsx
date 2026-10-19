@@ -6,10 +6,12 @@ import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSec
 import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
 import type { Appointment, AppointmentPatch } from "../types";
 import { AppointmentFields } from "./AppointmentFields";
-import { ClientField, ClientPageContent } from "./ClientPage";
+import { ClientPageContent } from "./ClientPage";
+import { ClientField } from "./ClientField";
 import { HistoryTimeline } from "./HistoryTimeline";
 import { AfterVisit } from "./AfterVisit";
-import { ActionButton, ClientTags, CriticalAlerts, MoreActionsMenu } from "./PanelParts";
+import { ActionButton, ClientTags, MoreActionsMenu } from "./PanelParts";
+import { CareAlerts } from "./CareAlerts";
 import { SourceLine } from "./SourceLine";
 import { LinkedBlock, PanelStepper } from "./PanelShared";
 import { NavRowLink, PanelQuestion, PanelSubpage } from "./bookingStyle";
@@ -56,12 +58,17 @@ function Subpage({ page, back, props }: { page: Page; back: () => void; props: P
   );
 }
 
-/** De dónde salió la cita (en línea, con cita previa o sin ella), discreto, y las etiquetas del cliente. */
-export function VisitContext({ model }: { model: AppointmentModel }) {
+/**
+ * De dónde salió la cita (en línea, con cita previa o sin ella), discreto; las
+ * etiquetas del cliente y, juntas, las alertas (riesgo de no venir, alergias,
+ * medicamentos) con lo completo en su tooltip.
+ */
+function VisitContext({ model }: { model: AppointmentModel }) {
   return (
     <div className="-mt-2 flex flex-col gap-2" data-testid="panel-visit-context">
       <SourceLine appointment={model.appointment} />
       <ClientTags model={model} />
+      <CareAlerts model={model} />
     </div>
   );
 }
@@ -98,7 +105,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
         <StageHeading model={model} ctx={ctx} size="lg" />
         <VisitContext model={model} />
         <PanelQuestion title={t("calendar.panel.cards.who")}>
-          <ClientField model={model} ctx={ctx} onOpenPage={() => pages.open("client")} />
+          <ClientField model={model} ctx={ctx} onOpenPage={() => pages.open("client")} onPatch={onPatch} />
         </PanelQuestion>
         <PanelQuestion title={t("calendar.panel.cards.what")}>
           <div ref={fieldsRef} className="scroll-mt-4">
@@ -111,7 +118,6 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
           <MoreActionsMenu model={model} actions={more} />
         </div>
       </section>
-      <CriticalAlerts model={model} compact />
       <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
       {/* Si confirmó que viene y qué mensajes se le mandaron por correo o SMS (confirmación, recordatorios). */}
       {!appointment.walkIn && <AppointmentMessages appointment={appointment} onPatch={onPatch} />}

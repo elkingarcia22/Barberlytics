@@ -254,7 +254,6 @@ Se va completando aquí lo que se corrige a partir de esta lista.
     - vuelta sola al inicio.
   - En Calendario, «Fila sin cita» con «Llamar» (crea la cita «Llegó» con quien le toca) y «Se fue».
   - Falta:
-    - «ya casi te toca» por mensaje y la pantalla de turnos (`/turnos`);
     - el PIN del personal;
     - que `phone/check` de la reserva deje de devolver el perfil (decisión del usuario del 2026-10-13: no se toca);
     - la cita nueva desde la agenda sigue cayendo en la primera sede del barbero.
@@ -266,4 +265,5 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Nada al azar. La semilla trae un `utm` fijo por cita en línea.
   - Las reseñas de ejemplo existen solo en la demo (`VITE_SAMPLE_DATA`), van marcadas y nunca se mezclan con las reales: la primera real las reemplaza. Sin reseñas no se muestra calificación.
   - Falta: campañas administrables, el origen del cliente (no solo de la cita) y referidos.
+- **Fila viva, segunda parte (16 fase 2).** «Ya casi te toca» por mensaje, una vez, con «Voy» / «Ya no voy» (que lo saca de la fila), y la pantalla de turnos `/turnos` para el televisor (solo nombre de pila, turno y espera), con el token de un kiosco de la sede.
 

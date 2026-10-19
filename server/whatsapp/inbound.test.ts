@@ -24,6 +24,9 @@ describe("respuestas por WhatsApp", () => {
     expect(classifyReply("I'll be there")).toBe("confirm");
     expect(classifyReply("¿Tienen parqueadero?")).toBe("other");
     expect(classifyReply("Lo que sea", "RESCHEDULE")).toBe("reschedule");
+    // A «ya casi te toca» de la fila sin cita.
+    expect(classifyReply("Voy")).toBe("confirm");
+    expect(classifyReply("Ya no voy, gracias")).toBe("cancel");
   });
 
   test("la firma de Meta se comprueba sobre el cuerpo tal cual; la suscripción pide el token", () => {

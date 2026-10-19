@@ -38,6 +38,7 @@ De `src/app/router.tsx`.
 - `/reservar` → BookingPage
 - `/reservar/confirmar` → ConfirmAppointmentPage
 - `/kiosco` → KioskPage
+- `/turnos` → TurnBoardPage
 - `/ayuda/*` → HelpApp
 - `/docs/*` → DocsApp
 - `*` → NotFoundPage
@@ -127,6 +128,7 @@ Lo que responde MSW hoy.
 - `POST /front-desk/queue/:id/leave` · src/mocks/frontDesk/handlers.ts
 - `POST /kiosk/pair` · src/mocks/frontDesk/handlers.ts
 - `GET /kiosk/me` · src/mocks/frontDesk/handlers.ts
+- `GET /kiosk/board` · src/mocks/frontDesk/handlers.ts
 - `POST /kiosk/lookup` · src/mocks/frontDesk/handlers.ts
 - `POST /kiosk/check-in` · src/mocks/frontDesk/handlers.ts
 - `POST /kiosk/queue` · src/mocks/frontDesk/handlers.ts
@@ -291,7 +293,7 @@ Router, providers, layout, navegación y páginas de error.
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `KioskPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `UsersPage`, `DocsApp`, `BookingPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Los avisos como los pinta la campana: el texto en el idioma de quien lee y, al tocarlo, leído y abierto. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -728,10 +730,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### frontDesk
 
 - **KioskDevicesPanel.tsx** · `KioskDevicesPanel` · piezas: Badge, Button, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/branches, @/i18n, @/lib/api
-- **KioskPage.tsx** · `KioskPage` · piezas: Button, Heading, Input, PhoneInput, Text · usa: @/app/i18n, @/i18n, @/lib/utils
+- **KioskPage.tsx** · `Pairing`, `KioskPage` · piezas: Button, Heading, Input, PhoneInput, Text · usa: @/app/i18n, @/i18n, @/lib/utils
+- **TurnBoardPage.tsx** · `TurnBoardPage` · piezas: Heading, Text · usa: @/app/i18n, @/i18n
 - **WalkInQueueDrawer.tsx** — La fila de quien llega sin cita, en recepción: quién espera, en qué orden, cuánto le falta (aprox.) y con qui… · `WalkInQueueDrawerProps`, `WalkInQueueDrawer` · piezas: Badge, Button, DrawerSection, EmptyState, Field, Input, SearchableSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SidePanelShell, Text · usa: @/app/i18n, @/features/calendar, @/lib/api
 - **api.ts** — Recepción para el equipo: los kioscos de cada sede (Configuración) y la fila de quien llega sin cita (Calenda… · `kioskDeviceSchema`, `KioskDevice`, `queueEntrySchema`, `QueueEntry`, `queueSchema`, `WalkInQueue`, `JoinQueueInput`, `frontDeskApi`, `useKioskDevices`, `useKioskDeviceActions`, `useWalkInQueue`, `useQueueActions` · llama: GET /front-desk/devices, POST /front-desk/devices, POST /front-desk/devices/${id}/code, DELETE /front-desk/devices/${id}, GET /front-desk/queue, POST /front-desk/queue, POST /front-desk/queue/${id}/call, POST /front-desk/queue/${id}/leave · usa: @/features/calendar, @/lib/api
-- **kioskApi.ts** · `kioskToken`, `KioskError`, `KioskInfo`, `KioskAppointment`, `KioskCheckIn`, `KioskJoined`, `kioskApi` · usa: @/lib/api
+- **kioskApi.ts** · `kioskToken`, `KioskError`, `KioskInfo`, `KioskAppointment`, `KioskCheckIn`, `KioskJoined`, `TurnBoard`, `kioskApi` · usa: @/lib/api
 
 ### legal
 

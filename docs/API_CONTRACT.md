@@ -497,6 +497,7 @@ docs/investigacion-modulos/16-front-desk.md.
 | GET | `/kiosk/me` | `{ device, branch, phoneCountry, shopName, services: [{ id, name, durationMin }], barbers: [{ id, firstName, avatarUrl }], queue: { waiting, waitMin, waitMax } }` (los barberos que atienden sin cita hoy; la espera si alguien se uniera ahora). |
 | POST | `/kiosk/lookup` | `{ phone }` → `{ appointments: [{ id, time, firstName }] }`: las citas «programadas» de hoy en la sede de ese celular, desde 2 h antes hasta 1 h después de su hora. **Solo nombre de pila y hora**: nada de correo, teléfono ni barbero. Un número desconocido devuelve la lista vacía (no dice si es cliente). 20 por minuto por kiosco. |
 | POST | `/kiosk/check-in` | `{ appointmentId, phone }` (se vuelve a comprobar el celular) → `{ firstName, time, barberFirstName }`; la cita pasa a `arrived` con «Kiosco · nombre» en el historial y avisa a su barbero y a recepción (`clientArrived`). `404` si no es de ese celular, no es de hoy en esa sede o ya no está «programada». |
+| GET | `/kiosk/board` | La pantalla de turnos (`/turnos`, el televisor de la sala, con el token de un kiosco de la sede): `{ branch, shopName, called: [{ id, firstName, barberFirstName, calledAt }] (los 3 llamados en los últimos 10 min), next: [{ id, position, firstName, waitMin, waitMax }] (los 8 siguientes), waiting }`. Sin celular ni servicio. |
 | POST | `/kiosk/queue` | `{ firstName, phone?, serviceIds, barberId? }` → `201 { id, firstName, position, waitMin, waitMax, barberFirstName }`. `409 already_waiting` si ese celular ya está en la fila; `409 queue_full` con 40 esperando; `422` sin nombre o servicio. |
 
 **La fila sin cita (Calendario › Fila sin cita).** Con sesión. Todos la ven (el barbero, sin la ficha del cliente);
@@ -508,6 +509,11 @@ la mueven recepción, dueño y administrador (`403` para un barbero).
 | POST | `/front-desk/queue` | `{ branchId, firstName, phone?, serviceIds, barberId? }`: recepción suma a alguien. `201` la fila. |
 | POST | `/front-desk/queue/:id/call` | `{ barberId? }` → `{ appointment, queue }`: crea una cita `walkIn` en estado `arrived` ahora, con el barbero elegido, el que pidió, el que le tocaba según la espera o el siguiente de la fila de Equipo. `409 no_barber` si no hay nadie. |
 | POST | `/front-desk/queue/:id/leave` | `{ reason: "left" \| "removed" }`: se fue sin atender (cuenta en `left`) o se quitó. |
+
+**«Ya casi te toca».** A quien dejó su celular, una sola vez, cuando es el primero de la fila o le faltan 15 minutos
+o menos (y lleva al menos 5 minutos en la fila): un mensaje `kind: "queueAlmost"` (plantilla `fila_casi_tu_turno`
+con nombre, sede y espera; botones «Voy» / «Ya no voy») por la misma cola de WhatsApp. Se revisa cada vez que la
+fila cambia o alguien la mira (recepción, kiosco, pantalla de turnos). «Ya no voy» lo saca de la fila (`left`).
 
 **Espera estimada.** Simulación, no modelo (`src/mocks/frontDesk/estimate.ts`): la fila se reparte en orden entre los
 barberos que atienden sin cita hoy (fila de Equipo, sin ausencias), cada uno cuando se libera (lo que le queda a quien

@@ -15,6 +15,7 @@ import type { MockInboundReply } from "./state";
  * - Lo demás queda escrito en la cita y avisa a recepción.
  *
  * La cita sale del mensaje al que responde; si no responde a ninguno, de su próxima cita por venir.
+ * A «ya casi te toca» (la fila sin cita) se responde «Voy» o «Ya no voy»: lo segundo lo saca de la fila.
  */
 
 export interface InboxEvent {
@@ -60,10 +61,22 @@ const CONFIRMATION: Partial<Record<MockInboundReply["intent"], "confirmed" | "re
   cancel: "declined",
 };
 
+/** La entrada de la fila sin cita a la que responde: por el mensaje «ya casi te toca» o, sin él, por su celular hoy. */
+function queueEntryOf(event: InboxEvent, now: Date) {
+  const message = event.messageId ? (db.booking.outbox ?? []).find((item) => item.id === event.messageId) : undefined;
+  if (message?.queueEntryId) return db.frontDesk.queue.find((entry) => entry.id === message.queueEntryId && entry.status === "waiting");
+  const today = now.toISOString().slice(0, 10);
+  return db.frontDesk.queue.find((entry) => entry.status === "waiting" && entry.phone?.replace(/\D/g, "") === event.from && entry.joinedAt.slice(0, 10) === today);
+}
+
 /** Aplica una respuesta; `null` si ya estaba aplicada. */
 export function applyReply(event: InboxEvent, now: Date = new Date()): MockInboundReply | null {
   if ((db.booking.inbound ?? []).some((item) => item.id === event.wamid)) return null;
-  const { appointment, clientId } = targetOf(event, now);
+  const answersQueue = Boolean(event.messageId && (db.booking.outbox ?? []).find((item) => item.id === event.messageId)?.queueEntryId);
+  const { appointment, clientId } = answersQueue ? { appointment: undefined, clientId: null } : targetOf(event, now);
+  // «Ya no voy» a la fila sin cita: sale de la fila y cuenta como que se fue.
+  const queueEntry = !appointment && event.intent === "cancel" ? queueEntryOf(event, now) : undefined;
+  if (queueEntry) db.frontDesk = { ...db.frontDesk, queue: db.frontDesk.queue.map((entry) => (entry.id === queueEntry.id ? { ...entry, status: "left", leftAt: event.at } : entry)) };
   const status = CONFIRMATION[event.intent];
   if (appointment && status) {
     const updated: MockAppointment = {

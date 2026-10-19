@@ -61,7 +61,7 @@ function WaitText({ min, max }: { min: number | null; max: number | null }) {
   return <>{t("kiosk.wait", { min, max })}</>;
 }
 
-function Pairing({ onPaired }: { onPaired: () => void }) {
+export function Pairing({ onPaired }: { onPaired: () => void }) {
   const t = useAppT();
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);

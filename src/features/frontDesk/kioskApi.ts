@@ -78,6 +78,15 @@ export type KioskCheckIn = z.infer<typeof checkInSchema>;
 const joinSchema = z.object({ id: z.string(), firstName: z.string(), position: z.number(), waitMin: z.number().nullable(), waitMax: z.number().nullable(), barberFirstName: z.string().nullable() });
 export type KioskJoined = z.infer<typeof joinSchema>;
 
+const boardSchema = z.object({
+  branch: z.object({ id: z.string(), name: z.string() }),
+  shopName: z.string(),
+  called: z.array(z.object({ id: z.string(), firstName: z.string(), barberFirstName: z.string().nullable(), calledAt: z.string().nullable() })),
+  next: z.array(z.object({ id: z.string(), position: z.number(), firstName: z.string(), waitMin: z.number().nullable(), waitMax: z.number().nullable() })),
+  waiting: z.number(),
+});
+export type TurnBoard = z.infer<typeof boardSchema>;
+
 const post = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 
 export const kioskApi = {
@@ -87,6 +96,7 @@ export const kioskApi = {
     return result;
   },
   me: () => call("/kiosk/me", meSchema),
+  board: () => call("/kiosk/board", boardSchema),
   lookup: (phone: string) => call("/kiosk/lookup", lookupSchema, post({ phone })),
   checkIn: (appointmentId: string, phone: string) => call("/kiosk/check-in", checkInSchema, post({ appointmentId, phone })),
   join: (input: { firstName: string; phone?: string; serviceIds: string[]; barberId: string | null }) => call("/kiosk/queue", joinSchema, post(input)),

@@ -2,7 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Link2 } from "lucide-react";
+import { Link2, Undo2 } from "lucide-react";
 import { isActive, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
@@ -18,7 +18,8 @@ import { StatusConfirmContent, type ClosingAction } from "./StatusConfirm";
 import { SourceLine } from "./SourceLine";
 import { LinkedField, LinkPickerField, PanelStepper } from "./PanelShared";
 import { PanelQuestion, PanelSubpage } from "./bookingStyle";
-import { isClosed, mainAction, quickActions, restActions } from "./panelLogic";
+import { isClosed, mainAction, previousStatus, quickActions, restActions } from "./panelLogic";
+import { STATUS_KEYS } from "../types";
 import type { PanelPages } from "./panelHooks";
 import { QuickTiles, StageHeading, TicketSummary } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
@@ -109,7 +110,12 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   const more = restActions(model).filter((action) => !quick.includes(action));
   // Enlazarla con otra cita del día: una opción del «⋯», solo si hay con cuál.
   const canLink = Boolean(props.onLink) && isActive(appointment) && (props.linkCandidates?.length ?? 0) > 0;
-  const menuExtra: MenuExtra[] = canLink ? [{ id: "link", label: t("calendar.link.add"), icon: Link2, onSelect: () => setLinking(true) }] : [];
+  // Deshacer el último paso (ingresó o lo sentó por error): vuelve al estado anterior.
+  const previous = previousStatus(appointment.status);
+  const menuExtra: MenuExtra[] = [
+    ...(previous ? [{ id: "undo", label: t("calendar.panel.undo", { status: t(STATUS_KEYS[previous]) }), icon: Undo2, onSelect: () => model.setStatus(previous) }] : []),
+    ...(canLink ? [{ id: "link", label: t("calendar.link.add"), icon: Link2, onSelect: () => setLinking(true) }] : []),
+  ];
   return (
     <div className="flex flex-col gap-5" data-testid="panel-body">
       <PanelStepper model={model} ctx={ctx} />

@@ -91,6 +91,8 @@ export const calendarPanelEs = {
   "calendar.panel.restrict.unblockDone": "{name} ya puede reservar",
   "calendar.panel.tag.blocked": "Bloqueado",
   "calendar.panel.tag.prepay": "Paga por adelantado",
+  "calendar.panel.undo": "Volver a «{status}»",
+  "calendar.panel.reactivate": "Reactivar la cita",
   "calendar.panel.after.rebook": "Reagendar",
   "calendar.panel.after.charged": "Lo que se cobró",
   "calendar.panel.after.receiptMessage": "Hola {name}, este es el recibo de tu visita del {date}:\n{lines}\nPropina: {tip}\nTotal: {total} · {method}\n¡Gracias por venir!",

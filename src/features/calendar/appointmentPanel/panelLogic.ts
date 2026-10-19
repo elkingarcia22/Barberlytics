@@ -64,6 +64,17 @@ export function clockRelation(model: AppointmentModel, now: Date | undefined, t:
   }
 }
 
+/**
+ * El estado al que vuelve la cita si se deshace el último paso: de «Llegó» a
+ * pendiente, de «En silla» a «Llegó», y una cancelada o que no asistió se
+ * reactiva. Cobrada no se deshace aquí (eso es una devolución).
+ */
+export function previousStatus(status: AppointmentStatus): AppointmentStatus | null {
+  if (status === "arrived" || status === "cancelled" || status === "no_show") return "scheduled";
+  if (status === "seated") return "arrived";
+  return null;
+}
+
 /** Las acciones del playbook que no son la principal ni un enlace de contacto. */
 export const restActions = (model: AppointmentModel): AppointmentActionId[] =>
   [...model.playbook.primary.slice(0, -1), ...model.playbook.secondary, ...model.playbook.more].filter((action) => action !== "edit" && action !== "call" && action !== "message");

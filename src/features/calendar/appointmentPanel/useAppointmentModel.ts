@@ -62,6 +62,8 @@ export interface AppointmentModel {
   /** El servicio que regala la membresía. */
   rewardName: string;
   run: (action: AppointmentActionId) => void;
+  /** Llevar la cita a otro estado sin pasar por una acción (deshacer el último paso). */
+  setStatus: (status: AppointmentStatus) => void;
   /** Agendar la próxima con lo de esta, en una fecha dada (atajos de semanas, ritmo). */
   rebookOn: (date: Date) => void;
   href: (action: AppointmentActionId) => string | null;
@@ -178,6 +180,7 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
     },
     rewardName: ctx.catalog.services.find((service) => service.id === LOYALTY_REWARD_SERVICE_ID)?.name ?? t("calendar.panel.loyalty.rewardFallback"),
     run,
+    setStatus: (status) => handlers.onStatus(appointment, status),
     rebookOn: (date) => handlers.onRebook({ clientId: appointment.clientId, serviceId: appointment.serviceIds[0], barberId: appointment.barberId, start: date }),
     href,
     label: (action) => (action === "pay" ? t("calendar.detail.payAmount", { price: ctx.formatMoney(bill.due) }) : t(ACTION_LABEL[action])),

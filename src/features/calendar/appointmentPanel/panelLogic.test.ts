@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { useAppT } from "@/app/i18n";
 import type { AppointmentPlaybook } from "../appointmentPlaybook";
 import type { Appointment, Client } from "../types";
-import { clientTags, clockRelation, mainAction, quickActions, restActions, showsRequest } from "./panelLogic";
+import { clientTags, clockRelation, mainAction, previousStatus, quickActions, restActions, showsRequest } from "./panelLogic";
 import { topicOf } from "./appointmentAgent";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
@@ -105,5 +105,16 @@ describe("topicOf", () => {
     expect(topicOf("¿Cuándo le agendo la próxima?")).toBe("next");
     expect(topicOf("¿Cada cuánto viene?")).toBe("rhythm");
     expect(topicOf("hola")).toBe("unknown");
+  });
+});
+
+describe("previousStatus", () => {
+  test("goes back one step, reactivates a closed one and never undoes a payment", () => {
+    expect(previousStatus("arrived")).toBe("scheduled");
+    expect(previousStatus("seated")).toBe("arrived");
+    expect(previousStatus("cancelled")).toBe("scheduled");
+    expect(previousStatus("no_show")).toBe("scheduled");
+    expect(previousStatus("scheduled")).toBeNull();
+    expect(previousStatus("paid")).toBeNull();
   });
 });

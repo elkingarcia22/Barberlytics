@@ -31,10 +31,18 @@ export function AppointmentMessages({ appointment, onPatch }: AppointmentMessage
   const { formatDate } = useLocale();
   const messages = useAppointmentMessages(appointment.id, true);
   const [showMessages, setShowMessages] = React.useState(false);
-  const confirmed = appointment.confirmation?.status === "confirmed";
+  // Si ya llegó, vino: queda confirmada sola, sin interruptor.
+  const arrived = appointment.status === "arrived" || appointment.status === "seated" || appointment.status === "paid";
+  const confirmed = arrived || appointment.confirmation?.status === "confirmed";
   const items = messages.data?.items ?? [];
   const editable = appointment.status === "scheduled";
-  const how = confirmed ? t(appointment.confirmation?.via === "link" ? "calendar.messages.confirmedLink" : "calendar.messages.confirmedReception") : editable ? t("calendar.messages.pendingHint") : null;
+  const how = arrived
+    ? t("calendar.messages.confirmedArrived")
+    : confirmed
+      ? t(appointment.confirmation?.via === "link" ? "calendar.messages.confirmedLink" : "calendar.messages.confirmedReception")
+      : editable
+        ? t("calendar.messages.pendingHint")
+        : null;
   const switchId = `confirm-${appointment.id}`;
 
   return (

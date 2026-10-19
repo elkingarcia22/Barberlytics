@@ -11,14 +11,14 @@ import type { AppointmentModel } from "./useAppointmentModel";
 
 export type ClosingAction = "noShow" | "cancel";
 
-export function StatusConfirmContent({ model, action, onClose }: { model: AppointmentModel; action: ClosingAction; onClose: () => void }) {
+/** Lo que pide confirmar en un popover: título, consecuencia, «Volver» y la acción en rojo. */
+export function ConfirmContent({ title, hint, confirmLabel, onConfirm, onClose, testId = "panel-confirm" }: { title: string; hint: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; testId?: string }) {
   const t = useAppT();
-  const cancel = action === "cancel";
   return (
-    <div className="flex flex-col gap-3" data-testid="panel-confirm">
+    <div className="flex flex-col gap-3" data-testid={testId}>
       <PopoverHeader>
-        <PopoverTitle>{t(cancel ? "calendar.cancel.title" : "calendar.noShow.title", { name: model.clientName })}</PopoverTitle>
-        <PopoverDescription>{t(cancel ? "calendar.cancel.hint" : "calendar.noShow.hint")}</PopoverDescription>
+        <PopoverTitle>{title}</PopoverTitle>
+        <PopoverDescription>{hint}</PopoverDescription>
       </PopoverHeader>
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onClose}>
@@ -28,14 +28,28 @@ export function StatusConfirmContent({ model, action, onClose }: { model: Appoin
           variant="destructive"
           size="sm"
           onClick={() => {
-            model.run(action);
+            onConfirm();
             onClose();
           }}
-          data-testid="panel-confirm-yes"
+          data-testid={`${testId}-yes`}
         >
-          {t(cancel ? "calendar.cancel.confirm" : "calendar.noShow.confirm")}
+          {confirmLabel}
         </Button>
       </div>
     </div>
+  );
+}
+
+export function StatusConfirmContent({ model, action, onClose }: { model: AppointmentModel; action: ClosingAction; onClose: () => void }) {
+  const t = useAppT();
+  const cancel = action === "cancel";
+  return (
+    <ConfirmContent
+      title={t(cancel ? "calendar.cancel.title" : "calendar.noShow.title", { name: model.clientName })}
+      hint={t(cancel ? "calendar.cancel.hint" : "calendar.noShow.hint")}
+      confirmLabel={t(cancel ? "calendar.cancel.confirm" : "calendar.noShow.confirm")}
+      onConfirm={() => model.run(action)}
+      onClose={onClose}
+    />
   );
 }

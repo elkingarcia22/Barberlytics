@@ -289,3 +289,15 @@ Cobrada, cancelada o «No asistió»: el pie desaparece porque la próxima se ag
   aplican.
 - Al final de la tarjeta, los atajos (si hacen falta) **encima** de la acción principal y su «⋯». Fuera
   de la tarjeta solo queda el paso a paso.
+
+## 15. Permisos por rol, confirmada al llegar y restringir al cliente (2026-10-19)
+
+- **Confirmación**: en cuanto el cliente llega, la cita sale *Confirmada · Ya llegó a la barbería*, sin
+  interruptor.
+- **Candados** (`CalendarAccess.locksAfterCheckIn`): solo el barbero de comisión ve el barbero, la hora y
+  el cliente con candado tras ingresar. Dueño, administrador, recepción y barbero de renta cambian la
+  cita en cualquier estado hasta cobrar (el PATCH acepta `clientId` mientras no esté cerrada).
+- **No asistió / cancelada**: junto a Llamar y Escribir, *Prepago* (el ajuste «Reserva y pago solo en
+  línea» de la ficha: solo reserva pagando por adelantado) y *Bloquear* (con popover de confirmación);
+  cada uno se deshace desde el mismo atajo. Solo para quien puede (`canRestrictClients`: todos menos el
+  barbero de comisión). Las etiquetas *Bloqueado* y *Paga por adelantado* lo dicen en la tarjeta.

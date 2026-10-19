@@ -435,6 +435,17 @@ describe("modelo del calendario", () => {
     expect(ctx.access).toBeUndefined();
   });
 
+  test("solo el barbero de comisión ve candados tras ingresar y no restringe clientes", () => {
+    const comision = calendarAccess(buildAccess({ role: "barbero-comision" }));
+    expect(comision.locksAfterCheckIn).toBe(true);
+    expect(comision.canRestrictClients).toBe(false);
+    for (const role of ["owner", "admin", "recepcion", "barbero-renta"] as const) {
+      const access = calendarAccess(buildAccess({ role }));
+      expect(access.locksAfterCheckIn).toBe(false);
+      expect(access.canRestrictClients).toBe(true);
+    }
+  });
+
   test("cada rol ve lo suyo: columna, bloqueos, cifras y contacto del cliente", () => {
     const comision = calendarAccess(buildAccess({ role: "barbero-comision" }));
     const renta = calendarAccess(buildAccess({ role: "barbero-renta" }));

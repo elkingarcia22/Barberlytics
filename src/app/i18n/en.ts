@@ -1445,6 +1445,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.messages.notConfirmed": "Not confirmed",
   "calendar.messages.confirmed": "Confirmed",
   "calendar.messages.confirmation": "Confirmation",
+  "calendar.messages.confirmedArrived": "Already at the shop",
   "calendar.messages.sent": "Email and SMS messages ({count})",
   "calendar.messages.pendingHint": "Turn it on if they confirmed by phone or in person",
   "calendar.messages.confirmedLink": "Confirmed via the link",

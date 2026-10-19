@@ -52,6 +52,10 @@ export const clientSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
   /** Su correo, si lo dejó: el recibo y los avisos salen por aquí o por SMS. */
   email: z.string().nullable().optional(),
+  /** Bloqueado: no reserva en línea ni se le agenda desde el calendario (lo pone el negocio). */
+  blocked: z.boolean().optional(),
+  /** Solo puede reservar pagando en línea por adelantado (para quien falla seguido). */
+  onlineOnly: z.boolean().optional(),
 });
 export type Client = z.infer<typeof clientSchema>;
 
@@ -232,6 +236,9 @@ export const appointmentInputSchema = z.object({
   actor: z.literal("clipper").optional(),
 });
 export type AppointmentInput = z.infer<typeof appointmentInputSchema>;
+
+/** Lo que la agenda cambia de la ficha del cliente, de a una cosa. */
+export type ClientRestriction = { blocked: boolean } | { onlineOnly: boolean };
 
 export interface AppointmentPatch {
   status?: AppointmentStatus;

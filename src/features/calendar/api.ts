@@ -13,6 +13,7 @@ import {
   type Appointment,
   type AppointmentInput,
   type AppointmentPatch,
+  type ClientRestriction,
   type BlockInput,
   type CalendarCatalog,
   type CalendarDay,
@@ -39,6 +40,8 @@ export const calendarApi = {
   month: (branchId: string, month: string, barberId: string | null, signal?: AbortSignal) =>
     api.get<CalendarMonth>("/calendar/month", { query: { branchId, month, barberId }, schema: calendarMonthSchema, signal }),
   createAppointment: (input: AppointmentInput) => api.post<Appointment>("/appointments", input, { schema: appointmentSchema }),
+  /** Restringir al cliente desde la agenda (bloquearlo o pedirle pago en línea): va a su ficha. */
+  restrictClient: (clientId: string, patch: ClientRestriction) => api.patch<unknown>(`/customers/${clientId}`, patch),
   updateAppointment: (id: string, patch: AppointmentPatch) => api.patch<Appointment>(`/appointments/${id}`, patch, { schema: appointmentSchema }),
   checkout: (id: string, input: CheckoutInput) => api.post<Appointment>(`/appointments/${id}/checkout`, input, { schema: appointmentSchema }),
   addClientNote: (clientId: string, input: NoteInput) => api.post<Client>(`/clients/${clientId}/notes`, input, { schema: clientSchema }),

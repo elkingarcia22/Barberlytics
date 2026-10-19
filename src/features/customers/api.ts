@@ -11,6 +11,8 @@ export const customersApi = {
   /** Borrado lógico: sale del directorio; sus citas y cobros pasados se conservan. */
   remove: (id: string) => api.delete<void>(`/customers/${id}`),
   setBlocked: (id: string, blocked: boolean) => api.patch<CustomerDetail>(`/customers/${id}`, { blocked }, { schema: customerDetailSchema }),
+  /** «Reserva y pago solo en línea»: viaja solo, sin la ficha entera. */
+  setOnlineOnly: (id: string, onlineOnly: boolean) => api.patch<CustomerDetail>(`/customers/${id}`, { onlineOnly }, { schema: customerDetailSchema }),
   /** La nota es del cliente de la agenda: mismo endpoint que usa la cita. */
   addNote: (id: string, input: NoteInput) => api.post<unknown>(`/clients/${id}/notes`, input),
   addGuest: (id: string, input: GuestInput) => api.post<CustomerDetail>(`/customers/${id}/guests`, input, { schema: customerDetailSchema }),

@@ -12,6 +12,7 @@ import { productPriceIn, servicePriceIn } from "../catalogPrices";
 import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
 import type { MockCatalogService } from "../services/seed";
 import type { MockCatalogProduct } from "../products/seed";
+import { deriveProfile } from "../customers/seed";
 import {
   WALK_IN_CLIENT,
   blockAppliesOn,
@@ -256,6 +257,13 @@ function blockDenied(request: Request, barberId: string): Response | null {
   return null;
 }
 
+/** Lo que la ficha del cliente restringe (bloqueado, solo pago en línea), para que la agenda lo muestre y lo cambie. */
+function withRestrictions<T extends { id: string }>(client: T & Parameters<typeof deriveProfile>[0]) {
+  if (client.id === WALK_IN_CLIENT.id) return client;
+  const profile = db.customers.profiles[client.id] ?? deriveProfile(client);
+  return { ...client, blocked: profile.blocked, onlineOnly: profile.onlineOnly };
+}
+
 export const calendarHandlers = [
   http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
     await delay(LATENCY_MS);
@@ -266,7 +274,7 @@ export const calendarHandlers = [
     const mine = own ? ownClientIds(own) : null;
     return HttpResponse.json({
       barbers: own ? barbersIn(branchId).filter((barber) => barber.id === own) : barbersIn(branchId),
-      clients: mine ? db.calendar.clients.map((client) => (mine.has(client.id) || client.id === WALK_IN_CLIENT.id ? client : redactClient(client))) : db.calendar.clients,
+      clients: mine ? db.calendar.clients.map((client) => (mine.has(client.id) || client.id === WALK_IN_CLIENT.id ? withRestrictions(client) : redactClient(client))) : db.calendar.clients.map(withRestrictions),
       services: bookableIn(branchId),
       products: sellableIn(branchId),
       taxInclusive: taxInclusive(),
@@ -429,11 +437,11 @@ export const calendarHandlers = [
         history.push(entry(actor, `barber:${memberName(barber)}`));
       }
     }
-    // Cambiar de cliente solo mientras la cita no ha empezado: después ya es la visita de quien vino.
+    // Cambiar de cliente hasta cobrar (el barbero de comisión, solo mientras no ha llegado: lo cuida la agenda).
     if (typeof input.clientId === "string" && input.clientId !== existing.clientId) {
       const client = db.calendar.clients.find((item) => item.id === input.clientId);
       if (!client || client.type === "walkin") fields.clientId = ["Ese cliente no existe."];
-      else if (existing.status !== "scheduled") fields.clientId = ["Ya llegó: el cliente de esta cita no cambia."];
+      else if (existing.status === "paid" || existing.status === "cancelled" || existing.status === "no_show") fields.clientId = ["Esta cita ya se cerró: su cliente no cambia."];
       else {
         next = { ...next, clientId: client.id, confirmation: null };
         history.push(entry(actor, `client:${client.name}`));

@@ -247,6 +247,11 @@ export const customersHandlers = [
       saveProfile(client.id, { ...profile, blocked: input.blocked });
       return HttpResponse.json(detail(client));
     }
+    /* «Reserva y pago solo en línea» también (lo pone la agenda tras un «No asistió»). */
+    if (typeof input.onlineOnly === "boolean" && Object.keys(input).length === 1) {
+      saveProfile(client.id, { ...profile, onlineOnly: input.onlineOnly });
+      return HttpResponse.json(detail(client));
+    }
 
     const { fields, values } = validateInput(input, client.id);
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });

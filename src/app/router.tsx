@@ -16,6 +16,7 @@ import {
   BookingPage,
   CalendarPage,
   ConfirmAppointmentPage,
+  KioskPage,
   CustomerProfilePage,
   CustomersPage,
   ExpensesPage,
@@ -130,6 +131,8 @@ export const router = createBrowserRouter([
   { path: "/reservar", element: lazy(<BookingPage />), errorElement: <RouteError /> },
   // El botón «Confirmar» del WhatsApp: público, con el token de la cita en `?t=`.
   { path: "/reservar/confirmar", element: lazy(<ConfirmAppointmentPage />), errorElement: <RouteError /> },
+  // El kiosco de la sede: público, pero solo funciona emparejado con el código de Configuración.
+  { path: "/kiosco", element: lazy(<KioskPage />), errorElement: <RouteError /> },
   // El centro de ayuda es público: hace falta antes de entrar (el login tiene
   // sus propios artículos) y trae su propio shell, como la doc.
   { path: "/ayuda/*", element: lazy(<HelpApp />), errorElement: <RouteError /> },

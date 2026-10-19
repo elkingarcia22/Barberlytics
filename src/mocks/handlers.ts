@@ -22,6 +22,7 @@ import { transactionsHandlers } from "./transactions/handlers";
 import { expensesHandlers } from "./expenses/handlers";
 import { payrollHandlers } from "./payroll/handlers";
 import { registerHandlers } from "./register/handlers";
+import { frontDeskHandlers } from "./frontDesk/handlers";
 import { messagesHandlers } from "./messages/handlers";
 import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
@@ -596,6 +597,7 @@ export const handlers = [
   // ---------- Nómina ----------
   ...payrollHandlers,
   ...registerHandlers,
+  ...frontDeskHandlers,
   ...messagesHandlers,
 
   // ---------- Configuración ----------

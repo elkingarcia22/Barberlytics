@@ -1,4 +1,4 @@
-import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, Palmtree, ShoppingBag } from "lucide-react";
+import { Ban, CalendarPlus, CalendarSearch, Clock, ListChecks, ListOrdered, Footprints, Palmtree, ShoppingBag, UsersRound } from "lucide-react";
 import { ClipperIcon } from "@/components/ai-interaction";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { AppMessageKey } from "@/app/i18n/types";
@@ -15,6 +15,8 @@ export interface CalendarRailHandlers {
   create: () => void;
   quickSale: () => void;
   walkInSale: () => void;
+  /** La fila de quien llega sin cita (kiosco y recepción), con la espera de cada uno. */
+  walkInQueue: () => void;
   collections: () => void;
   waitlist: () => void;
   block: () => void;
@@ -28,7 +30,8 @@ export interface CalendarRailHandlers {
 export function calendarRailActions(t: (key: AppMessageKey) => string, on: CalendarRailHandlers): readonly RailActionSpec[] {
   return [
     { id: "quick-sale", label: t("calendar.action.quickSale"), icon: <ShoppingBag className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.quickSale },
-    { id: "walk-in-sale", label: t("calendar.action.walkInSale"), icon: <Footprints className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.walkInSale },
+    { id: "walk-in-queue", label: t("frontDesk.queue.title"), icon: <UsersRound className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.walkInQueue },
+    { id: "walk-in-sale", label: t("calendar.action.walkInSale"), icon: <Footprints className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.walkInSale },
     { id: "collections", label: t("calendar.action.collections"), icon: <ListChecks className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.collections },
     { id: "gaps", label: t("calendar.action.gaps"), icon: <CalendarSearch className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.gaps },
     { id: "time-off", label: t("calendar.action.timeOff"), icon: <Palmtree className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.timeOff },

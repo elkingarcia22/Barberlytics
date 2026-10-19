@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -29,6 +29,7 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   noShow: { title: "notifications.noShow.title", body: "notifications.noShow.body" },
   whatsappFailed: { title: "notifications.whatsappFailed.title", body: "notifications.whatsappFailed.body" },
   whatsappReply: { title: "notifications.whatsappReply.title", body: "notifications.whatsappReply.body" },
+  clientArrived: { title: "notifications.clientArrived.title", body: "notifications.clientArrived.body" },
   lowStock: { title: "notifications.lowStock.title", body: "notifications.lowStock.body" },
   outOfStock: { title: "notifications.outOfStock.title", body: "notifications.outOfStock.body" },
   registerDifference: { title: "notifications.registerDifference.title", body: "notifications.registerDifference.body" },

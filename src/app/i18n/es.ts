@@ -1,6 +1,7 @@
 import { calendarPanelEs } from "./calendar/panel.es";
 import { calendarCheckoutEs } from "./calendar/checkout.es";
 import { calendarTimeOffEs } from "./calendar/timeOff.es";
+import { frontDeskEs } from "./frontDesk/frontDesk.es";
 import { calendarDayPanelEs } from "./calendar/dayPanel.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
@@ -3907,5 +3908,6 @@ export const appEs = {
   ...calendarPanelEs,
   ...calendarCheckoutEs,
   ...calendarTimeOffEs,
+  ...frontDeskEs,
   ...calendarDayPanelEs,
 } as const;

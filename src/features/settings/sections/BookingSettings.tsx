@@ -14,6 +14,7 @@ import { SettingsCard, SettingsDocument, SwitchRow, type FieldErrors } from "../
 import { bookingSchema, type BookingSettings as Booking } from "../settingsTypes";
 import { buildBookingUrl, renderPolicy, widgetSnippet } from "./bookingUtils";
 import { BookingFunnelCard } from "./BookingFunnelCard";
+import { KioskDevicesPanel } from "@/features/frontDesk/KioskDevicesPanel";
 
 const SLOT_INTERVALS: readonly number[] = [10, 15, 20, 30, 45, 60];
 const WAIT_MINUTES: readonly number[] = [5, 10, 15, 20, 30, 45, 60];
@@ -288,8 +289,8 @@ function Links({ links }: { links: Booking["links"] }) {
         <CopyBlock title={t("cfg.booking.portalTrigger")} hint={t("cfg.booking.portalTriggerHint")} code={widgetSnippet(links, { widget: "appointments", mode: "floating", trigger: "#mis-citas" })} />
       </SettingsCard>
 
-      <SettingsCard title={t("cfg.booking.frontDesk")} description={t("cfg.booking.frontDeskHint")}>
-        <CopyLine label={t("cfg.booking.frontDeskLink")} value={links.frontDeskUrl} />
+      <SettingsCard title={t("cfg.booking.frontDesk")} description={t("frontDesk.devices.hint")}>
+        <KioskDevicesPanel />
       </SettingsCard>
     </>
   );

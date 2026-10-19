@@ -1,6 +1,7 @@
 import { calendarPanelEn } from "./calendar/panel.en";
 import { calendarCheckoutEn } from "./calendar/checkout.en";
 import { calendarTimeOffEn } from "./calendar/timeOff.en";
+import { frontDeskEn } from "./frontDesk/frontDesk.en";
 import { calendarDayPanelEn } from "./calendar/dayPanel.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
@@ -3870,5 +3871,6 @@ export const appEn: AppMessageCatalog = {
   ...calendarPanelEn,
   ...calendarCheckoutEn,
   ...calendarTimeOffEn,
+  ...frontDeskEn,
   ...calendarDayPanelEn,
 };

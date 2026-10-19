@@ -475,6 +475,45 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | POST | `/team/absences/:id/approve` · `/reject` | Dueño, administrador o recepción (los barberos no). Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
 | DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
 
+## Recepción y kiosco (`/front-desk`, `/kiosk`)
+
+Un kiosco es una tablet de recepción **atada a una sede**, con su propio token (no es la sesión de nadie). Ver
+docs/investigacion-modulos/16-front-desk.md.
+
+**Kioscos (Configuración).** Solo dueño o administrador (`403` para los demás).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/front-desk/devices?branchId?` | `{ items: [{ id, branchId, branchName, name, status: "pending" \| "active" \| "revoked", pairingCode, pairingExpiresAt, createdAt, createdBy, pairedAt, lastSeenAt }] }`. Nunca devuelve el token. |
+| POST | `/front-desk/devices` | `{ branchId, name? }` → `201` el kiosco con `pairingCode` (6 dígitos, 10 minutos, una sola vez). `422` sin sede válida. |
+| POST | `/front-desk/devices/:id/code` | Un código nuevo; el token anterior deja de valer (cambiar de tablet). |
+| DELETE | `/front-desk/devices/:id` | Lo desactiva: su token deja de valer al momento (`204`). |
+
+**El kiosco.** Manda `X-Kiosk-Token`; sin token o desactivado, `401 kiosk_unauthorized` (la tablet vuelve a pedir código).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/kiosk/pair` | `{ code }` → `{ token, device: { id, name }, branch: { id, name } }`. `422 invalid_code` si no existe, venció o ya se usó; 10 intentos por minuto. |
+| GET | `/kiosk/me` | `{ device, branch, phoneCountry, shopName, services: [{ id, name, durationMin }], barbers: [{ id, firstName, avatarUrl }], queue: { waiting, waitMin, waitMax } }` (los barberos que atienden sin cita hoy; la espera si alguien se uniera ahora). |
+| POST | `/kiosk/lookup` | `{ phone }` → `{ appointments: [{ id, time, firstName }] }`: las citas «programadas» de hoy en la sede de ese celular, desde 2 h antes hasta 1 h después de su hora. **Solo nombre de pila y hora**: nada de correo, teléfono ni barbero. Un número desconocido devuelve la lista vacía (no dice si es cliente). 20 por minuto por kiosco. |
+| POST | `/kiosk/check-in` | `{ appointmentId, phone }` (se vuelve a comprobar el celular) → `{ firstName, time, barberFirstName }`; la cita pasa a `arrived` con «Kiosco · nombre» en el historial y avisa a su barbero y a recepción (`clientArrived`). `404` si no es de ese celular, no es de hoy en esa sede o ya no está «programada». |
+| POST | `/kiosk/queue` | `{ firstName, phone?, serviceIds, barberId? }` → `201 { id, firstName, position, waitMin, waitMax, barberFirstName }`. `409 already_waiting` si ese celular ya está en la fila; `409 queue_full` con 40 esperando; `422` sin nombre o servicio. |
+
+**La fila sin cita (Calendario › Fila sin cita).** Con sesión. Todos la ven (el barbero, sin la ficha del cliente);
+la mueven recepción, dueño y administrador (`403` para un barbero).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/front-desk/queue?branchId` | `{ branchId, waiting: [{ id, firstName, clientId, hasPhone, services, serviceIds, barberId, barberName, joinedAt, source: "kiosk" \| "reception", position, waitMin, waitMax, suggestedBarberId, suggestedBarberName }], served, left }` de hoy en la sede. |
+| POST | `/front-desk/queue` | `{ branchId, firstName, phone?, serviceIds, barberId? }`: recepción suma a alguien. `201` la fila. |
+| POST | `/front-desk/queue/:id/call` | `{ barberId? }` → `{ appointment, queue }`: crea una cita `walkIn` en estado `arrived` ahora, con el barbero elegido, el que pidió, el que le tocaba según la espera o el siguiente de la fila de Equipo. `409 no_barber` si no hay nadie. |
+| POST | `/front-desk/queue/:id/leave` | `{ reason: "left" \| "removed" }`: se fue sin atender (cuenta en `left`) o se quitó. |
+
+**Espera estimada.** Simulación, no modelo (`src/mocks/frontDesk/estimate.ts`): la fila se reparte en orden entre los
+barberos que atienden sin cita hoy (fila de Equipo, sin ausencias), cada uno cuando se libera (lo que le queda a quien
+está en la silla y sus citas de hoy), con la duración de catálogo del servicio. Quien pidió un barbero espera a ese.
+Se da como rango de 10 minutos; `null` si hoy ya no alcanza.
+
 ## Sesión firmada de las funciones de servidor
 
 La voz (`/api/tts`), Clipper (`/api/clipper`, `/api/clipper/feedback`), la narración (`/api/narrative`) y la

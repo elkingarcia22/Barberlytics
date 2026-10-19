@@ -19,7 +19,11 @@ beforeEach(() =>
   server.use(
     http.post("*/api/tts", () => HttpResponse.json({ code: "tts_not_configured" }, { status: 501 })),
     http.post("*/api/clipper", () => HttpResponse.json({ code: "not_configured" }, { status: 501 })),
-    http.post("*/api/clipper/feedback", () => new HttpResponse(null, { status: 204 }))
+    http.post("*/api/clipper/feedback", () => new HttpResponse(null, { status: 204 })),
+    // La sesión firmada y la cola de WhatsApp tampoco: sin funciones, la app sigue con su respaldo.
+    http.post("*/api/session", () => HttpResponse.json({ code: "not_found" }, { status: 404 })),
+    http.post("*/api/session/guest", () => HttpResponse.json({ code: "not_found" }, { status: 404 })),
+    http.all("*/api/whatsapp/queue", () => HttpResponse.json({ code: "queue_not_configured" }, { status: 501 }))
   )
 );
 afterEach(() => {

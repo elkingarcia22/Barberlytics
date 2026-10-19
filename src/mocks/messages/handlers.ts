@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
-import { dispatchDue, messagesOf } from "../booking/dispatch";
+import { messagesOf, syncOutbox } from "../booking/dispatch";
 
 /**
  * Los mensajes al cliente (WhatsApp). Reproduce docs/API_CONTRACT.md (sección «Mensajes»): enviar
@@ -23,10 +23,11 @@ function requireAuth(request: Request) {
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 
 export const messagesHandlers = [
-  // Envía lo que ya toca. La app lo llama al abrir y cada minuto; el backend real lo hará con su cola.
+  // Pone el outbox al día con la cola de WhatsApp del servidor. La app lo llama al abrir y cada
+  // minuto; el backend real encola al programar y no necesita esto.
   http.post("*/api/messages/dispatch", async ({ request }) => {
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
-    return HttpResponse.json(await dispatchDue());
+    return HttpResponse.json(await syncOutbox());
   }),
 
   http.get("*/api/appointments/:id/messages", async ({ request, params }) => {

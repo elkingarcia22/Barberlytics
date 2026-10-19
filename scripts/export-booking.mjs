@@ -7,7 +7,8 @@
  * - El código: lo que el bundler alcanza desde `src/booking-app/main.tsx` (el grafo real de módulos,
  *   también los `import()` diferidos), más las `@import` de CSS, que resuelve PostCSS por dentro, y
  *   los `import type` (el bundler los borra, pero TypeScript los necesita para revisar los tipos).
- * - La voz de Clipper (`api/tts`, función de Vercel) y lo que importa de `server/`.
+ * - La voz de Clipper (`api/tts`, con la sesión de invitado de `api/session/guest`), los comentarios
+ *   y lo que importan de `server/`. El `vite.config.ts` se escribe aparte: solo atiende esas funciones.
  * - La configuración (Vite, Tailwind, TypeScript), `public/` mínimo y un `package.json` con solo las
  *   dependencias que se usan.
  * En la carpeta destino borra todo menos `.git` y `node_modules` antes de escribir: el repo queda igual
@@ -21,8 +22,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENTRY = "src/booking-app/main.tsx";
-const SERVER_ENTRIES = ["api/tts/index.ts", "api/comments/index.ts"];
-const CONFIG_FILES = ["vite.config.ts", "tailwind.config.js", "postcss.config.js", "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json", "src/vite-env.d.ts"];
+const SERVER_ENTRIES = ["api/tts/index.ts", "api/session/guest.ts", "api/comments/index.ts", "server/http/devServer.ts"];
+const CONFIG_FILES = ["tailwind.config.js", "postcss.config.js", "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json", "src/vite-env.d.ts"];
 const PUBLIC_FILES = ["public/mockServiceWorker.js", "public/favicon.svg", "public/apple-touch-icon.png"];
 /** Lo mínimo para compilar y escribir el proyecto; el resto de devDependencies es de pruebas y del sistema. */
 const DEV_KEEP = ["typescript", "vite", "@vitejs/plugin-react", "tailwindcss", "postcss", "autoprefixer", "tailwindcss-animate", "@types/react", "@types/react-dom", "@types/node"];
@@ -191,9 +192,28 @@ const VERCEL_JSON = (source) => {
     outputDirectory: "dist",
     rewrites: config.rewrites,
     headers,
-    functions: { "api/tts/index.ts": { maxDuration: 30 }, "api/comments/index.ts": { maxDuration: 15 } },
+    functions: { "api/tts/index.ts": { maxDuration: 30 }, "api/session/guest.ts": { maxDuration: 10 }, "api/comments/index.ts": { maxDuration: 15 } },
   };
 };
+
+/** El `vite.config.ts` de la reserva sola: las funciones que se exportan, con el mismo código que Vercel. */
+const VITE_CONFIG = `import path from "path"
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import { POST as tts } from "./api/tts/index"
+import { POST as guestSession } from "./api/session/guest"
+import { serverFunctionsInDev } from "./server/http/devServer"
+
+// La voz de Clipper en local (con la sesión de invitado que pide): el mismo código que en Vercel.
+export default defineConfig({
+  plugins: [react(), serverFunctionsInDev({ "/api/tts": { POST: tts }, "/api/session/guest": { POST: guestSession } })],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+})
+`;
 
 const TSCONFIG_SERVER = {
   compilerOptions: {
@@ -239,16 +259,17 @@ siempre. Para probar: celular \`320 217 2738\` (cliente que vuelve) y código \`
 ## Desplegar en Vercel
 
 1. Importa el repo en Vercel (detecta Vite; \`vercel.json\` ya fija instalación, build y rutas).
-2. Opcional, la voz natural de Clipper: en *Settings → Environment Variables* agrega
+2. La sesión de la voz: \`SESSION_SECRET\` (\`openssl rand -base64 48\`). Sin él, \`/api/tts\` responde 503 y Clipper usa la voz del navegador.
+3. Opcional, la voz natural de Clipper: en *Settings → Environment Variables* agrega
    \`GEMINI_API_KEY\` (gratis en aistudio.google.com; o \`ELEVENLABS_API_KEY\`, \`AZURE_SPEECH_KEY\` + \`AZURE_SPEECH_REGION\`, u \`OPENAI_API_KEY\`).
    Sin ninguna, Clipper usa la voz del navegador. Detalle en \`.env.example\`.
-3. Opcional, los comentarios de revisión compartidos: \`GOOGLE_SERVICE_ACCOUNT_JSON\` y \`FEEDBACK_SHARE_WITH\` (ver \`.env.example\`). Sin ellos los comentarios solo viven en el navegador.
-4. Despliega. Las rutas del cliente caen en \`index.html\`; \`/api/tts\` es la función de la voz y \`/api/comments\`, la de los comentarios.
+4. Opcional, los comentarios de revisión compartidos: \`GOOGLE_SERVICE_ACCOUNT_JSON\` y \`FEEDBACK_SHARE_WITH\` (ver \`.env.example\`). Sin ellos los comentarios solo viven en el navegador.
+5. Despliega. Las rutas del cliente caen en \`index.html\`; \`/api/tts\` es la función de la voz y \`/api/comments\`, la de los comentarios.
 `;
 
 const ENV_EXAMPLE = (source) => {
   const start = source.indexOf("# Voz de Clipper");
-  return `# Solo servidor (funciones de Vercel api/tts y api/comments), sin prefijo VITE_.\n${start >= 0 ? source.slice(start) : ""}`;
+  return `# Solo servidor (funciones de Vercel api/tts, api/session/guest y api/comments), sin prefijo VITE_.\n${start >= 0 ? source.slice(start) : ""}`;
 };
 
 const NPMRC = "# React 19 con el paquete único radix-ui: las dependencias declaran peers viejos.\nlegacy-peer-deps=true\n";
@@ -271,6 +292,7 @@ async function main() {
   write("public/theme-boot.js", THEME_BOOT);
   write("vercel.json", `${JSON.stringify(VERCEL_JSON(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")), null, 2)}\n`);
   write("tsconfig.server.json", `${JSON.stringify(TSCONFIG_SERVER, null, 2)}\n`);
+  write("vite.config.ts", VITE_CONFIG);
   write("README.md", README);
   write(".env.example", ENV_EXAMPLE(fs.readFileSync(path.join(ROOT, ".env.example"), "utf8")));
   write(".npmrc", NPMRC);

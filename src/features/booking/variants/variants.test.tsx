@@ -9,7 +9,6 @@ import type { BookingBarber, BookingService, Slot } from "../types";
 import { ableBarbers, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
 import { codeFromText, numberWordsToDigits, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
-import { expiryProblem, maskCardInput, normalizeExpiry } from "./chat/chatCard";
 import { detectAside } from "./chat/chatIntents";
 
 /** Un jueves a las 8:00. */
@@ -279,32 +278,6 @@ describe("lo que se pide de pasada en la conversación", () => {
     expect(kind("corte mañana a las 5")).toBeNull();
     expect(kind("3202172738")).toBeNull();
     expect(kind("Juan Pérez")).toBeNull();
-  });
-});
-
-describe("tarjeta nueva en la conversación", () => {
-  test("el número y el CVC nunca se ven enteros en el hilo", () => {
-    expect(maskCardInput("cardNumber", "4242 4242 4242 4242")).toBe("•••• 4242");
-    expect(maskCardInput("cardCvc", "123")).toBe("•••");
-    expect(maskCardInput("cardCvc", "1234")).toBe("••••");
-    expect(maskCardInput("cardName", " Marcela Gómez ")).toBe("Marcela Gómez");
-  });
-
-  test("el vencimiento se entiende como se escriba", () => {
-    expect(normalizeExpiry("0829")).toBe("08/29");
-    expect(normalizeExpiry("08 29")).toBe("08/29");
-    expect(normalizeExpiry("08/2029")).toBe("08/29");
-    expect(normalizeExpiry("829")).toBe("08/29");
-  });
-
-  test("un vencimiento mal escrito dice qué está mal: el mes, solo el año, vencida o el formato", () => {
-    expect(expiryProblem("0829", NOW)).toBeNull();
-    expect(expiryProblem("3030", NOW)).toEqual({ key: "booking.chat.cardBadMonth", params: { month: "30" } });
-    expect(expiryProblem("13/28", NOW)).toEqual({ key: "booking.chat.cardBadMonth", params: { month: "13" } });
-    expect(expiryProblem("2030", NOW)).toEqual({ key: "booking.chat.cardOnlyYear", params: { year: "2030", short: "30" } });
-    expect(expiryProblem("0825", NOW)).toEqual({ key: "booking.chat.cardExpired", params: { date: "08/25" } });
-    expect(expiryProblem("12", NOW)).toEqual({ key: "booking.chat.cardBadExpiryFormat" });
-    expect(expiryProblem("0899", NOW)).toEqual({ key: "booking.chat.cardTooFar", params: { date: "08/99" } });
   });
 });
 

@@ -47,12 +47,13 @@ export function useAppointmentMessages(appointmentId: string, enabled: boolean) 
   return useQuery({ queryKey: ["messages", appointmentId], queryFn: ({ signal }) => messagesApi.list(appointmentId, signal), enabled });
 }
 
-/** Cada cuánto se revisan los mensajes que ya tocan. */
+/** Cada cuánto se pone el outbox al día con la cola de WhatsApp del servidor. */
 const DISPATCH_EVERY_MS = 60_000;
 
 /**
- * Envía los mensajes que ya tocan mientras la app está abierta: al entrar y cada minuto. Con un
- * backend real esto lo hace su cola; aquí basta con que alguien tenga la app abierta.
+ * Mientras la app está abierta (al entrar y cada minuto) encola en el servidor lo que el backend
+ * simulado programó y refleja lo que el cron ya envió. Con un backend real, él encola al programar y
+ * esto sobra; el envío nunca sale del navegador.
  */
 export function useMessageDispatcher(enabled: boolean): void {
   React.useEffect(() => {

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiAuth, isApiError } from "@/lib/api";
+import { clearServerSession, obtainStaffSession } from "@/lib/api/serverSession";
 import { authApi } from "./api";
 import { requestProviderCredential } from "./providers";
 import { sessionTokenStorage, type TokenStorage } from "./tokenStorage";
@@ -24,6 +25,7 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
 
   const clearSession = React.useCallback(() => {
     storage.clear();
+    clearServerSession();
     setUser(null);
     setStatus("anonymous");
     queryClient.clear();
@@ -91,7 +93,16 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
 
   const requestCode = React.useCallback((body: OtpRequest) => authApi.requestCode(body), []);
 
-  const verifyCode = React.useCallback(async (body: OtpVerify) => openSession(await authApi.verifyCode(body)), [openSession]);
+  const verifyCode = React.useCallback(
+    async (body: OtpVerify) => {
+      const user = openSession(await authApi.verifyCode(body));
+      // La sesión firmada de las funciones pagas (voz, Clipper, narración, WhatsApp): con el mismo
+      // celular y código. No se espera: si no llega, esas funciones responden su respaldo.
+      void obtainStaffSession({ phone: body.phone, code: body.code });
+      return user;
+    },
+    [openSession]
+  );
 
   const loginWithProvider = React.useCallback(
     async (provider: AuthProviderName) => {

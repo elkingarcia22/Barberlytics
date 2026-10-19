@@ -52,6 +52,8 @@ export interface CheckoutKit {
   askNext: (text?: string, withManage?: boolean) => void;
   /** Pedir la tarjeta nueva dato por dato en la caja. */
   startNewCard: (lead?: string) => void;
+  /** El CVC de una tarjeta guardada, en su hoja: nunca escrito en el chat. */
+  askSavedCvc: (card: { id: string; brand: string; last4: string }) => void;
 }
 
 /** Lo que cambia el total bajo las citas: paquete, membresía, descuento, impuestos, propina, recargo y regalo. */
@@ -73,7 +75,7 @@ export function adjustmentRows(t: ReturnType<typeof useAppT>, fmt: { money: (val
  * versiones), el resumen para confirmar, el recibo y mover o cancelar una cita.
  */
 export function useChatCheckout(kit: CheckoutKit) {
-  const { settle, receiptPlan, t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard } = kit;
+  const { settle, receiptPlan, t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard, askSavedCvc } = kit;
 
   /* ── pagar ── */
 
@@ -367,8 +369,7 @@ export function useChatCheckout(kit: CheckoutKit) {
         if (value === "new" || !value) return startNewCard();
         payment.current?.chooseCard(value);
         const card = current.customer?.cards.find((item) => item.id === value);
-        expect("cvc");
-        return say({ text: t("booking.chat.askCvc", { card: card ? `${card.brand} •••• ${card.last4}` : "" }) });
+        return card ? askSavedCvc(card) : askConfirm();
       }
       case "confirm":
         return value === "pay" ? payment.current?.pay({ askTip: false }) : askMore();

@@ -1,4 +1,5 @@
 import type { ChatAction, ChatBackend, ChatMessage, ChatReply } from "@/lib/chat";
+import { serverFetch } from "@/lib/api/serverSession";
 import { runClipperTool, type ClipperToolContext } from "./tools";
 
 /**
@@ -32,11 +33,15 @@ const newTurnId = (): string => (typeof crypto !== "undefined" && "randomUUID" i
 /** Manda el 👍/👎 de una respuesta de Clipper al registro (con la conversación solo si se compartió). */
 export async function sendClipperFeedback(input: { turnId: string; value: "up" | "down" | undefined; reasons?: readonly string[]; comment?: string; share?: boolean; question?: string; answer?: string }, fetcher: typeof fetch = fetch): Promise<void> {
   try {
-    await fetcher("/api/clipper/feedback", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ turnId: input.turnId, value: input.value ?? null, reasons: input.reasons ?? [], comment: input.comment ?? "", share: input.share === true, ...(input.share ? { question: input.question, answer: input.answer } : {}) }),
-    });
+    await serverFetch(
+      "/api/clipper/feedback",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ turnId: input.turnId, value: input.value ?? null, reasons: input.reasons ?? [], comment: input.comment ?? "", share: input.share === true, ...(input.share ? { question: input.question, answer: input.answer } : {}) }),
+      },
+      { fetcher }
+    );
   } catch {
     // Opinar no puede romper el chat: si no llega, se pierde esa opinión.
   }
@@ -71,12 +76,16 @@ export function toModelMessages(question: string, history: readonly ChatMessage[
 
 export function createClipperBackend({ context, fallback, labels, fetcher = fetch }: ClipperBackendOptions): ChatBackend {
   const step = async (messages: readonly Message[], turnId: string, signal: AbortSignal): Promise<Step | "fallback"> => {
-    const response = await fetcher("/api/clipper", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ context: { locale: context.locale, role: context.role, today: context.today, branch: context.branch, currency: context.currency, userName: context.userName, turnId }, messages }),
-      signal,
-    });
+    const response = await serverFetch(
+      "/api/clipper",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ context: { locale: context.locale, role: context.role, today: context.today, branch: context.branch, currency: context.currency, userName: context.userName, turnId }, messages }),
+        signal,
+      },
+      { fetcher }
+    );
     if (response.status === 501) notConfigured = true;
     if (!response.ok) return "fallback";
     return (await response.json()) as Step;

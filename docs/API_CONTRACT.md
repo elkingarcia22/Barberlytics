@@ -282,16 +282,26 @@ kind, sendAt, status: "scheduled" | "sent" | "failed" | "cancelled", sentAt?, si
 
 | Método | Ruta | Notas |
 |---|---|---|
-| POST | `/messages/dispatch` | Con sesión. Envía los mensajes vencidos. `{ sent, simulated, failed }`. La app lo llama cada minuto mientras hay sesión. |
+| POST | `/messages/dispatch` | Con sesión. Pone el outbox al día con la cola de WhatsApp del servidor: encola lo programado (`queued: true`), anula en la cola lo cancelado y refleja lo que ya salió. Sin cola, lo que ya toca queda `sent` con `simulated: true`. `{ sent, simulated, failed }` de lo que cambió. La app lo llama cada minuto mientras hay sesión; el backend real encola al programar y no lo necesita. |
 | GET | `/appointments/:id/messages` | Con sesión. `{ items }` de esa cita, del más reciente al más viejo. |
 | POST | `/booking/confirm` | Público. `{ token }` (el `confirmToken` de la cita, que va en el botón del mensaje). `200 { start, client, branch, confirmedAt }` y la cita queda `confirmation: { status: "confirmed", via: "link" }`. `404` si el token no existe · `409` si la cita está cancelada o marcada «no vino». Lo usa `/reservar/confirmar?t=`. |
 | PATCH | `/appointments/:id` | Además de lo de Calendario, `confirmation: "confirmed" \| "pending"` la confirma desde recepción (`via: "reception"`) o lo quita. |
 
-El envío real lo hace el servidor: `POST /api/whatsapp/send` (función de Vercel; en local, el middleware de Vite)
-con `{ to, kind, params: string[] (≤ 8), buttonParam? }` manda la plantilla aprobada de WhatsApp Cloud API
-(`WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_<KIND>`; ver `.env.example`). Sin llaves responde
-`501 not_configured` y el mensaje queda `sent` con `simulated: true`; si WhatsApp lo rechaza, `502` y el mensaje queda
-`failed` con el motivo. Las llaves nunca llegan al navegador.
+El envío lo hace el servidor con una cola (`server/whatsapp/queue.ts`; en local, el middleware de Vite). El
+navegador nunca envía: encola y consulta, con la sesión firmada del equipo (ver «Sesión firmada»).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/whatsapp/queue` | `{ items: [{ id, to, kind, params: string[] (≤ 8), buttonParam?, sendAt, consent? }] }` (hasta 50). Encola o reprograma; un mensaje que ya salió no se vuelve a enviar. `kind: "reactivation"` es marketing y exige `consent: { version, at }` (el permiso del cliente). `200 { items: [{ id, status, providerId, error, sentAt, attempts }], rejected: [{ id, message }] }`. |
+| DELETE | `/api/whatsapp/queue?ids=a,b` | Anula los que aún no salieron (`status: "cancelled"`). |
+| GET | `/api/whatsapp/queue?ids=a,b` | En qué va cada uno: `scheduled`, `sent`, `simulated`, `failed`, `cancelled`. |
+| GET | `/api/cron/whatsapp` | El cron de Vercel (cada 5 min), con `Authorization: Bearer <CRON_SECRET>`: envía lo que ya toca. `{ sent, simulated, failed, retried }`. |
+
+Todo queda dentro de la barbería de la sesión (`tid`). La plantilla sale por WhatsApp Cloud API (`WHATSAPP_TOKEN`,
+`WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE_<KIND>`; ver `.env.example`): sin llaves queda `simulated`; si WhatsApp
+o la red fallan se reintenta a los 5, 10 y 20 minutos (3 intentos) y luego queda `failed` con el motivo; si el
+mensaje está mal (`400`), `failed` sin reintento. La cola vive en Upstash Redis (`UPSTASH_REDIS_REST_*`); en
+Vercel sin Upstash responde `501 queue_not_configured` y la app deja los mensajes como simulados.
 
 ## Clientes (`/customers`)
 
@@ -455,6 +465,28 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | POST | `/team/absences/:id/approve` · `/reject` | Dueño, administrador o recepción (los barberos no). Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
 | DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
 
+## Sesión firmada de las funciones de servidor
+
+La voz (`/api/tts`), Clipper (`/api/clipper`, `/api/clipper/feedback`), la narración (`/api/narrative`) y la
+cola de WhatsApp (`/api/whatsapp/queue`) cuestan dinero: piden `Authorization: Bearer <token>`, un JWT HS256
+firmado con `SESSION_SECRET` (`server/auth/session.ts`) con `{ sub, tid, role, mid?, scope: "staff" | "guest", iat, exp, jti }`.
+Sin token `401 unauthorized`; firma mala o caducado `401 session_expired` (la app lo olvida); alcance que no
+alcanza `403`; sin secreto en el servidor `503 session_not_configured`. Cada sesión tiene cupo por minuto y
+por día (`429 quota_exceeded`) además del tope por IP (`429 rate_limited`):
+
+| Función | Por minuto | Por día | Alcance |
+|---|---|---|---|
+| `/api/tts` | 30 | 600 | equipo o invitado |
+| `/api/clipper` | 30 | 400 | equipo (el rol sale del token, no del cuerpo) |
+| `/api/clipper/feedback` | 30 | 300 | equipo |
+| `/api/narrative` | 10 | 100 | equipo |
+| `/api/whatsapp/queue` | 60 | 3000 | equipo |
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/session` | `{ phone, code }` de una cuenta de la demo → `{ token, expiresIn }` (8 h). La app lo pide al entrar con el código y lo guarda en `sessionStorage`; se borra al salir. `401 invalid_code`; `404` con `SESSION_DEMO_LOGIN=off` (el backend real emite el token al entrar, con el mismo secreto). 10 intentos por minuto por IP. |
+| POST | `/api/session/guest` | → `{ token, expiresIn }` (30 min, `scope: "guest"`): el cliente de la reserva en línea, solo para la voz. 5 por IP cada 10 minutos. |
+
 ## Clipper (`/api/clipper`, función de servidor)
 
 Clipper responde con los datos de la barbería usando herramientas **de consulta** y **propone cambios** que la
@@ -465,8 +497,8 @@ con la sesión de quien pregunta, así que cada endpoint aplica su permiso (ver 
 
 | Método | Ruta | Respuesta |
 |---|---|---|
-| POST | `/api/clipper` | Cuerpo `{ context: { locale, role, today, branch, currency, userName, turnId? }, messages }`. `200 { kind: "tools", content, calls: [{ id, name, input }], usage }` si pide consultas, o `200 { kind: "answer", text, model, usage }` (`usage: { input, output }` en tokens). `400` conversación inválida; `501 not_configured` sin clave (la app responde con el centro de ayuda); `502 unsafe_output` si pidió una herramienta que no es de su rol o si la respuesta trae cifras que no salen de las consultas; `429` con más de 30 pasos por minuto por IP; `403` si no viene de la app. |
-| POST | `/api/clipper/feedback` | `{ turnId, value: "up" \| "down" \| null, reasons?, comment?, share?, question?, answer? }` → `204`. El 👍/👎 de una respuesta; la pregunta y la respuesta solo se guardan con `share: true`. `400` sin `turnId` · `429` con más de 30 por minuto por IP. |
+| POST | `/api/clipper` | Cuerpo `{ context: { locale, role, today, branch, currency, userName, turnId? }, messages }`. `200 { kind: "tools", content, calls: [{ id, name, input }], usage }` si pide consultas, o `200 { kind: "answer", text, model, usage }` (`usage: { input, output }` en tokens). `400` conversación inválida; `501 not_configured` sin clave (la app responde con el centro de ayuda); `502 unsafe_output` si pidió una herramienta que no es de su rol o si la respuesta trae cifras que no salen de las consultas; `401`/`403`/`429` según «Sesión firmada». |
+| POST | `/api/clipper/feedback` | `{ turnId, value: "up" \| "down" \| null, reasons?, comment?, share?, question?, answer? }` → `204`. El 👍/👎 de una respuesta; la pregunta y la respuesta solo se guardan con `share: true`. `400` sin `turnId`; sesión y cupos como en «Sesión firmada». |
 
 `messages` es la conversación en el formato de Claude: el usuario manda texto y `tool_result`; el asistente, texto y
 `tool_use`. Hasta 40 mensajes y 200 KB; cada resultado, hasta 12 000 caracteres. Debe empezar y terminar en el usuario.
@@ -507,7 +539,7 @@ cuadra, el servidor le pide al modelo una corrección sin herramientas; si insis
 | Método | Ruta | Notas |
 |---|---|---|
 | GET | `/reports/week?branchId` | Solo dueño o administrador. Las cifras de «Cómo te fue»: los últimos 7 días contra los 7 anteriores. `{ from, to, revenue, revenuePrev, services, servicesPrev, occupancy, noShows, products, topBarber: { name, revenue } \| null, bestDay: { day, revenue } \| null, atRisk }`. |
-| POST | `/api/narrative` | `{ kind: "week" \| "pay", locale: "es" \| "en", facts: { [clave]: { label, value } } }` (hasta 20; claves alfanuméricas, etiquetas de 80 y valores de 40 caracteres) → `{ text, model }`. Claude redacta **con marcadores** (`{revenue}`) y sin dígitos; el servidor rechaza la respuesta si trae un dígito o un marcador desconocido (`502 unsafe_output`) y pone él las cifras. Sin `ANTHROPIC_API_KEY`, `501`. En cualquier fallo la app muestra su resumen automático con las mismas cifras. Modelo: `NARRATIVE_MODEL` (por defecto `claude-haiku-5-5`). Con origen de la app y tope por IP. |
+| POST | `/api/narrative` | `{ kind: "week" \| "pay", locale: "es" \| "en", facts: { [clave]: { label, value } } }` (hasta 20; claves alfanuméricas, etiquetas de 80 y valores de 40 caracteres) → `{ text, model }`. Claude redacta **con marcadores** (`{revenue}`) y sin dígitos; el servidor rechaza la respuesta si trae un dígito o un marcador desconocido (`502 unsafe_output`) y pone él las cifras. Sin `ANTHROPIC_API_KEY`, `501`. En cualquier fallo la app muestra su resumen automático con las mismas cifras. Modelo: `NARRATIVE_MODEL` (por defecto `claude-haiku-5-5`). Con sesión firmada del equipo y cupo por sesión. |
 
 ## Revisión antes de cerrar (`/payroll/review`, `/register/review`)
 
@@ -670,7 +702,7 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `GET` | `/booking/me/suggestion` | Con token. | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
 | `POST` | `/booking/customers` | Con el token de un celular nuevo. Crea el cliente `{ firstName, lastName, email, marketing }`; el celular es el verificado. Guarda el permiso de promociones con fecha (`marketingConsent`). La misma sesión pasa a ser la del cliente. `201`. |
 | `POST` | `/booking/promo` | Token opcional (para saber si es su primera visita). `{ code, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
-| `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start` y, opcional, `visitId`: las partes de una misma visita —un servicio separado para otro barbero u otra hora— comparten ese id y quedan anotadas «Visita en N partes» en la agenda), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `pse`, `nequi`, `shop`, `credit`; los en línea, solo si la pasarela de la sede los tiene: si no, `422`) y `card` (`number`, `name`, `expiry`, `save`) o `savedCardId` (una tarjeta guardada). El CVC nunca viaja a este servidor (va a la pasarela); `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. `utm` (opcional, `{ source, medium, campaign }` del enlace) queda en la reserva. `useReward: true` usa una cortesía de la membresía (`customer.loyalty: { every, progress, available, rewardServiceId, rewardName, rewardValue }`, de Ajustes › Reservas › Membresía): se descuenta `rewardValue` de los servicios (`totals.reward`) y queda una menos. `referencePhotos` (opcional, hasta 3): las fotos del corte que quiere, cada una como data URL JPEG/PNG/WebP de hasta ~1,5 MB (el celular las reduce a 1024 px); quedan en la cita (`referencePhotos`) y el barbero la ve en el panel del Calendario; si no es una imagen válida, `422`. Con `giftCode`, la tarjeta de regalo paga primero (`totals.gift`; `total` es lo que queda) y lo que sobra queda en ella; si cubre todo, `payment.method` es `gift`. Una misma persona (quien reserva o cada invitado) no puede tener dos citas que se crucen: `409 conflict`. Con `method: "shop"` y `customer.depositRequired` (cliente nuevo o con inasistencias, según Ajustes › Reservas › Anticipo), hay que mandar `card` o `savedCardId`: se cobra el anticipo (el porcentaje de subtotal + impuesto) y `payment` queda `pending` con `paid` = anticipo; sin tarjeta, `422 card_required`. |
+| `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start` y, opcional, `visitId`: las partes de una misma visita —un servicio separado para otro barbero u otra hora— comparten ese id y quedan anotadas «Visita en N partes» en la agenda), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `pse`, `nequi`, `shop`, `credit`; los en línea, solo si la pasarela de la sede los tiene: si no, `422`) y `card` (el token de la pasarela: `{ token, brand, last4, expMonth, expYear, name, save }`) o `savedCardId` (una tarjeta guardada). **El número y el CVC nunca viajan a este servidor**: se escriben en los campos de la pasarela, que devuelve el token (`src/features/payments/gateway.ts`; simulada, `tok_sim_ok_…` o `tok_sim_decline_…` para la tarjeta de prueba rechazada `4000 0000 0000 0002`). Un `card` con `number`, `cvc`, `cvv` o `pan` se rechaza con `422 raw_card_rejected`; un token que no es de la pasarela, `422 card_invalid`. `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. Lo mismo vale para `/booking/packages/buy` y `/booking/gift-cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. `utm` (opcional, `{ source, medium, campaign }` del enlace) queda en la reserva. `useReward: true` usa una cortesía de la membresía (`customer.loyalty: { every, progress, available, rewardServiceId, rewardName, rewardValue }`, de Ajustes › Reservas › Membresía): se descuenta `rewardValue` de los servicios (`totals.reward`) y queda una menos. `referencePhotos` (opcional, hasta 3): las fotos del corte que quiere, cada una como data URL JPEG/PNG/WebP de hasta ~1,5 MB (el celular las reduce a 1024 px); quedan en la cita (`referencePhotos`) y el barbero la ve en el panel del Calendario; si no es una imagen válida, `422`. Con `giftCode`, la tarjeta de regalo paga primero (`totals.gift`; `total` es lo que queda) y lo que sobra queda en ella; si cubre todo, `payment.method` es `gift`. Una misma persona (quien reserva o cada invitado) no puede tener dos citas que se crucen: `409 conflict`. Con `method: "shop"` y `customer.depositRequired` (cliente nuevo o con inasistencias, según Ajustes › Reservas › Anticipo), hay que mandar `card` o `savedCardId`: se cobra el anticipo (el porcentaje de subtotal + impuesto) y `payment` queda `pending` con `paid` = anticipo; sin tarjeta, `422 card_required`. |
 | `POST` | `/booking/phone/check` | `{ phone }` → `{ returning, token, customer }`. Cliente nuevo: `{ returning: false, token: null, customer: null }` y arma la cita sin código. Cliente de siempre: se le reconoce sin código para su bienvenida: `customer` sin lo sensible (`email` vacío, sin `cards`, `credit` 0, sin `packages` ni `loyalty`) y un `token` de **vista previa** que solo vale para `GET /booking/me/suggestion`; todo lo demás con sesión (pagar, lista de espera, «Mis citas», paquetes, tarjetas de regalo) responde `403` hasta verificar el código (`otp/verify` devuelve el perfil completo y la sesión de verdad). Un número bloqueado responde `{ returning: true, token: null, customer: null }` y lo sabe tras el código. `429 rate_limited` tras 20 consultas en 10 minutos desde el mismo origen. |
 | `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo, channel }` (enmascarado), igual para cualquier número. `429 rate_limited` tras 5 en 10 minutos. |
 | `POST` | `/booking/otp/verify` | `{ phone, code }` → `{ status: "known", token, customer }`, `{ status: "new", token, customer: null }` o `{ status: "blocked", token: null, customer: null }`. `422 otp_invalid` con `attemptsLeft`; `429 otp_locked` tras 5 fallos (hay que pedir otro). |

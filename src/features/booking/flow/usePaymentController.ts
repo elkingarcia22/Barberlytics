@@ -8,6 +8,7 @@ import { useReserveMutation } from "../queries";
 import { activeBranch } from "../useBookingTotals";
 import type { PayMethod } from "../types";
 import { useBookingFlow } from "./BookingContext";
+import { newCardToken } from "./cardToken";
 import { cardMissing, toastMissing } from "./missingData";
 import { brandFromName, digitsOf, firstUsableCard, isCardComplete, isCvcComplete, type CardValues } from "./cardValidation";
 import { NEW_CARD } from "./SavedCardPicker";
@@ -104,8 +105,11 @@ export function usePaymentController() {
     return true;
   };
 
-  const submit = (tipId: string | null) => {
+  const submit = async (tipId: string | null) => {
     if (!customer || !state.branchId || !method) return;
+    // La tarjeta nueva va a la pasarela; al servidor solo llega su token. De una guardada, su id.
+    const token = await newCardToken(t, usesCard && !chosenSaved ? card : null, saveCard);
+    if (token === false) return;
     reserve.mutate(
       {
         branchId: state.branchId,
@@ -127,8 +131,7 @@ export function usePaymentController() {
         referencePhotos: state.referencePhotos.length > 0 ? [...state.referencePhotos] : undefined,
         utm: utm ?? undefined,
         method,
-        // El CVC no se manda: va a la pasarela. De una guardada solo viaja su id (el token).
-        card: usesCard && !chosenSaved && card ? { number: card.number, name: card.name, expiry: card.expiry, save: saveCard } : undefined,
+        card: token,
         savedCardId: usesCard && chosenSaved ? chosenSaved.id : undefined,
         notes: state.notes.trim() || undefined,
       },
@@ -144,20 +147,20 @@ export function usePaymentController() {
   const pay = ({ askTip = true }: { askTip?: boolean } = {}) => {
     if (!validate()) return;
     if (method === "shop") {
-      submit(null);
+      void submit(null);
       return;
     }
     if (askTip && shop.tipOptions.length > 0 && !coveredByGift) {
       setTipOpen(true);
       return;
     }
-    submit(state.tipId);
+    void submit(state.tipId);
   };
   /** Lo que se eligió en el modal de la propina (null = sin propina) y se cobra. */
   const confirmTip = (tipId: string | null) => {
     dispatch({ type: "setTip", tipId });
     setTipOpen(false);
-    submit(tipId);
+    void submit(tipId);
   };
 
   const chooseCard = (value: string) => {

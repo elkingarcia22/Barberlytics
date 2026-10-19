@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "../db";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
-import { dispatchDue, payloadOf, type Sender } from "./dispatch";
+import { payloadOf, syncOutbox, type Queue, type QueueRequest, type QueueView } from "./dispatch";
 import { newConfirmToken, scheduleMessages } from "./reminders";
 
 const TOKEN = "mock-acc_admin-test";
@@ -29,26 +29,60 @@ describe("mensajes de WhatsApp", () => {
     db.sessions.set(TOKEN, "acc_admin");
   });
 
-  test("la confirmación sale ya; los recordatorios esperan su hora", async () => {
+  /** Una cola de mentira con la misma forma que la del servidor: guarda, anula y «envía» con `deliver`. */
+  function fakeQueue() {
+    const items = new Map<string, QueueRequest & { status: QueueView["status"] }>();
+    const view = (id: string): QueueView => ({ id, status: items.get(id)!.status, providerId: items.get(id)!.status === "sent" ? `wamid.${id}` : null, error: null, sentAt: null });
+    const queue: Queue = {
+      enqueue: vi.fn(async (batch: QueueRequest[]) => {
+        batch.forEach((item) => items.set(item.id, { ...item, status: "scheduled" }));
+        return batch.map((item) => view(item.id));
+      }),
+      cancel: vi.fn(async (ids: string[]) => {
+        ids.forEach((id) => items.set(id, { ...items.get(id)!, status: "cancelled" }));
+        return ids.map(view);
+      }),
+      status: vi.fn(async (ids: string[]) => ids.filter((id) => items.has(id)).map(view)),
+    };
+    const deliver = (now: Date) => items.forEach((item, id) => item.status === "scheduled" && Date.parse(item.sendAt) <= now.getTime() && items.set(id, { ...item, status: "sent" }));
+    return { queue, items, deliver };
+  }
+
+  test("la app encola todo lo programado y refleja lo que el servidor ya envió", async () => {
     const appointment = upcoming();
     const phone = db.calendar.clients.find((item) => item.id === appointment.clientId)!.phone;
     scheduleMessages(appointment, phone);
-    const sender = vi.fn<Sender>().mockResolvedValue({ status: "sent", providerId: "wamid.1" });
-    expect(await dispatchDue(new Date(), sender)).toEqual({ sent: 1, simulated: 0, failed: 0 });
-    expect(sender.mock.calls[0][0]).toMatchObject({ kind: "confirmation", to: phone, buttonParam: appointment.confirmToken });
-    const mine = db.booking.outbox!.filter((item) => item.appointmentId === appointment.id);
-    expect(mine.find((item) => item.kind === "confirmation")).toMatchObject({ status: "sent", providerId: "wamid.1" });
-    expect(mine.filter((item) => item.kind !== "confirmation").every((item) => item.status === "scheduled")).toBe(true);
+    const { queue, items, deliver } = fakeQueue();
+    const now = new Date();
+    await syncOutbox(now, queue);
+    const mine = () => db.booking.outbox!.filter((item) => item.appointmentId === appointment.id);
+    expect(mine().every((item) => item.queued === true && item.status === "scheduled")).toBe(true);
+    expect([...items.values()].find((item) => item.kind === "confirmation")).toMatchObject({ to: phone, buttonParam: appointment.confirmToken });
+    deliver(now);
+    expect(await syncOutbox(now, queue)).toEqual({ sent: 1, simulated: 0, failed: 0 });
+    expect(mine().find((item) => item.kind === "confirmation")).toMatchObject({ status: "sent", providerId: expect.stringMatching(/^wamid\./) });
+    expect(mine().filter((item) => item.kind !== "confirmation").every((item) => item.status === "scheduled")).toBe(true);
   });
 
-  test("sin WhatsApp conectado queda simulado; si WhatsApp lo rechaza, fallido con su motivo", async () => {
+  test("lo que se cancela en la app se anula en la cola", async () => {
     const appointment = upcoming();
     scheduleMessages(appointment, "+573001112233");
-    await dispatchDue(new Date(), async () => ({ status: "simulated" }));
-    expect(db.booking.outbox!.find((item) => item.appointmentId === appointment.id && item.kind === "confirmation")).toMatchObject({ status: "sent", simulated: true });
+    const { queue, items } = fakeQueue();
+    await syncOutbox(new Date(), queue);
+    db.booking.outbox = db.booking.outbox!.map((item) => (item.appointmentId === appointment.id ? { ...item, status: "cancelled" as const } : item));
+    await syncOutbox(new Date(), queue);
+    expect([...items.values()].every((item) => item.status === "cancelled")).toBe(true);
+    expect(db.booking.outbox!.filter((item) => item.appointmentId === appointment.id).every((item) => !item.queued)).toBe(true);
+  });
+
+  test("sin cola en el servidor, lo que ya toca queda simulado y lo demás espera", async () => {
+    const appointment = upcoming();
     scheduleMessages(appointment, "+573001112233");
-    await dispatchDue(new Date(), async () => ({ status: "failed", error: "Template not found" }));
-    expect(db.booking.outbox!.some((item) => item.appointmentId === appointment.id && item.status === "failed" && item.error === "Template not found")).toBe(true);
+    const none: Queue = { enqueue: async () => null, cancel: async () => null, status: async () => null };
+    expect(await syncOutbox(new Date(), none)).toMatchObject({ simulated: 1 });
+    const mine = db.booking.outbox!.filter((item) => item.appointmentId === appointment.id);
+    expect(mine.find((item) => item.kind === "confirmation")).toMatchObject({ status: "sent", simulated: true });
+    expect(mine.filter((item) => item.kind !== "confirmation").every((item) => item.status === "scheduled" && !item.queued)).toBe(true);
   });
 
   test("la plantilla lleva nombre, servicio, cuándo y la sucursal", () => {

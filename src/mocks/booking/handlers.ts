@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { SIMULATED_TOKEN } from "@/features/payments/gateway";
 import { ACCOUNTS, db } from "../db";
 import { lineupRank } from "../team/workforce";
 import { releaseAppointmentStock, stockLevel, syncAppointmentStock } from "../inventory/stock";
@@ -51,7 +52,7 @@ import { branchOnlineMethods, branchTimeZone, consentProof, startInstant, taxInc
 import { instantOf } from "@/lib/time/zoned";
 import { settlementsOf } from "./settlement";
 import { productPriceIn } from "../catalogPrices";
-import { DECLINED_CARD, DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
+import { DEMO_GUESTS, DEMO_GUESTS_CLIENT, DEMO_OTP, type MockBookingLine, type MockReservation } from "./state";
 
 /**
  * La reserva en línea del backend simulado (docs/API_CONTRACT.md, «Reserva en
@@ -126,44 +127,39 @@ export function resetBookingLimits(): void {
   phoneChecks = [];
 }
 
-/** Luhn: la misma comprobación que hace la pasarela antes de hablar con el banco. */
-function validCard(number: string): boolean {
-  const digits = number.replace(/\D/g, "");
-  if (digits.length < 13 || digits.length > 19) return false;
-  let sum = 0;
-  [...digits].reverse().forEach((char, index) => {
-    let value = Number(char);
-    if (index % 2 === 1) value = value * 2 > 9 ? value * 2 - 9 : value * 2;
-    sum += value;
-  });
-  return sum % 10 === 0;
-}
-
-const brandOf = (number: string): string => (number.startsWith("4") ? "Visa" : number.startsWith("5") ? "Mastercard" : number.startsWith("3") ? "Amex" : "Tarjeta");
+/** El último paso de seguridad: aunque una pantalla vieja lo intentara, el número no se acepta aquí. */
+const RAW_CARD_FIELDS = ["number", "cvc", "cvv", "pan"] as const;
+const MAX_HOLDER = 80;
 
 /**
- * Cobra con tarjeta (guardada por su token, nueva o la billetera): una reserva, un anticipo o una
- * tarjeta de regalo. Devuelve la marca y los últimos 4, o la respuesta de error de la pasarela.
+ * Cobra con tarjeta (guardada por su token, nueva por el token de la pasarela, o la billetera): una
+ * reserva, un anticipo o una tarjeta de regalo. A este servidor nunca llegan el número ni el CVC: la
+ * pasarela los recibe en sus campos y devuelve un token (`src/features/payments/gateway.ts`).
+ * Devuelve la marca y los últimos 4, o la respuesta de error.
  */
 function chargeCard(client: MockClient, input: Record<string, unknown>, via: "card" | "wallet"): { last4: string; brand: string } | Response {
+  if (via === "wallet") return { last4: "4242", brand: "Wallet" };
   const savedCardId = text(input.savedCardId);
-  if (via === "card" && savedCardId) {
+  if (savedCardId) {
     // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
     const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
     if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
     return { last4: saved.last4, brand: saved.brand };
   }
   const card = asRecord(input.card as DefaultBodyType);
-  const number = via === "wallet" ? "4242424242424242" : text(card.number).replace(/\D/g, "");
-  if (!validCard(number)) return error(422, "card_invalid", "Revisa el número de la tarjeta.", { fields: { card: ["Revisa el número de la tarjeta."] } });
-  if (number === DECLINED_CARD) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
-  const [expMonth, expYear] = text(card.expiry).split("/").map(Number);
-  if (via === "card" && card.save === true && expMonth && expYear) {
-    saveCard(client.id, { brand: brandOf(number), last4: number.slice(-4), expMonth, expYear: 2000 + expYear, holder: text(card.name) });
+  if (RAW_CARD_FIELDS.some((field) => field in card)) return error(422, "raw_card_rejected", "Los datos de la tarjeta van a la pasarela, no a este servidor.", { fields: { card: ["Vuelve a escribir la tarjeta."] } });
+  const token = text(card.token);
+  const last4 = text(card.last4);
+  const expMonth = Number(card.expMonth);
+  const expYear = Number(card.expYear);
+  if (!SIMULATED_TOKEN.test(token) || !/^\d{4}$/.test(last4) || !Number.isInteger(expMonth) || expMonth < 1 || expMonth > 12 || !Number.isInteger(expYear) || expYear < 2000) {
+    return error(422, "card_invalid", "Revisa la tarjeta.", { fields: { card: ["Revisa la tarjeta."] } });
   }
-  return { last4: number.slice(-4), brand: via === "wallet" ? "Wallet" : brandOf(number) };
+  if (token.startsWith("tok_sim_decline_")) return error(402, "card_declined", "El banco rechazó la tarjeta. Prueba con otra o paga en la barbería.");
+  const brand = text(card.brand).slice(0, 20) || "Tarjeta";
+  if (card.save === true) saveCard(client.id, { brand, last4, expMonth, expYear, holder: text(card.name).slice(0, MAX_HOLDER) });
+  return { last4, brand };
 }
-
 
 interface PlannedItem {
   guestName: string | null;

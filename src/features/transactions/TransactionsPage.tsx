@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { Download, LayoutGrid, Loader2, Lock, RefreshCw } from "lucide-react";
+import { BookOpenText, Download, LayoutGrid, Loader2, Lock, RefreshCw } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -23,6 +23,7 @@ import { maskPhone } from "@/features/customers/customersUtils";
 import { useBranchId } from "@/features/team/teamUtils";
 import { AccountDrawer } from "./AccountDrawer";
 import { RegisterCloseDrawer } from "./RegisterCloseDrawer";
+import { LedgerDrawer } from "./LedgerDrawer";
 import { accountsFor, showsPeriodTotals } from "./transactionsAccess";
 import { useTransactionsQuery } from "./queries";
 import { countByStatus, describeLines, summarize, transactionCells, transactionColumns } from "./transactionsHome";
@@ -81,6 +82,9 @@ export function TransactionsPage() {
   const query = useTransactionsQuery({ branchId, from: filters.from, to: filters.to });
   const access = useAccess();
   const [registerOpen, setRegisterOpen] = React.useState(false);
+  const [ledgerOpen, setLedgerOpen] = React.useState(false);
+  // El libro de pagos es de la caja (dueño, administración, recepción) y del barbero de renta (sus cuentas).
+  const canSeeLedger = access.scope === "all" || access.role === "barbero-renta";
   const formatMoney = useMoney();
   // El cierre es de un día: en la vista de día, para quien ve todas las cuentas (dueño, administración, recepción).
   const canCloseRegister = access.scope === "all" && filters.granularity === "day";
@@ -97,6 +101,11 @@ export function TransactionsPage() {
         description={description}
         actions={
           <>
+            {canSeeLedger && (
+              <Button variant="outline" size="sm" onClick={() => setLedgerOpen(true)} data-testid="transactions-ledger">
+                <BookOpenText /> {t("transactions.ledger.action")}
+              </Button>
+            )}
             {canCloseRegister && (
               <Button variant="outline" size="sm" onClick={() => setRegisterOpen(true)} data-testid="transactions-register">
                 <Lock /> {t("transactions.register.action")}
@@ -157,6 +166,7 @@ export function TransactionsPage() {
       >
         {(data) => <TransactionsHome accounts={accountsFor(access, data.items)} showTotals={showsPeriodTotals(access)} filters={filters} fetching={query.isFetching} canRefund={access.can("transactions", "edit")} />}
       </QueryBoundary>
+      {canSeeLedger && <LedgerDrawer open={ledgerOpen} onOpenChange={setLedgerOpen} branchId={branchId} from={filters.from} to={filters.to} formatMoney={formatMoney} />}
       {canCloseRegister && <RegisterCloseDrawer open={registerOpen} onOpenChange={setRegisterOpen} branchId={branchId} date={filters.from} formatMoney={formatMoney} />}
     </div>
   );

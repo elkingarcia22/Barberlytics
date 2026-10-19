@@ -73,7 +73,7 @@ function fromAppointment(appointment: MockAppointment) {
   const status = refunded ? "refunded" : isVoid ? "void" : paid ? "paid" : "open";
   // Lo que se quedó la barbería: lo cobrado (o lo pagado en línea de una cita anulada) menos lo devuelto.
   const kept = paid ? total : isVoid ? account.prepaid : 0;
-  const charged = [...appointment.history].reverse().find((item) => item.event.startsWith("paid:"));
+  const charged = [...appointment.history].reverse().find((item) => item.event === "status:paid" || item.event.startsWith("paid:"));
   const barber = barberName(appointment.barberId);
   return {
     id: appointment.id,

@@ -114,6 +114,8 @@ Lo que responde MSW hoy.
 - `DELETE /expenses/:id` · src/mocks/expenses/handlers.ts
 - `POST /auth/otp/request` · src/mocks/handlers.ts
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
+- `POST /auth/step-up/request` · src/mocks/handlers.ts
+- `POST /auth/step-up/verify` · src/mocks/handlers.ts
 - `POST /auth/signup` · src/mocks/handlers.ts
 - `POST /support/tickets` · src/mocks/handlers.ts
 - `POST /auth/oauth` · src/mocks/handlers.ts
@@ -213,6 +215,7 @@ Lo que responde MSW hoy.
 - `POST /team/absences/:id/:decision` · src/mocks/team/workforce.ts
 - `DELETE /team/absences/:id` · src/mocks/team/workforce.ts
 - `GET /transactions` · src/mocks/transactions/handlers.ts
+- `GET /payments` · src/mocks/transactions/ledger.ts
 
 ## App · `src/app`
 
@@ -284,6 +287,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **RecoveryPanel.tsx** — Olvidé mi número: se escribe el correo registrado y el celular llega allí. · `RecoveryPanelProps`, `RecoveryPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, Input, Label, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
 - **SignupPanel.tsx** — Crear cuenta: los datos de la persona y de la barbería. · `SignupPanelProps`, `SignupPanel` · piezas: Button, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
 - **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /support/tickets · usa: @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
@@ -292,6 +296,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **backupEmailQueries.ts** — El correo de respaldo de quien tiene la sesión. · `backupEmailKeys`, `useBackupEmailQuery`, `useBackupEmailMutations`
 - **phoneLabel.ts** — «+573001234567» → «+57 300 123 4567», para decir a qué número se envió el código. · `describePhone` · piezas: formatNational, parseE164
 - **providers.ts** — Pide al proveedor (Google Identity Services, MSAL para Outlook) la credencial con la que el backend abre la s… · `requestProviderCredential` · usa: @/lib/api
+- **stepUp.ts** · `stepUpToken`, `clearStepUp`, `stepUpApi` · llama: POST /auth/step-up/request, POST /auth/step-up/verify · usa: @/lib/api
 - **timezones.ts** — Zonas IANA de cada país que ofrece `PhoneInput`; la primera es la más poblada. · `COUNTRY_TIMEZONES`, `describeTimezone`, `timezonesFor`
 - **tokenStorage.ts** — Dónde vive el token de acceso en el navegador. · `TokenStorage`, `sessionTokenStorage`, `createMemoryTokenStorage`
 - **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpChannelSchema`, `OtpChannel`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `backupEmailSchema`, `BackupEmail`, `backupEmailRequestSchema`, `BackupEmailRequest`, `backupEmailVerifySchema`, `BackupEmailVerify`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
@@ -827,10 +832,12 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### transactions
 
 - **AccountDrawer.tsx** — El detalle de una cuenta, en un panel: qué se cobró línea por línea, las cuentas —subtotal, impuesto, total,… · `AccountDrawerProps`, `AccountDrawer` · piezas: Button, DrawerShell, IconTile, Text · usa: @/app/i18n, @/features/calendar, @/features/customers, @/features/services, @/i18n
+- **LedgerDrawer.tsx** — El libro de pagos del periodo: lo que entró y salió por cada medio y cada movimiento con quién lo hizo. · `LedgerDrawerProps`, `LedgerDrawer` · piezas: Badge, Button, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **RefundDialog.tsx** — Devolver una cuenta cobrada, entera o en parte: cuánto, a dónde vuelve (efectivo o la tarjeta) y por qué. · `RefundDialogProps`, `RefundDialog` · piezas: Button, Field, Input, ModalShell, NumberField, SegmentedControl · usa: @/app/i18n
 - **RegisterCloseDrawer.tsx** — Cerrar la caja del día: lo que entró por cada medio según las cuentas y, en efectivo, lo que debería haber co… · `RegisterCloseDrawerProps`, `RegisterCloseDrawer` · piezas: Button, DrawerShell, Field, NumberField, Skeleton, Text, Textarea · usa: @/app/i18n, @/features/review, @/i18n, @/lib/query
 - **TransactionsPage.tsx** — Las transacciones: las cuentas de un periodo, con lo que se facturó, lo que ya entró y lo que falta por cobra… · `TransactionsPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, MetricRing, OptionTile, PageHeader, PeriodNavigator, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/customers, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **api.ts** — Contrato de transacciones; ver docs/API_CONTRACT.md. · `RefundInput`, `transactionsApi` · llama: GET /transactions, POST /appointments/${appointmentId}/refund · usa: @/features/calendar, @/lib/api
+- **ledger.ts** — El libro de pagos: cada movimiento de dinero del periodo, en orden y sin borrar nada (ver docs/API_CONTRACT.m… · `ledgerKindSchema`, `LedgerKind`, `Ledger`, `LedgerEntry`, `useLedgerQuery`, `LEDGER_KIND_KEYS`, `methodKey` · llama: GET /payments · usa: @/app/i18n, @/lib/api
 - **queries.ts** — Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. · `transactionKeys`, `useTransactionsQuery`, `useRefundAccount` · usa: @/lib/api
 - **register.ts** — El cierre de caja: lo que debía haber en efectivo al final del día (según las cuentas) frente a lo que se con… · `registerExpectedSchema`, `RegisterExpected`, `registerClosureSchema`, `RegisterClosure`, `registerDaySchema`, `RegisterDay`, `RegisterCloseInput`, `registerApi`, `useRegisterDay`, `useCloseRegister`, `expectedInDrawer` · llama: GET /register, POST /register/close · usa: @/lib/api
 - **transactionsAccess.ts** — Las cuentas que le tocan a quien mira: todas, o solo las que atendió el barbero. · `accountsFor`, `showsPeriodTotals` · usa: @/features/access
@@ -959,7 +966,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
 - **random.ts** — Generador pseudoaleatorio con semilla (mulberry32): la misma semilla, la misma serie. · `seededRandom`
 - **server.ts** — Servidor para Vitest (Node/jsdom); ver `src/test/setup.ts`. · `server`
-- **session.ts** — Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha de equipo. · `MockSession`, `sessionOf`, `isManager`, `isBarber`, `unauthorized`, `forbidden`
+- **session.ts** — Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha de equipo. · `MockSession`, `sessionOf`, `isManager`, `isBarber`, `unauthorized`, `forbidden`, `hasStepUp`, `stepUpRequired`
 
 ### calendar
 
@@ -1047,6 +1054,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### transactions
 
 - **handlers.ts** · `transactionsHandlers`
+- **ledger.ts** — Quien cobró: la línea «cobrada» del historial (o, si no está, el barbero). · `LedgerKind`, `LedgerEntry`, `chargedBy`, `ledgerOf`, `ledgerHandlers`
 
 ## i18n · `src/i18n`
 

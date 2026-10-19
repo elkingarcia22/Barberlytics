@@ -28,15 +28,18 @@ import { writeMenu, type MenuLink } from "./writeChannels";
 
 const TITLE_TONE = { default: undefined, negative: "text-destructive", positive: "text-success", warning: "text-warning" } as const;
 
-/** El titular del momento y su línea: «Va 12 min tarde · Llámalo o escríbele». */
-export function StageHeading({ model, ctx, size = "md" }: { model: AppointmentModel; ctx: ModelContext; size?: "md" | "lg" }) {
+/** El titular del momento y su línea: «Va 12 min tarde · Llámalo o escríbele». Al lado, un estado corto si lo hay (la confirmación). */
+export function StageHeading({ model, ctx, size = "md", badge }: { model: AppointmentModel; ctx: ModelContext; size?: "md" | "lg"; badge?: React.ReactNode }) {
   const t = useAppT();
   const title = stageTitle(model, ctx.now, t, ctx.formatMoney, (date) => formatClock(date, ctx.intl));
   return (
     <div className="flex flex-col gap-1" data-stage={model.playbook.stage} data-testid="panel-stage">
-      <Heading level={size === "lg" ? 2 : 3} className={cn("first-letter:uppercase", TITLE_TONE[title.tone])} data-testid="appointment-headline">
-        {title.title}
-      </Heading>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Heading level={size === "lg" ? 2 : 3} className={cn("first-letter:uppercase", TITLE_TONE[title.tone])} data-testid="appointment-headline">
+          {title.title}
+        </Heading>
+        {badge}
+      </div>
       {title.line && <Text tone="secondary">{title.line}</Text>}
     </div>
   );

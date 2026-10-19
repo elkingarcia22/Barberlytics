@@ -101,6 +101,8 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.send.linkSent": "Link sent to {to}",
   "calendar.panel.send.and": " and ",
   "calendar.panel.next.linkHint": "Send them the online booking link with everything set: they pick the time and pay from their phone.",
+  "calendar.panel.confirm": "Confirm appointment",
+  "calendar.panel.unconfirm": "Remove confirmation",
   "calendar.panel.next.mode": "How to rebook",
   "calendar.panel.next.modePick": "I pick the time",
   "calendar.panel.next.modeLink": "Let them pick",

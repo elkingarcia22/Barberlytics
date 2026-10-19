@@ -110,6 +110,8 @@ export const calendarPanelEs = {
   "calendar.panel.send.linkSent": "Enlace enviado a {to}",
   "calendar.panel.send.and": " y ",
   "calendar.panel.next.linkHint": "Mándale el enlace de la reserva en línea con todo puesto: escoge la hora y paga desde su celular.",
+  "calendar.panel.confirm": "Confirmar la cita",
+  "calendar.panel.unconfirm": "Quitar la confirmación",
   "calendar.panel.next.mode": "Cómo reagendar",
   "calendar.panel.next.modePick": "Yo elijo la hora",
   "calendar.panel.next.modeLink": "Que elija él",

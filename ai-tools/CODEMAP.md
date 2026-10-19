@@ -614,6 +614,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CareAlerts.tsx** · `CareAlerts` · piezas: Text, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n, @/lib/utils
 - **ClientField.tsx** · `ClientFieldProps`, `ClientField` · piezas: Button, Input, SelectableRow, Text · usa: @/app/i18n, @/i18n, @/icons
 - **ClientPage.tsx** — La fila del cliente: tipo, visita de la membresía y ritmo; lleva a su página. · `ClientSummaryRow`, `Fact`, `ClientPageContent` · piezas: Button, ProgressRing, Stepper, Text · usa: @/app/i18n, @/i18n
+- **ConfirmationBadge.tsx** · `ConfirmationBadge` · piezas: StatusBadge, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n
 - **HistoryTimeline.tsx** — La visita contada con horas reales: lo hecho, lo que va ahora y lo que falta. · `HistoryTimeline` · piezas: Text, Timeline, TimelineItem, formatClock · usa: @/app/i18n, @/i18n
 - **NextVisitBooker.tsx** · `NextVisitBooker` · piezas: Button, SegmentedControl, Switch, Text, TimeSlotPicker, calendarLocale, formatClock · usa: @/app/i18n, @/features/booking, @/i18n, @/icons, @/lib/api
 - **PanelBody.tsx** — El cuerpo del panel de una cita («Tarjeta + Arma la cita», la que eligió el usuario el 2026-10-18; las demás… · `PanelBodyProps`, `PanelPage`, `AppointmentPanelBody` · piezas: Popover, PopoverAnchor, PopoverContent · usa: @/app/i18n, @/lib/utils
@@ -629,6 +630,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **WriteMenu.tsx** — El menú de canales bajo lo que lo abre (un atajo o un botón). · `LinkMenu` · piezas: DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 - **appointmentAgent.ts** — El foco que el panel de una cita le pasa a Clipper al abrirlo. · `topicOf`, `AppointmentAgentInput`, `appointmentAgentFocus` · piezas: formatClock · usa: @/app/i18n, @/lib/chat
 - **bookingStyle.tsx** — El campo de la reserva: foto, nombre del campo, lo elegido y un detalle; abre su lista. · `PanelFieldProps`, `PanelField`, `InlineList`, `PanelQuestion`, `NavRow`, `PanelSubpage`, `NavRowLink` · piezas: ActionTile, Button, Heading, IconTile, Text · usa: @/app/i18n, @/icons, @/lib/utils
+- **confirmation.ts** — Si el cliente confirmó que viene, en una palabra para el badge junto al título de la cita, y cómo (para su to… · `ConfirmationKind`, `ConfirmationState`, `confirmationOf` · usa: @/app/i18n
 - **panelHooks.ts** — Abre el panel de Clipper hablando de esta cita y este cliente. · `useAskClipper`, `PanelPages`, `usePanelPages` · usa: @/app/i18n, @/i18n, @/lib/chat
 - **panelLogic.ts** — Las etiquetas que van pegadas al nombre (SevenRooms, Mariana Tek): las que se calculan solas a partir de dato… · `TagTone`, `ClientTag`, `clientTags`, `clockRelation`, `previousStatus`, `restActions`, `mainAction`, `QuickId`, `quickActions`, `showsRequest`, `StageTitle`, `stageTitle`, `TRACK`, `trackIndexOf`, `isClosed` · usa: @/app/i18n
 - **pinPlan.ts** — Una fecha: la misma hora si está libre; si no, la más cercana (a igual distancia, la más temprana). · `PinStop`, `pinDates`, `planStop`, `bookableStops` · piezas: isWorkingAt, minutesOfDay
@@ -639,7 +641,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### calendar/appointmentTabs
 
 - **AppointmentLinkSection.tsx** — Lo que el panel de una cita necesita para sus citas enlazadas. · `AppointmentLinkProps`, `AppointmentLinkSectionProps`, `AppointmentLinkSection`, `LinkPickerProps`, `LinkPicker` · piezas: Button, ListItem, ListItemGroup, SearchableSelect, Text · usa: @/app/i18n
-- **AppointmentMessages.tsx** — Si el cliente confirmó que viene, como una tarjeta más de la cita: el estado (confirmada o no, y cómo) con su… · `AppointmentMessagesProps`, `AppointmentMessages` · piezas: Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, IconTile, Switch, Text, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n, @/i18n, @/lib/api
+- **AppointmentMessages.tsx** — Lo que se habló con el cliente sobre la cita, como una tarjeta más: lo que respondió al mensaje y los mensaje… · `AppointmentMessagesProps`, `AppointmentMessages` · piezas: Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Text, Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n, @/i18n, @/lib/api
 - **AppointmentNotesTab.tsx** — Notas: las del cliente filtradas por tipo —Notas, Medicamento, Alergias— con chips y su contador, el formular… · `AppointmentNotesTabProps`, `AppointmentNotesTab` · piezas: Button, DrawerSection, EmptyState, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea · usa: @/app/i18n, @/lib/api
 
 ### calendar/checkout

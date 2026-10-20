@@ -1,3 +1,5 @@
+import type { CustomerSource } from "./loyalty";
+import type { AppMessageKey } from "@/app/i18n/types";
 import type * as React from "react";
 import { Ban, Crown, Flame, Hourglass, Repeat, Sparkles, Undo2, UserX, type LucideIcon } from "lucide-react";
 import type { Badge } from "@/components/ui/badge";
@@ -77,3 +79,14 @@ export function downloadCsv(filename: string, header: readonly string[], rows: r
   link.click();
   URL.revokeObjectURL(url);
 }
+
+/** Cómo llegó cada cliente, para el formulario, la ficha y el filtro. */
+export const SOURCE_KEYS: Readonly<Record<CustomerSource, AppMessageKey>> = {
+  instagram: "customers.origin.instagram",
+  google: "customers.origin.google",
+  facebook: "customers.origin.facebook",
+  tiktok: "customers.origin.tiktok",
+  referral: "customers.origin.referral",
+  walkin: "customers.origin.walkin",
+  other: "customers.origin.other",
+};

@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
+import { CustomerTagDialog } from "./CustomerTagDialog";
 import { CustomerImportDrawer } from "./CustomerImportDrawer";
 import { ReactivationDrawer } from "./ReactivationDrawer";
 import { PrivacyRequestsDrawer } from "./PrivacyRequestsDrawer";
@@ -107,8 +108,9 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
 
   const segment = parseSegment(searchParams.get("tipo"));
   const alertParam = searchParams.get("aviso");
+  const tagFilter = searchParams.get("etiqueta");
   const alert = ALERT_IDS.includes(alertParam ?? "") ? (alertParam as CustomerAlertId) : null;
-  const setFilters = (next: { tipo?: string | null; aviso?: string | null }) =>
+  const setFilters = (next: { tipo?: string | null; aviso?: string | null; etiqueta?: string | null }) =>
     setSearchParams(
       (current) => {
         const params = new URLSearchParams(current);
@@ -129,6 +131,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const [privacyOpen, setPrivacyOpen] = React.useState(false);
   // WhatsApp a varios: a los marcados o a los de un aviso (cumpleaños, por volver…).
   const [bulk, setBulk] = React.useState<{ customers: Customer[]; purpose: MessagePurpose } | null>(null);
+  const [tagging, setTagging] = React.useState<readonly string[] | null>(null);
   // Reactivar escribe a clientes en nombre de la barbería: lo aprueba quien gestiona.
   const access = useAccess();
   const manages = access.role === "owner" || access.role === "admin";
@@ -146,7 +149,13 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const pool = React.useMemo(() => (segment === ALL_SEGMENTS ? rows : rows.filter((row) => row.segment === segment)), [rows, segment]);
   const pulse = React.useMemo(() => customerPulse(pool), [pool]);
   const preset = CUSTOMER_ALERTS.find((item) => item.id === alert);
-  const filtered = React.useMemo(() => pool.filter((row) => !preset || preset.matches(row)), [pool, preset]);
+  const filtered = React.useMemo(() => pool.filter((row) => (!preset || preset.matches(row)) && (!tagFilter || row.tags.includes(tagFilter))), [pool, preset, tagFilter]);
+  // Las etiquetas en uso en lo que se ve (por segmento), con cuántos las tienen: el filtro por etiqueta.
+  const tagCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const row of pool) for (const tag of row.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"));
+  }, [pool]);
   const attention = pool.filter((row) => CUSTOMER_ALERTS.some((item) => item.matches(row))).length;
   const calm = attention === 0;
 
@@ -173,6 +182,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           block: () => single && setConfirmBlock(single),
           remove: () => single && setConfirmDelete(single),
           whatsapp: perms.showContact ? () => setBulk({ customers: rows.filter((row) => selected.has(row.id)), purpose: "thanks" }) : undefined,
+          tag: perms.canEdit && perms.scope === "all" ? () => setTagging([...selected]) : undefined,
         },
         single?.blocked ?? false,
         perms
@@ -189,7 +199,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const pickAlert = (id: CustomerAlertId) => setFilters({ aviso: alert === id ? null : id });
 
   const segmentHint = segment === ALL_SEGMENTS ? t("customers.segment.allHint") : t(SEGMENT_HINT_KEYS[segment]);
-  const hasFilter = segment !== ALL_SEGMENTS || alert !== null;
+  const hasFilter = segment !== ALL_SEGMENTS || alert !== null || tagFilter !== null;
 
   if (rows.length === 0) {
     return (
@@ -296,6 +306,17 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         </div>
       )}
 
+      {(tagCounts.length > 0 || tagFilter) && (
+        <div role="group" aria-label={t("customers.tags.filter")} className="mb-stack flex shrink-0 flex-wrap items-center gap-1.5" data-testid="customers-tag-filter">
+          <span className="mr-1 text-xs font-medium text-text-muted">{t("customers.tags.filter")}</span>
+          {tagCounts.slice(0, 12).map(([tag, count]) => (
+            <Button key={tag} size="xs" variant={tagFilter === tag ? "default" : "outline"} aria-pressed={tagFilter === tag} onClick={() => setFilters({ etiqueta: tagFilter === tag ? null : tag })}>
+              {tag} <span className="tabular-nums opacity-70">{formatCount(count)}</span>
+            </Button>
+          ))}
+        </div>
+      )}
+
       <DataListBlock
         tableId="clientes-lista"
         title={t("customers.listTitle")}
@@ -306,7 +327,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         cells={cells}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.name}
-        searchBy={(row) => `${row.name} ${showContact ? `· ${row.email} · ${row.phone}` : ""} · ${t(SEGMENT_KEYS[row.segment])} · ${branchName(row.branchId)}`}
+        searchBy={(row) => `${row.name} ${showContact ? `· ${row.email} · ${row.phone}` : ""} · ${t(SEGMENT_KEYS[row.segment])} · ${branchName(row.branchId)} · ${row.tags.join(" · ")}`}
         searchPlaceholder={t("customers.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         selectable
@@ -318,7 +339,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           <div className="flex flex-col items-center gap-3 py-6 text-center text-sm text-text-muted">
             <p>{hasFilter ? t("customers.emptyFiltered") : t("customers.emptySearch")}</p>
             {hasFilter && (
-              <Button size="sm" variant="outline" onClick={() => setFilters({ tipo: null, aviso: null })}>
+              <Button size="sm" variant="outline" onClick={() => setFilters({ tipo: null, aviso: null, etiqueta: null })}>
                 {t("customers.clearFilters")}
               </Button>
             )}
@@ -356,6 +377,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
       {bulk && <CustomerBulkWhatsAppDialog open onOpenChange={(open) => !open && setBulk(null)} customers={bulk.customers} purpose={bulk.purpose} />}
+      {tagging && <CustomerTagDialog ids={tagging} onClose={() => (setTagging(null), setSelected(new Set()))} />}
       {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 

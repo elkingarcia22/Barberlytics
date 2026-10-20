@@ -1,11 +1,11 @@
 import * as React from "react";
-import { CalendarPlus, Gift, Package, Percent, Plus, Scissors } from "lucide-react";
+import { CalendarPlus, Gift, Package, Percent, Plus, Scissors, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { CheckoutController } from "./useCheckout";
 
 /** Lo que el botón «Agregar» suma a la cuenta. */
-export type AddKind = "service" | "product" | "visit" | "discount" | "giftSale";
+export type AddKind = "service" | "product" | "visit" | "discount" | "coupon" | "giftSale";
 
 /**
  * «Agregar»: lo que no hace falta casi nunca, a un toque y fuera de la vista
@@ -23,7 +23,8 @@ export function AddMenu({ checkout, onAdd, className }: { checkout: CheckoutCont
     { kind: "service", icon: Scissors, show: true },
     { kind: "product", icon: Package, show: true },
     { kind: "visit", icon: CalendarPlus, show: checkout.candidates.length > checkout.extras.length },
-    { kind: "discount", icon: Percent, show: checkout.discountValue === null },
+    { kind: "discount", icon: Percent, show: checkout.discountValue === null && !checkout.coupon },
+    { kind: "coupon", icon: Ticket, show: !checkout.coupon && !checkout.couponOpen },
     { kind: "giftSale", icon: Gift, show: !checkout.giftSale },
   ];
   return (

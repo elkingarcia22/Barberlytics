@@ -111,5 +111,11 @@ export const calendarCheckoutEs = {
   "calendar.checkout.add.product": "Un producto",
   "calendar.checkout.add.visit": "Otra cita sin cobrar",
   "calendar.checkout.add.discount": "Un descuento",
+  "calendar.checkout.add.coupon": "Canjear un cupón",
+  "calendar.checkout.coupon.title": "Código del cupón",
+  "calendar.checkout.coupon.placeholder": "Código del cupón",
+  "calendar.checkout.coupon.apply": "Aplicar",
+  "calendar.checkout.coupon.applied": "Cupón {code}",
+  "calendar.checkout.coupon.remove": "Quitar el cupón",
   "calendar.checkout.add.giftSale": "Vender una tarjeta de regalo",
 } as const;

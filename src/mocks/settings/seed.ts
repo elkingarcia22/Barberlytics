@@ -11,7 +11,7 @@ import { defaultWeekHours } from "@/features/branches/branchHours";
  * de la cuenta y no se copian a un mock.
  */
 
-export type MockSettingsSection = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing";
+export type MockSettingsSection = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing" | "marketing";
 /** Los datáfonos de la demo: la caja, recepción y dos puestos. */
 export const SEED_DEVICES = [
   { id: "dev_caja", name: "Caja principal", serial: "SN-48201", tpn: "TPN-7731", hasAuthKey: true },
@@ -30,7 +30,7 @@ export function upgradeDevices<T extends { id: string; name?: unknown }>(devices
   return untouched ? (SEED_DEVICES.map((device) => ({ ...device })) as unknown as T[]) : null;
 }
 
-export type MockSettingsList = "branches" | "closures" | "taxGroups" | "devices" | "gateways";
+export type MockSettingsList = "branches" | "closures" | "taxGroups" | "devices" | "gateways" | "coupons";
 
 export interface MockListItem {
   id: string;
@@ -60,7 +60,27 @@ export function upgradeSettings(settings: MockSettingsState): MockSettingsState 
   // Las sucursales guardadas antes del horario por sede: el del negocio, de lunes a sábado.
   const business = settings.sections.business as { openTime?: string; closeTime?: string };
   const branches = settings.lists.branches.map((item) => (item.hours ? item : { ...item, hours: defaultWeekHours(business.openTime, business.closeTime) }));
-  return { ...settings, lists: { ...settings.lists, branches, ...(devices ? { devices } : {}) } };
+  // Lo guardado antes de los cupones y de Marketing: los de la demo y todo apagado salvo los referidos.
+  const sections = settings.sections.marketing ? settings.sections : { ...settings.sections, marketing: defaultMarketing() };
+  return { ...settings, sections, lists: { ...settings.lists, branches, coupons: settings.lists.coupons ?? defaultCoupons(), ...(devices ? { devices } : {}) } };
+}
+
+/** Los cupones con los que nace la demo (los de antes, ahora editables). */
+function defaultCoupons(): MockListItem[] {
+  const base = { validFrom: null, validTo: null, serviceIds: [], maxUses: null, minAppointments: null, firstVisitOnly: false, perClient: null, active: true, createdAt: "2026-01-06T12:00:00.000Z" };
+  return [
+    { ...base, id: "cpn_bienvenido", code: "BIENVENIDO10", type: "percent", value: 10, firstVisitOnly: true, perClient: 1, description: "Bienvenida: se aplica solo a quien reserva por primera vez." },
+    { ...base, id: "cpn_familia", code: "FAMILIA15", type: "percent", value: 15, minAppointments: 2, description: "Dos o más citas en la misma reserva." },
+    { ...base, id: "cpn_barber5", code: "BARBER5", type: "amount", value: 5, perClient: 1, description: "" },
+  ];
+}
+
+/** Referidos y mensajes automáticos. */
+function defaultMarketing(): Record<string, unknown> {
+  return {
+    referral: { enabled: true, reward: 5, maxPerReferrer: 10 },
+    automations: { birthday: { enabled: false }, thanks: { enabled: false, delayHours: 3 }, review: { enabled: false, delayHours: 2 } },
+  };
 }
 
 export function seedSettings(): MockSettingsState {
@@ -101,6 +121,8 @@ export function seedSettings(): MockSettingsState {
       commissions: { deductDiscounts: true, deductTaxes: true, deductServiceCost: false, deductProductCost: false },
       payrollCycle: { cycle: "weekly", startDay: 1 },
       notifications: { toggles: {}, thresholds: {}, reminderHours: [24, 2] },
+      // Referidos encendidos (5 de saldo a favor para cada uno); los mensajes automáticos, apagados hasta que el dueño los prenda.
+      marketing: defaultMarketing(),
       company: { name: "Barbería Demo", legalName: "Barbería Demo LLC", identification: "12-3456789", website: "https://barberia.example.com", phone: "+16175550100", country: "Estados Unidos" },
       billing: {
         plan: { name: "Grow", cycle: "annual", price: 50, nextInvoiceAt: "2026-10-28" },
@@ -119,6 +141,7 @@ export function seedSettings(): MockSettingsState {
         { id: "ri", name: "Rhode Island", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Rhode Island", city: "Providence", address: "134 Thayer St", zipcode: "02906", phone: "+14015550120", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ri", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("08:00", "21:00"), status: "active", createdAt: "2026-03-18T12:00:00.000Z" },
         { id: "ut", name: "Utah", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Utah", city: "Salt Lake City", address: "55 W 200 S", zipcode: "84101", phone: "+18015550130", currency: "USD", language: "es", timezone: "America/Denver", taxGroupId: "tax_ut", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("09:00", "19:00"), status: "active", createdAt: "2026-04-22T12:00:00.000Z" },
       ],
+      coupons: defaultCoupons(),
       closures: [{ id: "cls_001", startDate: "2026-12-24", endDate: "2026-12-26", branchIds: ["ma", "nc", "ri", "ut"], description: "Navidad" }],
       // Uno por estado (tasas de demostración, no de una declaración real) y el IVA para una sucursal en Colombia.
       taxGroups: [

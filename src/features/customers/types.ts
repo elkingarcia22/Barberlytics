@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customerSourceSchema, cutRecordSchema, referralSummarySchema } from "./loyalty";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { clientNoteSchema } from "@/features/calendar/types";
 
@@ -35,6 +36,10 @@ export const customerSchema = z.object({
   createdAt: z.string(),
   /** Alergias y medicamentos anotados: lo que el barbero tiene que ver antes de empezar. */
   medicalNotes: z.number(),
+  /** Etiquetas propias («cera mate», «estudiante»): para filtrar y escribir a un grupo. */
+  tags: z.array(z.string()).default([]),
+  /** Cómo llegó («¿cómo nos conociste?»). */
+  source: customerSourceSchema.nullable().default(null),
 });
 export type Customer = z.infer<typeof customerSchema>;
 
@@ -95,6 +100,10 @@ export const customerDetailSchema = customerSchema.extend({
   lastAppointmentId: z.string().nullable(),
   payments: z.array(customerPaymentSchema),
   products: z.array(customerProductSchema),
+  /** Su código de referido, quién lo trajo y a cuántos trajo. */
+  referral: referralSummarySchema.optional(),
+  /** El último corte anotado (fórmula y fotos). */
+  lastCut: cutRecordSchema.nullable().default(null),
 });
 export type CustomerDetail = z.infer<typeof customerDetailSchema>;
 
@@ -112,10 +121,14 @@ export const customerInputSchema = z.object({
   zipcode: z.string().trim(),
   birthDate: z.string(),
   onlineOnly: z.boolean(),
+  /** «¿Cómo nos conociste?». */
+  source: customerSourceSchema.nullable(),
+  /** El código de referido con el que llegó (solo al crearlo). */
+  referralCode: z.string().trim(),
 });
 export type CustomerInput = z.infer<typeof customerInputSchema>;
 
-export const EMPTY_CUSTOMER_INPUT: CustomerInput = { firstName: "", lastName: "", phone: "", email: "", country: "", state: "", city: "", address: "", zipcode: "", birthDate: "", onlineOnly: false };
+export const EMPTY_CUSTOMER_INPUT: CustomerInput = { firstName: "", lastName: "", phone: "", email: "", country: "", state: "", city: "", address: "", zipcode: "", birthDate: "", onlineOnly: false, source: null, referralCode: "" };
 
 export interface GuestInput {
   name: string;
@@ -171,5 +184,5 @@ export function splitName(name: string): { firstName: string; lastName: string }
 }
 
 export function inputFromDetail(customer: CustomerDetail): CustomerInput {
-  return { ...splitName(customer.name), phone: customer.phone.replace(/[^\d+]/g, ""), email: customer.email, country: customer.country, state: customer.state, city: customer.city, address: customer.address, zipcode: customer.zipcode, birthDate: customer.birthDate ?? "", onlineOnly: customer.onlineOnly };
+  return { ...splitName(customer.name), phone: customer.phone.replace(/[^\d+]/g, ""), email: customer.email, country: customer.country, state: customer.state, city: customer.city, address: customer.address, zipcode: customer.zipcode, birthDate: customer.birthDate ?? "", onlineOnly: customer.onlineOnly, source: customer.source, referralCode: "" };
 }

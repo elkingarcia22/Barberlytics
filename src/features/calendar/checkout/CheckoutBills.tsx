@@ -5,6 +5,7 @@ import type { Appointment } from "../types";
 import { AddMenu, type AddKind } from "./AddMenu";
 import { productOptions, serviceOptions, visitOptions } from "./addOptions";
 import { DiscountField, GiftSaleField, ProductsSection, ServicesSection, VisitSection } from "./BillSection";
+import { CouponField } from "./CouponField";
 import type { CheckoutController } from "./useCheckout";
 
 /**
@@ -33,6 +34,7 @@ export function CheckoutBill({ checkout, appointment, ctx }: BillProps) {
 
   const add = (kind: AddKind) => {
     if (kind === "discount") checkout.setDiscountValue(0);
+    else if (kind === "coupon") checkout.setCouponOpen(true);
     else if (kind === "giftSale") checkout.setGiftSale({ amount: GIFT_SALE_START, recipientName: "", recipientContact: "" });
     else setPicking(kind);
   };
@@ -55,7 +57,8 @@ export function CheckoutBill({ checkout, appointment, ctx }: BillProps) {
       <VisitSection checkout={checkout} appointment={appointment} ctx={ctx} />
       <ServicesSection checkout={checkout} ctx={ctx} />
       <ProductsSection checkout={checkout} ctx={ctx} />
-      {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
+      {checkout.discountValue !== null && !checkout.coupon && <DiscountField checkout={checkout} ctx={ctx} />}
+      {(checkout.coupon || checkout.couponOpen) && <CouponField checkout={checkout} ctx={ctx} />}
       {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
       {picker ? (
         <SearchableSelect defaultOpen value="" options={picker.options} placeholder={picker.placeholder} searchPlaceholder={picker.search} onValueChange={pick} onOpenChange={(open) => !open && setPicking(null)} />

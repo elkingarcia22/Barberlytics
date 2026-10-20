@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { defaultWeekHours, type WeekHours } from "@/features/branches/branchHours";
 import { db } from "./db";
 import { barberFree, branchDetail, isClosed } from "./booking/logic";
@@ -103,6 +103,21 @@ describe("horario por sucursal, anticipo desde la cita, recargo como línea y ci
   });
 
   test("cerrar un turno deja la caja abierta; el siguiente cuenta desde ahí y el del día la cierra", async () => {
+    // Al final del día: los cobros de hoy ya pasaron y lo del segundo turno es solo el retiro.
+    const late = new Date();
+    late.setHours(23, 50, 0, 0);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(late);
+    try {
+      await shiftScenario();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+async function shiftScenario() {
+  {
     const date = new Date().toISOString().slice(0, 10);
     const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
     const day = () => call(OWNER, `/register?branchId=ma&date=${today}`).then((response) => response.json());
@@ -111,6 +126,7 @@ describe("horario por sucursal, anticipo desde la cita, recargo como línea y ci
     const shift = await call(OWNER, "/register/close", post({ branchId: "ma", date: today, opening: 0, counted: first.expected.cash, note: "", final: false }));
     expect(shift.status).toBe(201);
     expect(await shift.json()).toMatchObject({ shift: 1, final: false, difference: 0 });
+    vi.setSystemTime(new Date(Date.now() + 60_000));
     // Un retiro en el segundo turno: lo esperado del turno 2 es solo eso.
     expect((await call(OWNER, "/register/movements", post({ branchId: "ma", date: today, type: "out", amount: 20, reason: "Pago al proveedor" }))).status).toBe(201);
     const second = await day();
@@ -123,5 +139,5 @@ describe("horario por sucursal, anticipo desde la cita, recargo como línea y ci
     expect(closed.closure).toMatchObject({ shift: 2, final: true });
     expect((await call(OWNER, "/register/movements", post({ branchId: "ma", date: today, type: "in", amount: 5, reason: "Sencillo" }))).status).toBe(409);
     expect(date.length).toBe(10);
-  });
-});
+  }
+}

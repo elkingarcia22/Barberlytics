@@ -16,6 +16,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/typography";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CUSTOMER_SOURCES } from "./loyalty";
+import { SOURCE_KEYS } from "./customersUtils";
 import { useCreateCustomer, useUpdateCustomer } from "./queries";
 import { EMPTY_CUSTOMER_INPUT, customerInputSchema, inputFromDetail, type CustomerDetail, type CustomerInput } from "./types";
 
@@ -81,6 +84,9 @@ interface CustomerFormBodyProps {
   onDone: () => void;
   onCreated?: (customer: CustomerDetail) => void;
 }
+
+/** El valor del select que no elige nada (Radix no admite la cadena vacía). */
+const NO_SOURCE = "none";
 
 function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCreated }: CustomerFormBodyProps) {
   const t = useAppT();
@@ -158,6 +164,35 @@ function CustomerFormBody({ customer, branchId, onSubmittingChange, onDone, onCr
       <Field label={t("customers.form.email")} description={t("customers.form.emailOptional")} error={message(errors.email?.message)}>
         <Input type="email" autoComplete="off" aria-invalid={!!errors.email} data-testid="customer-form-email" {...form.register("email")} />
       </Field>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t("customers.form.source")} description={t("customers.form.sourceHint")}>
+          <Controller
+            control={form.control}
+            name="source"
+            render={({ field }) => (
+              <Select value={field.value ?? NO_SOURCE} onValueChange={(value) => field.onChange(value === NO_SOURCE ? null : value)}>
+                <SelectTrigger data-testid="customer-form-source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SOURCE}>{t("customers.origin.none")}</SelectItem>
+                  {CUSTOMER_SOURCES.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {t(SOURCE_KEYS[source])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </Field>
+        {!customer && (
+          <Field label={t("customers.form.referralCode")} description={t("customers.form.referralCodeHint")} error={message(errors.referralCode?.message)}>
+            <Input autoComplete="off" className="uppercase" aria-invalid={!!errors.referralCode} data-testid="customer-form-referral" {...form.register("referralCode", { setValueAs: (value: string) => value.toUpperCase().replace(/\s+/g, "") })} />
+          </Field>
+        )}
+      </div>
 
       <Collapsible open={showMore} onOpenChange={setShowMore} className="rounded-xl border border-border/60">
         <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50" data-testid="customer-form-more">

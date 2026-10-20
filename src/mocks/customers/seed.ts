@@ -48,7 +48,16 @@ export interface MockCustomerProfile {
   deleted?: boolean;
   /** La tanda de importación que lo trajo (para poder deshacerla). */
   importBatch?: string;
+  /** Etiquetas propias («cera mate», «VIP», «estudiante»), en minúsculas y sin repetir. */
+  tags?: string[];
+  /** Cómo llegó: lo que respondió a «¿cómo nos conociste?» o lo que dijo su enlace. */
+  source?: MockCustomerSource | null;
+  /** Quién lo refirió (id del cliente), si llegó con un código de referido. */
+  referredBy?: string | null;
 }
+
+export const CUSTOMER_SOURCES = ["instagram", "google", "facebook", "tiktok", "referral", "walkin", "other"] as const;
+export type MockCustomerSource = (typeof CUSTOMER_SOURCES)[number];
 
 /** Solo lo que cambió o se creó; el resto se deriva al vuelo. */
 /** Una solicitud de un titular sobre sus datos: lo que pidió, por dónde, el plazo y cómo se resolvió. */
@@ -68,9 +77,54 @@ export interface MockPrivacyRequest {
   by: string;
 }
 
+/** La fórmula de un corte: lo que hay que repetir la próxima vez. Todo es texto libre y opcional. */
+export interface MockCutFormula {
+  /** Máquina o técnica («clipper», «tijera»). */
+  tool: string;
+  /** Números de peine o guarda («1 a los lados, 3 arriba»). */
+  guard: string;
+  /** El degradado («bajo», «medio», «skin»). */
+  fade: string;
+  /** Barba y contornos. */
+  beard: string;
+  /** Producto que se usó o se recomendó. */
+  products: string;
+  notes: string;
+}
+
+/** Un corte anotado: la fórmula y las fotos del resultado, de una visita. */
+export interface MockCutRecord {
+  id: string;
+  clientId: string;
+  /** AAAA-MM-DD de la visita. */
+  date: string;
+  appointmentId: string | null;
+  barberId: string | null;
+  formula: MockCutFormula;
+  /** Fotos del resultado (data URL), hasta 4. */
+  photos: string[];
+  createdAt: string;
+  by: string;
+}
+
+/** Un referido: quién trajo a quién, y si ya se dio el premio (al cobrar la primera visita del nuevo). */
+export interface MockReferral {
+  id: string;
+  referrerId: string;
+  referredId: string;
+  status: "pending" | "rewarded";
+  createdAt: string;
+  rewardedAt: string | null;
+  /** Lo que recibió cada uno como saldo a favor. */
+  amount: number;
+}
+
 export interface MockCustomersState {
   profiles: Record<string, MockCustomerProfile>;
   privacyRequests?: MockPrivacyRequest[];
+  /** Los cortes anotados de cada cliente. */
+  cuts?: Record<string, MockCutRecord[]>;
+  referrals?: MockReferral[];
 }
 
 export const emptyCustomers = (): MockCustomersState => ({ profiles: {} });
@@ -108,6 +162,9 @@ const slug = (name: string) =>
 
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
+const DEMO_TAGS: readonly string[][] = [[], [], [], ["cera mate"], ["estudiante"], ["barba"], ["cera mate", "barba"], [], ["vip"], []];
+const DEMO_SOURCES: readonly (MockCustomerSource | null)[] = ["instagram", "google", "walkin", null, "referral", "instagram", "facebook", null, "tiktok", "other"];
+
 export function deriveProfile(client: MockClient, now = new Date()): MockCustomerProfile {
   const h = hashOf(client.id);
   const place = PLACES[h % PLACES.length];
@@ -133,6 +190,9 @@ export function deriveProfile(client: MockClient, now = new Date()): MockCustome
     blocked: h % 23 === 7,
     createdAt: new Date(now.getTime() - (60 + (hashOf(client.id, 2) % 700)) * DAY_MS).toISOString(),
     guests,
+    // Unas cuantas etiquetas y orígenes para que el filtro y Métricas tengan con qué mostrarse.
+    tags: DEMO_TAGS[hashOf(client.id, 7) % DEMO_TAGS.length],
+    source: DEMO_SOURCES[hashOf(client.id, 8) % DEMO_SOURCES.length],
     // En la demo, quien ya trae alergias o medicamentos anotados dio el permiso al anotarlos.
     ...(client.notes.some((note) => note.kind !== "note") ? { healthConsent: { accepted: true, at: new Date(now.getTime() - (30 + (hashOf(client.id, 4) % 300)) * DAY_MS).toISOString(), source: "app" as const, version: HEALTH_CONSENT_VERSION } } : {}),
   };

@@ -54,6 +54,8 @@ export const bookingShopSchema = z.object({
   payment: z.object({ card: z.boolean(), payAtShop: z.boolean() }),
   /** El recargo por pagar con tarjeta que la barbería tiene encendido en Configuración, o nada. */
   cardFee: z.object({ name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) }).nullable(),
+  /** El cupón de bienvenida que se aplica solo al cliente nuevo; `null` si la barbería no tiene uno. */
+  welcomePromo: z.string().nullable().default(null),
   /** Paquetes que la barbería vende en línea: N visitas de un servicio, con vencimiento. */
   packages: z.array(z.object({ id: z.string(), name: z.string(), serviceId: z.string(), sessions: z.number(), price: z.number(), validDays: z.number(), regular: z.number().default(0) })).default([]),
   /** El anticipo que se pide a algunos clientes para pagar en la barbería, o nada si no se pide. */

@@ -1,4 +1,4 @@
-import { Ban, CalendarPlus, Download, Eye, HeartHandshake, MessageCircle, NotebookPen, ShieldCheck, Trash2, Upload, UserPlus, FileLock2 } from "lucide-react";
+import { Ban, CalendarPlus, Download, Eye, HeartHandshake, MessageCircle, NotebookPen, ShieldCheck, Tag, Trash2, Upload, UserPlus, FileLock2 } from "lucide-react";
 import type { AppMessageKey } from "@/app/i18n/types";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { CustomerPermissions } from "./customerAccess";
@@ -18,6 +18,8 @@ export interface CustomerListHandlers {
   remove: () => void;
   /** Escribirles por WhatsApp a los marcados (uno o varios). Sin él, la acción no sale. */
   whatsapp?: () => void;
+  /** Poner o quitar una etiqueta a los marcados. Sin él, la acción no sale. */
+  tag?: () => void;
 }
 
 /** Las acciones de la lista; cada una aparece solo si su casilla de la matriz está marcada. */
@@ -31,6 +33,7 @@ export function customerListActions(t: (key: AppMessageKey) => string, on: Custo
     { id: "open", label: t("customers.action.open"), icon: <Eye className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.open },
     { id: "book", label: t("customers.action.book"), icon: <CalendarPlus className="size-5" strokeWidth={2} />, scope: ["single"], blockedReason: blocked ? t("customers.action.bookBlocked") : null, onSelect: on.book },
     Boolean(on.whatsapp) && { id: "whatsapp", label: t("customers.action.whatsapp"), icon: <MessageCircle className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true, onSelect: on.whatsapp },
+    Boolean(on.tag) && { id: "tag", label: t("customers.action.tag"), icon: <Tag className="size-5" strokeWidth={2} />, scope: ["single", "bulk"], countInLabel: true, onSelect: on.tag },
     { id: "note", label: t("customers.action.note"), icon: <NotebookPen className="size-5" strokeWidth={2} />, scope: ["single"], onSelect: on.note },
     perms.canEdit &&
       (blocked

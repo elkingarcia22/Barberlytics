@@ -2,7 +2,7 @@ import { db } from "../db";
 
 /**
  * El tope de promociones por cliente en la app, el mismo que pone la cola del servidor
- * (`server/whatsapp/queue.ts`, `PROMO_CAP`): una cada 30 días, cuente la reactivación automática o el
+ * (`server/whatsapp/queue.ts`, `PROMO_CAP`): una cada 30 días, cuente la reactivación, el cumpleaños automático o el
  * «te toca volver» y el cumpleaños escritos a mano. Lo anulado o fallido no cuenta.
  */
 
@@ -15,7 +15,7 @@ export function promoNear(clientId: string, at: Date = new Date()): { sendAt: st
   const near = (db.booking.outbox ?? []).find(
     (message) =>
       message.clientId === clientId &&
-      (message.kind === "reactivation" || (message.kind === "manual" && PROMO_PURPOSES.has(message.purpose ?? ""))) &&
+      (message.kind === "reactivation" || message.kind === "birthday" || (message.kind === "manual" && PROMO_PURPOSES.has(message.purpose ?? ""))) &&
       message.status !== "cancelled" &&
       message.status !== "failed" &&
       Math.abs(at.getTime() - new Date(message.sendAt).getTime()) < PROMO_CAP_DAYS * DAY_MS

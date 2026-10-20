@@ -117,6 +117,8 @@ export interface MockPayment {
   /** El recargo por tarjeta cobrado (Configuración › Recargo por tarjeta), como línea aparte de la cuenta. */
   surcharge?: number;
   surchargeName?: string;
+  /** El cupón canjeado en la caja (su descuento va en `discount`). */
+  coupon?: string;
 }
 
 /** Una devolución: desde la caja, o la que hizo la reserva en línea al cancelar. */

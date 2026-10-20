@@ -19,6 +19,8 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Tag,
+  Send,
+  Ticket,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -56,11 +58,14 @@ export const SETTINGS_ICONS: Record<string, LucideIcon> = {
   "inicio-sesion": KeyRound,
   permisos: ShieldCheck,
   "eliminar-cuenta": Trash2,
+  cupones: Ticket,
+  marketing: Send,
 };
 
 export const SETTINGS_GROUP_TONES: Record<string, IconTileProps["tone"]> = {
   negocio: "primary",
   cobros: "positive",
   "pagos-equipo": "info",
+  fidelizacion: "primary",
   cuenta: "warning",
 };

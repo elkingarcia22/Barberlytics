@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Cake, CalendarClock, CreditCard, HeartPulse, Mail, MapPin, Pencil, Phone, Plus, Store, UserRound } from "lucide-react";
+import { Cake, CalendarClock, CreditCard, HeartPulse, Mail, MapPin, Megaphone, Pencil, Phone, Plus, Store, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { MetricCard } from "@/components/charts";
@@ -13,7 +13,8 @@ import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
 import { CustomerContactLog, CustomerWallet } from "./CustomerRelationship";
 import { CustomerNextVisit } from "./CustomerNextVisit";
 import { CustomerPrivacy } from "./CustomerPrivacy";
-import { APPOINTMENT_STATUS_BADGE, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
+import { APPOINTMENT_STATUS_BADGE, SOURCE_KEYS, branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
+import { CustomerTags, LastCutCard, ReferralCard } from "./CustomerLoyalty";
 import { APPOINTMENT_STATUS_KEYS, type CustomerAppointment, type CustomerDetail } from "./types";
 
 const DATE_LONG: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
@@ -27,6 +28,10 @@ export interface CustomerOverviewProps {
   /** Sin permiso de edición no llega y el botón no aparece. */
   onEdit?: () => void;
   onSeeAppointments: () => void;
+  /** Abre la pestaña de cortes (fórmula y fotos). */
+  onOpenCuts?: () => void;
+  /** Quien gestiona clientes pone y quita etiquetas; el barbero solo las ve. */
+  canTag?: boolean;
   /** Teléfono, correo, dirección y notas médicas (`client-info`·active). */
   showContact?: boolean;
   /** Valor de vida, ticket e importes: recepción no los ve. */
@@ -40,7 +45,7 @@ export interface CustomerOverviewProps {
  * es una pestaña aparte. Lo reservado (contacto, notas médicas, dinero) se
  * omite según el rol de quien mira.
  */
-export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onSeeAppointments, showContact = true, showMoney = true }: CustomerOverviewProps) {
+export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onSeeAppointments, onOpenCuts, canTag = false, showContact = true, showMoney = true }: CustomerOverviewProps) {
   const t = useAppT();
   const { formatNumber, formatDate, formatRelativeTime } = useLocale();
   const percent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
@@ -116,7 +121,13 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
             {next || last ? <AppointmentSummary appointment={(next ?? last) as CustomerAppointment} formatMoney={showMoney ? formatMoney : null} /> : <Text variant="muted">{t("customers.overview.noAppointments")}</Text>}
           </InfoCard>
 
+          {onOpenCuts && <LastCutCard customer={customer} onOpenCuts={onOpenCuts} />}
+
           <CustomerNextVisit customerId={customer.id} />
+
+          <CustomerTags customer={customer} canEdit={canTag} />
+
+          <ReferralCard customer={customer} formatMoney={formatMoney} showMoney={showMoney} />
 
           <CustomerWallet customerId={customer.id} formatMoney={formatMoney} showMoney={showMoney} showContact={showContact} />
 
@@ -154,6 +165,9 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
             )}
             <InfoRow icon={<CreditCard />} label={t("customers.form.onlineOnly")}>
               {customer.onlineOnly ? t("customers.overview.onlineOnlyOn") : t("customers.overview.onlineOnlyOff")}
+            </InfoRow>
+            <InfoRow icon={<Megaphone />} label={t("customers.form.source")}>
+              {customer.source ? t(SOURCE_KEYS[customer.source]) : t("customers.overview.notSet")}
             </InfoRow>
             <InfoRow icon={<UserRound />} label={t("customers.column.since")}>
               {formatDate(new Date(customer.createdAt), DATE_LONG)}

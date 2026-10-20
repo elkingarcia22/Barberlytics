@@ -1,4 +1,4 @@
-import { Banknote, CircleUser, Store, Wallet, type LucideIcon } from "lucide-react";
+import { Banknote, CircleUser, Megaphone, Store, Wallet, type LucideIcon } from "lucide-react";
 import type { SettingsGroup } from "@/components/app-shell";
 import type { AppMessageKey } from "@/app/i18n";
 import type { Access } from "@/features/access";
@@ -108,6 +108,15 @@ const SETTINGS_TEMPLATE: readonly SettingsGroupTemplate[] = [
       { id: "tarifa-tarjeta", labelKey: "settings.cardFee", hintKey: "settings.cardFeeHint", rule: RULES.ownerEdits },
       { id: "dispositivos", labelKey: "settings.devices", hintKey: "settings.devicesHint", rule: RULES.operativeShared },
       { id: "pagos", labelKey: "settings.payments", hintKey: "settings.paymentsHint", rule: RULES.ownerEdits },
+    ],
+  },
+  {
+    id: "fidelizacion",
+    labelKey: "settings.group.loyalty",
+    icon: Megaphone,
+    items: [
+      { id: "cupones", labelKey: "settings.coupons", hintKey: "settings.couponsHint", rule: RULES.operative },
+      { id: "marketing", labelKey: "settings.marketing", hintKey: "settings.marketingHint", rule: RULES.operative },
     ],
   },
   {

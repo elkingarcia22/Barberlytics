@@ -13,6 +13,7 @@ import { stockLevel } from "../inventory/stock";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 import { consentCountryOf } from "@/features/legal/consent";
 import { closedForHoliday } from "@/features/settings/countryPack";
+import { welcomeCoupon } from "../marketing/coupons";
 import { fitsInHours, hoursOnDate } from "@/features/branches/branchHours";
 
 /**
@@ -135,6 +136,8 @@ export function shop() {
     lateFeePercent: rules.lateFeePercent,
     maxCancellations: rules.maxCancellations,
     policy: rules.policy,
+    // El cupón de bienvenida que la reserva aplica sola al cliente nuevo (Configuración › Cupones).
+    welcomePromo: welcomeCoupon(),
     tipOptions: tips.options,
     defaultTipId: tips.defaultId,
     payment: rules.paymentMethods,

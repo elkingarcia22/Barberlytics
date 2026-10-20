@@ -6,7 +6,8 @@ import { releaseAppointmentStock, stockLevel, syncAppointmentStock } from "../in
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
 import { appointmentsOn } from "../calendar/handlers";
 import { profileOf, saveProfile } from "../customers/handlers";
-import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, findPromo, promoDiscount, tipAmount } from "@/features/booking/pricing";
+import { cancellationTerms, chargesCardFee, computeTotals, coverByPackages, promoDiscount, tipAmount } from "@/features/booking/pricing";
+import { COUPON_PROBLEMS, checkCoupon, redeemCoupon } from "../marketing/coupons";
 import {
   availability,
   barberFree,
@@ -404,8 +405,10 @@ export const bookingHandlers = [
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
     const client = sessionClient(request);
-    const result = findPromo(text(input.code), { isNewClient: client ? customerOf(client).isNew : true, appointments: Number(input.appointments) || 1 });
-    if ("problem" in result) return error(422, "promo_invalid", "Ese cupón no aplica.", { problem: result.problem });
+    // Los cupones son los de la barbería (Configuración › Cupones), con sus fechas y topes.
+    const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string") : [];
+    const result = checkCoupon(text(input.code), { clientId: client?.id ?? null, isNewClient: client ? customerOf(client).isNew : true, appointments: Number(input.appointments) || 1, serviceIds, branchId: text(input.branchId) || firstBranchId() });
+    if ("problem" in result) return error(422, "promo_invalid", COUPON_PROBLEMS[result.problem], { problem: result.problem });
     return HttpResponse.json(result.promo);
   }),
 
@@ -431,7 +434,7 @@ export const bookingHandlers = [
     const servicesTotal = plan.planned.reduce((sum, item) => sum + item.price, 0);
     const productsTotal = productLines.reduce((sum, line) => sum + line.price * line.qty, 0);
     const customer = customerOf(client);
-    const promoResult = text(input.promoCode) ? findPromo(text(input.promoCode), { isNewClient: customer.isNew, appointments: plan.planned.length }) : null;
+    const promoResult = text(input.promoCode) ? checkCoupon(text(input.promoCode), { clientId: client.id, isNewClient: customer.isNew, appointments: plan.planned.length, serviceIds: plan.planned.flatMap((item) => item.serviceIds), branchId }) : null;
     const promo = promoResult && "promo" in promoResult ? promoResult.promo : null;
     const tip = tipOptions().options.find((option) => option.id === text(input.tipId)) ?? null;
     const method = text(input.method) as MockReservation["payment"]["method"];
@@ -554,6 +557,7 @@ export const bookingHandlers = [
     };
     db.calendar.appointments = [...created, ...db.calendar.appointments];
     db.booking.reservations = [reservation, ...db.booking.reservations];
+    if (promo) redeemCoupon(promo.code, client.id, "booking", reservation.id);
     for (const appointment of created) scheduleMessages(appointment, client.phone);
     rememberGuests(client, plan.planned);
     db.persist();

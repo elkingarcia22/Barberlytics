@@ -109,5 +109,11 @@ export const calendarCheckoutEn: Record<keyof typeof calendarCheckoutEs, string>
   "calendar.checkout.add.product": "A product",
   "calendar.checkout.add.visit": "Another unpaid appointment",
   "calendar.checkout.add.discount": "A discount",
+  "calendar.checkout.add.coupon": "Redeem a coupon",
+  "calendar.checkout.coupon.title": "Coupon code",
+  "calendar.checkout.coupon.placeholder": "Coupon code",
+  "calendar.checkout.coupon.apply": "Apply",
+  "calendar.checkout.coupon.applied": "Coupon {code}",
+  "calendar.checkout.coupon.remove": "Remove the coupon",
   "calendar.checkout.add.giftSale": "Sell a gift card",
 };

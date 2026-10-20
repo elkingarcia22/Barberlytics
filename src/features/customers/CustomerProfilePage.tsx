@@ -22,6 +22,7 @@ import { CustomerAppointmentsTab, CustomerGuestsTab, CustomerPaymentsTab, Custom
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { CustomerWhatsAppDialog } from "./CustomerWhatsAppDialog";
 import { CustomerOverview } from "./CustomerOverview";
+import { CustomerCutsTab } from "./CustomerCutsTab";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
 import { branchName, maskPhone } from "./customersUtils";
 import { useCustomerQuery, useDeleteCustomer, useSetCustomerBlocked } from "./queries";
@@ -39,13 +40,14 @@ import type { CustomerDetail } from "./types";
  * bloquear y borrar salen de la matriz.
  */
 
-const TABS = ["resumen", "citas", "pagos", "invitados", "productos"] as const;
+const TABS = ["resumen", "cortes", "citas", "pagos", "invitados", "productos"] as const;
 /** Sin cifras de dinero, los pagos del cliente no tienen nada que enseñar. */
 const MONEY_TABS: readonly string[] = ["pagos"];
 type ProfileTab = (typeof TABS)[number];
 
 const TAB_KEYS: Readonly<Record<ProfileTab, AppMessageKey>> = {
   resumen: "customers.tab.overview",
+  cortes: "customers.tab.cuts",
   citas: "customers.tab.appointments",
   pagos: "customers.tab.payments",
   invitados: "customers.tab.guests",
@@ -198,7 +200,8 @@ function CustomerProfile({ customer }: { customer: CustomerDetail }) {
 
       <ThemaTabs className="mb-4" variant="page" fitContent tabs={tabs} activeTabId={tab} onTabChange={(next) => setTab(next as ProfileTab)} />
 
-      {tab === "resumen" && <CustomerOverview customer={customer} formatMoney={formatMoney} onAddNote={() => setDrawer("note")} onEdit={perms.canEdit ? () => setDrawer("edit") : undefined} onSeeAppointments={() => setTab("citas")} showContact={perms.showContact} showMoney={perms.showMoney} />}
+      {tab === "resumen" && <CustomerOverview customer={customer} formatMoney={formatMoney} onAddNote={() => setDrawer("note")} onEdit={perms.canEdit ? () => setDrawer("edit") : undefined} onSeeAppointments={() => setTab("citas")} onOpenCuts={() => setTab("cortes")} canTag={perms.canEdit && perms.scope === "all"} showContact={perms.showContact} showMoney={perms.showMoney} />}
+      {tab === "cortes" && <CustomerCutsTab customerId={customer.id} />}
       {tab === "citas" && <CustomerAppointmentsTab customer={customer} formatMoney={formatMoney} showMoney={perms.showMoney} ownAmountsOf={perms.scope === "own" ? perms.memberId : null} />}
       {tab === "pagos" && <CustomerPaymentsTab customer={customer} formatMoney={formatMoney} />}
       {tab === "invitados" && <CustomerGuestsTab customer={customer} />}

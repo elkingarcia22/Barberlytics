@@ -8,8 +8,8 @@ import { defaultWeekHours } from "@/features/branches/branchHours";
  * (`/settings/lists/:list`, con alta, edición y borrado).
  */
 
-export type SettingsSectionId = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing";
-export type SettingsListId = "branches" | "closures" | "taxGroups" | "devices" | "gateways";
+export type SettingsSectionId = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing" | "marketing";
+export type SettingsListId = "branches" | "closures" | "taxGroups" | "devices" | "gateways" | "coupons";
 
 /* ---------------------------------------------------------------- negocio */
 
@@ -63,6 +63,42 @@ export type TipOption = z.infer<typeof tipOptionSchema>;
 
 export const tipsSchema = z.object({ options: z.array(tipOptionSchema), defaultId: z.string().nullable(), checkout: z.enum(["unset", "amount", "percent", "both"]) });
 export type TipsSettings = z.infer<typeof tipsSchema>;
+
+/* -------------------------------------------------------------- marketing */
+
+/**
+ * Referidos y mensajes automáticos. Los de cumpleaños son promoción (piden el permiso del cliente, la franja legal y
+ * el tope mensual); las gracias y el pedido de reseña son de servicio y van a todos los que vinieron, sin filtrar.
+ */
+export const marketingSchema = z.object({
+  referral: z.object({ enabled: z.boolean(), reward: z.number(), maxPerReferrer: z.number() }),
+  automations: z.object({
+    birthday: z.object({ enabled: z.boolean() }),
+    thanks: z.object({ enabled: z.boolean(), delayHours: z.number() }),
+    review: z.object({ enabled: z.boolean(), delayHours: z.number() }),
+  }),
+});
+export type MarketingSettings = z.infer<typeof marketingSchema>;
+
+/** Un cupón de la barbería; `uses` lo cuenta el servidor. */
+export const couponItemSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  type: z.enum(["percent", "amount"]),
+  value: z.number(),
+  description: z.string().default(""),
+  firstVisitOnly: z.boolean(),
+  minAppointments: z.number().nullable(),
+  validFrom: z.string().nullable(),
+  validTo: z.string().nullable(),
+  serviceIds: z.array(z.string()),
+  maxUses: z.number().nullable(),
+  perClient: z.number().nullable(),
+  active: z.boolean(),
+  uses: z.number().default(0),
+});
+export type CouponItem = z.infer<typeof couponItemSchema>;
+export type CouponInput = Omit<CouponItem, "id" | "uses">;
 
 export const cardFeeSchema = z.object({ enabled: z.boolean(), name: z.string(), rate: z.number(), type: z.enum(["percent", "amount"]) });
 export type CardFeeSettings = z.infer<typeof cardFeeSchema>;

@@ -10,6 +10,7 @@ import { useCheckoutAppointment, useUpdateAppointment } from "../queries";
 import { PAYMENT_METHOD_KEYS, type Appointment, type CheckoutInput, type PaymentMethod, type PaymentPart, type ProductLine } from "../types";
 import { calendarApi } from "../api";
 import { allocateParts, paymentOf } from "./allocate";
+import { couponDiscount, type Coupon } from "@/features/marketing/coupons";
 import { cents, equalLines, giftOf, linesTotal, mixedLines, paymentOfLines, type PayLine, type PayMode } from "./payLines";
 
 /**
@@ -66,6 +67,9 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   const [discountType, setDiscountType] = React.useState<DiscountType>("percent");
   const [discountValue, setDiscountValue] = React.useState<number | null>(null);
   const [discountReason, setDiscountReason] = React.useState("");
+  // Un cupón de la barbería en vez del descuento a mano (Configuración › Cupones): el servidor lo valida al aplicarlo.
+  const [coupon, setCoupon] = React.useState<Coupon | null>(null);
+  const [couponOpen, setCouponOpen] = React.useState(false);
   const [giftSale, setGiftSale] = React.useState<GiftSaleDraft | null>(null);
 
   // El pago.
@@ -96,7 +100,7 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   // El descuento va sobre la cita abierta, a precio ya ajustado (antes de impuestos).
   const listBill = appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId, prices);
   const discountBase = cents(listBill.subtotal - listBill.discount);
-  const discount = discountAmount(discountValue ? { type: discountType, value: discountValue } : null, discountBase);
+  const discount = coupon ? couponDiscount(coupon, discountBase) : discountAmount(discountValue ? { type: discountType, value: discountValue } : null, discountBase);
   const ownBill = appointmentBill(ctx.catalog, serviceIds, products, appointment.online, appointment.barberId, { ...prices, checkoutDiscount: discount });
   const togetherBills = together.map((item) => appointmentBill(ctx.catalog, item.serviceIds, item.products, item.online, item.barberId, item));
   const bill = sumBills([ownBill, ...togetherBills]);
@@ -241,7 +245,7 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
         surcharge,
         ...methodOf(0),
         ...(pricesChanged ? { servicePrices, productPrices } : {}),
-        ...(discount > 0 && discountValue ? { discount: { type: discountType, value: discountValue, reason: discountReason.trim() || undefined } } : {}),
+        ...(coupon ? { coupon: coupon.code } : discount > 0 && discountValue ? { discount: { type: discountType, value: discountValue, reason: discountReason.trim() || undefined } } : {}),
         ...(gift && giftApplied > 0 ? { giftCode: gift.code, giftAmount: giftApplied } : {}),
         ...(giftSale && giftSaleAmount > 0 ? { giftSale: { amount: giftSaleAmount, recipientName: giftSale.recipientName.trim(), recipientContact: giftSale.recipientContact.trim() } } : {}),
       };
@@ -287,6 +291,10 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     discountValue,
     discountReason,
     discount,
+    coupon,
+    couponOpen,
+    /** Para probar un cupón: el cliente, la sede y los servicios de la cuenta. */
+    couponScope: { clientId: appointment.clientId, branchId: appointment.branchId, serviceIds },
     giftSale,
     giftSaleAmount,
     tipOptions,
@@ -327,6 +335,8 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     setDiscountType,
     setDiscountValue,
     setDiscountReason,
+    setCoupon,
+    setCouponOpen,
     setGiftSale,
     setTipChoice,
     setCustomTip,

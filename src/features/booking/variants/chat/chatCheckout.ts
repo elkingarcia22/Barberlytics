@@ -6,7 +6,7 @@ import { personName, type BookingAction, type BookingState } from "../../booking
 import { buildIcs, parseStart, type BookingFormatters } from "../../bookingFormat";
 import { savedCardExpiry } from "../../flow/cardValidation";
 import type { PaymentController } from "../../flow/usePaymentController";
-import { cancellationTerms, depositOf, FIRST_VISIT_PROMO, tipAmount, type Totals } from "../../pricing";
+import { cancellationTerms, depositOf, tipAmount, type Totals } from "../../pricing";
 import { bookingKeys } from "../../queries";
 import type { BookedAppointment, BookingCatalog, BookingShop, VisitSuggestion } from "../../types";
 import { itemPrice } from "../../useBookingTotals";
@@ -128,8 +128,8 @@ export function useChatCheckout(kit: CheckoutKit) {
     // La propina se pregunta enseguida: hasta que la diga, no se suma ninguna (ni la de por defecto).
     apply({ type: "setTip", tipId: null });
     // Primera visita: el descuento prometido se aplica solo, como en las otras versiones (PromoField).
-    if (current.customer?.isNew && !current.promo && FIRST_VISIT_PROMO) {
-      const promo = await bookingApi.checkPromo(current.token, { code: FIRST_VISIT_PROMO.code, appointments: current.items.length }).catch(() => null);
+    if (current.customer?.isNew && !current.promo && shop.welcomePromo) {
+      const promo = await bookingApi.checkPromo(current.token, { code: shop.welcomePromo, appointments: current.items.length, branchId: current.branchId, serviceIds: current.items.flatMap((item) => item.serviceIds) }).catch(() => null);
       if (promo) apply({ type: "setPromo", promo });
     }
     // El resumen y la propina se arman al decirlos, ya con el descuento en las cuentas.

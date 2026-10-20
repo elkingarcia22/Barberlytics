@@ -25,7 +25,8 @@ describe("enviar al cliente desde el panel de la cita", () => {
     db.sessions.set(TOKEN, "acc_admin");
     const paid = appointmentsOn("ma", day).find((item) => item.status === "paid")!;
     expect((await post(paid.id, { kind: "rebookLink", channel: "sms", to: "123", body: "Enlace" })).status).toBe(422);
-    const upcoming = appointmentsOn("ma", format(addDays(new Date(), 5), "yyyy-MM-dd")).find((item) => item.status === "scheduled")!;
+    // El primer día por venir que tenga citas agendadas (un domingo la sede cierra).
+    const upcoming = [5, 6, 7, 8].map((offset) => appointmentsOn("ma", format(addDays(new Date(), offset), "yyyy-MM-dd")).find((item) => item.status === "scheduled")).find(Boolean)!;
     expect((await post(upcoming.id, { kind: "receipt", channel: "email", to: "cliente@correo.com", body: "Tu recibo" })).status).toBe(409);
     expect((await post(upcoming.id, { kind: "rebookLink", channel: "sms", to: "+573001234567", body: "Enlace" })).status).toBe(201);
   });

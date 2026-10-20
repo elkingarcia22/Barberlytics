@@ -1,4 +1,8 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { promoDiscount } from "@/features/booking/pricing";
+import { COUPON_PROBLEMS, checkCoupon, redeemCoupon } from "../marketing/coupons";
+import { rewardReferral } from "../customers/loyalty";
+import { onVisitPaid } from "../marketing/automations";
 import { paymentEntriesOf } from "../transactions/ledger";
 import { cartTotals } from "@/features/branches/tax";
 import { accountById, db } from "../db";
@@ -623,7 +627,13 @@ export const calendarHandlers = [
     const productPrices = typeof priceInput.productPrices === "object" && priceInput.productPrices !== null ? Object.fromEntries(Object.entries(priceInput.productPrices as Record<string, unknown>).filter(([id, value]) => products.some((line) => line.productId === id) && typeof value === "number" && value >= 0).map(([id, value]) => [id, round2(value as number)])) : undefined;
     // El descuento de la caja va sobre lo que vale la cuenta (después del descuento en línea, antes de impuestos).
     const listBill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
-    const discount = discountOf(input.discount, round2(listBill.subtotal - listBill.discount));
+    // Un cupón de la barbería (Configuración › Cupones) reemplaza al descuento a mano: se valida con sus reglas y topes.
+    const couponCode = text(input.coupon);
+    const client = db.calendar.clients.find((item) => item.id === existing.clientId);
+    const coupon = couponCode ? checkCoupon(couponCode, { clientId: existing.clientId, isNewClient: (client?.visits ?? 0) === 0, appointments: 1, serviceIds, branchId: existing.branchId }) : null;
+    if (coupon && "problem" in coupon) return error(422, "promo_invalid", COUPON_PROBLEMS[coupon.problem], { fields: { coupon: [COUPON_PROBLEMS[coupon.problem]] }, details: { problem: coupon.problem } });
+    const discountBase = round2(listBill.subtotal - listBill.discount);
+    const discount = coupon && "promo" in coupon ? { amount: promoDiscount(coupon.promo, discountBase), reason: `Cupón ${coupon.promo.code}` } : discountOf(input.discount, discountBase);
     if (typeof discount === "string") return error(422, "validation", discount, { fields: { discount: [discount] } });
     const extras = parseExtras(input, method);
     if (typeof extras === "string") return error(422, "validation", extras);
@@ -657,7 +667,13 @@ export const calendarHandlers = [
       ...(extras.deviceId ? { deviceId: extras.deviceId } : {}),
       // El recargo va como línea propia: el total cuadra con el datáfono y se ve qué fue recargo.
       ...(surcharge > 0 ? { surcharge: round2(surcharge), surchargeName: (db.settings.sections.cardFee as { name?: string } | undefined)?.name || "Recargo por tarjeta" } : {}),
+      ...(coupon && "promo" in coupon ? { coupon: coupon.promo.code } : {}),
     };
+    if (coupon && "promo" in coupon) redeemCoupon(coupon.promo.code, existing.clientId, "checkout", existing.id);
+    // La primera visita cobrada de un cliente referido premia a los dos; y salen solos las gracias y la reseña
+    // si están encendidos (Configuración › Marketing).
+    rewardReferral(existing.clientId);
+    onVisitPaid(existing);
     db.persist();
     // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).
     return replaceAppointment(

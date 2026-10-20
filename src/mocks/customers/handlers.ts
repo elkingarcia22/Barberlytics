@@ -3,6 +3,7 @@ import { accountById, db } from "../db";
 import { forbidden, isBarber, sessionOf } from "../session";
 import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { memberName } from "../team/seed";
+import { isCustomerSource, lastCutOf, linkReferral, referralSummary, referrerByCode } from "./loyalty";
 import { deriveProfile, historyOf, lifecycleOf, paymentsOf, productsOf, ticketOf, type MockCustomerAppointment, type MockCustomerProfile, type MockGuest } from "./seed";
 
 /**
@@ -100,6 +101,8 @@ function summary(client: MockClient, agenda: AgendaBarbers = agendaBarbers()) {
     birthDate: profile.birthDate,
     createdAt: profile.createdAt,
     medicalNotes,
+    tags: profile.tags ?? [],
+    source: profile.source ?? null,
   };
 }
 
@@ -143,6 +146,8 @@ function detail(client: MockClient) {
     lastAppointmentId: past[0]?.id ?? null,
     payments: paymentsOf(client.id, history),
     products: productsOf(client.id, base.lastVisitAt),
+    referral: referralSummary(client),
+    lastCut: lastCutOf(client.id),
   };
 }
 
@@ -233,8 +238,13 @@ export const customersHandlers = [
       notes: [],
       avatarUrl: null,
     };
+    // Con un código de referido que no es de nadie no se crea: se corrige o se deja vacío.
+    const referralCode = text(input.referralCode);
+    const referrer = referralCode ? referrerByCode(referralCode) : undefined;
+    if (referralCode && !referrer) return error(422, "validation", "Revisa los campos marcados.", { fields: { referralCode: ["Ese código no es de ningún cliente."] } });
     db.calendar.clients = [...db.calendar.clients, client];
     saveProfile(client.id, {
+      source: isCustomerSource(input.source) ? input.source : null,
       email: values.email,
       branchId: text(input.branchId) || "ma",
       country: values.country,
@@ -248,6 +258,7 @@ export const customersHandlers = [
       createdAt: new Date().toISOString(),
       guests: [],
     });
+    if (referrer) linkReferral(client, referrer);
     return HttpResponse.json(detail(client), { status: 201 });
   }),
 
@@ -274,7 +285,7 @@ export const customersHandlers = [
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields, ...(duplicateOf ? { details: { fields, duplicateOf } } : {}) });
     const updated: MockClient = { ...client, name: `${values.firstName} ${values.lastName}`, phone: values.phone };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
-    saveProfile(client.id, { ...profile, email: values.email, country: values.country, state: values.state, city: values.city, address: values.address, zipcode: values.zipcode, birthDate: values.birthDate, onlineOnly: values.onlineOnly });
+    saveProfile(client.id, { ...profile, email: values.email, country: values.country, state: values.state, city: values.city, address: values.address, zipcode: values.zipcode, birthDate: values.birthDate, onlineOnly: values.onlineOnly, ...(input.source === null || isCustomerSource(input.source) ? { source: input.source } : {}) });
     return HttpResponse.json(detail(updated));
   }),
 

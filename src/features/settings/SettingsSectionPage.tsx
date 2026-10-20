@@ -30,6 +30,8 @@ import { PayrollCycleSettings } from "./sections/PayrollCycleSettings";
 import { PricingSettings } from "./sections/PricingSettings";
 import { TaxesSettings } from "./sections/TaxesSettings";
 import { TipsSettings } from "./sections/TipsSettings";
+import { CouponsSettings } from "./sections/CouponsSettings";
+import { MarketingSettings } from "./sections/MarketingSettings";
 
 /**
  * El formulario de cada ajuste, por su id del catálogo. Uno que entre al
@@ -56,6 +58,8 @@ const SETTINGS_BODIES: Record<string, React.ComponentType | undefined> = {
   permisos: RolePermissionsSettings,
   facturacion: BillingSettings,
   "eliminar-cuenta": DeleteAccountSettings,
+  cupones: CouponsSettings,
+  marketing: MarketingSettings,
 };
 
 /**

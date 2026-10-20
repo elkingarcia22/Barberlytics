@@ -1,5 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { isValidTaxId, packOf, type TaxIdKind } from "@/features/settings/countryPack";
+import { normalizePromoCode } from "@/features/booking/pricing";
+import { usesOf } from "../marketing/coupons";
 import { defaultWeekHours, parseWeekHours, type WeekHours } from "@/features/branches/branchHours";
 import { accountById, db } from "../db";
 import { forbidden, hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
@@ -15,8 +17,8 @@ import type { MockListItem, MockSettingsList, MockSettingsSection } from "./seed
 
 const BASE = "*/api";
 const LATENCY_MS = 200;
-const SECTIONS: readonly MockSettingsSection[] = ["business", "booking", "pricing", "tips", "cardFee", "commissions", "payrollCycle", "notifications", "company", "billing"];
-const LISTS: readonly MockSettingsList[] = ["branches", "closures", "taxGroups", "devices", "gateways"];
+const SECTIONS: readonly MockSettingsSection[] = ["business", "booking", "pricing", "tips", "cardFee", "commissions", "payrollCycle", "notifications", "company", "billing", "marketing"];
+const LISTS: readonly MockSettingsList[] = ["branches", "closures", "taxGroups", "devices", "gateways", "coupons"];
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const URL_LIKE = /^https?:\/\/\S+\.\S+/;
 
@@ -78,7 +80,21 @@ const SECTION_RULES: Partial<Record<MockSettingsSection, (body: Body) => Fields>
   },
   payrollCycle: (body): Fields => (between(body.startDay, 1, 31) ? {} : { startDay: ["Elige un día del 1 al 31."] }),
   company: (body): Fields => (text(body.name).length < 2 ? { name: ["Escribe el nombre de la empresa."] } : {}),
+  marketing: (body): Fields => {
+    const fields: Fields = {};
+    const referral = asRecord(body.referral);
+    if (referral.enabled === true && !between(referral.reward, 0.01, 1_000_000)) fields.reward = ["Escribe el premio por referido."];
+    if (referral.maxPerReferrer !== undefined && referral.maxPerReferrer !== null && !between(referral.maxPerReferrer, 0, 1000)) fields.maxPerReferrer = ["Entre 0 (sin tope) y 1000."];
+    const automations = asRecord(body.automations);
+    for (const key of ["thanks", "review"]) {
+      const delayHours = asRecord(automations[key]).delayHours;
+      if (delayHours !== undefined && !between(delayHours, 0, 72)) fields[`${key}Delay`] = ["Entre 0 y 72 horas."];
+    }
+    return fields;
+  },
 };
+
+const COUPON_CODE = /^[A-Z0-9]{3,20}$/;
 
 const TAX_ID_ERRORS: Readonly<Record<TaxIdKind, string>> = {
   nit: "El NIT no cuadra con su dígito de verificación.",
@@ -132,6 +148,21 @@ const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null
     if (text(body.tpn).length < 4) fields.tpn = ["Escribe el TPN."];
     return fields;
   },
+  coupons: (body, currentId) => {
+    const fields: Fields = {};
+    const code = normalizePromoCode(text(body.code));
+    if (!COUPON_CODE.test(code)) fields.code = ["De 3 a 20 letras o números, sin espacios."];
+    else if (db.settings.lists.coupons.some((item) => item.id !== currentId && normalizePromoCode(text(item.code)) === code)) fields.code = ["Ya hay un cupón con ese código."];
+    const percent = body.type !== "amount";
+    if (!between(body.value, 0.01, percent ? 100 : 1_000_000)) fields.value = [percent ? "Un porcentaje entre 1 y 100." : "Escribe cuánto descuenta."];
+    const from = text(body.validFrom);
+    const to = text(body.validTo);
+    if (from && !DAY_KEY.test(from)) fields.validFrom = ["Esa fecha no es válida."];
+    if (to && !DAY_KEY.test(to)) fields.validTo = ["Esa fecha no es válida."];
+    else if (from && to && to < from) fields.validTo = ["El fin no puede ser antes del inicio."];
+    for (const key of ["maxUses", "perClient", "minAppointments"]) if (body[key] !== null && body[key] !== undefined && !between(body[key], 1, 100_000)) fields[key] = ["Un número desde 1, o vacío para no poner tope."];
+    return fields;
+  },
   gateways: (body, currentId) => {
     const fields: Fields = {};
     const current = currentId ? db.settings.lists.gateways.find((item) => item.id === currentId) : undefined;
@@ -169,6 +200,24 @@ function listRow(list: MockSettingsList, body: Body, current?: MockListItem): Bo
     const provider = current?.provider ?? body.provider;
     return { ...rest, provider, publicKey: text(body.publicKey), name: text(body.name) };
   }
+  if (list === "coupons") {
+    const count = (value: unknown) => (typeof value === "number" && value >= 1 ? Math.floor(value) : null);
+    return {
+      code: normalizePromoCode(text(body.code)),
+      type: body.type === "amount" ? "amount" : "percent",
+      value: Number(body.value) || 0,
+      description: text(body.description).slice(0, 200),
+      firstVisitOnly: body.firstVisitOnly === true,
+      minAppointments: count(body.minAppointments),
+      validFrom: text(body.validFrom) || null,
+      validTo: text(body.validTo) || null,
+      serviceIds: Array.isArray(body.serviceIds) ? body.serviceIds.filter((id): id is string => typeof id === "string") : [],
+      maxUses: count(body.maxUses),
+      perClient: count(body.perClient),
+      active: body.active !== false,
+      createdAt: current?.createdAt ?? new Date().toISOString(),
+    };
+  }
   if (list !== "devices") return body;
   const { authKey, ...rest } = body;
   return { ...rest, hasAuthKey: text(authKey).length > 0 || body.hasAuthKey === true };
@@ -186,6 +235,8 @@ function storeGatewaySecret(item: MockListItem, secret: string): MockListItem {
 
 const listView = (list: MockSettingsList) => {
   const items = db.settings.lists[list];
+  // Cuántas veces se usó cada cupón sale de lo canjeado, no se guarda.
+  if (list === "coupons") return { items: items.map((item) => ({ ...item, uses: usesOf(text(item.code)) })) };
   if (list !== "branches") return { items };
   /* Cuánta gente trabaja en cada sucursal sale del equipo, no se guarda. */
   return { items: items.map((item) => ({ ...item, teamSize: db.team.members.filter((member) => member.branchIds.includes(item.id) && member.status !== "inactive").length })) };

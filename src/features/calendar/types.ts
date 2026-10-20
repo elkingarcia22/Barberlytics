@@ -113,6 +113,8 @@ export const paymentSchema = z.object({
   /** El recargo por tarjeta cobrado, como línea aparte (ya está dentro de `total`). */
   surcharge: z.number().optional(),
   surchargeName: z.string().optional(),
+  /** El cupón canjeado en la caja (su descuento va en `discount`). */
+  coupon: z.string().optional(),
 });
 export type Payment = z.infer<typeof paymentSchema>;
 export type PaymentPart = NonNullable<Payment["parts"]>[number];
@@ -325,6 +327,8 @@ export interface CheckoutInput {
   method: PaymentMethod;
   /** El recargo por tarjeta, si Configuración lo tiene encendido. */
   surcharge?: number;
+  /** Un cupón de la barbería: reemplaza al descuento a mano y queda anotado su uso. */
+  coupon?: string;
   /** Con `mixed`: el reparto entre efectivo y tarjeta de lo que se cobra ahora. */
   split?: { cash: number; card: number };
   /** Precios cambiados en la caja: por servicio (en el orden de `serviceIds`, `null` = el de lista) y por producto (unitario). */

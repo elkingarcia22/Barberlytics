@@ -67,7 +67,7 @@ export interface MockOutboxMessage {
    * `receipt` y `rebookLink`: los mandó el equipo desde el panel de la cita (el recibo, el enlace para
    * reagendar), por SMS o correo; salen en el momento.
    */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost" | "giftCard" | "depositLink";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost" | "giftCard" | "depositLink" | "birthday" | "thanks" | "reviewRequest";
   /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
   hoursBefore?: number;
   sendAt: string;
@@ -149,6 +149,8 @@ export interface MockBookingState {
   reservations: MockReservation[];
   /** id de cliente → saldo a favor. */
   credits: Record<string, number>;
+  /** Cada uso de un cupón (reserva o caja): con esto se cumplen los topes. */
+  couponRedemptions?: { code: string; clientId: string; at: string; source: "booking" | "checkout"; ref: string }[];
   /** id de cliente → cancelaciones hechas en línea. */
   cancellations: Record<string, number>;
   /** Pasos a los que llegó cada sesión (ver funnel.ts). */

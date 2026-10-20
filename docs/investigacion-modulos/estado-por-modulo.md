@@ -68,9 +68,9 @@ priorizada → cita hecha; Clipper en WhatsApp; repartir la tarde de quien se va
 
 **Pendiente**
 - ~~P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple~~ (hecho el 2026-10-19). (Permiso aparte para salud: hecho, ver abajo.)
-- P1 · Fotos y fórmula del corte; etiquetas y grupos; automatizaciones (cumpleaños, gracias, reseña); historial con
-  entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
-- P2 · Origen y referidos, motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
+- P1 · ~~Fotos y fórmula del corte; etiquetas; automatizaciones (cumpleaños, gracias, reseña)~~ (hecho el 2026-10-20); grupos
+  guardados; historial con entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
+- P2 · ~~Origen y referidos~~ (hecho el 2026-10-20), motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
 
 **IA que falta**: borradores de reactivación redactados; perfil en 3 líneas; riesgo de abandono con motivos; siguiente
 mejor acción; agente de WhatsApp que deja la cita hecha; notas por voz; sentimiento de reseñas.
@@ -200,7 +200,8 @@ revisión de su pago.
 **Pendiente**
 - ~~P0 · STOP/BAJA por webhook; franja horaria y tope mensual; Métricas › Marketing al azar; reseñas de ejemplo en la
   reserva pública; tarjeta de regalo sin envío~~ (hecho el 2026-10-19); membresía fija en el panel de la cita.
-- P1 · Campañas, automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos, correo.
+- P1 · Campañas; ~~automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos~~ (hecho el
+  2026-10-20); correo.
 
 **IA que falta**: reactivación automática con tope y hora habitual; texto de campaña; segmentos sugeridos; clasificador de
 respuestas; retorno por canal con UTM.
@@ -210,7 +211,7 @@ respuestas; retorno por canal con UTM.
 **Pendiente**
 - ~~P0 · Kiosco por sede; check-in que avisa; cola de walk-ins; la cita nueva cae en la primera sucursal; el walk-in
   nace «programado»; `waitlistJoined` sin emitir~~ (hecho el 2026-10-19); `phone/check` sin perfil (decisión del usuario: no se toca).
-- P1 · ~~«Ya casi te toca»~~, QR de fila, ~~pantalla `/turnos`~~, PIN del personal, terminal, propina en pantalla, idioma grande.
+- P1 · ~~«Ya casi te toca»~~, QR de fila, ~~pantalla `/turnos`~~, PIN del personal, terminal, propina en pantalla, ~~idioma grande~~.
 
 **IA que falta**: espera estimada; «¿hay turno?» por WhatsApp; afluencia del día; barbero sugerido para el walk-in.
 
@@ -334,3 +335,10 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - El símbolo de la moneda de la sede en Equipo, caja, servicios y productos (antes `$` fijo).
   - `/usuarios/lista` (la lista de la plantilla) se retiró; «Ver barbero» de la agenda abre su ficha.
   - Falta: tarjeta en archivo con cargo por inasistencia, la pasarela real que confirma el pago y horario con descansos (turnos partidos).
+- **Clientes y marketing (03 y 15, 2026-10-20).**
+  - Cortes: la fórmula (máquina, números, degradado, barba, producto, notas) y hasta 4 fotos del resultado, en la pestaña «Cortes» de la ficha, con «Repetir»; el último sale en el resumen.
+  - Etiquetas: en la ficha, en lote desde la lista («Etiquetar») y como filtro de la lista (`?etiqueta=`).
+  - Origen («¿cómo nos conociste?») y referidos: código fijo por cliente, «Copiar invitación», alta con código; al cobrarse la primera visita del referido los dos reciben saldo a favor (Configuración › Referidos y mensajes automáticos).
+  - Cupones administrables (Configuración › Cupones): fechas, tope total y por cliente, primera visita, servicios, encendido; valen en la reserva y en la caja («Canjear un cupón»), y cada uso queda anotado.
+  - Mensajes automáticos con interruptor: gracias tras la primera visita, pedir reseña (Google o la reserva, a todos, una vez al mes) y feliz cumpleaños (con permiso, franja legal y tope).
+  - Falta: campañas a un grupo, grupos guardados, plantillas aprobadas en Meta para los tres mensajes nuevos y el origen en Métricas › Marketing.

@@ -17,6 +17,8 @@ import { ledgerHandlers } from "./transactions/ledger";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
+import { loyaltyHandlers } from "./customers/loyalty";
+import { couponHandlers } from "./marketing/coupons";
 import { emailTaken, phoneTaken, startBarbershop } from "./onboarding/starter";
 import { workforceHandlers } from "./team/workforce";
 import { servicesHandlers } from "./services/handlers";
@@ -703,6 +705,8 @@ export const handlers = [
   ...teamHandlers,
 
   // ---------- Clientes ----------
+  ...loyaltyHandlers,
+  ...couponHandlers,
   ...relationshipHandlers,
   ...customerImportHandlers,
   ...rhythmHandlers,

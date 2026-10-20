@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { db } from "@/mocks/db";
 import { appointmentsOn } from "@/mocks/calendar/handlers";
+import { profileOf, saveProfile } from "@/mocks/customers/handlers";
 import { ChatActionCard } from "@/components/chat/ChatActionCard";
 import { PROPOSERS, ProposalError, runClipperAction, type ProposalContext } from "./proposals";
 import { runClipperTool } from "./tools";
@@ -73,6 +74,9 @@ describe("propuestas de Clipper", () => {
     await runClipperAction({ ...block, ...blockApplied }, "undo");
     expect(db.calendar.blocks.some((item) => item.id === blockApplied.undo!.blockId)).toBe(false);
 
+    // Una alergia pide el permiso aparte del cliente: se da aquí, para no depender de qué cliente toque ese día.
+    const owner = db.calendar.clients.find((item) => item.id === appointment.clientId)!;
+    saveProfile(owner.id, { ...profileOf(owner), healthConsent: { accepted: true, at: new Date().toISOString(), source: "app", version: "prueba" } });
     const note = await PROPOSERS.proponer_nota_cliente({ clienteId: appointment.clientId, texto: "Alérgico al látex", tipo: "allergy" }, context, signal());
     expect(note.warnings).toEqual(["clipper.action.health"]);
     const noteApplied = await runClipperAction(note, "apply");

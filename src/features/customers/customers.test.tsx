@@ -22,7 +22,7 @@ import { customerInputSchema, splitName, type Customer } from "./types";
 const TOKEN = "mock-acc_admin-test";
 
 function customer(draft: Partial<Customer> = {}): Customer {
-  return { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567", email: "marcela@correo.com", branchId: "ma", segment: "frequent", blocked: false, ltv: 400, visits: 8, cancellations: 0, noShows: 0, lastVisitAt: "2026-09-20T10:00:00.000Z", visitEveryDays: 14, preferredBarber: null, preferredBarberId: null, barberIds: [], birthDate: null, createdAt: "2026-01-01T10:00:00.000Z", medicalNotes: 0, ...draft };
+  return { id: "c1", name: "Marcela Gómez", phone: "+57 3001234567", email: "marcela@correo.com", branchId: "ma", segment: "frequent", blocked: false, ltv: 400, visits: 8, cancellations: 0, noShows: 0, lastVisitAt: "2026-09-20T10:00:00.000Z", visitEveryDays: 14, preferredBarber: null, preferredBarberId: null, barberIds: [], birthDate: null, createdAt: "2026-01-01T10:00:00.000Z", medicalNotes: 0, tags: [], source: null, ...draft };
 }
 
 function renderApp(route: string) {

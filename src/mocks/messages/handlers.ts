@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
+import { runBirthdays } from "../marketing/automations";
 import { accountById, db } from "../db";
 import { messagesOf, syncOutbox } from "../booking/dispatch";
 import { applyReply, repliesOf } from "../booking/replies";
@@ -45,6 +46,8 @@ export const messagesHandlers = [
   // minuto; el backend real encola al programar y no necesita esto.
   http.post("*/api/messages/dispatch", async ({ request }) => {
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    // Los cumpleaños de hoy entran a la cola antes de sincronizarla (Configuración › Marketing).
+    runBirthdays();
     return HttpResponse.json(await syncOutbox());
   }),
 

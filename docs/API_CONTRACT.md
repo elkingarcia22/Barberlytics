@@ -409,6 +409,28 @@ plazo según el país de la sede: **Colombia** 10 días hábiles para consultas 
 | GET | `/privacy-requests?clientId&status` | Recepción o gerencia. `{ items, open }` (las más nuevas primero; `overdue` si sigue abierta y venció). `403` al barbero. |
 | POST | `/privacy-requests/:id/done` | Dueño o administrador. `{ note? }` (se suma a la nota). `200 privacyRequest` · `404`. |
 
+### Cortes, etiquetas, origen y referidos
+
+`customer` suma `tags` (etiquetas propias, en minúsculas y sin repetir) y `source` («¿cómo nos conociste?»: `instagram`,
+`google`, `facebook`, `tiktok`, `referral`, `walkin`, `other` o `null`). La ficha suma `referral: { code, referredBy:
+{ id, name } | null, referred, rewarded, earned }` y `lastCut` (el último corte o `null`). `POST /customers` acepta
+`source` y `referralCode` (el de otro cliente: queda referido y `source: "referral"`; un código que no es de nadie es
+`422` en `fields.referralCode`); `PATCH` acepta `source`.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/customers/:id/cuts` | Sus cortes, del más reciente: `{ items: [{ id, date, appointmentId, barberId, barber, formula: { tool, guard, fade, beard, products, notes }, photos, createdAt, by }] }`. El barbero, solo de sus clientes (`403`). |
+| POST | `/customers/:id/cuts` | `{ formula, photos?, date?, appointmentId? }` → `201`. Hace falta algo de la fórmula o una foto (`422`); hasta 4 fotos JPEG/PNG/WebP en data URL (`422` si no). Con `appointmentId` toma la fecha y el barbero de la cita. |
+| DELETE | `/customers/:id/cuts/:cutId` | Quien lo anotó o gerencia. `204`. |
+| GET | `/customers/tags` | Las etiquetas en uso con cuántos clientes las tienen: `{ items: [{ name, count }] }`. |
+| POST | `/customers/tags` | `{ ids, add?, remove? }`: pone y quita etiquetas a varios. Recepción o gerencia (barbero `403`). `{ updated, items }`. |
+| PUT | `/customers/:id/tags` | `{ tags }`: las de una ficha, enteras (hasta 12, de hasta 24 caracteres). |
+| GET | `/customers/referrals/check?code` | De quién es un código: `{ id, name }` · `404`. |
+
+**Referidos.** Cada cliente tiene un código fijo (su nombre y cuatro caracteres). Al cobrarse la **primera visita** de
+un cliente referido (`POST /appointments/:id/checkout`), los dos reciben `marketing.referral.reward` de saldo a favor
+(el que se usa al reservar en línea), una sola vez y hasta `maxPerReferrer` premios por cliente (0 = sin tope).
+
 ## Servicios (`/services`)
 
 El catálogo de lo que se ofrece. Es la **fuente de lo que la agenda puede agendar**: `GET /calendar/catalog` devuelve como `services` los de aquí que están activos en la sucursal (servicios y combos, con el nombre de su categoría en `category`). Un servicio se crea una vez y cada sucursal decide si lo ofrece.
@@ -812,6 +834,21 @@ horario con el que nace una sucursal nueva. La reserva en línea no ofrece horas
 barbero trabaje) ni los días que cierra; la página de la sede publica ese horario, y la ocupación de Métricas › Barberos
 se mide contra él (turnos de 45 minutos), ya no contra diez sillas fijas por día.
 
+**Cupones** (lista `coupons`): `{ id, code, type: "percent" | "amount", value, description, firstVisitOnly,
+minAppointments, validFrom, validTo, serviceIds, maxUses, perClient, active, uses }`. `code` de 3 a 20 letras o números
+(se guarda en mayúsculas y sin espacios; repetido `422`); `uses` lo cuenta el servidor. Valen en la reserva
+(`/booking/promo`, `/booking/reservations`) y en la caja: `POST /coupons/check { code, clientId, branchId, serviceIds }`
+dice si vale (mismo `422 promo_invalid` con `details.problem`) y `POST /appointments/:id/checkout` con `coupon` lo
+aplica en lugar del descuento a mano (`payment.coupon`, el descuento en `payment.discount`) y anota el uso.
+
+**Marketing** (sección `marketing`): `{ referral: { enabled, reward, maxPerReferrer }, automations: { birthday: { enabled },
+thanks: { enabled, delayHours }, review: { enabled, delayHours } } }`. Los mensajes automáticos van por la misma cola con
+sus valores ya listos: `thanks` (plantilla `cliente_gracias`) a las `delayHours` del cobro de la primera visita;
+`reviewRequest` (`cliente_resena`, con el enlace de Google Maps del negocio o, sin él, el de la reserva) tras cada visita
+cobrada, a todos, como mucho una vez cada 30 días por cliente; `birthday` (`cliente_cumpleanos`) el día del cumpleaños
+en la zona de su sede, solo con permiso de promociones, en la franja legal, una vez al año y contando para el tope
+mensual (la cola del servidor lo trata como marketing).
+
 **Paquete por país.** Colombia, México y Estados Unidos traen sus valores (`src/features/settings/countryPack.ts`,
 compartido por la app y el backend):
 
@@ -878,7 +915,7 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `DELETE` | `/booking/me/cards/:id` | Con token. Quita una tarjeta guardada → `200` el perfil con la lista al día. Pagar después con ese `savedCardId` da `422 card_invalid`. `404` si la tarjeta no es suya. |
 | `GET` | `/booking/me/suggestion` | Con token. | La próxima visita según su frecuencia (FOV): `{ suggestion: { everyDays, lastVisitAt, dueDate, isOverdue, usualTime, branchId, serviceIds, options[{ start, barberId, sameBarber }] } }`, o `suggestion: null` si aún no tiene ritmo. El día es la última visita + `everyDays`; la hora, la mediana de sus citas; con su barbero si tiene hueco en 10 días, si no con cualquiera. |
 | `POST` | `/booking/customers` | Con el token de un celular nuevo. Crea el cliente `{ firstName, lastName, email, marketing }`; el celular es el verificado. Guarda el permiso de promociones con fecha (`marketingConsent`). La misma sesión pasa a ser la del cliente. `201`. |
-| `POST` | `/booking/promo` | Token opcional (para saber si es su primera visita). `{ code, appointments }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`). |
+| `POST` | `/booking/promo` | Token opcional (para saber si es su primera visita). `{ code, appointments, branchId?, serviceIds? }` → el cupón, o `422 promo_invalid` con `problem` (`unknown`, `firstVisitOnly`, `minAppointments`, `notYet`, `expired`, `exhausted`, `usedByClient`, `services`). Los cupones son los de Configuración › Cupones; `shop.welcomePromo` es el de bienvenida que la reserva aplica sola al cliente nuevo. Cada uso al reservar queda anotado. |
 | `POST` | `/booking/reservations` | Con token. Reserva y cobra. Cuerpo: `branchId`, `items[]` (`guestId` o `guestName`+`guestRelation`, `serviceIds`, `barberId` o `null` = sin preferencia, `start` y, opcional, `visitId`: las partes de una misma visita —un servicio separado para otro barbero u otra hora— comparten ese id y quedan anotadas «Visita en N partes» en la agenda), `products[]`, `tipId`, `promoCode`, `method` (`card`, `wallet`, `pse`, `nequi`, `shop`, `credit`; los en línea, solo si la pasarela de la sede los tiene: si no, `422`) y `card` (el token de la pasarela: `{ token, brand, last4, expMonth, expYear, name, save }`) o `savedCardId` (una tarjeta guardada). **El número y el CVC nunca viajan a este servidor**: se escriben en los campos de la pasarela, que devuelve el token (`src/features/payments/gateway.ts`; simulada, `tok_sim_ok_…` o `tok_sim_decline_…` para la tarjeta de prueba rechazada `4000 0000 0000 0002`). Un `card` con `number`, `cvc`, `cvv` o `pan` se rechaza con `422 raw_card_rejected`; un token que no es de la pasarela, `422 card_invalid`. `save` guarda solo marca, últimos 4 y vencimiento, que vuelven en `customer.cards`. Lo mismo vale para `/booking/packages/buy` y `/booking/gift-cards`. `201` con el recibo. Los totales traen `fee` y `feeName`: el recargo por tarjeta, sobre el subtotal, solo con `card` o `wallet`. `utm` (opcional, `{ source, medium, campaign }` del enlace) queda en la reserva. `useReward: true` usa una cortesía de la membresía (`customer.loyalty: { every, progress, available, rewardServiceId, rewardName, rewardValue }`, de Ajustes › Reservas › Membresía): se descuenta `rewardValue` de los servicios (`totals.reward`) y queda una menos. `referencePhotos` (opcional, hasta 3): las fotos del corte que quiere, cada una como data URL JPEG/PNG/WebP de hasta ~1,5 MB (el celular las reduce a 1024 px); quedan en la cita (`referencePhotos`) y el barbero la ve en el panel del Calendario; si no es una imagen válida, `422`. Con `giftCode`, la tarjeta de regalo paga primero (`totals.gift`; `total` es lo que queda) y lo que sobra queda en ella; si cubre todo, `payment.method` es `gift`. Una misma persona (quien reserva o cada invitado) no puede tener dos citas que se crucen: `409 conflict`. Con `method: "shop"` y `customer.depositRequired` (cliente nuevo o con inasistencias, según Ajustes › Reservas › Anticipo), hay que mandar `card` o `savedCardId`: se cobra el anticipo (el porcentaje de subtotal + impuesto) y `payment` queda `pending` con `paid` = anticipo; sin tarjeta, `422 card_required`. |
 | `POST` | `/booking/phone/check` | `{ phone }` → `{ returning, token, customer }`. Cliente nuevo: `{ returning: false, token: null, customer: null }` y arma la cita sin código. Cliente de siempre: se le reconoce sin código para su bienvenida: `customer` sin lo sensible (`email` vacío, sin `cards`, `credit` 0, sin `packages` ni `loyalty`) y un `token` de **vista previa** que solo vale para `GET /booking/me/suggestion`; todo lo demás con sesión (pagar, lista de espera, «Mis citas», paquetes, tarjetas de regalo) responde `403` hasta verificar el código (`otp/verify` devuelve el perfil completo y la sesión de verdad). Un número bloqueado responde `{ returning: true, token: null, customer: null }` y lo sabe tras el código. `429 rate_limited` tras 20 consultas en 10 minutos desde el mismo origen. |
 | `POST` | `/booking/otp/request` | `{ phone }` → `{ sentTo, channel }` (enmascarado), igual para cualquier número. `429 rate_limited` tras 5 en 10 minutos. |

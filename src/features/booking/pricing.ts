@@ -25,9 +25,19 @@ export interface Promo {
   firstVisitOnly?: boolean;
   /** Pide al menos este número de citas en la misma reserva. */
   minAppointments?: number;
+  /** Desde y hasta qué día vale («AAAA-MM-DD», incluidos); sin ellos, siempre. */
+  validFrom?: string | null;
+  validTo?: string | null;
+  /** Solo si la cuenta lleva alguno de estos servicios; vacío = cualquiera. */
+  serviceIds?: readonly string[];
+  /** Cuántas veces se puede usar en total y por cliente; `null` = sin tope. */
+  maxUses?: number | null;
+  perClient?: number | null;
+  /** Apagado no se acepta (se conserva para el historial). */
+  active?: boolean;
 }
 
-/** Los cupones que acepta la demo. En producción los define la barbería. */
+/** Los cupones con los que nace la demo; la barbería crea los suyos en Configuración › Cupones. */
 export const PROMOS: readonly Promo[] = [
   { code: "BIENVENIDO10", type: "percent", value: 10, firstVisitOnly: true },
   { code: "FAMILIA15", type: "percent", value: 15, minAppointments: 2 },
@@ -61,24 +71,39 @@ export function coverByPackages(appointments: readonly (readonly { serviceId: st
   return { amount: round2(amount), used };
 }
 
-/** El cupón de bienvenida (solo primera visita): se le ofrece y aplica solo al cliente nuevo. */
-export const FIRST_VISIT_PROMO: Promo | undefined = PROMOS.find((promo) => promo.firstVisitOnly);
-
-export type PromoProblem = "unknown" | "firstVisitOnly" | "minAppointments";
+export type PromoProblem = "unknown" | "firstVisitOnly" | "minAppointments" | "notYet" | "expired" | "exhausted" | "usedByClient" | "services";
 
 export interface PromoContext {
   isNewClient: boolean;
   appointments: number;
+  /** Hoy en la sede («AAAA-MM-DD»), para las fechas del cupón. */
+  today?: string;
+  /** Los servicios de la cuenta, para los cupones de ciertos servicios. */
+  serviceIds?: readonly string[];
+  /** Cuántas veces ya se usó en total y cuántas este cliente. */
+  uses?: number;
+  clientUses?: number;
 }
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 
-/** El cupón por su código (sin importar mayúsculas), o por qué no aplica. */
-export function findPromo(code: string, context: PromoContext): { promo: Promo } | { problem: PromoProblem } {
-  const promo = PROMOS.find((item) => item.code === code.trim().toUpperCase());
+/** Un código escrito como sea («ver ano10 ») a como se guarda («VERANO10»). */
+export const normalizePromoCode = (code: string): string => code.trim().toUpperCase().replace(/\s+/g, "");
+
+/**
+ * El cupón por su código (sin importar mayúsculas), o por qué no aplica. La lista es la de la barbería (por defecto,
+ * la de la demo); el contexto trae lo que solo sabe el servidor: hoy en la sede, los servicios y cuántas veces se usó.
+ */
+export function findPromo(code: string, context: PromoContext, list: readonly Promo[] = PROMOS): { promo: Promo } | { problem: PromoProblem } {
+  const promo = list.find((item) => item.code === normalizePromoCode(code) && item.active !== false);
   if (!promo) return { problem: "unknown" };
+  if (context.today && promo.validFrom && context.today < promo.validFrom) return { problem: "notYet" };
+  if (context.today && promo.validTo && context.today > promo.validTo) return { problem: "expired" };
+  if (promo.maxUses && (context.uses ?? 0) >= promo.maxUses) return { problem: "exhausted" };
+  if (promo.perClient && (context.clientUses ?? 0) >= promo.perClient) return { problem: "usedByClient" };
   if (promo.firstVisitOnly && !context.isNewClient) return { problem: "firstVisitOnly" };
   if (promo.minAppointments && context.appointments < promo.minAppointments) return { problem: "minAppointments" };
+  if (promo.serviceIds?.length && context.serviceIds && !context.serviceIds.some((id) => promo.serviceIds?.includes(id))) return { problem: "services" };
   return { promo };
 }
 

@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { isValidTaxId, packOf, type TaxIdKind } from "@/features/settings/countryPack";
+import { defaultWeekHours, parseWeekHours, type WeekHours } from "@/features/branches/branchHours";
 import { accountById, db } from "../db";
 import { forbidden, hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
 import { GATEWAY_SPECS, isGatewayProvider, keyLooksValid } from "@/features/settings/gatewayProviders";
@@ -93,6 +94,7 @@ const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null
     else if (db.settings.lists.branches.some((item) => item.id !== currentId && text(item.name).toLowerCase() === name.toLowerCase())) fields.name = ["Ya hay una sucursal con ese nombre."];
     for (const key of ["country", "state", "city", "timezone", "currency"]) if (!text(body[key])) fields[key] = ["Este dato es obligatorio."];
     if (text(body.phone).replace(/\D/g, "").length < 8) fields.phone = ["Escribe un teléfono válido."];
+    if (body.hours !== undefined && !parseWeekHours(body.hours)) fields.hours = ["Cada día abierto necesita apertura y cierre, y el cierre después de la apertura."];
     // La identificación fiscal con la forma de su país (NIT con dígito de verificación, RFC, EIN).
     const pack = packOf(text(body.country));
     if (pack && !isValidTaxId(pack.country, text(body.taxId))) fields.taxId = [TAX_ID_ERRORS[pack.taxIdKind]];
@@ -156,7 +158,11 @@ const isList = (value: unknown): value is MockSettingsList => LISTS.includes(val
 
 /** Lo que una lista guarda de cada fila: nunca el secreto de un datáfono ni de una pasarela. */
 function listRow(list: MockSettingsList, body: Body, current?: MockListItem): Body {
-  if (list === "branches") return { ...body, taxGroupId: body.taxGroupId ?? null, gatewayId: body.gatewayId ?? null };
+  if (list === "branches") {
+    const business = db.settings.sections.business as { openTime?: string; closeTime?: string };
+    const hours = parseWeekHours(body.hours) ?? (current?.hours as WeekHours | undefined) ?? defaultWeekHours(business.openTime, business.closeTime);
+    return { ...body, taxGroupId: body.taxGroupId ?? null, gatewayId: body.gatewayId ?? null, hours };
+  }
   if (list === "gateways") {
     // La clave secreta no se guarda en la fila: vive aparte (storeGatewaySecret).
     const rest = Object.fromEntries(Object.entries(body).filter(([key]) => key !== "secretKey"));

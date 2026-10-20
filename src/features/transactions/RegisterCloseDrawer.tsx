@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowDownToLine, ArrowUpFromLine, EyeOff, Lock, Plus } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, EyeOff, Lock, Plus, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -20,7 +20,7 @@ import { countTotal } from "./denominations";
 import { useAccess } from "@/features/access";
 import { useMembersQuery } from "@/features/team/queries";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { expectedInDrawer, useAddCashMovement, useChargeShortage, useCloseRegister, useRegisterDay, type CashMovement, type RegisterDay } from "./register";
+import { expectedInDrawer, useAddCashMovement, useChargeShortage, useCloseRegister, useRegisterDay, type CashMovement, type RegisterClosure, type RegisterDay } from "./register";
 
 export interface RegisterCloseDrawerProps {
   open: boolean;
@@ -47,7 +47,7 @@ export function RegisterCloseDrawer({ open, onOpenChange, branchId, date, format
   return (
     <DrawerShell open={open} onOpenChange={onOpenChange} size="md" title={t("transactions.register.title")} description={formatDate(new Date(`${date}T12:00:00`), DAY)}>
       <QueryBoundary query={query} loading={<Skeleton className="h-64 w-full rounded-2xl" />}>
-        {(data) => <RegisterBody key={`${data.date}-${data.closure?.id ?? "open"}`} data={data} formatMoney={formatMoney} formatTime={(iso) => formatDate(new Date(iso), TIME)} />}
+        {(data) => <RegisterBody key={`${data.date}-${data.closure?.id ?? "open"}-${data.shift}`} data={data} formatMoney={formatMoney} formatTime={(iso) => formatDate(new Date(iso), TIME)} />}
       </QueryBoundary>
     </DrawerShell>
   );
@@ -57,7 +57,8 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
   const t = useAppT();
   const close = useCloseRegister();
   const currency = useBranchCurrency();
-  const [opening, setOpening] = React.useState<number | null>(0);
+  // El turno siguiente abre con lo que quedó contado en el cajón al cerrar el anterior.
+  const [opening, setOpening] = React.useState<number | null>(data.closures.at(-1)?.counted ?? 0);
   const [typed, setTyped] = React.useState<number | null>(null);
   const [counts, setCounts] = React.useState<Record<string, number>>({});
   const [byDenomination, setByDenomination] = React.useState(true);
@@ -75,17 +76,24 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
   const needsNote = !blind && difference !== null && difference !== 0;
   const valid = opening !== null && counted !== null && (!needsNote || note.trim().length >= 3) && !blockedByReview;
 
-  const submit = () => {
+  const submit = (final: boolean) => {
     if (!valid || opening === null || counted === null) return;
     close.mutate(
-      { branchId: data.branchId, date: data.date, opening, counted, note: note.trim(), denominations: byDenomination ? counts : null },
-      { onSuccess: () => toast.success(t("transactions.register.closed")) }
+      { branchId: data.branchId, date: data.date, opening, counted, note: note.trim(), denominations: byDenomination ? counts : null, final },
+      { onSuccess: () => toast.success(final ? t("transactions.register.closed") : t("transactions.register.shiftClosed", { shift: data.shift })) }
     );
   };
+  const earlier = data.closures.filter((item) => item.id !== closure?.id);
 
   return (
     <div className="space-y-5" data-testid="register-close">
+      {earlier.length > 0 && <ShiftList closures={earlier} formatMoney={formatMoney} formatTime={formatTime} />}
       <section aria-label={t("transactions.register.inflow")} className="space-y-2 rounded-xl bg-surface-subtle p-4">
+        {(data.shift > 1 || earlier.length > 0) && (
+          <Text variant="caption" data-testid="register-shift">
+            {t("transactions.register.shiftLabel", { shift: data.shift })}
+          </Text>
+        )}
         <Text variant="label">{t("transactions.register.inflow", { count: expected.accounts })}</Text>
         <dl className="space-y-1.5 text-sm">
           {expected.cash === null ? (
@@ -141,12 +149,38 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
               <Textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} data-testid="register-note" />
             </Field>
           )}
-          <Button className="w-full" onClick={submit} disabled={!valid || close.isPending} data-testid="register-submit">
-            <Lock /> {t("transactions.register.close")}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row-reverse">
+            <Button className="flex-1" onClick={() => submit(true)} disabled={!valid || close.isPending} data-testid="register-submit">
+              <Lock /> {t("transactions.register.close")}
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => submit(false)} disabled={!valid || close.isPending} data-testid="register-close-shift">
+              <Repeat /> {t("transactions.register.closeShift", { shift: data.shift })}
+            </Button>
+          </div>
+          <Text variant="muted">{t("transactions.register.shiftHint")}</Text>
         </section>
       )}
     </div>
+  );
+}
+
+/** Los turnos ya cerrados del día: quién, a qué hora y si cuadró. El faltante de cada uno se puede descontar. */
+function ShiftList({ closures, formatMoney, formatTime }: { closures: readonly RegisterClosure[]; formatMoney: (value: number) => string; formatTime: (iso: string) => string }) {
+  const t = useAppT();
+  return (
+    <section aria-label={t("transactions.register.shifts")} className="space-y-2" data-testid="register-shifts">
+      <Text variant="label">{t("transactions.register.shifts")}</Text>
+      <ul className="divide-y divide-border/60 rounded-lg border border-border text-sm">
+        {closures.map((item, index) => (
+          <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-3 py-2">
+            <span className="text-text-secondary">{t("transactions.register.shiftLine", { shift: item.shift ?? index + 1, name: item.closedBy, time: formatTime(item.closedAt) })}</span>
+            <span className={`tabular-nums ${item.difference === 0 ? "text-status-positive" : "text-status-warning"}`}>
+              {formatMoney(item.counted)} · {differenceLabel(t, formatMoney, item.difference)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

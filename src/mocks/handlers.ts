@@ -2,6 +2,7 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { allAccounts, accountById, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } from "./session";
 import { calendarHandlers } from "./calendar/handlers";
+import { depositHandlers } from "./calendar/deposits";
 import { teamHandlers } from "./team/handlers";
 import { memberActionHandlers } from "./team/memberActions";
 import { customersHandlers } from "./customers/handlers";
@@ -694,6 +695,7 @@ export const handlers = [
 
   // ---------- Calendario ----------
   ...calendarHandlers,
+  ...depositHandlers,
 
   // ---------- Equipo ----------
   ...workforceHandlers,

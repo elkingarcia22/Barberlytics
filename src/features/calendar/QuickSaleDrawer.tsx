@@ -18,6 +18,7 @@ import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type PaymentMethod, type Prod
 import { ProductThumb } from "./calendarShared";
 import { useAccess } from "@/features/access";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCurrencyInput } from "@/features/branches";
 
 const NO_SELLER = "__barberia";
 
@@ -39,6 +40,7 @@ export function QuickSaleDrawer(props: QuickSaleDrawerProps) {
 }
 
 function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerProps) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const sale = useCreateSale();
   const [category, setCategory] = React.useState("all");
@@ -175,7 +177,7 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
           {method === "cash" && items.length > 0 && (
             <div className="mt-3 space-y-1">
               <Field label={t("calendar.checkout.received")}>
-                <NumberField value={received} onValueChange={setReceived} min={0} step={1} prefix="$" size="sm" />
+                <NumberField value={received} onValueChange={setReceived} min={0} step={1} prefix={currencySymbol} size="sm" />
               </Field>
               {change !== null && (
                 <Text variant="muted" className={change < 0 ? "text-destructive" : undefined} data-testid="quick-sale-change">

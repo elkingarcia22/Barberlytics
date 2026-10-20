@@ -1,3 +1,4 @@
+import { defaultWeekHours } from "@/features/branches/branchHours";
 /**
  * La configuración del backend simulado. Dos formas de dato:
  *
@@ -56,7 +57,10 @@ export const DEFAULT_POLICY = [
 /** Pone al día una configuración guardada en el navegador (hoy: los datáfonos de la demo). */
 export function upgradeSettings(settings: MockSettingsState): MockSettingsState {
   const devices = upgradeDevices(settings.lists.devices ?? []);
-  return devices ? { ...settings, lists: { ...settings.lists, devices } } : settings;
+  // Las sucursales guardadas antes del horario por sede: el del negocio, de lunes a sábado.
+  const business = settings.sections.business as { openTime?: string; closeTime?: string };
+  const branches = settings.lists.branches.map((item) => (item.hours ? item : { ...item, hours: defaultWeekHours(business.openTime, business.closeTime) }));
+  return { ...settings, lists: { ...settings.lists, branches, ...(devices ? { devices } : {}) } };
 }
 
 export function seedSettings(): MockSettingsState {
@@ -110,10 +114,10 @@ export function seedSettings(): MockSettingsState {
     },
     lists: {
       branches: [
-        { id: "ma", name: "Massachusetts", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Massachusetts", city: "Boston", address: "88 Newbury St", zipcode: "02116", phone: "+16175550100", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ma", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-01-06T12:00:00.000Z" },
-        { id: "nc", name: "North Carolina", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "North Carolina", city: "Charlotte", address: "210 W Trade St", zipcode: "28202", phone: "+17045550110", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_nc", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-02-10T12:00:00.000Z" },
-        { id: "ri", name: "Rhode Island", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Rhode Island", city: "Providence", address: "134 Thayer St", zipcode: "02906", phone: "+14015550120", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ri", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-03-18T12:00:00.000Z" },
-        { id: "ut", name: "Utah", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Utah", city: "Salt Lake City", address: "55 W 200 S", zipcode: "84101", phone: "+18015550130", currency: "USD", language: "es", timezone: "America/Denver", taxGroupId: "tax_ut", gatewayId: "gw_stripe", description: "", status: "active", createdAt: "2026-04-22T12:00:00.000Z" },
+        { id: "ma", name: "Massachusetts", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Massachusetts", city: "Boston", address: "88 Newbury St", zipcode: "02116", phone: "+16175550100", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ma", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("08:00", "22:00"), status: "active", createdAt: "2026-01-06T12:00:00.000Z" },
+        { id: "nc", name: "North Carolina", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "North Carolina", city: "Charlotte", address: "210 W Trade St", zipcode: "28202", phone: "+17045550110", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_nc", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("09:00", "20:00"), status: "active", createdAt: "2026-02-10T12:00:00.000Z" },
+        { id: "ri", name: "Rhode Island", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Rhode Island", city: "Providence", address: "134 Thayer St", zipcode: "02906", phone: "+14015550120", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: "tax_ri", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("08:00", "21:00"), status: "active", createdAt: "2026-03-18T12:00:00.000Z" },
+        { id: "ut", name: "Utah", legalName: "Barbería Demo LLC", taxId: "12-3456789", country: "Estados Unidos", state: "Utah", city: "Salt Lake City", address: "55 W 200 S", zipcode: "84101", phone: "+18015550130", currency: "USD", language: "es", timezone: "America/Denver", taxGroupId: "tax_ut", gatewayId: "gw_stripe", description: "", hours: defaultWeekHours("09:00", "19:00"), status: "active", createdAt: "2026-04-22T12:00:00.000Z" },
       ],
       closures: [{ id: "cls_001", startDate: "2026-12-24", endDate: "2026-12-26", branchIds: ["ma", "nc", "ri", "ut"], description: "Navidad" }],
       // Uno por estado (tasas de demostración, no de una declaración real) y el IVA para una sucursal en Colombia.

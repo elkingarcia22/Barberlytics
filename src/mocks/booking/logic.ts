@@ -5,7 +5,7 @@ import { appointmentsOn, barbersIn, clashMessage, hoursOn } from "../calendar/ha
 import { profileOf } from "../customers/handlers";
 import { depositOf } from "@/features/booking/pricing";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
-import { accountTaxPercent, branchCountry, branchCurrency, branchNow, branchOnlineMethods, branchTaxPercent, branchTimeZone, itemTaxPercent, startInstant, taxInclusive } from "../settings/branchRules";
+import { accountTaxPercent, branchCountry, branchHours, branchCurrency, branchNow, branchOnlineMethods, branchTaxPercent, branchTimeZone, itemTaxPercent, startInstant, taxInclusive } from "../settings/branchRules";
 import { ratingOf, reviewOfAppointment } from "./reviews";
 import { activePackages, packageOffers } from "./packages";
 import { hashOf } from "../customers/seed";
@@ -13,6 +13,7 @@ import { stockLevel } from "../inventory/stock";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 import { consentCountryOf } from "@/features/legal/consent";
 import { closedForHoliday } from "@/features/settings/countryPack";
+import { fitsInHours, hoursOnDate } from "@/features/branches/branchHours";
 
 /**
  * Las derivaciones de la reserva en línea: lo que ve el cliente sale de lo
@@ -75,20 +76,25 @@ export const serviceName = (id: string) => db.services.items.find((item) => item
 export const durationOf = (serviceIds: readonly string[]) =>
   serviceIds.reduce((sum, id) => sum + (db.services.items.find((item) => item.id === id)?.durationMin ?? 0), 0);
 
+/**
+ * El horario de hoy de la sede: el suyo (Configuración › Sucursales), recortado a lo que trabaja el equipo ese
+ * día. Si hoy cierra, el de la sede tal cual (la reserva dirá que no hay horas).
+ */
 export function branchHoursToday(branchId: string): { opensAt: string; closesAt: string } {
   // «Hoy» es el de la sucursal, no el de quien reserva desde otra zona.
   const today = branchNow(branchId).slice(0, 10);
+  const own = hoursOnDate(branchHours(branchId), today);
   const ranges = bookableBarbers(branchId).flatMap((barber) => {
     const member = memberOf(barber.id);
     return member ? hoursOn(member, today) : [];
   });
-  if (ranges.length === 0) {
-    const business = db.settings.sections.business as { openTime: string; closeTime: string };
-    return { opensAt: business.openTime, closesAt: business.closeTime };
+  if (!own || ranges.length === 0) {
+    const fallback = own ?? Object.values(branchHours(branchId)).find((day) => day !== null) ?? { open: "09:00", close: "19:00" };
+    return { opensAt: fallback.open, closesAt: fallback.close };
   }
   return {
-    opensAt: clockOf(Math.min(...ranges.map((range) => parseClock(range.start)))),
-    closesAt: clockOf(Math.max(...ranges.map((range) => parseClock(range.end)))),
+    opensAt: clockOf(Math.max(parseClock(own.open), Math.min(...ranges.map((range) => parseClock(range.start))))),
+    closesAt: clockOf(Math.min(parseClock(own.close), Math.max(...ranges.map((range) => parseClock(range.end))))),
   };
 }
 
@@ -197,17 +203,20 @@ export function catalog(branchId: string) {
 /** Los festivos en que cierra el negocio (Configuración › Perfil del negocio), por motivo. */
 const closedHolidays = (): readonly string[] => (db.settings.sections.business as { holidays?: string[] } | undefined)?.holidays ?? [];
 
-/** Cerrado por un cierre de la sede o por un festivo de su país en que el negocio no abre. */
+/** Cerrado por un cierre de la sede, por un festivo de su país en que el negocio no abre o porque ese día no abre. */
 export const isClosed = (branchId: string, day: string): boolean =>
   (db.settings.lists.closures as unknown as { startDate: string; endDate: string; branchIds: string[] }[]).some(
     (closure) => closure.branchIds.includes(branchId) && closure.startDate <= day && day <= closure.endDate
-  ) || closedForHoliday(branchCountry(branchId), closedHolidays(), day) !== null;
+  ) ||
+  closedForHoliday(branchCountry(branchId), closedHolidays(), day) !== null ||
+  hoursOnDate(branchHours(branchId), day) === null;
 
 /** ¿Puede este barbero atender a esa hora, todo el tramo, sin pisar nada? */
 export function barberFree(branchId: string, barberId: string, day: string, startMinute: number, durationMin: number, excludeId?: string): boolean {
   const member = memberOf(barberId);
   if (!member) return false;
-  const fits = hoursOn(member, day).some((range) => parseClock(range.start) <= startMinute && startMinute + durationMin <= parseClock(range.end));
+  // Dentro de su horario y del de la sede: nadie atiende con la barbería cerrada.
+  const fits = fitsInHours(hoursOnDate(branchHours(branchId), day), startMinute, durationMin) && hoursOn(member, day).some((range) => parseClock(range.start) <= startMinute && startMinute + durationMin <= parseClock(range.end));
   return fits && clashMessage(branchId, barberId, day, startMinute, durationMin, excludeId) === null;
 }
 
@@ -491,9 +500,8 @@ const DAYS_IN_WEEK = 7;
 
 /**
  * El perfil de una sede: lo que se mira antes de elegirla. La descripción, la
- * dirección y el teléfono son los de Configuración › Sucursales; el horario de
- * cada día sale del que trabaja el equipo ese día (desde que entra el primero
- * hasta que sale el último), y un día sin nadie es un día cerrado.
+ * dirección, el teléfono y el horario de cada día son los de Configuración ›
+ * Sucursales; un día que la sede abre pero sin nadie del equipo sale cerrado.
  */
 export function branchDetail(branchId: string) {
   const branch = (db.settings.lists.branches as unknown as { id: string; name: string; address: string; city: string; state: string; zipcode: string; phone: string; description: string; status: string }[]).find(
@@ -501,13 +509,12 @@ export function branchDetail(branchId: string) {
   );
   if (!branch) return null;
   const members = bookableBarbers(branchId).map((barber) => memberOf(barber.id)).filter((member) => member !== undefined);
+  // El horario que publica la sede; un día que abre pero sin nadie del equipo se muestra cerrado.
+  const week = branchHours(branchId);
   const hours = Array.from({ length: DAYS_IN_WEEK }, (_, day) => {
-    const ranges = members.flatMap((member) => {
-      const range = member.schedule[String(day)];
-      return range ? [range] : [];
-    });
-    if (ranges.length === 0) return { day, opensAt: null, closesAt: null };
-    return { day, opensAt: clockOf(Math.min(...ranges.map((range) => parseClock(range.start)))), closesAt: clockOf(Math.max(...ranges.map((range) => parseClock(range.end)))) };
+    const own = week[String(day) as keyof typeof week];
+    const staffed = members.some((member) => member.schedule[String(day)]);
+    return own && staffed ? { day, opensAt: own.open, closesAt: own.close } : { day, opensAt: null, closesAt: null };
   });
   const business = db.settings.sections.business as { website: string; instagram: string; facebook: string };
   const own = BRANCH_PHOTOS[branchId];

@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { NumberField } from "@/components/forms";
 import { Button } from "@/components/ui/button";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * El precio de una línea del cobro. Quien puede cambiarlo lo ve como un botón
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
  * vuelve al de lista). Sin permiso, solo el importe.
  */
 export function CheckoutPrice({ value, listPrice, editable, label, format, onChange }: { value: number; listPrice: number; editable: boolean; label: string; format: (value: number) => string; onChange: (next: number | null) => void }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const [editing, setEditing] = React.useState(false);
   if (!editable) return <>{format(value)}</>;
@@ -25,7 +27,7 @@ export function CheckoutPrice({ value, listPrice, editable, label, format, onCha
         onKeyDown={(event) => event.key === "Enter" && setEditing(false)}
         min={0}
         step={1}
-        prefix="$"
+        prefix={currencySymbol}
         size="sm"
         className="w-28"
         aria-label={t("calendar.checkout.priceFor", { name: label })}

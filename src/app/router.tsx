@@ -16,6 +16,7 @@ import {
   BookingPage,
   CalendarPage,
   ConfirmAppointmentPage,
+  DepositPayPage,
   KioskPage,
   TurnBoardPage,
   LegalPage,
@@ -43,7 +44,6 @@ import {
   SettingsPage,
   SettingsSectionPage,
   TeamHomePage,
-  UsersPage,
 } from "./lazyPages";
 
 const lazy = (element: React.ReactNode) => <React.Suspense fallback={<PageLoader />}>{element}</React.Suspense>;
@@ -110,7 +110,8 @@ export const router = createBrowserRouter([
           // Equipo abre su home —el pulso del equipo, los avisos por rol y la
           // lista— y la administración de personas cuelga de él.
           { path: "usuarios", element: guarded("team", <TeamHomePage />) },
-          { path: "usuarios/lista", element: guarded("team", <UsersPage />) },
+          // La lista de la plantilla (admin/manager/member) se retiró: el equipo vive en /usuarios.
+          { path: "usuarios/lista", element: <Navigate to="/usuarios" replace /> },
           // Lo que cuelga de Equipo: la ficha de cada persona, el alta paso a
           // paso, las horas de la semana, los niveles y los dos órdenes.
           { path: "usuarios/miembros/:id", element: guarded("team", <MemberProfilePage />) },
@@ -133,6 +134,8 @@ export const router = createBrowserRouter([
   { path: "/reservar", element: lazy(<BookingPage />), errorElement: <RouteError /> },
   // El botón «Confirmar» del WhatsApp: público, con el token de la cita en `?t=`.
   { path: "/reservar/confirmar", element: lazy(<ConfirmAppointmentPage />), errorElement: <RouteError /> },
+  // El enlace de anticipo que se pide desde la cita: público, con el token en `?token=`.
+  { path: "/reservar/anticipo", element: lazy(<DepositPayPage />), errorElement: <RouteError /> },
   // El kiosco de la sede: público, pero solo funciona emparejado con el código de Configuración.
   { path: "/kiosco", element: lazy(<KioskPage />), errorElement: <RouteError /> },
   // La pantalla de turnos del televisor de la sala: con el token de un kiosco de la sede.

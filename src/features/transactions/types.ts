@@ -34,6 +34,9 @@ export const accountSchema = z.object({
   /** Lo descontado al reservar en línea (cupón, cortesía, paquete). */
   discount: z.number().optional(),
   tax: z.number(),
+  /** El recargo por tarjeta, como línea aparte (dentro de `total`). */
+  surcharge: z.number().optional(),
+  surchargeName: z.string().nullable().optional(),
   tip: z.number(),
   total: z.number(),
   /** Lo que ya se pagó al reservar en línea: la caja cobra solo el resto. */

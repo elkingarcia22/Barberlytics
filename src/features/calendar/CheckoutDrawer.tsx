@@ -20,6 +20,7 @@ import { TRACK } from "./appointmentPanel/panelLogic";
 import { Stepper } from "@/components/navigation";
 import { formatClock } from "@/components/scheduling";
 import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * Cobrar, con la cara del panel de la cita: el avance de la cita arriba y una
@@ -149,6 +150,7 @@ function CheckoutStepper({ appointment, ctx }: { appointment: Appointment; ctx: 
 
 /** La propina para el barbero, al pulsar «Cobrar» (como en la reserva): al elegirla se cobra. */
 function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpenChange: (open: boolean) => void; checkout: CheckoutController; ctx: ModelContext }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const { t } = checkout;
   const [choice, setChoice] = React.useState(NO_TIP);
   const [custom, setCustom] = React.useState<number | null>(null);
@@ -206,7 +208,7 @@ function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpen
         </div>
         {choice === "custom" && (
           <Field label={t("calendar.checkout.tip")}>
-            <NumberField value={custom} onValueChange={setCustom} min={0} step={1} prefix="$" size="sm" autoFocus />
+            <NumberField value={custom} onValueChange={setCustom} min={0} step={1} prefix={currencySymbol} size="sm" autoFocus />
           </Field>
         )}
       </div>

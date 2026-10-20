@@ -23,7 +23,6 @@ export const LineupPage = React.lazy(() => import("@/features/team/LineupPage").
 export const AbsencesPage = React.lazy(() => import("@/features/team/AbsencesPage").then((m) => ({ default: m.AbsencesPage })));
 export const MetricsPage = React.lazy(() => import("@/features/metrics/MetricsPage").then((m) => ({ default: m.MetricsPage })));
 export const TeamHomePage = React.lazy(() => import("@/features/team/TeamHomePage").then((m) => ({ default: m.TeamHomePage })));
-export const UsersPage = React.lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })));
 export const DocsApp = React.lazy(() => import("@/docs/DocsApp").then((m) => ({ default: m.DocsApp })));
 /** La reserva en línea que ve el cliente; pública, con su propia vista previa. */
 export const BookingPage = React.lazy(() => import("@/features/booking/BookingPage").then((m) => ({ default: m.BookingPage })));
@@ -31,6 +30,7 @@ export const LegalPage = React.lazy(() => import("@/features/legal/LegalPage").t
 export const TurnBoardPage = React.lazy(() => import("@/features/frontDesk/TurnBoardPage").then((m) => ({ default: m.TurnBoardPage })));
 export const KioskPage = React.lazy(() => import("@/features/frontDesk/KioskPage").then((m) => ({ default: m.KioskPage })));
 export const ConfirmAppointmentPage = React.lazy(() => import("@/features/booking/ConfirmAppointmentPage").then((m) => ({ default: m.ConfirmAppointmentPage })));
+export const DepositPayPage = React.lazy(() => import("@/features/booking/DepositPayPage").then((m) => ({ default: m.DepositPayPage })));
 /** El centro de ayuda: lee el contenido publicado por el repo `centro-de-ayuda`. */
 export const HelpApp = React.lazy(() => import("@/help/HelpApp").then((m) => ({ default: m.HelpApp })));
 export const SettingsPage = React.lazy(() => import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));

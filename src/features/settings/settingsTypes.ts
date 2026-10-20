@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GATEWAY_PROVIDERS, type GatewayProvider } from "./gatewayProviders";
+import { defaultWeekHours } from "@/features/branches/branchHours";
 
 /**
  * Las formas de cada ajuste. Dos familias, como en el backend: documentos
@@ -123,6 +124,10 @@ export type BillingSettings = z.infer<typeof billingSchema>;
 
 /* ----------------------------------------------------------------- listas */
 
+const dayHoursSchema = z.object({ open: z.string(), close: z.string() }).nullable();
+/** El horario de la sede por día de la semana («0» domingo … «6» sábado); `null` = cerrado. */
+export const weekHoursSchema = z.object({ "0": dayHoursSchema, "1": dayHoursSchema, "2": dayHoursSchema, "3": dayHoursSchema, "4": dayHoursSchema, "5": dayHoursSchema, "6": dayHoursSchema });
+
 export const branchSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -142,6 +147,8 @@ export const branchSchema = z.object({
   /** Con qué pasarela cobra en línea; sin ella, la reserva solo deja pagar en la barbería. */
   gatewayId: z.string().nullable().default(null),
   description: z.string(),
+  /** Cuándo abre cada día; sin él (datos viejos), lunes a sábado de 9 a 7. */
+  hours: weekHoursSchema.default(defaultWeekHours()),
   status: z.enum(["active", "inactive"]),
   createdAt: z.string(),
   teamSize: z.number().optional(),

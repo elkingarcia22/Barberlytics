@@ -228,7 +228,7 @@ export function teamHome(branchId: string, now = new Date()) {
   const people = db.team.members.filter((member) => member.branchIds.includes(branchId));
   const period = daysBack(now, PERFORMANCE_DAYS);
   const agenda = agendaOf(branchId, daysBack(now, Math.max(PERFORMANCE_DAYS, WEEKS * 7)));
-  const unclosed = week.slice(1).filter((day) => [...(agenda.get(day)?.values() ?? [])].flat().some((item) => item.status === "paid") && !(db.register?.closures ?? []).some((closure) => closure.branchId === branchId && closure.date === day)).length;
+  const unclosed = week.slice(1).filter((day) => [...(agenda.get(day)?.values() ?? [])].flat().some((item) => item.status === "paid") && !(db.register?.closures ?? []).some((closure) => closure.branchId === branchId && closure.date === day && closure.final !== false)).length;
   const weekly = (offset: number) => daysBack(new Date(now.getTime() - offset * 7 * DAY_MS), 7);
   const members = people.map((member) => {
     const chair = barbers.findIndex((item) => item.id === member.id);

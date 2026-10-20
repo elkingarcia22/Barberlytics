@@ -14,6 +14,7 @@ import { useRefundAppointment } from "../queries";
 import type { RefundItem } from "../types";
 import { PanelQuestion } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * Devolver, dentro del panel (no en un modal ni en otra pantalla): se marca
@@ -25,6 +26,7 @@ import type { AppointmentModel } from "./useAppointmentModel";
 const cents = (value: number): number => Math.round(value * 100) / 100;
 
 export function RefundPage({ model, ctx, onDone }: { model: AppointmentModel; ctx: ModelContext; onDone: () => void }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const refund = useRefundAppointment();
   const { appointment } = model;
@@ -143,7 +145,7 @@ export function RefundPage({ model, ctx, onDone }: { model: AppointmentModel; ct
           )}
         </div>
         <Field label={t("calendar.refund.otherAmount")} description={t("calendar.refund.otherHint", { max: ctx.formatMoney(refundable) })}>
-          <NumberField value={custom} onValueChange={setCustom} min={0} max={refundable} step={1} prefix="$" size="sm" data-testid="panel-refund-amount" />
+          <NumberField value={custom} onValueChange={setCustom} min={0} max={refundable} step={1} prefix={currencySymbol} size="sm" data-testid="panel-refund-amount" />
         </Field>
       </PanelQuestion>
 

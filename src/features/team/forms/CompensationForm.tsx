@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Text } from "@/components/typography";
 import { InfoCard, Stat } from "../teamShared";
 import { COMPENSATION_TYPE_KEYS, compensationTypeSchema, type Compensation, type CompensationType } from "../types";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * La pestaña Compensación de un barbero por comisión: cómo se le paga cada
@@ -35,6 +36,7 @@ const CLIENT_FIELDS = [
 const EXAMPLE_PRICE = 40;
 
 export function CompensationForm({ value, onChange, errors = {}, formatMoney }: CompensationFormProps) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const set = <K extends keyof Compensation>(key: K, next: Compensation[K]) => onChange({ ...value, [key]: next });
 
@@ -59,7 +61,7 @@ export function CompensationForm({ value, onChange, errors = {}, formatMoney }: 
 
           {value.type === "salary" ? (
             <Field label={t("teamMember.compensation.salaryAmount")} required>
-              <NumberField value={value.salary} onValueChange={(salary) => set("salary", salary)} min={0} step={50} prefix="$" />
+              <NumberField value={value.salary} onValueChange={(salary) => set("salary", salary)} min={0} step={50} prefix={currencySymbol} />
             </Field>
           ) : (
             <>
@@ -71,7 +73,7 @@ export function CompensationForm({ value, onChange, errors = {}, formatMoney }: 
                   {value.scale.map((tier, index) => (
                     <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                       <Field label={t("teamMember.compensation.scaleFrom")}>
-                        <NumberField value={tier.from} onValueChange={(from) => set("scale", value.scale.map((item, i) => (i === index ? { ...item, from: from ?? 0 } : item)))} min={0} step={100} prefix="$" size="sm" />
+                        <NumberField value={tier.from} onValueChange={(from) => set("scale", value.scale.map((item, i) => (i === index ? { ...item, from: from ?? 0 } : item)))} min={0} step={100} prefix={currencySymbol} size="sm" />
                       </Field>
                       <Field label={t("teamMember.compensation.scalePercent")}>
                         <NumberField value={tier.percent} onValueChange={(percent) => set("scale", value.scale.map((item, i) => (i === index ? { ...item, percent: percent ?? 0 } : item)))} min={0} max={100} suffix="%" size="sm" />

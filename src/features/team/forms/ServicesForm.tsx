@@ -14,6 +14,7 @@ import type { Service } from "@/features/calendar/types";
 import { InfoCard } from "../teamShared";
 import { overrideFor } from "../teamUtils";
 import type { ServiceOverride } from "../types";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * La pestaña Servicios: qué hace esta persona y, por servicio, sus valores
@@ -37,6 +38,7 @@ const isCustom = (override: ServiceOverride | undefined): boolean => Boolean(ove
 
 
 export function ServicesForm({ services, value, onChange, formatMoney }: ServicesFormProps) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const [editing, setEditing] = React.useState<Service | null>(null);
   const [draft, setDraft] = React.useState<ServiceOverride | null>(null);
@@ -103,9 +105,9 @@ export function ServicesForm({ services, value, onChange, formatMoney }: Service
       >
         {editing && draft && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <OverrideNumber label={t("teamMember.services.price")} catalog={formatMoney(editing.price)} value={draft.price} onChange={(price) => setDraft({ ...draft, price })} prefix="$" />
-            <OverrideNumber label={t("teamMember.services.newClientPrice")} catalog={formatMoney(editing.price)} value={draft.newClientPrice} onChange={(newClientPrice) => setDraft({ ...draft, newClientPrice })} prefix="$" />
-            <OverrideNumber label={t("teamMember.services.loyaltyPrice")} catalog={formatMoney(editing.price)} value={draft.loyaltyPrice} onChange={(loyaltyPrice) => setDraft({ ...draft, loyaltyPrice })} prefix="$" />
+            <OverrideNumber label={t("teamMember.services.price")} catalog={formatMoney(editing.price)} value={draft.price} onChange={(price) => setDraft({ ...draft, price })} prefix={currencySymbol} />
+            <OverrideNumber label={t("teamMember.services.newClientPrice")} catalog={formatMoney(editing.price)} value={draft.newClientPrice} onChange={(newClientPrice) => setDraft({ ...draft, newClientPrice })} prefix={currencySymbol} />
+            <OverrideNumber label={t("teamMember.services.loyaltyPrice")} catalog={formatMoney(editing.price)} value={draft.loyaltyPrice} onChange={(loyaltyPrice) => setDraft({ ...draft, loyaltyPrice })} prefix={currencySymbol} />
             <OverrideNumber label={t("teamMember.services.duration")} catalog={`${editing.durationMin} min`} value={draft.durationMin} onChange={(durationMin) => setDraft({ ...draft, durationMin })} suffix="min" step={5} />
             <OverrideNumber label={t("teamMember.services.splitCommission")} catalog="—" value={draft.splitCommission} onChange={(splitCommission) => setDraft({ ...draft, splitCommission })} suffix="%" max={100} />
             <OverrideNumber label={t("teamMember.services.extraCommission")} catalog="—" value={draft.extraCommission} onChange={(extraCommission) => setDraft({ ...draft, extraCommission })} suffix="%" max={100} />

@@ -1147,7 +1147,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onResize={onResize}
                         onSeeAll={ownBarberId ? undefined : () => state.setTeam("all")}
                         onConfigureHours={can.canViewTeam ? () => navigate("/usuarios") : undefined}
-                        onViewBarber={can.canViewTeam ? (barber: Barber) => navigate(`/usuarios/lista?search=${encodeURIComponent(barber.name)}`) : undefined}
+                        onViewBarber={can.canViewTeam ? (barber: Barber) => navigate(`/usuarios/miembros/${barber.id}`) : undefined}
                         onBlockBarber={can.canCreateBlock ? (barber: Barber) => openPanel({ kind: "block", barberId: barber.id }) : undefined}
                         onReflowBarber={planForBarber}
                         onTeamChange={ownBarberId ? undefined : state.setTeam}

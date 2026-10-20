@@ -65,7 +65,10 @@ function fromAppointment(appointment: MockAppointment) {
   // Lo que vale la cuenta con el impuesto de su sucursal y lo que ya se pagó al reservar en línea.
   const account = appointmentAccount(appointment);
   const tax = account.tax;
-  const total = account.total;
+  const paidNow = appointment.status === "paid" && payment !== null;
+  // El recargo por tarjeta es una línea más de la cuenta: el total es lo que pasó por el datáfono (sin propina).
+  const surcharge = paidNow ? (payment?.surcharge ?? 0) : 0;
+  const total = Math.round((account.total + surcharge) * 100) / 100;
   const isVoid = appointment.status === "cancelled" || appointment.status === "no_show";
   const paid = appointment.status === "paid" && payment !== null;
   // Devuelta solo si de verdad se devolvió algo: desde la caja o al cancelar la reserva en línea.
@@ -92,6 +95,7 @@ function fromAppointment(appointment: MockAppointment) {
     subtotal: account.subtotal,
     discount: account.discount,
     tax,
+    ...(surcharge > 0 ? { surcharge, surchargeName: payment?.surchargeName ?? null } : {}),
     tip: paid ? (payment?.tip ?? 0) : status === "open" ? account.prepaidTip : 0,
     total,
     // Lo pagado en línea cuenta como cobrado desde que se reservó: la caja solo cobra el resto.

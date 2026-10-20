@@ -143,7 +143,7 @@ function registerEvents(branchId: string, now: Date): MockNotification[] {
   // La caja de ayer que tuvo cobros y nadie cerró.
   const yesterday = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
   const charged = appointmentsOn(branchId, yesterday).some((item) => item.status === "paid");
-  const closed = (db.register?.closures ?? []).some((closure) => closure.branchId === branchId && closure.date === yesterday);
+  const closed = (db.register?.closures ?? []).some((closure) => closure.branchId === branchId && closure.date === yesterday && closure.final !== false);
   if (charged && !closed) items.push({ id: `register-open:${branchId}:${yesterday}`, kind: "registerOpen", at: `${yesterday}T21:00:00`, href: "/transacciones", tone: "warning", params: { day: yesterday }, roles: FRONT });
   return items;
 }

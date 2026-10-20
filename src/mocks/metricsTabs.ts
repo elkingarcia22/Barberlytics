@@ -1,5 +1,7 @@
 import { db, seededRandom } from "./db";
 import { WALK_IN_CLIENT, dateKey } from "./calendar/seed";
+import { branchHours } from "./settings/branchRules";
+import { WEEK_ORDER, hoursOnDate, openDuringHour, openMinutes } from "@/features/branches/branchHours";
 import { appointmentsOn } from "./calendar/handlers";
 import { payrollOf } from "./payroll/compute";
 import { profileOf } from "./customers/handlers";
@@ -7,6 +9,7 @@ import { lifecycleOf } from "./customers/seed";
 import { sessionsBySource } from "./booking/funnel";
 import { isOverdue } from "@/features/customers/overdue";
 import {
+  ALL_BRANCHES,
   barbersOfBranch,
   branchesOf,
   dayRecord,
@@ -119,8 +122,18 @@ export function buildCustomersMetrics(query: MetricsQuery): MetricsCustomers {
 
 // ── Barberos ────────────────────────────────────────────────────────────────
 
-const CHAIR_SLOTS_PER_DAY = 10;
+/** Lo que dura de media un turno en la silla: el horario abierto entre esto da cuántas citas caben en el día. */
+const SLOT_MINUTES = 45;
 const DAYS_PER_WEEK = 7;
+
+/** La sede con la que se mide a un barbero: la elegida o, con «Todas las sucursales», la suya. */
+const occupancyBranch = (branchId: string, barberId: string): string => (branchId === ALL_BRANCHES ? (db.team.members.find((item) => item.id === barberId)?.homeBranchId ?? "ma") : branchId);
+
+/** Cuántas citas caben en esos días con el horario real de la sede (cerrado = 0). */
+function capacityOf(dates: readonly Date[], branchId: string): number {
+  const week = branchHours(branchId);
+  return dates.reduce((total, date) => total + Math.floor(openMinutes(hoursOnDate(week, dateKey(date))) / SLOT_MINUTES), 0);
+}
 
 /**
  * El neto del barbero en el periodo, con el mismo cálculo que Nómina y «Lo que llevo» (reglas,
@@ -150,14 +163,14 @@ function barberOf(id: string, name: string, sim: SimulatedPeriod) {
   const completed = completedOf(days);
   const services = sum(completed.map((item) => item.service.price));
   const tips = sum(completed.map((item) => item.tip));
-  const openDays = days.filter((day) => day.date.getDay() !== 0).length;
+  const capacity = capacityOf(days.map((day) => day.date), occupancyBranch(sim.branchId, id));
   const lost = appointments.filter((item) => item.status === "cancelled" || item.status === "noShow").length;
   return {
     id,
     name,
     net: payrollNet(id, sim),
     services: completed.length,
-    occupancy: openDays ? Math.min(100, round2((appointments.length / (openDays * CHAIR_SLOTS_PER_DAY)) * 100)) : 0,
+    occupancy: capacity ? Math.min(100, round2((appointments.length / capacity) * 100)) : 0,
     cancellationRate: pct(lost, appointments.length),
     tipsRate: pct(tips, services),
   };
@@ -288,7 +301,8 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
   const avgTicket = totals.transactions ? round2(totals.sales / totals.transactions) : 0;
   const score = Math.round(completionRate * 0.4 + Math.max(0, 100 - noShowRate * 8) * 0.2 + retentionRate * 0.25 + Math.min(1, avgTicket / 75) * 100 * 0.15);
 
-  /* Ocupación media por día de la semana y hora, sobre las sillas abiertas. */
+  /* Ocupación media por día de la semana y hora, sobre las sillas abiertas y el horario de la sede. */
+  const insightWeek = branchHours(branchId === ALL_BRANCHES ? "ma" : branchId);
   const weeksOf = (weekday: number) => days.filter((day) => (day.date.getDay() + 6) % 7 === weekday).length;
   const rows = Array.from({ length: 7 }, (_, weekday) => ({
     day: weekday,
@@ -297,6 +311,8 @@ export function buildInsightsMetrics(today = new Date(), branchId = "ma"): Metri
         .filter((day) => (day.date.getDay() + 6) % 7 === weekday)
         .reduce((acc, day) => acc + day.appointments.filter((item) => item.hour === hour).length, 0);
       const weeks = weeksOf(weekday);
+      // Una hora en que la sede está cerrada no tiene sillas: 0, no un porcentaje inventado.
+      if (!openDuringHour(insightWeek[WEEK_ORDER[weekday]], hour)) return 0;
       return weeks ? Math.min(100, Math.round((count / weeks / CHAIRS) * 100)) : 0;
     }),
   }));

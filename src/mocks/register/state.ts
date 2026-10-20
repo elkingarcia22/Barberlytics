@@ -1,4 +1,7 @@
-/** Un cierre de caja: lo que se contó al final del día frente a lo que debía haber. */
+/**
+ * Un cierre de caja: lo que se contó frente a lo que debía haber. Un día puede tener varios turnos: cada cierre de
+ * turno cuenta lo que entró desde el anterior y el último (`final`) cierra el día.
+ */
 export interface MockRegisterClosure {
   id: string;
   branchId: string;
@@ -19,6 +22,12 @@ export interface MockRegisterClosure {
   denominations?: Record<string, number> | null;
   /** Se contó sin ver lo esperado (recepción): la diferencia la revisa gerencia. */
   blind?: boolean;
+  /** El turno del día (1, 2…); sin él, un cierre de antes de los turnos (el único del día). */
+  shift?: number;
+  /** Desde cuándo cuenta (el cierre del turno anterior); `null` = desde el inicio del día. */
+  from?: string | null;
+  /** Si cierra el día; un cierre de turno deja la caja abierta para el siguiente. Sin el campo, cierra el día. */
+  final?: boolean;
   /** A quién se le descontó el faltante en la nómina (y el ajuste que lo hace). */
   shortage?: { memberId: string; adjustmentId: string; by: string; at: string } | null;
 }

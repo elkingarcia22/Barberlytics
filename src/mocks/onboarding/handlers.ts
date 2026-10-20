@@ -2,6 +2,7 @@ import { delay, http, HttpResponse } from "msw";
 import { accountById, db } from "../db";
 import { barbersOf } from "../team/seed";
 import { WALK_IN_CLIENT } from "../calendar/seed";
+import { branchHours } from "../settings/branchRules";
 
 /**
  * La puesta en marcha de una barbería (docs/API_CONTRACT.md, «Puesta en marcha»): lo que hay que
@@ -31,7 +32,8 @@ export function onboardingOf(branchId: string): Step[] {
   return [
     { id: "company", done: Boolean(sections.company?.name && sections.company?.phone), href: "/configuracion/empresa" },
     { id: "branch", done: Boolean(branch?.currency && branch.taxGroupId && branch.timezone), href: "/configuracion/sucursales" },
-    { id: "hours", done: Boolean(sections.business?.openTime && sections.business?.closeTime), href: "/configuracion/negocio" },
+    // El horario es de la sede: hecho si abre al menos un día.
+    { id: "hours", done: Object.values(branchHours(branchId)).some((day) => day !== null), href: "/configuracion/sucursales" },
     { id: "services", done: db.services.items.some((item) => item.activeBranchIds.includes(branchId) && item.price > 0), href: "/servicios" },
     { id: "team", done: barbersOf(db.team.members, db.team.orders, branchId).length > 0, href: "/usuarios" },
     { id: "payments", done: Boolean(branch?.gatewayId && gateways.some((item) => item.id === branch.gatewayId && item.connected)), href: "/configuracion/pagos" },

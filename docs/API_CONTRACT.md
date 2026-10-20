@@ -240,6 +240,9 @@ En el simulador, `team-04`…`team-08` son las mismas personas que `b4`…`b8`; 
 
 ## Personas (`/users`)
 
+> Residuo de la plantilla: la pantalla `/usuarios/lista` se retiró el 2026-10-19 (redirige a `/usuarios`). El equipo de la
+> barbería vive en «Equipo en operación» (`/team`); estas rutas siguen en el mock solo para la documentación de componentes.
+
 `user`: `{ id, name, email, area, role, status: "active" | "invited" | "inactive", createdAt, lastActiveAt: string | null, avatarUrl: string | null }`
 
 | Método | Ruta | Notas |
@@ -321,6 +324,10 @@ kind, sendAt, status: "scheduled" | "sent" | "failed" | "cancelled", sentAt?, si
 | POST | `/appointments/:id/messages` | Con sesión. `{ kind: "receipt" \| "rebookLink", channel: "email" \| "sms", to, body }`: lo que el equipo manda desde el panel de la cita (el recibo o el enlace para reagendar). Sale en el momento y queda en los mensajes de la cita con `status: "sent"`. `201 { channel, to }`. `422` con `fields.to` si el correo o el celular no sirven; `409` si se manda el recibo de una cita sin cobrar; `409 sms_stopped` por SMS si el cliente respondió STOP (hasta ALTA). Todo SMS lleva al final «Responde STOP o BAJA para no recibir más SMS.». Para mandar por los dos, una llamada por canal. |
 | POST | `/appointments/:id/simulate-reply` | Solo el backend simulado (demo). `{ intent }` como si el cliente respondiera por WhatsApp; pasa por la misma función que aplica las respuestas reales. |
 | POST | `/booking/confirm` | Público. `{ token }` (el `confirmToken` de la cita, que va en el botón del mensaje). `200 { start, client, branch, confirmedAt }` y la cita queda `confirmation: { status: "confirmed", via: "link" }`. `404` si el token no existe · `409` si la cita está cancelada o marcada «no vino». Lo usa `/reservar/confirmar?t=`. |
+| POST | `/appointments/:id/deposit` | Con sesión (el barbero, solo en sus citas). `{ amount, channels: [{ channel: "sms" \| "email", to }] }`: pide un **anticipo** antes de que llegue el cliente. El servidor arma el mensaje con el enlace `/reservar/anticipo?token=` (tipo `depositLink`) y guarda `depositRequest: { amount, status: "requested", requestedAt, by, channels }` en la cita; otra vez con uno pendiente lo reemplaza. `201 { depositRequest: { …, link } }` · `422` monto ≤ 0 o mayor que lo que falta, o destino inválido · `409` si la cita ya no está agendada, si el anticipo ya se pagó, `no_gateway` si la sede no tiene pasarela conectada o `sms_stopped`. |
+| DELETE | `/appointments/:id/deposit` | Retira un anticipo sin pagar (`status: "cancelled"`): el enlace deja de servir. `204` · `409` si ya se pagó. |
+| GET | `/booking/deposit?token` | Público. `{ status: "requested" \| "paid" \| "inactive", amount, currency, start, client (nombre de pila), barber, branch }`. `404` si el token no existe o se retiró. |
+| POST | `/booking/deposit/pay` | Público. `{ token }`. En producción lo confirma el webhook de la pasarela de la sede; en el mock se da por pagado. El monto pasa a `online.paid` (la caja cobra solo el resto y baja el riesgo de no venir) y `depositRequest.status: "paid"`. Lo usa `/reservar/anticipo`. |
 | PATCH | `/appointments/:id` | Además de lo de Calendario, `confirmation: "confirmed" \| "pending"` la confirma desde recepción (`via: "reception"`) o lo quita. |
 
 El envío lo hace el servidor con una cola (`server/whatsapp/queue.ts`; en local, el middleware de Vite). El
@@ -468,7 +475,7 @@ Las cuentas de un periodo. Es de **solo lectura**: una cuenta no se crea aquí �
 
 `account`: `{ id, kind: "appointment" | "sale", date, invoice (\| null), client: { id, name, phone } (\| null), barber (nombre \| null), openedBy (\| null), chargedBy (\| null), status, appointmentStatus (\| null), source (\| null), lines: [{ kind: "service" | "product", name, qty, amount }], subtotal, discount, tax, tip, total, prepaid, onlineMethod (\| null), collected, refunded, balance, method (\| null), split ({ cash, card } \| null), refunds: [{ amount, to: "cash" | "card" | "credit", reason, at, by }], paidAt (\| null), reference, appointmentId (\| null), durationMin (\| null) }`
 `status`: `open` (cita agendada o en curso, sin cobrar) · `paid` (cobrada) · `refunded` (se devolvió algo de verdad: desde la caja o al cancelar la reserva en línea; ya no hay devoluciones de muestra) · `void` (cita cancelada o a la que no se presentaron, sin devolución).
-`total` = `subtotal − discount + tax` (con `pricing.taxInclusive`, el impuesto va dentro y no se suma). La cuenta va al precio del barbero que atendió; cobrada, con el impuesto que se registró al cobrar, y abierta, con el de su sucursal hoy. La propina (`tip`) va aparte y no entra en `collected`. `prepaid` es lo que ya se pagó al reservar en línea (`onlineMethod` dice con qué). `collected` es lo que se quedó la barbería: `prepaid` si está `open`; si no, lo cobrado (o lo pagado en línea de una cita anulada) menos `refunded`. `balance` es `total − prepaid` solo si está `open`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`; lleva el impuesto de su sucursal.
+`total` = `subtotal − discount + tax + surcharge` (con `pricing.taxInclusive`, el impuesto va dentro y no se suma). `surcharge` y `surchargeName` son el recargo por tarjeta cobrado, como línea propia: así el total cuadra con el datáfono (sin la propina, que va aparte). El cobro (`POST /appointments/:id/checkout`) lo guarda en `payment.surcharge` y `payment.surchargeName` (el nombre de Configuración › Recargo por tarjeta). La cuenta va al precio del barbero que atendió; cobrada, con el impuesto que se registró al cobrar, y abierta, con el de su sucursal hoy. La propina (`tip`) va aparte y no entra en `collected`. `prepaid` es lo que ya se pagó al reservar en línea (`onlineMethod` dice con qué). `collected` es lo que se quedó la barbería: `prepaid` si está `open`; si no, lo cobrado (o lo pagado en línea de una cita anulada) menos `refunded`. `balance` es `total − prepaid` solo si está `open`. `invoice` existe desde que se cobra. En una venta de mostrador `client`, `barber`, `appointmentStatus` y `appointmentId` son `null`; lleva el impuesto de su sucursal.
 
 | Método | Ruta | Notas |
 |---|---|---|
@@ -486,17 +493,19 @@ Las cifras de arriba de la pantalla (facturado, cobrado, por cobrar, propinas, d
 
 ## Caja (`/register`)
 
-El cierre de caja de una sucursal y un día: lo que debía haber en efectivo según las cuentas frente a lo que se contó.
+El cierre de caja de una sucursal y un día, **por turnos**: lo que debía haber en efectivo según las cuentas frente a lo
+que se contó. Un día puede tener varios cierres de turno (`final: false`): cada uno cuenta lo que entró desde el anterior
+(`from`) y deja la caja abierta para el siguiente; el último (`final`, por defecto) cierra el día.
 
 `expected`: `{ cash, card, link, online, refundsCash, refundsCard, accounts, renterCash, movementsIn, movementsOut }`. `cash` ya suma las entradas y resta las salidas de efectivo del día (`movements`). El efectivo que cobra un barbero de renta es suyo y no se espera en el cajón: va en `renterCash` (la misma regla que la nómina, `collectedBy: "barber"`). En efectivo: lo cobrado en caja ese día (la parte en efectivo de un pago mixto incluida, sin lo que ya estaba pagado en línea) y las ventas de mostrador en efectivo, menos lo devuelto en efectivo. Tarjeta y enlace se informan para cuadrar con el datáfono y la pasarela; `online` no pasa por la caja.
-`closure`: `{ id, date, opening, expectedCash, counted, difference, note, closedAt, closedBy, denominations (\| null), blind }`. `difference` = `counted − (opening + expectedCash)`: positivo sobra, negativo falta.
+`closure`: `{ id, date, opening, expectedCash, counted, difference, note, closedAt, closedBy, denominations (\| null), blind, shift, from, final }`. `difference` = `counted − (opening + expectedCash)`: positivo sobra, negativo falta.
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/register?branchId&date=AAAA-MM-DD` | `{ branchId, date, blind, expected, closure (\| null), movements: [{ id, type: "in" \| "out", amount, reason, at, by }] }`. **A ciegas**: para quien no es dueño ni administrador y mientras el día no esté cerrado, `blind: true` y `expected.cash: null` (cuenta sin ver lo esperado). `422` sin sucursal o con fecha inválida. |
+| GET | `/register?branchId&date=AAAA-MM-DD` | `{ branchId, date, blind, expected, closure (\| null), closures, shift, since, movements: [{ id, type: "in" \| "out", amount, reason, at, by }] }`. `closure` es el cierre del día (`null` mientras siga abierta); `closures`, todos los del día en orden; `shift`, el turno abierto; `expected` y `movements` cuentan desde `since` (el cierre del turno anterior). **A ciegas**: para quien no es dueño ni administrador y mientras el día no esté cerrado, `blind: true` y `expected.cash: null` (cuenta sin ver lo esperado). `422` sin sucursal o con fecha inválida. |
 | POST | `/register/movements` | `{ branchId, date, type: "in" \| "out", amount, reason }`: efectivo que entra o sale del cajón sin ser un cobro (sencillo, pago a un proveedor, retiro). Mueve `expected.cash`. Recepción, administrador o dueño (barbero `403`); `422` sin motivo o con monto ≤ 0; `409` con el día cerrado. `201 movement`. |
 | POST | `/register/:id/shortage` | `{ memberId }`. Dueño o administrador. Carga el faltante del cierre (diferencia negativa) como ajuste `shortage` en la nómina del ciclo de esa fecha y lo anota en `closure.shortage`. `409` sin faltante, ya cargado o con la nómina del ciclo aprobada. |
-| POST | `/register/close` | `{ branchId, date, opening, counted, note, denominations? }` → `201 closure`. Con `denominations` (`{ "20": 3, "0.25": 4 }`), el servidor suma lo contado y no se fía de `counted`. Quien ve lo esperado explica la diferencia (`422` sin `note`); quien cuenta a ciegas cierra igual y la diferencia queda con `blind: true` para que la revise gerencia. `422` con valores negativos; `409` si ese día ya está cerrado. |
+| POST | `/register/close` | `{ branchId, date, opening, counted, note, denominations?, final? }` → `201 closure`. `final: false` cierra solo el turno. Con `denominations` (`{ "20": 3, "0.25": 4 }`), el servidor suma lo contado y no se fía de `counted`. Quien ve lo esperado explica la diferencia (`422` sin `note`); quien cuenta a ciegas cierra igual y la diferencia queda con `blind: true` para que la revise gerencia. `422` con valores negativos; `409` si ese día ya está cerrado (un cierre de turno no lo cierra). |
 
 ## Gastos (`/expenses`)
 
@@ -795,6 +804,13 @@ Reglas que el cliente da por hechas:
 - `DELETE /settings/lists/branches/:id` responde `409 conflict` si es la última sucursal o si
   todavía tiene equipo activo. Borrar un `taxGroup` o una `gateway` que una sucursal usa también da `409`.
 - `POST /account/delete` responde `422` si `confirmation` no es exactamente el nombre de la empresa.
+
+**Horario por sucursal.** `branches[].hours` es `{ "0": { open, close } | null, …, "6": … }` («0» domingo, horas
+«HH:mm»; `null` = cerrado ese día). Un día abierto necesita cerrar después de abrir (`422` en `fields.hours`). Una
+sucursal sin él (datos viejos) usa `business.openTime`/`closeTime` de lunes a sábado; esos dos campos quedan como el
+horario con el que nace una sucursal nueva. La reserva en línea no ofrece horas fuera del horario de la sede (aunque el
+barbero trabaje) ni los días que cierra; la página de la sede publica ese horario, y la ocupación de Métricas › Barberos
+se mide contra él (turnos de 45 minutos), ya no contra diez sillas fijas por día.
 
 **Paquete por país.** Colombia, México y Estados Unidos traen sus valores (`src/features/settings/countryPack.ts`,
 compartido por la app y el backend):

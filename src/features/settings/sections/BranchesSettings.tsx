@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility";
 import { Text } from "@/components/typography";
+import { defaultWeekHours, parseWeekHours } from "@/features/branches/branchHours";
+import { BranchHoursField } from "./BranchHoursField";
 import type { FieldErrors } from "../SettingsFormParts";
 import { SettingsList } from "../SettingsListParts";
 import { useSettingsList, useSettingsSection } from "../settingsQueries";
@@ -18,7 +20,7 @@ const LANGUAGES: readonly { id: string; name: string }[] = [
   { id: "es", name: "Español" },
   { id: "en", name: "English" },
 ];
-const EMPTY: BranchInput = { name: "", legalName: "", taxId: "", country: "", state: "", city: "", address: "", zipcode: "", phone: "", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: null, gatewayId: null, description: "" };
+const EMPTY: BranchInput = { name: "", legalName: "", taxId: "", country: "", state: "", city: "", address: "", zipcode: "", phone: "", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: null, gatewayId: null, description: "", hours: defaultWeekHours() };
 const COUNTRY_KEYS: Readonly<Record<PackCountry, AppMessageKey>> = { CO: "cfg.country.CO", MX: "cfg.country.MX", US: "cfg.country.US" };
 const TAX_ID_KEYS: Readonly<Record<TaxIdKind, { label: AppMessageKey; error: AppMessageKey }>> = {
   nit: { label: "cfg.taxId.nit", error: "cfg.taxId.nitError" },
@@ -69,6 +71,7 @@ export function BranchesSettings() {
     if (draft.phone.replace(/\D/g, "").length < 8) errors.phone = t("cfg.branches.error.phone");
     const pack = packOf(draft.country);
     if (pack && !isValidTaxId(pack.country, draft.taxId)) errors.taxId = t(TAX_ID_KEYS[pack.taxIdKind].error);
+    if (!parseWeekHours(draft.hours)) errors.hours = t("cfg.branches.hoursError");
     return errors;
   };
 
@@ -92,7 +95,7 @@ export function BranchesSettings() {
         ),
       })}
       emptyDraft={{ ...EMPTY, currency: pricing.data?.currency ?? EMPTY.currency }}
-      toDraft={({ name, legalName, taxId, country: written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description }) => ({ name, legalName, taxId, country: packCountryOf(written) ?? written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description })}
+      toDraft={({ name, legalName, taxId, country: written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description, hours }) => ({ name, legalName, taxId, country: packCountryOf(written) ?? written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description, hours })}
       validate={validate}
       messages={{
         count: (count) => t("cfg.branches.count", { count }),
@@ -236,6 +239,7 @@ export function BranchesSettings() {
               <Input value={draft.taxId} onChange={(event) => set("taxId", event.target.value)} placeholder={packOf(draft.country)?.taxIdExample} aria-invalid={!!errors.taxId} autoComplete="off" data-testid="branches-taxId" />
             </Field>
           </div>
+          <BranchHoursField value={draft.hours} onChange={(hours) => set("hours", hours)} error={errors.hours} />
           <Field label={t("cfg.description")}>
             <Textarea value={draft.description} onChange={(event) => set("description", event.target.value)} rows={3} />
           </Field>

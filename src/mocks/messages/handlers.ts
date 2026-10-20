@@ -18,7 +18,7 @@ const LATENCY_MS = 150;
 
 /** Todo SMS dice cómo dejar de recibirlos (CTIA): STOP y BAJA funcionan en cualquier idioma. */
 export const SMS_FOOTER = "Responde STOP o BAJA para no recibir más SMS.";
-const withSmsFooter = (body: string): string => (body.includes("STOP") ? body : `${body}\n\n${SMS_FOOTER}`);
+export const withSmsFooter = (body: string): string => (body.includes("STOP") ? body : `${body}\n\n${SMS_FOOTER}`);
 
 function error(status: number, code: string, message: string) {
   return HttpResponse.json({ code, message }, { status });

@@ -114,6 +114,9 @@ export interface MockPayment {
   parts?: { method: "cash" | "card" | "link"; amount: number; deviceId?: string }[];
   /** El datáfono con que se pasó la tarjeta. */
   deviceId?: string;
+  /** El recargo por tarjeta cobrado (Configuración › Recargo por tarjeta), como línea aparte de la cuenta. */
+  surcharge?: number;
+  surchargeName?: string;
 }
 
 /** Una devolución: desde la caja, o la que hizo la reserva en línea al cancelar. */
@@ -149,6 +152,18 @@ export interface MockOnlineSettlement {
   paid: number;
   tip: number;
   discount: number;
+}
+
+/** Un anticipo pedido desde la cita: cuánto, por dónde salió el enlace y si ya se pagó. */
+export interface MockDepositRequest {
+  /** El del enlace (`/reservar/anticipo?token=`). */
+  token: string;
+  amount: number;
+  status: "requested" | "paid" | "cancelled";
+  requestedAt: string;
+  by: string;
+  channels: ("sms" | "email")[];
+  paidAt?: string;
 }
 
 export interface MockAppointment {
@@ -198,6 +213,8 @@ export interface MockAppointment {
   /** Lo que ya se descontó del inventario por esta cita (al reservarla en línea o al cobrarla). */
   stockTaken?: { productId: string; qty: number }[];
   linkId?: string | null;
+  /** El anticipo pedido desde la cita, si se pidió. */
+  depositRequest?: MockDepositRequest | null;
 }
 
 export type MockBlockCategory = "sick" | "vacation" | "holiday" | "lunch" | "meeting" | "business" | "personal";

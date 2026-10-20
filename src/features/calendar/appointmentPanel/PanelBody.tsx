@@ -2,7 +2,7 @@ import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckCheck, CircleDashed, Link2, Undo2 } from "lucide-react";
+import { CheckCheck, CircleDashed, HandCoins, Link2, Undo2 } from "lucide-react";
 import { isActive, type ModelContext } from "../calendarModel";
 import type { AppointmentLinkProps } from "../appointmentTabs/AppointmentLinkSection";
 import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
@@ -17,6 +17,7 @@ import { ConfirmationBadge } from "./ConfirmationBadge";
 import { confirmationOf } from "./confirmation";
 import { NextVisitBooker } from "./NextVisitBooker";
 import { SendReceiptPage } from "./SendReceiptPage";
+import { DepositPage, DepositStatus } from "./DepositPage";
 import { ReceiptPage } from "./ReceiptPage";
 import { ActionButton, ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
 import { CareAlerts } from "./CareAlerts";
@@ -50,7 +51,7 @@ export interface PanelBodyProps extends AppointmentLinkProps {
   pages: PanelPages<PanelPage>;
 }
 
-export type PanelPage = "client" | "history" | "refund" | "rebook" | "sendReceipt" | "receipt";
+export type PanelPage = "client" | "history" | "refund" | "rebook" | "sendReceipt" | "receipt" | "deposit";
 
 /** Las páginas a las que se navega dentro del panel: el cliente y el historial. */
 function Subpage({ page, back, props }: { page: PanelPage; back: () => void; props: PanelBodyProps }) {
@@ -81,6 +82,13 @@ function Subpage({ page, back, props }: { page: PanelPage; back: () => void; pro
     return (
       <PanelSubpage title={t("calendar.panel.send.receiptTitle")} onBack={back}>
         <SendReceiptPage model={model} ctx={ctx} onDone={back} />
+      </PanelSubpage>
+    );
+  }
+  if (page === "deposit") {
+    return (
+      <PanelSubpage title={t("calendar.deposit.title")} onBack={back}>
+        <DepositPage model={model} ctx={ctx} onDone={back} />
       </PanelSubpage>
     );
   }
@@ -154,6 +162,8 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
     ...(canConfirm && confirmation.kind === "confirmed" ? [{ id: "unconfirm", label: t("calendar.panel.unconfirm"), icon: CircleDashed, onSelect: () => onPatch(appointment, { confirmation: "pending" }) }] : []),
     ...(previous ? [{ id: "undo", label: t("calendar.panel.undo", { status: t(STATUS_KEYS[previous]) }), icon: Undo2, onSelect: () => model.setStatus(previous) }] : []),
     ...(canLink ? [{ id: "link", label: t("calendar.link.add"), icon: Link2, onSelect: () => setLinking(true) }] : []),
+    // Pedir anticipo: antes de que llegue, si aún no lo pagó.
+    ...(canConfirm && appointment.depositRequest?.status !== "paid" ? [{ id: "deposit", label: t("calendar.deposit.title"), icon: HandCoins, onSelect: () => pages.open("deposit") }] : []),
   ];
   return (
     <div className="flex flex-col gap-5" data-testid="panel-body">
@@ -171,6 +181,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
         </PanelQuestion>
         {/* Los mensajes y lo que respondió, y con qué citas va: tarjetas como las de arriba, solo si aplican. */}
         <div className="flex flex-col gap-2 empty:hidden">
+          <DepositStatus model={model} ctx={ctx} onOpen={() => pages.open("deposit")} />
           {!appointment.walkIn && <AppointmentMessages appointment={appointment} />}
           <LinkedField model={model} ctx={ctx} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />
           {linking && <LinkPickerField model={model} ctx={ctx} linkCandidates={props.linkCandidates} onLink={props.onLink} onDone={() => setLinking(false)} />}

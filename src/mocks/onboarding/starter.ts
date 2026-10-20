@@ -1,4 +1,5 @@
 import { COUNTRY_PACKS, DEFAULT_CLOSED_HOLIDAYS, findUsualTaxGroup, gatewaysFor, packCountryOf, type PackCountry } from "@/features/settings/countryPack";
+import { defaultWeekHours } from "@/features/branches/branchHours";
 import { allAccounts, db, type MockAccount } from "../db";
 import { addMember, buildMember } from "../team/handlers";
 import type { MockListItem } from "../settings/seed";
@@ -93,6 +94,8 @@ export function startBarbershop(input: SignupInput, now: Date = new Date()): { a
     taxGroupId: tax?.id ?? null,
     gatewayId: null,
     description: "",
+    // Lunes a sábado con el horario del negocio; cada día se ajusta en Configuración › Sucursales.
+    hours: defaultWeekHours((db.settings.sections.business as { openTime?: string }).openTime, (db.settings.sections.business as { closeTime?: string }).closeTime),
     status: "active",
     createdAt: now.toISOString(),
   };

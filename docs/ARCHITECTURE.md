@@ -26,7 +26,7 @@ src/
 
 ## Flujo de una petición
 
-`UsersPage` → `useUsersQuery(params)` → `usersApi.list` → `api.get("/users", { schema })` → `fetch` con `Authorization` → respuesta validada → caché por `userKeys.list(params)` → `QueryBoundary` decide qué pintar.
+`CustomersPage` → `useCustomersQuery()` → `customersApi.list` → `api.get("/customers", { schema })` → `fetch` con `Authorization` → respuesta validada → caché por `customerKeys` → `QueryBoundary` decide qué pintar.
 
 Un `401` en cualquier punto dispara `apiAuth.onUnauthorized` → `AuthProvider` limpia token y caché → `RequireAuth` redirige a `/login` guardando `from`.
 

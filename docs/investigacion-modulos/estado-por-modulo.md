@@ -42,7 +42,7 @@ aviso de Clipper «Aún no hace cambios por ti».
 - ~~P0 · Pestaña «IA» con cifras al azar (`metricsTabs.ts`)~~ (hecho: «Sugerencias» sale de los datos).
 - P1 · Utilidad del periodo dentro de Métricas (hoy solo en Gastos › Estado de resultados).
 - P1 · Re-reserva, producto/servicio, retención por cohorte a 90 días; el tipo de cliente se reparte al azar.
-- P1 · Ocupación sobre el horario real (siguen `CHAIR_SLOTS_PER_DAY` y `CHAIRS`).
+- ~~P1 · Ocupación sobre el horario real~~ (hecho: horario de la sede, turnos de 45 min).
 - P1 · Metas y ritmo a la meta; exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
 - P2 · Comparar sucursales, LTV por canal, vistas guardadas, ~~Marketing real~~ (hecho: sale del `utm`), borrar `features/dashboard`.
 
@@ -53,7 +53,7 @@ herramientas de Clipper en las cinco pestañas; impulsores y detractores; coachi
 
 **Pendiente**
 - ~~P0 · Estados `reschedule_requested` y `no_answer`; filtro «Sin confirmar mañana»~~ (hecho el 2026-10-19).
-- P0 · Anticipo o tarjeta en archivo con «Pedir anticipo» desde la cita.
+- ~~P0 · «Pedir anticipo» desde la cita~~ (hecho el 2026-10-19); tarjeta en archivo.
 - P1 · Acción directa ante el riesgo (hoy es texto); WhatsApp desde la agenda (solo SMS/correo).
 - P1 · Lista de espera priorizada; cola de walk-ins con espera; buffers (`prep`) en choques y sugerencias.
 - P1 · Mover en táctil; partir `CalendarPage.tsx` (1.270 líneas); pila de deshacer.
@@ -78,7 +78,8 @@ mejor acción; agente de WhatsApp que deja la cita hecha; notas por voz; sentimi
 ## 04 Servicios y Productos
 
 **Pendiente**
-- P0 · `$` fijo en formularios de Equipo (servicios y compensación); grupo de impuestos por artículo (no verificado).
+- ~~P0 · `$` fijo en formularios de Equipo (servicios y compensación)~~ (hecho el 2026-10-19, también en caja y catálogo);
+  grupo de impuestos por artículo (no verificado).
 - P1 · Precio y duración por nivel; add-ons; desempeño en la ficha; margen por hora en la lista; avisos de combos.
 - P2 · Proveedores y órdenes de compra, insumos por servicio, código de barras, transferencias, variantes, kits, DIAN.
 
@@ -89,9 +90,9 @@ asistido; alerta de duración real; asistente de catálogo con descripciones.
 
 **Pendiente**
 - P0 · ~~Libro de pagos de solo agregar; arqueo por denominación, a ciegas, entradas y salidas~~ (hecho el 2026-10-19);
-  cierre por turno; factura o POS electrónico DIAN; recargo por tarjeta como línea.
+  ~~cierre por turno; recargo por tarjeta como línea~~ (hecho el 2026-10-19); factura o POS electrónico DIAN.
 - P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; propinas por medio y reparto; filtros por barbero y
-  método; cobro atómico de la visita; vendedor en la venta de mostrador; aviso de cuentas abiertas.
+  método; cobro atómico de la visita; ~~vendedor en la venta de mostrador~~; aviso de cuentas abiertas.
 - P2 · Vender paquetes y membresías en la caja; conciliación; autocobro por QR.
 
 **IA que falta**: agente de cierre que explica la diferencia; pronóstico de caja; cobro de cuentas abiertas con link;
@@ -124,7 +125,7 @@ pronóstico del costo de personal.
 
 **Pendiente**
 - ~~P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro~~
-  (hecho el 2026-10-19, ver abajo); `/usuarios/lista` con el enum de la plantilla.
+  (hecho el 2026-10-19, ver abajo); ~~`/usuarios/lista` con el enum de la plantilla~~ (retirada).
 - P1 · Fichaje; turnos abiertos e intercambio; metas y niveles con criterios; cambio comisión ↔ renta con fecha; estado
   de cuenta de renta; invitación real e importación; turnos partidos.
 - P2 · Portafolio, formación, documentos firmados, ranking.
@@ -137,7 +138,7 @@ por barbero; horas según demanda; sobrecarga.
 **Pendiente**
 - ~~P0 · Paquete por país (festivos, zonas, NIT); puesta en marcha precargada~~ (hecho el 2026-10-19); pasarela real y Bre-B;
   inicio propio de la puesta en marcha.
-- P1 · Plantillas de mensajes editables; horario por sucursal y por día; importar catálogo y equipo; registro de cambios;
+- P1 · Plantillas de mensajes editables; ~~horario por sucursal y por día~~; importar catálogo y equipo; registro de cambios;
   integraciones (Google, Instagram); plan y facturación; búsqueda por campo.
 - P2 · Exportar todo, ajustes heredados por sucursal, preferencias en el servidor, dominio propio.
 
@@ -147,7 +148,7 @@ políticas; búsqueda en lenguaje natural.
 ## 10 Reserva en línea
 
 **Pendiente**
-- P0 · Pasarela real, Bre-B; **leer las respuestas de WhatsApp** (se hace el 2026-10-19); contrato de `phone/check`.
+- P0 · Pasarela real, Bre-B; ~~leer las respuestas de WhatsApp~~ (hecho el 2026-10-19); contrato de `phone/check`.
 - P1 · Versión elegida por barbería y embudo por versión; cliente de confianza sin anticipo y cargo por inasistencia;
   `surge`, promos y populares fijos; JSON-LD, `llms.txt`, Reserva con Google, Instagram, Wallet; modelo detrás de
   `interpret`; partir archivos grandes.
@@ -188,7 +189,7 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 
 **Pendiente**
 - ~~P0 · «Hoy» en el celular muestra lo cobrado, no lo que gana~~ (hecho el 2026-10-19).
-- P1 · Quincena; % de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
+- P1 · ~~Quincena~~; % de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
   certificado; avisos de dinero; «Esto no cuadra»; Mi ficha.
 
 **IA que falta**: mis clientes por volver con mensaje aprobado; resumen semanal con una acción; lo que dicen de mí;
@@ -325,3 +326,11 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Bloqueo de 15 min → 1 h → 24 h con cuenta regresiva, desbloqueo con el correo de respaldo y aviso a la cuenta; «Reenviar código» espera 30 s.
   - «Ver como» es de solo lectura en el servidor (`X-View-As`).
   - Falta: barbería aparte por registro (el mock tiene una), pasarela real, horario por sede y factura electrónica DIAN.
+- **Anticipo, caja, horario y limpieza (02, 04, 05, 08 y 09).**
+  - «Pedir anticipo» en el panel de la cita: monto (30 %, 50 % o todo), SMS o correo con el enlace `/reservar/anticipo`; pagado, pasa a lo pagado en línea (la caja cobra el resto). Solo con pasarela conectada en la sede.
+  - Horario de cada sucursal día por día (Configuración › Sucursales): la reserva no ofrece horas fuera ni los días que cierra, la página de la sede lo publica y la ocupación de Métricas se mide contra él.
+  - Caja por turnos: «Cerrar turno» deja la caja abierta y el siguiente cuenta desde ahí (abre con lo contado); «Cerrar el día» la cierra.
+  - El recargo por tarjeta queda como línea de la cuenta: el total de Transacciones cuadra con el datáfono.
+  - El símbolo de la moneda de la sede en Equipo, caja, servicios y productos (antes `$` fijo).
+  - `/usuarios/lista` (la lista de la plantilla) se retiró; «Ver barbero» de la agenda abre su ficha.
+  - Falta: tarjeta en archivo con cargo por inasistencia, la pasarela real que confirma el pago y horario con descansos (turnos partidos).

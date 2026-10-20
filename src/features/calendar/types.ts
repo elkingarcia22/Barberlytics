@@ -110,6 +110,9 @@ export const paymentSchema = z.object({
   parts: z.array(z.object({ method: z.enum(["cash", "card", "link"]), amount: z.number(), deviceId: z.string().optional() })).optional(),
   /** El datáfono con que se pasó la tarjeta. */
   deviceId: z.string().optional(),
+  /** El recargo por tarjeta cobrado, como línea aparte (ya está dentro de `total`). */
+  surcharge: z.number().optional(),
+  surchargeName: z.string().optional(),
 });
 export type Payment = z.infer<typeof paymentSchema>;
 export type PaymentPart = NonNullable<Payment["parts"]>[number];
@@ -128,6 +131,16 @@ export const refundItemSchema = z.object({ kind: z.enum(["service", "product", "
 export type RefundItem = z.infer<typeof refundItemSchema>;
 export const refundSchema = z.object({ amount: z.number(), to: z.enum(["cash", "card", "credit"]), reason: z.string(), at: z.string(), by: z.string(), items: z.array(refundItemSchema).optional() });
 export type Refund = z.infer<typeof refundSchema>;
+
+export const depositRequestSchema = z.object({
+  amount: z.number(),
+  status: z.enum(["requested", "paid", "cancelled"]),
+  requestedAt: z.string(),
+  by: z.string(),
+  channels: z.array(z.enum(["sms", "email"])),
+  paidAt: z.string().optional(),
+});
+export type DepositRequest = z.infer<typeof depositRequestSchema>;
 
 export const productLineSchema = z.object({ productId: z.string(), qty: z.number() });
 export type ProductLine = z.infer<typeof productLineSchema>;
@@ -162,6 +175,8 @@ export const appointmentSchema = z.object({
   history: z.array(historyEntrySchema),
   payment: paymentSchema.nullable(),
   online: onlineSettlementSchema.nullable().optional(),
+  /** El anticipo pedido desde la cita (`POST /appointments/:id/deposit`): al pagarse pasa a `online.paid`. */
+  depositRequest: depositRequestSchema.nullable().optional(),
   refunds: z.array(refundSchema.extend({ id: z.string() })).optional(),
   /** Si el cliente confirmó que viene (por el enlace del mensaje o porque recepción lo marcó); sin él, sin confirmar. */
   confirmation: z.object({ status: z.enum(["confirmed", "declined", "reschedule_requested"]), at: z.string(), via: z.enum(["link", "reception", "whatsapp"]) }).nullable().optional(),

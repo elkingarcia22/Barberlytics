@@ -655,6 +655,8 @@ export const calendarHandlers = [
       ...(sold ? { giftSale: { code: sold.code, amount: sold.initial } } : {}),
       ...(extras.parts ? { parts: extras.parts } : {}),
       ...(extras.deviceId ? { deviceId: extras.deviceId } : {}),
+      // El recargo va como línea propia: el total cuadra con el datáfono y se ve qué fue recargo.
+      ...(surcharge > 0 ? { surcharge: round2(surcharge), surchargeName: (db.settings.sections.cardFee as { name?: string } | undefined)?.name || "Recargo por tarjeta" } : {}),
     };
     db.persist();
     // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).

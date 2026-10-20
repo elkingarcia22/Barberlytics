@@ -8,7 +8,8 @@ import { dateKey } from "../calendar/seed";
 import type { MockCashMovement, MockRegisterClosure } from "./state";
 
 /**
- * El cierre de caja de una sucursal y un día. Reproduce docs/API_CONTRACT.md (sección «Caja»).
+ * El cierre de caja de una sucursal y un día, por turnos. Reproduce docs/API_CONTRACT.md (sección «Caja»).
+ * Cada cierre de turno cuenta lo que entró desde el anterior; el del día cierra la caja.
  *
  * Lo esperado sale de las cuentas del día: en efectivo, lo cobrado en caja (la parte en efectivo
  * de un pago mixto incluida) y las ventas de mostrador, menos lo devuelto en efectivo. Tarjeta y
@@ -58,12 +59,15 @@ export interface RegisterExpected {
 
 const isRenter = (barberId: string): boolean => db.team.members.find((member) => member.id === barberId)?.role === "barbero-renta";
 
-/** Lo que debió moverse en la caja ese día, por medio de pago. */
-export function expectedOf(branchId: string, date: string): RegisterExpected {
+/** Si un instante cae en el turno: después del cierre anterior (`since`) y ese día. */
+const inShift = (at: string, date: string, since: string | null): boolean => dateKey(new Date(at)) === date && (since === null || at > since);
+
+/** Lo que debió moverse en la caja ese día (o desde el cierre del turno anterior, `since`), por medio de pago. */
+export function expectedOf(branchId: string, date: string, since: string | null = null): RegisterExpected {
   const totals = { cash: 0, card: 0, link: 0, online: 0, refundsCash: 0, refundsCard: 0, accounts: 0, renterCash: 0 };
   for (const item of appointmentsOn(branchId, date)) {
     const payment = item.payment;
-    if (item.status === "paid" && payment && dateKey(new Date(payment.paidAt)) === date) {
+    if (item.status === "paid" && payment && inShift(payment.paidAt, date, since)) {
       // En caja entró lo cobrado menos lo que ya estaba pagado en línea.
       const atCounter = round(payment.total - (payment.prepaid ?? 0));
       totals.online += payment.prepaid ?? 0;
@@ -81,15 +85,15 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
       else totals.card += atCounter;
     }
     for (const refund of item.refunds ?? []) {
-      if (dateKey(new Date(refund.at)) !== date) continue;
+      if (!inShift(refund.at, date, since)) continue;
       if (refund.to === "cash") totals.refundsCash += refund.amount;
       else if (refund.to === "card") totals.refundsCard += refund.amount;
     }
   }
-  const movements = movementsOf(branchId, date);
+  const movements = movementsOf(branchId, date).filter((item) => since === null || item.at > since);
   const movementsIn = round(movements.filter((item) => item.type === "in").reduce((sum, item) => sum + item.amount, 0));
   const movementsOut = round(movements.filter((item) => item.type === "out").reduce((sum, item) => sum + item.amount, 0));
-  for (const sale of db.calendar.sales.filter((item) => item.branchId === branchId && dateKey(new Date(item.paidAt)) === date)) {
+  for (const sale of db.calendar.sales.filter((item) => item.branchId === branchId && inShift(item.paidAt, date, since))) {
     totals.accounts += 1;
     if (sale.method === "cash") totals.cash += sale.total;
     else if (sale.method === "link") totals.link += sale.total;
@@ -111,7 +115,15 @@ export function expectedOf(branchId: string, date: string): RegisterExpected {
 
 const movementsOf = (branchId: string, date: string): MockCashMovement[] => (db.register?.movements ?? []).filter((item) => item.branchId === branchId && item.date === date);
 
-const closureOf = (branchId: string, date: string): MockRegisterClosure | undefined => (db.register?.closures ?? []).find((item) => item.branchId === branchId && item.date === date);
+/** Los cierres del día, en orden: los de turno y, si ya se cerró, el del día. */
+const closuresOf = (branchId: string, date: string): MockRegisterClosure[] =>
+  (db.register?.closures ?? []).filter((item) => item.branchId === branchId && item.date === date).sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+
+/** El cierre del día (el último, `final`); sin él, la caja sigue abierta. */
+const closureOf = (branchId: string, date: string): MockRegisterClosure | undefined => closuresOf(branchId, date).find((item) => item.final !== false);
+
+/** Desde cuándo cuenta el turno abierto: el cierre del turno anterior, o el inicio del día. */
+const openShiftSince = (branchId: string, date: string): string | null => closuresOf(branchId, date).at(-1)?.closedAt ?? null;
 
 export const registerHandlers = [
   // Cargar el faltante de un cierre a la nómina de quien cerró o de quien responda: un ajuste «faltante de caja» en su ciclo.
@@ -130,7 +142,7 @@ export const registerHandlers = [
     const from = dateKey(window.from);
     const to = dateKey(window.to);
     if (db.payroll.runs.some((run) => run.branchId === closure.branchId && run.from === from && run.to === to)) return error(409, "conflict", "La nómina de ese ciclo ya está aprobada: reábrela para cargar el faltante.");
-    const adjustment = { id: `adj_${Date.now().toString(36)}`, branchId: closure.branchId, from, to, memberId, kind: "shortage" as const, amount: round(-closure.difference), note: `Faltante de caja del ${closure.date}`, createdAt: new Date().toISOString(), createdBy: account.user.name, closureId: closure.id };
+    const adjustment = { id: `adj_${Date.now().toString(36)}`, branchId: closure.branchId, from, to, memberId, kind: "shortage" as const, amount: round(-closure.difference), note: closure.final === false ? `Faltante de caja del ${closure.date}, turno ${closure.shift ?? 1}` : `Faltante de caja del ${closure.date}`, createdAt: new Date().toISOString(), createdBy: account.user.name, closureId: closure.id };
     const updated: MockRegisterClosure = { ...closure, shortage: { memberId, adjustmentId: adjustment.id, by: account.user.name, at: adjustment.createdAt } };
     db.payroll = { ...db.payroll, adjustments: [...db.payroll.adjustments, adjustment] };
     db.register = { closures: (db.register?.closures ?? []).map((item) => (item.id === closure.id ? updated : item)), movements: db.register?.movements ?? [] };
@@ -146,10 +158,15 @@ export const registerHandlers = [
     const date = params.get("date") ?? "";
     if (!branchId || !DAY_KEY.test(date)) return error(422, "validation", "Falta la sucursal o la fecha no es válida.");
     const closure = closureOf(branchId, date) ?? null;
-    const expected = expectedOf(branchId, date);
+    const closures = closuresOf(branchId, date);
+    // Lo esperado es del turno: el abierto o, con el día cerrado, el último.
+    const since = closure ? (closure.from ?? null) : openShiftSince(branchId, date);
+    const expected = expectedOf(branchId, date, since);
     // A ciegas: quien cuenta sin gestionar (recepción) no ve el efectivo esperado hasta cerrar.
     const blind = !closure && !isManager(sessionOf(request)!);
-    return HttpResponse.json({ branchId, date, blind, expected: blind ? { ...expected, cash: null } : expected, closure, movements: movementsOf(branchId, date) });
+    const shift = closure ? (closure.shift ?? closures.length) : closures.length + 1;
+    const movements = movementsOf(branchId, date).filter((item) => since === null || item.at > since);
+    return HttpResponse.json({ branchId, date, blind, expected: blind ? { ...expected, cash: null } : expected, closure, closures, shift, since, movements });
   }),
 
   // Una entrada o salida de efectivo del cajón que no es un cobro: queda con quién y por qué, y mueve lo esperado.
@@ -196,13 +213,17 @@ export const registerHandlers = [
     if (!Number.isFinite(counted) || counted < 0) fields.counted = ["Escribe el efectivo que contaste."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     if (closureOf(branchId, date)) return error(409, "conflict", "La caja de ese día ya está cerrada.");
-    const expectedCash = expectedOf(branchId, date).cash;
+    // Cerrar el turno deja la caja abierta para el siguiente; cerrar el día (por defecto) la cierra.
+    const final = input.final !== false;
+    const since = openShiftSince(branchId, date);
+    const expectedCash = expectedOf(branchId, date, since).cash;
     const difference = round(counted - (opening + expectedCash));
     const note = text(input.note).slice(0, MAX_NOTE);
     // Quien ve lo esperado explica la diferencia antes de cerrar; quien cuenta a ciegas no la conoce: la revisa gerencia.
     const blind = !isManager(sessionOf(request)!);
     if (!blind && difference !== 0 && note.length < 3) return error(422, "validation", "Explica la diferencia antes de cerrar.", { fields: { note: ["Explica por qué sobra o falta."] } });
-    const closure: MockRegisterClosure = { id: `reg_${Date.now().toString(36)}`, branchId, date, opening: round(opening), expectedCash, counted: round(counted), difference, note, closedAt: new Date().toISOString(), closedBy: account.user.name, denominations, blind };
+    const shift = closuresOf(branchId, date).length + 1;
+    const closure: MockRegisterClosure = { id: `reg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, branchId, date, opening: round(opening), expectedCash, counted: round(counted), difference, note, closedAt: new Date().toISOString(), closedBy: account.user.name, denominations, blind, shift, from: since, final };
     db.register = { closures: [...(db.register?.closures ?? []), closure], movements: db.register?.movements ?? [] };
     db.persist();
     return HttpResponse.json(closure, { status: 201 });

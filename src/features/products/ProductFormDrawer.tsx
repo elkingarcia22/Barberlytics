@@ -21,6 +21,7 @@ import { marginOf } from "@/features/services/servicesUtils";
 import { profitOf } from "./productsHome";
 import { useCreateProduct, useUpdateProduct } from "./queries";
 import { UNCATEGORIZED_PRODUCT_ID, emptyProductInput, inputFromProduct, productInputSchema, type CatalogProduct, type ProductCategory, type ProductInput } from "./types";
+import { useCurrencyInput } from "@/features/branches";
 
 export interface ProductFormDrawerProps {
   open: boolean;
@@ -86,6 +87,7 @@ type Errors = Partial<Record<keyof ProductInput, string>>;
 const OPTIONAL_FIELDS: readonly (keyof ProductInput)[] = ["taxRate", "brand", "distributor"];
 
 function ProductFormBody({ product, categories, branchId, defaultCategoryId, onSubmittingChange, onDone, onCreated }: ProductFormBodyProps) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const formatMoney = useMoney();
   const create = useCreateProduct(branchId);
@@ -186,13 +188,13 @@ function ProductFormBody({ product, categories, branchId, defaultCategoryId, onS
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("products.form.price")} required error={message(errors.price)}>
-          <NumberField value={hasPrice ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix="$" aria-invalid={!!errors.price} data-testid="product-form-price" />
+          <NumberField value={hasPrice ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix={currencySymbol} aria-invalid={!!errors.price} data-testid="product-form-price" />
         </Field>
         <Field label={t("catalog.branchPrice")} error={message(errors.branchPrice)} description={t("catalog.branchPriceHint")}>
-          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix="$" data-testid="product-form-branch-price" />
+          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix={currencySymbol} data-testid="product-form-branch-price" />
         </Field>
         <Field label={t("products.form.cost")} error={message(errors.cost)} description={costHint}>
-          <NumberField value={draft.cost} onValueChange={(value) => set("cost", value)} min={0} precision={2} prefix="$" data-testid="product-form-cost" />
+          <NumberField value={draft.cost} onValueChange={(value) => set("cost", value)} min={0} precision={2} prefix={currencySymbol} data-testid="product-form-cost" />
         </Field>
       </div>
 

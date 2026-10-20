@@ -108,6 +108,7 @@ export function BusinessSettings() {
                 </Field>
               </div>
             </div>
+            <Text variant="muted">{t("cfg.business.hoursDefault")}</Text>
             <Field label={t("cfg.business.holidays")} description={t("cfg.business.holidaysHint")}>
               <MultiSelect options={holidayOptions} value={draft.holidays} onValueChange={(value) => set("holidays", value)} placeholder={t("cfg.business.holidaysPlaceholder")} searchPlaceholder={t("cfg.search")} emptyMessage={t("cfg.noResults")} data-testid="business-holidays" />
             </Field>

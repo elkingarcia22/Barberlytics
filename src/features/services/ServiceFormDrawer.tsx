@@ -22,6 +22,7 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useCreateService, useUpdateService } from "./queries";
 import { comboTotals, formatDuration, marginOf } from "./servicesUtils";
 import { MAX_DURATION_MIN, MAX_PREP_MIN, MIN_DURATION_MIN, UNCATEGORIZED_ID, emptyServiceInput, inputFromService, serviceInputSchema, type CatalogService, type PrepPosition, type ServiceCategory, type ServiceDetail, type ServiceInput, type ServiceKind } from "./types";
+import { useCurrencyInput } from "@/features/branches";
 
 export interface ServiceFormDrawerProps {
   open: boolean;
@@ -94,6 +95,7 @@ interface ServiceFormBodyProps {
 type Errors = Partial<Record<keyof ServiceInput, string>>;
 
 function ServiceFormBody({ service, kind, categories, items, branchId, defaultCategoryId, onSubmittingChange, onDone, onCreated }: ServiceFormBodyProps) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const t = useAppT();
   const formatMoney = useMoney();
   const create = useCreateService(branchId);
@@ -213,10 +215,10 @@ function ServiceFormBody({ service, kind, categories, items, branchId, defaultCa
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t(isCombo ? "services.form.comboPrice" : "services.form.price")} required error={message(errors.price)} description={saving > 0 ? t("services.form.comboSaving", { amount: formatMoney(saving) }) : saving < 0 ? t("services.form.comboMoreExpensive") : undefined}>
-          <NumberField value={Number.isFinite(draft.price) ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix="$" aria-invalid={!!errors.price} data-testid="service-form-price" />
+          <NumberField value={Number.isFinite(draft.price) ? draft.price : null} onValueChange={(value) => set("price", value ?? Number.NaN)} min={0} precision={2} prefix={currencySymbol} aria-invalid={!!errors.price} data-testid="service-form-price" />
         </Field>
         <Field label={t("catalog.branchPrice")} error={message(errors.branchPrice)} description={t("catalog.branchPriceHint")}>
-          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix="$" data-testid="service-form-branch-price" />
+          <NumberField value={draft.branchPrice} onValueChange={(value) => set("branchPrice", value)} min={0} precision={2} prefix={currencySymbol} data-testid="service-form-branch-price" />
         </Field>
         <Field label={t("services.form.duration")} required error={message(errors.durationMin)}>
           <NumberField
@@ -254,7 +256,7 @@ function ServiceFormBody({ service, kind, categories, items, branchId, defaultCa
         <CollapsibleContent className="space-y-4 border-t border-border/60 px-4 py-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("services.form.cost")} error={message(errors.cost)} description={margin === null ? t("services.form.costHint") : t("services.form.marginLeft", { margin: `${margin}%` })}>
-              <NumberField value={draft.cost} onValueChange={(value) => set("cost", value)} min={0} precision={2} prefix="$" />
+              <NumberField value={draft.cost} onValueChange={(value) => set("cost", value)} min={0} precision={2} prefix={currencySymbol} />
             </Field>
             <Field label={t("services.form.tax")} error={message(errors.taxRate)} description={t("services.form.taxHint")}>
               <NumberField value={draft.taxRate} onValueChange={(value) => set("taxRate", value)} min={0} max={100} precision={2} suffix="%" />

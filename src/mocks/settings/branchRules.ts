@@ -1,6 +1,7 @@
 import { GATEWAY_SPECS, isGatewayProvider, type OnlineMethod } from "@/features/settings/gatewayProviders";
 import { blendedPercent, linePercent } from "@/features/branches/tax";
 import { db } from "../db";
+import { defaultWeekHours, parseWeekHours, type WeekHours } from "@/features/branches/branchHours";
 import { instantOf, isTimeZone, wallClock } from "@/lib/time/zoned";
 import { consentCountryOf, consentVersionOf } from "@/features/legal/consent";
 import { isPromoAllowed, nextPromoSlot, type SendPlace } from "@/features/legal/sendWindow";
@@ -31,6 +32,14 @@ export const branchTimeZone = (branchId: string): string => {
   const business = (db.settings.sections.business as { timezone?: string } | undefined)?.timezone;
   return isTimeZone(business) ? business : FALLBACK_TIME_ZONE;
 };
+
+/** El horario de la sucursal por día (Configuración › Sucursales); sin él, el del negocio de lunes a sábado. */
+export function branchHours(branchId: string): WeekHours {
+  const own = parseWeekHours(branchOf(branchId)?.hours);
+  if (own) return own;
+  const business = db.settings.sections.business as { openTime?: string; closeTime?: string } | undefined;
+  return defaultWeekHours(business?.openTime, business?.closeTime);
+}
 
 /** El instante real de una cita: su hora local en la zona de su sucursal. */
 export const startInstant = (item: { start: string; branchId: string }): Date => instantOf(item.start, branchTimeZone(item.branchId));

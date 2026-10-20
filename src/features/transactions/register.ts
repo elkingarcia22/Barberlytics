@@ -36,6 +36,10 @@ export const registerClosureSchema = z.object({
   closedBy: z.string(),
   denominations: z.record(z.string(), z.number()).nullable().optional(),
   blind: z.boolean().optional(),
+  /** El turno del día (1, 2…) y si cerró el día (`final`) o solo el turno. Sin ellos, un cierre del día de antes. */
+  shift: z.number().optional(),
+  from: z.string().nullable().optional(),
+  final: z.boolean().optional(),
   /** A quién se le descontó el faltante en la nómina. */
   shortage: z.object({ memberId: z.string(), adjustmentId: z.string(), by: z.string(), at: z.string() }).nullable().optional(),
 });
@@ -49,7 +53,14 @@ export const registerDaySchema = z.object({
   date: z.string(),
   blind: z.boolean().optional(),
   expected: registerExpectedSchema,
+  /** El cierre del día; `null` mientras la caja sigue abierta (aunque ya haya turnos cerrados). */
   closure: registerClosureSchema.nullable(),
+  /** Todos los cierres del día, de turno y del día, en orden. */
+  closures: z.array(registerClosureSchema).default([]),
+  /** El turno abierto (o el último, con el día cerrado). */
+  shift: z.number().default(1),
+  /** Lo esperado y los movimientos cuentan desde aquí (el cierre del turno anterior). */
+  since: z.string().nullable().default(null),
   movements: z.array(cashMovementSchema).optional(),
 });
 export type RegisterDay = z.infer<typeof registerDaySchema>;
@@ -62,6 +73,8 @@ export interface RegisterCloseInput {
   note: string;
   /** Lo contado por denominación; el servidor vuelve a sumarlo. */
   denominations?: Record<string, number> | null;
+  /** `false` cierra solo el turno y deja la caja abierta para el siguiente; por defecto cierra el día. */
+  final?: boolean;
 }
 
 export interface CashMovementInput {

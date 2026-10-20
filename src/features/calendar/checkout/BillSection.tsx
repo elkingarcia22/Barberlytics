@@ -16,6 +16,7 @@ import { PanelQuestion } from "../appointmentPanel/bookingStyle";
 import type { Appointment } from "../types";
 import type { CheckoutController } from "./useCheckout";
 import { personSearchText } from "@/lib/search/personSearch";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * Qué se cobra: las citas que van juntas (las de su visita y otras sin
@@ -236,6 +237,7 @@ function VisitRow({ appointment, ctx, current = false, selected = false, onClick
 
 /** Vender una tarjeta de regalo en el mismo cobro: el monto y para quién (le llega el código). */
 export function GiftSaleField({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const { t, giftSale } = checkout;
   if (!giftSale) {
     return (
@@ -278,7 +280,7 @@ export function GiftSaleField({ checkout, ctx }: { checkout: CheckoutController;
       </div>
       {(custom || giftSale.amount === null) && (
         <Field label={t("calendar.checkout.giftSale.amount")}>
-          <NumberField value={giftSale.amount} onValueChange={(amount) => checkout.setGiftSale({ ...giftSale, amount })} min={5} max={500} step={5} prefix="$" size="sm" />
+          <NumberField value={giftSale.amount} onValueChange={(amount) => checkout.setGiftSale({ ...giftSale, amount })} min={5} max={500} step={5} prefix={currencySymbol} size="sm" />
         </Field>
       )}
       <div className="grid gap-2 sm:grid-cols-2">

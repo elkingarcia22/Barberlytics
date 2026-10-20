@@ -105,6 +105,7 @@ export function AccountDrawer({ account, onClose, formatMoney, canRefund = false
             <Row label={t("transactions.detail.subtotal")} value={formatMoney(account.subtotal)} />
             {(account.discount ?? 0) > 0 && <Row label={t("transactions.detail.discount")} value={`−${formatMoney(account.discount ?? 0)}`} tone="positive" />}
             <Row label={t("transactions.detail.tax")} value={formatMoney(account.tax)} />
+            {(account.surcharge ?? 0) > 0 && <Row label={account.surchargeName || t("transactions.detail.surcharge")} value={formatMoney(account.surcharge ?? 0)} testId="account-surcharge" />}
             <Row label={t("transactions.column.total")} value={formatMoney(account.total)} strong />
             {(account.prepaid ?? 0) > 0 && (
               <Row

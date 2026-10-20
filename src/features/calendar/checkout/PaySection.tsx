@@ -16,6 +16,7 @@ import { SendToClient } from "../appointmentPanel/SendToClient";
 import type { SendTarget } from "../appointmentPanel/sendTarget";
 import type { LineMethod, PayLine, PayMode } from "./payLines";
 import type { CheckoutController } from "./useCheckout";
+import { useCurrencyInput } from "@/features/branches";
 
 /**
  * «¿Cómo paga?»: un selector con las formas de pago y, debajo, lo de la
@@ -116,11 +117,12 @@ export function PayMethods({ checkout, ctx, target, layout = "select" }: { check
 }
 
 function CashDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const { t, change } = checkout;
   return (
     <div className={BOX}>
       <Field label={t("calendar.checkout.received")}>
-        <NumberField value={checkout.received} onValueChange={checkout.setReceived} min={0} step={1} prefix="$" size="sm" data-testid="checkout-received" />
+        <NumberField value={checkout.received} onValueChange={checkout.setReceived} min={0} step={1} prefix={currencySymbol} size="sm" data-testid="checkout-received" />
       </Field>
       {change !== null && (
         <Text size="sm" tone={change < 0 ? "negative" : "secondary"} data-testid="checkout-change">
@@ -399,6 +401,7 @@ function LineCard({
   target?: SendTarget | null;
   onRemove?: () => void;
 }) {
+  const { symbol: currencySymbol } = useCurrencyInput();
   const { t } = checkout;
   const [sending, setSending] = React.useState(false);
   const Icon = LINE_ICONS[line.method];
@@ -445,7 +448,7 @@ function LineCard({
           </SelectContent>
         </Select>
         {amountEditable ? (
-          <NumberField value={line.amount} onValueChange={(amount) => checkout.updateLine(index, { amount: amount ?? 0 })} min={0} step={1} prefix="$" size="sm" aria-label={t("calendar.checkout.lineAmount", { index: index + 1 })} />
+          <NumberField value={line.amount} onValueChange={(amount) => checkout.updateLine(index, { amount: amount ?? 0 })} min={0} step={1} prefix={currencySymbol} size="sm" aria-label={t("calendar.checkout.lineAmount", { index: index + 1 })} />
         ) : (
           <span className="flex h-9 items-center justify-end rounded-md bg-surface-muted px-3 tabular-nums" aria-label={t("calendar.checkout.lineAmount", { index: index + 1 })}>
             {ctx.formatMoney(line.amount)}

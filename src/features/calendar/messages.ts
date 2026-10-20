@@ -10,7 +10,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * docs/API_CONTRACT.md («Mensajes»).
  */
 
-export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "manual", "reactivation", "receipt", "rebookLink", "queueAlmost"]);
+export const messageKindSchema = z.enum(["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "manual", "reactivation", "receipt", "rebookLink", "payLink", "queueAlmost"]);
 export type MessageKind = z.infer<typeof messageKindSchema>;
 
 export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
@@ -24,6 +24,7 @@ export const MESSAGE_KIND_KEYS: Readonly<Record<MessageKind, AppMessageKey>> = {
   reactivation: "calendar.messages.kind.reactivation",
   receipt: "calendar.messages.kind.receipt",
   rebookLink: "calendar.messages.kind.rebookLink",
+  payLink: "calendar.messages.kind.payLink",
   queueAlmost: "calendar.messages.kind.queueAlmost",
 };
 
@@ -62,7 +63,7 @@ const dispatchSchema = z.object({ sent: z.number(), simulated: z.number(), faile
 /** Lo que el equipo manda desde el panel de la cita: el recibo o el enlace para reagendar, por SMS o correo. */
 export type SendChannel = "email" | "sms";
 export interface SendToClientInput {
-  kind: "receipt" | "rebookLink";
+  kind: "receipt" | "rebookLink" | "payLink";
   channel: SendChannel;
   to: string;
   body: string;

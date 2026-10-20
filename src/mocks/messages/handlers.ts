@@ -79,7 +79,7 @@ export const messagesHandlers = [
     const appointment = db.calendar.appointments.find((item) => item.id === params.id);
     if (!appointment) return error(404, "not_found", "Esa cita no existe.");
     const input = asRecord(await request.json().catch(() => ({})));
-    const kind = input.kind === "receipt" || input.kind === "rebookLink" ? input.kind : null;
+    const kind = input.kind === "receipt" || input.kind === "rebookLink" || input.kind === "payLink" ? input.kind : null;
     const channel = input.channel === "sms" ? "sms" : input.channel === "email" ? "email" : null;
     const to = String(input.to ?? "").trim();
     const body = String(input.body ?? "").trim();

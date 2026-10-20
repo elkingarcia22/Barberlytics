@@ -1604,6 +1604,7 @@ export const appEs = {
   "calendar.messages.kind.queueAlmost": "Ya casi te toca",
   "calendar.messages.kind.receipt": "Recibo",
   "calendar.messages.kind.rebookLink": "Enlace para reagendar",
+  "calendar.messages.kind.payLink": "Link de pago",
   "calendar.messages.status.scheduled": "Programado",
   "calendar.messages.status.sent": "Enviado",
   "calendar.messages.status.simulated": "Simulado",

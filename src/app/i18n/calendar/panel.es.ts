@@ -108,6 +108,7 @@ export const calendarPanelEs = {
   "calendar.panel.send.pickChannel": "Marca correo, SMS o los dos.",
   "calendar.panel.send.receiptSent": "Recibo enviado a {to}",
   "calendar.panel.send.linkSent": "Enlace enviado a {to}",
+  "calendar.panel.send.payLinkSent": "Link de pago enviado a {to}",
   "calendar.panel.send.and": " y ",
   "calendar.panel.next.linkHint": "Mándale el enlace de la reserva en línea con todo puesto: escoge la hora y paga desde su celular.",
   "calendar.panel.confirm": "Confirmar la cita",

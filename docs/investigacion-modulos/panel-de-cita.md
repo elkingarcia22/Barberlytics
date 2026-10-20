@@ -382,3 +382,10 @@ reserva, dentro del mismo panel y con el ticket abajo.
 - **Reagendar** abre su página: arriba «Yo elijo la hora» / «Que elija él». Con la primera, la tira de días y horas y «Agendar …»; con la segunda, Correo y SMS como en el recibo de la reserva en línea (tarjetas que se marcan, destino editable) y «Enviar». Al terminar vuelve a la cita.
 - **Enviar recibo** también es una página con lo mismo. Lo enviado sale por `POST /appointments/:id/messages` y queda en los mensajes de la cita («Recibo», «Enlace para reagendar»).
 
+## 23. Cobro con la cara del panel, bloqueos y ausencias (2026-10-19)
+
+- **Cobrar** se ve como el panel de la cita: el avance arriba y una tarjeta teñida «Cobrar US$ …» con lo que se cobra, «¿Cómo paga?» en tarjetas (efectivo, tarjeta, link de pago, **tarjeta de regalo**, mixto, en partes), «Tu orden» y un solo botón principal al final. Lo que pide más pasos (link, regalo, mixto, en partes) entra a su página del panel con «Volver» y «Listo». El link de pago se manda como el recibo (Correo y SMS, `POST /appointments/:id/messages` con `kind: "payLink"`).
+- **Bloqueos encima de citas** (una ausencia aprobada con citas sin mover) toman la mitad izquierda de la columna y las citas la derecha: ya no se montan los textos.
+- **Tocar un bloqueo**, para quien agenda sin reglas (todos menos el barbero de comisión): agendar una cita encima, editarlo (`PATCH /blocks/:id`) o quitarlo. Las ausencias aprobadas abren su revisión.
+- **Ausencias por aprobar**: no se pintan en la rejilla; un aviso «N por aprobar» junto al buscador abre el panel, y «Ver en el calendario» deja sola la que se revisa (citas apagadas), en el primer día que el barbero trabaja. Al aprobar o rechazar, la agenda vuelve a la normalidad. La revisión dice qué días suelen ser pesados.
+

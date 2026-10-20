@@ -5,6 +5,7 @@ import { calendarLocale } from "@/components/date/calendarLocale";
 import { appointmentStart, type ModelContext } from "../calendarModel";
 import { PAYMENT_METHOD_KEYS } from "../types";
 import { SendToClient } from "./SendToClient";
+import { targetOf } from "./sendTarget";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
@@ -33,5 +34,5 @@ export function SendReceiptPage({ model, ctx, onDone }: { model: AppointmentMode
     total: ctx.formatMoney(payment.total),
     method: t(PAYMENT_METHOD_KEYS[payment.method]),
   });
-  return <SendToClient model={model} kind="receipt" lead={t("calendar.panel.send.lead")} body={body} onSent={onDone} />;
+  return <SendToClient target={targetOf(model)} kind="receipt" lead={t("calendar.panel.send.lead")} body={body} onSent={onDone} />;
 }

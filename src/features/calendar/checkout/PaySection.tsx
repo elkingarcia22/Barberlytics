@@ -1,64 +1,118 @@
 import * as React from "react";
-import { Banknote, CreditCard, Gift, Link2, Mail, MessageSquareText, Smartphone, Split, SquareStack, X } from "lucide-react";
+import { Banknote, Check, ChevronRight, CreditCard, Gift, Link2, Smartphone, Split, SquareStack, X } from "lucide-react";
 import { Chip } from "@/components/ai-interaction";
 import { Field, NumberField } from "@/components/forms";
 import { OptionTile, SegmentedControl } from "@/components/selection";
-import { Heading, Text } from "@/components/typography";
+import { Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconTile } from "@/components/utility/IconTile";
 import { ThemaIcon } from "@/icons";
+import { cn } from "@/lib/utils";
 import type { ModelContext } from "../calendarModel";
 import type { PaymentPart } from "../types";
+import { SendToClient } from "../appointmentPanel/SendToClient";
+import type { SendTarget } from "../appointmentPanel/sendTarget";
 import type { CheckoutController, PayChoice } from "./useCheckout";
 
 /**
- * «¿Cómo paga?», con la cara del pago de la reserva: las formas de pago en
- * tarjetas y lo de la elegida —efectivo (con el cambio), tarjeta (eligiendo el
- * datáfono), link de pago (se le manda y se registra cuando pague), mixto
- * (efectivo y tarjeta) o en partes (cada una con su método)—. La tarjeta de
- * regalo del cliente se abre desde un enlace; la propina se pregunta al cobrar.
+ * «¿Cómo paga?», con las tarjetas del panel de la cita: una por forma de pago,
+ * con lo que se sabe de ella debajo del nombre. Efectivo y tarjeta se eligen
+ * y su detalle (el cambio, el datáfono) se abre en su sitio; lo que pide más
+ * pasos —el link de pago, mixto, en partes y la tarjeta de regalo del
+ * cliente— entra a su propia página del panel, con «Volver» y un solo botón.
  */
 
-const PAY_ICONS: Record<PayChoice, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, mixed: Split, parts: SquareStack };
-const PAY_CHOICES: readonly PayChoice[] = ["cash", "card", "link", "mixed", "parts"];
+export type PayPage = "link" | "mixed" | "parts" | "gift";
+
+type MethodId = PayChoice | "gift";
+const ICONS: Record<MethodId, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, gift: Gift, mixed: Split, parts: SquareStack };
+const METHODS: readonly MethodId[] = ["cash", "card", "link", "gift", "mixed", "parts"];
+/** Las que entran a su página en vez de abrirse en su sitio. */
+const PAGES: Partial<Record<MethodId, PayPage>> = { link: "link", gift: "gift", mixed: "mixed", parts: "parts" };
 const PART_COUNTS = [2, 3, 4] as const;
 
-export function PaySection({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+const ROW =
+  "group flex min-h-16 w-full items-center gap-3 rounded-xl border bg-surface px-3 py-2.5 text-left shadow-xs outline-none transition-[border-color,background-color] duration-fast hover:border-primary/50 focus-visible:ring-[3px] focus-visible:ring-ring/50";
+
+export function PayMethods({ checkout, ctx, onOpenPage }: { checkout: CheckoutController; ctx: ModelContext; onOpenPage: (page: PayPage) => void }) {
   const { t } = checkout;
+  const detailOf = (method: MethodId): string => {
+    if (method === "gift") return checkout.gift ? t("calendar.checkout.giftCard.row", { code: checkout.gift.code, amount: ctx.formatMoney(checkout.giftApplied) }) : t("calendar.checkout.pay.giftHint");
+    if (method === "link" && checkout.payChoice === "link" && checkout.linkSent) return t("calendar.checkout.link.sentRow");
+    if (method === "mixed" && checkout.payChoice === "mixed") return t("calendar.checkout.pay.mixedRow", { cash: ctx.formatMoney(checkout.cash), card: ctx.formatMoney(Math.max(0, checkout.total - checkout.cash)) });
+    if (method === "parts" && checkout.payChoice === "parts" && checkout.parts) return Math.abs(checkout.partsLeft) <= 0.01 ? t("calendar.checkout.pay.partsRowOk", { count: checkout.parts.length }) : t("calendar.checkout.pay.partsRowLeft", { count: checkout.parts.length, amount: ctx.formatMoney(Math.abs(checkout.partsLeft)) });
+    return t(`calendar.checkout.pay.${method}Hint`);
+  };
   return (
-    <div className="flex flex-col gap-6" data-testid="checkout-pay-step">
-      <section className="flex flex-col gap-3">
-        <Heading level={6}>{t("calendar.checkout.howPays")}</Heading>
-        {/* Como el pago de la reserva: las formas de pago en tarjetas lado a lado y, debajo, lo de la elegida. */}
-        <div role="radiogroup" aria-label={t("calendar.checkout.method")} className="grid grid-cols-3 gap-2" data-testid="checkout-methods">
-          {PAY_CHOICES.map((choice) => (
-            <OptionTile key={choice} layout="stacked" compact option={{ value: choice, label: t(`calendar.checkout.pay.${choice}`), icon: PAY_ICONS[choice] }} selected={checkout.payChoice === choice} onSelect={(value) => checkout.choosePay(value as PayChoice)} />
-          ))}
-        </div>
-        <Text size="xs" tone="muted">
-          {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
+    <div className="flex flex-col gap-2" data-testid="checkout-pay-step">
+      <div role="radiogroup" aria-label={t("calendar.checkout.method")} className="flex flex-col gap-2" data-testid="checkout-methods">
+        {METHODS.map((method) => {
+          const Icon = ICONS[method];
+          const page = PAGES[method];
+          const selected = method === "gift" ? Boolean(checkout.gift) : checkout.payChoice === method;
+          return (
+            <button
+              key={method}
+              type="button"
+              role={method === "gift" ? "checkbox" : "radio"}
+              aria-checked={selected}
+              onClick={() => {
+                if (method !== "gift") checkout.choosePay(method);
+                if (page) onOpenPage(page);
+              }}
+              className={cn(ROW, selected ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input")}
+              data-testid={`checkout-method-${method}`}
+            >
+              <IconTile size="md" shape="circle" tone={selected ? "primary" : "neutral"} icon={<Icon />} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <Text as="span" weight="medium">
+                  {t(`calendar.checkout.pay.${method}`)}
+                </Text>
+                <Text as="span" size="xs" tone="muted" truncate>
+                  {detailOf(method)}
+                </Text>
+              </span>
+              {page ? <ChevronRight className="size-4 shrink-0 text-text-muted" aria-hidden="true" /> : selected && <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+      {/* Lo de la elegida que cabe aquí: el cambio del efectivo o el datáfono. */}
+      {checkout.payChoice === "cash" && <CashDetail checkout={checkout} ctx={ctx} />}
+      {checkout.payChoice === "card" && <DevicePicker checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}
+      {checkout.surcharge > 0 && (
+        <Text size="xs" tone="muted" data-testid="checkout-surcharge">
+          {t("calendar.checkout.surchargeHint", { amount: ctx.formatMoney(checkout.surcharge) })}
         </Text>
-        <div>
-          {checkout.payChoice === "cash" && <CashDetail checkout={checkout} ctx={ctx} />}
-          {checkout.payChoice === "card" && <DevicePicker checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}
-          {checkout.payChoice === "link" && <LinkDetail checkout={checkout} ctx={ctx} />}
-          {checkout.payChoice === "mixed" && <MixedDetail checkout={checkout} ctx={ctx} />}
-          {checkout.payChoice === "parts" && <PartsDetail checkout={checkout} ctx={ctx} />}
-        </div>
-        {checkout.surcharge > 0 && (
-          <Text size="xs" tone="muted" data-testid="checkout-surcharge">
-            {t("calendar.checkout.surchargeHint", { amount: ctx.formatMoney(checkout.surcharge) })}
-          </Text>
-        )}
-      </section>
+      )}
+    </div>
+  );
+}
+
+/** El contenido de cada página de pago, con su único botón principal. */
+export function PayPageContent({ page, checkout, ctx, target, onDone }: { page: PayPage; checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null; onDone: () => void }) {
+  const { t } = checkout;
+  if (page === "link") return <LinkPage checkout={checkout} ctx={ctx} target={target} onDone={onDone} />;
+  const done = (
+    <Button type="button" size="lg" className="w-full" onClick={onDone} disabled={page === "parts" && Math.abs(checkout.partsLeft) > 0.01} data-testid="checkout-page-done">
+      {t("calendar.checkout.pageDone")}
+    </Button>
+  );
+  return (
+    <div className="flex flex-col gap-5" data-testid={`checkout-page-${page}`}>
+      <Text tone="secondary">{t(page === "gift" ? "calendar.checkout.pay.giftLead" : `calendar.checkout.pay.${page}Hint`)}</Text>
+      {page === "gift" && <GiftRedeem checkout={checkout} ctx={ctx} />}
+      {page === "mixed" && <MixedDetail checkout={checkout} ctx={ctx} />}
+      {page === "parts" && <PartsDetail checkout={checkout} ctx={ctx} />}
+      {done}
     </div>
   );
 }
 
 /** Pagar con la tarjeta de regalo del cliente: el código, su saldo y cuánto cubre. */
-export function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   const [code, setCode] = React.useState("");
   if (checkout.gift) {
@@ -96,7 +150,7 @@ export function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ct
 function CashDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t, change } = checkout;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 rounded-xl border border-input bg-surface p-3">
       <Field label={t("calendar.checkout.received")}>
         <NumberField value={checkout.received} onValueChange={checkout.setReceived} min={0} step={1} prefix="$" size="sm" data-testid="checkout-received" />
       </Field>
@@ -121,7 +175,7 @@ function DevicePicker({ checkout, value, onChange }: { checkout: CheckoutControl
     );
   }
   return (
-    <div className="flex flex-col gap-2" data-testid="checkout-devices">
+    <div className="flex flex-col gap-2 rounded-xl border border-input bg-surface p-3" data-testid="checkout-devices">
       <Text size="sm" weight="medium">
         {t("calendar.checkout.device.title")}
       </Text>
@@ -134,40 +188,30 @@ function DevicePicker({ checkout, value, onChange }: { checkout: CheckoutControl
   );
 }
 
-/** El link de pago: se le manda por SMS o correo y, cuando pague, se registra con el botón de abajo. */
-function LinkDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
+/** El link de pago, como el recibo: Correo y SMS para marcar y «Enviar». Cuando pague, se registra en el cobro. */
+function LinkPage({ checkout, ctx, target, onDone }: { checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null; onDone: () => void }) {
   const { t, client } = checkout;
-  const canContact = ctx.access?.canContact ?? true;
-  const phone = canContact && client?.phone ? client.phone.replace(/[^\d+]/g, "") : "";
-  const email = canContact && client?.email ? client.email : "";
   const url = `https://pagar.barberlytics.com/${(client?.id ?? "c").slice(-6)}-${Math.round(checkout.total * 100)}`;
   const text = t("calendar.checkout.link.message", { name: client?.name.split(" ")[0] ?? "", amount: ctx.formatMoney(checkout.total), url });
-  const channels = [
-    ...(phone ? [{ id: "sms", label: t("calendar.panel.write.sms"), href: `sms:${phone}?body=${encodeURIComponent(text)}`, icon: <MessageSquareText /> }] : []),
-    ...(email ? [{ id: "email", label: t("calendar.panel.write.email"), href: `mailto:${email}?subject=${encodeURIComponent(t("calendar.checkout.link.subject"))}&body=${encodeURIComponent(text)}`, icon: <Mail /> }] : []),
-  ];
   return (
-    <div className="flex flex-col gap-2" data-testid="checkout-link">
-      {checkout.linkSent ? (
+    <div className="flex flex-col gap-4" data-testid="checkout-link">
+      {checkout.linkSent && (
         <Alert variant="info">
           <ThemaIcon name="clock" />
           <AlertDescription>{t("calendar.checkout.link.waiting", { amount: ctx.formatMoney(checkout.total) })}</AlertDescription>
         </Alert>
-      ) : channels.length > 0 ? (
-        <>
-          <Text size="sm" tone="secondary">
-            {t("calendar.checkout.link.send")}
-          </Text>
-          <div className="flex gap-2">
-            {channels.map((channel) => (
-              <Button key={channel.id} asChild variant="outline" className="flex-1">
-                <a href={channel.href} target="_blank" rel="noreferrer" onClick={checkout.markLinkSent} data-testid={`checkout-link-${channel.id}`}>
-                  {channel.icon} {channel.label}
-                </a>
-              </Button>
-            ))}
-          </div>
-        </>
+      )}
+      {target && (target.email || target.phone) ? (
+        <SendToClient
+          target={target}
+          kind="payLink"
+          lead={t("calendar.checkout.link.lead", { amount: ctx.formatMoney(checkout.total) })}
+          body={text}
+          onSent={() => {
+            checkout.markLinkSent();
+            onDone();
+          }}
+        />
       ) : (
         <Text size="sm" tone="muted">
           {t("calendar.checkout.link.noContact")}
@@ -180,7 +224,7 @@ function LinkDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: Mode
 function MixedDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 rounded-xl border border-input bg-surface p-3">
       <Field label={t("calendar.checkout.splitCash")}>
         <NumberField value={checkout.cashPart} onValueChange={checkout.setCashPart} min={0} step={1} prefix="$" size="sm" data-testid="checkout-split-cash" />
       </Field>

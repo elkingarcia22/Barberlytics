@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ThemaIcon } from "@/icons";
 import { ChannelCard } from "@/features/booking/flow/SendReceiptDialog";
 import { useSendToClient, type SendChannel, type SendToClientInput } from "../messages";
-import type { AppointmentModel } from "./useAppointmentModel";
+import type { SendTarget } from "./sendTarget";
 
 /**
  * Mandarle al cliente su recibo o el enlace para reagendar, como el recibo de
@@ -21,7 +21,7 @@ import type { AppointmentModel } from "./useAppointmentModel";
  */
 
 export interface SendToClientProps {
-  model: AppointmentModel;
+  target: SendTarget;
   kind: SendToClientInput["kind"];
   /** El texto que se manda (el recibo con sus líneas, o el saludo con el enlace). */
   body: string;
@@ -30,12 +30,14 @@ export interface SendToClientProps {
   onSent: () => void;
 }
 
-export function SendToClient({ model, kind, body, lead, onSent }: SendToClientProps) {
+const SENT_KEY = { receipt: "calendar.panel.send.receiptSent", rebookLink: "calendar.panel.send.linkSent", payLink: "calendar.panel.send.payLinkSent" } as const;
+
+export function SendToClient({ target, kind, body, lead, onSent }: SendToClientProps) {
   const t = useAppT();
-  const send = useSendToClient(model.appointment.id);
-  const [channels, setChannels] = React.useState<readonly SendChannel[]>(model.email ? ["email"] : ["sms"]);
-  const [email, setEmail] = React.useState(model.email);
-  const [phone, setPhone] = React.useState(model.phone);
+  const send = useSendToClient(target.appointmentId);
+  const [channels, setChannels] = React.useState<readonly SendChannel[]>(target.email ? ["email"] : ["sms"]);
+  const [email, setEmail] = React.useState(target.email);
+  const [phone, setPhone] = React.useState(target.phone);
   const [errors, setErrors] = React.useState<Partial<Record<SendChannel, string>>>({});
   const toggle = (channel: SendChannel) => (checked: boolean) => setChannels((current) => (checked ? [...current, channel] : current.filter((entry) => entry !== channel)));
 
@@ -55,7 +57,7 @@ export function SendToClient({ model, kind, body, lead, onSent }: SendToClientPr
       }
     }
     setErrors(failed);
-    if (sent.length > 0) toast.success(t(kind === "receipt" ? "calendar.panel.send.receiptSent" : "calendar.panel.send.linkSent", { to: sent.join(t("calendar.panel.send.and")) }));
+    if (sent.length > 0) toast.success(t(SENT_KEY[kind], { to: sent.join(t("calendar.panel.send.and")) }));
     if (Object.keys(failed).length === 0) onSent();
   };
 

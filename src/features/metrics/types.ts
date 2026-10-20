@@ -122,6 +122,8 @@ export const metricsMarketingSchema = z.object({
   campaigns: z.array(z.object({ id: z.string(), name: z.string(), bookings: z.number(), revenue: z.number() })),
   /** Las visitas son del embudo de ejemplo de la demo (aún no hay sesiones reales medidas). */
   visitsSample: z.boolean().default(false),
+  /** Clientes atendidos por origen («¿cómo nos conociste?»; `unknown` sin dato): cuántos, cuántos nuevos y lo cobrado. */
+  origins: z.array(z.object({ id: z.string(), clients: z.number(), newClients: z.number(), revenue: z.number() })).default([]),
 });
 export type MetricsMarketing = z.infer<typeof metricsMarketingSchema>;
 

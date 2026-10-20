@@ -255,7 +255,29 @@ function marketingOf(days: readonly DayRecord[]) {
     byCampaign.set(slug, { bookings: row.bookings + 1, revenue: row.revenue + (item.status === "completed" ? item.service.price : 0) });
   }
   const campaigns = [...byCampaign.entries()].map(([id, row]) => ({ id, name: campaignName(id), bookings: row.bookings, revenue: round2(row.revenue) })).sort((a, b) => b.bookings - a.bookings);
-  return { onlineBookings: pct(online.length, appointments.length), channels, campaignBookings: sum(campaigns.map((campaign) => campaign.bookings)), campaigns, visitsSample };
+  return { onlineBookings: pct(online.length, appointments.length), channels, campaignBookings: sum(campaigns.map((campaign) => campaign.bookings)), campaigns, visitsSample, origins: originsOf(appointments, from, to) };
+}
+
+/**
+ * Por dónde llegaron los clientes atendidos en el periodo («¿cómo nos conociste?» de su ficha, o el referido): cuántos
+ * vinieron, cuántos son nuevos (ficha creada en el periodo) y lo cobrado en servicios. Sin dato, «sin dato».
+ */
+function originsOf(appointments: readonly Appointment[], from: Date, to: Date) {
+  const rows = new Map<string, { clients: Set<string>; newClients: Set<string>; revenue: number }>();
+  for (const item of appointments) {
+    if (item.status === "cancelled" || item.status === "noShow") continue;
+    const client = db.calendar.clients.find((entry) => entry.id === item.clientId);
+    if (!client || client.id === WALK_IN_CLIENT.id) continue;
+    const profile = profileOf(client);
+    const id = profile.source ?? "unknown";
+    const row = rows.get(id) ?? { clients: new Set<string>(), newClients: new Set<string>(), revenue: 0 };
+    row.clients.add(client.id);
+    const created = Date.parse(profile.createdAt);
+    if (created >= from.getTime() && created <= to.getTime()) row.newClients.add(client.id);
+    if (item.status === "completed") row.revenue += item.service.price;
+    rows.set(id, row);
+  }
+  return [...rows.entries()].map(([id, row]) => ({ id, clients: row.clients.size, newClients: row.newClients.size, revenue: round2(row.revenue) })).sort((a, b) => b.clients - a.clients);
 }
 
 export function buildMarketingMetrics(query: MetricsQuery): MetricsMarketing {
@@ -275,6 +297,7 @@ export function buildMarketingMetrics(query: MetricsQuery): MetricsMarketing {
     channels: now.channels,
     campaigns: now.campaigns,
     visitsSample: now.visitsSample,
+    origins: now.origins,
   };
 }
 

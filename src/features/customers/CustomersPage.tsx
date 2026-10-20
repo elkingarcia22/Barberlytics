@@ -23,6 +23,12 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerTagDialog } from "./CustomerTagDialog";
+import { CustomerGroupsBar } from "./CustomerGroupsBar";
+import { CampaignDrawer } from "@/features/marketing/CampaignDrawer";
+import { useActiveGroup } from "@/features/marketing/campaigns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CUSTOMER_SOURCES } from "./loyalty";
+import { BIRTHDAY_WINDOW_DAYS, UNRELIABLE_MISSES, type GroupFilters } from "./groupFilter";
 import { CustomerImportDrawer } from "./CustomerImportDrawer";
 import { ReactivationDrawer } from "./ReactivationDrawer";
 import { PrivacyRequestsDrawer } from "./PrivacyRequestsDrawer";
@@ -35,9 +41,9 @@ import { useAccess } from "@/features/access";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { useCustomerPermissions } from "./customerAccess";
 import { customerListActions } from "./customerActions";
-import { ALL_SEGMENTS, BIRTHDAY_WINDOW_DAYS, CUSTOMER_ALERTS, UNRELIABLE_MISSES, countBySegment, customerCells, customerColumns, customersCsvRows, customerPulse, parseSegment, type CustomerAlertId } from "./customersHome";
+import { ALL_SEGMENTS, CUSTOMER_ALERTS, countBySegment, customerCells, customerColumns, customersCsvRows, customerPulse, parseSegment, type CustomerAlertId } from "./customersHome";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
-import { SEGMENT_STYLE, branchName, downloadCsv, formatAgo, maskPhone } from "./customersUtils";
+import { SEGMENT_STYLE, SOURCE_KEYS, branchName, downloadCsv, formatAgo, maskPhone } from "./customersUtils";
 import { useCustomersQuery, useDeleteCustomer, useSetCustomerBlocked } from "./queries";
 import { SEGMENT_HINT_KEYS, SEGMENT_KEYS, customerSegmentSchema, type Customer } from "./types";
 
@@ -60,6 +66,9 @@ const ALERT_IDS: readonly string[] = CUSTOMER_ALERTS.map((alert) => alert.id);
  * clientes; sin «Información del cliente» no hay teléfono, correo ni notas
  * médicas; recepción no ve cifras de dinero, y cada acción sale de la matriz.
  */
+/** El valor del filtro de origen que no filtra (Radix no admite la cadena vacía). */
+const ANY_ORIGIN = "any";
+
 export function CustomersPage() {
   const t = useAppT();
   const navigate = useNavigate();
@@ -109,8 +118,9 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const segment = parseSegment(searchParams.get("tipo"));
   const alertParam = searchParams.get("aviso");
   const tagFilter = searchParams.get("etiqueta");
+  const originFilter = searchParams.get("origen");
   const alert = ALERT_IDS.includes(alertParam ?? "") ? (alertParam as CustomerAlertId) : null;
-  const setFilters = (next: { tipo?: string | null; aviso?: string | null; etiqueta?: string | null }) =>
+  const setFilters = (next: { tipo?: string | null; aviso?: string | null; etiqueta?: string | null; origen?: string | null }) =>
     setSearchParams(
       (current) => {
         const params = new URLSearchParams(current);
@@ -132,6 +142,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   // WhatsApp a varios: a los marcados o a los de un aviso (cumpleaños, por volver…).
   const [bulk, setBulk] = React.useState<{ customers: Customer[]; purpose: MessagePurpose } | null>(null);
   const [tagging, setTagging] = React.useState<readonly string[] | null>(null);
+  const [campaigning, setCampaigning] = React.useState(false);
   // Reactivar escribe a clientes en nombre de la barbería: lo aprueba quien gestiona.
   const access = useAccess();
   const manages = access.role === "owner" || access.role === "admin";
@@ -149,7 +160,11 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const pool = React.useMemo(() => (segment === ALL_SEGMENTS ? rows : rows.filter((row) => row.segment === segment)), [rows, segment]);
   const pulse = React.useMemo(() => customerPulse(pool), [pool]);
   const preset = CUSTOMER_ALERTS.find((item) => item.id === alert);
-  const filtered = React.useMemo(() => pool.filter((row) => (!preset || preset.matches(row)) && (!tagFilter || row.tags.includes(tagFilter))), [pool, preset, tagFilter]);
+  const filtered = React.useMemo(() => pool.filter((row) => (!preset || preset.matches(row)) && (!tagFilter || row.tags.includes(tagFilter)) && (!originFilter || (row.source ?? "unknown") === originFilter)), [pool, preset, tagFilter, originFilter]);
+  // Los filtros de la lista como grupo: lo que se guarda con nombre y a lo que va una campaña.
+  const groupFilters: GroupFilters = { segment: segment === ALL_SEGMENTS ? null : segment, alert, tag: tagFilter, source: originFilter };
+  const activeGroup = useActiveGroup(groupFilters);
+  const applyGroup = (next: GroupFilters) => setFilters({ tipo: next.segment, aviso: next.alert, etiqueta: next.tag, origen: next.source });
   // Las etiquetas en uso en lo que se ve (por segmento), con cuántos las tienen: el filtro por etiqueta.
   const tagCounts = React.useMemo(() => {
     const counts = new Map<string, number>();
@@ -183,6 +198,8 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           remove: () => single && setConfirmDelete(single),
           whatsapp: perms.showContact ? () => setBulk({ customers: rows.filter((row) => selected.has(row.id)), purpose: "thanks" }) : undefined,
           tag: perms.canEdit && perms.scope === "all" ? () => setTagging([...selected]) : undefined,
+          campaign: manages ? () => setCampaigning(true) : undefined,
+          campaigns: manages ? () => navigate("/clientes/campanas") : undefined,
         },
         single?.blocked ?? false,
         perms
@@ -199,7 +216,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const pickAlert = (id: CustomerAlertId) => setFilters({ aviso: alert === id ? null : id });
 
   const segmentHint = segment === ALL_SEGMENTS ? t("customers.segment.allHint") : t(SEGMENT_HINT_KEYS[segment]);
-  const hasFilter = segment !== ALL_SEGMENTS || alert !== null || tagFilter !== null;
+  const hasFilter = segment !== ALL_SEGMENTS || alert !== null || tagFilter !== null || originFilter !== null;
 
   if (rows.length === 0) {
     return (
@@ -306,8 +323,24 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         </div>
       )}
 
-      {(tagCounts.length > 0 || tagFilter) && (
+      <CustomerGroupsBar filters={groupFilters} onApply={applyGroup} canManage={perms.canEdit && perms.scope === "all"} />
+
+      {(tagCounts.length > 0 || tagFilter || originFilter) && (
         <div role="group" aria-label={t("customers.tags.filter")} className="mb-stack flex shrink-0 flex-wrap items-center gap-1.5" data-testid="customers-tag-filter">
+          <Select value={originFilter ?? ANY_ORIGIN} onValueChange={(value) => setFilters({ origen: value === ANY_ORIGIN ? null : value })}>
+            <SelectTrigger size="sm" className="mr-2 h-7 w-auto min-w-36 text-xs" aria-label={t("customers.form.source")} data-testid="customers-origin-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY_ORIGIN}>{t("customers.origin.any")}</SelectItem>
+              {CUSTOMER_SOURCES.map((source) => (
+                <SelectItem key={source} value={source}>
+                  {t(SOURCE_KEYS[source])}
+                </SelectItem>
+              ))}
+              <SelectItem value="unknown">{t("customers.origin.none")}</SelectItem>
+            </SelectContent>
+          </Select>
           <span className="mr-1 text-xs font-medium text-text-muted">{t("customers.tags.filter")}</span>
           {tagCounts.slice(0, 12).map(([tag, count]) => (
             <Button key={tag} size="xs" variant={tagFilter === tag ? "default" : "outline"} aria-pressed={tagFilter === tag} onClick={() => setFilters({ etiqueta: tagFilter === tag ? null : tag })}>
@@ -339,7 +372,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           <div className="flex flex-col items-center gap-3 py-6 text-center text-sm text-text-muted">
             <p>{hasFilter ? t("customers.emptyFiltered") : t("customers.emptySearch")}</p>
             {hasFilter && (
-              <Button size="sm" variant="outline" onClick={() => setFilters({ tipo: null, aviso: null, etiqueta: null })}>
+              <Button size="sm" variant="outline" onClick={() => setFilters({ tipo: null, aviso: null, etiqueta: null, origen: null })}>
                 {t("customers.clearFilters")}
               </Button>
             )}
@@ -378,6 +411,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
       {bulk && <CustomerBulkWhatsAppDialog open onOpenChange={(open) => !open && setBulk(null)} customers={bulk.customers} purpose={bulk.purpose} />}
       {tagging && <CustomerTagDialog ids={tagging} onClose={() => (setTagging(null), setSelected(new Set()))} />}
+      {campaigning && <CampaignDrawer onClose={() => setCampaigning(false)} groupId={activeGroup?.id ?? null} filters={groupFilters} audienceLabel={activeGroup?.name ?? t("customers.groups.current", { count: filtered.length })} />}
       {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 

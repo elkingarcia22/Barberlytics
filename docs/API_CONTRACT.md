@@ -427,6 +427,27 @@ plazo según el país de la sede: **Colombia** 10 días hábiles para consultas 
 | PUT | `/customers/:id/tags` | `{ tags }`: las de una ficha, enteras (hasta 12, de hasta 24 caracteres). |
 | GET | `/customers/referrals/check?code` | De quién es un código: `{ id, name }` · `404`. |
 
+### Grupos y campañas
+
+Un **grupo** es un filtro de la lista con nombre: `filters: { segment, alert, tag, source }` (segmento, aviso
+`atRisk` \| `overdue` \| `birthday` \| `unreliable`, etiqueta y origen, o `unknown` sin origen). La regla es la misma en
+la lista y en el servidor (`src/features/customers/groupFilter.ts`).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/customers/groups` | `{ items: [{ id, name, filters, createdAt, by, size }] }` (`size`: cuántos hay hoy). |
+| POST | `/customers/groups` | `{ name, filters }`. Recepción o gerencia (barbero `403`). `422` sin nombre, con nombre repetido o sin ningún filtro. |
+| DELETE | `/customers/groups/:id` | `204`. |
+| POST | `/campaigns/preview` | Dueño o administrador. `{ groupId? \| filters, body, couponCode? }` → `{ audience, eligible, excluded: { noConsent, noPhone, promoCap, blocked }, cost: { amount, currency: "USD" }, sample: { name, text } \| null, names, firstSendAt }`. `422` sin mensaje (5–600), con un cupón que no existe, con `{cupon}` sin cupón o sin grupo ni filtros. |
+| POST | `/campaigns` | Lo mismo más `name` y `scheduleAt?`. Programa un mensaje `campaign` por cliente apto (plantilla `campana_promocion`, el texto con `{nombre}` y `{cupon}` ya puestos va en `params[1]`), cada uno en la franja legal de la sede de su cliente; cuenta para el tope de una promoción al mes. `201 campaign` · `409 empty_audience`. |
+| GET | `/campaigns` | Las campañas con `results: { sent, scheduled, failed, cancelled, bookedClients, bookings, revenue, couponUses, cost, roi, open }`: reservas creadas por los destinatarios en los 14 días desde `sendAt` (sin las canceladas), lo cobrado de ellas sin propina, los usos del cupón en esa ventana y `roi` = cobrado ÷ costo. `open` mientras dura la ventana. |
+| POST | `/campaigns/:id/cancel` | Cancela los mensajes que aún no salieron. |
+
+El costo es el precio de lista de Meta por mensaje de marketing en el país de la sede de cada cliente
+(`src/features/marketing/messagePricing.ts`: CO 0,0125, MX 0,0305, EE. UU. 0,025, otros 0,0604 dólares); el real sale en
+la factura de Meta. **Métricas › Marketing** suma `origins: [{ id, clients, newClients, revenue }]`: los clientes
+atendidos en el periodo por su origen, cuántos son nuevos (ficha creada en el periodo) y lo cobrado en servicios.
+
 **Referidos.** Cada cliente tiene un código fijo (su nombre y cuatro caracteres). Al cobrarse la **primera visita** de
 un cliente referido (`POST /appointments/:id/checkout`), los dos reciben `marketing.referral.reward` de saldo a favor
 (el que se usa al reservar en línea), una sola vez y hasta `maxPerReferrer` premios por cliente (0 = sin tope).

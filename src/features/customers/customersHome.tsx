@@ -5,8 +5,8 @@ import type { AttentionTone } from "@/components/feedback";
 import type { TableColumnCells, TableColumnSpec } from "@/components/data-display/table-config";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomerAvatar, SegmentBadge } from "./customersShared";
-import { branchName, daysToBirthday, formatAgo, maskPhone } from "./customersUtils";
-import { isOverdue } from "./overdue";
+import { branchName, formatAgo, maskPhone } from "./customersUtils";
+import { ALERT_MATCHERS, type CustomerAlertId as GroupAlertId } from "./groupFilter";
 import { SEGMENT_KEYS, customerSegmentSchema, type Customer, type CustomerSegment } from "./types";
 
 /**
@@ -146,7 +146,7 @@ export function customersCsvRows(t: Translate, rows: readonly Customer[], { show
 
 /* ----------------------------------------------------------------- avisos */
 
-export type CustomerAlertId = "atRisk" | "overdue" | "birthday" | "unreliable";
+export type CustomerAlertId = GroupAlertId;
 
 export interface CustomerAlertPreset {
   id: CustomerAlertId;
@@ -157,12 +157,6 @@ export interface CustomerAlertPreset {
   matches: (customer: Customer) => boolean;
 }
 
-/** Con cuántos días de antelación avisa un cumpleaños. */
-export const BIRTHDAY_WINDOW_DAYS = 7;
-/** Entre cancelaciones y faltas, a partir de cuántas se considera que falla seguido. */
-export const UNRELIABLE_MISSES = 3;
-
-const isActive = (customer: Customer) => customer.segment !== "blocked" && customer.segment !== "lost";
 
 /**
  * Cuatro motivos para hacer algo hoy con un cliente, en el orden en que duele
@@ -170,20 +164,10 @@ const isActive = (customer: Customer) => customer.segment !== "blocked" && custo
  * falla tanto que conviene pedirle pago por adelantado.
  */
 export const CUSTOMER_ALERTS: readonly CustomerAlertPreset[] = [
-  { id: "atRisk", icon: Hourglass, labelKey: "customers.alert.atRisk", hintKey: "customers.alert.atRiskHint", tone: "warning", matches: (customer) => customer.segment === "atRisk" },
-  { id: "overdue", icon: CalendarClock, labelKey: "customers.alert.overdue", hintKey: "customers.alert.overdueHint", tone: "brand", matches: (customer) => isOverdue(customer) },
-  {
-    id: "birthday",
-    icon: Cake,
-    labelKey: "customers.alert.birthday",
-    hintKey: "customers.alert.birthdayHint",
-    tone: "brand",
-    matches: (customer) => {
-      const days = daysToBirthday(customer.birthDate);
-      return isActive(customer) && days !== null && days <= BIRTHDAY_WINDOW_DAYS;
-    },
-  },
-  { id: "unreliable", icon: CalendarX, labelKey: "customers.alert.unreliable", hintKey: "customers.alert.unreliableHint", tone: "negative", matches: (customer) => isActive(customer) && customer.cancellations + customer.noShows >= UNRELIABLE_MISSES },
+  { id: "atRisk", icon: Hourglass, labelKey: "customers.alert.atRisk", hintKey: "customers.alert.atRiskHint", tone: "warning", matches: (customer) => ALERT_MATCHERS.atRisk(customer) },
+  { id: "overdue", icon: CalendarClock, labelKey: "customers.alert.overdue", hintKey: "customers.alert.overdueHint", tone: "brand", matches: (customer) => ALERT_MATCHERS.overdue(customer) },
+  { id: "birthday", icon: Cake, labelKey: "customers.alert.birthday", hintKey: "customers.alert.birthdayHint", tone: "brand", matches: (customer) => ALERT_MATCHERS.birthday(customer) },
+  { id: "unreliable", icon: CalendarX, labelKey: "customers.alert.unreliable", hintKey: "customers.alert.unreliableHint", tone: "negative", matches: (customer) => ALERT_MATCHERS.unreliable(customer) },
 ];
 
 /* ------------------------------------------------------------------ pulso */

@@ -48,14 +48,8 @@ export function maskPhone(phone: string): string {
 }
 
 /** Cuántos días faltan para el próximo cumpleaños; `null` sin fecha. */
-export function daysToBirthday(birthDate: string | null, now = new Date()): number | null {
-  if (!birthDate) return null;
-  const [, month, day] = birthDate.split("-").map(Number);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let next = new Date(today.getFullYear(), month - 1, day);
-  if (next < today) next = new Date(today.getFullYear() + 1, month - 1, day);
-  return Math.round((next.getTime() - today.getTime()) / DAY_MS);
-}
+/** Días que faltan para su cumpleaños; la regla vive con los filtros de grupo (`groupFilter.ts`). */
+export { daysToBirthday } from "./groupFilter";
 
 type RelativeFormatter = (value: number, unit: Intl.RelativeTimeFormatUnit) => string;
 

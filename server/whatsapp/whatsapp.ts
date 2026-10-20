@@ -8,7 +8,7 @@
  * (`.env.local` en local, variables de Vercel en producción) y nunca llegan al navegador.
  */
 
-export const MESSAGE_KINDS = ["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "reactivation", "queueAlmost", "giftCard", "birthday", "thanks", "reviewRequest"] as const;
+export const MESSAGE_KINDS = ["confirmation", "rescheduled", "reminder24h", "reminder2h", "reminder", "slotFreed", "reactivation", "queueAlmost", "giftCard", "birthday", "thanks", "reviewRequest", "campaign"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /** El nombre de cada plantilla en el WhatsApp Manager; se cambian con `WHATSAPP_TEMPLATE_<KIND>`. */
@@ -32,6 +32,8 @@ const DEFAULT_TEMPLATES: Record<MessageKind, string> = {
   thanks: "cliente_gracias",
   /** Pedir reseña tras la visita, con el enlace: de servicio y a todos por igual (sin filtrar a los contentos). */
   reviewRequest: "cliente_resena",
+  /** Una campaña a un grupo (Clientes › Campañas): de marketing, con el texto del dueño en {{2}}. */
+  campaign: "campana_promocion",
 };
 
 const GRAPH_VERSION = "v21.0";

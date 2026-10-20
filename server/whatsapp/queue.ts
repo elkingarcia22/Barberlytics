@@ -91,7 +91,7 @@ export interface OutboxStore {
 }
 
 /** Lo que Meta cuenta como marketing: solo a quien aceptó promociones. */
-export const MARKETING_KINDS: readonly MessageKind[] = ["reactivation", "birthday"];
+export const MARKETING_KINDS: readonly MessageKind[] = ["reactivation", "birthday", "campaign"];
 /**
  * El tope de promociones por cliente: una cada 30 días, contando antes y después de la que se encola (una
  * programada para dentro de dos semanas también cuenta). Lo anulado, lo fallido y lo que no salió no cuenta.

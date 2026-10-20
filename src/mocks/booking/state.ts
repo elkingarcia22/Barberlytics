@@ -67,7 +67,7 @@ export interface MockOutboxMessage {
    * `receipt` y `rebookLink`: los mandó el equipo desde el panel de la cita (el recibo, el enlace para
    * reagendar), por SMS o correo; salen en el momento.
    */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost" | "giftCard" | "depositLink" | "birthday" | "thanks" | "reviewRequest";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost" | "giftCard" | "depositLink" | "birthday" | "thanks" | "reviewRequest" | "campaign";
   /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
   hoursBefore?: number;
   sendAt: string;
@@ -92,6 +92,8 @@ export interface MockOutboxMessage {
   by?: string;
   /** «Se liberó una hora»: cuál, para reservarla en un toque. */
   offer?: { start: string; barberId: string; branchId: string };
+  /** La campaña a la que pertenece (Clientes › Campañas). */
+  campaignId?: string;
 }
 
 /** Una reseña de un barbero: de una cita que ocurrió (o sembrada para la demo, sin cita). */

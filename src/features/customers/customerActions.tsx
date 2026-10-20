@@ -1,4 +1,4 @@
-import { Ban, CalendarPlus, Download, Eye, HeartHandshake, MessageCircle, NotebookPen, ShieldCheck, Tag, Trash2, Upload, UserPlus, FileLock2 } from "lucide-react";
+import { Ban, CalendarPlus, ChartNoAxesColumn, Megaphone, Download, Eye, HeartHandshake, MessageCircle, NotebookPen, ShieldCheck, Tag, Trash2, Upload, UserPlus, FileLock2 } from "lucide-react";
 import type { AppMessageKey } from "@/app/i18n/types";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { CustomerPermissions } from "./customerAccess";
@@ -20,12 +20,17 @@ export interface CustomerListHandlers {
   whatsapp?: () => void;
   /** Poner o quitar una etiqueta a los marcados. Sin él, la acción no sale. */
   tag?: () => void;
+  /** Mandar una campaña al grupo de la lista y ver las mandadas (dueño y administrador). */
+  campaign?: () => void;
+  campaigns?: () => void;
 }
 
 /** Las acciones de la lista; cada una aparece solo si su casilla de la matriz está marcada. */
 export function customerListActions(t: (key: AppMessageKey) => string, on: CustomerListHandlers, blocked: boolean, perms: CustomerPermissions): readonly RailActionSpec[] {
   const actions: (RailActionSpec | false)[] = [
     perms.canCreate && { id: "create", label: t("customers.action.create"), icon: <UserPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
+    Boolean(on.campaign) && { id: "campaign", label: t("customers.action.campaign"), icon: <Megaphone className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.campaign },
+    Boolean(on.campaigns) && { id: "campaigns", label: t("customers.action.campaigns"), icon: <ChartNoAxesColumn className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.campaigns },
     Boolean(on.reactivate) && { id: "reactivate", label: t("customers.action.reactivate"), icon: <HeartHandshake className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.reactivate },
     perms.canImport && { id: "import", label: t("customers.action.import"), icon: <Upload className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.importList },
     Boolean(on.privacyRequests) && { id: "privacy-requests", label: t("customers.action.privacyRequests"), icon: <FileLock2 className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.privacyRequests },

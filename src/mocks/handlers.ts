@@ -19,6 +19,7 @@ import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
 import { loyaltyHandlers } from "./customers/loyalty";
 import { couponHandlers } from "./marketing/coupons";
+import { campaignHandlers } from "./marketing/campaigns";
 import { emailTaken, phoneTaken, startBarbershop } from "./onboarding/starter";
 import { workforceHandlers } from "./team/workforce";
 import { servicesHandlers } from "./services/handlers";
@@ -706,6 +707,7 @@ export const handlers = [
 
   // ---------- Clientes ----------
   ...loyaltyHandlers,
+  ...campaignHandlers,
   ...couponHandlers,
   ...relationshipHandlers,
   ...customerImportHandlers,

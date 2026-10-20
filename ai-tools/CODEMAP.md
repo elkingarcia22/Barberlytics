@@ -13,6 +13,7 @@ De `src/app/router.tsx`.
 - `/dashboard` → Navigate
 - `/calendario` → CalendarPage
 - `/clientes` → CustomersPage
+- `/clientes/campanas` → CampaignsPage
 - `/clientes/:id` → CustomerProfilePage
 - `/servicios` → ServicesPage
 - `/servicios/orden` → ServiceOrderPage
@@ -194,6 +195,13 @@ Lo que responde MSW hoy.
 - `GET /inventory/:productId/movements` · src/mocks/inventory/handlers.ts
 - `GET /legal/acceptances` · src/mocks/legal/handlers.ts
 - `POST /legal/dpa/accept` · src/mocks/legal/handlers.ts
+- `GET /customers/groups` · src/mocks/marketing/campaigns.ts
+- `POST /customers/groups` · src/mocks/marketing/campaigns.ts
+- `DELETE /customers/groups/:id` · src/mocks/marketing/campaigns.ts
+- `POST /campaigns/preview` · src/mocks/marketing/campaigns.ts
+- `POST /campaigns` · src/mocks/marketing/campaigns.ts
+- `GET /campaigns` · src/mocks/marketing/campaigns.ts
+- `POST /campaigns/:id/cancel` · src/mocks/marketing/campaigns.ts
 - `POST */api/coupons/check` · src/mocks/marketing/coupons.ts
 - `POST */api/messages/dispatch` · src/mocks/messages/handlers.ts
 - `GET */api/appointments/:id/messages` · src/mocks/messages/handlers.ts
@@ -341,7 +349,7 @@ Router, providers, layout, navegación y páginas de error.
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Reintentar un mensaje que falló: vuelve a la cola para salir ya. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useRetryMessage`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: POST /messages/${id}/retry, GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -752,6 +760,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerBulkWhatsAppDialog.tsx** — Escribirles a varios por WhatsApp (desde un aviso o una selección): un texto con `{nombre}`, la lista con a q… · `CustomerBulkWhatsAppDialogProps`, `CustomerBulkWhatsAppDialog` · piezas: Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Skeleton, Text, Textarea · usa: @/app/i18n, @/lib/api
 - **CustomerCutsTab.tsx** — Los cortes del cliente: la fórmula (máquina, número, degradado, barba, producto) y las fotos del resultado de… · `CustomerCutsTab` · piezas: Button, DrawerShell, EmptyState, Field, Input, Skeleton, Text, Textarea · usa: @/app/i18n, @/features/booking, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **CustomerFormDrawer.tsx** — Crear o editar un cliente sin salir de donde se está. · `CustomerFormDrawerProps`, `CustomerFormDrawer` · piezas: Alert, AlertDescription, Button, Collapsible, CollapsibleContent, CollapsibleTrigger, DrawerShell, Field, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Text · usa: @/app/i18n, @/lib/api, @/lib/utils
+- **CustomerGroupsBar.tsx** — Los grupos guardados de Clientes: cada uno es un filtro con nombre («VIP con cera», «Le toca volver de Instag… · `CustomerGroupsBarProps`, `CustomerGroupsBar` · piezas: Button, Input · usa: @/app/i18n, @/features/marketing, @/lib/api
 - **CustomerHistoryTabs.tsx** · `CustomerAppointmentsTab`, `CustomerPaymentsTab`, `CustomerProductsTab`, `CustomerGuestsTab` · piezas: Badge, Button, ConfirmDialog, DrawerShell, EmptyState, Field, IconTile, Input, ListItem, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell · usa: @/app/i18n, @/i18n, @/lib/api
 - **CustomerImportDrawer.tsx** — Traer los clientes de otro software sin pedírselos a soporte: se sube el CSV, se revisa qué columna es cada d… · `CustomerImportDrawerProps`, `CustomerImportDrawer` · piezas: Alert, AlertDescription, Button, DrawerShell, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/lib/api, @/lib/csvParse
 - **CustomerLoyalty.tsx** — El último corte: la fórmula en una línea y sus fotos, para repetirlo igual. · `LastCutCard`, `CustomerTags`, `ReferralCard` · piezas: Badge, Button, Input, Text · usa: @/app/i18n, @/features/team, @/i18n, @/lib/api
@@ -763,15 +772,16 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CustomerRelationship.tsx** — Lo que el cliente tiene a su favor: cuánto le falta para la cortesía de la membresía, sus paquetes, el saldo… · `CustomerWallet`, `CustomerContactLog` · piezas: Badge, Button, ConfirmDialog, ProgressRing, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/features/team, @/i18n, @/lib/api
 - **CustomerTagDialog.tsx** — Poner o quitar una etiqueta a los clientes marcados, de una vez. · `CustomerTagDialog` · piezas: Button, Field, Input, ModalShell, ThemaTabs · usa: @/app/i18n, @/lib/api
 - **CustomerWhatsAppDialog.tsx** — Escribirle a un cliente por WhatsApp sin copiar ni pegar: se elige para qué, se ajusta el texto y se abre Wha… · `CustomerWhatsAppDialogProps`, `CustomerWhatsAppDialog` · piezas: Alert, AlertDescription, Button, Field, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/i18n, @/lib/api
-- **CustomersPage.tsx** — La lista de clientes. · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **CustomersPage.tsx** · `CustomersPage` · piezas: AttentionAction, AttentionStrip, Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricDial, MetricRing, OptionTile, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Skeleton, getChartTheme · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/marketing, @/features/team, @/i18n, @/lib/api, @/lib/query
 - **PrivacyRequestsDrawer.tsx** — Todas las solicitudes de datos de la barbería, las abiertas primero: qué pidió cada cliente y hasta cuándo ha… · `PrivacyRequestsDrawer` · piezas: DrawerShell, Skeleton, Text, ThemaTabs · usa: @/app/i18n
 - **ReactivationDrawer.tsx** — Reactivar a los que ya se pasaron de su ritmo. · `ReactivationDrawerProps`, `ReactivationDrawer` · piezas: Alert, AlertDescription, Button, Checkbox, DrawerShell, Skeleton, Text · usa: @/app/i18n, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de clientes; ver docs/API_CONTRACT.md. · `customersApi` · llama: GET /customers, GET /customers/${id}, POST /customers, PATCH /customers/${id}, DELETE /customers/${id}, POST /clients/${id}/notes, POST /customers/${id}/guests, DELETE /customers/${id}/guests/${guestId} · usa: @/features/calendar, @/lib/api
 - **customerAccess.ts** — Si quien mira puede ver a ese cliente: todo, o solo los suyos. · `isOwnCustomer`, `canSeeCustomer`, `CustomerPermissions`, `customerPermissions`, `useCustomerPermissions` · usa: @/features/access
 - **customerActions.tsx** — Las acciones de la lista; cada una aparece solo si su casilla de la matriz está marcada. · `CustomerListHandlers`, `customerListActions` · usa: @/app/i18n
-- **customersHome.tsx** — Qué columnas existen según quién mira (ver `customerAccess.ts`). · `ALL_SEGMENTS`, `SegmentFilter`, `parseSegment`, `countBySegment`, `CustomerColumnOptions`, `customerColumns`, `CustomerCellFormatters`, `customerCells`, `customersCsvRows`, `CustomerAlertId`, `CustomerAlertPreset`, `BIRTHDAY_WINDOW_DAYS`, `UNRELIABLE_MISSES`, `CUSTOMER_ALERTS`, `CustomerPulse`, `customerPulse` · piezas: Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n
+- **customersHome.tsx** — Qué columnas existen según quién mira (ver `customerAccess.ts`). · `ALL_SEGMENTS`, `SegmentFilter`, `parseSegment`, `countBySegment`, `CustomerColumnOptions`, `customerColumns`, `CustomerCellFormatters`, `customerCells`, `customersCsvRows`, `CustomerAlertId`, `CustomerAlertPreset`, `CUSTOMER_ALERTS`, `CustomerPulse`, `customerPulse` · piezas: Tooltip, TooltipContent, TooltipTrigger · usa: @/app/i18n
 - **customersShared.tsx** — Las piezas chicas del módulo de clientes: el segmento con su color y su icono, y el avatar. · `SegmentBadge`, `CustomerAvatar` · piezas: Avatar, AvatarFallback, AvatarImage, Badge, initialsOf · usa: @/app/i18n
-- **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `daysToBirthday`, `formatAgo`, `downloadCsv`, `SOURCE_KEYS` · usa: @/app/i18n, @/features/branches, @/features/payroll
+- **customersUtils.ts** — Un color por momento de la relación: del más valioso al que ya no está. · `SEGMENT_STYLE`, `APPOINTMENT_STATUS_BADGE`, `branchName`, `daysSince`, `maskPhone`, `formatAgo`, `downloadCsv`, `SOURCE_KEYS` · usa: @/app/i18n, @/features/branches, @/features/payroll
+- **groupFilter.ts** — Cuántos días antes del cumpleaños entra en «cumple esta semana». · `BIRTHDAY_WINDOW_DAYS`, `UNRELIABLE_MISSES`, `ALERT_IDS`, `CustomerAlertId`, `GroupCustomer`, `GroupFilters`, `EMPTY_FILTERS`, `daysToBirthday`, `ALERT_MATCHERS`, `matchesGroup`, `isEmptyFilter`, `sameFilters`
 - **importApi.ts** · `ImportReason`, `ImportResult`, `useImportCustomers`, `useUndoImport` · llama: POST /customers/import, DELETE /customers/import/${batchId} · usa: @/lib/api
 - **importColumns.ts** — Qué columna del archivo es cada dato: se adivina por el nombre de la cabecera (en español o inglés, con o sin… · `IMPORT_FIELDS`, `ImportField`, `ColumnMap`, `guessColumns`, `toIsoDate`, `ImportRow`, `rowsFrom`
 - **loyalty.ts** — Lo que la barbería recuerda y premia de cada cliente (docs/API_CONTRACT.md, «Clientes › Cortes, etiquetas y r… · `CUSTOMER_SOURCES`, `customerSourceSchema`, `CustomerSource`, `CUT_FORMULA_KEYS`, `CutFormulaKey`, `cutFormulaSchema`, `CutFormula`, `cutRecordSchema`, `CutRecord`, `referralSummarySchema`, `ReferralSummary`, `EMPTY_FORMULA`, `formulaLine`, `CutInput`, `loyaltyApi`, `useTagCatalog`, `useBulkTags`, `useSetTags`, `useCustomerCuts`, `useCutActions` · llama: GET /customers/tags, POST /customers/tags, PUT /customers/${id}/tags, GET /customers/${id}/cuts, POST /customers/${id}/cuts, DELETE /customers/${id}/cuts/${cutId} · usa: @/lib/api
@@ -845,7 +855,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### marketing
 
+- **CampaignDrawer.tsx** — Una campaña a un grupo por WhatsApp: el texto (con {nombre} y {cupon}), un cupón, cuándo, y antes de mandar l… · `CampaignDrawerProps`, `CampaignDrawer` · piezas: Button, DrawerShell, Field, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/customers, @/features/settings, @/i18n, @/lib/api
+- **CampaignsPage.tsx** — Las campañas mandadas y lo que dejó cada una: cuántos mensajes salieron, cuántos clientes reservaron en los 1… · `CampaignsPage` · piezas: Button, EmptyState, PageHeader, Skeleton, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/query
+- **campaigns.ts** — Grupos guardados y campañas (docs/API_CONTRACT.md, «Clientes › Grupos y campañas»): un filtro de Clientes con… · `groupFiltersSchema`, `customerGroupSchema`, `CustomerGroup`, `ExcludedCounts`, `campaignPreviewSchema`, `CampaignPreview`, `campaignResultsSchema`, `CampaignResults`, `campaignSchema`, `Campaign`, `CampaignDraft`, `CampaignInput`, `campaignsApi`, `useCustomerGroups`, `useGroupActions`, `useCampaigns`, `useCampaignActions`, `useCampaignPreview`, `useActiveGroup` · llama: GET /customers/groups, POST /customers/groups, DELETE /customers/groups/${id}, POST /campaigns/preview, POST /campaigns, GET /campaigns, POST /campaigns/${id}/cancel · usa: @/features/customers, @/lib/api
 - **coupons.ts** — Los cupones de la barbería vistos desde la caja (docs/API_CONTRACT.md, «Configuración › Cupones»): el servido… · `couponSchema`, `Coupon`, `CouponCheckInput`, `couponsApi`, `couponDiscount` · llama: POST /coupons/check · usa: @/lib/api
+- **messagePricing.ts** — Cuánto cuesta un mensaje de marketing por WhatsApp según el país del cliente (docs/API_CONTRACT.md, «Clientes… · `MARKETING_PRICE_USD`, `marketingPriceFor`, `estimateCost` · usa: @/features/legal
 
 ### metrics
 
@@ -1185,14 +1199,14 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### customers
 
-- **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `isOwnClient`, `saveProfile`, `findByPhone`, `customersHandlers`
+- **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `customerSummary`, `isOwnClient`, `saveProfile`, `findByPhone`, `customersHandlers`
 - **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers` · usa: @/features/settings
 - **loyalty.ts** — El último corte, para la ficha y el panel de la cita («fade bajo, 1 a los lados»). · `MAX_CUT_PHOTOS`, `cutsOf`, `lastCutOf`, `normalizeTag`, `tagCatalog`, `referralCodeOf`, `referrerByCode`, `ReferralRules`, `referralRules`, `linkReferral`, `rewardReferral`, `referralSummary`, `isCustomerSource`, `loyaltyHandlers` · usa: @/features/booking
 - **privacy.ts** — El plazo para responder según el país de la sede del cliente: Colombia 10 días hábiles para consultas (ver, e… · `dueDateOf`, `logPrivacyRequest`, `exportOf`, `eraseClient`, `privacyHandlers` · usa: @/features/legal
 - **promoCap.ts** — La promoción más cercana a `at` (antes o después) a menos de 30 días, si la hay. · `PROMO_CAP_DAYS`, `promoNear`
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers` · usa: @/features/legal
 - **rhythm.ts** — Cuándo le toca y los huecos que se le pueden ofrecer (con su barbero si puede). · `nextVisitOf`, `reactivationCandidates`, `rhythmHandlers` · usa: @/features/customers, @/features/legal
-- **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `CUSTOMER_SOURCES`, `MockCustomerSource`, `MockPrivacyRequest`, `MockCutFormula`, `MockCutRecord`, `MockReferral`, `MockCustomersState`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf` · usa: @/features/legal
+- **seed.ts** — Los clientes del backend simulado. · `MockSegment`, `MockGuest`, `MockCustomerProfile`, `CUSTOMER_SOURCES`, `MockCustomerSource`, `MockPrivacyRequest`, `MockCutFormula`, `MockCutRecord`, `MockReferral`, `MockCustomersState`, `MockGroupFilters`, `MockCustomerGroup`, `MockCampaign`, `emptyCustomers`, `hashOf`, `deriveProfile`, `lifecycleOf`, `MockCustomerAppointment`, `MockCustomerPayment`, `MockCustomerProduct`, `ticketOf`, `historyOf`, `paymentsOf`, `productsOf` · usa: @/features/legal
 
 ### expenses
 
@@ -1218,6 +1232,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### marketing
 
 - **automations.ts** — Al cobrar una cita: programa las gracias (si es la primera visita) y el pedido de reseña, si están encendidos. · `AutomationRules`, `automationRules`, `onVisitPaid`, `runBirthdays` · usa: @/features/legal
+- **campaigns.ts** — Los filtros como llegan, limpios: lo que no se reconoce queda vacío. · `filtersFrom`, `audienceOf`, `ExclusionReason`, `renderBody`, `resultsOf`, `campaignHandlers` · usa: @/features/booking, @/features/customers, @/features/legal, @/features/marketing
 - **coupons.ts** — Los cupones de la barbería (docs/API_CONTRACT.md, «Configuración › Cupones»): los crea el dueño en Configurac… · `MockCouponRedemption`, `toPromo`, `coupons`, `usesOf`, `CouponCheck`, `checkCoupon`, `redeemCoupon`, `welcomeCoupon`, `COUPON_PROBLEMS`, `couponHandlers` · usa: @/features/booking
 
 ### messages

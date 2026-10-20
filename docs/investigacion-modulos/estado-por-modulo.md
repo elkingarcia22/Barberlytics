@@ -44,7 +44,7 @@ aviso de Clipper «Aún no hace cambios por ti».
 - P1 · Re-reserva, producto/servicio, retención por cohorte a 90 días; el tipo de cliente se reparte al azar.
 - ~~P1 · Ocupación sobre el horario real~~ (hecho: horario de la sede, turnos de 45 min).
 - P1 · Metas y ritmo a la meta; exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
-- P2 · Comparar sucursales, LTV por canal, vistas guardadas, ~~Marketing real~~ (hecho: sale del `utm`), borrar `features/dashboard`.
+- P2 · Comparar sucursales, LTV por canal (~~clientes por origen~~ hecho), vistas guardadas, ~~Marketing real~~ (hecho: sale del `utm`), borrar `features/dashboard`.
 
 **IA que falta**: alertas de anomalías con estacionalidad + resumen semanal por WhatsApp; pronóstico de la semana;
 herramientas de Clipper en las cinco pestañas; impulsores y detractores; coaching por barbero; comparación con pares.
@@ -68,8 +68,8 @@ priorizada → cita hecha; Clipper en WhatsApp; repartir la tarde de quien se va
 
 **Pendiente**
 - ~~P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple~~ (hecho el 2026-10-19). (Permiso aparte para salud: hecho, ver abajo.)
-- P1 · ~~Fotos y fórmula del corte; etiquetas; automatizaciones (cumpleaños, gracias, reseña)~~ (hecho el 2026-10-20); grupos
-  guardados; historial con entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
+- P1 · ~~Fotos y fórmula del corte; etiquetas; automatizaciones (cumpleaños, gracias, reseña); grupos
+  guardados~~ (hecho el 2026-10-20); historial con entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
 - P2 · ~~Origen y referidos~~ (hecho el 2026-10-20), motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
 
 **IA que falta**: borradores de reactivación redactados; perfil en 3 líneas; riesgo de abandono con motivos; siguiente
@@ -200,7 +200,7 @@ revisión de su pago.
 **Pendiente**
 - ~~P0 · STOP/BAJA por webhook; franja horaria y tope mensual; Métricas › Marketing al azar; reseñas de ejemplo en la
   reserva pública; tarjeta de regalo sin envío~~ (hecho el 2026-10-19); membresía fija en el panel de la cita.
-- P1 · Campañas; ~~automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos~~ (hecho el
+- P1 · ~~Campañas; automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos~~ (hecho el
   2026-10-20); correo.
 
 **IA que falta**: reactivación automática con tope y hora habitual; texto de campaña; segmentos sugeridos; clasificador de
@@ -342,3 +342,10 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Cupones administrables (Configuración › Cupones): fechas, tope total y por cliente, primera visita, servicios, encendido; valen en la reserva y en la caja («Canjear un cupón»), y cada uso queda anotado.
   - Mensajes automáticos con interruptor: gracias tras la primera visita, pedir reseña (Google o la reserva, a todos, una vez al mes) y feliz cumpleaños (con permiso, franja legal y tope).
   - Falta: campañas a un grupo, grupos guardados, plantillas aprobadas en Meta para los tres mensajes nuevos y el origen en Métricas › Marketing.
+- **Campañas (15 P1, 2026-10-20).**
+  - Grupos guardados en Clientes (segmento, aviso, etiqueta y el nuevo filtro por origen), con su tamaño de hoy.
+  - «Campaña a este grupo»: texto con {nombre} y {cupon}, cupón, ahora o programada; antes de mandar, la vista previa dice a cuántos sí, a quiénes no y por qué (sin permiso, sin celular, tope del mes, bloqueados), cómo le llega a un cliente y el costo estimado con el precio de Meta por país.
+  - Cada mensaje sale en la franja legal de su sede y cuenta para el tope mensual (la cola del servidor lo trata como marketing).
+  - «Campañas mandadas»: salieron, reservaron en 14 días, lo cobrado, usos del cupón, costo y retorno; cancelar lo pendiente.
+  - Métricas › Marketing: clientes atendidos por origen (y cuántos nuevos) y lo cobrado por origen.
+  - Falta: la plantilla `campana_promocion` aprobada en Meta, entregado y leído reales en los resultados, y correo como canal barato.

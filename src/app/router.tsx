@@ -22,6 +22,7 @@ import {
   LegalPage,
   CustomerProfilePage,
   CustomersPage,
+  CampaignsPage,
   ExpensesPage,
   DocsApp,
   LevelsPage,
@@ -79,6 +80,8 @@ export const router = createBrowserRouter([
           { path: "calendario", element: guarded("calendar", <CalendarPage />) },
           // Clientes: la lista con sus segmentos y la ficha de cada uno.
           { path: "clientes", element: guarded("customers", <CustomersPage />) },
+          // Las campañas a grupos de clientes y lo que dejó cada una (solo dueño y administrador las ven).
+          { path: "clientes/campanas", element: guarded("customers", <CampaignsPage />) },
           { path: "clientes/:id", element: guarded("customers", <CustomerProfilePage />) },
           // Servicios: el catálogo, el orden de la reserva en línea y la ficha de cada uno.
           // «orden» va antes que `:id` para que no se lea como un servicio.

@@ -4,6 +4,7 @@ import * as React from "react";
 export const DashboardPage = React.lazy(() => import("@/features/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 export const CalendarPage = React.lazy(() => import("@/features/calendar/CalendarPage").then((m) => ({ default: m.CalendarPage })));
 export const CustomersPage = React.lazy(() => import("@/features/customers/CustomersPage").then((m) => ({ default: m.CustomersPage })));
+export const CampaignsPage = React.lazy(() => import("@/features/marketing/CampaignsPage").then((m) => ({ default: m.CampaignsPage })));
 export const CustomerProfilePage = React.lazy(() => import("@/features/customers/CustomerProfilePage").then((m) => ({ default: m.CustomerProfilePage })));
 export const ServicesPage = React.lazy(() => import("@/features/services/ServicesPage").then((m) => ({ default: m.ServicesPage })));
 export const ServiceProfilePage = React.lazy(() => import("@/features/services/ServiceProfilePage").then((m) => ({ default: m.ServiceProfilePage })));

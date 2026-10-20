@@ -3,6 +3,19 @@ import { EmptyState } from "@/components/feedback";
 import { useAppT } from "@/app/i18n";
 import { useMetricsFormatters } from "../metricsFormat";
 import type { MetricsMarketing } from "../types";
+import type { AppMessageKey } from "@/app/i18n/types";
+
+/** El nombre de cada origen del cliente (los mismos de su ficha). */
+const ORIGIN_KEYS: Readonly<Record<string, AppMessageKey>> = {
+  instagram: "customers.origin.instagram",
+  google: "customers.origin.google",
+  facebook: "customers.origin.facebook",
+  tiktok: "customers.origin.tiktok",
+  referral: "customers.origin.referral",
+  walkin: "customers.origin.walkin",
+  other: "customers.origin.other",
+  unknown: "customers.origin.none",
+};
 
 /**
  * Marketing: por dónde llegan las reservas en línea (el `utm_source` con que se
@@ -88,6 +101,28 @@ export function MarketingDashboard({ data }: { data: MetricsMarketing }) {
         </div>
       ) : (
         <EmptyState icon="analytics" title={t("metrics.marketing.empty")} description={t("metrics.marketing.emptyHint")} />
+      )}
+
+      {data.origins.length > 0 && (
+        <div className="grid gap-stack lg:grid-cols-2" data-testid="metrics-origins">
+          <BarList
+            title={t("metrics.marketing.origins")}
+            description={t("metrics.marketing.originsHint")}
+            count={format.count(data.origins.reduce((total, row) => total + row.clients, 0))}
+            items={data.origins.map((row) => ({ id: row.id, label: t(ORIGIN_KEYS[row.id] ?? "customers.origin.other"), value: row.clients, meta: t("metrics.marketing.originsNew", { count: row.newClients }) }))}
+            formatValue={format.count}
+            tone="brand"
+            emptyLabel={t("metrics.marketing.empty")}
+          />
+          <BarList
+            title={t("metrics.marketing.originsRevenue")}
+            description={t("metrics.marketing.originsRevenueHint")}
+            items={data.origins.filter((row) => row.revenue > 0).map((row) => ({ id: row.id, label: t(ORIGIN_KEYS[row.id] ?? "customers.origin.other"), value: row.revenue }))}
+            formatValue={format.moneyRound}
+            tone="positive"
+            emptyLabel={t("metrics.marketing.empty")}
+          />
+        </div>
       )}
     </div>
   );

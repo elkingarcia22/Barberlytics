@@ -75,7 +75,8 @@ export function agendaBarbers(now = Date.now()): AgendaBarbers {
   return map;
 }
 
-function summary(client: MockClient, agenda: AgendaBarbers = agendaBarbers()) {
+/** La fila de la lista de un cliente (segmento, visitas, etiquetas…): con ella se filtran grupos y campañas. */
+export function customerSummary(client: MockClient, agenda: AgendaBarbers = agendaBarbers()) {
   const profile = profileOf(client);
   const { segment, lastVisitAt } = lifecycleOf(client, profile.blocked);
   const history = historyOf(client, lastVisitAt, segment, barberIdsOfTeam());
@@ -111,13 +112,13 @@ function summary(client: MockClient, agenda: AgendaBarbers = agendaBarbers()) {
  * en el último año, según el historial de la ficha o la agenda real.
  */
 export function isOwnClient(client: MockClient, memberId: string, agenda: AgendaBarbers = agendaBarbers()): boolean {
-  const item = summary(client, agenda);
+  const item = customerSummary(client, agenda);
   return item.preferredBarberId === memberId || item.barberIds.includes(memberId);
 }
 
 function detail(client: MockClient) {
   const profile = profileOf(client);
-  const base = summary(client);
+  const base = customerSummary(client);
   const history = historyOf(client, base.lastVisitAt, base.segment, barberIdsOfTeam());
   const past = history.filter((item) => item.status !== "scheduled");
   const booked = Math.max(1, client.visits + client.cancellations + client.noShows);
@@ -199,7 +200,7 @@ export const customersHandlers = [
     const own = session && isBarber(session) ? session.memberId : null;
     const agenda = agendaBarbers();
     const items = realClients()
-      .map((client) => summary(client, agenda))
+      .map((client) => customerSummary(client, agenda))
       .filter((item) => own === null || item.preferredBarberId === own || item.barberIds.includes(own))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
     return HttpResponse.json({ items });
@@ -212,7 +213,7 @@ export const customersHandlers = [
     if (!client) return error(404, "not_found", "Ese cliente no existe.");
     const session = sessionOf(request);
     if (session && isBarber(session)) {
-      const item = summary(client);
+      const item = customerSummary(client);
       if (item.preferredBarberId !== session.memberId && !item.barberIds.includes(session.memberId)) return forbidden("Ese cliente no es tuyo.");
     }
     return HttpResponse.json(detail(client));

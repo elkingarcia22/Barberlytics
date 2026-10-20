@@ -125,6 +125,43 @@ export interface MockCustomersState {
   /** Los cortes anotados de cada cliente. */
   cuts?: Record<string, MockCutRecord[]>;
   referrals?: MockReferral[];
+  /** Los grupos guardados (filtros con nombre) y las campañas mandadas a ellos. */
+  groups?: MockCustomerGroup[];
+  campaigns?: MockCampaign[];
+}
+
+export interface MockGroupFilters {
+  segment: string | null;
+  alert: "atRisk" | "overdue" | "birthday" | "unreliable" | null;
+  tag: string | null;
+  source: string | null;
+}
+
+/** Un grupo guardado: un filtro de Clientes con nombre, para volver a él y mandarle campañas. */
+export interface MockCustomerGroup {
+  id: string;
+  name: string;
+  filters: MockGroupFilters;
+  createdAt: string;
+  by: string;
+}
+
+/** Una campaña: a quién, qué decía, cuándo salió y lo que costaría. Los resultados se calculan al pedirla. */
+export interface MockCampaign {
+  id: string;
+  name: string;
+  groupId: string | null;
+  filters: MockGroupFilters;
+  body: string;
+  couponCode: string | null;
+  createdAt: string;
+  by: string;
+  /** Cuándo se pidió que saliera (cada mensaje sale en la franja legal de la sede de su cliente). */
+  sendAt: string;
+  recipients: string[];
+  excluded: { noConsent: number; noPhone: number; promoCap: number; blocked: number };
+  estimatedCost: number;
+  status: "scheduled" | "cancelled";
 }
 
 export const emptyCustomers = (): MockCustomersState => ({ profiles: {} });

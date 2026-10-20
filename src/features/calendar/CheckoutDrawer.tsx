@@ -11,23 +11,21 @@ import { appointmentStart, servicesOf, type ModelContext } from "./calendarModel
 import { useOpenKey } from "./calendarFormat";
 import { STATUS_KEYS, type Appointment } from "./types";
 import { BillSection, DiscountField, GiftSaleField } from "./checkout/BillSection";
-import { PayMethods, PayPageContent, type PayPage } from "./checkout/PaySection";
-import { PanelQuestion, PanelSubpage } from "./appointmentPanel/bookingStyle";
+import { PayMethods } from "./checkout/PaySection";
+import { PanelQuestion } from "./appointmentPanel/bookingStyle";
 import type { SendTarget } from "./appointmentPanel/sendTarget";
 import { TRACK } from "./appointmentPanel/panelLogic";
 import { Stepper } from "@/components/navigation";
 import { formatClock } from "@/components/scheduling";
-import type { AppMessageKey } from "@/app/i18n/types";
 import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
 
 /**
  * Cobrar, con la cara del panel de la cita: el avance de la cita arriba y una
  * tarjeta teñida con «Cobrar US$ …», y dentro lo que se cobra (citas juntas,
  * servicios con su precio, productos), el descuento y la tarjeta de regalo
- * que se vende, «¿Cómo paga?» en tarjetas, «Tu orden» y un solo botón
- * principal. Lo que pide más pasos (link de pago, mixto, en partes, la
- * tarjeta de regalo del cliente) entra a su propia página del panel. La
- * propina se pregunta al pulsar «Cobrar», en su ventana, como en la reserva.
+ * que se vende, «¿Cómo paga?» (un selector y, debajo, lo de la forma
+ * elegida), «Tu orden» y un solo botón principal. La propina se pregunta al
+ * pulsar «Cobrar», en su ventana, como en la reserva.
  */
 
 export interface CheckoutDrawerProps {
@@ -43,7 +41,6 @@ export interface CheckoutDrawerProps {
 }
 
 const NO_TIP = "none";
-const PAGE_TITLE: Record<PayPage, AppMessageKey> = { link: "calendar.checkout.pay.link", mixed: "calendar.checkout.pay.mixed", parts: "calendar.checkout.pay.parts", gift: "calendar.checkout.pay.gift" };
 
 export function CheckoutDrawer(props: CheckoutDrawerProps) {
   const key = `${useOpenKey(props.open)}-${props.appointment?.id ?? ""}`;
@@ -55,7 +52,6 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
   const t = useAppT();
   const checkout = useCheckout({ appointment, companions, candidates, ctx, onPaid, onClose: () => onOpenChange(false) });
   const [tipOpen, setTipOpen] = React.useState(false);
-  const [page, setPage] = React.useState<PayPage | null>(null);
   // Con propinas en Configuración se preguntan al cobrar; si no, se cobra directo.
   const charge = () => (checkout.tipOptions.length > 0 ? setTipOpen(true) : void checkout.pay(NO_TIP));
   const canContact = ctx.access?.canContact ?? true;
@@ -69,12 +65,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
       title={checkout.together.length > 0 ? t("calendar.checkout.titleVisit") : t("calendar.checkout.title")}
       description={checkout.client ? `${checkout.client.name} · ${checkout.barber?.name ?? ""}` : undefined}
     >
-      {page ? (
-        <PanelSubpage title={t(PAGE_TITLE[page])} onBack={() => setPage(null)}>
-          <PayPageContent page={page} checkout={checkout} ctx={ctx} target={target} onDone={() => setPage(null)} />
-        </PanelSubpage>
-      ) : (
-        <div className="flex flex-col gap-5" data-testid="checkout-drawer">
+      <div className="flex flex-col gap-5" data-testid="checkout-drawer">
           <CheckoutStepper appointment={appointment} ctx={ctx} />
           <section className="flex flex-col gap-5 rounded-2xl bg-gradient-to-b from-warning/15 via-warning/5 to-transparent p-4" data-testid="checkout-card">
             <div className="flex flex-col gap-1">
@@ -102,7 +93,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
             {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
 
             <PanelQuestion title={t("calendar.checkout.howPays")}>
-              <PayMethods checkout={checkout} ctx={ctx} onOpenPage={setPage} />
+              <PayMethods checkout={checkout} ctx={ctx} target={target} />
             </PanelQuestion>
             <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
             <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
@@ -110,8 +101,7 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
               {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
             </Button>
           </section>
-        </div>
-      )}
+      </div>
       <TipModal open={tipOpen} onOpenChange={setTipOpen} checkout={checkout} ctx={ctx} />
     </SidePanelShell>
   );

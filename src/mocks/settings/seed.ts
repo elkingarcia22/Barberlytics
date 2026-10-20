@@ -11,6 +11,24 @@
  */
 
 export type MockSettingsSection = "business" | "booking" | "pricing" | "tips" | "cardFee" | "commissions" | "payrollCycle" | "notifications" | "company" | "billing";
+/** Los datáfonos de la demo: la caja, recepción y dos puestos. */
+export const SEED_DEVICES = [
+  { id: "dev_caja", name: "Caja principal", serial: "SN-48201", tpn: "TPN-7731", hasAuthKey: true },
+  { id: "dev_recepcion", name: "Recepción", serial: "SN-48209", tpn: "TPN-7738", hasAuthKey: true },
+  { id: "dev_puesto1", name: "Puesto 1", serial: "SN-48217", tpn: "TPN-7745", hasAuthKey: true },
+  { id: "dev_puesto2", name: "Puesto 2", serial: "SN-48224", tpn: "TPN-7752", hasAuthKey: true },
+] as const;
+
+/**
+ * Una base guardada con los dos datáfonos de antes («Datáfono de la caja» y «Datáfono móvil») pasa a
+ * los cuatro de ahora; si alguien ya los cambió en Configuración, se respetan.
+ */
+export function upgradeDevices<T extends { id: string; name?: unknown }>(devices: readonly T[]): T[] | null {
+  const ids = devices.map((device) => device.id).join(",");
+  const untouched = ids === "dev_caja,dev_movil" && devices[0].name === "Datáfono de la caja" && devices[1].name === "Datáfono móvil";
+  return untouched ? (SEED_DEVICES.map((device) => ({ ...device })) as unknown as T[]) : null;
+}
+
 export type MockSettingsList = "branches" | "closures" | "taxGroups" | "devices" | "gateways";
 
 export interface MockListItem {
@@ -34,6 +52,12 @@ export const DEFAULT_POLICY = [
   "Si cancelas más tarde se cobra el <<fee_cancellation>>% del servicio.",
   "Puedes cancelar en línea hasta <<max_cancellations>> veces; después tendrás que llamarnos.",
 ].join("\n");
+
+/** Pone al día una configuración guardada en el navegador (hoy: los datáfonos de la demo). */
+export function upgradeSettings(settings: MockSettingsState): MockSettingsState {
+  const devices = upgradeDevices(settings.lists.devices ?? []);
+  return devices ? { ...settings, lists: { ...settings.lists, devices } } : settings;
+}
 
 export function seedSettings(): MockSettingsState {
   return {
@@ -100,11 +124,8 @@ export function seedSettings(): MockSettingsState {
         { id: "tax_ut", name: "Utah", taxes: [{ name: "Estatal", percent: 4.85 }, { name: "Local", percent: 2.4 }] },
         { id: "tax_co_iva", name: "IVA Colombia", taxes: [{ name: "IVA", percent: 19 }] },
       ],
-      // Dos datáfonos en la caja: el cobro con tarjeta elige con cuál se pasa.
-      devices: [
-        { id: "dev_caja", name: "Datáfono de la caja", serial: "SN-48201", tpn: "TPN-7731", hasAuthKey: true },
-        { id: "dev_movil", name: "Datáfono móvil", serial: "SN-48217", tpn: "TPN-7745", hasAuthKey: true },
-      ],
+      // Cuatro datáfonos: el cobro con tarjeta elige en una lista con cuál se pasa.
+      devices: SEED_DEVICES.map((device) => ({ ...device })),
       gateways: [{ id: "gw_stripe", provider: "stripe", name: "Stripe", publicKey: "pk_test_demo_barberia", hasSecret: true, connected: true }],
     },
   };

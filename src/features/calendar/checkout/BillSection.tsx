@@ -1,7 +1,7 @@
 import { Gift, Minus, Percent, Plus, Trash2, X } from "lucide-react";
 import { Chip } from "@/components/ai-interaction";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
-import { Field, NumberField, SearchableSelect } from "@/components/forms";
+import { Field, NumberField } from "@/components/forms";
 import { SegmentedControl } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
@@ -9,45 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ActionTile } from "@/components/utility";
 import { IconTile } from "@/components/utility/IconTile";
-import { appointmentRange, appointmentTotal, findClient, priceFor, servicesOf, type ModelContext } from "../calendarModel";
-import { ClientAvatar, ProductThumb, ServiceThumb } from "../calendarShared";
+import { appointmentRange, appointmentTotal, findClient, servicesOf, type ModelContext } from "../calendarModel";
+import { ProductThumb, ServiceThumb } from "../calendarShared";
 import { CheckoutPrice } from "../CheckoutPrice";
 import { PanelQuestion } from "../appointmentPanel/bookingStyle";
 import type { Appointment } from "../types";
 import type { CheckoutController } from "./useCheckout";
-import { personSearchText } from "@/lib/search/personSearch";
 
 /**
- * Qué se cobra: las citas que van juntas (las de su visita y otras sin
- * cobrar que se sumen), los servicios con su precio (se cambia ahí mismo) y
- * los productos. Y dos piezas que se abren desde un enlace, como el cupón de
- * la reserva: vender una tarjeta de regalo y el descuento.
+ * Qué se cobra, sección por sección: las citas que van juntas (las de su
+ * visita y otras sin cobrar que se sumen), los servicios con su precio (se
+ * cambia ahí mismo) y los productos; y el descuento y la tarjeta de regalo
+ * que se vende. Se suman desde «Agregar» (`AddMenu` y `addOptions`).
  */
 
 /** Los montos de tarjeta de regalo que se ofrecen de un toque. */
 const GIFT_AMOUNTS = [25, 50, 100] as const;
 
-export function BillSection({ checkout, appointment, ctx }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext }) {
-  return (
-    <div className="flex flex-col gap-6" data-testid="checkout-bill">
-      <VisitSection checkout={checkout} appointment={appointment} ctx={ctx} />
-      <ServicesSection checkout={checkout} appointment={appointment} ctx={ctx} />
-      <ProductsSection checkout={checkout} ctx={ctx} />
-    </div>
-  );
-}
-
-/**
- * Las citas que se cobran juntas: las de su visita y las que se suman (y, si
- * se quiere, se enlazan). `adding` muestra el campo para sumar otra aunque
- * todavía no haya ninguna; sin él, solo aparece si ya hay de dónde elegir.
- */
-export function VisitSection({ checkout, appointment, ctx, adding = true, autoOpen = false }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext; adding?: boolean; autoOpen?: boolean }) {
+/** Las citas que se cobran juntas: las de su visita y las que se sumaron desde «Agregar» (y, si se quiere, se enlazan). Sin ninguna, no se pinta. */
+export function VisitSection({ checkout, appointment, ctx }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext }) {
   const { t } = checkout;
-  // Sumar otra cita sin cobrar al cobro (y, si se quiere, enlazarla con esta).
-  const addable = checkout.candidates.filter((item) => !checkout.extras.some((extra) => extra.id === item.id));
   const hasRows = checkout.companions.length > 0 || checkout.extras.length > 0;
-  if (!hasRows && !(adding && checkout.candidates.length > 0)) return null;
+  if (!hasRows) return null;
   return (
     <PanelQuestion title={t("calendar.checkout.visit")}>
       <ListItemGroup data-testid="checkout-visit">
@@ -69,28 +52,6 @@ export function VisitSection({ checkout, appointment, ctx, adding = true, autoOp
           />
         ))}
       </ListItemGroup>
-      {adding && addable.length > 0 && (
-        <SearchableSelect
-          value=""
-          onValueChange={checkout.addExtra}
-          defaultOpen={autoOpen}
-          placeholder={t("calendar.checkout.addAppointment")}
-          searchPlaceholder={t("calendar.checkout.addAppointmentSearch")}
-          options={addable.map((item) => {
-            const client = findClient(ctx.catalog, item.clientId);
-            return {
-              value: item.id,
-              label: client?.name ?? t("calendar.clientType.walkin"),
-              description: `${appointmentRange(item, ctx.intl)} · ${servicesOf(ctx.catalog, item)
-                .map((service) => service.name)
-                .join(" + ")}`,
-              keywords: client ? personSearchText(client) : undefined,
-              leading: <ClientAvatar client={client} size="sm" />,
-            };
-          })}
-          data-testid="checkout-add-appointment"
-        />
-      )}
       {checkout.extras.length > 0 && (
         <label className="flex items-center justify-between gap-3 rounded-xl border border-input bg-surface px-3 py-2.5">
           <span className="flex min-w-0 flex-col">
@@ -108,8 +69,8 @@ export function VisitSection({ checkout, appointment, ctx, adding = true, autoOp
   );
 }
 
-/** Los servicios con su precio (se cambia ahí mismo). `adding` muestra el campo para sumar otro; `autoOpen` lo abre al aparecer. */
-export function ServicesSection({ checkout, appointment, ctx, adding = true, autoOpen = false }: { checkout: CheckoutController; appointment: Appointment; ctx: ModelContext; adding?: boolean; autoOpen?: boolean }) {
+/** Los servicios con su precio (se cambia ahí mismo). */
+export function ServicesSection({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   const canEditPrices = ctx.access?.canEditPrices ?? true;
   return (
@@ -137,33 +98,15 @@ export function ServicesSection({ checkout, appointment, ctx, adding = true, aut
           />
         ))}
       </ListItemGroup>
-      {adding && (
-        <SearchableSelect
-          value=""
-          onValueChange={checkout.addService}
-          defaultOpen={autoOpen}
-          placeholder={t("calendar.checkout.addService")}
-          searchPlaceholder={t("calendar.create.searchServices")}
-          options={ctx.catalog.services.map((item) => ({
-            value: item.id,
-            label: item.name,
-            description: t("calendar.create.durationPrice", {
-              minutes: item.durationMin,
-              price: ctx.formatMoney(priceFor(ctx.catalog, appointment.barberId, item)),
-            }),
-            leading: <ServiceThumb service={item} />,
-          }))}
-        />
-      )}
     </PanelQuestion>
   );
 }
 
-/** Los productos con su cantidad y su precio. Sin ninguno y sin `adding`, no se pinta. */
-export function ProductsSection({ checkout, ctx, adding = true, autoOpen = false }: { checkout: CheckoutController; ctx: ModelContext; adding?: boolean; autoOpen?: boolean }) {
+/** Los productos con su cantidad y su precio. Sin ninguno, no se pinta. */
+export function ProductsSection({ checkout, ctx }: { checkout: CheckoutController; ctx: ModelContext }) {
   const { t } = checkout;
   const canEditPrices = ctx.access?.canEditPrices ?? true;
-  if (checkout.products.length === 0 && !adding) return null;
+  if (checkout.products.length === 0) return null;
   return (
     <PanelQuestion title={t("calendar.checkout.products")}>
       {checkout.products.length > 0 && (
@@ -197,20 +140,6 @@ export function ProductsSection({ checkout, ctx, adding = true, autoOpen = false
             );
           })}
         </ListItemGroup>
-      )}
-      {adding && (
-        <SearchableSelect
-          value=""
-          onValueChange={checkout.addProduct}
-          defaultOpen={autoOpen}
-          placeholder={t("calendar.checkout.addProduct")}
-          options={ctx.catalog.products.map((item) => ({
-            value: item.id,
-            label: item.name,
-            description: `${item.category} · ${ctx.formatMoney(item.price)}`,
-            leading: <ProductThumb product={item} />,
-          }))}
-        />
       )}
     </PanelQuestion>
   );

@@ -2,8 +2,10 @@ import * as React from "react";
 import { CalendarPlus, Gift, Package, Percent, Plus, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { AddKind } from "./checkoutVersion";
 import type { CheckoutController } from "./useCheckout";
+
+/** Lo que el botón «Agregar» suma a la cuenta. */
+export type AddKind = "service" | "product" | "visit" | "discount" | "giftSale";
 
 /**
  * «Agregar»: lo que no hace falta casi nunca, a un toque y fuera de la vista

@@ -115,6 +115,12 @@ export interface ScheduleEvent {
    * se arrastra y tocarla es aceptar la propuesta.
    */
   ghost?: boolean;
+  /**
+   * Con `ghost`: es la que se está armando ahora mismo (el hueco elegido en
+   * «Crear cita»). Se dibuja llena, con el borde discontinuo más grueso y un
+   * halo, para que se vea dónde va a quedar la cita.
+   */
+  active?: boolean;
   /** Por qué se propone («Sin dejar hueco entre citas»): una línea bajo el título. */
   note?: string;
   /**

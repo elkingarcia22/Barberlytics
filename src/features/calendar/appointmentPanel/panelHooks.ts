@@ -19,8 +19,8 @@ export interface PanelPages<T extends string> {
   back: () => void;
 }
 
-/** Ir y volver entre las páginas del panel; volver siempre lleva al inicio de la cita. */
-export function usePanelPages<T extends string>(): PanelPages<T> {
-  const [page, setPage] = React.useState<T | null>(null);
+/** Ir y volver entre las páginas del panel; volver siempre lleva al inicio de la cita. Puede abrir ya en una (el recibo, recién cobrada). */
+export function usePanelPages<T extends string>(initial: T | null = null): PanelPages<T> {
+  const [page, setPage] = React.useState<T | null>(initial);
   return { page, open: setPage, back: () => setPage(null) };
 }

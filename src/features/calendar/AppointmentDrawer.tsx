@@ -38,6 +38,8 @@ export interface AppointmentDrawerProps extends AppointmentLinkProps {
   onCancel: (appointment: Appointment) => void;
   onNoShow: (appointment: Appointment) => void;
   onOpenClient: (clientId: string) => void;
+  /** Abrir ya en una página del panel (el recibo, justo después de cobrar). */
+  initialPage?: PanelPage;
 }
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -55,7 +57,7 @@ function AppointmentPanel(props: AppointmentDrawerProps & { appointment: Appoint
   const t = useAppT();
   const { locale } = useLocale();
   const model = useAppointmentModel(appointment, ctx, props);
-  const pages = usePanelPages<PanelPage>();
+  const pages = usePanelPages<PanelPage>(props.initialPage ?? null);
   const start = appointmentStart(appointment);
   const day = capitalize(format(start, "EEEE d 'de' MMMM", { locale: calendarLocale(locale) }));
   const time = t("calendar.panel.header.time", { from: formatClock(start, ctx.intl), to: formatClock(appointmentEnd(appointment), ctx.intl), duration: durationLabel(appointment.durationMin) });

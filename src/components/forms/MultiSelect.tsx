@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { matchesSearchText } from "@/lib/search/personSearch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -58,6 +59,7 @@ export function MultiSelect({
   "data-testid": testId,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState("")
 
   const handleUnselect = (optionValue: string) => {
     onValueChange?.(value.filter((val) => val !== optionValue))
@@ -130,9 +132,13 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-2xl border border-border/60 shadow-drawer bg-surface mt-1 overflow-hidden">
-        <Command className="bg-transparent">
+        {/* El buscador filtra con la regla de todos (antes la caja no estaba conectada y no filtraba). */}
+        <Command className="bg-transparent" shouldFilter={false}>
           <div className="px-2 py-2 border-b border-border/60">
             <Input 
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label={searchPlaceholder}
               placeholder={searchPlaceholder} 
               className="h-9 rounded-lg bg-surface-muted px-3 text-sm border-0 focus:ring-2 focus:ring-primary/20"
             />
@@ -140,11 +146,10 @@ export function MultiSelect({
           <CommandList className="max-h-[280px] overflow-y-auto px-2 py-2 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent">
             <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {options.filter((option) => matchesSearchText(`${option.label} ${option.description ?? ""}`, search)).map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  keywords={[option.label, option.description ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => handleSelect(option.value)}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer [&>svg:last-child]:hidden data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary transition-all mb-0.5 hover:bg-surface-subtle"

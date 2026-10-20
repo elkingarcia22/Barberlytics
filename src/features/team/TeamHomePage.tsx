@@ -237,6 +237,11 @@ export function TeamHomePage() {
     const byId = new Map((membersQuery.data?.items ?? []).map((item) => [item.id, item.avatarUrl] as const));
     return (id: string) => byId.get(id) ?? null;
   }, [membersQuery.data]);
+  // El celular de cada uno, para encontrarlo también por él (como a los clientes).
+  const phoneOf = React.useMemo(() => {
+    const byId = new Map((membersQuery.data?.items ?? []).map((item) => [item.id, item.phone] as const));
+    return (id: string) => byId.get(id) ?? "";
+  }, [membersQuery.data]);
   const cells = React.useMemo(
     () => teamCells(t, { intlLocale: current.intl, formatCount, formatMoney, avatarOf, showContact }),
     [t, current.intl, formatCount, formatMoney, avatarOf, showContact]
@@ -479,13 +484,14 @@ export function TeamHomePage() {
           tableId="equipo-personas"
           title={t("team.listTitle")}
           noun={t("team.noun")}
+          searchPlaceholder={t("team.searchPlaceholder")}
           gender="f"
           rows={filtered}
           columns={columns}
           cells={cells}
           getRowId={(row) => row.id}
           getRowLabel={(row) => row.name}
-          searchBy={(row) => `${row.name} ${showContact(row) ? row.email : ""} ${t(ROLE_BY_ID[row.role].labelKey)} ${branchName(row.branchId)}`}
+          searchBy={(row) => `${row.name} ${showContact(row) ? `${row.email} · ${phoneOf(row.id)}` : ""} · ${t(ROLE_BY_ID[row.role].labelKey)} · ${branchName(row.branchId)}`}
           pageSize={PAGE_SIZE}
           selectable={selectable}
           selected={selected}

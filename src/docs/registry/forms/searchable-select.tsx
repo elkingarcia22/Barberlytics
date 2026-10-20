@@ -193,7 +193,7 @@ export const searchableSelectEntry = defineEntry({
     },
   ],
   props: [
-    { name: "options", type: "SearchableSelectOption[]", description: "Opciones con value, label, description, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label y description." },
+    { name: "options", type: "SearchableSelectOption[]", description: "Opciones con value, label, description, keywords, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label, description y keywords con la regla de todos los buscadores (`matchesSearchText`): todas las palabras, sin tildes, y un celular escrito como sea." },
     { name: "value", type: "string", description: "Valor seleccionado (controlado)." },
     { name: "onValueChange", type: "(value: string) => void", description: "Se llama al elegir; el popover se cierra solo." },
     { name: "placeholder", type: "string", default: '"Selecciona una opción"', description: "Texto del trigger sin selección." },
@@ -203,7 +203,7 @@ export const searchableSelectEntry = defineEntry({
     { name: "className", type: "string", description: "Clases extra para el trigger." },
   ],
   guidelines: {
-    do: ["Úsalo a partir de ~10 opciones o con nombres propios (personas, ciudades).", "Aprovecha `description` para desambiguar homónimos.", "Personaliza `emptyMessage` con una acción posible cuando exista."],
+    do: ["Úsalo a partir de ~10 opciones o con nombres propios (personas, ciudades).", "Aprovecha `description` para desambiguar homónimos.", "Si las opciones son personas, pon `keywords: personSearchText(persona)` para que se encuentren por celular y correo aunque no se muestren.", "Personaliza `emptyMessage` con una acción posible cuando exista."],
     dont: ["No lo uses para 3 o 4 opciones: el buscador estorba; usa Select o SegmentedControl.", "No dependas del filtro para listas de miles: pagina o busca en servidor."],
   },
   related: ["single-select", "multi-select", "select", "field", "popover"],

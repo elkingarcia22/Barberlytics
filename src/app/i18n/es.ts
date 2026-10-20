@@ -4,6 +4,7 @@ import { calendarTimeOffEs } from "./calendar/timeOff.es";
 import { frontDeskEs } from "./frontDesk/frontDesk.es";
 import { legalEs } from "./legal/legal.es";
 import { calendarDayPanelEs } from "./calendar/dayPanel.es";
+import { calendarCreateEs } from "./calendar/create.es";
 import { bookingEs } from "./booking/es";
 import { bookingVariantsEs } from "./booking/variants.es";
 /**
@@ -789,6 +790,7 @@ export const appEs = {
   "team.title": "Equipo",
   "team.description": "Quién atiende, cómo va su agenda y qué necesita una mano, en todas las sucursales.",
   "team.noun": "personas",
+  "team.searchPlaceholder": "Buscar por nombre, celular o correo",
   "team.roles": "El equipo por rol",
   "team.rolesAria": "Filtrar el equipo por rol",
   "team.allRoles": "Todos",
@@ -4180,4 +4182,5 @@ export const appEs = {
   ...frontDeskEs,
   ...legalEs,
   ...calendarDayPanelEs,
+  ...calendarCreateEs,
 } as const;

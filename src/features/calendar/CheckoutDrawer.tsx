@@ -5,12 +5,14 @@ import { ModalShell, SidePanelShell } from "@/components/overlays";
 import { Field, NumberField } from "@/components/forms";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { SegmentedControl } from "@/components/selection";
 import { ThemaIcon } from "@/icons";
-import { appointmentStart, servicesOf, type ModelContext } from "./calendarModel";
+import { appointmentStart, type ModelContext } from "./calendarModel";
 import { useOpenKey } from "./calendarFormat";
 import { STATUS_KEYS, type Appointment } from "./types";
-import { BillSection, DiscountField, GiftSaleField } from "./checkout/BillSection";
+import { CheckoutBill } from "./checkout/CheckoutBills";
+import { CHECKOUT_VERSIONS, useCheckoutVersion, type CheckoutVersion } from "./checkout/checkoutVersion";
+import { OrderCard } from "./checkout/OrderCard";
 import { PayMethods } from "./checkout/PaySection";
 import { PanelQuestion } from "./appointmentPanel/bookingStyle";
 import type { SendTarget } from "./appointmentPanel/sendTarget";
@@ -25,7 +27,9 @@ import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
  * servicios con su precio, productos), el descuento y la tarjeta de regalo
  * que se vende, «¿Cómo paga?» (un selector y, debajo, lo de la forma
  * elegida), «Tu orden» y un solo botón principal. La propina se pregunta al
- * pulsar «Cobrar», en su ventana, como en la reserva.
+ * pulsar «Cobrar», en su ventana, como en la reserva. Arriba se elige la
+ * versión del cobro (`checkout/checkoutVersion.ts`) para compararlas: cuánto
+ * se ve de entrada y cuánto queda detrás de «Agregar».
  */
 
 export interface CheckoutDrawerProps {
@@ -50,12 +54,26 @@ export function CheckoutDrawer(props: CheckoutDrawerProps) {
 
 function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companions, candidates }: CheckoutDrawerProps & { appointment: Appointment }) {
   const t = useAppT();
-  const checkout = useCheckout({ appointment, companions, candidates, ctx, onPaid, onClose: () => onOpenChange(false) });
+  const checkout = useCheckout({
+    appointment,
+    companions,
+    candidates,
+    ctx,
+    onPaid,
+    onClose: () => onOpenChange(false),
+  });
   const [tipOpen, setTipOpen] = React.useState(false);
+  const [version, setVersion] = useCheckoutVersion();
   // Con propinas en Configuración se preguntan al cobrar; si no, se cobra directo.
   const charge = () => (checkout.tipOptions.length > 0 ? setTipOpen(true) : void checkout.pay(NO_TIP));
   const canContact = ctx.access?.canContact ?? true;
-  const target: SendTarget | null = checkout.client ? { appointmentId: appointment.id, email: canContact ? (checkout.client.email ?? "") : "", phone: canContact ? checkout.client.phone.replace(/[^\d+]/g, "") : "" } : null;
+  const target: SendTarget | null = checkout.client
+    ? {
+        appointmentId: appointment.id,
+        email: canContact ? (checkout.client.email ?? "") : "",
+        phone: canContact ? checkout.client.phone.replace(/[^\d+]/g, "") : "",
+      }
+    : null;
 
   return (
     <SidePanelShell
@@ -66,41 +84,46 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
       description={checkout.client ? `${checkout.client.name} · ${checkout.barber?.name ?? ""}` : undefined}
     >
       <div className="flex flex-col gap-5" data-testid="checkout-drawer">
-          <CheckoutStepper appointment={appointment} ctx={ctx} />
-          <section className="flex flex-col gap-5 rounded-2xl bg-gradient-to-b from-warning/15 via-warning/5 to-transparent p-4" data-testid="checkout-card">
-            <div className="flex flex-col gap-1">
-              <Heading level={2}>{t("calendar.checkout.heading", { total: ctx.formatMoney(checkout.total) })}</Heading>
-              <Text tone="secondary">{t("calendar.checkout.lead")}</Text>
-            </div>
-            <BillSection checkout={checkout} appointment={appointment} ctx={ctx} />
+        <div data-testid="checkout-version">
+          <SegmentedControl
+            size="sm"
+            fullWidth
+            ariaLabel={t("calendar.checkout.version.label")}
+            value={version}
+            onChange={(value) => setVersion(value as CheckoutVersion)}
+            options={CHECKOUT_VERSIONS.map((id) => ({
+              value: id,
+              label: t(`calendar.checkout.version.${id}`),
+            }))}
+          />
+        </div>
+        <CheckoutStepper appointment={appointment} ctx={ctx} />
+        <section className="flex flex-col gap-5 rounded-2xl bg-gradient-to-b from-warning/15 via-warning/5 to-transparent p-4" data-testid="checkout-card">
+          <div className="flex flex-col gap-1">
+            <Heading level={2}>
+              {t("calendar.checkout.heading", {
+                total: ctx.formatMoney(checkout.total),
+              })}
+            </Heading>
+            <Text tone="secondary">{t("calendar.checkout.lead")}</Text>
+          </div>
+          <CheckoutBill key={version} version={version} checkout={checkout} appointment={appointment} ctx={ctx} />
 
-            {/* El descuento y vender una tarjeta de regalo: enlaces que se abren en su sitio. */}
-            {(checkout.discountValue === null || !checkout.giftSale) && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {checkout.discountValue === null && (
-                  <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setDiscountValue(0)} data-testid="checkout-discount-add">
-                    {t("calendar.checkout.discount.ask")}
-                  </Button>
-                )}
-                {!checkout.giftSale && (
-                  <Button type="button" variant="link" size="sm" className="px-0" onClick={() => checkout.setGiftSale({ amount: 50, recipientName: "", recipientContact: "" })} data-testid="checkout-gift-sale-add">
-                    {t("calendar.checkout.giftSale.ask")}
-                  </Button>
-                )}
-              </div>
-            )}
-            {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
-            {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
-
-            <PanelQuestion title={t("calendar.checkout.howPays")}>
-              <PayMethods checkout={checkout} ctx={ctx} target={target} />
-            </PanelQuestion>
-            <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
-            <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
-              {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
-              {checkout.payChoice === "link" ? t("calendar.checkout.link.paid", { total: ctx.formatMoney(checkout.total) }) : t("calendar.checkout.payAmount", { total: ctx.formatMoney(checkout.total) })}
-            </Button>
-          </section>
+          <PanelQuestion title={t("calendar.checkout.howPays")}>
+            <PayMethods checkout={checkout} ctx={ctx} target={target} layout={version === "quick" ? "tiles" : "select"} />
+          </PanelQuestion>
+          {version !== "quick" && <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />}
+          <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
+            {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+            {checkout.payChoice === "link"
+              ? t("calendar.checkout.link.paid", {
+                  total: ctx.formatMoney(checkout.total),
+                })
+              : t("calendar.checkout.payAmount", {
+                  total: ctx.formatMoney(checkout.total),
+                })}
+          </Button>
+        </section>
       </div>
       <TipModal open={tipOpen} onOpenChange={setTipOpen} checkout={checkout} ctx={ctx} />
     </SidePanelShell>
@@ -115,73 +138,12 @@ function CheckoutStepper({ appointment, ctx }: { appointment: Appointment; ctx: 
       size="sm"
       aria-label={t("calendar.detail.track")}
       current={TRACK.length - 1}
-      steps={TRACK.map((status) => ({ id: status, label: t(status === "scheduled" ? "calendar.detail.trackScheduled" : STATUS_KEYS[status]), description: status === "scheduled" ? formatClock(appointmentStart(appointment), ctx.intl) : undefined }))}
+      steps={TRACK.map((status) => ({
+        id: status,
+        label: t(status === "scheduled" ? "calendar.detail.trackScheduled" : STATUS_KEYS[status]),
+        description: status === "scheduled" ? formatClock(appointmentStart(appointment), ctx.intl) : undefined,
+      }))}
     />
-  );
-}
-
-/** «Tu orden», como en la reserva: una línea por cita y por producto, y las cuentas. */
-function OrderCard({ checkout, ctx, appointment }: { checkout: CheckoutController; ctx: ModelContext; appointment: Appointment }) {
-  const { t, bill } = checkout;
-  const lines = [
-    ...checkout.services.map((service, index) => ({ id: `s-${index}`, label: service.name, detail: checkout.barber?.name, amount: checkout.servicePrices[index] ?? service.price })),
-    ...checkout.together.map((item) => ({ id: `a-${item.id}`, label: servicesOf(ctx.catalog, item).map((service) => service.name).join(" + "), detail: t("calendar.checkout.togetherLine"), amount: servicesOf(ctx.catalog, item).reduce((sum, service) => sum + service.price, 0) })),
-    ...checkout.products.flatMap((line) => {
-      const product = ctx.catalog.products.find((item) => item.id === line.productId);
-      return product ? [{ id: `p-${product.id}`, label: product.name, detail: `× ${line.qty}`, amount: (checkout.productPrices[product.id] ?? product.price) * line.qty }] : [];
-    }),
-  ];
-  return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-subtle p-4" data-testid="checkout-ticket">
-      <Heading level={6}>{t("calendar.checkout.order")}</Heading>
-      <div className="flex flex-col gap-2">
-        {lines.map((line) => (
-          <div key={line.id} className="flex items-start justify-between gap-3">
-            <span className="flex min-w-0 flex-col">
-              <Text size="sm" weight="medium" truncate>
-                {line.label}
-              </Text>
-              {line.detail && (
-                <Text size="xs" tone="muted" truncate>
-                  {line.detail}
-                </Text>
-              )}
-            </span>
-            <Text size="sm" tabular>
-              {ctx.formatMoney(line.amount)}
-            </Text>
-          </div>
-        ))}
-        <Separator className="my-1" />
-        {bill.discount > 0 && <Row label={t("calendar.checkout.discountLine")} value={`−${ctx.formatMoney(bill.discount)}`} positive testId="checkout-discount-line" />}
-        <Row label={t("calendar.checkout.subtotal")} value={ctx.formatMoney(bill.subtotal - bill.discount)} />
-        <Row label={t(ctx.catalog.taxInclusive ? "calendar.checkout.taxIncluded" : "calendar.checkout.tax")} value={ctx.formatMoney(bill.tax)} />
-        {checkout.giftSaleAmount > 0 && <Row label={t("calendar.checkout.giftSale.line")} value={ctx.formatMoney(checkout.giftSaleAmount)} />}
-        {bill.prepaid > 0 && <Row label={appointment.online?.reservation ? t("calendar.checkout.prepaid", { reservation: appointment.online.reservation }) : t("calendar.checkout.prepaidShort")} value={`−${ctx.formatMoney(bill.prepaid)}`} positive testId="checkout-prepaid" />}
-        {checkout.surcharge > 0 && <Row label={checkout.cardFeeName || t("calendar.checkout.surcharge")} value={ctx.formatMoney(checkout.surcharge)} />}
-        {checkout.giftApplied > 0 && <Row label={t("calendar.checkout.giftCard.line")} value={`−${ctx.formatMoney(checkout.giftApplied)}`} positive />}
-        <Separator className="my-1" />
-        <div className="flex items-center justify-between gap-3" data-testid="checkout-total">
-          <Text weight="semibold">{t(bill.prepaid > 0 ? "calendar.checkout.due" : "calendar.checkout.total")}</Text>
-          <Text size="lg" weight="bold" tabular>
-            {ctx.formatMoney(checkout.total)}
-          </Text>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Row({ label, value, positive = false, testId }: { label: string; value: string; positive?: boolean; testId?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3" data-testid={testId}>
-      <Text size="sm" tone={positive ? "positive" : "secondary"}>
-        {label}
-      </Text>
-      <Text size="sm" tabular tone={positive ? "positive" : "default"}>
-        {value}
-      </Text>
-    </div>
   );
 }
 
@@ -193,7 +155,10 @@ function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpen
   const tip = checkout.tipOf(choice, custom);
   const options = [
     { value: NO_TIP, label: t("calendar.checkout.noTip") },
-    ...checkout.tipOptions.map((option) => ({ value: option.id, label: option.type === "percent" ? `${option.value}% · ${ctx.formatMoney(checkout.tipOf(option.id))}` : ctx.formatMoney(option.value) })),
+    ...checkout.tipOptions.map((option) => ({
+      value: option.id,
+      label: option.type === "percent" ? `${option.value}% · ${ctx.formatMoney(checkout.tipOf(option.id))}` : ctx.formatMoney(option.value),
+    })),
     { value: "custom", label: t("calendar.checkout.customTip") },
   ];
   return (
@@ -201,7 +166,9 @@ function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpen
       open={open}
       onOpenChange={onOpenChange}
       size="md"
-      title={t("calendar.checkout.tipFor", { name: checkout.barber?.name.split(" ")[0] ?? "" })}
+      title={t("calendar.checkout.tipFor", {
+        name: checkout.barber?.name.split(" ")[0] ?? "",
+      })}
       description={t("calendar.checkout.tipAsk")}
       actions={
         <Button
@@ -216,7 +183,13 @@ function TipModal({ open, onOpenChange, checkout, ctx }: { open: boolean; onOpen
           data-testid="checkout-tip-pay"
         >
           {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
-          {tip > 0 ? t("calendar.checkout.tipAndPay", { total: ctx.formatMoney(checkout.totalWithTip(tip)) }) : t("calendar.checkout.tipSkipPay", { total: ctx.formatMoney(checkout.total) })}
+          {tip > 0
+            ? t("calendar.checkout.tipAndPay", {
+                total: ctx.formatMoney(checkout.totalWithTip(tip)),
+              })
+            : t("calendar.checkout.tipSkipPay", {
+                total: ctx.formatMoney(checkout.total),
+              })}
         </Button>
       }
     >

@@ -44,6 +44,8 @@ interface CycleSettings {
   startDay: number;
   /** Las propinas en efectivo se le entregan al barbero en el momento: la nómina no se las vuelve a pagar. */
   cashTipsPaidOut?: boolean;
+  /** La bolsa de propinas (Configuración › Nómina). */
+  tipPool?: { enabled: boolean; percent: number; split: "hours" | "equal" };
 }
 
 const commissionSettings = (): CommissionSettings => db.settings.sections.commissions as unknown as CommissionSettings;
@@ -75,6 +77,37 @@ function rateOf(compensation: MockCompensation, rule: Rule, cycleSales: number):
 }
 
 const localDay = (iso: string): Date => new Date(`${iso.slice(0, 10)}T00:00:00`);
+
+/** La bolsa de propinas de la configuración, o `null` si está apagada. */
+export const tipPoolSettings = (): NonNullable<CycleSettings["tipPool"]> | null => {
+  const pool = cycleSettings()?.tipPool;
+  return pool?.enabled && pool.percent > 0 ? pool : null;
+};
+
+/**
+ * Reparte la bolsa de propinas de un periodo: cada empleado (comisión o salario; el de renta no, sus propinas son suyas)
+ * aporta `percent` de sus propinas y la bolsa se reparte por minutos de turno (`weights`) o en partes iguales. El neto
+ * de cada uno cambia en lo que recibe menos lo que aportó; lo que sobra de redondear va al último.
+ */
+export function applyTipPool<T extends { memberId: string; payout: string; tips: number; net: number }>(members: readonly T[], pool: NonNullable<CycleSettings["tipPool"]>, weights: Readonly<Record<string, number>>): (T & { tipPoolGiven: number; tipPoolReceived: number })[] {
+  const participants = members.filter((member) => member.payout !== "rent");
+  const given = Object.fromEntries(participants.map((member) => [member.memberId, round((member.tips * pool.percent) / 100)]));
+  const total = round(Object.values(given).reduce((sum, value) => sum + value, 0));
+  const weightOf = (member: T) => (pool.split === "equal" ? 1 : Math.max(0, weights[member.memberId] ?? 0));
+  const totalWeight = participants.reduce((sum, member) => sum + weightOf(member), 0);
+  let assigned = 0;
+  const received: Record<string, number> = {};
+  participants.forEach((member, index) => {
+    const share = totalWeight > 0 ? (index === participants.length - 1 ? round(total - assigned) : round((total * weightOf(member)) / totalWeight)) : 0;
+    received[member.memberId] = share;
+    assigned = round(assigned + share);
+  });
+  return members.map((member) => {
+    const out = given[member.memberId] ?? 0;
+    const into = received[member.memberId] ?? 0;
+    return { ...member, tipPoolGiven: out, tipPoolReceived: into, net: round(member.net - out + into) };
+  });
+}
 
 /** Los días del ciclo de pago que contiene esa fecha (semanal, quincenal del 1 al 15 y del 16 a fin de mes, o mensual). */
 export function cycleWindow(day: Date, settings: CycleSettings = cycleSettings()): { from: Date; to: Date } {

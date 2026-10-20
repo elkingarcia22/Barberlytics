@@ -42,6 +42,8 @@ export interface MockCashMovement {
   reason: string;
   at: string;
   by: string;
+  /** Una salida que es un gasto (caja menor): el gasto que se registró con ella. */
+  expenseId?: string | null;
 }
 
 export interface MockRegisterState {

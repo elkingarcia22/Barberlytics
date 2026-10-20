@@ -4,13 +4,13 @@ import type { PaymentMethod, PaymentPart } from "../types";
  * Cómo se reparte un cobro entre formas de pago, sin interfaz. «Mixto» son dos
  * líneas (la segunda se lleva lo que falta) y «en partes» son varias; cada
  * línea tiene su forma de pago: efectivo, tarjeta (con su datáfono), link de
- * pago o la tarjeta de regalo del cliente. Las líneas suman lo de la cuenta
+ * pago, transferencia o la tarjeta de regalo del cliente. Las líneas suman lo de la cuenta
  * entera; al cobrar, la tarjeta de regalo viaja aparte (`giftCode`) y el resto
  * como método, mixto o partes, que es lo que entiende el servidor.
  */
 
-export type PayMode = "cash" | "card" | "link" | "gift" | "mixed" | "parts";
-export type LineMethod = "cash" | "card" | "link" | "gift";
+export type PayMode = "cash" | "card" | "link" | "transfer" | "gift" | "mixed" | "parts";
+export type LineMethod = "cash" | "card" | "link" | "transfer" | "gift";
 
 export interface PayLine {
   method: LineMethod;
@@ -52,7 +52,7 @@ export interface LinesPayment {
 
 /** Las líneas sin la tarjeta de regalo, como las entiende el servidor: una sola, su método; efectivo y tarjeta, mixto; varias, partes. */
 export function paymentOfLines(lines: readonly PayLine[], surcharge = 0): LinesPayment {
-  const paid = lines.filter((line) => line.method !== "gift" && line.amount > 0.004) as (PayLine & { method: "cash" | "card" | "link" })[];
+  const paid = lines.filter((line) => line.method !== "gift" && line.amount > 0.004) as (PayLine & { method: "cash" | "card" | "link" | "transfer" })[];
   if (paid.length === 0) return { method: "cash" };
   if (paid.length === 1) return { method: paid[0].method, ...(paid[0].method === "card" && paid[0].deviceId ? { deviceId: paid[0].deviceId } : {}) };
   const methods = new Set(paid.map((line) => line.method));

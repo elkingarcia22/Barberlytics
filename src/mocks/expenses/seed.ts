@@ -53,8 +53,41 @@ export interface MockExpense {
   dueDay?: number | null;
   paymentMethod?: MockExpensePaymentMethod | null;
   supplier?: string;
+  /** El proveedor guardado (Gastos › Proveedores); `supplier` lleva su nombre. */
+  supplierId?: string | null;
   attachments?: MockExpenseAttachment[];
   createdBy?: string | null;
+  /** Salió del cajón (caja menor): el movimiento de caja que lo registró. */
+  movementId?: string | null;
+}
+
+/** Un proveedor: a quién se le paga, con su identificación fiscal y su contacto. Es de la barbería (todas las sedes). */
+export interface MockSupplier {
+  id: string;
+  name: string;
+  taxId: string;
+  phone: string;
+  email: string;
+  /** La categoría con que suelen ir sus gastos (se propone al registrar uno). */
+  categoryId: string | null;
+  notes: string;
+  createdAt: string;
+}
+
+/** Los proveedores de la demo: los de los gastos de la semilla, con su contacto. */
+export function seedSuppliers(expenses: readonly MockExpense[]): MockSupplier[] {
+  const byName = new Map<string, MockExpense>();
+  for (const expense of expenses) if (expense.supplier && !byName.has(expense.supplier.toLowerCase())) byName.set(expense.supplier.toLowerCase(), expense);
+  return [...byName.values()].map((expense, index) => ({
+    id: `sup_${index + 1}`,
+    name: expense.supplier!,
+    taxId: "",
+    phone: "",
+    email: "",
+    categoryId: expense.categoryId ?? null,
+    notes: "",
+    createdAt: "2026-01-06T12:00:00.000Z",
+  }));
 }
 
 const DAY_MS = 86_400_000;

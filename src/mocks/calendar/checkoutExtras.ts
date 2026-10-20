@@ -9,7 +9,7 @@ import type { MockPaymentMethod } from "./seed";
  * cobro lo aplica si todo cuadra.
  */
 
-export type CheckoutPartMethod = "cash" | "card" | "link";
+export type CheckoutPartMethod = "cash" | "card" | "link" | "transfer";
 
 export interface CheckoutPart {
   method: CheckoutPartMethod;
@@ -25,10 +25,14 @@ export interface CheckoutExtras {
   giftSale: { amount: number; recipientName: string; recipientContact: string } | null;
   parts: CheckoutPart[] | null;
   deviceId: string | null;
+  /** Por dónde llegó la transferencia y su referencia (con `transfer` o una parte por transferencia). */
+  transfer: { via: string; reference: string | null } | null;
 }
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
-const PART_METHODS: readonly CheckoutPartMethod[] = ["cash", "card", "link"];
+const PART_METHODS: readonly CheckoutPartMethod[] = ["cash", "card", "link", "transfer"];
+const MAX_VIA = 24;
+const MAX_REFERENCE = 40;
 const GIFT_SALE_MIN = 5;
 const GIFT_SALE_MAX = 500;
 
@@ -81,10 +85,16 @@ export function parseExtras(input: Record<string, unknown>, method: MockPaymentM
     if (parts.some((part) => part.deviceId && !deviceExists(part.deviceId))) return "Ese datáfono no está registrado.";
     if (method !== "mixed" && new Set(parts.map((part) => part.method)).size > 1) return "Con partes de varios métodos el pago es mixto.";
   }
-  return { gift, giftSale, parts, deviceId };
+  // La transferencia dice por dónde llegó (Nequi, Bre-B, banco…) y, si la hay, la referencia del comprobante.
+  const usesTransfer = method === "transfer" || (parts ?? []).some((part) => part.method === "transfer");
+  const transferInput = asRecord(input.transfer);
+  const via = text(transferInput.via).slice(0, MAX_VIA);
+  if (usesTransfer && !via) return "Di por dónde llegó la transferencia.";
+  const transfer = usesTransfer ? { via, reference: text(transferInput.reference).slice(0, MAX_REFERENCE) || null } : null;
+  return { gift, giftSale, parts, deviceId, transfer };
 }
 
-/** Con partes, cuánto fue en efectivo y cuánto con tarjeta (el link cuenta como tarjeta). */
+/** Con partes, cuánto fue en efectivo y cuánto por fuera del cajón (tarjeta, link o transferencia). */
 export const splitOfParts = (parts: readonly CheckoutPart[]): { cash: number; card: number } => ({
   cash: round2(parts.filter((part) => part.method === "cash").reduce((sum, part) => sum + part.amount, 0)),
   card: round2(parts.filter((part) => part.method !== "cash").reduce((sum, part) => sum + part.amount, 0)),

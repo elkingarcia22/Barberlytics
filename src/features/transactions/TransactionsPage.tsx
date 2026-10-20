@@ -14,6 +14,8 @@ import { Breadcrumbs } from "@/components/navigation";
 import { OptionTile } from "@/components/selection";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { paymentMethodSchema } from "@/features/calendar/types";
+import { UnpaidAccountsStrip } from "./UnpaidAccountsStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/utility";
 import { useMoney } from "@/features/calendar/calendarFormat";
@@ -80,6 +82,12 @@ export function TransactionsPage() {
   const branchId = useBranchId();
   const filters = useTransactionsFilters();
   const query = useTransactionsQuery({ branchId, from: filters.from, to: filters.to });
+  // Los barberos con cuentas en el periodo, para el filtro.
+  const barberOptions = React.useMemo(() => {
+    const names = new Map<string, string>();
+    for (const item of query.data?.items ?? []) if (item.barberId && item.barber) names.set(item.barberId, item.barber);
+    return [...names].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [query.data]);
   const access = useAccess();
   const [registerOpen, setRegisterOpen] = React.useState(false);
   const [ledgerOpen, setLedgerOpen] = React.useState(false);
@@ -118,6 +126,8 @@ export function TransactionsPage() {
         }
       />
 
+      <UnpaidAccountsStrip branchId={branchId} formatMoney={formatMoney} onOpen={filters.showUnpaid} />
+
       <div className="mb-section flex shrink-0 flex-wrap items-center justify-between gap-stack" role="group" aria-label={t("transactions.filtersAria")}>
         <PeriodNavigator
           granularity={filters.granularity}
@@ -135,6 +145,33 @@ export function TransactionsPage() {
             aria: t("metrics.period.aria"),
           }}
         />
+        <div className="flex flex-wrap items-center gap-2">
+        <Select value={filters.barber} onValueChange={filters.setBarber}>
+          <SelectTrigger className="w-[180px]" aria-label={t("transactions.barberFilter")} data-testid="transactions-barber">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t("transactions.barberAll")}</SelectItem>
+            {barberOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.method} onValueChange={filters.setMethod}>
+          <SelectTrigger className="w-[170px]" aria-label={t("transactions.methodFilter")} data-testid="transactions-method">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t("transactions.methodAll")}</SelectItem>
+            {paymentMethodSchema.options.map((method) => (
+              <SelectItem key={method} value={method}>
+                {t(METHOD_KEYS[method])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={filters.appointment} onValueChange={filters.setAppointment}>
           <SelectTrigger className="w-[220px]" aria-label={t("transactions.appointmentFilter")} data-testid="transactions-appointment">
             <SelectValue />
@@ -148,6 +185,7 @@ export function TransactionsPage() {
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       <QueryBoundary
@@ -186,12 +224,15 @@ function TransactionsHome({ accounts, showTotals, filters, fetching, canRefund }
   const t = useAppT();
   const { formatNumber, formatDate } = useLocale();
   const formatMoney = useMoney();
-  const { status, appointment, accountId, openAccount } = filters;
+  const { status, appointment, barber, method, accountId, openAccount } = filters;
 
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
   const summary = React.useMemo(() => summarize(accounts), [accounts]);
   const counts = React.useMemo(() => countByStatus(accounts), [accounts]);
-  const filtered = React.useMemo(() => accounts.filter((account) => (status === ALL || account.status === status) && (appointment === ALL || account.appointmentStatus === appointment)), [accounts, status, appointment]);
+  const filtered = React.useMemo(
+    () => accounts.filter((account) => (status === ALL || account.status === status) && (appointment === ALL || account.appointmentStatus === appointment) && (barber === ALL || account.barberId === barber) && (method === ALL || account.method === method)),
+    [accounts, status, appointment, barber, method]
+  );
   const opened = React.useMemo(() => accounts.find((account) => account.id === accountId) ?? null, [accounts, accountId]);
 
   const columns = React.useMemo(() => transactionColumns(t), [t]);

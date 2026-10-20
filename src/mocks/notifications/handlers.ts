@@ -1,3 +1,5 @@
+import { unpaidBefore } from "../transactions/handlers";
+import { payablesOf } from "../expenses/payables";
 import { delay, http, HttpResponse } from "msw";
 import { AUDIENCE_OF_ROLE, eventOfNotification } from "@/features/settings/sections/notificationCatalog";
 import { accountById, db } from "../db";
@@ -25,13 +27,16 @@ const MAX_ITEMS = 30;
 /** Diferencia de caja a partir de la cual se avisa. */
 const REGISTER_THRESHOLD = 1;
 const LOW_RATING = 3;
+/** Cuántos días atrás se avisan las cuentas sin cobrar y cuántos adelante los pagos por vencer. */
+const UNPAID_NOTICE_DAYS = 14;
+const PAYABLE_NOTICE_DAYS = 3;
 
 type Role = "owner" | "admin" | "recepcion" | "barbero-comision" | "barbero-renta";
 const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision", "barbero-renta"];
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered" | "shiftRequested" | "shiftSwapAsked" | "shiftDecided";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered" | "shiftRequested" | "shiftSwapAsked" | "shiftDecided" | "unpaidAccounts" | "payableDue";
 
 export interface MockNotification {
   id: string;
@@ -213,6 +218,32 @@ function shiftEvents(branchId: string, now: Date): MockNotification[] {
   return items;
 }
 
+/** Las cuentas de días anteriores sin cobrar: un aviso al día a quien cobra. */
+function unpaidEvents(branchId: string, now: Date): MockNotification[] {
+  const today = dateKey(now);
+  const unpaid = unpaidBefore(branchId, today, UNPAID_NOTICE_DAYS);
+  if (unpaid.items.length === 0) return [];
+  return [{ id: `unpaid:${branchId}:${today}`, kind: "unpaidAccounts", at: `${today}T08:00:00`, href: "/transacciones", tone: "warning", params: { count: unpaid.items.length, amount: unpaid.total }, roles: FRONT }];
+}
+
+/** Los gastos fijos vencidos o que vencen en los próximos días, sin pagar: a gerencia (y al de renta, los suyos). */
+function payableEvents(branchId: string, now: Date): MockNotification[] {
+  const today = dateKey(now);
+  const items: MockNotification[] = [];
+  const month = today.slice(0, 7);
+  const nextMonth = dateKey(new Date(now.getFullYear(), now.getMonth() + 1, 1)).slice(0, 7);
+  const soon = dateKey(new Date(now.getTime() + PAYABLE_NOTICE_DAYS * DAY_MS));
+  const owners: (string | null)[] = [null, ...db.team.members.filter((member) => member.role === "barbero-renta" && member.branchIds.includes(branchId)).map((member) => member.id)];
+  for (const owner of owners) {
+    const due = [month, nextMonth].flatMap((key) => payablesOf(branchId, owner, key, today).items).filter((item) => item.status !== "paid" && item.dueDate <= soon);
+    for (const item of due) {
+      const overdue = item.dueDate < today;
+      items.push({ id: `payable:${item.expenseId}:${item.dueDate}`, kind: "payableDue", at: `${today}T08:00:00`, href: "/gastos?vista=por-pagar", tone: overdue ? "negative" : "warning", params: { name: item.name, amount: item.amount, day: item.dueDate, overdue: overdue ? 1 : 0 }, roles: owner ? ["barbero-renta"] : MANAGERS, memberId: owner });
+    }
+  }
+  return items;
+}
+
 function reviewEvents(now: Date): MockNotification[] {
   return (db.booking.reviews ?? [])
     .filter((review) => review.rating <= LOW_RATING && recent(review.createdAt, now))
@@ -254,7 +285,7 @@ function securityEvents(accountId: string | null, now: Date): MockNotification[]
 
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. */
 export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date(), accountId: string | null = null): MockNotification[] {
-  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now), ...shiftEvents(branchId, now)];
+  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now), ...shiftEvents(branchId, now), ...unpaidEvents(branchId, now), ...payableEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
   return [...all, ...securityEvents(accountId, now)]
     .filter((item) => item.accountId !== undefined || (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))

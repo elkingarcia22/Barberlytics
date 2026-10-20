@@ -6,6 +6,7 @@ import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
 import { Field, NumberField } from "@/components/forms";
 import { DrawerShell } from "@/components/overlays";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,10 @@ import { CashCount } from "./CashCount";
 import { countTotal } from "./denominations";
 import { useAccess } from "@/features/access";
 import { useMembersQuery } from "@/features/team/queries";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useExpenseCategories } from "@/features/expenses/queries";
+import { useSuppliers } from "@/features/expenses/suppliers";
+import { CATEGORY_KEYS, expenseCategorySchema } from "@/features/expenses/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { expectedInDrawer, useAddCashMovement, useChargeShortage, useCloseRegister, useRegisterDay, type CashMovement, type RegisterClosure, type RegisterDay } from "./register";
 
@@ -103,6 +108,7 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
           )}
           <Line label={t("transactions.register.card")} value={formatMoney(expected.card)} />
           <Line label={t("transactions.register.link")} value={formatMoney(expected.link)} />
+          {expected.transfer > 0 && <Line label={t("transactions.register.transfer")} value={formatMoney(expected.transfer)} />}
           <Line label={t("transactions.register.online")} value={formatMoney(expected.online)} muted />
           {expected.refundsCash > 0 && <Line label={t("transactions.register.refundsCash")} value={`−${formatMoney(expected.refundsCash)}`} muted />}
           {!blind && (expected.movementsIn ?? 0) > 0 && <Line label={t("transactions.register.movementsIn")} value={`+${formatMoney(expected.movementsIn ?? 0)}`} muted />}
@@ -228,10 +234,16 @@ function CashMovements({ branchId, date, movements, formatMoney, formatTime }: {
   const [type, setType] = React.useState<"in" | "out">("out");
   const [amount, setAmount] = React.useState<number | null>(null);
   const [reason, setReason] = React.useState("");
+  // Caja menor: una salida que es un gasto de la barbería queda también en Gastos, con su categoría y su proveedor.
+  const [asExpense, setAsExpense] = React.useState(true);
+  const [categoryId, setCategoryId] = React.useState("supplies");
+  const [supplier, setSupplier] = React.useState("");
+  const categories = useExpenseCategories();
+  const suppliers = useSuppliers(branchId, null, adding && type === "out");
   const save = () =>
     amount !== null &&
     add.mutate(
-      { branchId, date, type, amount, reason: reason.trim() },
+      { branchId, date, type, amount, reason: reason.trim(), ...(type === "out" && asExpense ? { expense: { categoryId, ...(supplier.trim() ? { supplier: supplier.trim() } : {}) } } : {}) },
       {
         onSuccess: () => {
           setAdding(false);
@@ -259,6 +271,7 @@ function CashMovements({ branchId, date, movements, formatMoney, formatTime }: {
               <span className="flex min-w-0 items-center gap-2 text-text-secondary">
                 {item.type === "in" ? <ArrowDownToLine className="size-3.5 shrink-0 text-status-positive" aria-hidden /> : <ArrowUpFromLine className="size-3.5 shrink-0 text-status-warning" aria-hidden />}
                 <span className="truncate">{item.reason}</span>
+                {item.expenseId && <Badge variant="neutral" className="shrink-0">{t("transactions.register.pettyCashTag")}</Badge>}
               </span>
               <span className="shrink-0 text-xs tabular-nums text-text-muted">
                 {item.type === "in" ? "+" : "−"}
@@ -284,6 +297,44 @@ function CashMovements({ branchId, date, movements, formatMoney, formatTime }: {
             <NumberField value={amount} onValueChange={setAmount} min={0} precision={2} aria-label={t("transactions.register.movementAmount")} data-testid="register-movement-amount" />
             <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("transactions.register.movementReason")} maxLength={300} data-testid="register-movement-reason" />
           </div>
+          {type === "out" && (
+            <div className="space-y-3" data-testid="register-petty-cash">
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={asExpense} onCheckedChange={(checked) => setAsExpense(checked === true)} className="mt-0.5" />
+                <span>
+                  <span className="text-text-primary">{t("transactions.register.pettyCash")}</span>
+                  <span className="block text-xs text-text-muted">{t("transactions.register.pettyCashHint")}</span>
+                </span>
+              </label>
+              {asExpense && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger aria-label={t("transactions.register.pettyCashCategory")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {expenseCategorySchema.options.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {t(CATEGORY_KEYS[option])}
+                        </SelectItem>
+                      ))}
+                      {(categories.data?.custom ?? []).map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder={t("transactions.register.pettyCashSupplier")} list="register-suppliers" maxLength={80} />
+                  <datalist id="register-suppliers">
+                    {(suppliers.data?.items ?? []).map((item) => (
+                      <option key={item.id} value={item.name} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" size="sm" variant="outline" onClick={() => setAdding(false)}>
               {t("common.cancel")}

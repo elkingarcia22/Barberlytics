@@ -67,7 +67,7 @@ const STATUSES: readonly MockAppointmentStatus[] = ["scheduled", "arrived", "sea
 const REPEATS: readonly MockRepeatRule[] = ["none", "weekly", "biweekly", "triweekly", "monthly", "bimonthly", "quarterly"];
 const BLOCK_CATEGORIES: readonly MockBlockCategory[] = ["sick", "vacation", "holiday", "lunch", "meeting", "business", "personal"];
 const BLOCK_REPEATS: readonly MockBlockRepeat[] = ["none", "daily", "weekly", "monthly"];
-const METHODS: readonly MockPaymentMethod[] = ["cash", "card", "link", "mixed"];
+const METHODS: readonly MockPaymentMethod[] = ["cash", "card", "link", "mixed", "transfer"];
 /** Cuántas citas crea una serie repetida. */
 const SERIES_LENGTH = 12;
 const REPEAT_DAYS: Record<Exclude<MockRepeatRule, "none">, { days?: number; months?: number }> = {
@@ -343,6 +343,110 @@ function withRestrictions<T extends { id: string }>(client: T & Parameters<typeo
   return { ...client, blocked: profile.blocked, onlineOnly: profile.onlineOnly };
 }
 
+/** Un cobro listo para aplicarse: todo validado, nada tocado todavía. */
+interface CheckoutPlan {
+  commit: () => MockAppointment;
+}
+
+/**
+ * Valida el cobro de una cita sin tocar nada (`Response` con el error si algo no cuadra) y devuelve cómo aplicarlo. Así
+ * una visita de varias citas se cobra entera o no se cobra (`/visits/checkout`).
+ */
+function planCheckout(request: Request, account: NonNullable<ReturnType<typeof requireAuth>>, existing: MockAppointment, input: Record<string, unknown>): Response | CheckoutPlan {
+  const own = barberOf(request);
+  if (own && existing.barberId !== own) return forbidden("Solo cobras tus citas.");
+  if (existing.status === "paid") return error(409, "conflict", "Esta cita ya está cobrada.");
+  if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o a la que no asistió no se cobra.");
+  const method = text(input.method) as MockPaymentMethod;
+  if (!METHODS.includes(method)) return error(422, "validation", "Elige cómo paga el cliente.", { fields: { method: ["Elige un método de pago."] } });
+  const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string" && catalogServices().some((service) => service.id === id)) : existing.serviceIds;
+  if (serviceIds.length === 0) return error(422, "validation", "Una cuenta necesita al menos un servicio.", { fields: { serviceIds: ["Añade un servicio."] } });
+  const products = Array.isArray(input.products)
+    ? input.products
+        .map((item) => asRecord(item as DefaultBodyType))
+        .filter((item) => typeof item.productId === "string" && catalogProducts().some((product) => product.id === item.productId))
+        .map((item) => ({ productId: item.productId as string, qty: Math.max(1, Number(item.qty) || 1) }))
+    : existing.products;
+  const tip = Math.max(0, Number(input.tip) || 0);
+  const surcharge = method === "card" || method === "mixed" ? Math.max(0, Number(input.surcharge) || 0) : 0;
+  // Los precios cambiados en la caja: el barbero de comisión cobra a precio de lista.
+  const priceInput = { servicePrices: input.servicePrices, productPrices: input.productPrices };
+  const changesPrices = Array.isArray(priceInput.servicePrices) || (typeof priceInput.productPrices === "object" && priceInput.productPrices !== null);
+  if (changesPrices && sessionOf(request)?.teamRole === "barbero-comision") return forbidden("El precio lo cambia la barbería.");
+  const servicePrices = Array.isArray(priceInput.servicePrices) ? serviceIds.map((_, index) => { const value = (priceInput.servicePrices as unknown[])[index]; return typeof value === "number" && value >= 0 ? round2(value) : null; }) : undefined;
+  const productPrices = typeof priceInput.productPrices === "object" && priceInput.productPrices !== null ? Object.fromEntries(Object.entries(priceInput.productPrices as Record<string, unknown>).filter(([id, value]) => products.some((line) => line.productId === id) && typeof value === "number" && value >= 0).map(([id, value]) => [id, round2(value as number)])) : undefined;
+  // El descuento de la caja va sobre lo que vale la cuenta (después del descuento en línea, antes de impuestos).
+  const listBill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
+  // Un cupón de la barbería (Configuración › Cupones) reemplaza al descuento a mano: se valida con sus reglas y topes.
+  const couponCode = text(input.coupon);
+  const client = db.calendar.clients.find((item) => item.id === existing.clientId);
+  const coupon = couponCode ? checkCoupon(couponCode, { clientId: existing.clientId, isNewClient: (client?.visits ?? 0) === 0, appointments: 1, serviceIds, branchId: existing.branchId }) : null;
+  if (coupon && "problem" in coupon) return error(422, "promo_invalid", COUPON_PROBLEMS[coupon.problem], { fields: { coupon: [COUPON_PROBLEMS[coupon.problem]] }, details: { problem: coupon.problem } });
+  const discountBase = round2(listBill.subtotal - listBill.discount);
+  const discount = coupon && "promo" in coupon ? { amount: promoDiscount(coupon.promo, discountBase), reason: `Cupón ${coupon.promo.code}` } : discountOf(input.discount, discountBase);
+  if (typeof discount === "string") return error(422, "validation", discount, { fields: { discount: [discount] } });
+  const extras = parseExtras(input, method);
+  if (typeof extras === "string") return error(422, "validation", extras);
+  // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
+  const priced = { ...existing, ...(discount.amount > 0 ? { checkoutDiscount: discount.amount } : {}) };
+  const bill = appointmentAccount(priced, serviceIds, products, { servicePrices, productPrices });
+  const paidAt = new Date().toISOString();
+  // Lo que entra ahora: el saldo, la propina, el recargo y la tarjeta de regalo que se vende; menos lo que paga con la suya.
+  const giftUsed = extras.gift ? Math.min(extras.gift.amount, round2(bill.due + tip + (extras.giftSale?.amount ?? 0))) : 0;
+  const dueNow = round2(bill.due + tip + surcharge + (extras.giftSale?.amount ?? 0) - giftUsed);
+  // Mixto (efectivo + tarjeta) o dividido en partes: tiene que cuadrar con lo que se cobra.
+  const splitInput = asRecord(input.split as DefaultBodyType);
+  const split = extras.parts ? splitOfParts(extras.parts) : method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
+  if (extras.parts && Math.abs(extras.parts.reduce((sum, part) => sum + part.amount, 0) - dueNow) > 0.01) return error(422, "validation", "Las partes tienen que sumar lo que se cobra.", { fields: { parts: ["Las partes tienen que sumar lo que se cobra."] } });
+  if (!extras.parts && split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
+  return {
+    commit: () => {
+      // Ya cuadra: se descuenta la tarjeta de regalo del cliente y se crea la que se vende.
+      if (extras.gift && giftUsed > 0) spendGiftCard(extras.gift.code, giftUsed);
+      const sold = extras.giftSale ? createGiftCard({ initial: extras.giftSale.amount, buyerId: existing.clientId, recipientName: extras.giftSale.recipientName, recipientContact: extras.giftSale.recipientContact, message: "" }) : null;
+      const payment = {
+        method,
+        tip: round2(bill.prepaidTip + tip),
+        tax: bill.tax,
+        total: round2(bill.total + bill.prepaidTip + tip + surcharge),
+        prepaid: round2(bill.prepaid + bill.prepaidTip),
+        paidAt,
+        ...(split ? { split } : {}),
+        ...(discount.amount > 0 ? { discount: discount.amount, discountReason: discount.reason } : {}),
+        ...(extras.gift && giftUsed > 0 ? { gift: { code: extras.gift.code, amount: giftUsed } } : {}),
+        ...(sold ? { giftSale: { code: sold.code, amount: sold.initial } } : {}),
+        ...(extras.parts ? { parts: extras.parts } : {}),
+        ...(extras.deviceId ? { deviceId: extras.deviceId } : {}),
+        ...(extras.transfer ? { transfer: extras.transfer } : {}),
+        // El recargo va como línea propia: el total cuadra con el datáfono y se ve qué fue recargo.
+        ...(surcharge > 0 ? { surcharge: round2(surcharge), surchargeName: (db.settings.sections.cardFee as { name?: string } | undefined)?.name || "Recargo por tarjeta" } : {}),
+        ...(coupon && "promo" in coupon ? { coupon: coupon.promo.code } : {}),
+      };
+      if (coupon && "promo" in coupon) redeemCoupon(coupon.promo.code, existing.clientId, "checkout", existing.id);
+      // La primera visita cobrada de un cliente referido premia a los dos; y salen solos las gracias y la reseña
+      // si están encendidos (Configuración › Marketing).
+      rewardReferral(existing.clientId);
+      onVisitPaid(existing);
+      db.persist();
+      // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).
+      return syncAppointmentStock(
+        {
+          ...priced,
+          serviceIds,
+          products,
+          ...(servicePrices ? { servicePrices } : {}),
+          ...(productPrices ? { productPrices } : {}),
+          status: "paid",
+          payment,
+          history: [...existing.history, entry(account.user.name, `paid:${method}`)],
+        },
+        "sale",
+        account.user.name
+      );
+    },
+  };
+}
+
 export const calendarHandlers = [
   http.get(`${BASE}/calendar/catalog`, async ({ request }) => {
     await delay(LATENCY_MS);
@@ -604,96 +708,34 @@ export const calendarHandlers = [
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
     const existing = findAppointment(params.id);
     if (!existing) return error(404, "not_found", "Esa cita no existe.");
-    const own = barberOf(request);
-    if (own && existing.barberId !== own) return forbidden("Solo cobras tus citas.");
-    if (existing.status === "paid") return error(409, "conflict", "Esta cita ya está cobrada.");
-    if (existing.status === "cancelled" || existing.status === "no_show") return error(409, "conflict", "Una cita cancelada o a la que no asistió no se cobra.");
-    const input = asRecord(await request.json().catch(() => ({})));
-    const method = text(input.method) as MockPaymentMethod;
-    if (!METHODS.includes(method)) return error(422, "validation", "Elige cómo paga el cliente.", { fields: { method: ["Elige un método de pago."] } });
-    const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string" && catalogServices().some((service) => service.id === id)) : existing.serviceIds;
-    if (serviceIds.length === 0) return error(422, "validation", "Una cuenta necesita al menos un servicio.", { fields: { serviceIds: ["Añade un servicio."] } });
-    const products = Array.isArray(input.products)
-      ? input.products
-          .map((item) => asRecord(item as DefaultBodyType))
-          .filter((item) => typeof item.productId === "string" && catalogProducts().some((product) => product.id === item.productId))
-          .map((item) => ({ productId: item.productId as string, qty: Math.max(1, Number(item.qty) || 1) }))
-      : existing.products;
-    const tip = Math.max(0, Number(input.tip) || 0);
-    const surcharge = method === "card" || method === "mixed" ? Math.max(0, Number(input.surcharge) || 0) : 0;
-    // Los precios cambiados en la caja: el barbero de comisión cobra a precio de lista.
-    const priceInput = { servicePrices: input.servicePrices, productPrices: input.productPrices };
-    const changesPrices = Array.isArray(priceInput.servicePrices) || (typeof priceInput.productPrices === "object" && priceInput.productPrices !== null);
-    if (changesPrices && sessionOf(request)?.teamRole === "barbero-comision") return forbidden("El precio lo cambia la barbería.");
-    const servicePrices = Array.isArray(priceInput.servicePrices) ? serviceIds.map((_, index) => { const value = (priceInput.servicePrices as unknown[])[index]; return typeof value === "number" && value >= 0 ? round2(value) : null; }) : undefined;
-    const productPrices = typeof priceInput.productPrices === "object" && priceInput.productPrices !== null ? Object.fromEntries(Object.entries(priceInput.productPrices as Record<string, unknown>).filter(([id, value]) => products.some((line) => line.productId === id) && typeof value === "number" && value >= 0).map(([id, value]) => [id, round2(value as number)])) : undefined;
-    // El descuento de la caja va sobre lo que vale la cuenta (después del descuento en línea, antes de impuestos).
-    const listBill = appointmentAccount(existing, serviceIds, products, { servicePrices, productPrices });
-    // Un cupón de la barbería (Configuración › Cupones) reemplaza al descuento a mano: se valida con sus reglas y topes.
-    const couponCode = text(input.coupon);
-    const client = db.calendar.clients.find((item) => item.id === existing.clientId);
-    const coupon = couponCode ? checkCoupon(couponCode, { clientId: existing.clientId, isNewClient: (client?.visits ?? 0) === 0, appointments: 1, serviceIds, branchId: existing.branchId }) : null;
-    if (coupon && "problem" in coupon) return error(422, "promo_invalid", COUPON_PROBLEMS[coupon.problem], { fields: { coupon: [COUPON_PROBLEMS[coupon.problem]] }, details: { problem: coupon.problem } });
-    const discountBase = round2(listBill.subtotal - listBill.discount);
-    const discount = coupon && "promo" in coupon ? { amount: promoDiscount(coupon.promo, discountBase), reason: `Cupón ${coupon.promo.code}` } : discountOf(input.discount, discountBase);
-    if (typeof discount === "string") return error(422, "validation", discount, { fields: { discount: [discount] } });
-    const extras = parseExtras(input, method);
-    if (typeof extras === "string") return error(422, "validation", extras);
-    // Lo pagado en la reserva en línea ya está cobrado: aquí entra solo lo que falta, con el impuesto de la sucursal.
-    const priced = { ...existing, ...(discount.amount > 0 ? { checkoutDiscount: discount.amount } : {}) };
-    const bill = appointmentAccount(priced, serviceIds, products, { servicePrices, productPrices });
-    const paidAt = new Date().toISOString();
-    // Lo que entra ahora: el saldo, la propina, el recargo y la tarjeta de regalo que se vende; menos lo que paga con la suya.
-    const giftUsed = extras.gift ? Math.min(extras.gift.amount, round2(bill.due + tip + (extras.giftSale?.amount ?? 0))) : 0;
-    const dueNow = round2(bill.due + tip + surcharge + (extras.giftSale?.amount ?? 0) - giftUsed);
-    // Mixto (efectivo + tarjeta) o dividido en partes: tiene que cuadrar con lo que se cobra.
-    const splitInput = asRecord(input.split as DefaultBodyType);
-    const split = extras.parts ? splitOfParts(extras.parts) : method === "mixed" ? { cash: round2(Math.max(0, Number(splitInput.cash) || 0)), card: round2(Math.max(0, Number(splitInput.card) || 0)) } : undefined;
-    if (extras.parts && Math.abs(extras.parts.reduce((sum, part) => sum + part.amount, 0) - dueNow) > 0.01) return error(422, "validation", "Las partes tienen que sumar lo que se cobra.", { fields: { parts: ["Las partes tienen que sumar lo que se cobra."] } });
-    if (!extras.parts && split && Math.abs(split.cash + split.card - dueNow) > 0.01) return error(422, "validation", "El efectivo y la tarjeta tienen que sumar lo que se cobra.", { fields: { split: ["El efectivo y la tarjeta tienen que sumar lo que se cobra."] } });
-    // Ya cuadra: se descuenta la tarjeta de regalo del cliente y se crea la que se vende.
-    if (extras.gift && giftUsed > 0) spendGiftCard(extras.gift.code, giftUsed);
-    const sold = extras.giftSale ? createGiftCard({ initial: extras.giftSale.amount, buyerId: existing.clientId, recipientName: extras.giftSale.recipientName, recipientContact: extras.giftSale.recipientContact, message: "" }) : null;
-    const payment = {
-      method,
-      tip: round2(bill.prepaidTip + tip),
-      tax: bill.tax,
-      total: round2(bill.total + bill.prepaidTip + tip + surcharge),
-      prepaid: round2(bill.prepaid + bill.prepaidTip),
-      paidAt,
-      ...(split ? { split } : {}),
-      ...(discount.amount > 0 ? { discount: discount.amount, discountReason: discount.reason } : {}),
-      ...(extras.gift && giftUsed > 0 ? { gift: { code: extras.gift.code, amount: giftUsed } } : {}),
-      ...(sold ? { giftSale: { code: sold.code, amount: sold.initial } } : {}),
-      ...(extras.parts ? { parts: extras.parts } : {}),
-      ...(extras.deviceId ? { deviceId: extras.deviceId } : {}),
-      // El recargo va como línea propia: el total cuadra con el datáfono y se ve qué fue recargo.
-      ...(surcharge > 0 ? { surcharge: round2(surcharge), surchargeName: (db.settings.sections.cardFee as { name?: string } | undefined)?.name || "Recargo por tarjeta" } : {}),
-      ...(coupon && "promo" in coupon ? { coupon: coupon.promo.code } : {}),
-    };
-    if (coupon && "promo" in coupon) redeemCoupon(coupon.promo.code, existing.clientId, "checkout", existing.id);
-    // La primera visita cobrada de un cliente referido premia a los dos; y salen solos las gracias y la reseña
-    // si están encendidos (Configuración › Marketing).
-    rewardReferral(existing.clientId);
-    onVisitPaid(existing);
+    const plan = planCheckout(request, account, existing, asRecord(await request.json().catch(() => ({}))));
+    if (plan instanceof Response) return plan;
+    return replaceAppointment(plan.commit());
+  }),
+
+  // Cobrar una visita de varias citas de una vez: se valida todo antes de tocar nada; si una falla, ninguna se cobra.
+  http.post(`${BASE}/visits/checkout`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const items = asRecord(await request.json().catch(() => ({}))).items;
+    if (!Array.isArray(items) || items.length === 0 || items.length > 10) return error(422, "validation", "Di qué citas se cobran.");
+    const plans: CheckoutPlan[] = [];
+    for (const [index, raw] of items.entries()) {
+      const item = asRecord(raw as DefaultBodyType);
+      const existing = findAppointment(text(item.id));
+      if (!existing) return error(404, "not_found", "Una de las citas no existe.", { details: { index } });
+      const plan = planCheckout(request, account, existing, asRecord(item.input as DefaultBodyType));
+      if (plan instanceof Response) {
+        const body = (await plan.clone().json().catch(() => ({}))) as Record<string, unknown>;
+        return HttpResponse.json({ ...body, details: { ...asRecord(body.details as DefaultBodyType), index, appointmentId: existing.id } }, { status: plan.status });
+      }
+      plans.push(plan);
+    }
+    const paid = plans.map((plan) => plan.commit());
+    db.calendar.appointments = db.calendar.appointments.map((item) => paid.find((entry) => entry.id === item.id) ?? item);
     db.persist();
-    // Lo vendido sale del inventario de la sucursal (si se reservó en línea, solo la diferencia con lo apartado).
-    return replaceAppointment(
-      syncAppointmentStock(
-        {
-          ...priced,
-          serviceIds,
-          products,
-          ...(servicePrices ? { servicePrices } : {}),
-          ...(productPrices ? { productPrices } : {}),
-          status: "paid",
-          payment,
-          history: [...existing.history, entry(account.user.name, `paid:${method}`)],
-        },
-        "sale",
-        account.user.name
-      )
-    );
+    return HttpResponse.json({ items: paid });
   }),
 
   // Devolver una cuenta cobrada, entera o en parte, a efectivo o a la tarjeta.

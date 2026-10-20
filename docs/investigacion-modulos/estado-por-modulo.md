@@ -91,8 +91,8 @@ asistido; alerta de duración real; asistente de catálogo con descripciones.
 **Pendiente**
 - P0 · ~~Libro de pagos de solo agregar; arqueo por denominación, a ciegas, entradas y salidas~~ (hecho el 2026-10-19);
   ~~cierre por turno; recargo por tarjeta como línea~~ (hecho el 2026-10-19); factura o POS electrónico DIAN.
-- P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; ~~propinas por medio~~ (hecho el 2026-10-20) y reparto; filtros por barbero y
-  método; cobro atómico de la visita; ~~vendedor en la venta de mostrador~~; aviso de cuentas abiertas.
+- P1 · ~~Bre-B/Nequi/transferencia en la caja~~ y links de pago reales; ~~propinas por medio y reparto; filtros por barbero y
+  método; cobro atómico de la visita; vendedor en la venta de mostrador; aviso de cuentas abiertas~~ (hecho el 2026-10-20).
 - P2 · Vender paquetes y membresías en la caja; conciliación; autocobro por QR.
 
 **IA que falta**: agente de cierre que explica la diferencia; pronóstico de caja; cobro de cuentas abiertas con link;
@@ -103,8 +103,8 @@ conciliación; propinas sugeridas.
 **Pendiente**
 - ~~P0 · Valor con `$` y 2 decimales fijos; sin periodo ni `from/to`; sin `dueDay`; corte por hora del dispositivo;
   categorías cerradas~~ (hecho el 2026-10-19, ver abajo).
-- P1 · ~~Cuentas por pagar~~ (hecho el 2026-10-20); caja menor ligada al cierre; proveedores como entidad; comprobantes en el CSV; registro de
-  cambios; ficha de solo lectura; búsqueda por proveedor.
+- P1 · ~~Cuentas por pagar; caja menor ligada al cierre; proveedores como entidad~~ (hecho el 2026-10-20); comprobantes en el CSV; registro de
+  cambios; ficha de solo lectura; ~~búsqueda por proveedor~~.
 - P2 · Presupuestos, rentabilidad por silla, documento soporte DIAN, contabilidad, aprobación.
 
 **IA que falta**: foto → gasto; categoría que aprende por proveedor; duplicados y atípicos; CFO en Clipper; captura por
@@ -116,7 +116,7 @@ WhatsApp; pronóstico de caja a 90 días.
 - ~~P0 · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja~~ (hecho el 2026-10-19).
 - P1 · ~~Comprobante PDF y por WhatsApp~~; dispersión bancaria; ~~propinas efectivo/tarjeta~~ (hecho el 2026-10-20); clasificación laboral; exportar a
   Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; ~~metas del barbero~~ (hecho el 2026-10-20); comparación con el periodo anterior.
-- P2 · Horas y recargos, PILA/IBC, nómina electrónica, bolsa de propinas, multi-sucursal.
+- P2 · Horas y recargos, PILA/IBC, nómina electrónica, ~~bolsa de propinas~~ (hecho el 2026-10-20), multi-sucursal.
 
 **IA que falta**: simulador de esquemas; asistente del barbero en Mi pago; metas con progreso; cumplimiento Colombia;
 pronóstico del costo de personal.
@@ -374,3 +374,12 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Cambio de forma de pago con fecha (comisión ↔ salario ↔ renta) desde su ficha: hoy se aplica, más adelante queda programado; la nómina de antes conserva la forma de entonces y el rol de la cuenta sigue a la ficha.
   - Mi ficha: el de renta edita su horario, sus precios y sus opciones; acceso directo desde su pago. «Pide reseñas» en Mi reputación a sus clientes de las dos últimas semanas sin calificar.
   - Falta: fichaje con PIN desde la tablet del Front Desk, corregir un fichaje, reglas de horas extra, invitación real e importación, y que el rol de la cuenta cambie también en el backend real.
+- **Caja y gastos (05 y 06 P1, 07 P2, 2026-10-20).**
+  - Transferencia como forma de pago en la caja (sola, en mixto o en partes): por dónde llegó según el país de la sede (Nequi, Bre-B y Daviplata en Colombia; SPEI en México; Zelle y Venmo en EE. UU.; banco en todas) y la referencia; sale en el recibo y en su propia línea del cierre (no va al cajón).
+  - Cobro de una visita de varias citas en una sola operación (`/visits/checkout`): o se cobran todas o ninguna.
+  - Transacciones: filtros por barbero y por forma de pago, y el aviso de cuentas de días anteriores sin cobrar (con acceso directo a cada una y aviso en la campana).
+  - Bolsa de propinas (Configuración › Nómina): cada empleado aporta un % de sus propinas y se reparte por horas de turno o en partes iguales; sale en el detalle de la nómina y en el comprobante. El de renta no entra.
+  - Caja menor: una salida del cajón puede ser un gasto (categoría y proveedor) y queda en Gastos con la etiqueta «Caja menor».
+  - Proveedores (Gastos › Proveedores): NIT/EIN, contacto, cuánto se les paga al mes, el último pago y lo pendiente; renombrar arrastra sus gastos; el formulario de gasto los sugiere con su categoría; «Ver sus gastos» filtra la lista.
+  - Avisos de pagos por vencer (vencidos y en 3 días) a gerencia y al de renta.
+  - Falta: links de pago y pasarela reales, conciliación de transferencias contra el extracto, transferencia en la venta de mostrador, comprobantes en el CSV y documento soporte DIAN.

@@ -1,7 +1,7 @@
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
-import { Field } from "@/components/forms";
-import { CardSelection } from "@/components/selection";
+import { Field, NumberField } from "@/components/forms";
+import { CardSelection, SegmentedControl } from "@/components/selection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsCard, SettingsDocument, SwitchRow } from "../SettingsFormParts";
 import { payrollCycleSchema, type PayrollCycleSettings as PayrollCycle } from "../settingsTypes";
@@ -47,6 +47,26 @@ export function PayrollCycleSettings() {
               </Select>
             </Field>
             <SwitchRow label={t("cfg.payroll.cashTips")} hint={t("cfg.payroll.cashTipsHint")} checked={draft.cashTipsPaidOut} onCheckedChange={(checked) => set("cashTipsPaidOut", checked)} testId="payroll-cash-tips" />
+            {/* La bolsa de propinas: una parte de las propinas de cada empleado se reparte entre todos. */}
+            <SwitchRow label={t("cfg.payroll.tipPool")} hint={t("cfg.payroll.tipPoolHint")} checked={draft.tipPool.enabled} onCheckedChange={(checked) => set("tipPool", { ...draft.tipPool, enabled: checked })} testId="payroll-tip-pool" />
+            {draft.tipPool.enabled && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t("cfg.payroll.tipPoolPercent")} description={t("cfg.payroll.tipPoolPercentHint")}>
+                  <NumberField value={draft.tipPool.percent} onValueChange={(value) => set("tipPool", { ...draft.tipPool, percent: Math.min(100, Math.max(1, value ?? 1)) })} min={1} max={100} precision={0} suffix="%" data-testid="payroll-tip-pool-percent" />
+                </Field>
+                <Field label={t("cfg.payroll.tipPoolSplit")}>
+                  <SegmentedControl
+                    value={draft.tipPool.split}
+                    onChange={(value) => set("tipPool", { ...draft.tipPool, split: value as "hours" | "equal" })}
+                    options={[
+                      { value: "hours", label: t("cfg.payroll.tipPoolHours") },
+                      { value: "equal", label: t("cfg.payroll.tipPoolEqual") },
+                    ]}
+                    ariaLabel={t("cfg.payroll.tipPoolSplit")}
+                  />
+                </Field>
+              </div>
+            )}
           </SettingsCard>
         );
       }}

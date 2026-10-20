@@ -1,3 +1,4 @@
+import type { MockExpense } from "../expenses/seed";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
@@ -43,6 +44,8 @@ export interface RegisterExpected {
   cash: number;
   card: number;
   link: number;
+  /** Lo que llegó por transferencia (Nequi, Bre-B, Zelle, banco…): va a la cuenta, no al cajón. */
+  transfer: number;
   /** Lo pagado al reservar en línea de las citas cobradas hoy: no pasa por la caja. */
   online: number;
   /** Lo devuelto hoy: en efectivo sale de la caja; a tarjeta, del datáfono. */
@@ -64,7 +67,7 @@ const inShift = (at: string, date: string, since: string | null): boolean => dat
 
 /** Lo que debió moverse en la caja ese día (o desde el cierre del turno anterior, `since`), por medio de pago. */
 export function expectedOf(branchId: string, date: string, since: string | null = null): RegisterExpected {
-  const totals = { cash: 0, card: 0, link: 0, online: 0, refundsCash: 0, refundsCard: 0, accounts: 0, renterCash: 0 };
+  const totals = { cash: 0, card: 0, link: 0, transfer: 0, online: 0, refundsCash: 0, refundsCard: 0, accounts: 0, renterCash: 0 };
   for (const item of appointmentsOn(branchId, date)) {
     const payment = item.payment;
     if (item.status === "paid" && payment && inShift(payment.paidAt, date, since)) {
@@ -73,7 +76,17 @@ export function expectedOf(branchId: string, date: string, since: string | null 
       totals.online += payment.prepaid ?? 0;
       totals.accounts += 1;
       const renter = isRenter(item.barberId);
-      if (payment.method === "mixed" && payment.split) {
+      if (payment.parts && payment.parts.length > 0) {
+        // En partes: cada una a su medio (el efectivo del rentero es suyo). Las partes ya suman el recargo.
+        for (const part of payment.parts) {
+          if (part.method === "cash") {
+            if (renter) totals.renterCash += part.amount;
+            else totals.cash += part.amount;
+          } else if (part.method === "link") totals.link += part.amount;
+          else if (part.method === "transfer") totals.transfer += part.amount;
+          else totals.card += part.amount;
+        }
+      } else if (payment.method === "mixed" && payment.split) {
         if (renter) totals.renterCash += payment.split.cash;
         else totals.cash += payment.split.cash;
         totals.card += payment.split.card;
@@ -82,6 +95,7 @@ export function expectedOf(branchId: string, date: string, since: string | null 
         else totals.cash += atCounter;
       }
       else if (payment.method === "link") totals.link += atCounter;
+      else if (payment.method === "transfer") totals.transfer += atCounter;
       else totals.card += atCounter;
     }
     for (const refund of item.refunds ?? []) {
@@ -103,6 +117,7 @@ export function expectedOf(branchId: string, date: string, since: string | null 
     cash: round(totals.cash - totals.refundsCash + movementsIn - movementsOut),
     card: round(totals.card - totals.refundsCard),
     link: round(totals.link),
+    transfer: round(totals.transfer),
     online: round(totals.online),
     refundsCash: round(totals.refundsCash),
     refundsCard: round(totals.refundsCard),
@@ -188,8 +203,15 @@ export const registerHandlers = [
     if (reason.length < 3) fields.reason = ["Di por qué."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     if (closureOf(branchId, date)) return error(409, "conflict", "La caja de ese día ya está cerrada.");
-    const movement: MockCashMovement = { id: `mov_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, branchId, date, type: type!, amount: round(amount), reason, at: new Date().toISOString(), by: account.user.name };
+    const id = `mov_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+    // Caja menor: una salida que es un gasto queda también en Gastos (variable, en efectivo, ese día), unida al movimiento.
+    const asExpense = type === "out" && input.expense && typeof input.expense === "object" ? asRecord(input.expense as DefaultBodyType) : null;
+    const expense: MockExpense | null = asExpense
+      ? { id: `exp_${id}`, branchId, ownerMemberId: null, kind: "variable", name: reason, amount: round(amount), frequency: null, description: "", createdAt: new Date().toISOString(), date, categoryId: text(asExpense.categoryId) || "other", paymentMethod: "cash", supplier: text(asExpense.supplier).slice(0, 80), attachments: [], createdBy: account.user.name, movementId: id }
+      : null;
+    const movement: MockCashMovement = { id, branchId, date, type: type!, amount: round(amount), reason, at: new Date().toISOString(), by: account.user.name, ...(expense ? { expenseId: expense.id } : {}) };
     db.register = { closures: db.register?.closures ?? [], movements: [...(db.register?.movements ?? []), movement] };
+    if (expense) db.expenses = [expense, ...db.expenses];
     db.persist();
     return HttpResponse.json(movement, { status: 201 });
   }),

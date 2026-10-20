@@ -1,3 +1,4 @@
+import { transferBrand } from "@/features/payments/transferApps";
 import { format, parseISO } from "date-fns";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -91,11 +92,13 @@ export function ReceiptPage({ model, ctx, onSend }: { model: AppointmentModel; c
 
 /** Con qué se pagó, en una línea: el método, o las partes y lo de cada una. */
 function methodLabel(payment: Payment, t: ReturnType<typeof useAppT>, ctx: ModelContext): string {
-  const name = (method: "cash" | "card" | "link") => t(PAYMENT_METHOD_KEYS[method]);
+  const name = (method: "cash" | "card" | "link" | "transfer") => t(PAYMENT_METHOD_KEYS[method]);
   const parts = payment.parts?.length
     ? payment.parts.map((part) => `${name(part.method)} ${ctx.formatMoney(part.amount)}`)
     : payment.split
       ? [`${name("cash")} ${ctx.formatMoney(payment.split.cash)}`, `${name("card")} ${ctx.formatMoney(payment.split.card)}`]
       : [t(PAYMENT_METHOD_KEYS[payment.method])];
-  return [...(payment.gift ? [`${t("calendar.checkout.pay.gift")} ${ctx.formatMoney(payment.gift.amount)}`] : []), ...parts].join(" · ");
+  // La transferencia dice por dónde llegó y su referencia («Nequi · ref 4821»).
+  const transfer = payment.transfer ? [[transferBrand(payment.transfer.via) ?? t("calendar.checkout.transferBank"), payment.transfer.reference ? t("calendar.checkout.transferRef", { reference: payment.transfer.reference }) : null].filter(Boolean).join(" · ")] : [];
+  return [...(payment.gift ? [`${t("calendar.checkout.pay.gift")} ${ctx.formatMoney(payment.gift.amount)}`] : []), ...parts, ...transfer].join(" · ");
 }

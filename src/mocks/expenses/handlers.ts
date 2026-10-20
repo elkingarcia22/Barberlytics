@@ -1,3 +1,4 @@
+import { supplierIdOf } from "./suppliers";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
@@ -87,7 +88,7 @@ function validate(input: Record<string, unknown>, branchId = "ma") {
 }
 
 /** Lo que devuelve la API: con fecha y categoría aunque el gasto se guardara antes de esos campos. */
-const view = (item: MockExpense): MockExpense => ({ ...item, ownerMemberId: item.ownerMemberId ?? null, date: expenseDate(item), endDate: item.endDate ?? null, categoryId: item.categoryId ?? "other", paymentMethod: item.paymentMethod ?? null, dueDay: item.dueDay ?? null, supplier: item.supplier ?? "", attachments: item.attachments ?? [], createdBy: item.createdBy ?? null });
+const view = (item: MockExpense): MockExpense => ({ ...item, supplierId: supplierIdOf(item), movementId: item.movementId ?? null, ownerMemberId: item.ownerMemberId ?? null, date: expenseDate(item), endDate: item.endDate ?? null, categoryId: item.categoryId ?? "other", paymentMethod: item.paymentMethod ?? null, dueDay: item.dueDay ?? null, supplier: item.supplier ?? "", attachments: item.attachments ?? [], createdBy: item.createdBy ?? null });
 
 export const expensesHandlers = [
   // Las categorías: las de siempre (en la app, con su nombre traducido) y las que crea la barbería.

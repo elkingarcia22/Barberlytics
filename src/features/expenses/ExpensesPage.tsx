@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CalendarOff, CalendarSync, ChevronLeft, ChevronRight, Download, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { CalendarOff, CalendarSync, ChevronLeft, ChevronRight, Download, Pencil, Plus, Receipt, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -26,6 +26,7 @@ import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { IncomeStatementView } from "./IncomeStatementView";
 import { PayablesView } from "./PayablesView";
+import { SuppliersView } from "./SuppliersView";
 import { shiftMonth } from "./income";
 import { useBranchToday } from "@/features/branches";
 import { ALL, expenseCells, expenseColumns, expensesCsvRows, parseCategory, parseKind } from "./expensesHome";
@@ -65,7 +66,7 @@ export function ExpensesPage() {
   const vista = searchParams.get("vista");
   // Por pagar: los vencimientos de los fijos (gerencia los de la barbería; el barbero de renta, los suyos).
   const canSeePayables = ownerMemberId !== null || access.role === "owner" || access.role === "admin";
-  const view = canSeeIncome && vista === "resultado" ? "income" : canSeePayables && vista === "por-pagar" ? "payables" : "expenses";
+  const view = canSeeIncome && vista === "resultado" ? "income" : canSeePayables && vista === "por-pagar" ? "payables" : canSeePayables && vista === "proveedores" ? "suppliers" : "expenses";
   const monthParam = searchParams.get("mes") ?? "";
   const today = useBranchToday();
   const month = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : today.slice(0, 7);
@@ -95,15 +96,33 @@ export function ExpensesPage() {
           tabs={[
             { id: "expenses", label: t("expenses.view.list") },
             ...(canSeePayables ? [{ id: "payables", label: t("expenses.view.payables") }] : []),
+            ...(canSeePayables ? [{ id: "suppliers", label: t("expenses.view.suppliers") }] : []),
             ...(canSeeIncome ? [{ id: "income", label: t("expenses.view.income") }] : []),
           ]}
           activeTabId={view}
-          onTabChange={(next) => setParam("vista", next === "income" ? "resultado" : next === "payables" ? "por-pagar" : null)}
+          onTabChange={(next) => setParam("vista", next === "income" ? "resultado" : next === "payables" ? "por-pagar" : next === "suppliers" ? "proveedores" : null)}
         />
       )}
 
       {view === "income" ? (
         <IncomeStatementView branchId={branchId} month={month} onMonthChange={(next) => setParam("mes", next)} />
+      ) : view === "suppliers" ? (
+        <SuppliersView
+          branchId={branchId}
+          ownerMemberId={ownerMemberId}
+          canDelete={access.role === "owner" || access.role === "admin"}
+          onSeeExpenses={(name) =>
+            setSearchParams(
+              (current) => {
+                const params = new URLSearchParams(current);
+                params.delete("vista");
+                params.set("proveedor", name);
+                return params;
+              },
+              { replace: true }
+            )
+          }
+        />
       ) : view === "payables" ? (
         <PayablesView branchId={branchId} month={month} ownerMemberId={ownerMemberId} onMonthChange={(next) => setParam("mes", next === today.slice(0, 7) ? null : next)} />
       ) : (
@@ -197,7 +216,12 @@ function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, t
     const previous = allExpenses.filter((expense) => expense.kind === "variable" && activeInMonth(expense, shiftMonth(month, -1)));
     return summarizeExpenses([...expenses, ...previous], new Date(`${month}-15T12:00:00`), isCurrentMonth ? today : `${month}-01`);
   }, [allExpenses, expenses, month, isCurrentMonth, today]);
-  const filtered = React.useMemo(() => expenses.filter((expense) => (kind === ALL || expense.kind === kind) && (category === null || (expense.categoryId ?? "other") === category)), [expenses, kind, category]);
+  // «Ver sus gastos» desde Proveedores: los de ese proveedor (`?proveedor=`), con un chip para quitarlo.
+  const supplier = searchParams.get("proveedor");
+  const filtered = React.useMemo(
+    () => expenses.filter((expense) => (kind === ALL || expense.kind === kind) && (category === null || (expense.categoryId ?? "other") === category) && (supplier === null || (expense.supplier ?? "").toLowerCase() === supplier.toLowerCase())),
+    [expenses, kind, category, supplier]
+  );
   const countOf = (of: ExpenseKind) => expenses.filter((expense) => expense.kind === of).length;
   const formatPercent = (value: number) => `${formatNumber(value, { maximumFractionDigits: 1 })}%`;
 
@@ -324,6 +348,26 @@ function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, t
           activeTabId={kind}
           onTabChange={pickKind}
         />
+        {supplier && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mb-3"
+            onClick={() =>
+              setSearchParams(
+                (current) => {
+                  const params = new URLSearchParams(current);
+                  params.delete("proveedor");
+                  return params;
+                },
+                { replace: true }
+              )
+            }
+            data-testid="expenses-supplier-filter"
+          >
+            {t("expenses.suppliers.filter", { name: supplier })} <X />
+          </Button>
+        )}
         <Select value={category ?? ALL} onValueChange={pickCategory}>
           <SelectTrigger className="mb-3 w-[220px]" aria-label={t("expenses.column.category")} data-testid="expenses-category">
             <SelectValue />
@@ -354,7 +398,7 @@ function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, t
         cells={cells}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.name}
-        searchBy={(row) => `${row.name} ${row.description}`}
+        searchBy={(row) => `${row.name} ${row.description} ${row.supplier ?? ""}`}
         searchPlaceholder={t("expenses.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         selectable

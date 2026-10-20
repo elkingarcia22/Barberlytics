@@ -18,6 +18,11 @@ export function useTransactionsQuery(params: TransactionsParams) {
   });
 }
 
+/** Las cuentas de días anteriores que nadie cobró: el aviso de Transacciones. */
+export function useUnpaidAccounts(branchId: string) {
+  return useQuery({ queryKey: [...transactionKeys.all, "unpaid", branchId], queryFn: ({ signal }) => transactionsApi.unpaid(branchId, signal) });
+}
+
 /** Devolver: vuelve a pedir las cuentas, la agenda y la nómina, que cuentan lo devuelto. */
 export function useRefundAccount() {
   const queryClient = useQueryClient();

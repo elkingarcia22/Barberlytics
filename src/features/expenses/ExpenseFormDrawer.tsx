@@ -1,3 +1,4 @@
+import { useSuppliers } from "./suppliers";
 import * as React from "react";
 import { Loader2, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
@@ -113,6 +114,7 @@ interface ExpenseFormBodyProps {
 type Errors = Partial<Record<keyof ExpenseInput, string>>;
 
 function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingChange, onDone }: ExpenseFormBodyProps) {
+  const suppliers = useSuppliers(branchId, ownerMemberId);
   const t = useAppT();
   const formatMoney = useMoney();
   const create = useCreateExpense(branchId, ownerMemberId);
@@ -280,7 +282,25 @@ function ExpenseFormBody({ expense, kind, branchId, ownerMemberId, onSubmittingC
           )}
         </Field>
         <Field label={t("expenses.form.supplier")}>
-          <Input value={draft.supplier} onChange={(event) => set("supplier", event.target.value)} maxLength={80} autoComplete="off" data-testid="expense-form-supplier" />
+          <Input
+            value={draft.supplier}
+            onChange={(event) => {
+              const value = event.target.value;
+              set("supplier", value);
+              // Un proveedor guardado propone su categoría de siempre, si aún no se eligió otra.
+              const known = suppliers.data?.items.find((item) => item.name.toLowerCase() === value.trim().toLowerCase());
+              if (known?.categoryId && draft.categoryId === "other") set("categoryId", known.categoryId);
+            }}
+            list="expense-suppliers"
+            maxLength={80}
+            autoComplete="off"
+            data-testid="expense-form-supplier"
+          />
+          <datalist id="expense-suppliers">
+            {(suppliers.data?.items ?? []).map((item) => (
+              <option key={item.id} value={item.name} />
+            ))}
+          </datalist>
         </Field>
         <Field label={t("expenses.form.paymentMethod")}>
           <Select value={draft.paymentMethod ?? NO_METHOD} onValueChange={(value) => set("paymentMethod", value === NO_METHOD ? null : (value as ExpensePaymentMethod))}>

@@ -3,10 +3,12 @@ import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
 import { useSettingsList, useSettingsSection } from "@/features/settings/settingsQueries";
+import { useBranchCountry } from "@/features/branches";
+import { transferAppsFor, type TransferVia } from "@/features/payments/transferApps";
 import { cardFeeSchema, deviceSchema, tipsSchema } from "@/features/settings/settingsTypes";
 import { findBarber, findClient, newLinkId, servicesOf, type ModelContext } from "../calendarModel";
 import { FALLBACK_TIPS, appointmentBill, changeDue, discountAmount, sumBills, surchargeAmount, tipAmount, type TipChoice } from "../checkoutMath";
-import { useCheckoutAppointment, useUpdateAppointment } from "../queries";
+import { useCheckoutAppointment, useCheckoutVisit, useUpdateAppointment } from "../queries";
 import { PAYMENT_METHOD_KEYS, type Appointment, type CheckoutInput, type PaymentMethod, type PaymentPart, type ProductLine } from "../types";
 import { calendarApi } from "../api";
 import { allocateParts, paymentOf } from "./allocate";
@@ -49,6 +51,11 @@ export interface UseCheckoutOptions {
 export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candidates = NO_APPOINTMENTS, ctx, onPaid, onClose }: UseCheckoutOptions) {
   const t = useAppT();
   const checkout = useCheckoutAppointment();
+  const checkoutVisit = useCheckoutVisit();
+  // Transferencia: por dónde llega (las del país de la sede) y la referencia del comprobante.
+  const transferApps = transferAppsFor(useBranchCountry());
+  const [transferVia, setTransferVia] = React.useState<TransferVia>(transferApps[0]);
+  const [transferReference, setTransferReference] = React.useState("");
   const update = useUpdateAppointment();
   const tipSettings = useSettingsSection("tips", tipsSchema);
   const cardFee = useSettingsSection("cardFee", cardFeeSchema);
@@ -237,6 +244,9 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
       if (lined) return paymentOfLines(withTip, surcharge);
       return { method: simple as PaymentMethod, ...(simple === "card" && deviceId ? { deviceId } : {}) };
     };
+    // La transferencia (sola o en una parte) viaja con por dónde llegó y su referencia.
+    const transfer = { via: transferVia, ...(transferReference.trim() ? { reference: transferReference.trim() } : {}) };
+    const withTransfer = (input: Pick<CheckoutInput, "method" | "parts">) => (input.method === "transfer" || (input.parts ?? []).some((part) => part.method === "transfer") ? { transfer } : {});
     try {
       const own: CheckoutInput = {
         serviceIds,
@@ -244,15 +254,17 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
         tip,
         surcharge,
         ...methodOf(0),
+        ...withTransfer(methodOf(0)),
         ...(pricesChanged ? { servicePrices, productPrices } : {}),
         ...(coupon ? { coupon: coupon.code } : discount > 0 && discountValue ? { discount: { type: discountType, value: discountValue, reason: discountReason.trim() || undefined } } : {}),
         ...(gift && giftApplied > 0 ? { giftCode: gift.code, giftAmount: giftApplied } : {}),
         ...(giftSale && giftSaleAmount > 0 ? { giftSale: { amount: giftSaleAmount, recipientName: giftSale.recipientName.trim(), recipientContact: giftSale.recipientContact.trim() } } : {}),
       };
-      const [paid, ...others] = await Promise.all([
-        checkout.mutateAsync({ id: appointment.id, input: own }),
-        ...together.map((item, index) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, surcharge: 0, ...methodOf(index + 1) } })),
-      ]);
+      // Una visita de varias citas se cobra en una sola operación: o todas o ninguna (no queda a medias).
+      const [paid, ...others] =
+        together.length === 0
+          ? [await checkout.mutateAsync({ id: appointment.id, input: own })]
+          : (await checkoutVisit.mutateAsync([{ id: appointment.id, input: own }, ...together.map((item, index) => ({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, surcharge: 0, ...methodOf(index + 1), ...withTransfer(methodOf(index + 1)) } }))])).items;
       // Las que se sumaron al cobro quedan enlazadas con esta, como una sola visita.
       if (linkExtras && extras.length > 0) {
         const linkId = appointment.linkId ?? newLinkId(appointment);
@@ -322,7 +334,12 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     total,
     cardFeeName: cardFee.data?.name || null,
     ready,
-    paying: checkout.isPending,
+    paying: checkout.isPending || checkoutVisit.isPending,
+    transferApps,
+    transferVia,
+    setTransferVia,
+    transferReference,
+    setTransferReference,
     setServicePrice,
     removeService,
     addService,

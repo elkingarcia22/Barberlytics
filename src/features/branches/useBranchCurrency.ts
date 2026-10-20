@@ -17,3 +17,11 @@ export function useBranchCurrency(): string {
   const branches = useSettingsList("branches", branchSchema);
   return branches.data?.items.find((branch) => branch.id === branchId)?.currency ?? FALLBACK_CURRENCY;
 }
+
+/** El país de la sucursal activa (como lo guarda su ficha), o `null` si aún no cargó. */
+export function useBranchCountry(): string | null {
+  const { activeCompanyId } = useShellConfig();
+  const branchId = activeCompanyId ?? DEFAULT_BRANCH_ID;
+  const branches = useSettingsList("branches", branchSchema);
+  return branches.data?.items.find((branch) => branch.id === branchId)?.country ?? null;
+}

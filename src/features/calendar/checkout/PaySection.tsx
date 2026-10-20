@@ -17,6 +17,7 @@ import type { SendTarget } from "../appointmentPanel/sendTarget";
 import type { LineMethod, PayLine, PayMode } from "./payLines";
 import type { CheckoutController } from "./useCheckout";
 import { useCurrencyInput } from "@/features/branches";
+import { transferBrand } from "@/features/payments/transferApps";
 
 /**
  * «¿Cómo paga?»: un selector con las formas de pago y, debajo, lo de la
@@ -27,18 +28,19 @@ import { useCurrencyInput } from "@/features/branches";
  * su forma; la de link se manda por su monto).
  */
 
-const MODES: readonly PayMode[] = ["cash", "card", "link", "gift", "mixed", "parts"];
+const MODES: readonly PayMode[] = ["cash", "card", "transfer", "link", "gift", "mixed", "parts"];
 const ICONS: Record<PayMode, React.ComponentType<{ className?: string }>> = {
   cash: Banknote,
   card: CreditCard,
   link: Link2,
+  transfer: Smartphone,
   gift: Gift,
   mixed: Split,
   parts: SquareStack,
 };
-const LINE_ICONS: Record<LineMethod, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, gift: Gift };
-const MIXED_METHODS: readonly LineMethod[] = ["cash", "card", "gift"];
-const PART_METHODS: readonly LineMethod[] = ["cash", "card", "link", "gift"];
+const LINE_ICONS: Record<LineMethod, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, transfer: Smartphone, gift: Gift };
+const MIXED_METHODS: readonly LineMethod[] = ["cash", "card", "transfer", "gift"];
+const PART_METHODS: readonly LineMethod[] = ["cash", "card", "transfer", "link", "gift"];
 const PART_COUNTS = [2, 3, 4] as const;
 
 const BOX = "flex flex-col gap-3 rounded-xl border border-input bg-surface p-3";
@@ -84,6 +86,7 @@ export function PayMethods({ checkout, ctx, target }: { checkout: CheckoutContro
       {checkout.payChoice === "gift" && <GiftDetail checkout={checkout} ctx={ctx} />}
       {checkout.payChoice === "mixed" && <MixedDetail checkout={checkout} ctx={ctx} />}
       {checkout.payChoice === "parts" && <PartsDetail checkout={checkout} ctx={ctx} target={target} />}
+      {(checkout.payChoice === "transfer" || ((checkout.payChoice === "mixed" || checkout.payChoice === "parts") && checkout.lines.some((line) => line.method === "transfer"))) && <TransferDetail checkout={checkout} />}
 
       {checkout.surcharge > 0 && (
         <Text size="xs" tone="muted" data-testid="checkout-surcharge">
@@ -92,6 +95,23 @@ export function PayMethods({ checkout, ctx, target }: { checkout: CheckoutContro
           })}
         </Text>
       )}
+    </div>
+  );
+}
+
+/** Transferencia: por dónde llegó (Nequi, Bre-B, Zelle… según el país de la sede) y la referencia del comprobante. */
+function TransferDetail({ checkout }: { checkout: CheckoutController }) {
+  const { t } = checkout;
+  return (
+    <div className={BOX} data-testid="checkout-transfer">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("calendar.checkout.transferVia")} data-testid="checkout-transfer-via">
+        {checkout.transferApps.map((via) => (
+          <Chip key={via} size="sm" label={transferBrand(via) ?? t("calendar.checkout.transferBank")} selected={checkout.transferVia === via} onClick={() => checkout.setTransferVia(via)} />
+        ))}
+      </div>
+      <Field label={t("calendar.checkout.transferReference")} description={t("calendar.checkout.transferReferenceHint")}>
+        <Input value={checkout.transferReference} onChange={(event) => checkout.setTransferReference(event.target.value)} maxLength={40} inputMode="text" data-testid="checkout-transfer-reference" />
+      </Field>
     </div>
   );
 }

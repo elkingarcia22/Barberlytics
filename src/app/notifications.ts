@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked", "payrollApproved", "payAdjustment", "rentDue", "payDispute", "payDisputeAnswered", "shiftRequested", "shiftSwapAsked", "shiftDecided"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked", "payrollApproved", "payAdjustment", "rentDue", "payDispute", "payDisputeAnswered", "shiftRequested", "shiftSwapAsked", "shiftDecided", "unpaidAccounts", "payableDue"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -51,6 +51,8 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   shiftRequested: { title: "notifications.shiftRequested.title", body: "notifications.shiftRequested.body" },
   shiftSwapAsked: { title: "notifications.shiftSwapAsked.title", body: "notifications.shiftSwapAsked.body" },
   shiftDecided: { title: "notifications.shiftDecided.title", body: "notifications.shiftDecided.body" },
+  unpaidAccounts: { title: "notifications.unpaidAccounts.title", body: "notifications.unpaidAccounts.body" },
+  payableDue: { title: "notifications.payableDue.title", body: "notifications.payableDue.body" },
 };
 
 /** Reintentar un mensaje que falló: vuelve a la cola para salir ya. */

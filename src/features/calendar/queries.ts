@@ -176,6 +176,15 @@ export function useCheckoutAppointment() {
   });
 }
 
+/** Cobrar una visita de varias citas en una sola operación: si una no cuadra, no se cobra ninguna. */
+export function useCheckoutVisit() {
+  const invalidate = useInvalidateAgenda();
+  return useMutation({
+    mutationFn: (items: { id: string; input: CheckoutInput }[]) => calendarApi.checkoutVisit(items),
+    onSuccess: invalidate,
+  });
+}
+
 /**
  * Las notas son del cliente y se ven en la cita y en su ficha: cualquier cambio
  * refresca las dos (la agenda y el módulo de clientes).

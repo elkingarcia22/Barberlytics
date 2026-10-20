@@ -107,6 +107,9 @@ export const payrollMemberSchema = z.object({
   tipsCard: z.number().default(0),
   /** Las de efectivo que ya se le entregaron (Configuración › Nómina): se restan del neto. */
   tipsPaidOut: z.number().default(0),
+  /** La bolsa de propinas: lo que aportó de sus propinas y lo que le tocó del reparto (ya en el neto). */
+  tipPoolGiven: z.number().default(0),
+  tipPoolReceived: z.number().default(0),
   salary: z.number(),
   rent: z.number(),
   deductions: z.number(),

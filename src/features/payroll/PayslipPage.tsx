@@ -75,6 +75,8 @@ function Payslip({ data, member, branchId }: { data: PayrollResponse; member: Pa
     ...(member.salary > 0 ? [{ label: t("payroll.column.salary"), value: member.salary, sign: 1 as const }] : []),
     ...(rent ? [{ label: t("payroll.rent.held"), value: member.held ?? 0, sign: 1 as const }] : member.tips > 0 ? [{ label: t("payroll.payslip.tips", { cash: money(member.tipsCash), card: money(member.tipsCard) }), value: member.tips, sign: 1 as const }] : []),
     ...(member.tipsPaidOut > 0 ? [{ label: t("payroll.detail.tipsPaidOut"), value: member.tipsPaidOut, sign: -1 as const }] : []),
+    ...(member.tipPoolGiven > 0 ? [{ label: t("payroll.detail.tipPoolGiven"), value: member.tipPoolGiven, sign: -1 as const }] : []),
+    ...(member.tipPoolReceived > 0 ? [{ label: t("payroll.detail.tipPoolReceived"), value: member.tipPoolReceived, sign: 1 as const }] : []),
     ...(member.rent > 0 ? [{ label: t("payroll.column.rent"), value: member.rent, sign: -1 as const }] : []),
     ...(member.deductions > 0 ? [{ label: t("payroll.column.deductions"), value: member.deductions, sign: -1 as const }] : []),
     ...(member.adjustments ?? []).map((item) => ({ label: [t(ADJUSTMENT_KIND_KEYS[item.kind]), item.note].filter(Boolean).join(" · "), value: item.amount, sign: item.kind === "bonus" ? (1 as const) : (-1 as const) })),

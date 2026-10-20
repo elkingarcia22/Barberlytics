@@ -130,7 +130,11 @@ export const paymentsTestSchema = z.object({ ok: z.boolean(), message: z.string(
 export const commissionsSchema = z.object({ deductDiscounts: z.boolean(), deductTaxes: z.boolean(), deductServiceCost: z.boolean(), deductProductCost: z.boolean() });
 export type CommissionSettings = z.infer<typeof commissionsSchema>;
 
-export const payrollCycleSchema = z.object({ cycle: z.enum(["weekly", "biweekly", "monthly"]), startDay: z.number(), cashTipsPaidOut: z.boolean().default(false) });
+/** La bolsa de propinas: qué parte de las propinas de cada empleado va a una bolsa común y cómo se reparte. */
+export const tipPoolSchema = z.object({ enabled: z.boolean(), percent: z.number().min(1).max(100), split: z.enum(["hours", "equal"]) });
+export type TipPoolSettings = z.infer<typeof tipPoolSchema>;
+export const DEFAULT_TIP_POOL: TipPoolSettings = { enabled: false, percent: 20, split: "hours" };
+export const payrollCycleSchema = z.object({ cycle: z.enum(["weekly", "biweekly", "monthly"]), startDay: z.number(), cashTipsPaidOut: z.boolean().default(false), tipPool: tipPoolSchema.default(DEFAULT_TIP_POOL) });
 export type PayrollCycleSettings = z.infer<typeof payrollCycleSchema>;
 
 /* ----------------------------------------------------------------- avisos */

@@ -83,7 +83,7 @@ export const appointmentSourceSchema = z.enum(["internal", "online", "walkin"]);
 export const repeatRuleSchema = z.enum(["none", "weekly", "biweekly", "triweekly", "monthly", "bimonthly", "quarterly"]);
 export type RepeatRule = z.infer<typeof repeatRuleSchema>;
 
-export const paymentMethodSchema = z.enum(["cash", "card", "link", "mixed"]);
+export const paymentMethodSchema = z.enum(["cash", "card", "link", "mixed", "transfer"]);
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 
 export const historyEntrySchema = z.object({ id: z.string(), at: z.string(), actor: z.string(), event: z.string() });
@@ -107,9 +107,11 @@ export const paymentSchema = z.object({
   /** La tarjeta de regalo vendida en el mismo cobro (su código y su monto). */
   giftSale: z.object({ code: z.string(), amount: z.number() }).optional(),
   /** El pago dividido en partes, cada una con su método. */
-  parts: z.array(z.object({ method: z.enum(["cash", "card", "link"]), amount: z.number(), deviceId: z.string().optional() })).optional(),
+  parts: z.array(z.object({ method: z.enum(["cash", "card", "link", "transfer"]), amount: z.number(), deviceId: z.string().optional() })).optional(),
   /** El datáfono con que se pasó la tarjeta. */
   deviceId: z.string().optional(),
+  /** Con transferencia (Nequi, Daviplata, Bre-B, Zelle, banco…): por dónde llegó y su referencia. */
+  transfer: z.object({ via: z.string(), reference: z.string().nullable() }).optional(),
   /** El recargo por tarjeta cobrado, como línea aparte (ya está dentro de `total`). */
   surcharge: z.number().optional(),
   surchargeName: z.string().optional(),
@@ -345,6 +347,8 @@ export interface CheckoutInput {
   parts?: PaymentPart[];
   /** El datáfono con que se pasa la tarjeta. */
   deviceId?: string;
+  /** Con transferencia (o una parte por transferencia): por dónde llegó y la referencia del comprobante. */
+  transfer?: { via: string; reference?: string };
 }
 
 export const blockInputSchema = z.object({
@@ -437,6 +441,7 @@ export const PAYMENT_METHOD_KEYS: Record<PaymentMethod, AppMessageKey> = {
   card: "calendar.checkout.card",
   link: "calendar.checkout.link",
   mixed: "calendar.checkout.mixed",
+  transfer: "calendar.checkout.transfer",
 };
 
 export const NOTE_KIND_KEYS: Record<NoteKind, AppMessageKey> = {

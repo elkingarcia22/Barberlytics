@@ -84,7 +84,7 @@ export interface MockProduct {
 export type MockAppointmentStatus = "scheduled" | "arrived" | "seated" | "paid" | "no_show" | "cancelled";
 export type MockAppointmentSource = "internal" | "online" | "walkin";
 export type MockRepeatRule = "none" | "weekly" | "biweekly" | "triweekly" | "monthly" | "bimonthly" | "quarterly";
-export type MockPaymentMethod = "cash" | "card" | "link" | "mixed";
+export type MockPaymentMethod = "cash" | "card" | "link" | "mixed" | "transfer";
 
 export interface MockHistoryEntry {
   id: string;
@@ -111,7 +111,9 @@ export interface MockPayment {
   /** Una tarjeta de regalo vendida en el mismo cobro. */
   giftSale?: { code: string; amount: number };
   /** El pago dividido en partes, cada una con su método. */
-  parts?: { method: "cash" | "card" | "link"; amount: number; deviceId?: string }[];
+  parts?: { method: "cash" | "card" | "link" | "transfer"; amount: number; deviceId?: string }[];
+  /** Con transferencia (Nequi, Daviplata, Bre-B, Zelle, banco…): por dónde y la referencia que dio el cliente. */
+  transfer?: { via: string; reference: string | null };
   /** El datáfono con que se pasó la tarjeta. */
   deviceId?: string;
   /** El recargo por tarjeta cobrado (Configuración › Recargo por tarjeta), como línea aparte de la cuenta. */

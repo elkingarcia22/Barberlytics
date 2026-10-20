@@ -87,6 +87,7 @@ export function expenseCells(t: Translate, { formatMoney, formatDate, onOpen, cu
         <span className="flex items-center gap-1.5">
           <ExpenseKindBadge kind={row.kind} />
           {isEnded(row) && <Badge variant="neutral">{t("expenses.ended")}</Badge>}
+          {row.movementId && <Badge variant="neutral">{t("expenses.pettyCash")}</Badge>}
         </span>
       ),
     },

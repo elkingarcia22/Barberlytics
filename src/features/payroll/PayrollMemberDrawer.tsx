@@ -87,6 +87,8 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
                 </p>
               )}
               {member.tipsPaidOut > 0 && <Row label={t("payroll.detail.tipsPaidOut")} value={`−${formatMoney(member.tipsPaidOut)}`} negative />}
+              {member.tipPoolGiven > 0 && <Row label={t("payroll.detail.tipPoolGiven")} value={`−${formatMoney(member.tipPoolGiven)}`} negative />}
+              {member.tipPoolReceived > 0 && <Row label={t("payroll.detail.tipPoolReceived")} value={`+${formatMoney(member.tipPoolReceived)}`} />}
               {member.rent > 0 && <Row label={t("payroll.column.rent")} value={`−${formatMoney(member.rent)}`} negative />}
               {member.deductions > 0 && <Row label={t("payroll.column.deductions")} value={`−${formatMoney(member.deductions)}`} negative />}
               {(member.adjustmentsTotal ?? 0) !== 0 && (

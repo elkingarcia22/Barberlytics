@@ -1,3 +1,4 @@
+import { branchNow } from "../settings/branchRules";
 import { delay, http, HttpResponse } from "msw";
 import { accountById, db } from "../db";
 import { isBarber, sessionOf } from "../session";
@@ -149,7 +150,35 @@ function fromSale(sale: MockSale) {
   };
 }
 
+/** Hasta cuántos días atrás se buscan cuentas sin cobrar. */
+const UNPAID_DAYS = 30;
+const OPEN_STATUSES = new Set(["scheduled", "arrived", "seated"]);
+
+/**
+ * Las cuentas de días anteriores que nadie cobró: citas de antes de hoy que no están cobradas, canceladas ni marcadas
+ * como inasistencia (atendidas sin cobrar, o que nadie cerró). Es la fuga de dinero más común.
+ */
+export function unpaidBefore(branchId: string, today: string, days = UNPAID_DAYS, own: string | null = null) {
+  const start = new Date(`${today}T12:00:00`);
+  const items = Array.from({ length: days }, (_, index) => appointmentsOn(branchId, dateKey(new Date(start.getTime() - (index + 1) * DAY_MS))))
+    .flat()
+    .filter((item) => OPEN_STATUSES.has(item.status) && (own === null || item.barberId === own))
+    .map(fromAppointment)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return { days, items, total: Math.round(items.reduce((sum, item) => sum + item.balance, 0) * 100) / 100 };
+}
+
 export const transactionsHandlers = [
+  http.get(`${BASE}/transactions/unpaid`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const params = new URL(request.url).searchParams;
+    const branchId = params.get("branchId") ?? "ma";
+    const session = sessionOf(request);
+    const own = session && isBarber(session) ? session.memberId : null;
+    return HttpResponse.json(unpaidBefore(branchId, branchNow(branchId).slice(0, 10), Math.min(UNPAID_DAYS, Math.max(1, Number(params.get("days")) || UNPAID_DAYS)), own));
+  }),
+
   http.get(`${BASE}/transactions`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

@@ -59,6 +59,9 @@ export const accountSchema = z.object({
 export type Account = z.infer<typeof accountSchema>;
 
 export const transactionsResponseSchema = z.object({ from: z.string(), to: z.string(), items: z.array(accountSchema) });
+/** Las cuentas de días anteriores sin cobrar y cuánto suman. */
+export const unpaidAccountsSchema = z.object({ days: z.number(), items: z.array(accountSchema), total: z.number() });
+export type UnpaidAccounts = z.infer<typeof unpaidAccountsSchema>;
 export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>;
 
 export interface TransactionsParams {
@@ -86,6 +89,7 @@ export const METHOD_KEYS: Readonly<Record<NonNullable<Account["method"]>, AppMes
   card: "transactions.method.card",
   link: "transactions.method.link",
   mixed: "transactions.method.mixed",
+  transfer: "transactions.method.transfer",
 };
 
 /** Con qué se pagó al reservar en línea; `shop` es el anticipo de quien paga el resto en la barbería. */

@@ -57,6 +57,8 @@ export const calendarApi = {
   restrictClient: (clientId: string, patch: ClientRestriction) => api.patch<unknown>(`/customers/${clientId}`, patch),
   updateAppointment: (id: string, patch: AppointmentPatch) => api.patch<Appointment>(`/appointments/${id}`, patch, { schema: appointmentSchema }),
   checkout: (id: string, input: CheckoutInput) => api.post<Appointment>(`/appointments/${id}/checkout`, input, { schema: appointmentSchema }),
+  /** Cobrar varias citas de una visita de una vez: o se cobran todas o ninguna. */
+  checkoutVisit: (items: { id: string; input: CheckoutInput }[]) => api.post<{ items: Appointment[] }>("/visits/checkout", { items }, { schema: z.object({ items: z.array(appointmentSchema) }) }),
   addClientNote: (clientId: string, input: NoteInput) => api.post<Client>(`/clients/${clientId}/notes`, input, { schema: clientSchema }),
   updateClientNote: (clientId: string, noteId: string, input: Partial<NoteInput>) => api.patch<Client>(`/clients/${clientId}/notes/${noteId}`, input, { schema: clientSchema }),
   removeClientNote: (clientId: string, noteId: string) => api.delete<Client>(`/clients/${clientId}/notes/${noteId}`, { schema: clientSchema }),

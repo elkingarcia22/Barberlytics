@@ -45,6 +45,10 @@ export const expenseSchema = z.object({
   dueDay: z.number().nullable().optional(),
   paymentMethod: expensePaymentMethodSchema.nullable().optional(),
   supplier: z.string().optional(),
+  /** El proveedor guardado (Gastos › Proveedores), si lo hay. */
+  supplierId: z.string().nullable().optional(),
+  /** Salió del cajón (caja menor): el movimiento de caja con que se registró. */
+  movementId: z.string().nullable().optional(),
   attachments: z.array(expenseAttachmentSchema).optional(),
   createdBy: z.string().nullable().optional(),
 });

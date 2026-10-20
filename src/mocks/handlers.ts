@@ -1,3 +1,4 @@
+import { supplierHandlers } from "./expenses/suppliers";
 import { careerHandlers } from "./team/careers";
 import { liveUser } from "./team/payoutSchedule";
 import { shiftHandlers } from "./team/shifts";
@@ -741,6 +742,7 @@ export const handlers = [
 
   // ---------- Gastos ----------
   ...payableHandlers,
+  ...supplierHandlers,
   ...goalHandlers,
   ...expensesHandlers,
 

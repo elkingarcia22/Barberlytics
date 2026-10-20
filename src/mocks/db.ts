@@ -8,7 +8,7 @@ import { ACCOUNT_PHOTOS, userPhoto, TEAM_PHOTOS } from "./media";
 import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
-import { seedExpensePayments, seedExpenses, type MockExpense, type MockExpenseCustomCategory } from "./expenses/seed";
+import { seedExpensePayments, seedExpenses, seedSuppliers, type MockSupplier, type MockExpense, type MockExpenseCustomCategory } from "./expenses/seed";
 import { seedSettings, upgradeSettings, type MockSettingsState } from "./settings/seed";
 import { emptyPayroll, type MockPayrollState } from "./payroll/state";
 import { emptyRegister, type MockRegisterState } from "./register/state";
@@ -243,6 +243,8 @@ export interface MockDb {
   expenseCategories: MockExpenseCustomCategory[];
   /** Los vencimientos de gastos fijos ya pagados (cuentas por pagar). */
   expensePayments: MockExpensePayment[];
+  /** Los proveedores de la barbería (Gastos › Proveedores). */
+  suppliers: MockSupplier[];
   /** La meta de ingreso de cada sede y mes (Métricas). */
   goals: MockGoal[];
   /** Los dispositivos desde los que entró cada cuenta y los avisos de seguridad (nuevo dispositivo). */
@@ -304,6 +306,7 @@ interface PersistedDb {
   expenses?: MockExpense[];
   expenseCategories?: MockExpenseCustomCategory[];
   expensePayments?: MockExpensePayment[];
+  suppliers?: MockSupplier[];
   goals?: MockGoal[];
   security?: MockSecurityState;
   signups?: MockAccount[];
@@ -354,6 +357,7 @@ export function createDb(): MockDb {
     expenses,
     expenseCategories: saved?.expenseCategories ?? [],
     expensePayments: saved?.expensePayments ?? (saved?.expenses ? [] : seedExpensePayments(expenses)),
+    suppliers: saved?.suppliers ?? seedSuppliers(expenses),
     goals: saved?.goals ?? [],
     security: saved?.security ?? { devices: {}, events: [] },
     signups: saved?.signups ?? [],
@@ -380,7 +384,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, expensePayments: db.expensePayments, goals: db.goals, security: db.security, signups: db.signups, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, expensePayments: db.expensePayments, suppliers: db.suppliers, goals: db.goals, security: db.security, signups: db.signups, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -397,6 +401,7 @@ export function createDb(): MockDb {
       db.expenses = seedExpenses();
       db.expenseCategories = [];
       db.expensePayments = seedExpensePayments(db.expenses);
+      db.suppliers = seedSuppliers(db.expenses);
       db.goals = [];
       db.security = { devices: {}, events: [] };
       db.signups = [];

@@ -13,6 +13,8 @@ export const registerExpectedSchema = z.object({
   cash: z.number().nullable(),
   card: z.number(),
   link: z.number(),
+  /** Lo que llegó por transferencia: va a la cuenta, no al cajón. */
+  transfer: z.number().default(0),
   online: z.number(),
   refundsCash: z.number(),
   refundsCard: z.number(),
@@ -45,7 +47,7 @@ export const registerClosureSchema = z.object({
 });
 export type RegisterClosure = z.infer<typeof registerClosureSchema>;
 
-export const cashMovementSchema = z.object({ id: z.string(), type: z.enum(["in", "out"]), amount: z.number(), reason: z.string(), at: z.string(), by: z.string() });
+export const cashMovementSchema = z.object({ id: z.string(), type: z.enum(["in", "out"]), amount: z.number(), reason: z.string(), at: z.string(), by: z.string(), expenseId: z.string().nullable().optional() });
 export type CashMovement = z.infer<typeof cashMovementSchema>;
 
 export const registerDaySchema = z.object({
@@ -83,6 +85,8 @@ export interface CashMovementInput {
   type: "in" | "out";
   amount: number;
   reason: string;
+  /** Una salida que es un gasto de la barbería (caja menor): queda también en Gastos. */
+  expense?: { categoryId: string; supplier?: string };
 }
 
 export const registerApi = {
@@ -103,7 +107,7 @@ export function useCloseRegister() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: registerApi.close,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["register"] }),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ["register"] }), queryClient.invalidateQueries({ queryKey: ["expenses"] })]),
     onError: (error) => {
       const { title, description } = describeError(error);
       toast.error(title, { description });

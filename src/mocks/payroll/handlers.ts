@@ -1,10 +1,10 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
-import { appointmentsOn, peekAppointmentsOn } from "../calendar/handlers";
+import { appointmentsOn, hoursOn, peekAppointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import { barbersOf } from "../team/seed";
-import { cycleWindow, payrollOf } from "./compute";
+import { applyTipPool, cycleWindow, payrollOf, tipPoolSettings } from "./compute";
 import { chairExpensesIn } from "../expenses/chair";
 import { memberAt } from "../team/payoutSchedule";
 import type { MockAdjustmentKind, MockLoan, MockPayrollRun } from "./state";
@@ -45,6 +45,7 @@ function requireAuth(request: Request) {
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 const round = (value: number) => Math.round(value * 100) / 100;
+const clockMinutes = (clock: string) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5));
 
 /** El periodo pedido, o el error que lo explica. */
 function periodOf(branchId: string, from: string, to: string): { days: number; weeks: number } | Response {
@@ -68,7 +69,14 @@ function computeMembers(branchId: string, from: string, days: number, weeks: num
   const adjustments = adjustmentsOf(branchId, from, to);
   const extras = { sales: salesIn(branchId, from, to), loans: loansOf(branchId), from, to };
   // Cada quien con su forma de pago de entonces: un cambio de comisión a renta no reescribe los periodos anteriores.
-  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(memberAt(member, from), appointments, weeks, branchId, adjustments, extras));
+  const team = barbersOf(db.team.members, db.team.orders, branchId);
+  const members = team.map((member) => payrollOf(memberAt(member, from), appointments, weeks, branchId, adjustments, extras));
+  // La bolsa de propinas, si está encendida: se reparte por los minutos de turno de cada uno en el periodo.
+  const pool = tipPoolSettings();
+  if (!pool) return members;
+  const dayKeys = Array.from({ length: days }, (_, index) => dateKey(new Date(start.getTime() + index * DAY_MS)));
+  const weights = Object.fromEntries(team.map((member) => [member.id, dayKeys.reduce((sum, day) => sum + hoursOn(member, day).reduce((total, range) => total + clockMinutes(range.end) - clockMinutes(range.start), 0), 0)]));
+  return applyTipPool(members, pool, weights);
 }
 
 type PayrollMemberRow = { memberId: string; payout: string; net: number };

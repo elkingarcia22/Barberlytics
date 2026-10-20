@@ -626,18 +626,36 @@ describe("Calendario", () => {
 
     const drawer = await screen.findByTestId("create-appointment");
     expect(within(drawer).getByTestId("create-appointment-barber")).toHaveTextContent("Andrés Beltrán");
-    expect(within(drawer).getByRole("radio", { name: "3:00 p. m." })).toBeChecked();
+    expect(within(drawer).getByTestId("create-field-when")).toHaveTextContent("3:00 p. m.");
 
-    const trigger = (text: string) => within(drawer).getAllByText(text).find((node) => node.closest('[role="combobox"]')) as HTMLElement;
-    await user.click(trigger("Elige el cliente"));
-    await user.click((await screen.findAllByRole("option", { name: /Marcela Gómez/ }))[0]);
-    await user.click(trigger("Elige el servicio"));
-    await user.click(await screen.findByRole("option", { name: /Corte clásico/ }));
+    // «Arma la cita»: arranca abierto lo que falta (el cliente) y al elegir se abre lo siguiente.
+    await user.type(within(drawer).getByTestId("create-client-search"), "Marcela");
+    await user.click(within(drawer).getAllByRole("radio", { name: /Marcela Gómez/ })[0]);
+    await user.click(await within(drawer).findByRole("checkbox", { name: /Corte clásico/ }));
+    await user.click(within(drawer).getByTestId("create-services-done"));
     await user.click(screen.getByTestId("create-appointment-submit"));
 
     await waitFor(() => expect(screen.queryByTestId("create-appointment")).toBeNull());
     const grid = screen.getByRole("region", { name: "Agenda del día por barbero" });
     expect(await within(grid).findByRole("button", { name: /Abrir Marcela Gómez, 3:00 p. m. – 3:30 p. m./ })).toBeInTheDocument();
+  }, 15_000);
+
+  test("en Crear cita el cliente se busca por nombre, celular o correo, y la agenda marca dónde va", async () => {
+    const user = userEvent.setup();
+    mount();
+    await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    await user.click(screen.getByRole("button", { name: "Crear a las 3:00 p. m. con Andrés Beltrán" }));
+    const drawer = await screen.findByTestId("create-appointment");
+    // Mientras se crea, la cita se ve en la agenda en su sitio.
+    expect(document.querySelector('[data-schedule-event="create-preview"]')).toHaveAttribute("data-active", "true");
+
+    const marcela = db.calendar.clients.find((client) => client.name === "Marcela Gómez");
+    const search = within(drawer).getByTestId("create-client-search");
+    for (const query of [marcela?.email ?? "", (marcela?.phone ?? "").slice(-7), "gomez marce"]) {
+      await user.clear(search);
+      await user.type(search, query);
+      expect(within(drawer).getAllByRole("radio", { name: /Marcela Gómez/ }).length).toBeGreaterThan(0);
+    }
   }, 15_000);
 
   test("reacomodar retrasos enseña el plan sobre la agenda y solo mueve las citas al aplicarlo", async () => {
@@ -895,7 +913,8 @@ describe("Calendario", () => {
     await user.click(await screen.findByTestId("checkout-add-service"));
     const service = ctx.catalog.services[ctx.catalog.services.length - 1];
     await user.click(await screen.findByRole("option", { name: new RegExp(service.name) }));
-    await waitFor(() => expect(screen.getByTestId("checkout-bill-line")).toHaveTextContent(service.name));
+    // Queda como una fila más en «Servicios» (con su precio y su botón de quitar), no solo en la orden.
+    await waitFor(() => expect(within(screen.getByTestId("checkout-bill")).getAllByText(service.name)).toHaveLength(2));
     // Ni buscador que quede abierto ni otro campo: vuelve el botón «Agregar».
     expect(screen.getByTestId("checkout-add")).toBeInTheDocument();
     expect(within(screen.getByTestId("checkout-bill")).queryByRole("combobox")).not.toBeInTheDocument();
@@ -905,8 +924,6 @@ describe("Calendario", () => {
     const user = userEvent.setup();
     const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "seated" as const };
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} companions={[second]} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
-    // La cuenta se abre con «Editar» para ver (y quitar) las citas de la visita.
-    await user.click(await screen.findByTestId("checkout-summary-edit"));
     const visit = await screen.findByTestId("checkout-visit");
     const items = within(visit).getAllByTestId("checkout-visit-item");
     expect(items).toHaveLength(2);
@@ -959,7 +976,7 @@ describe("Calendario", () => {
 
     const drawer = await screen.findByTestId("create-appointment");
     expect(within(drawer).getByTestId("create-appointment-barber")).toHaveTextContent("Andrés Beltrán");
-    expect(within(drawer).getByRole("radio", { name: "6:30 p. m." })).toBeChecked();
+    expect(within(drawer).getByTestId("create-field-when")).toHaveTextContent("6:30 p. m.");
   });
 
   test("desde la tarjeta se marca la llegada y el detalle muestra el estado nuevo", async () => {
@@ -997,7 +1014,7 @@ describe("Calendario", () => {
     const drawer = await screen.findByTestId("create-appointment");
     const barber = within(drawer).getByTestId("create-appointment-barber");
     expect(barber).toHaveTextContent("Andrés Beltrán");
-    expect(barber).toBeDisabled();
+    expect(barber).toHaveAttribute("data-locked", "true");
   });
 
   test("recepción opera el día sin ver las cifras", async () => {

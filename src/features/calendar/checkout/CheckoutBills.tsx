@@ -1,10 +1,6 @@
 import * as React from "react";
-import { Check, Pencil } from "lucide-react";
-import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { SearchableSelect } from "@/components/forms";
-import { Button } from "@/components/ui/button";
 import type { ModelContext } from "../calendarModel";
-import { ServiceThumb } from "../calendarShared";
 import type { Appointment } from "../types";
 import { AddMenu, type AddKind } from "./AddMenu";
 import { productOptions, serviceOptions, visitOptions } from "./addOptions";
@@ -12,11 +8,12 @@ import { DiscountField, GiftSaleField, ProductsSection, ServicesSection, VisitSe
 import type { CheckoutController } from "./useCheckout";
 
 /**
- * Lo que se cobra, en una línea —qué y cuánto— con «Editar» para abrirla
- * (precios, cantidades, quitar). Lo ocasional sale de «Agregar»: un servicio,
- * un producto u otra cita se eligen en un buscador que ocupa el sitio del
- * botón y, al elegir, se suman y el buscador se va; el descuento y la tarjeta
- * de regalo que se vende abren su campo debajo de la línea.
+ * Lo que se cobra, cada cosa en su sección —las citas que van juntas, los
+ * servicios y los productos—, donde se cambia el precio o la cantidad y se
+ * quita. Lo ocasional sale de «Agregar»: un servicio, un producto u otra cita
+ * se eligen en un buscador que ocupa el sitio del botón y, al elegir, quedan
+ * como una fila más en su sección y el buscador se va; el descuento y la
+ * tarjeta de regalo que se vende abren su campo.
  */
 
 interface BillProps {
@@ -32,7 +29,6 @@ const GIFT_SALE_START = 50;
 
 export function CheckoutBill({ checkout, appointment, ctx }: BillProps) {
   const { t } = checkout;
-  const [editing, setEditing] = React.useState(false);
   const [picking, setPicking] = React.useState<PickKind | null>(null);
 
   const add = (kind: AddKind) => {
@@ -56,14 +52,9 @@ export function CheckoutBill({ checkout, appointment, ctx }: BillProps) {
 
   return (
     <div className="flex flex-col gap-4" data-testid="checkout-bill">
-      <BillLine checkout={checkout} ctx={ctx} editing={editing} onToggle={() => setEditing((current) => !current)} />
-      {editing && (
-        <>
-          <VisitSection checkout={checkout} appointment={appointment} ctx={ctx} />
-          <ServicesSection checkout={checkout} ctx={ctx} />
-          <ProductsSection checkout={checkout} ctx={ctx} />
-        </>
-      )}
+      <VisitSection checkout={checkout} appointment={appointment} ctx={ctx} />
+      <ServicesSection checkout={checkout} ctx={ctx} />
+      <ProductsSection checkout={checkout} ctx={ctx} />
       {checkout.discountValue !== null && <DiscountField checkout={checkout} ctx={ctx} />}
       {checkout.giftSale && <GiftSaleField checkout={checkout} ctx={ctx} />}
       {picker ? (
@@ -72,31 +63,5 @@ export function CheckoutBill({ checkout, appointment, ctx }: BillProps) {
         <AddMenu checkout={checkout} onAdd={add} className="w-full border-dashed" />
       )}
     </div>
-  );
-}
-
-/** La cuenta en una línea —qué se cobra y, debajo, cuánto— con el lápiz para editarla (y el visto para cerrarla). */
-function BillLine({ checkout, ctx, editing, onToggle }: { checkout: CheckoutController; ctx: ModelContext; editing: boolean; onToggle: () => void }) {
-  const { t, bill } = checkout;
-  const products = checkout.products.flatMap((line) => {
-    const product = ctx.catalog.products.find((item) => item.id === line.productId);
-    return product ? [line.qty > 1 ? `${product.name} × ${line.qty}` : product.name] : [];
-  });
-  const names = [checkout.services.map((service) => service.name).join(" + "), ...products];
-  const count = checkout.services.length + checkout.together.length + checkout.products.reduce((sum, line) => sum + line.qty, 0);
-  const others = checkout.together.length > 0 ? ` · ${t("calendar.checkout.togetherCount", { count: checkout.together.length })}` : "";
-  return (
-    <ListItemGroup data-testid="checkout-bill-line">
-      <ListItem
-        leading={<ServiceThumb service={checkout.services[0]} />}
-        title={names.filter(Boolean).join(" · ")}
-        description={`${t("calendar.checkout.summary.items", { count })} · ${ctx.formatMoney(bill.subtotal - bill.discount)}${others}`}
-        actions={
-          <Button type="button" variant="ghost" size="icon-sm" onClick={onToggle} aria-expanded={editing} aria-label={t(editing ? "calendar.checkout.summary.done" : "calendar.checkout.summary.edit")} title={t(editing ? "calendar.checkout.summary.done" : "calendar.checkout.summary.edit")} data-testid="checkout-summary-edit">
-            {editing ? <Check /> : <Pencil />}
-          </Button>
-        }
-      />
-    </ListItemGroup>
   );
 }

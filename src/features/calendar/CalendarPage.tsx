@@ -22,7 +22,7 @@ import { CalendarDayView } from "./CalendarDayView";
 import { CalendarAgendaView } from "./CalendarAgendaView";
 import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
-import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
+import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial, type CreatePreview } from "./CreateAppointmentDrawer";
 import { CalendarSearch } from "./CalendarSearch";
 import { BarberTodayEarnings } from "./BarberTodayEarnings";
 import { CalendarFilters, type ClientTypeFilterOption, type ResourceFilterOption, type ServiceFilterOption } from "./CalendarFilters";
@@ -209,6 +209,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const [reflow, setReflow] = React.useState<PendingReflow | null>(null);
   const [suggestions, setSuggestions] = React.useState<readonly SlotSuggestion[]>([]);
   const [draft, setDraft] = React.useState<CreateAppointmentDraft>(EMPTY_DRAFT);
+  // Dónde va a quedar la cita que se está creando: se marca en la agenda.
+  const [createPreview, setCreatePreview] = React.useState<CreatePreview | null>(null);
   const [freed, setFreed] = React.useState<FreedSlot[]>([]);
   /** Lo último que se movió, para la tecla Z. */
   const undoRef = React.useRef<(() => void) | null>(null);
@@ -665,7 +667,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const suggestionGhosts = React.useMemo<ScheduleEvent[]>(() => {
     if (!ctx || panel?.kind !== "create") return [];
     const client = draft.clientId ? findClient(ctx.catalog, draft.clientId) : undefined;
-    return suggestions.map((suggestion) => ({
+    // El hueco ya elegido no se repite como sugerencia: va marcado aparte.
+    const chosen = (suggestion: SlotSuggestion) => createPreview !== null && createPreview.barberId === suggestion.barber.id && createPreview.start.getTime() === suggestion.start.getTime();
+    return suggestions.filter((suggestion) => !chosen(suggestion)).map((suggestion) => ({
       id: suggestionId(suggestion),
       resourceId: suggestion.barber.id,
       start: suggestion.start,
@@ -678,7 +682,54 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       ghost: true,
       locked: true,
     }));
-  }, [ctx, draft.clientId, panel?.kind, suggestions, t]);
+  }, [ctx, draft.clientId, panel?.kind, suggestions, createPreview, t]);
+
+  // La cita que se está creando, en su sitio: llena, con borde discontinuo y halo de marca.
+  const previewGhosts = React.useMemo<ScheduleEvent[]>(() => {
+    if (!ctx || panel?.kind !== "create" || !createPreview || !isSameDay(createPreview.start, state.date)) return [];
+    const client = createPreview.clientId ? findClient(ctx.catalog, createPreview.clientId) : undefined;
+    const services = createPreview.serviceIds.map((id) => ctx.catalog.services.find((service) => service.id === id)?.name).filter(Boolean);
+    return [
+      {
+        id: "create-preview",
+        resourceId: createPreview.barberId,
+        start: createPreview.start,
+        end: createPreview.end,
+        kind: "appointment",
+        title: client?.name ?? t("calendar.createV.newAppointment"),
+        note: services.join(" + ") || undefined,
+        tone: "primary",
+        badge: { label: t("calendar.createV.creating"), tone: "primary" },
+        ghost: true,
+        active: true,
+        locked: true,
+      },
+    ];
+  }, [ctx, panel?.kind, createPreview, state.date, t]);
+
+  // La agenda se desplaza hasta la cita que se arma cada vez que cambia de sitio (barbero, día u hora).
+  const previewSpot = previewGhosts[0] ? `${previewGhosts[0].resourceId}-${previewGhosts[0].start.getTime()}` : null;
+  React.useEffect(() => {
+    if (!previewSpot) return;
+    const frame = requestAnimationFrame(() => {
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      document.querySelector('[data-schedule-event="create-preview"]')?.scrollIntoView?.({ block: "center", inline: "nearest", behavior: reduce ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [previewSpot]);
+
+  // Al cambiar el día en «Crear cita», la agenda se va a ese día (solo cuando cambia: se puede mirar otro).
+  const followedDay = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!createPreview) {
+      followedDay.current = null;
+      return;
+    }
+    const key = toLocalIso(createPreview.start).slice(0, 10);
+    if (key === followedDay.current) return;
+    followedDay.current = key;
+    if (key !== state.dateKey) state.setDate(createPreview.start);
+  }, [createPreview, state]);
 
   // «Solo huecos disponibles»: los ratos libres de quien se ve, como bloques que se tocan para agendar.
   const freeGhosts = React.useMemo<ScheduleEvent[]>(() => {
@@ -794,7 +845,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     return block ? `${t(BLOCK_CATEGORY_KEYS[block.category])} · ${findBarber(ctx.catalog, block.barberId)?.name.split(" ")[0] ?? ""}` : t("calendar.timeOff.title");
   }, [shown, ctx, absences.data, pendingBlocks.data, day.data, t]);
 
-  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...visibleAbsenceGhosts], [freeGhosts, reflowGhosts, suggestionGhosts, visibleAbsenceGhosts]);
+  const extraEvents = React.useMemo(() => [...freeGhosts, ...reflowGhosts, ...suggestionGhosts, ...previewGhosts, ...visibleAbsenceGhosts], [freeGhosts, reflowGhosts, suggestionGhosts, previewGhosts, visibleAbsenceGhosts]);
 
   const onSuggestions = React.useCallback((next: readonly SlotSuggestion[], nextDraft: CreateAppointmentDraft) => {
     setSuggestions((current) => (sameSuggestions(current, next) ? current : next));
@@ -1148,11 +1199,14 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 open={panel?.kind === "create"}
                 onOpenChange={(open) => !open && closePanel()}
                 ctx={ctx}
+                branchId={branchId}
                 initial={panel?.kind === "create" ? panel.initial : null}
                 now={nowDate}
                 viewDate={state.date}
                 day={day.data}
                 onSuggestions={onSuggestions}
+                onPreview={setCreatePreview}
+                onShowDay={state.setDate}
                 enforceRules={enforceRules}
                 resources={resources}
                 onCreated={(appointment) => state.setDate(parseLocal(appointment.start))}

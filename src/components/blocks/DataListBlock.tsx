@@ -1,4 +1,5 @@
 import * as React from "react"
+import { matchesSearchText } from "@/lib/search/personSearch"
 import { Search, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -165,10 +166,10 @@ export function DataListBlock<T>({
     onSelectedChange?.(next)
   }
 
+  // La regla de todos los buscadores: todas las palabras, sin tildes, y un celular escrito como sea.
   const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle || !searchBy) return rows
-    return rows.filter((row) => searchBy(row).toLowerCase().includes(needle))
+    if (!query.trim() || !searchBy) return rows
+    return rows.filter((row) => matchesSearchText(searchBy(row), query))
   }, [rows, query, searchBy])
 
   const lazy = useLazyRows({ total: filtered.length, enabled: config.isLazy, step: pageSize })

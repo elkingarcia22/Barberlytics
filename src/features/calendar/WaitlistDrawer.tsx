@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatClock } from "@/components/scheduling";
 import { waitlistMatch, type WaitlistMatch } from "./dayBrief";
 import { CLIENT_TYPE_KEYS, type CalendarDay, type WaitlistEntry } from "./types";
+import { personSearchText } from "@/lib/search/personSearch";
 
 /**
  * La lista de espera: quién espera un hueco, para qué servicio, con quién y
@@ -106,7 +107,7 @@ function WaitlistPanel({ open, onOpenChange, branchId, ctx, date, day, onSchedul
                     value={clientId}
                     onValueChange={setClientId}
                     placeholder={t("calendar.create.pickClient")}
-                    options={ctx.catalog.clients.filter((client) => client.type !== "walkin").map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, leading: <ClientAvatar client={client} size="sm" /> }))}
+                    options={ctx.catalog.clients.filter((client) => client.type !== "walkin").map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, keywords: personSearchText(client), leading: <ClientAvatar client={client} size="sm" /> }))}
                   />
                 </Field>
                 <Field label={t("calendar.field.service")} required>

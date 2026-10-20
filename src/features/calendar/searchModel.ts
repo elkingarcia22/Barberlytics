@@ -2,11 +2,14 @@ import { format, type Locale } from "date-fns";
 import type { useAppT } from "@/app/i18n";
 import { formatClock } from "@/components/scheduling";
 import { appointmentStage, appointmentStart, findBarber, findClient, servicesOf, type ModelContext } from "./calendarModel";
+import { normalizeSearch } from "@/lib/search/personSearch";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentStatus } from "./types";
+
+export { normalizeSearch };
 
 /**
  * El buscador del calendario: por todo lo que se pregunta en el mostrador —el
- * nombre o el celular del cliente, el barbero, el servicio, el estado («no
+ * nombre, el celular o el correo del cliente, el barbero, el servicio, el estado («no
  * asistió», «cobrada», «tarde»), el tipo de cliente, si vino en línea o sin
  * cita, la nota, el producto, el día («20 oct», «sábado») o la hora («9:30»).
  *
@@ -40,15 +43,6 @@ const SOURCE_WORDS: Record<Appointment["source"], readonly string[]> = {
   walkin: ["sin cita", "sin cita previa", "walk in", "walk-in"],
 };
 
-/** Sin tildes ni mayúsculas: «Ingresó» y «ingreso» son lo mismo. */
-export const normalizeSearch = (text: string): string =>
-  text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
 const digitsOf = (text: string): string => text.replace(/\D/g, "");
 
 export interface SearchIndexEntry {
@@ -79,6 +73,7 @@ export function buildSearchIndex({ appointments, ctx, t, dateLocale }: SearchInd
     const parts = [
       client?.name ?? t("calendar.clientType.walkin"),
       client?.phone ?? "",
+      client?.email ?? "",
       client ? t(CLIENT_TYPE_KEYS[client.type]) : "",
       client?.notes.map((note) => note.text).join(" ") ?? "",
       barber?.name ?? "",

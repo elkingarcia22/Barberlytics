@@ -1,5 +1,5 @@
 {
-  "sourceHash": "7042c29dbf671220",
+  "sourceHash": "b78010c22d2f5639",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -10393,7 +10393,7 @@
           "name": "options",
           "type": "SearchableSelectOption[]",
           "default": null,
-          "description": "Opciones con value, label, description, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label y description."
+          "description": "Opciones con value, label, description, keywords, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label, description y keywords con la regla de todos los buscadores (`matchesSearchText`): todas las palabras, sin tildes, y un celular escrito como sea."
         },
         {
           "name": "value",
@@ -10442,6 +10442,7 @@
         "do": [
           "Úsalo a partir de ~10 opciones o con nombres propios (personas, ciudades).",
           "Aprovecha `description` para desambiguar homónimos.",
+          "Si las opciones son personas, pon `keywords: personSearchText(persona)` para que se encuentren por celular y correo aunque no se muestren.",
           "Personaliza `emptyMessage` con una acción posible cuando exista."
         ],
         "dont": [

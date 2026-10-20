@@ -276,7 +276,7 @@ function TransactionsHome({ accounts, showTotals, filters, fetching, canRefund }
         cells={cells}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.client?.name ?? t("transactions.counterSale")}
-        searchBy={(row) => `${row.client?.name ?? ""} ${row.client?.phone.replace(/\D/g, "") ?? ""} ${row.invoice ?? ""} ${row.barber ?? ""} ${row.lines.map((line) => line.name).join(" ")}`}
+        searchBy={(row) => `${row.client?.name ?? ""} · ${row.client?.phone ?? ""} · ${row.invoice ?? ""} · ${row.barber ?? ""} · ${row.lines.map((line) => line.name).join(" · ")}`}
         searchPlaceholder={t("transactions.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         emptyState={

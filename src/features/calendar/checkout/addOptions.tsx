@@ -1,5 +1,6 @@
 import type { SearchableSelectOption } from "@/components/forms";
 import { appointmentRange, findClient, priceFor, servicesOf, type ModelContext } from "../calendarModel";
+import { personSearchText } from "@/lib/search/personSearch";
 import { ClientAvatar, ProductThumb, ServiceThumb } from "../calendarShared";
 import type { Appointment } from "../types";
 import type { CheckoutController } from "./useCheckout";
@@ -20,6 +21,6 @@ export function visitOptions(checkout: CheckoutController, ctx: ModelContext): S
     .filter((item) => !checkout.extras.some((extra) => extra.id === item.id))
     .map((item) => {
       const client = findClient(ctx.catalog, item.clientId);
-      return { value: item.id, label: client?.name ?? checkout.t("calendar.clientType.walkin"), description: `${appointmentRange(item, ctx.intl)} · ${servicesOf(ctx.catalog, item).map((service) => service.name).join(" + ")}`, leading: <ClientAvatar client={client} size="sm" /> };
+      return { value: item.id, label: client?.name ?? checkout.t("calendar.clientType.walkin"), description: `${appointmentRange(item, ctx.intl)} · ${servicesOf(ctx.catalog, item).map((service) => service.name).join(" + ")}`, keywords: client ? personSearchText(client) : undefined, leading: <ClientAvatar client={client} size="sm" /> };
     });
 }

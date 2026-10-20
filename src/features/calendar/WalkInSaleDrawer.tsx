@@ -18,6 +18,7 @@ import { useCreateAppointment } from "./queries";
 import { useBranchId } from "@/features/team/teamUtils";
 import { useLineupTurn } from "@/features/team/workforce";
 import { CLIENT_TYPE_KEYS, type Appointment, type CalendarDay } from "./types";
+import { personSearchText } from "@/lib/search/personSearch";
 
 /**
  * Venta sin cita: registrar un servicio que ya se hizo sin agendar —fecha,
@@ -125,7 +126,7 @@ function WalkInSalePanel({ open, onOpenChange, ctx, date, now, day: agenda, onCr
               value={clientId}
               onValueChange={setClientId}
               placeholder={t("calendar.create.pickClient")}
-              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, leading: <ClientAvatar client={client} size="sm" /> }))}
+              options={ctx.catalog.clients.map((client) => ({ value: client.id, label: client.name, description: `${client.phone} · ${t(CLIENT_TYPE_KEYS[client.type])}`, keywords: personSearchText(client), leading: <ClientAvatar client={client} size="sm" /> }))}
             />
           </Field>
           <Field label={t("calendar.field.service")} required>

@@ -220,6 +220,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
         data-kind={event.kind ?? "appointment"}
         data-tone={tone}
         data-ghost={isGhost || undefined}
+        data-active={(isGhost && event.active) || undefined}
         data-flexible={event.flexible || undefined}
         data-group={group?.id}
         style={style}
@@ -245,6 +246,7 @@ export const ScheduleEventCard = React.forwardRef<HTMLDivElement, ScheduleEventC
           group?.joinTop && "rounded-t-none border-t-0",
           group?.joinBottom && "rounded-b-none border-b-0",
           isGhost && "z-raised border-dashed border-primary/70 bg-primary/5 opacity-85",
+          isGhost && event.active && "border-2 border-primary bg-primary/15 opacity-100 shadow-md ring-2 ring-primary/25",
           event.muted && "opacity-60",
           event.faded && "opacity-30 saturate-50",
           dragging && "z-raised opacity-90 shadow-lg ring-2 ring-ring/40",

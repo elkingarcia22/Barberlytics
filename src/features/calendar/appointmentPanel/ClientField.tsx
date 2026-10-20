@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ThemaIcon } from "@/icons";
 import type { ModelContext } from "../calendarModel";
 import { ClientAvatar } from "../calendarShared";
-import { normalizeSearch } from "../searchModel";
+import { matchesPerson } from "@/lib/search/personSearch";
 import { CLIENT_TYPE_KEYS, type Appointment, type AppointmentPatch } from "../types";
 import { ClientSummaryRow, Fact } from "./ClientPage";
 import { ActionButton } from "./PanelParts";
@@ -123,9 +123,7 @@ function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: App
 function ClientList({ model, ctx, onPatch, onClose }: { model: AppointmentModel; ctx: ModelContext; onPatch: NonNullable<ClientFieldProps["onPatch"]>; onClose: () => void }) {
   const t = useAppT();
   const [query, setQuery] = React.useState("");
-  const needle = normalizeSearch(query);
-  const digits = query.replace(/\D/g, "");
-  const matches = ctx.catalog.clients.filter((client) => client.type !== "walkin" && (!needle || normalizeSearch(client.name).includes(needle) || (digits.length >= 3 && client.phone.replace(/\D/g, "").includes(digits))));
+  const matches = ctx.catalog.clients.filter((client) => client.type !== "walkin" && matchesPerson(client, query));
   const pick = (clientId: string) => {
     if (clientId !== model.appointment.clientId) onPatch(model.appointment, { clientId });
     onClose();

@@ -7,6 +7,7 @@ import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { ClientAvatar, DetailRow, ServiceThumb } from "../calendarShared";
 import { appointmentRange, appointmentTotal, findBarber, findClient, servicesOf, type ModelContext } from "../calendarModel";
 import type { Appointment } from "../types";
+import { personSearchText } from "@/lib/search/personSearch";
 
 /**
  * Las citas enlazadas: las que salieron de un mismo agendamiento o se
@@ -122,6 +123,7 @@ export function LinkPicker({ current, candidates, ctx, onLink }: LinkPickerProps
             value: item.id,
             label: `${name} · ${appointmentRange(item, ctx.intl)}`,
             description: [findBarber(ctx.catalog, item.barberId)?.name, servicesLabel(item, ctx)].filter(Boolean).join(" · "),
+            keywords: client ? personSearchText(client) : undefined,
             leading: <ClientAvatar client={client} name={name} size="sm" />,
           };
         })}

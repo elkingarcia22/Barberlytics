@@ -2,8 +2,8 @@ import type { calendarPanelEs } from "./panel.es";
 
 export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.search.label": "Search appointments",
-  "calendar.search.placeholder": "Name, phone, barber, status…",
-  "calendar.search.hint": "Search by name, phone, barber, service, status, day or time.",
+  "calendar.search.placeholder": "Name, phone, email, barber, status…",
+  "calendar.search.hint": "Search by name, phone, email, barber, service, status, day or time.",
   "calendar.search.loading": "Searching…",
   "calendar.search.count": "{count} appointments",
   "calendar.search.countMore": "{shown} of {total} appointments: narrow it down",
@@ -155,7 +155,7 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.panel.client.change": "Change client",
   "calendar.panel.client.changeTitle": "Who is it for?",
   "calendar.panel.client.changeHint": "The appointment stays the same (services, barber and time); reminders go to the new client.",
-  "calendar.panel.client.searchPlaceholder": "Search by name or phone",
+  "calendar.panel.client.searchPlaceholder": "Search by name, phone or email",
   "calendar.panel.client.noMatch": "No one matches «{query}».",
   "calendar.panel.client.seeAll": "See everything about the client",
   "calendar.panel.fields.request": "Comments and haircut photo",

@@ -194,7 +194,7 @@ export function CalendarDayView({
     <>
       {/* Pantalla estrecha: un barbero a la vez, elegido en la tira. */}
       {onTeamChange && working.length > 1 && (
-        <div role="group" aria-label={t("calendar.team")} className="-mx-1 flex shrink-0 gap-1.5 overflow-x-auto px-1 pb-1 md:hidden" data-testid="calendar-barber-strip">
+        <div role="group" aria-label={t("calendar.team")} className="-mx-1 flex shrink-0 gap-1.5 overflow-x-auto px-1 py-1 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden" data-testid="calendar-barber-strip">
           <Chip size="sm" label={t("calendar.team.all")} selected={team === "working" || team === "all"} tone={team === "working" || team === "all" ? "primary" : "default"} onClick={() => onTeamChange("working")} />
           {working.map((barber) => (
             <Chip key={barber.id} size="sm" label={barber.name.split(" ")[0]} selected={team === barber.id} tone={team === barber.id ? "primary" : "default"} onClick={() => onTeamChange(barber.id)} />

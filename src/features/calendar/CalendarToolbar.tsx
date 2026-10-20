@@ -130,36 +130,38 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
         )}
       </div>
 
-      {/* En el celular «Filtros» baja con las herramientas y se va con ellas a la derecha. */}
-      {status && <div className="max-sm:ml-auto">{status}</div>}
-      {summary}
+      {/* En el celular «Filtros» y las herramientas son un solo bloque: bajan juntos y a la derecha, sin
+          partirse en dos filas. Desde `sm` el bloque se deshace (`contents`) y cada pieza va en su sitio. */}
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2 sm:contents">
+        {status}
+        {summary}
 
-      {/* Las herramientas, a la derecha: también cuando bajan a su propia fila en el celular. */}
-      <div className={cn("flex flex-wrap items-center justify-end gap-2", status ? "sm:ml-auto" : "ml-auto")}>
-        {search}
-        {beforeView}
-        {/* La vista en un menú y no en cuatro segmentos: la fila tiene que caber
-            en una línea con la lateral abierta, y cambiar de vista tiene atajo. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" aria-label={`${t("date.changeView")}: ${viewLabel}`} data-testid="calendar-view">
-              {viewLabel}
-              <ChevronDown className="text-text-muted" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuRadioGroup value={view} onValueChange={(value) => onViewChange(value as CalendarView)}>
-              {VIEWS.map((option) => (
-                <DropdownMenuRadioItem key={option.value} value={option.value}>
-                  {t(option.label)}
-                  <DropdownMenuShortcut>{option.shortcut}</DropdownMenuShortcut>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {viewSettings}
-        {actions}
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
+          {search}
+          {beforeView}
+          {/* La vista en un menú y no en cuatro segmentos: la fila tiene que caber
+              en una línea con la lateral abierta, y cambiar de vista tiene atajo. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" aria-label={`${t("date.changeView")}: ${viewLabel}`} data-testid="calendar-view">
+                {viewLabel}
+                <ChevronDown className="text-text-muted" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuRadioGroup value={view} onValueChange={(value) => onViewChange(value as CalendarView)}>
+                {VIEWS.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {t(option.label)}
+                    <DropdownMenuShortcut>{option.shortcut}</DropdownMenuShortcut>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {viewSettings}
+          {actions}
+        </div>
       </div>
     </div>
   );

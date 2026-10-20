@@ -94,7 +94,7 @@ import {
   isUnpaid,
   isUnconfirmed,
 } from "./calendarModel";
-import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
+import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TeamFilter, type TimeBlock, type WaitlistEntry } from "./types";
 
 /**
  * El calendario de la barbería: el día por barbero, la agenda como lista y
@@ -729,6 +729,23 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     followedDay.current = previewDay;
     if (previewDay !== state.dateKey) state.setDate(parseLocal(`${previewDay}T00:00`));
   }, [previewDay, state]);
+
+  // Lo mismo con el barbero: si el filtro de equipo lo deja fuera, la agenda pasa a él. Al cerrar el
+  // panel vuelve el filtro de antes, salvo que alguien lo haya cambiado mientras tanto.
+  const previewBarberId = panel?.kind === "create" ? createPreview?.barberId ?? null : panel?.kind === "timeOff" ? timeOffPreview?.barberId ?? null : null;
+  const teamBeforePreview = React.useRef<{ team: TeamFilter; set: TeamFilter } | null>(null);
+  React.useEffect(() => {
+    if (!ctx || ownBarberId) return;
+    if (!previewBarberId) {
+      const saved = teamBeforePreview.current;
+      teamBeforePreview.current = null;
+      if (saved && state.team === saved.set) state.setTeam(saved.team);
+      return;
+    }
+    if (visibleBarbers(ctx.catalog.barbers, state.team, state.date).some((barber) => barber.id === previewBarberId)) return;
+    teamBeforePreview.current = { team: teamBeforePreview.current?.team ?? state.team, set: previewBarberId };
+    state.setTeam(previewBarberId);
+  }, [ctx, ownBarberId, previewBarberId, state]);
 
   // «Solo huecos disponibles»: los ratos libres de quien se ve, como bloques que se tocan para agendar.
   const freeGhosts = React.useMemo<ScheduleEvent[]>(() => {

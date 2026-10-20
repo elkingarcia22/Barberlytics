@@ -36,7 +36,6 @@ import { dayPulse } from "./pulseModel";
 import { CalendarAssistantDrawer } from "./CalendarAssistantDrawer";
 import { dayBrief, type WaitlistMatch } from "./dayBrief";
 import { CheckoutDrawer } from "./CheckoutDrawer";
-import { BlockDrawer } from "./BlockDrawer";
 import { CollectionsDrawer } from "./CollectionsDrawer";
 import { WaitlistDrawer } from "./WaitlistDrawer";
 import { WalkInQueueDrawer } from "@/features/frontDesk/WalkInQueueDrawer";
@@ -60,7 +59,7 @@ import { BLOCK_CATEGORY_KEYS } from "./types";
 import { TimeOffDrawer, type TimeOffFocus } from "./timeOff/TimeOffDrawer";
 import { DayPanel } from "./dayPanel/DayPanel";
 import { BlockOptionsDialog } from "./BlockOptionsDialog";
-import { ABSENCE_BLOCK_PREFIX, isAbsenceBlock } from "./timeOff/timeOffModel";
+import { ABSENCE_BLOCK_PREFIX, isAbsenceBlock, previewSpanOn, type TimeOffPreview } from "./timeOff/timeOffModel";
 import { resourceConflict, resourceDay, resourceReason } from "./resourceModel";
 import { useResourcesQuery } from "@/features/services/queries";
 import { dayWeightOf } from "./dayWeight";
@@ -116,7 +115,6 @@ type Panel =
   | { kind: "create"; initial: CreateAppointmentInitial | null }
   | { kind: "assistant" }
   | { kind: "checkout"; appointment: Appointment }
-  | { kind: "block"; barberId: string | null; block?: TimeBlock }
   | { kind: "blockOptions"; block: TimeBlock }
   | { kind: "collections" }
   | { kind: "waitlist" }
@@ -211,6 +209,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const [draft, setDraft] = React.useState<CreateAppointmentDraft>(EMPTY_DRAFT);
   // Dónde va a quedar la cita que se está creando: se marca en la agenda.
   const [createPreview, setCreatePreview] = React.useState<CreatePreview | null>(null);
+  // Lo mismo con la ausencia o el bloqueo que se está agregando.
+  const [timeOffPreview, setTimeOffPreview] = React.useState<TimeOffPreview | null>(null);
   const [freed, setFreed] = React.useState<FreedSlot[]>([]);
   /** Lo último que se movió, para la tecla Z. */
   const undoRef = React.useRef<(() => void) | null>(null);
@@ -467,7 +467,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
         waitlist: () => openPanel({ kind: "waitlist" }),
-        block: () => openPanel({ kind: "block", barberId: ownBarberId }),
+        block: () => openPanel({ kind: "timeOff", focus: { type: "add", kind: "block", barberId: ownBarberId } }),
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
@@ -684,31 +684,30 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     }));
   }, [ctx, draft.clientId, panel?.kind, suggestions, createPreview, t]);
 
-  // La cita que se está creando, en su sitio: llena, con borde discontinuo y halo de marca.
+  // Lo que se está creando, en su sitio: llena, con borde discontinuo y halo de marca. La cita en
+  // «Crear cita»; la ausencia o el bloqueo en su panel (en cada día que le toca, a sus horas o su jornada).
   const previewGhosts = React.useMemo<ScheduleEvent[]>(() => {
-    if (!ctx || panel?.kind !== "create" || !createPreview || !isSameDay(createPreview.start, state.date)) return [];
-    const client = createPreview.clientId ? findClient(ctx.catalog, createPreview.clientId) : undefined;
-    const services = createPreview.serviceIds.map((id) => ctx.catalog.services.find((service) => service.id === id)?.name).filter(Boolean);
-    return [
-      {
-        id: "create-preview",
-        resourceId: createPreview.barberId,
-        start: createPreview.start,
-        end: createPreview.end,
-        kind: "appointment",
-        title: client?.name ?? t("calendar.createV.newAppointment"),
-        note: services.join(" + ") || undefined,
-        tone: "primary",
-        badge: { label: t("calendar.createV.creating"), tone: "primary" },
-        ghost: true,
-        active: true,
-        locked: true,
-      },
-    ];
-  }, [ctx, panel?.kind, createPreview, state.date, t]);
+    if (!ctx) return [];
+    const badge = { label: t("calendar.createV.creating"), tone: "primary" as const };
+    if (panel?.kind === "create" && createPreview && isSameDay(createPreview.start, state.date)) {
+      const client = createPreview.clientId ? findClient(ctx.catalog, createPreview.clientId) : undefined;
+      const services = createPreview.serviceIds.map((id) => ctx.catalog.services.find((service) => service.id === id)?.name).filter(Boolean);
+      return [{ id: "create-preview", resourceId: createPreview.barberId, start: createPreview.start, end: createPreview.end, kind: "appointment", title: client?.name ?? t("calendar.createV.newAppointment"), note: services.join(" + ") || undefined, tone: "primary", badge, ghost: true, active: true, locked: true }];
+    }
+    if (panel?.kind === "timeOff" && timeOffPreview) {
+      const barber = findBarber(ctx.catalog, timeOffPreview.barberId);
+      const hours = day.data?.hours?.[timeOffPreview.barberId] ?? (barber ? workingHoursOn(barber, state.date) : []);
+      const span = previewSpanOn(timeOffPreview, state.date, hours);
+      if (!span) return [];
+      return [{ id: "create-preview", resourceId: timeOffPreview.barberId, start: atMinutes(state.date, parseClock(span.start)), end: atMinutes(state.date, parseClock(span.end)), kind: "appointment", title: timeOffPreview.label, note: barber?.name, tone: "primary", badge, ghost: true, active: true, locked: true }];
+    }
+    return [];
+  }, [ctx, panel?.kind, createPreview, timeOffPreview, day.data, state.date, t]);
 
-  // La agenda se desplaza hasta la cita que se arma cada vez que cambia de sitio (barbero, día u hora).
-  const previewSpot = previewGhosts[0] ? `${previewGhosts[0].resourceId}-${previewGhosts[0].start.getTime()}` : null;
+  // La agenda se desplaza hasta lo que se arma cada vez que cambia de sitio (barbero, día u hora).
+  // Al saltar de día se espera a que llegue su agenda: la rejilla se repinta y perdería el desplazamiento.
+  const dayLoaded = !dayQuery.isFetching && dayQuery.data ? state.dateKey : null;
+  const previewSpot = previewGhosts[0] && dayLoaded ? `${previewGhosts[0].resourceId}-${previewGhosts[0].start.getTime()}-${dayLoaded}` : null;
   React.useEffect(() => {
     if (!previewSpot) return;
     const frame = requestAnimationFrame(() => {
@@ -718,18 +717,18 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     return () => cancelAnimationFrame(frame);
   }, [previewSpot]);
 
-  // Al cambiar el día en «Crear cita», la agenda se va a ese día (solo cuando cambia: se puede mirar otro).
+  // Al cambiar el día de lo que se arma, la agenda se va a ese día (solo cuando cambia: se puede mirar otro).
+  const previewDay = createPreview ? toLocalIso(createPreview.start).slice(0, 10) : timeOffPreview ? timeOffPreview.startDate : null;
   const followedDay = React.useRef<string | null>(null);
   React.useEffect(() => {
-    if (!createPreview) {
+    if (!previewDay) {
       followedDay.current = null;
       return;
     }
-    const key = toLocalIso(createPreview.start).slice(0, 10);
-    if (key === followedDay.current) return;
-    followedDay.current = key;
-    if (key !== state.dateKey) state.setDate(createPreview.start);
-  }, [createPreview, state]);
+    if (previewDay === followedDay.current) return;
+    followedDay.current = previewDay;
+    if (previewDay !== state.dateKey) state.setDate(parseLocal(`${previewDay}T00:00`));
+  }, [previewDay, state]);
 
   // «Solo huecos disponibles»: los ratos libres de quien se ve, como bloques que se tocan para agendar.
   const freeGhosts = React.useMemo<ScheduleEvent[]>(() => {
@@ -1148,7 +1147,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onSeeAll={ownBarberId ? undefined : () => state.setTeam("all")}
                         onConfigureHours={can.canViewTeam ? () => navigate("/usuarios") : undefined}
                         onViewBarber={can.canViewTeam ? (barber: Barber) => navigate(`/usuarios/miembros/${barber.id}`) : undefined}
-                        onBlockBarber={can.canCreateBlock ? (barber: Barber) => openPanel({ kind: "block", barberId: barber.id }) : undefined}
+                        onBlockBarber={can.canCreateBlock ? (barber: Barber) => openPanel({ kind: "timeOff", focus: { type: "add", kind: "block", barberId: barber.id } }) : undefined}
                         onReflowBarber={planForBarber}
                         onTeamChange={ownBarberId ? undefined : state.setTeam}
                       />
@@ -1241,23 +1240,13 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 }}
               />
 
-              <BlockDrawer
-                open={panel?.kind === "block"}
-                onOpenChange={(open) => !open && closePanel()}
-                barbers={barbers}
-                initialBarberId={panel?.kind === "block" ? panel.barberId : null}
-                block={panel?.kind === "block" ? (panel.block ?? null) : null}
-                date={state.date}
-                day={day.data}
-                ownOnly={Boolean(ownBarberId)}
-              />
 
               <BlockOptionsDialog
                 block={panel?.kind === "blockOptions" ? panel.block : null}
                 ctx={ctx}
                 onOpenChange={(open) => !open && closePanel()}
                 onCreate={(block) => openPanel({ kind: "create", initial: { barberId: block.barberId, start: atMinutes(state.date, parseClock(block.startTime)) } })}
-                onEdit={(block) => openPanel({ kind: "block", barberId: block.barberId, block })}
+                onEdit={(block) => openPanel({ kind: "timeOff", focus: { type: "add", kind: "block", barberId: block.barberId, block } })}
                 onRemove={panel?.kind === "blockOptions" && canRemoveBlock(can, panel.block) ? (block) => setPanel({ kind: "removeBlock", block }) : undefined}
               />
 
@@ -1307,6 +1296,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 // La deja sola en la rejilla, en su primer día; el panel sigue abierto para decidir.
                 onShowInCalendar={(focus, on) => state.showTimeOff(focus, on)}
                 onDecided={() => state.showTimeOff(null)}
+                date={state.date}
+                day={day.data}
+                canBlock={can.canCreateBlock}
+                onPreview={setTimeOffPreview}
                 onOpenAppointment={(date, id) => {
                   closePanel();
                   state.openAppointmentOn(date, id);

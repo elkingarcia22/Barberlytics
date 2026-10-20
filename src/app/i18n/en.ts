@@ -4,6 +4,7 @@ import { calendarTimeOffEn } from "./calendar/timeOff.en";
 import { frontDeskEn } from "./frontDesk/frontDesk.en";
 import { legalEn } from "./legal/legal.en";
 import { calendarDayPanelEn } from "./calendar/dayPanel.en";
+import { calendarCreateEn } from "./calendar/create.en";
 import type { AppMessageCatalog } from "./types";
 import { bookingEn } from "./booking/en";
 import { bookingVariantsEn } from "./booking/variants.en";
@@ -744,6 +745,7 @@ export const appEn: AppMessageCatalog = {
   "team.title": "Team",
   "team.description": "Who's on the floor, how their day is booked and what needs a hand, across every location.",
   "team.noun": "people",
+  "team.searchPlaceholder": "Search by name, phone or email",
   "team.roles": "The team by role",
   "team.rolesAria": "Filter the team by role",
   "team.allRoles": "Everyone",
@@ -4052,4 +4054,5 @@ export const appEn: AppMessageCatalog = {
   ...frontDeskEn,
   ...legalEn,
   ...calendarDayPanelEn,
+  ...calendarCreateEn,
 };

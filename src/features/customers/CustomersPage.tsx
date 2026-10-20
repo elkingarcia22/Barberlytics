@@ -289,7 +289,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         cells={cells}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.name}
-        searchBy={(row) => `${row.name} ${showContact ? `${row.email} ${row.phone.replace(/\D/g, "")}` : ""} ${t(SEGMENT_KEYS[row.segment])} ${branchName(row.branchId)}`}
+        searchBy={(row) => `${row.name} ${showContact ? `· ${row.email} · ${row.phone}` : ""} · ${t(SEGMENT_KEYS[row.segment])} · ${branchName(row.branchId)}`}
         searchPlaceholder={t("customers.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         selectable

@@ -24,6 +24,8 @@ export interface PanelFieldProps {
   /** El nombre del campo, encima de lo elegido: «Servicios». */
   eyebrow: string;
   value: string;
+  /** Lo que se lee mientras no hay nada elegido (`value` vacío): «Elige el cliente». */
+  placeholder?: string;
   detail?: string;
   imageUrl?: string | null;
   icon?: IconName;
@@ -39,16 +41,17 @@ export interface PanelFieldProps {
 }
 
 /** El campo de la reserva: foto, nombre del campo, lo elegido y un detalle; abre su lista. */
-export function PanelField({ eyebrow, value, detail, imageUrl, icon = "scissors", leading, round = false, open = false, onOpen, locked = false, lockedHint, testId }: PanelFieldProps) {
+export function PanelField({ eyebrow, value, placeholder, detail, imageUrl, icon = "scissors", leading, round = false, open = false, onOpen, locked = false, lockedHint, testId }: PanelFieldProps) {
+  const empty = !value && Boolean(placeholder);
   const body = (
     <>
-      {leading ?? <IconTile size="md" shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone="primary" />}
+      {leading ?? <IconTile size="md" shape={round ? "circle" : "rounded"} src={imageUrl ?? undefined} icon={<ThemaIcon name={icon} />} tone={empty ? "neutral" : "primary"} />}
       <span className="flex min-w-0 flex-1 flex-col">
         <Text as="span" size="xs" tone="muted" truncate>
           {eyebrow}
         </Text>
-        <Text as="span" weight="medium" truncate>
-          {value}
+        <Text as="span" weight={empty ? undefined : "medium"} tone={empty ? "muted" : undefined} truncate>
+          {empty ? placeholder : value}
         </Text>
         {(locked ? lockedHint : detail) && (
           <Text as="span" size="xs" tone="muted" tabular truncate>

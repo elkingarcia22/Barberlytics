@@ -6,8 +6,8 @@
 export const calendarPanelEs = {
   // ── Buscador de la agenda ──
   "calendar.search.label": "Buscar citas",
-  "calendar.search.placeholder": "Nombre, celular, barbero, estado…",
-  "calendar.search.hint": "Busca por nombre, celular, barbero, servicio, estado, día u hora.",
+  "calendar.search.placeholder": "Nombre, celular, correo, barbero, estado…",
+  "calendar.search.hint": "Busca por nombre, celular, correo, barbero, servicio, estado, día u hora.",
   "calendar.search.loading": "Buscando…",
   "calendar.search.count": "{count} citas",
   "calendar.search.countMore": "{shown} de {total} citas: afina la búsqueda",
@@ -161,7 +161,7 @@ export const calendarPanelEs = {
   "calendar.panel.client.change": "Cambiar cliente",
   "calendar.panel.client.changeTitle": "¿A nombre de quién?",
   "calendar.panel.client.changeHint": "La cita queda igual (servicios, barbero y hora); los avisos le llegan al nuevo.",
-  "calendar.panel.client.searchPlaceholder": "Buscar por nombre o celular",
+  "calendar.panel.client.searchPlaceholder": "Buscar por nombre, celular o correo",
   "calendar.panel.client.noMatch": "Nadie con «{query}».",
   "calendar.panel.client.seeAll": "Ver todo del cliente",
   "calendar.panel.fields.request": "Comentarios y foto del corte",

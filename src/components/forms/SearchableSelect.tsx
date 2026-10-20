@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { matchesSearchText } from "@/lib/search/personSearch"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -22,6 +23,8 @@ export type SearchableSelectOption = {
   description?: string
   /** Avatar o miniatura a la izquierda (también en el botón, con la opción elegida). */
   leading?: React.ReactNode
+  /** Más texto por el que se encuentra la opción sin mostrarlo (el correo o el celular de una persona). */
+  keywords?: string
   disabled?: boolean
 }
 
@@ -71,7 +74,8 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl border shadow-drawer">
-        <Command>
+        {/* La regla de todos los buscadores: todas las palabras, sin tildes, y un celular escrito como sea. */}
+        <Command filter={(_value, search, keywords) => (matchesSearchText((keywords ?? []).join(" "), search) ? 1 : 0)}>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -80,7 +84,7 @@ export function SearchableSelect({
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  keywords={[option.label, option.description ?? ""]}
+                  keywords={[option.label, option.description ?? "", option.keywords ?? ""]}
                   disabled={option.disabled}
                   onSelect={() => {
                     onValueChange?.(option.value)

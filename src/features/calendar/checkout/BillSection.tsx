@@ -14,6 +14,7 @@ import { CheckoutPrice } from "../CheckoutPrice";
 import { PanelQuestion } from "../appointmentPanel/bookingStyle";
 import type { Appointment } from "../types";
 import type { CheckoutController } from "./useCheckout";
+import { personSearchText } from "@/lib/search/personSearch";
 
 /**
  * Qué se cobra: las citas que van juntas (las de su visita y otras sin
@@ -60,7 +61,7 @@ export function BillSection({ checkout, appointment, ctx }: { checkout: Checkout
               searchPlaceholder={t("calendar.checkout.addAppointmentSearch")}
               options={addable.map((item) => {
                 const client = findClient(ctx.catalog, item.clientId);
-                return { value: item.id, label: client?.name ?? t("calendar.clientType.walkin"), description: `${appointmentRange(item, ctx.intl)} · ${servicesOf(ctx.catalog, item).map((service) => service.name).join(" + ")}`, leading: <ClientAvatar client={client} size="sm" /> };
+                return { value: item.id, label: client?.name ?? t("calendar.clientType.walkin"), description: `${appointmentRange(item, ctx.intl)} · ${servicesOf(ctx.catalog, item).map((service) => service.name).join(" + ")}`, keywords: client ? personSearchText(client) : undefined, leading: <ClientAvatar client={client} size="sm" /> };
               })}
               data-testid="checkout-add-appointment"
             />

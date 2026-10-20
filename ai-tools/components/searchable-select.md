@@ -12,7 +12,7 @@ import { SearchableSelect } from "@/components/forms"
 
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
-| `options` | `SearchableSelectOption[]` |  | Opciones con value, label, description, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label y description. |
+| `options` | `SearchableSelectOption[]` |  | Opciones con value, label, description, keywords, leading (avatar o miniatura) y disabled, todos opcionales salvo los dos primeros. Se filtra por label, description y keywords con la regla de todos los buscadores (`matchesSearchText`): todas las palabras, sin tildes, y un celular escrito como sea. |
 | `value` | `string` |  | Valor seleccionado (controlado). |
 | `onValueChange` | `(value: string) => void` |  | Se llama al elegir; el popover se cierra solo. |
 | `placeholder` | `string` | `"Selecciona una opción"` | Texto del trigger sin selección. |
@@ -25,6 +25,7 @@ import { SearchableSelect } from "@/components/forms"
 
 - Sí: Úsalo a partir de ~10 opciones o con nombres propios (personas, ciudades).
 - Sí: Aprovecha `description` para desambiguar homónimos.
+- Sí: Si las opciones son personas, pon `keywords: personSearchText(persona)` para que se encuentren por celular y correo aunque no se muestren.
 - Sí: Personaliza `emptyMessage` con una acción posible cuando exista.
 - No: No lo uses para 3 o 4 opciones: el buscador estorba; usa Select o SegmentedControl.
 - No: No dependas del filtro para listas de miles: pagina o busca en servidor.

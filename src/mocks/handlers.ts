@@ -32,6 +32,7 @@ import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
 import { buildBusinessMetrics } from "./metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
+import { matchesPerson, matchesSearchText } from "@/lib/search/personSearch";
 
 /**
  * Handlers del backend simulado. Reproducen el contrato de docs/API_CONTRACT.md
@@ -478,7 +479,7 @@ export const handlers = [
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
     const url = new URL(request.url);
-    const search = url.searchParams.get("search")?.toLowerCase().trim() ?? "";
+    const search = url.searchParams.get("search") ?? "";
     const status = url.searchParams.get("status") ?? "";
     const sort = url.searchParams.get("sort") ?? "name";
     const page = Number(url.searchParams.get("page") ?? 1);
@@ -486,7 +487,7 @@ export const handlers = [
     let items = db.users.filter(
       (user) =>
         (!status || user.status === status) &&
-        (!search || user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search) || user.area.toLowerCase().includes(search))
+        (!search || matchesPerson(user, search) || matchesSearchText(user.area, search))
     );
     const [field, direction] = sort.startsWith("-") ? [sort.slice(1), -1] : [sort, 1];
     items = [...items].sort((a, b) => {

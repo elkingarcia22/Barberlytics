@@ -9,7 +9,7 @@ import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
 import { seedExpenses, type MockExpense, type MockExpenseCustomCategory } from "./expenses/seed";
-import { seedSettings, type MockSettingsState } from "./settings/seed";
+import { seedSettings, upgradeSettings, type MockSettingsState } from "./settings/seed";
 import { emptyPayroll, type MockPayrollState } from "./payroll/state";
 import { emptyRegister, type MockRegisterState } from "./register/state";
 import { emptyInventory, type MockInventoryState } from "./inventory/state";
@@ -285,7 +285,7 @@ export function createDb(): MockDb {
     products: saved?.products ?? seedProducts(),
     expenses: saved?.expenses ?? seedExpenses(),
     expenseCategories: saved?.expenseCategories ?? [],
-    settings: saved?.settings ?? seedSettings(),
+    settings: saved?.settings ? upgradeSettings(saved.settings) : seedSettings(),
     booking: saved?.booking ?? emptyBooking(),
     payroll: saved?.payroll ?? emptyPayroll(),
     register: saved?.register ?? emptyRegister(),

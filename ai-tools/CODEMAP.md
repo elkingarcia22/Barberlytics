@@ -665,9 +665,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### calendar/checkout
 
 - **BillSection.tsx** — Vender una tarjeta de regalo en el mismo cobro: el monto y para quién (le llega el código). · `BillSection`, `GiftSaleField`, `DiscountField` · piezas: ActionTile, Button, Chip, Field, IconTile, Input, ListItem, ListItemGroup, NumberField, SearchableSelect, SegmentedControl, Text
-- **PaySection.tsx** — «¿Cómo paga?», con las tarjetas del panel de la cita: una por forma de pago, con lo que se sabe de ella debaj… · `PayPage`, `PayMethods`, `PayPageContent` · piezas: Alert, AlertDescription, Button, Chip, Field, IconTile, Input, NumberField, OptionTile, SegmentedControl, Text · usa: @/icons, @/lib/utils
+- **PaySection.tsx** · `PayMethods` · piezas: Alert, AlertDescription, Button, Chip, Field, IconTile, Input, NumberField, SegmentedControl, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/icons, @/lib/utils
 - **allocate.ts** — Reparte `parts` entre cuentas de `dues` (lo que cobra cada cita). · `AllocatedPayment`, `allocateParts`, `paymentOf`
-- **useCheckout.ts** — Cómo paga: los métodos de siempre más «en partes» (cada parte con el suyo). · `PayChoice`, `DiscountType`, `GiftSaleDraft`, `UseCheckoutOptions`, `useCheckout`, `CheckoutController` · usa: @/app/i18n, @/features/settings, @/lib/api
+- **payLines.ts** — Cómo se reparte un cobro entre formas de pago, sin interfaz. · `PayMode`, `LineMethod`, `PayLine`, `cents`, `equalLines`, `linesTotal`, `giftOf`, `mixedLines`, `LinesPayment`, `paymentOfLines`
+- **useCheckout.ts** — Cómo paga: efectivo, tarjeta, link, tarjeta de regalo, mixto (dos formas) o en partes. · `PayChoice`, `DiscountType`, `GiftSaleDraft`, `UseCheckoutOptions`, `useCheckout`, `CheckoutController` · usa: @/app/i18n, @/features/settings, @/lib/api
 
 ### calendar/clientNotes
 
@@ -1208,7 +1209,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **branchRules.ts** — La zona de la sucursal (Configuración › Sucursales), o la del negocio si no tiene. · `branchOf`, `branchCurrency`, `branchTimeZone`, `startInstant`, `branchNow`, `branchCountry`, `branchSendPlace`, `promoWindowOf`, `consentProof`, `branchTaxPercent`, `taxInclusive`, `itemTaxPercent`, `TaxableAccount`, `accountTaxPercent`, `branchOnlineMethods` · usa: @/features/branches, @/features/legal, @/features/settings, @/lib/time
 - **handlers.ts** · `settingsHandlers` · usa: @/features/settings
-- **seed.ts** — La configuración del backend simulado. · `MockSettingsSection`, `MockSettingsList`, `MockListItem`, `MockSettingsState`, `DEFAULT_POLICY`, `seedSettings`
+- **seed.ts** — La configuración del backend simulado. · `MockSettingsSection`, `SEED_DEVICES`, `upgradeDevices`, `MockSettingsList`, `MockListItem`, `MockSettingsState`, `DEFAULT_POLICY`, `upgradeSettings`, `seedSettings`
 
 ### team
 

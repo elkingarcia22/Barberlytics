@@ -9,7 +9,7 @@ import { emptyCustomers, type MockCustomersState } from "./customers/seed";
 import { seedServices, type MockServicesState } from "./services/seed";
 import { seedProducts, type MockProductsState } from "./products/seed";
 import { seedExpenses, type MockExpense, type MockExpenseCustomCategory } from "./expenses/seed";
-import { seedSettings, type MockSettingsState } from "./settings/seed";
+import { seedSettings, upgradeSettings, type MockSettingsState } from "./settings/seed";
 import { emptyPayroll, type MockPayrollState } from "./payroll/state";
 import { emptyRegister, type MockRegisterState } from "./register/state";
 import { emptyInventory, type MockInventoryState } from "./inventory/state";
@@ -171,6 +171,28 @@ const emptyTeam = (): MockTeamState => {
   return { members, levels: [...LEVELS], orders: seedOrders(members), overrides: seedOverrides() };
 };
 
+/** Un dispositivo desde el que entró una cuenta: un id que guarda el navegador y cómo se ve («Chrome en macOS»). */
+export interface MockKnownDevice {
+  id: string;
+  label: string;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+/** Un aviso de seguridad para la propia cuenta. */
+export interface MockSecurityEvent {
+  id: string;
+  accountId: string;
+  kind: "newDevice";
+  label: string;
+  at: string;
+}
+
+export interface MockSecurityState {
+  devices: Record<string, MockKnownDevice[]>;
+  events: MockSecurityEvent[];
+}
+
 export interface MockDb {
   /** Feedback de campañas recibido; en memoria, se pierde al recargar. */
   feedback: Record<string, unknown>[];
@@ -190,6 +212,8 @@ export interface MockDb {
   expenses: MockExpense[];
   /** Las categorías de gasto propias de la barbería (además de las de siempre). */
   expenseCategories: MockExpenseCustomCategory[];
+  /** Los dispositivos desde los que entró cada cuenta y los avisos de seguridad (nuevo dispositivo). */
+  security: MockSecurityState;
   /** La configuración: un documento por ajuste y las listas (sucursales, cierres, impuestos, datáfonos). */
   settings: MockSettingsState;
   /** La reserva en línea: recibos, saldo a favor y cancelaciones de cada cliente. */
@@ -240,6 +264,7 @@ interface PersistedDb {
   products?: MockProductsState;
   expenses?: MockExpense[];
   expenseCategories?: MockExpenseCustomCategory[];
+  security?: MockSecurityState;
   settings?: MockSettingsState;
   booking?: MockBookingState;
   payroll?: MockPayrollState;
@@ -285,7 +310,8 @@ export function createDb(): MockDb {
     products: saved?.products ?? seedProducts(),
     expenses: saved?.expenses ?? seedExpenses(),
     expenseCategories: saved?.expenseCategories ?? [],
-    settings: saved?.settings ?? seedSettings(),
+    security: saved?.security ?? { devices: {}, events: [] },
+    settings: saved?.settings ? upgradeSettings(saved.settings) : seedSettings(),
     booking: saved?.booking ?? emptyBooking(),
     payroll: saved?.payroll ?? emptyPayroll(),
     register: saved?.register ?? emptyRegister(),
@@ -306,7 +332,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, security: db.security, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -322,6 +348,7 @@ export function createDb(): MockDb {
       db.products = seedProducts();
       db.expenses = seedExpenses();
       db.expenseCategories = [];
+      db.security = { devices: {}, events: [] };
       db.settings = seedSettings();
       db.booking = emptyBooking();
       db.payroll = emptyPayroll();

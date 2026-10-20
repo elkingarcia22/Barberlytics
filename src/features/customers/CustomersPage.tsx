@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { CheckCircle2, TriangleAlert, UserPlus, Users, Upload } from "lucide-react";
+import { CheckCircle2, TriangleAlert, UserPlus, Users, Upload, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
@@ -25,6 +25,11 @@ import { CustomerFormDrawer } from "./CustomerFormDrawer";
 import { CustomerImportDrawer } from "./CustomerImportDrawer";
 import { ReactivationDrawer } from "./ReactivationDrawer";
 import { PrivacyRequestsDrawer } from "./PrivacyRequestsDrawer";
+import { CustomerBulkWhatsAppDialog } from "./CustomerBulkWhatsAppDialog";
+import type { MessagePurpose } from "./relationship";
+
+/** Con qué mensaje arranca «Escribirles» desde cada aviso. */
+const ALERT_PURPOSE: Readonly<Record<CustomerAlertId, MessagePurpose>> = { atRisk: "rebook", overdue: "rebook", birthday: "birthday", unreliable: "free" };
 import { useAccess } from "@/features/access";
 import { CustomerNoteDrawer } from "./CustomerNoteDrawer";
 import { useCustomerPermissions } from "./customerAccess";
@@ -122,6 +127,8 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
   const [importing, setImporting] = React.useState(false);
   const [reactivating, setReactivating] = React.useState(false);
   const [privacyOpen, setPrivacyOpen] = React.useState(false);
+  // WhatsApp a varios: a los marcados o a los de un aviso (cumpleaños, por volver…).
+  const [bulk, setBulk] = React.useState<{ customers: Customer[]; purpose: MessagePurpose } | null>(null);
   // Reactivar escribe a clientes en nombre de la barbería: lo aprueba quien gestiona.
   const access = useAccess();
   const manages = access.role === "owner" || access.role === "admin";
@@ -165,11 +172,12 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
           note: () => single && setDrawer("note"),
           block: () => single && setConfirmBlock(single),
           remove: () => single && setConfirmDelete(single),
+          whatsapp: perms.showContact ? () => setBulk({ customers: rows.filter((row) => selected.has(row.id)), purpose: "thanks" }) : undefined,
         },
         single?.blocked ?? false,
         perms
       ),
-    [exportList, manages, navigate, perms, single, t]
+    [exportList, manages, navigate, perms, single, t, rows, selected]
   );
 
   /* Cambiar de segmento con un aviso puesto puede dejar la lista en blanco
@@ -208,6 +216,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
+      {bulk && <CustomerBulkWhatsAppDialog open onOpenChange={(open) => !open && setBulk(null)} customers={bulk.customers} purpose={bulk.purpose} />}
       {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       </>
     );
@@ -279,6 +288,14 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
         })}
       </AttentionStrip>
 
+      {preset && perms.showContact && filtered.length > 0 && (
+        <div className="-mt-stack mb-section flex shrink-0 justify-end">
+          <Button variant="outline" size="sm" onClick={() => setBulk({ customers: filtered, purpose: ALERT_PURPOSE[preset.id] })} data-testid="customers-alert-whatsapp">
+            <MessageCircle /> {t("customers.bulk.fromAlert", { count: filtered.length })}
+          </Button>
+        </div>
+      )}
+
       <DataListBlock
         tableId="clientes-lista"
         title={t("customers.listTitle")}
@@ -338,6 +355,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
       <CustomerFormDrawer open={drawer === "create"} onOpenChange={(open) => !open && setDrawer(null)} branchId={branchId} onCreated={(customer) => navigate(`/clientes/${customer.id}`)} />
       <CustomerImportDrawer open={importing} onOpenChange={setImporting} branchId={branchId} />
       <ReactivationDrawer open={reactivating} onOpenChange={setReactivating} branchId={branchId} />
+      {bulk && <CustomerBulkWhatsAppDialog open onOpenChange={(open) => !open && setBulk(null)} customers={bulk.customers} purpose={bulk.purpose} />}
       {perms.canLogPrivacy && <PrivacyRequestsDrawer open={privacyOpen} onOpenChange={setPrivacyOpen} canClose={perms.canManagePrivacy} />}
       <CustomerNoteDrawer open={drawer === "note"} onOpenChange={(open) => !open && setDrawer(null)} customerId={single?.id ?? null} customerName={single?.name ?? ""} />
 

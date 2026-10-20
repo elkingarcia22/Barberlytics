@@ -83,6 +83,12 @@ export interface CalendarFiltersProps {
    */
   timeOff?: { selected: readonly TimeOffKind[]; counts: Record<TimeOffKind, number> };
   onTimeOffChange?: (next: TimeOffKind[]) => void;
+  /** Solo las citas que el cliente no ha confirmado, con cuántas hay en el día. */
+  unconfirmed?: boolean;
+  onUnconfirmedChange?: (next: boolean) => void;
+  unconfirmedCount?: number;
+  /** Hoy: ir a mañana con ese filtro puesto («Sin confirmar mañana»), para escribirles a tiempo. */
+  onTomorrowUnconfirmed?: () => void;
 }
 
 const TIME_OFF_LABEL: Record<TimeOffKind, AppMessageKey> = { absences: "calendar.filters.showAbsences", blocks: "calendar.filters.showBlocks" };
@@ -98,12 +104,13 @@ const STATUS_LABEL: Record<PulseFocus, AppMessageKey> = {
 
 
 
-export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange, timeOff, onTimeOffChange }: CalendarFiltersProps) {
+export function CalendarFilters({ pulse, focuses, services, serviceIds, resources = [], clientTypeOptions = [], clientTypes = [], onChange, freeOnly = false, onFreeOnlyChange, showLinked = false, onShowLinkedChange, timeOff, onTimeOffChange, unconfirmed = false, onUnconfirmedChange, unconfirmedCount, onTomorrowUnconfirmed }: CalendarFiltersProps) {
   const t = useAppT();
   const freeId = React.useId();
+  const unconfirmedId = React.useId();
   const linkedId = React.useId();
   const timeOffSelected = timeOff?.selected.length ?? 0;
-  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0) + timeOffSelected;
+  const active = focuses.length + serviceIds.length + clientTypes.length + (freeOnly ? 1 : 0) + (showLinked ? 1 : 0) + (unconfirmed ? 1 : 0) + timeOffSelected;
   const emit = (next: Partial<CalendarFilterSelection>) =>
     onChange({ focuses: [...focuses], serviceIds: [...serviceIds], clientTypes: [...clientTypes], ...next });
 
@@ -122,6 +129,28 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 space-y-4 p-3" data-testid="calendar-filters-panel">
+        {onUnconfirmedChange && (
+          <div className="space-y-1.5" data-testid="calendar-filter-unconfirmed-row">
+            <div className="flex items-start justify-between gap-3">
+              <label htmlFor={unconfirmedId} className="min-w-0 space-y-0.5">
+                <Text as="span" variant="label" className="block">
+                  {t("calendar.filters.unconfirmed")}
+                  {unconfirmedCount !== undefined && <span className="ml-1.5 tabular-nums text-text-muted">{unconfirmedCount}</span>}
+                </Text>
+                <Text as="span" variant="caption" className="block">
+                  {t("calendar.filters.unconfirmedHint")}
+                </Text>
+              </label>
+              <Switch id={unconfirmedId} checked={unconfirmed} onCheckedChange={onUnconfirmedChange} data-testid="calendar-filter-unconfirmed" />
+            </div>
+            {onTomorrowUnconfirmed && (
+              <Button variant="ghost" size="xs" onClick={onTomorrowUnconfirmed} data-testid="calendar-filter-unconfirmed-tomorrow">
+                {t("calendar.filters.unconfirmedTomorrow")}
+              </Button>
+            )}
+          </div>
+        )}
+
         {onFreeOnlyChange && (
           <div className="flex items-start justify-between gap-3">
             <label htmlFor={freeId} className="min-w-0 space-y-0.5">
@@ -219,6 +248,7 @@ export function CalendarFilters({ pulse, focuses, services, serviceIds, resource
               onChange({ focuses: [], serviceIds: [], clientTypes: [] });
               if (freeOnly) onFreeOnlyChange?.(false);
               if (showLinked) onShowLinkedChange?.(false);
+              if (unconfirmed) onUnconfirmedChange?.(false);
               if (timeOffSelected > 0) onTimeOffChange?.([]);
             }}
             data-testid="calendar-filters-clear">

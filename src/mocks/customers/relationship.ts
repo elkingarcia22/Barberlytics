@@ -8,6 +8,7 @@ import { consentProof, promoWindowOf } from "../settings/branchRules";
 import { isBarber, sessionOf } from "../session";
 import { HEALTH_CONSENT_VERSION } from "@/features/legal/consent";
 import { logPrivacyRequest } from "./privacy";
+import { sendGiftCard } from "../booking/giftCards";
 import { PROMO_CAP_DAYS, promoNear } from "./promoCap";
 
 /**
@@ -23,6 +24,8 @@ const MAX_BODY = 1_000;
 const PURPOSES = ["thanks", "rebook", "birthday", "free"] as const;
 /** Volver y cumpleaños son promoción: piden el permiso del cliente (Ley 1581 / 2300). */
 const PROMOTIONAL: ReadonlySet<string> = new Set(["rebook", "birthday"]);
+/** A cuántos se les escribe de una vez desde la lista. */
+const MAX_BULK = 50;
 
 function error(status: number, code: string, message: string) {
   return HttpResponse.json({ code, message }, { status });
@@ -66,6 +69,8 @@ export function relationshipOf(client: MockClient, now = new Date()) {
         initial: card.initial,
         balance: card.balance,
         createdAt: card.createdAt,
+        // Si el código le llegó a quien la recibe (el mensaje de la cola), para reenviarlo si falló.
+        sent: giftSentOf(card.messageId),
       })),
     cards: cardsOf(client.id).map((card) => ({
       id: card.id,
@@ -118,7 +123,64 @@ export function relationshipOf(client: MockClient, now = new Date()) {
   };
 }
 
+/** En qué va el mensaje con el código de una tarjeta de regalo. */
+function giftSentOf(messageId: string | null | undefined): { status: "scheduled" | "sent" | "failed"; at: string } | null {
+  const message = messageId ? (db.booking.outbox ?? []).find((item) => item.id === messageId) : undefined;
+  if (!message || message.status === "cancelled") return null;
+  return { status: message.status === "sent" ? "sent" : message.status === "failed" ? "failed" : "scheduled", at: message.sentAt ?? message.sendAt };
+}
+
+type SendBlock = "noPhone" | "noConsent" | "outsideWindow" | "promoCap" | "notFound";
+
+/** Si a ese cliente se le puede escribir ese mensaje ahora, y si no, por qué (las mismas reglas que `POST …/messages`). */
+function sendCheck(client: MockClient | undefined, purpose: string, now = new Date()): SendBlock | null {
+  if (!client) return "notFound";
+  if (!client.phone) return "noPhone";
+  if (!PROMOTIONAL.has(purpose)) return null;
+  const profile = profileOf(client);
+  if (profile.marketingConsent?.accepted !== true) return "noConsent";
+  if (promoNear(client.id, now)) return "promoCap";
+  if (!promoWindowOf(profile.branchId, now).allowed) return "outsideWindow";
+  return null;
+}
+
 export const relationshipHandlers = [
+  // Reenviar el código de una tarjeta de regalo que compró el cliente (no llegó, o la persona lo perdió).
+  http.post(`${BASE}/customers/:id/gift-cards/:code/resend`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const session = sessionOf(request);
+    if (session && isBarber(session)) return error(403, "forbidden", "Las tarjetas de regalo las maneja recepción.");
+    const client = findClient(params.id);
+    const card = (db.booking.giftCards ?? []).find((item) => item.code === params.code && item.buyerId === client?.id);
+    if (!client || !card) return error(404, "not_found", "Esa tarjeta de regalo no existe.");
+    if (card.balance <= 0) return error(409, "conflict", "Esa tarjeta ya no tiene saldo.");
+    sendGiftCard(card, client.name, profileOf(client).branchId, account.user.name);
+    db.persist();
+    return HttpResponse.json(relationshipOf(client));
+  }),
+
+  /**
+   * Antes de escribirles a varios (desde un aviso o una selección): a quién sí y a quién no, con el motivo.
+   * Cada mensaje se abre y se anota uno por uno con `POST /customers/:id/messages`.
+   */
+  http.post(`${BASE}/customers/messages/check`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = (await request.json().catch(() => null)) as { ids?: unknown; purpose?: unknown } | null;
+    const purpose = PURPOSES.find((item) => item === input?.purpose);
+    const ids = Array.isArray(input?.ids) ? input.ids.filter((id): id is string => typeof id === "string").slice(0, MAX_BULK) : [];
+    if (!purpose || ids.length === 0) return HttpResponse.json({ code: "validation", message: "Elige a quién y para qué." }, { status: 422 });
+    const now = new Date();
+    return HttpResponse.json({
+      items: ids.map((id) => {
+        const client = findClient(id);
+        return { id, name: client?.name ?? "", phone: client?.phone ?? "", blocked: sendCheck(client, purpose, now) };
+      }),
+    });
+  }),
+
   http.get(`${BASE}/customers/:id/relationship`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

@@ -30,7 +30,7 @@ import { legalVersion } from "@/features/legal/documents";
 import { messagesHandlers } from "./messages/handlers";
 import { settingsHandlers } from "./settings/handlers";
 import { bookingHandlers } from "./booking/handlers";
-import { buildBusinessMetrics } from "./metrics";
+import { ALL_BRANCHES, branchesOf, buildBusinessMetrics } from "./metrics";
 import { buildBarbersMetrics, buildCustomersMetrics, buildInsightsMetrics, buildMarketingMetrics } from "./metricsTabs";
 import { matchesPerson, matchesSearchText } from "@/lib/search/personSearch";
 
@@ -151,6 +151,26 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const DEVICE_ID = /^[\w-]{8,64}$/;
+const MAX_DEVICES = 20;
+
+/**
+ * Anota el dispositivo con el que entró la cuenta. Si ya tenía otros y este es nuevo, queda un aviso de
+ * seguridad para la propia cuenta («Entraste desde un dispositivo nuevo»): si no fue ella, cierra las demás
+ * sesiones desde el aviso. El primer dispositivo no avisa (es el de siempre).
+ */
+function noteDevice(accountId: string, device: { id?: unknown; label?: unknown } | undefined): void {
+  const id = typeof device?.id === "string" && DEVICE_ID.test(device.id) ? device.id : null;
+  if (!id) return;
+  const label = typeof device?.label === "string" ? device.label.slice(0, 60) : "";
+  const now = new Date().toISOString();
+  const known = db.security.devices[accountId] ?? [];
+  const existing = known.find((item) => item.id === id);
+  const devices = existing ? known.map((item) => (item.id === id ? { ...item, lastSeen: now, label: label || item.label } : item)) : [...known, { id, label, firstSeen: now, lastSeen: now }].slice(-MAX_DEVICES);
+  const events = !existing && known.length > 0 ? [...db.security.events, { id: `sec_${Date.now().toString(36)}`, accountId, kind: "newDevice" as const, label, at: now }].slice(-100) : db.security.events;
+  db.security = { devices: { ...db.security.devices, [accountId]: devices }, events };
+}
+
 function openSession(account: MockAccount) {
   const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
   db.sessions.set(token, account.id);
@@ -207,13 +227,32 @@ export const handlers = [
   // es de ninguna barbería responde igual que un código malo: no se revela quién está registrado.
   http.post(`${BASE}/auth/otp/verify`, async ({ request }) => {
     await delay(LATENCY_MS);
-    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string };
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string; device?: { id?: unknown; label?: unknown } };
     const phone = normalizePhone(body.phone);
     if (isLocked(phone)) return lockedError(phone);
     const account = ACCOUNTS.find((item) => item.phone === phone);
     if (!account || body.code !== OTP_CODE) return registerFailure(phone);
     db.loginFailures.delete(phone);
+    noteDevice(account.id, body.device);
     return openSession(account);
+  }),
+
+  // «No fui yo» (desde el aviso de dispositivo nuevo): cierra todas las sesiones de la cuenta menos esta.
+  http.post(`${BASE}/auth/sessions/revoke-others`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const header = request.headers.get("authorization");
+    const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+    const session = sessionOf(request);
+    if (!session || !token) return error(401, "unauthorized", "Tu sesión expiró.");
+    let closed = 0;
+    for (const [other, accountId] of [...db.sessions.entries()]) {
+      if (accountId === session.account.id && other !== token) {
+        db.sessions.delete(other);
+        closed += 1;
+      }
+    }
+    db.persist();
+    return HttpResponse.json({ closed });
   }),
 
   // Confirmar la identidad antes de algo sensible: un código nuevo al celular de la cuenta (mismos topes
@@ -456,6 +495,12 @@ export const handlers = [
       const url = new URL(request.url);
       // Un barbero ve sus cifras: el barbero queda fijo en él aunque pida otro.
       const session = sessionOf(request);
+      // «Todas las sucursales» es del dueño, y solo si todas cobran en la misma moneda (no se suman pesos con dólares).
+      if (url.searchParams.get("branchId") === ALL_BRANCHES) {
+        if (session?.teamRole !== "owner") return forbidden("«Todas las sucursales» es del dueño.");
+        const currencies = new Set(branchesOf(ALL_BRANCHES).map((id) => db.settings.lists.branches.find((item) => item.id === id)?.currency ?? "USD"));
+        if (currencies.size > 1) return error(409, "mixed_currency", "Las sucursales cobran en monedas distintas: mira cada una por separado.");
+      }
       return HttpResponse.json(
         build({
           granularity: url.searchParams.get("granularity"),

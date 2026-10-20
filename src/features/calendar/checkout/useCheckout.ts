@@ -5,11 +5,12 @@ import { describeError } from "@/lib/api";
 import { useSettingsList, useSettingsSection } from "@/features/settings/settingsQueries";
 import { cardFeeSchema, deviceSchema, tipsSchema } from "@/features/settings/settingsTypes";
 import { findBarber, findClient, servicesOf, type ModelContext } from "../calendarModel";
-import { FALLBACK_TIPS, appointmentBill, changeDue, discountAmount, equalParts, splitAcross, sumBills, surchargeAmount, tipAmount, type TipChoice } from "../checkoutMath";
+import { FALLBACK_TIPS, appointmentBill, changeDue, discountAmount, sumBills, surchargeAmount, tipAmount, type TipChoice } from "../checkoutMath";
 import { useCheckoutAppointment } from "../queries";
 import { PAYMENT_METHOD_KEYS, type Appointment, type CheckoutInput, type PaymentMethod, type PaymentPart, type ProductLine } from "../types";
 import { calendarApi } from "../api";
 import { allocateParts, paymentOf } from "./allocate";
+import { cents, equalLines, giftOf, linesTotal, mixedLines, paymentOfLines, type PayLine, type PayMode } from "./payLines";
 
 /**
  * El estado del cobro de la caja, sin interfaz: la cuenta (citas que se
@@ -20,8 +21,8 @@ import { allocateParts, paymentOf } from "./allocate";
  * con lo suyo.
  */
 
-/** Cómo paga: los métodos de siempre más «en partes» (cada parte con el suyo). */
-export type PayChoice = PaymentMethod | "parts";
+/** Cómo paga: efectivo, tarjeta, link, tarjeta de regalo, mixto (dos formas) o en partes. */
+export type PayChoice = PayMode;
 export type DiscountType = "percent" | "amount";
 
 export interface GiftSaleDraft {
@@ -32,7 +33,6 @@ export interface GiftSaleDraft {
 
 const NO_APPOINTMENTS: readonly Appointment[] = [];
 const PART_COUNT = 2;
-const cents = (value: number): number => Math.round(value * 100) / 100;
 
 export interface UseCheckoutOptions {
   appointment: Appointment;
@@ -71,9 +71,13 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   const [customTip, setCustomTip] = React.useState<number | null>(null);
   const [payChoice, setPayChoice] = React.useState<PayChoice>("cash");
   const [received, setReceived] = React.useState<number | null>(null);
-  const [cashPart, setCashPart] = React.useState<number | null>(null);
   const [deviceId, setDeviceId] = React.useState<string | null>(null);
-  const [parts, setParts] = React.useState<PaymentPart[] | null>(null);
+  /** Mixto y en partes: cada línea con su forma de pago. */
+  const [lines, setLines] = React.useState<PayLine[]>([]);
+  /** «Personalizado» en partes: los montos los pone quien cobra. */
+  const [customParts, setCustomParts] = React.useState(false);
+  /** Con la tarjeta de regalo: con qué se paga lo que no cubre. */
+  const [giftRest, setGiftRest] = React.useState<"cash" | "card">("cash");
   const [gift, setGift] = React.useState<{ code: string; balance: number } | null>(null);
   const [linkSent, setLinkSent] = React.useState(false);
   const [checkingGift, setCheckingGift] = React.useState(false);
@@ -100,20 +104,27 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     return choice === "custom" ? Math.max(0, custom ?? 0) : option ? tipAmount(option, bill.subtotal) : 0;
   };
   const giftSaleAmount = giftSale?.amount && giftSale.amount > 0 ? giftSale.amount : 0;
-  const mixed = payChoice === "mixed";
-  /** Lo que se cobra con una propina dada: la tarjeta de regalo paga primero; el recargo va sobre lo que se pasa con tarjeta. */
+  const lined = payChoice === "mixed" || payChoice === "parts";
+  /**
+   * Lo que se cobra con una propina dada. La cuenta entera (`grand`) se reparte entre las formas de
+   * pago; la tarjeta de regalo cubre de lo de esta cita, y el recargo va sobre lo que se pasa con tarjeta.
+   */
   const amountsWith = (tipValue: number) => {
-    const giftUsed = gift ? cents(Math.min(gift.balance, ownBill.due + tipValue + giftSaleAmount)) : 0;
-    const beforeFee = cents(bill.due + tipValue + giftSaleAmount - giftUsed);
-    const cashNow = mixed ? Math.min(Math.max(0, cashPart ?? 0), beforeFee) : 0;
-    const fee = payChoice === "card" ? surchargeAmount(cardFee.data, "card", cents(bill.due - giftUsed)) : mixed ? surchargeAmount(cardFee.data, "card", beforeFee - cashNow) : 0;
-    return { giftApplied: giftUsed, cash: cashNow, surcharge: fee, total: cents(beforeFee + fee) };
+    const grand = cents(bill.due + tipValue + giftSaleAmount);
+    const ownGrand = cents(ownBill.due + tipValue + giftSaleAmount);
+    const shaped = payChoice === "mixed" ? mixedLines(lines, grand) : lines;
+    const wantedGift = payChoice === "gift" ? grand : lined ? giftOf(shaped) : 0;
+    const giftUsed = gift ? cents(Math.min(gift.balance, ownGrand, wantedGift)) : 0;
+    const cardAmount = payChoice === "card" || (payChoice === "gift" && giftRest === "card") ? cents(grand - giftUsed) : payChoice === "mixed" ? cents(shaped.filter((line) => line.method === "card").reduce((sum, line) => sum + line.amount, 0)) : 0;
+    // En mixto con varias citas las líneas se reparten entre ellas: ahí el recargo no se cobra.
+    const fee = cardAmount > 0 && !(payChoice === "mixed" && together.length > 0) ? surchargeAmount(cardFee.data, "card", cardAmount) : 0;
+    return { grand, giftApplied: giftUsed, lines: shaped, surcharge: fee, total: cents(grand - giftUsed + fee) };
   };
   const tip = tipOf(tipChoice);
-  const { giftApplied, cash, surcharge, total } = amountsWith(tip);
+  const { grand, giftApplied, lines: shownLines, surcharge, total } = amountsWith(tip);
   const change = payChoice === "cash" ? changeDue(received, total) : null;
-  const partsTotal = parts ? cents(parts.reduce((sum, part) => sum + part.amount, 0)) : 0;
-  const partsLeft = cents(total - partsTotal);
+  const linesLeft = lined ? cents(grand - linesTotal(shownLines)) : 0;
+  const giftLines = giftOf(shownLines);
 
   /* ---------------------------------------------------------------- la cuenta */
 
@@ -143,15 +154,41 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
 
   /* ---------------------------------------------------------------- el pago */
 
+  const firstDevice = devices[0]?.id;
   const choosePay = (next: PayChoice) => {
     setPayChoice(next);
     setLinkSent(false);
-    if (next === "card" && !deviceId) setDeviceId(devices[0]?.id ?? null);
+    if ((next === "card" || next === "gift") && !deviceId) setDeviceId(firstDevice ?? null);
+    // Mixto: efectivo y tarjeta para empezar (se cambian); la segunda se lleva lo que falta.
+    if (next === "mixed") setLines([{ method: "cash", amount: 0 }, { method: "card", amount: grand, deviceId: firstDevice }]);
     // En partes: dos iguales, efectivo y tarjeta, para empezar.
-    if (next === "parts") setParts(equalParts(total, PART_COUNT).map((amount, index) => ({ method: index === 0 ? "cash" : "card", amount, ...(index === 0 || !devices[0] ? {} : { deviceId: devices[0].id }) })));
+    if (next === "parts") {
+      setCustomParts(false);
+      setLines(equalLines(grand, PART_COUNT, (index) => (index === 0 ? { method: "cash" } : { method: "card", deviceId: firstDevice })));
+    }
   };
-  const setPartCount = (count: number) => setParts((current) => equalParts(total, count).map((amount, index) => ({ ...(current?.[index] ?? { method: "card" as const }), amount })));
-  const updatePart = (index: number, patch: Partial<PaymentPart>) => setParts((current) => (current ?? []).map((part, i) => (i === index ? { ...part, ...patch } : part)));
+  /** En partes: 2, 3 o 4 iguales, o `null` para ponerlos a mano (personalizado). */
+  const setPartCount = (count: number | null) => {
+    if (count === null) {
+      setCustomParts(true);
+      return;
+    }
+    setCustomParts(false);
+    setLines((current) => equalLines(grand, count, (index) => ({ method: current[index]?.method ?? "card", ...(current[index]?.deviceId ? { deviceId: current[index].deviceId } : {}) })));
+  };
+  const updateLine = (index: number, patch: Partial<PayLine>) =>
+    setLines((current) =>
+      current.map((line, i) => {
+        if (i !== index) return line;
+        const next = { ...line, ...patch };
+        // Cambiar de forma o de monto un link ya enviado obliga a mandarlo otra vez.
+        if (line.method === "link" && (patch.method !== undefined || patch.amount !== undefined)) next.sent = false;
+        if (next.method === "card" && !next.deviceId) next.deviceId = firstDevice;
+        return next;
+      })
+    );
+  const addLine = () => setLines((current) => [...current, { method: "cash", amount: Math.max(0, cents(grand - linesTotal(current))) }]);
+  const removeLine = (index: number) => setLines((current) => (current.length > 2 ? current.filter((_, i) => i !== index) : current));
 
   const applyGift = async (code: string) => {
     if (!code.trim()) return;
@@ -165,25 +202,33 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     }
   };
 
-  /** Si se puede cobrar ya: el link se manda primero; en partes, tienen que cuadrar. */
-  const ready = services.length > 0 && !(payChoice === "link" && !linkSent) && !(payChoice === "parts" && Math.abs(partsLeft) > 0.01) && !(giftSale && (!giftSale.amount || giftSale.recipientName.trim().length < 2));
+  /**
+   * Si se puede cobrar ya: el link se manda primero; con tarjeta de regalo, aplicada y con saldo; en
+   * partes, tienen que cuadrar y cada link estar enviado.
+   */
+  const giftOk = !(payChoice === "gift" || giftLines > 0) || (gift !== null && giftLines <= gift.balance + 0.004);
+  const linesOk = !lined || (Math.abs(linesLeft) <= 0.01 && shownLines.every((line) => line.method !== "link" || line.sent));
+  const ready = services.length > 0 && !(payChoice === "link" && !linkSent) && giftOk && linesOk && !(giftSale && (!giftSale.amount || giftSale.recipientName.trim().length < 2));
 
   /** Cobra con la propina elegida en la ventana de «Cobrar» (en partes, la propina se suma a la última). */
   const pay = async (tipChoiceNow: string = tipChoice, customNow: number | null = customTip) => {
     setTipChoice(tipChoiceNow);
     setCustomTip(customNow);
     const tip = tipOf(tipChoiceNow, customNow);
-    const { giftApplied, cash, surcharge, total } = amountsWith(tip);
-    const ownDue = cents(ownBill.due + tip + giftSaleAmount - giftApplied + (payChoice === "card" ? surcharge : 0));
+    const { giftApplied, lines: payLines, surcharge, total } = amountsWith(tip);
+    const ownDue = cents(ownBill.due + tip + giftSaleAmount - giftApplied);
     const dues = [ownDue, ...togetherBills.map((item) => item.due)];
-    // Cómo se cierra cada cita: en partes se reparten en orden; en mixto, el efectivo se reparte y el resto va con tarjeta.
-    const withTip = parts ? parts.map((part, index) => (index === parts.length - 1 ? { ...part, amount: cents(part.amount + tip) } : part)) : null;
-    const allocated = payChoice === "parts" && withTip ? allocateParts(withTip, dues).map(paymentOf) : null;
-    const mixedSplits = mixed ? splitAcross(cash, [cents(ownDue + surcharge), ...dues.slice(1)]) : [];
+    // Las líneas sin la tarjeta de regalo; en partes la propina (elegida al cobrar) va en la última.
+    const paidLines = lined ? payLines.filter((line) => line.method !== "gift") : [];
+    const withTip = payChoice === "parts" && paidLines.length > 0 ? paidLines.map((line, index) => (index === paidLines.length - 1 ? { ...line, amount: cents(line.amount + tip) } : line)) : paidLines;
+    const asParts = withTip.map(({ method, amount, deviceId }) => ({ method: method as PaymentPart["method"], amount, ...(method === "card" && deviceId ? { deviceId } : {}) }));
+    // Varias citas a la vez con líneas: se reparten en orden y cada una se cierra con lo suyo.
+    const allocated = lined && together.length > 0 ? allocateParts(asParts, dues).map(paymentOf) : null;
+    const simple = payChoice === "gift" ? giftRest : payChoice;
     const methodOf = (index: number): Pick<CheckoutInput, "method" | "parts" | "deviceId" | "split"> => {
       if (allocated) return allocated[index];
-      if (mixed) return { method: "mixed", split: mixedSplits[index] };
-      return { method: payChoice as PaymentMethod, ...(payChoice === "card" && deviceId ? { deviceId } : {}) };
+      if (lined) return paymentOfLines(withTip, surcharge);
+      return { method: simple as PaymentMethod, ...(simple === "card" && deviceId ? { deviceId } : {}) };
     };
     try {
       const own: CheckoutInput = {
@@ -202,7 +247,7 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
         ...together.map((item, index) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, surcharge: 0, ...methodOf(index + 1) } })),
       ]);
       const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0) - (item.payment?.prepaid ?? 0), 0);
-      const methodLabel = payChoice === "parts" ? t("calendar.checkout.pay.partsDone") : t(PAYMENT_METHOD_KEYS[payChoice]);
+      const methodLabel = payChoice === "parts" ? t("calendar.checkout.pay.partsDone") : payChoice === "gift" ? t("calendar.checkout.pay.gift") : t(PAYMENT_METHOD_KEYS[payChoice]);
       toast.success(others.length > 0 ? t("calendar.checkout.paidVisit", { count: others.length + 1 }) : t("calendar.checkout.paid"), {
         description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(charged || total), method: methodLabel }),
       });
@@ -243,12 +288,13 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     payChoice,
     received,
     change,
-    cashPart,
-    cash,
     deviceId,
     devices,
-    parts,
-    partsLeft,
+    lines: shownLines,
+    linesLeft,
+    customParts,
+    giftRest,
+    grand,
     gift,
     giftApplied,
     checkingGift,
@@ -276,10 +322,12 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     setCustomTip,
     choosePay,
     setReceived,
-    setCashPart,
     setDeviceId,
     setPartCount,
-    updatePart,
+    updateLine,
+    addLine,
+    removeLine,
+    setGiftRest,
     applyGift,
     removeGift: () => setGift(null),
     markLinkSent: () => setLinkSent(true),

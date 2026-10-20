@@ -874,13 +874,36 @@ describe("Calendario", () => {
     const user = userEvent.setup();
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
     expect(await screen.findByTestId("checkout-total")).toHaveTextContent("$35");
-    await user.click(screen.getByTestId("checkout-discount-add"));
+    // En la versión «Agregar» (la de entrada), el descuento y la tarjeta salen del botón y no antes.
+    expect(screen.queryByTestId("checkout-discount")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("checkout-add"));
+    await user.click(await screen.findByTestId("checkout-add-discount"));
     await user.type(within(screen.getByTestId("checkout-discount")).getByRole("spinbutton"), "10");
     // 10 % de 35.
     await waitFor(() => expect(screen.getByTestId("checkout-total")).toHaveTextContent("$31.5"));
-    await user.click(screen.getByTestId("checkout-gift-sale-add"));
+    await user.click(screen.getByTestId("checkout-add"));
+    await user.click(await screen.findByTestId("checkout-add-giftSale"));
     // La tarjeta de regalo arranca en 50 y se suma a lo que se cobra.
     await waitFor(() => expect(screen.getByTestId("checkout-total")).toHaveTextContent("$81.5"));
+  });
+
+  test("las versiones del cobro: «Actual» lo pone todo a la vista, «Resumen» cierra la cuenta en una línea y «Rápido» pone las formas de pago en botones", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
+    const versions = await screen.findByTestId("checkout-version");
+    await user.click(within(versions).getByRole("radio", { name: "Actual" }));
+    expect(screen.getByTestId("checkout-discount-add")).toBeInTheDocument();
+    expect(screen.queryByTestId("checkout-add")).not.toBeInTheDocument();
+    await user.click(within(versions).getByRole("radio", { name: "Resumen" }));
+    expect(screen.getByTestId("checkout-bill-line")).toHaveTextContent("$35");
+    await user.click(screen.getByTestId("checkout-summary-edit"));
+    expect(screen.queryByTestId("checkout-bill-line")).not.toBeInTheDocument();
+    await user.click(within(versions).getByRole("radio", { name: "Rápido" }));
+    expect(screen.getByTestId("checkout-method-tiles")).toBeInTheDocument();
+    expect(screen.getByTestId("checkout-ticket")).toBeInTheDocument();
+    // Se recuerda: la próxima vez abre en «Rápido».
+    expect(window.localStorage.getItem("thema.calendar.checkoutVersion.v1")).toBe("quick");
+    window.localStorage.removeItem("thema.calendar.checkoutVersion.v1");
   });
 
   test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {

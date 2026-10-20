@@ -33,6 +33,8 @@ export type SearchableSelectProps = {
   searchPlaceholder?: string
   emptyMessage?: string
   disabled?: boolean
+  /** Abre la lista al aparecer (cuando se pide sumar algo y lo siguiente es elegirlo). */
+  defaultOpen?: boolean
   className?: string
 }
 
@@ -44,9 +46,10 @@ export function SearchableSelect({
   searchPlaceholder = "Buscar...",
   emptyMessage = "No se encontraron resultados.",
   disabled = false,
+  defaultOpen = false,
   className,
 }: SearchableSelectProps) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(defaultOpen)
   const selected = value ? options.find((option) => option.value === value) : undefined
 
   return (

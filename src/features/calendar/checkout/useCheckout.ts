@@ -4,9 +4,9 @@ import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
 import { useSettingsList, useSettingsSection } from "@/features/settings/settingsQueries";
 import { cardFeeSchema, deviceSchema, tipsSchema } from "@/features/settings/settingsTypes";
-import { findBarber, findClient, servicesOf, type ModelContext } from "../calendarModel";
+import { findBarber, findClient, newLinkId, servicesOf, type ModelContext } from "../calendarModel";
 import { FALLBACK_TIPS, appointmentBill, changeDue, discountAmount, sumBills, surchargeAmount, tipAmount, type TipChoice } from "../checkoutMath";
-import { useCheckoutAppointment } from "../queries";
+import { useCheckoutAppointment, useUpdateAppointment } from "../queries";
 import { PAYMENT_METHOD_KEYS, type Appointment, type CheckoutInput, type PaymentMethod, type PaymentPart, type ProductLine } from "../types";
 import { calendarApi } from "../api";
 import { allocateParts, paymentOf } from "./allocate";
@@ -48,6 +48,7 @@ export interface UseCheckoutOptions {
 export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candidates = NO_APPOINTMENTS, ctx, onPaid, onClose }: UseCheckoutOptions) {
   const t = useAppT();
   const checkout = useCheckoutAppointment();
+  const update = useUpdateAppointment();
   const tipSettings = useSettingsSection("tips", tipsSchema);
   const cardFee = useSettingsSection("cardFee", cardFeeSchema);
   const devicesQuery = useSettingsList("devices", deviceSchema);
@@ -60,6 +61,8 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
   const [productPrices, setProductPrices] = React.useState<Record<string, number>>(appointment.productPrices ?? {});
   const [extraIds, setExtraIds] = React.useState<readonly string[]>([]);
   const [companionIds, setCompanionIds] = React.useState<readonly string[]>(() => companions.map((item) => item.id));
+  /** Las citas sumadas al cobro quedan enlazadas con esta (una sola visita). */
+  const [linkExtras, setLinkExtras] = React.useState(true);
   const [discountType, setDiscountType] = React.useState<DiscountType>("percent");
   const [discountValue, setDiscountValue] = React.useState<number | null>(null);
   const [discountReason, setDiscountReason] = React.useState("");
@@ -246,6 +249,11 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
         checkout.mutateAsync({ id: appointment.id, input: own }),
         ...together.map((item, index) => checkout.mutateAsync({ id: item.id, input: { serviceIds: item.serviceIds, products: item.products, tip: 0, surcharge: 0, ...methodOf(index + 1) } })),
       ]);
+      // Las que se sumaron al cobro quedan enlazadas con esta, como una sola visita.
+      if (linkExtras && extras.length > 0) {
+        const linkId = appointment.linkId ?? newLinkId(appointment);
+        await Promise.all([appointment, ...extras].filter((item) => item.linkId !== linkId).map((item) => update.mutateAsync({ id: item.id, patch: { linkId } })));
+      }
       const charged = [paid, ...others].reduce((sum, item) => sum + (item.payment?.total ?? 0) - (item.payment?.prepaid ?? 0), 0);
       const methodLabel = payChoice === "parts" ? t("calendar.checkout.pay.partsDone") : payChoice === "gift" ? t("calendar.checkout.pay.gift") : t(PAYMENT_METHOD_KEYS[payChoice]);
       toast.success(others.length > 0 ? t("calendar.checkout.paidVisit", { count: others.length + 1 }) : t("calendar.checkout.paid"), {
@@ -273,6 +281,8 @@ export function useCheckout({ appointment, companions = NO_APPOINTMENTS, candida
     candidates,
     extras,
     together,
+    linkExtras,
+    setLinkExtras,
     discountType,
     discountValue,
     discountReason,

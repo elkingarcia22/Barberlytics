@@ -211,6 +211,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   /** Lo último que se movió, para la tecla Z. */
   const undoRef = React.useRef<(() => void) | null>(null);
   const closePanel = () => setPanel(null);
+  /** La cita recién cobrada: su panel abre en el recibo. */
+  const [receiptFor, setReceiptFor] = React.useState<string | null>(null);
   // Tocar un día en la Semana o el Mes no lleva a la rejilla: abre el panel del día al lado.
   const openDayPanel = React.useCallback(
     (date: Date) => {
@@ -1098,7 +1100,11 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               <AppointmentDrawer
                 appointment={currentAppointment}
                 open={Boolean(currentAppointment) && !sidePanelOpen}
-                onOpenChange={(open) => !open && state.openAppointment(null)}
+                onOpenChange={(open) => {
+                  if (open) return;
+                  state.openAppointment(null);
+                  setReceiptFor(null);
+                }}
                 ctx={ctx}
                 onStatus={changeStatus}
                 onBarberReady={onBarberReady}
@@ -1119,6 +1125,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 onCancel={(appointment) => closeAppointmentAs(appointment, "cancel")}
                 onNoShow={(appointment) => closeAppointmentAs(appointment, "noShow")}
                 onOpenClient={(clientId) => navigate(`/clientes/${clientId}`)}
+                initialPage={currentAppointment && currentAppointment.id === receiptFor ? "receipt" : undefined}
                 linked={currentLinked}
                 linkCandidates={linkCandidates}
                 onSelectAppointment={(appointment) => state.openAppointment(appointment.id)}
@@ -1164,17 +1171,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 open={panel?.kind === "checkout"}
                 onOpenChange={(open) => !open && closePanel()}
                 ctx={ctx}
+                // Recién cobrada, el panel se queda en la cita (ya cobrada) con su recibo abierto, para mandárselo.
                 onPaid={(paid) => {
-                  // Recién cobrado es el mejor momento para dejar agendada la siguiente.
-                  const client = findClient(ctx.catalog, paid.clientId);
-                  if (!client || client.type === "walkin") return;
-                  toast(t("calendar.detail.rebook"), {
-                    description: client.name,
-                    action: {
-                      label: t("calendar.insight.rebookAction"),
-                      onClick: () => setPanel({ kind: "create", initial: { clientId: paid.clientId, serviceId: paid.serviceIds[0], barberId: paid.barberId } }),
-                    },
-                  });
+                  setReceiptFor(paid.id);
+                  state.openAppointmentKeepingView(parseLocal(paid.start), paid.id);
                 }}
               />
 

@@ -1,8 +1,6 @@
-import { format } from "date-fns";
 import * as React from "react";
 import { Ban, CreditCard, ReceiptText, Repeat, Send, ShieldOff, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router";
 import { useAppT } from "@/app/i18n";
 import { formatClock } from "@/components/scheduling";
 import { Text } from "@/components/typography";
@@ -49,6 +47,8 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
   onOpenRebook: () => void;
   /** Enviar el recibo por correo o SMS: una página dentro del panel. */
   onOpenSendReceipt: () => void;
+  /** Ver el recibo: una página dentro del panel (no se sale del calendario). */
+  onOpenReceipt: () => void;
 }
 
 /** El tinte de la tarjeta según cómo se cerró: verde cobrada; rojo cancelada o si no asistió. */
@@ -59,15 +59,11 @@ const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-de
  * canceló, llamar y escribir y —para quien puede (dueño, administrador,
  * recepción, renta)— pedirle pago por adelantado o bloquearlo.
  */
-function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void): Tile[] {
+function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void, onReceipt: () => void): Tile[] {
   const t = useAppT();
   const restrict = useRestrictClient();
-  const navigate = useNavigate();
   const access = useAccess();
   const { appointment } = model;
-  const start = appointmentStart(appointment);
-  // La cuenta de la cita en Transacciones: su recibo y, desde ahí, la devolución.
-  const openAccount = () => navigate(`/transacciones?fecha=${format(start, "yyyy-MM-dd")}&cuenta=${appointment.id}`);
   const payment = appointment.status === "paid" ? appointment.payment : null;
   const tiles: Tile[] = [];
   if (payment) {
@@ -76,7 +72,7 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
     if (model.phone || model.email) {
       tiles.push({ id: "send", icon: <Send className="size-5 text-primary" />, label: t("calendar.panel.after.send"), title: t("calendar.panel.after.sendTitle"), onClick: onSendReceipt });
     }
-    tiles.push({ id: "receipt", icon: <ReceiptText className="size-5 text-primary" />, label: t("calendar.panel.after.receipt"), title: t("calendar.panel.after.receiptTitle"), onClick: openAccount });
+    tiles.push({ id: "receipt", icon: <ReceiptText className="size-5 text-primary" />, label: t("calendar.panel.after.receipt"), title: t("calendar.panel.after.receiptTitle"), onClick: onReceipt });
     if (access.can("transactions", "edit")) {
       tiles.push({ id: "refund", icon: <Undo2 className="size-5 text-warning" />, label: t("calendar.panel.after.refund"), title: t("calendar.panel.after.refundTitle"), onClick: onRefund });
     }
@@ -123,11 +119,11 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
 
 
 /** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
-export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenRebook, onOpenSendReceipt, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
+export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenRebook, onOpenSendReceipt, onOpenReceipt, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
   // Fijar la cita se abre debajo de la tarjeta; reagendar y enviar el recibo son páginas del panel.
   const [pinning, setPinning] = React.useState(false);
-  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt);
+  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt, onOpenReceipt);
   const [voiding, setVoiding] = React.useState(false);
   // Borrar una venta hecha por error: del dueño y del administrador.
   const canVoid = ctx.access?.canVoidSales ?? true;

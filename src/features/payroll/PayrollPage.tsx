@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { Armchair, Download, Percent, Wallet } from "lucide-react";
+import { Armchair, ChevronLeft, ChevronRight, Download, Percent, Wallet } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -25,6 +25,10 @@ import { countByPayout, summarizePayroll, toCsv } from "./payrollUtils";
 import { usePayrollQuery } from "./queries";
 import { PAYOUT_HINT_KEYS, PAYOUT_KEYS, type Payout, type PayrollResponse } from "./types";
 import { usePayrollFilters } from "./usePayrollFilters";
+import type { AppMessageKey } from "@/app/i18n/types";
+import type { PayCycle } from "./payCycle";
+
+const CYCLE_KEYS: Readonly<Record<PayCycle, AppMessageKey>> = { weekly: "payroll.cycle.weekly", biweekly: "payroll.cycle.biweekly", monthly: "payroll.cycle.monthly" };
 
 const PAGE_SIZE = 15;
 const PAYOUT_ICONS: Readonly<Record<Payout, React.ReactNode>> = {
@@ -50,7 +54,7 @@ const PAYOUT_ICONS: Readonly<Record<Payout, React.ReactNode>> = {
 export function PayrollPage() {
   const t = useAppT();
   const navigate = useNavigate();
-  const { current } = useLocale();
+  const { current, formatDate } = useLocale();
   const branchId = useBranchId();
   const filters = usePayrollFilters();
   const query = usePayrollQuery({ branchId, from: filters.from, to: filters.to });
@@ -63,23 +67,46 @@ export function PayrollPage() {
 
       <PageHeader title={t("payroll.title")} description={t("payroll.description")} />
 
-      <div className="mb-section shrink-0" role="group" aria-label={t("payroll.periodAria")}>
-        <PeriodNavigator
-          granularity={filters.granularity}
-          onGranularityChange={filters.setGranularity}
-          date={filters.date}
-          onDateChange={filters.setDate}
-          locale={current.intl}
-          labels={{
-            day: t("metrics.period.day"),
-            week: t("metrics.period.week"),
-            month: t("metrics.period.month"),
-            today: t("metrics.period.today"),
-            previous: t("metrics.period.previous"),
-            next: t("metrics.period.next"),
-            aria: t("metrics.period.aria"),
-          }}
-        />
+      <div className="mb-section flex shrink-0 flex-wrap items-center gap-stack" role="group" aria-label={t("payroll.periodAria")}>
+        {filters.byCycle ? (
+          // Por defecto, el ciclo de pago: la semana, la quincena o el mes que se liquida.
+          <div className="flex items-center gap-2" data-testid="payroll-cycle">
+            <Button variant="outline" size="icon-sm" onClick={() => filters.stepCycle(-1)} aria-label={t("metrics.period.previous")}>
+              <ChevronLeft />
+            </Button>
+            <span className="min-w-44 text-center text-sm font-medium text-text-primary">
+              {t(CYCLE_KEYS[filters.cycle])} · {formatDate(new Date(`${filters.from}T12:00:00`), { day: "numeric", month: "short" })} – {formatDate(new Date(`${filters.to}T12:00:00`), { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+            <Button variant="outline" size="icon-sm" onClick={() => filters.stepCycle(1)} disabled={!filters.nextCycleStarted} aria-label={t("metrics.period.next")}>
+              <ChevronRight />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => filters.setGranularity("month")} data-testid="payroll-other-period">
+              {t("payroll.otherPeriod")}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <PeriodNavigator
+              granularity={filters.granularity}
+              onGranularityChange={filters.setGranularity}
+              date={filters.date}
+              onDateChange={filters.setDate}
+              locale={current.intl}
+              labels={{
+                day: t("metrics.period.day"),
+                week: t("metrics.period.week"),
+                month: t("metrics.period.month"),
+                today: t("metrics.period.today"),
+                previous: t("metrics.period.previous"),
+                next: t("metrics.period.next"),
+                aria: t("metrics.period.aria"),
+              }}
+            />
+            <Button variant="ghost" size="sm" onClick={filters.showCycle} data-testid="payroll-cycle-back">
+              {t("payroll.byCycle")}
+            </Button>
+          </>
+        )}
       </div>
 
       <QueryBoundary

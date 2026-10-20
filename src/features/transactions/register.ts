@@ -36,6 +36,8 @@ export const registerClosureSchema = z.object({
   closedBy: z.string(),
   denominations: z.record(z.string(), z.number()).nullable().optional(),
   blind: z.boolean().optional(),
+  /** A quién se le descontó el faltante en la nómina. */
+  shortage: z.object({ memberId: z.string(), adjustmentId: z.string(), by: z.string(), at: z.string() }).nullable().optional(),
 });
 export type RegisterClosure = z.infer<typeof registerClosureSchema>;
 
@@ -73,6 +75,8 @@ export interface CashMovementInput {
 export const registerApi = {
   day: (branchId: string, date: string, signal?: AbortSignal) => api.get<RegisterDay>("/register", { query: { branchId, date }, schema: registerDaySchema, signal }),
   close: (input: RegisterCloseInput) => api.post<RegisterClosure>("/register/close", input, { schema: registerClosureSchema }),
+  /** Carga el faltante del cierre a la nómina de esa persona (en su ciclo de pago). */
+  chargeShortage: (closureId: string, memberId: string) => api.post<RegisterClosure>(`/register/${closureId}/shortage`, { memberId }, { schema: registerClosureSchema }),
   addMovement: (input: CashMovementInput) => api.post<CashMovement>("/register/movements", input, { schema: cashMovementSchema }),
 };
 
@@ -87,6 +91,21 @@ export function useCloseRegister() {
   return useMutation({
     mutationFn: registerApi.close,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["register"] }),
+    onError: (error) => {
+      const { title, description } = describeError(error);
+      toast.error(title, { description });
+    },
+  });
+}
+
+export function useChargeShortage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ closureId, memberId }: { closureId: string; memberId: string }) => registerApi.chargeShortage(closureId, memberId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["register"] });
+      void queryClient.invalidateQueries({ queryKey: ["payroll"] });
+    },
     onError: (error) => {
       const { title, description } = describeError(error);
       toast.error(title, { description });

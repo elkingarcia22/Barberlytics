@@ -4,8 +4,8 @@ import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import { barbersOf } from "../team/seed";
-import { payrollOf } from "./compute";
-import type { MockAdjustmentKind, MockPayrollRun } from "./state";
+import { cycleWindow, payrollOf } from "./compute";
+import type { MockAdjustmentKind, MockLoan, MockPayrollRun } from "./state";
 
 /**
  * La nómina del backend simulado. Reproduce docs/API_CONTRACT.md (sección «Nómina»).
@@ -21,7 +21,12 @@ const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
 const DAYS_PER_WEEK = 7;
 const MAX_RANGE_DAYS = 62;
-const KINDS: readonly MockAdjustmentKind[] = ["bonus", "deduction", "advance"];
+const KINDS: readonly MockAdjustmentKind[] = ["bonus", "deduction", "advance", "shortage"];
+const MAX_INSTALLMENTS = 24;
+
+/** Las ventas de mostrador de la sucursal en el rango (comisiona quien vendió). */
+export const salesIn = (branchId: string, from: string, to: string) => db.calendar.sales.filter((sale) => sale.branchId === branchId && dateKey(new Date(sale.paidAt)) >= from && dateKey(new Date(sale.paidAt)) <= to);
+const loansOf = (branchId: string): MockLoan[] => (db.payroll.loans ?? []).filter((loan) => loan.branchId === branchId);
 const MAX_NOTE = 200;
 
 function error(status: number, code: string, message: string, extra?: Record<string, unknown>) {
@@ -58,7 +63,8 @@ function computeMembers(branchId: string, from: string, days: number, weeks: num
   const to = dateKey(new Date(start.getTime() + (days - 1) * DAY_MS));
   const appointments = Array.from({ length: days }, (_, index) => appointmentsOn(branchId, dateKey(new Date(start.getTime() + index * DAY_MS)))).flat();
   const adjustments = adjustmentsOf(branchId, from, to);
-  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments));
+  const extras = { sales: salesIn(branchId, from, to), loans: loansOf(branchId), from, to };
+  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments, extras));
 }
 
 type PayrollMemberRow = { memberId: string; payout: string; net: number };
@@ -136,6 +142,59 @@ export const payrollHandlers = [
     db.payroll = { ...db.payroll, adjustments: [...db.payroll.adjustments, adjustment] };
     db.persist();
     return HttpResponse.json(adjustment, { status: 201 });
+  }),
+
+  // Préstamos: se entregan aparte y se descuentan en cuotas, una por ciclo de pago (ver compute.loanInstallmentsIn).
+  http.get(`${BASE}/payroll/loans`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const session = sessionOf(request);
+    if (!session) return error(401, "unauthorized", "Tu sesión expiró.");
+    const params = new URL(request.url).searchParams;
+    const memberId = isManager(session) ? params.get("memberId") : session.memberId;
+    if (!isManager(session) && !isBarber(session)) return forbidden("Los préstamos los ven el dueño, el administrador y cada barbero (los suyos).");
+    const items = loansOf(params.get("branchId") ?? "ma").filter((loan) => !memberId || loan.memberId === memberId);
+    return HttpResponse.json({ items });
+  }),
+
+  http.post(`${BASE}/payroll/loans`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const branchId = text(input.branchId) || "ma";
+    const memberId = text(input.memberId);
+    const amount = Number(input.amount);
+    const installments = Number(input.installments);
+    const startDate = text(input.startDate) || dateKey(new Date());
+    const note = text(input.note).slice(0, MAX_NOTE);
+    const fields: Record<string, string[]> = {};
+    if (!db.team.members.some((member) => member.id === memberId)) fields.memberId = ["Esa persona no existe."];
+    if (!Number.isFinite(amount) || amount <= 0) fields.amount = ["Escribe un valor mayor que cero."];
+    if (!Number.isInteger(installments) || installments < 1 || installments > MAX_INSTALLMENTS) fields.installments = [`De 1 a ${MAX_INSTALLMENTS} cuotas.`];
+    if (!DAY_KEY.test(startDate)) fields.startDate = ["Elige desde cuándo."];
+    if (note.length < 3) fields.note = ["Explica en pocas palabras por qué."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    // Una cuota no cae en un ciclo ya aprobado: el préstamo arranca en el ciclo de `startDate` y ese no puede estar cerrado.
+    const first = cycleWindow(new Date(`${startDate}T00:00:00`));
+    if (runOf(branchId, dateKey(first.from), dateKey(first.to))) return error(409, "conflict", "El ciclo de la primera cuota ya está aprobado: empieza el préstamo en el siguiente.");
+    const loan: MockLoan = { id: `loan_${Date.now().toString(36)}`, branchId, memberId, amount: round(amount), installments, startDate, note, createdAt: new Date().toISOString(), createdBy: account.user.name, cancelledAt: null };
+    db.payroll = { ...db.payroll, loans: [...(db.payroll.loans ?? []), loan] };
+    db.persist();
+    return HttpResponse.json(loan, { status: 201 });
+  }),
+
+  // Cancelar lo que falta (lo pagó de una vez o se perdona): las cuotas ya descontadas quedan.
+  http.post(`${BASE}/payroll/loans/:id/cancel`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("Solo el dueño o el administrador mueven la nómina.");
+    const loan = (db.payroll.loans ?? []).find((item) => item.id === params.id);
+    if (!loan) return error(404, "not_found", "Ese préstamo no existe.");
+    const cancelled = { ...loan, cancelledAt: new Date().toISOString() };
+    db.payroll = { ...db.payroll, loans: (db.payroll.loans ?? []).map((item) => (item.id === loan.id ? cancelled : item)) };
+    db.persist();
+    return HttpResponse.json(cancelled);
   }),
 
   http.delete(`${BASE}/payroll/adjustments/:id`, async ({ request, params }) => {

@@ -19,6 +19,8 @@ export interface MockRegisterClosure {
   denominations?: Record<string, number> | null;
   /** Se contó sin ver lo esperado (recepción): la diferencia la revisa gerencia. */
   blind?: boolean;
+  /** A quién se le descontó el faltante en la nómina (y el ajuste que lo hace). */
+  shortage?: { memberId: string; adjustmentId: string; by: string; at: string } | null;
 }
 
 /** Efectivo que entra o sale del cajón durante el día sin ser un cobro: sencillo, un pago a un proveedor, un retiro. */

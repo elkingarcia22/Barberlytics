@@ -4,7 +4,7 @@ import { useLocale } from "@/i18n";
 import { StatusBadge } from "@/components/data-display/StatusBadge";
 import { Text } from "@/components/typography";
 import { InfoCard } from "@/features/team/teamShared";
-import { ADJUSTMENT_KEYS, PAY_METHOD_KEYS, type PayMethod, type PayrollMember, type PayrollRun } from "./types";
+import { ADJUSTMENT_VIEW_KEYS, PAY_METHOD_KEYS, type PayMethod, type PayrollMember, type PayrollRun } from "./types";
 
 export interface MyPayStatusProps {
   run: PayrollRun | null;
@@ -51,7 +51,7 @@ export function MyPayStatus({ run, member, formatMoney }: MyPayStatusProps) {
             {adjustments.map((item) => (
               <li key={item.id} className="flex items-baseline justify-between gap-3 py-2">
                 <span className="min-w-0">
-                  <span className="text-text-primary">{t(ADJUSTMENT_KEYS[item.kind])}</span>
+                  <span className="text-text-primary">{t(ADJUSTMENT_VIEW_KEYS[item.kind])}</span>
                   {item.note && <span className="block truncate text-xs text-text-muted">{item.note}</span>}
                 </span>
                 <span className={SIGN[item.kind] < 0 ? "tabular-nums text-status-negative" : "tabular-nums text-status-positive"}>

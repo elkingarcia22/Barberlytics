@@ -100,4 +100,6 @@ export const frontDeskEn: Record<keyof typeof frontDeskEs, string> = {
   "cfg.notify.event.clientArrived": "The client checked in at the kiosk",
   "notifications.clientArrived.title": "{client} is here",
   "notifications.clientArrived.body": "Checked in at the kiosk for their {time} appointment.",
+  "notifications.waitlistJoined.title": "{client} joined the waitlist",
+  "notifications.waitlistJoined.body": "Wants {service} on {day} at {time}: offer it if a slot opens up.",
 };

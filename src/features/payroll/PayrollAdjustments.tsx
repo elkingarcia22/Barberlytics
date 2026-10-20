@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/typography";
 import { useAddAdjustment, useRemoveAdjustment } from "./queries";
-import { ADJUSTMENT_KEYS, adjustmentKindSchema, type AdjustmentKind, type PayrollMember } from "./types";
+import { ADJUSTMENT_KEYS, ADJUSTMENT_VIEW_KEYS, adjustmentKindSchema, type AdjustmentKind, type PayrollMember } from "./types";
 
 export interface PayrollAdjustmentsProps {
   member: PayrollMember;
@@ -67,7 +67,7 @@ export function PayrollAdjustments({ member, period, locked, canManage, formatMo
             <li key={item.id} className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2" data-testid="payroll-adjustment">
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-text-primary">
-                  {t(ADJUSTMENT_KEYS[item.kind])} · {item.note}
+                  {t(ADJUSTMENT_VIEW_KEYS[item.kind])} · {item.note}
                 </span>
                 <span className="block text-xs text-text-muted">{t("payroll.adjustment.by", { name: item.createdBy, date: formatDate(new Date(item.createdAt), DATE) })}</span>
               </span>
@@ -75,7 +75,8 @@ export function PayrollAdjustments({ member, period, locked, canManage, formatMo
                 {item.kind === "bonus" ? "+" : "−"}
                 {formatMoney(item.amount)}
               </span>
-              {editable && (
+              {/* La cuota de un préstamo la pone el sistema: se cancela el préstamo, no la cuota. */}
+              {editable && item.kind !== "loan" && (
                 <Button variant="ghost" size="icon" aria-label={t("payroll.adjustment.removeAria", { name: item.note })} onClick={() => remove.mutate(item.id)} disabled={remove.isPending}>
                   <Trash2 />
                 </Button>

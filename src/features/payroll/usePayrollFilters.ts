@@ -4,22 +4,25 @@ import { fromIsoDate, periodRange, toIsoDate, type PeriodGranularity } from "@/c
 import { useSettingsSection } from "@/features/settings/settingsQueries";
 import { payrollCycleSchema } from "@/features/settings/settingsTypes";
 import { payoutSchema, type Payout } from "./types";
+import { payCycleWindow, shiftPayCycle, type PayCycleSettings } from "./payCycle";
 
 const GRANULARITIES: readonly PeriodGranularity[] = ["day", "week", "month"];
 
 /**
  * Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y
- * el barbero abierto en el panel. Por defecto, el ciclo de pago de
- * Configuración › Nómina: el mes si se paga mensual, si no la semana (la
- * renta y el salario son semanales).
+ * el barbero abierto en el panel. Por defecto, el **ciclo de pago** de
+ * Configuración › Nómina (la semana, la quincena del 1 al 15 o del 16 a fin
+ * de mes, o el mes) que contiene la fecha; con `?periodo=` se mira un día,
+ * una semana o un mes cualquiera.
  */
 export function usePayrollFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const cycle = useSettingsSection("payrollCycle", payrollCycleSchema).data?.cycle;
-  const fallback: PeriodGranularity = cycle === "monthly" ? "month" : "week";
+  const cycleData = useSettingsSection("payrollCycle", payrollCycleSchema).data;
+  const settings = React.useMemo<PayCycleSettings>(() => ({ cycle: cycleData?.cycle ?? "weekly", startDay: cycleData?.startDay ?? 1 }), [cycleData]);
   const granularityParam = searchParams.get("periodo");
-  const granularity: PeriodGranularity = GRANULARITIES.includes(granularityParam as PeriodGranularity) ? (granularityParam as PeriodGranularity) : fallback;
+  const byCycle = !GRANULARITIES.includes(granularityParam as PeriodGranularity);
+  const granularity: PeriodGranularity = byCycle ? (settings.cycle === "monthly" ? "month" : "week") : (granularityParam as PeriodGranularity);
   const dateParam = searchParams.get("fecha");
   const date = React.useMemo(() => fromIsoDate(dateParam) ?? new Date(), [dateParam]);
   const payoutParam = searchParams.get("pago");
@@ -43,17 +46,29 @@ export function usePayrollFilters() {
     [setSearchParams]
   );
 
-  const range = periodRange(date, granularity);
+  const range = byCycle ? payCycleWindow(date, settings) : periodRange(date, granularity);
   const today = toIsoDate(new Date());
 
   return {
     granularity,
+    /** Se mira un ciclo de pago (por defecto) y no un día, una semana o un mes cualquiera. */
+    byCycle,
+    cycle: settings.cycle,
     date,
     payout,
     memberId,
     from: toIsoDate(range.from),
     to: toIsoDate(range.to),
-    setGranularity: (value: PeriodGranularity) => set({ periodo: value === fallback ? undefined : value }),
+    setGranularity: (value: PeriodGranularity) => set({ periodo: value }),
+    /** Volver a mirar por ciclo de pago. */
+    showCycle: () => set({ periodo: undefined }),
+    /** El ciclo anterior o el siguiente. */
+    stepCycle: (delta: -1 | 1) => {
+      const next = toIsoDate(shiftPayCycle(date, settings, delta).from);
+      set({ fecha: next === today ? undefined : next });
+    },
+    /** El ciclo que sigue al que se mira ya empezó (no se avanza a un ciclo futuro). */
+    nextCycleStarted: toIsoDate(shiftPayCycle(date, settings, 1).from) <= today,
     setDate: (value: Date) => {
       const iso = toIsoDate(value);
       set({ fecha: iso === today ? undefined : iso });

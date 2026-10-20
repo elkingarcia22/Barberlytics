@@ -45,7 +45,8 @@ export const calendarApi = {
     api.get<CalendarMonth>("/calendar/month", { query: { branchId, month, barberId }, schema: calendarMonthSchema, signal }),
   /** Cuántas citas suele tener cada día de la semana (las últimas semanas): día suave o pesado. */
   rhythm: (branchId: string, signal?: AbortSignal) => api.get<DayRhythm>("/calendar/rhythm", { query: { branchId }, schema: dayRhythmSchema, signal }),
-  createAppointment: (input: AppointmentInput) => api.post<Appointment>("/appointments", input, { schema: appointmentSchema }),
+  /** `branchId`: la sede donde se crea (la de la cabecera); el servidor la usa si el barbero trabaja en ella. */
+  createAppointment: (input: AppointmentInput, branchId?: string) => api.post<Appointment>("/appointments", { ...input, branchId }, { schema: appointmentSchema }),
   /** El saldo de una tarjeta de regalo, para pagar con ella en la caja. */
   checkGiftCard: (code: string) => api.post<{ code: string; balance: number }>(`/booking/gift-cards/check`, { code }, { schema: z.object({ code: z.string(), balance: z.number() }) }),
   /** Devolver (todo o en parte) una cuenta cobrada; los productos devueltos vuelven al inventario. */

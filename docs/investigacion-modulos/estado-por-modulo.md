@@ -112,7 +112,7 @@ WhatsApp; pronóstico de caja a 90 días.
 ## 07 Nómina
 
 **Pendiente**
-- P0 (parcial) · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja.
+- ~~P0 · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja~~ (hecho el 2026-10-19).
 - P1 · Comprobante PDF y por WhatsApp; dispersión bancaria; propinas efectivo/tarjeta; clasificación laboral; exportar a
   Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; metas; comparación con el periodo anterior.
 - P2 · Horas y recargos, PILA/IBC, nómina electrónica, bolsa de propinas, multi-sucursal.
@@ -206,8 +206,8 @@ respuestas; retorno por canal con UTM.
 ## 16 Front Desk
 
 **Pendiente**
-- P0 · Kiosco por sede; check-in que avisa (`clientArrived`); `phone/check` sin perfil; cola de walk-ins; la cita nueva
-  cae en la primera sucursal; el walk-in nace «programado»; `waitlistJoined` sin emitir.
+- ~~P0 · Kiosco por sede; check-in que avisa; cola de walk-ins; la cita nueva cae en la primera sucursal; el walk-in
+  nace «programado»; `waitlistJoined` sin emitir~~ (hecho el 2026-10-19); `phone/check` sin perfil (decisión del usuario: no se toca).
 - P1 · «Ya casi te toca», QR de fila, pantalla `/turnos`, PIN del personal, terminal, propina en pantalla, idioma grande.
 
 **IA que falta**: espera estimada; «¿hay turno?» por WhatsApp; afluencia del día; barbero sugerido para el walk-in.
@@ -299,3 +299,10 @@ Se va completando aquí lo que se corrige a partir de esta lista.
 - **Gastos (06 P0).**
   - Navegación por mes (el resumen y la lista son del mes; `from/to` en la API), día de pago en los fijos, categorías propias (las crea gerencia; al borrarlas sus gastos pasan a «Otros»), el valor con la moneda y los decimales de la sede, y el «hoy» con la zona de la sede.
   - Falta: avisos de pagos por vencer, cuentas por pagar, proveedores como entidad.
+- **Nómina (07 P0).**
+  - Quincena de verdad: del 1 al 15 y del 16 a fin de mes (o desde el día elegido), compartida por la pantalla y el cálculo (`payCycle.ts`); Nómina abre en el ciclo en curso y avanza de ciclo en ciclo.
+  - Ventas de mostrador con «Quién vendió»: comisionan como producto en su nómina (el barbero vende a su nombre).
+  - Préstamos en cuotas: se registran en la ficha de nómina, la cuota sale sola en cada ciclo y cancelar frena lo que falta.
+  - Faltante de caja: ajuste propio y, desde el cierre con faltante, «Descontar en su nómina».
+  - Falta: comprobante PDF, dispersión bancaria, propinas por medio y el préstamo como salida de caja.
+- **Front Desk (16 P0, lo que quedaba).** La cita va a la sede de la cabecera si el barbero trabaja ahí; el walk-in de hoy nace «llegó»; apuntarse a la lista de espera avisa a recepción.

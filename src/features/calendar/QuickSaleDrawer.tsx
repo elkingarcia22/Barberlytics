@@ -16,6 +16,10 @@ import { useOpenKey } from "./calendarFormat";
 import { useCreateSale } from "./queries";
 import { PAYMENT_METHOD_KEYS, paymentMethodSchema, type PaymentMethod, type ProductLine } from "./types";
 import { ProductThumb } from "./calendarShared";
+import { useAccess } from "@/features/access";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const NO_SELLER = "__barberia";
 
 /**
  * Venta rápida de productos: para quien se lleva una cera sin tener cita.
@@ -40,6 +44,9 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
   const [category, setCategory] = React.useState("all");
   const [items, setItems] = React.useState<ProductLine[]>([]);
   const [method, setMethod] = React.useState<PaymentMethod>("cash");
+  // Quién vendió (comisiona en su nómina). El barbero vende a su nombre: el servidor lo pone solo.
+  const access = useAccess();
+  const [sellerId, setSellerId] = React.useState<string>(NO_SELLER);
   const [search, setSearch] = React.useState("");
   const [received, setReceived] = React.useState<number | null>(null);
 
@@ -60,7 +67,7 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
 
   const pay = () => {
     sale.mutate(
-      { branchId, items, method },
+      { branchId, items, method, sellerId: sellerId === NO_SELLER ? null : sellerId },
       {
         onSuccess: (created) => {
           toast.success(t("calendar.quickSale.paid"), { description: t("calendar.checkout.paidHint", { total: ctx.formatMoney(created.total), method: t(PAYMENT_METHOD_KEYS[method]) }) });
@@ -144,6 +151,24 @@ function QuickSalePanel({ open, onOpenChange, branchId, ctx }: QuickSaleDrawerPr
             {items.length === 0 && <Text variant="muted">{t("calendar.quickSale.empty")}</Text>}
           </div>
         </DrawerSection>
+
+        {!access.isBarber && (
+          <Field label={t("calendar.quickSale.seller")} description={t("calendar.quickSale.sellerHint")}>
+            <Select value={sellerId} onValueChange={setSellerId}>
+              <SelectTrigger data-testid="quick-sale-seller">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_SELLER}>{t("calendar.quickSale.noSeller")}</SelectItem>
+                {ctx.catalog.barbers.map((barber) => (
+                  <SelectItem key={barber.id} value={barber.id}>
+                    {barber.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
 
         <DrawerSection icon={CreditCard} tone="neutral" title={t("calendar.checkout.method")} hint={t("calendar.checkout.methodHint")}>
           <RadioCardGroup columns={2} value={method} onChange={(value) => setMethod(value as PaymentMethod)} options={paymentMethodSchema.options.map((option) => ({ value: option, label: t(PAYMENT_METHOD_KEYS[option]) }))} />

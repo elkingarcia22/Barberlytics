@@ -81,3 +81,28 @@ export function blockAppliesOn(block: Pick<TimeBlock, "startDate" | "endDate" | 
   if (block.repeat === "monthly") return parseISO(block.startDate).getDate() === date.getDate();
   return true;
 }
+
+/**
+ * Lo que se está creando en el panel de ausencias y bloqueos, para marcarlo en
+ * la agenda mientras se arma (como la cita en «Crear cita»): de quién, qué
+ * (el rótulo ya traducido), qué días y, si es un bloqueo, a qué horas. Una
+ * ausencia ocupa la jornada entera de cada día.
+ */
+export interface TimeOffPreview {
+  barberId: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  repeat?: TimeBlock["repeat"];
+  /** Solo los bloqueos: «13:00» – «14:00». Sin ellos, la jornada de ese día. */
+  startTime?: string;
+  endTime?: string;
+}
+
+/** El tramo (en «HH:mm») que ocupa en un día, o `null` si ese día no le toca o no trabaja. */
+export function previewSpanOn(preview: TimeOffPreview, date: Date, hours: readonly { start: string; end: string }[]): { start: string; end: string } | null {
+  if (!blockAppliesOn({ startDate: preview.startDate, endDate: preview.endDate, repeat: preview.repeat ?? "none" }, date)) return null;
+  if (preview.startTime && preview.endTime) return preview.startTime < preview.endTime ? { start: preview.startTime, end: preview.endTime } : null;
+  if (hours.length === 0) return null;
+  return { start: hours[0].start, end: hours[hours.length - 1].end };
+}

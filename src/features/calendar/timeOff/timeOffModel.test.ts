@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Barber } from "../types";
-import { blockAppliesOn, coverageFor, daysOf, isAbsenceBlock, isShortHanded } from "./timeOffModel";
+import { blockAppliesOn, coverageFor, daysOf, isAbsenceBlock, isShortHanded, previewSpanOn } from "./timeOffModel";
 
 const weekdays = { "1": [{ start: "09:00", end: "18:00" }], "2": [{ start: "09:00", end: "18:00" }], "3": [{ start: "09:00", end: "18:00" }] };
 const barber = (id: string, name: string): Barber => ({ id, branchId: "ma", name, avatarUrl: null, level: null, workingHours: weekdays, acceptsWalkIns: true });
@@ -55,5 +55,21 @@ describe("isAbsenceBlock", () => {
     expect(isAbsenceBlock({ id: "blk_3", category: "lunch" })).toBe(false);
     expect(isAbsenceBlock({ id: "blk_4", category: "meeting" })).toBe(false);
     expect(isAbsenceBlock({ id: "blk_5", category: "personal" })).toBe(false);
+  });
+});
+
+describe("lo que se está creando, en la agenda", () => {
+  const hours = [{ start: "09:00", end: "13:00" }, { start: "14:00", end: "19:00" }];
+  test("una ausencia ocupa la jornada entera de cada día del rango", () => {
+    const preview = { barberId: "b1", label: "Vacaciones", startDate: "2026-10-20", endDate: "2026-10-22" };
+    expect(previewSpanOn(preview, new Date(2026, 9, 21), hours)).toEqual({ start: "09:00", end: "19:00" });
+    expect(previewSpanOn(preview, new Date(2026, 9, 23), hours)).toBeNull();
+    expect(previewSpanOn(preview, new Date(2026, 9, 21), [])).toBeNull();
+  });
+  test("un bloqueo ocupa sus horas y respeta la repetición", () => {
+    const preview = { barberId: "b1", label: "Almuerzo", startDate: "2026-10-20", endDate: "2026-11-30", repeat: "weekly" as const, startTime: "13:00", endTime: "14:00" };
+    expect(previewSpanOn(preview, new Date(2026, 9, 27), hours)).toEqual({ start: "13:00", end: "14:00" });
+    expect(previewSpanOn(preview, new Date(2026, 9, 28), hours)).toBeNull();
+    expect(previewSpanOn({ ...preview, startTime: "15:00", endTime: "14:00" }, new Date(2026, 9, 20), hours)).toBeNull();
   });
 });

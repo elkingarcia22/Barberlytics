@@ -117,8 +117,9 @@ export interface ScheduleEvent {
   ghost?: boolean;
   /**
    * Con `ghost`: es la que se está armando ahora mismo (el hueco elegido en
-   * «Crear cita»). Se dibuja llena, con el borde discontinuo más grueso y un
-   * halo, para que se vea dónde va a quedar la cita.
+   * «Crear cita», la ausencia o el bloqueo que se agrega). Se dibuja opaca
+   * —tapa lo de debajo para que los textos no se encimen—, con el borde
+   * discontinuo más grueso y un halo, para que se vea dónde va a quedar.
    */
   active?: boolean;
   /** Por qué se propone («Sin dejar hueco entre citas»): una línea bajo el título. */

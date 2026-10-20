@@ -596,7 +596,7 @@ En orden de dependencia. Cada uno nombra los archivos que toca.
 12. **Ajustes personales vs. de la empresa.** Formato de hora personal (hoy en `BusinessSettings.tsx`, de la
     empresa); `DeleteAccountSettings.tsx` borra el acceso propio para quien no es dueño; nueva sección
     «Permisos por rol» (dueño; admin para roles por debajo) reutilizando `forms/PermissionsForm.tsx`.
-13. **Vacaciones con solicitud.** `src/features/calendar/BlockDrawer.tsx` y `calendarModel.ts:405`
+13. **Vacaciones con solicitud.** `src/features/calendar/timeOff/BlockForm.tsx` (antes `BlockDrawer.tsx`) y `calendarModel.ts:405`
     (`RULE_BOUND_ROLES` desde `useAccess`): la categoría `vacation` de un barbero por comisión nace como
     solicitud; el dueño o admin aprueba; los avisos ya existen en `notificationCatalog.ts`.
 14. **Textos.** `src/app/i18n/es.ts:494` y `:697`: «Owner» → «Dueño»; etiqueta «Propietario» en la cabecera

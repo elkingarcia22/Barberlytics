@@ -747,6 +747,39 @@ describe("Calendario", () => {
     expect(screen.getByTestId("block-submit")).toHaveTextContent("Guardar");
   }, 15_000);
 
+  test("«Agregar» en Ausencias y bloqueos es una página del panel y lo que se arma se marca en la agenda", async () => {
+    const user = userEvent.setup();
+    setActionsPlacement("inline");
+    mount();
+    await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Ausencias y bloqueos" }));
+    await user.click(await screen.findByTestId("time-off-add"));
+
+    // La lista y sus filtros se quedan atrás: solo la página de agregar, con «Volver».
+    expect(await screen.findByTestId("time-off-add-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("time-off")).toBeNull();
+    // La vacación de hoy ya se ve en la agenda mientras se arma.
+    await waitFor(() => expect(document.querySelector('[data-schedule-event="create-preview"]')).toHaveAttribute("data-active", "true"));
+
+    // Un bloqueo se agrega desde la misma página.
+    await user.click(screen.getByRole("radio", { name: "Bloqueo" }));
+    expect(await screen.findByTestId("block-drawer")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(await screen.findByTestId("time-off")).toBeInTheDocument();
+  }, 15_000);
+
+  test("«Crear bloque de tiempo» desde la columna abre «Agregar» de Ausencias y bloqueos con el barbero puesto", async () => {
+    const user = userEvent.setup();
+    mount();
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" });
+    await user.click(within(grid).getByRole("button", { name: "Opciones de Andrés Beltrán" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Crear bloque de tiempo" }));
+    expect(await screen.findByTestId("time-off-add-page")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Bloqueo" })).toBeChecked();
+    expect(screen.getByTestId("block-barber")).toHaveTextContent("Andrés Beltrán");
+  });
+
   test("«Ausencias y bloqueos» deja a la vista solo lo elegido, como «solo huecos»", async () => {
     const user = userEvent.setup();
     mount();

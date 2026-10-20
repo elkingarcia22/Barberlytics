@@ -187,7 +187,7 @@ admin, recepción y renta sale de la matriz de fábrica.
 | Acción / elemento | Dueño | Admin | Recepción | Comisión | Renta | Permiso | Fuente | En Thema |
 |---|---|---|---|---|---|---|---|---|
 | Ver bloqueos en la rejilla | ✅ [P*] | ✅ | ✅ | 👁 los suyos [M] | 👁 los suyos | `block-calendar·V` | MOD l. 111 | ✓ `blockToEvent` |
-| **Crear bloque de tiempo** (Categoría, Repetición, fechas, horas, Descripción) | ✅ [P] | ✅ [M] | ✅ [M] | — (solo V de fábrica) [M] | 🔒 suyo [M] | `block-calendar·C` | CAL l. 103-106; `art/vacaciones-de-un-barbero` «Quién puede hacerlo» | ✓ `BlockDrawer.tsx` (+ «Día completo» y aviso de choques) |
+| **Crear bloque de tiempo** (Categoría, Repetición, fechas, horas, Descripción) | ✅ [P] | ✅ [M] | ✅ [M] | — (solo V de fábrica) [M] | 🔒 suyo [M] | `block-calendar·C` | CAL l. 103-106; `art/vacaciones-de-un-barbero` «Quién puede hacerlo» | ✓ `timeOff/BlockForm.tsx`, página «Agregar» de Ausencias y bloqueos (+ «Día completo» y aviso de choques) |
 | Categoría **Bloqueo del negocio** | ✅ [D] | ✅ [D] | ✅ [D] | — | — [D] | `block-calendar·C` | CAL l. 104 | ✓ `business` sin restricción |
 | Categoría **Vacaciones** — comisión **solicita** | aprueba [P*] | aprueba ? | ? | solicita [P*] | n/a | `block-calendar` + flujo | `conf/notificaciones-del-calendario` («Cuando un barbero solicita vacaciones») | ✗ (no hay solicitud ni aprobación) |
 | Categoría **Vacaciones** — renta **crea** sin aprobación | recibe aviso [P*] | ? | n/a | n/a | ✅ [P*] | `block-calendar·C` | `conf/notificaciones-del-calendario` («Cuando un barbero de renta crea un periodo de vacaciones») | parcial (crea, sin aviso) |
@@ -314,7 +314,7 @@ Todos dependen de la fase 1 de `docs/ROLES_PLAN.md` §5: `role: TeamRole` + `mem
 9. **`CreateAppointmentDrawer.tsx`**: con alcance propio, barbero fijo y clientes recortados; opción explícita «Sin preferencia» que deje `requestedBarberId: null`; «Crear cliente» en un subpanel en vez de navegar a `/clientes` (`CalendarPage.tsx` l. 789); precio del barbero para renta.
 10. **`CheckoutDrawer.tsx`**: respetar «Puede recibir propinas» del barbero; total y método visibles a recepción; (pendiente de producto) Combinar citas y Agregar cliente.
 11. **`CollectionsDrawer.tsx`**, **`GapsDrawer.tsx`**, **`CalendarMonthView.tsx`**, **`CalendarWeekView.tsx`**: aceptar `barberId` de alcance; ocultar totales en dinero (`calendar.collections.total`, `calendar.gaps.stat.potential`) y, si se decide, la ocupación a recepción.
-12. **`BlockDrawer.tsx`**: con alcance propio, barbero fijo y sin la categoría `business`; para comisión, «Solicitar vacaciones» en vez de crear (flujo nuevo con aprobación del dueño/admin) [D].
+12. **`timeOff/BlockForm.tsx`** (antes `BlockDrawer.tsx`): con alcance propio, barbero fijo y sin la categoría `business`; para comisión, «Solicitar vacaciones» en vez de crear (flujo nuevo con aprobación del dueño/admin) [D].
 13. **`WaitlistDrawer.tsx`** y **`WalkInSaleDrawer.tsx`**: barbero fijo con alcance propio; venta sin cita con fecha pasada solo para dueño/admin [D].
 14. **`QuickSaleDrawer.tsx`** + **`src/mocks/calendar/handlers.ts`** (`POST /sales`) + **`docs/API_CONTRACT.md`** (l. 183): añadir `soldBy` para acreditar la venta al barbero.
 15. **`src/mocks/calendar/handlers.ts`**: validar el rol de la sesión antes de aceptar `force` (l. 263, 355), recortar `GET /calendar/day` y `/waitlist` por `memberId` cuando el alcance es propio, y `403` en `POST /blocks` / `DELETE /blocks/:id` sin permiso. Documentarlo en **`docs/API_CONTRACT.md`** §Calendario.

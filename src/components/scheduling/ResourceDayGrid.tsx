@@ -289,13 +289,14 @@ export function ResourceDayGrid({
           <div className={cn("sticky left-0 z-raised border-r border-border bg-surface", edges.previous && "shadow-card")} style={{ gridColumn: 1, gridRow: 2 }} aria-hidden="true">
             <div className="relative">
               {slots.map((minute) => (
-                <div key={minute} className="relative border-b border-border/60 pr-2 text-right" style={{ height: slotHeight }}>
-                  <span className="-translate-y-1/2 inline-block text-xs tabular-nums text-text-muted">{formatClock(atMinutes(date, minute), intl)}</span>
+                <div key={minute} className="relative border-b border-border/60 pr-1.5 text-right" style={{ height: slotHeight }}>
+                  {/* En una sola línea: «12:00 p. m.» partido en dos se leía como dos horas. */}
+                  <span className="-translate-y-1/2 inline-block whitespace-nowrap text-xs tabular-nums text-text-muted">{formatClock(atMinutes(date, minute), intl)}</span>
                 </div>
               ))}
               {marker !== null && (
                 <span
-                  className="absolute left-1 inline-flex -translate-y-1/2 items-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-destructive-foreground shadow-card"
+                  className="absolute left-1 inline-flex -translate-y-1/2 items-center whitespace-nowrap rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-destructive-foreground shadow-card"
                   style={{ top: `${marker}%` }}
                 >
                   {formatClock(nowDate, intl)}

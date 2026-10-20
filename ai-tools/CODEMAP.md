@@ -576,7 +576,6 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **AppointmentDrawer.tsx** — El panel de una cita. · `AppointmentDrawerProps`, `AppointmentDrawer` · piezas: IconTile, SidePanelShell, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons
 - **BarberTodayEarnings.tsx** — «Hoy ganas»: la pregunta diaria del barbero, en la fila de la agenda y también en el celular. · `BarberTodayEarnings` · piezas: Text · usa: @/app/i18n, @/features/payroll
-- **BlockDrawer.tsx** — Crear bloqueo: una franja del barbero que deja de estar disponible — almuerzo, reunión, enfermedad, vacacione… · `BlockDrawerProps`, `BlockDrawer` · piezas: Button, DatePicker, DrawerSection, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SidePanelShell, Text, Textarea, parseClock · usa: @/app/i18n, @/i18n, @/lib/api
 - **BlockOptionsDialog.tsx** — Lo que se hace al tocar un bloqueo, para quien agenda sin las reglas de la casa (dueño, administrador, recepc… · `BlockOptionsDialogProps`, `BlockOptionsDialog` · piezas: ActionTile, IconTile, ModalShell, Text · usa: @/app/i18n
 - **CalendarAgendaView.tsx** — La vista Agenda: las citas del día una debajo de otra, repartidas en mañana, tarde y noche, con el cliente, e… · `CalendarAgendaViewProps`, `CalendarAgendaView` · piezas: Button, EmptyState, ListItem, ListItemGroup, RowContextMenu, ScheduleColorDot, ScheduleMarkers, Text, minutesOfDay, scheduleColorClass · usa: @/app/i18n, @/i18n, @/lib/utils
 - **CalendarAssistantDrawer.tsx** — El asistente del día: lo que la agenda pide mirar, como tarjetas de IA del sistema con su acción, y un campo… · `CalendarAssistantDrawerProps`, `CalendarAssistantDrawer` · piezas: AIButton, AIInsightCard, AIPanel, Field, SidePanelShell, Text, Textarea, formatClock · usa: @/app/i18n, @/i18n
@@ -704,9 +703,11 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### calendar/timeOff
 
-- **TimeOffDrawer.tsx** — Las ausencias y los bloqueos del equipo en un panel junto a la agenda, como los huecos: arriba lo que falta a… · `TimeOffFocus`, `TimeOffDrawerProps`, `TimeOffDrawer` · piezas: Button, Chip, DateRangePicker, EmptyState, Field, IconTile, Input, ListItem, ListItemGroup, SegmentedControl, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SidePanelShell, StatusBadge, Text, calendarLocale · usa: @/app/i18n, @/features/team, @/i18n, @/lib/api
+- **BarberField.tsx** — De quién es la ausencia o el bloqueo, como el barbero en «Crear cita»: un campo con su foto que abre la lista… · `BarberField` · piezas: SelectableRow, Text · usa: @/app/i18n
+- **BlockForm.tsx** — Crear o editar un bloqueo: una franja del barbero que deja de estar disponible —almuerzo, reunión, capacitaci… · `BlockFormProps`, `BlockForm` · piezas: Button, DatePicker, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, parseClock · usa: @/app/i18n, @/i18n, @/icons, @/lib/api
+- **TimeOffDrawer.tsx** — Abrir «Agregar» ya puesto: el tipo, de quién, o el bloqueo que se edita (desde la columna del barbero o la ag… · `TimeOffAdd`, `TimeOffFocus`, `TimeOffDrawerProps`, `TimeOffDrawer` · piezas: Button, Chip, DateRangePicker, EmptyState, IconTile, Input, ListItem, ListItemGroup, SegmentedControl, SidePanelShell, StatusBadge, Text, calendarLocale · usa: @/app/i18n, @/features/team, @/i18n, @/lib/api
 - **TimeOffReview.tsx** — Un bloqueo que puso un barbero y espera aprobación: qué, cuándo y quién lo pidió. · `AbsenceReview`, `BlockReview` · piezas: Alert, AlertDescription, Button, Heading, IconTile, Input, ListItem, ListItemGroup, StatusBadge, Text, calendarLocale · usa: @/app/i18n, @/features/team, @/i18n, @/lib/api
-- **timeOffModel.ts** — Una ausencia como la ve la agenda (la de Equipo trae más campos). · `TimeOffAbsence`, `daysOf`, `DayCoverage`, `coverageFor`, `isShortHanded`, `ABSENCE_BLOCK_PREFIX`, `isAbsenceBlock`, `blockAppliesOn`
+- **timeOffModel.ts** — Una ausencia como la ve la agenda (la de Equipo trae más campos). · `TimeOffAbsence`, `daysOf`, `DayCoverage`, `coverageFor`, `isShortHanded`, `ABSENCE_BLOCK_PREFIX`, `isAbsenceBlock`, `blockAppliesOn`, `TimeOffPreview`, `previewSpanOn`
 
 ### catalog
 

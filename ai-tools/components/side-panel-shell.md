@@ -1,6 +1,6 @@
 # SidePanelShell (beta)
 
-Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae solo a un drawer cuando no hay sitio para dos columnas o no hay shell alrededor.
+Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae sola a una hoja que sube desde abajo cuando no hay sitio para dos columnas (celular y tablet) o no hay shell alrededor, como las ventanas de la reserva en línea.
 
 Familia: Overlays · Doc: `/docs#/components/side-panel-shell` · Fuente: `src/components/overlays/SidePanelShell.tsx`
 

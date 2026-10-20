@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { addDays, addMonths, format } from "date-fns";
 import { CalendarIcon, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale } from "@/i18n";
@@ -85,15 +86,21 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="calendar-toolbar">
-      {showTeam && <TeamPicker team={team} barbers={barbers} onTeamChange={onTeamChange} />}
+      {/* En el celular, la vista Día elige barbero con la tira de chips de debajo: el selector sobraría. */}
+      {showTeam && (
+        <div className={cn(view === "day" && "max-md:hidden")}>
+          <TeamPicker team={team} barbers={barbers} onTeamChange={onTeamChange} />
+        </div>
+      )}
 
-      <div className="flex items-center gap-1">
+      {/* En el celular la fecha ocupa su fila entera; las herramientas van en la siguiente. */}
+      <div className="flex items-center gap-1 max-sm:w-full">
         <Button variant="outline" size="icon" aria-label={prevLabel} onClick={() => step(-1)}>
           <ChevronLeft />
         </Button>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[10.5rem] justify-between" aria-label={t("calendar.jumpToDate")} data-testid="calendar-date">
+            <Button variant="outline" className="min-w-[10.5rem] justify-between max-sm:min-w-0 max-sm:flex-1" aria-label={t("calendar.jumpToDate")} data-testid="calendar-date">
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="font-semibold">{label}</span>
                 {dateBadge}

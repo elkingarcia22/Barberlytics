@@ -22,8 +22,9 @@ import { PANEL_FOOTER_SLOT_CLASS, PanelFooterSlotProvider, usePanelFooterSlot } 
  *
  * Tiene la misma anatomía y las mismas props que `DrawerShell` —cabecera con
  * título y descripción, cuerpo con scroll, pie con acciones—, así que pasar
- * de uno a otro es cambiar el nombre. Y cae solo a `DrawerShell` cuando no
- * hay sitio para dos columnas (pantalla estrecha) o no hay shell alrededor.
+ * de uno a otro es cambiar el nombre. Y cae solo a un `DrawerShell` que sube
+ * desde abajo cuando no hay sitio para dos columnas (celular y tablet) o no hay
+ * shell alrededor: como las ventanas de la reserva en línea.
  *
  * No es modal: no atrapa el foco ni pone velo. Solo debe haber uno abierto a
  * la vez; quien lo monta decide cuál.
@@ -35,6 +36,8 @@ export type SidePanelShellProps = Pick<DrawerShellProps, "open" | "onOpenChange"
 const SIDE_BY_SIDE_QUERY = "(min-width: 1024px)";
 /** Algo más ancho que el del Agente IA: aquí van formularios. */
 const PANEL_WIDTH = `max(${AGENT_PANEL_WIDTH}, min(460px, 42vw))`;
+/** La hoja de abajo (celular y tablet): alta para formularios, pero sin tapar del todo la página. */
+const BOTTOM_SHEET_STYLE: React.CSSProperties = { maxHeight: "calc(100dvh - 4rem)" };
 
 function subscribe(onChange: () => void) {
   if (typeof window.matchMedia !== "function") return () => undefined;
@@ -65,7 +68,9 @@ export function SidePanelShell(props: SidePanelShellProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [inline, open, onOpenChange]);
 
-  if (!inline || !host) return <DrawerShell {...props} />;
+  // En celular y tablet no hay sitio para dos columnas: sube desde abajo, al alcance del pulgar, como
+  // las ventanas de la reserva en línea. Deja ver un poco de la página arriba.
+  if (!inline || !host) return <DrawerShell {...props} side="bottom" contentStyle={BOTTOM_SHEET_STYLE} />;
 
   return createPortal(
     <div

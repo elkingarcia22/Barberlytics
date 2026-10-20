@@ -12,6 +12,7 @@ import { hashOf } from "../customers/seed";
 import { stockLevel } from "../inventory/stock";
 import { BLOCKED_PHONE, DEMO_CARDS, DEMO_GUESTS_CLIENT, DEMO_PHONES, type MockReservation, type MockSavedCard } from "./state";
 import { consentCountryOf } from "@/features/legal/consent";
+import { closedForHoliday } from "@/features/settings/countryPack";
 
 /**
  * Las derivaciones de la reserva en línea: lo que ve el cliente sale de lo
@@ -193,10 +194,14 @@ export function catalog(branchId: string) {
   };
 }
 
-const isClosed = (branchId: string, day: string): boolean =>
+/** Los festivos en que cierra el negocio (Configuración › Perfil del negocio), por motivo. */
+const closedHolidays = (): readonly string[] => (db.settings.sections.business as { holidays?: string[] } | undefined)?.holidays ?? [];
+
+/** Cerrado por un cierre de la sede o por un festivo de su país en que el negocio no abre. */
+export const isClosed = (branchId: string, day: string): boolean =>
   (db.settings.lists.closures as unknown as { startDate: string; endDate: string; branchIds: string[] }[]).some(
     (closure) => closure.branchIds.includes(branchId) && closure.startDate <= day && day <= closure.endDate
-  );
+  ) || closedForHoliday(branchCountry(branchId), closedHolidays(), day) !== null;
 
 /** ¿Puede este barbero atender a esa hora, todo el tramo, sin pisar nada? */
 export function barberFree(branchId: string, barberId: string, day: string, startMinute: number, durationMin: number, excludeId?: string): boolean {

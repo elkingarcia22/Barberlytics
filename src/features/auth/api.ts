@@ -5,6 +5,7 @@ import {
   authUserSchema,
   backupEmailSchema,
   sessionSchema,
+  signupResultSchema,
   supportTicketResponseSchema,
   type AuthProvider,
   type AuthUser,
@@ -16,6 +17,7 @@ import {
   type RecoveryRequest,
   type Session,
   type SignupRequest,
+  type SignupResult,
   type SupportTicketRequest,
   type SupportTicketResponse,
 } from "./types";
@@ -46,9 +48,15 @@ export const authApi = {
     remove: () => api.delete<void>("/auth/backup-email"),
   },
   /** Con la versión de cada documento que se aceptó: términos, privacidad y acuerdo de encargo. */
-  signup: (body: SignupRequest) => api.post<void>("/auth/signup", { ...body, termsVersion: legalVersion("terms"), privacyVersion: legalVersion("privacy"), dpaVersion: legalVersion("dpa") }),
+  /** Crea la cuenta y la barbería con el paquete del país, y entra: devuelve la sesión y lo que quedó listo. */
+  signup: (body: SignupRequest) =>
+    api.post<SignupResult>("/auth/signup", { ...body, termsVersion: legalVersion("terms"), privacyVersion: legalVersion("privacy"), dpaVersion: legalVersion("dpa"), device: deviceInfo() }, { schema: signupResultSchema }),
   /** Manda el código al celular del registro, para verificarlo antes de crear la cuenta. */
   signupCode: (phone: string) => api.post<void>("/auth/signup/code", { phone }),
+  /** Bloqueado: manda un código al correo de respaldo de la cuenta de ese número (204 siempre). */
+  unlockRequest: (phone: string) => api.post<void>("/auth/unlock/request", { phone }),
+  /** El código del correo levanta el bloqueo y abre la sesión. */
+  unlockVerify: (body: OtpVerify) => api.post<Session>("/auth/unlock/verify", { ...body, device: deviceInfo() }, { schema: sessionSchema }),
   /** Sin sesión: se abre desde el login (no llegó el correo, acceso bloqueado). */
   createTicket: (body: SupportTicketRequest) =>
     api.post<SupportTicketResponse>("/support/tickets", body, { schema: supportTicketResponseSchema }),

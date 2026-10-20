@@ -1,4 +1,5 @@
 import * as React from "react";
+import { apiAuth } from "@/lib/api";
 import { legalHref } from "@/features/legal/documents";
 import { ClipperIcon } from "@/components/ai-interaction";
 import { RailAgentProvider, type RailActionSpec } from "@/components/action-rail";
@@ -19,7 +20,7 @@ import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
-import { DEFAULT_BRANCH_ID, useBranches } from "@/features/branches";
+import { DEFAULT_BRANCH_ID, readInitialBranch, useBranches } from "@/features/branches";
 import { useMessageDispatcher } from "@/features/calendar/messages";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { toShellNotifications, useMarkNotificationsRead, useNotifications, useRetryMessage } from "../notifications";
@@ -111,6 +112,13 @@ export function AppLayout() {
     () => buildAccess({ role: effectiveRole, previewing, ...(!previewing && user?.memberId ? { member: { id: user.memberId, name: user.name } } : {}) }),
     [effectiveRole, previewing, user]
   );
+  // Mirando como otro rol todo es de solo lectura: cada petición lo dice y el servidor rechaza los cambios.
+  React.useEffect(() => {
+    apiAuth.getViewAs = () => (previewing ? effectiveRole : null);
+    return () => {
+      apiAuth.getViewAs = undefined;
+    };
+  }, [previewing, effectiveRole]);
   const selectRole = React.useCallback(
     (roleId: string) => {
       if (!canViewAs(ownRole, roleId as TeamRole)) return;
@@ -124,7 +132,8 @@ export function AppLayout() {
   );
   // La sucursal activa: mientras no haya endpoint, la recuerda la sesión de
   // navegación. Todo lo que se ve debajo es de esta sucursal.
-  const [chosenBranchId, setBranchId] = React.useState(DEFAULT_BRANCH_ID);
+  // Una cuenta recién registrada entra a la sucursal que acaba de crear.
+  const [chosenBranchId, setBranchId] = React.useState(() => readInitialBranch() ?? DEFAULT_BRANCH_ID);
   // Las de Configuración: si la elegida se borra o se desactiva, se pasa a la primera que queda.
   const branches = useBranches();
   // Los mensajes de WhatsApp que ya tocan salen mientras alguien del equipo tiene la app abierta.

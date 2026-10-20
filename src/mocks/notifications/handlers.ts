@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import { AUDIENCE_OF_ROLE, eventOfNotification } from "@/features/settings/sections/notificationCatalog";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
@@ -30,7 +30,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked";
 
 export interface MockNotification {
   id: string;
@@ -51,7 +51,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const clientName = (id: string) => db.calendar.clients.find((item) => item.id === id)?.name ?? "";
@@ -189,12 +189,19 @@ const isOn = (role: Role, item: MockNotification): boolean => {
   return toggles[`${AUDIENCE_OF_ROLE[role]}.${eventId}.push`] !== false;
 };
 
-/** Entró desde un dispositivo nuevo: a la propia cuenta, para que lo reconozca o cierre las demás sesiones. */
+/**
+ * Lo de seguridad, solo a la propia cuenta: entró desde un dispositivo nuevo (que lo reconozca o cierre las
+ * demás sesiones) o se bloqueó el acceso con su número (que configure el correo de respaldo para desbloquearlo).
+ */
 function securityEvents(accountId: string | null, now: Date): MockNotification[] {
   if (!accountId) return [];
   return db.security.events
     .filter((item) => item.accountId === accountId && recent(item.at, now))
-    .map((item) => ({ id: `security:${item.id}`, kind: "newDevice" as const, at: item.at, href: "", tone: "warning" as const, params: { device: item.label }, roles: [], accountId }));
+    .map((item): MockNotification =>
+      item.kind === "locked"
+        ? { id: `security:${item.id}`, kind: "accessLocked" as const, at: item.at, href: "/configuracion/inicio-sesion", tone: "warning" as const, params: {}, roles: [], accountId }
+        : { id: `security:${item.id}`, kind: "newDevice" as const, at: item.at, href: "", tone: "warning" as const, params: { device: item.label }, roles: [], accountId }
+    );
 }
 
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. */

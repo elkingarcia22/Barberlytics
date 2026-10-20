@@ -44,7 +44,9 @@ Cualquier estado ≥ 400 devuelve:
 | POST | `/auth/step-up/request` | — (con sesión) | `200 { phoneHint }`: un código nuevo al celular de la cuenta, con los mismos topes y bloqueo que al entrar |
 | POST | `/auth/step-up/verify` | `{ code }` (con sesión) | `200 { token, expiresAt }`: confirma la identidad por 5 minutos y solo para esa cuenta · `401`/`429` como al entrar |
 | POST | `/auth/signup/code` | `{ phone }` | `204` manda el código al celular del registro (mismos topes y bloqueo que al entrar) · `422` celular inválido |
-| POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone, acceptTerms, code }` | `204` con los términos y el tratamiento de datos aceptados (`acceptTerms: true`) y el celular verificado con el código: la barbería queda pendiente de activar · `422` (`email` ya registrado, `acceptTerms` o `code` faltante van en `fields`) · `401` código malo (cuenta para el bloqueo) |
+| POST | `/auth/signup` | `{ firstName, lastName, company, email, phone, barbers, country, timezone, acceptTerms, code, device? }` | `201 { accessToken, user, setup }` con los términos aceptados (`acceptTerms: true`) y el celular verificado con el código: **entra directo** como dueña de la barbería, hecha con el paquete de su país (ver «Registro») · `422` (`acceptTerms` o `code` faltante van en `fields`) · `401` código malo (cuenta para el bloqueo) · `409` (`details.reason: "phone_taken"` o `"email_taken"`, con `fields.phone` o `fields.email`) **solo después** de verificar el código: a quien no es dueño del número no se le revela si tiene cuenta |
+| POST | `/auth/unlock/request` | `{ phone }` | `204` siempre. Si el número está bloqueado y su cuenta tiene correo de respaldo, le manda un código (vale 10 minutos, 5 intentos); si no, no hace nada y responde igual |
+| POST | `/auth/unlock/verify` | `{ phone, code, device? }` | `200 { accessToken, user }`: levanta el bloqueo y entra · `401` código malo o sin código pendiente (`details.attemptsLeft`) |
 | POST | `/support/tickets` | `{ name, company, email, phone, message, reason: "recovery" \| "lockout" \| "other" }` | `201 { id }` · `422`. Sin sesión. |
 | POST | `/auth/oauth` | `{ provider: "google" | "microsoft", credential }` | `200 { accessToken, user }` · `401` si la cuenta no está vinculada · `422` |
 | POST | `/auth/recovery/request` | `{ email }` | `204` siempre (no revela si el correo existe) · `422` |
@@ -62,12 +64,23 @@ código de 6 dígitos por SMS que vence a los 10 minutos. Quien olvida su númer
 Si el SMS no llega, el código se puede pedir al **correo de respaldo** (`otp/request` con `channel: "email"`): cada
 persona lo configura y lo verifica en Configuración › Inicio de sesión (`/auth/backup-email`, con sesión). Es el mismo
 código y vale igual en `otp/verify`; la respuesta no dice si la cuenta tiene respaldo, para no filtrar datos.
-Tras **4 verificaciones fallidas seguidas** con un mismo celular, el backend lo bloquea **15 minutos**: `otp/request` y
-`otp/verify` responden `429` con `details: { reason: "locked", retryAfterSeconds }`. No es indefinido a propósito: con
-un bloqueo sin fin cualquiera podría dejar al dueño fuera con 4 códigos falsos. Pedir códigos tiene tope (5 cada 15
-minutos por número), porque cada SMS cuesta y se abusa de él (SMS pumping). El front muestra el aviso de bloqueo y
-ofrece abrir un ticket (`/support/tickets`, `reason: "lockout"`). Un acceso correcto pone el contador en cero. `country`
-en `/auth/signup` es ISO 3166-1 alfa-2 y `timezone` un nombre IANA (`America/Bogota`).
+Tras **4 verificaciones fallidas seguidas** con un mismo celular, el backend lo bloquea: **15 minutos**, **1 hora** si
+vuelve a pasar el mismo día y **24 horas** a la tercera. `otp/request` y `otp/verify` responden `429` con
+`details: { reason: "locked", retryAfterSeconds }`. No es indefinido a propósito: con un bloqueo sin fin cualquiera
+podría dejar al dueño fuera con 4 códigos falsos. Cada bloqueo deja un aviso a la propia cuenta (`accessLocked`, en
+`/notifications`). La salida rápida es el **correo de respaldo** (`/auth/unlock/*`); si no lo tiene, espera o abre un
+ticket (`/support/tickets`, `reason: "lockout"`). El front muestra la cuenta regresiva con `retryAfterSeconds`, y
+«Reenviar código» espera 30 s entre envíos. Pedir códigos tiene tope (5 cada 15 minutos por número), porque cada SMS
+cuesta y se abusa de él (SMS pumping). Un acceso correcto pone el contador en cero. `country` en `/auth/signup` es
+ISO 3166-1 alfa-2 y `timezone` un nombre IANA (`America/Bogota`).
+
+**Registro.** El registro abre la sesión y deja la barbería hecha con el **paquete de su país** (Colombia, México o
+Estados Unidos; ver «Configuración › Paquete por país»): una sucursal con el nombre de la barbería, su moneda, zona e
+idioma; el impuesto habitual creado y asignado (IVA 19 % en Colombia, IVA 16 % en México; en EE. UU. depende del
+estado y no se crea); los festivos habituales del país como días sin reserva, y la persona como dueña con su ficha de
+equipo. `setup` dice lo que quedó: `{ branchId, country, currency, timezone, taxGroup, holidays, gateways }`
+(`gateways`: las pasarelas que operan allí, para conectar una). El mock tiene una sola barbería: la sucursal nueva se
+suma a la de la demo y la cuenta entra a ella; el backend real crea una barbería aparte (`tenant_id`).
 `credential` en `/auth/oauth` es el ID token que entrega el SDK del proveedor en el navegador (Google Identity
 Services, MSAL para Outlook/Microsoft); el backend lo valida contra el proveedor y busca la cuenta vinculada. El
 mock ignora la credencial y entra con la primera cuenta que tenga ese proveedor (`admin` → Google, `lider` → Outlook).
@@ -94,6 +107,8 @@ La campana. No hay tabla de avisos: salen de lo que pasó en la sucursal y cada 
 
 `newDevice` (entró desde un dispositivo nuevo: solo a la propia cuenta, con `params.device`; su acción «No fui yo» llama a
 `POST /auth/sessions/revoke-others`, que cierra todas las sesiones de la cuenta menos la actual y responde `{ closed }`);
+`accessLocked` (se bloqueó el acceso con su número tras 4 códigos fallidos: solo a la propia cuenta; lleva a
+Configuración › Inicio de sesión para poner el correo de respaldo con el que se desbloquea);
 `kind` y para quién: `onlineBooking`, `cancelled`, `noShow` (dueño, administrador, recepción y el barbero de la cita);
 `waitlistJoined` (alguien se apuntó a la lista de espera en los últimos días: dueño, administrador y recepción, con
 `client`, `service`, `day` y `time` de la primera franja);
@@ -115,6 +130,11 @@ hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payroll
 ## Permisos en el servidor
 
 Cada endpoint recorta con el rol y la ficha de la sesión (`teamRole`, `memberId`), no con lo que la pantalla esconda:
+
+- **«Ver como» es de solo lectura.** Mirando como otro rol, la app manda `X-View-As: <rol>` en cada petición y el
+  servidor rechaza todo lo que no sea leer con `403 { code: "view_as_read_only" }`, salvo salir (`/auth/logout`),
+  marcar avisos leídos (`/notifications/read`) y mandar comentarios (`/feedback`). La cabecera la pone la app, así que
+  protege de un cambio sin querer, no de un ataque: quien mira ya tiene sus propios permisos, que son mayores.
 
 - **Barbero** (comisión o renta): `GET /payroll` solo su nómina; `GET /customers` solo sus clientes. «Cliente suyo» es
   una sola regla, la misma en Clientes y en la agenda: lo prefiere, o lo atendió o lo tiene agendado en el último año,
@@ -739,7 +759,7 @@ Dos formas, y nada más: **documentos** (un objeto por sección, se lee y se gua
 | `POST` | `/settings/gateways/test` | `{ provider, publicKey, secretKey? }`: prueba las claves de una pasarela (sin `secretKey`, la guardada de la que tiene esa clave pública). `200 { ok, message }`. |
 | `POST` | `/account/delete` | Elimina la cuenta. Cuerpo `{ confirmation }`. `204`. |
 
-Secciones (`:section`): `business` (zona horaria, horario por día, festivos, enlaces), `booking`
+Secciones (`:section`): `business` (zona horaria, horario por día, festivos por motivo, enlaces), `booking`
 (reglas de la reserva en línea, política de cancelación, portal del cliente), `pricing` (precios
 por nivel, redondeo), `tips` (propinas sugeridas), `cardFee` (recargo por tarjeta), `commissions`
 (qué se descuenta antes de comisionar), `payrollCycle` (cada cuánto y desde qué día se paga),
@@ -775,6 +795,22 @@ Reglas que el cliente da por hechas:
 - `DELETE /settings/lists/branches/:id` responde `409 conflict` si es la última sucursal o si
   todavía tiene equipo activo. Borrar un `taxGroup` o una `gateway` que una sucursal usa también da `409`.
 - `POST /account/delete` responde `422` si `confirmation` no es exactamente el nombre de la empresa.
+
+**Paquete por país.** Colombia, México y Estados Unidos traen sus valores (`src/features/settings/countryPack.ts`,
+compartido por la app y el backend):
+
+| | Moneda | Zonas | Identificación fiscal | Impuesto habitual | Pasarelas |
+|---|---|---|---|---|---|
+| CO | COP | `America/Bogota` | NIT con dígito de verificación (`900123456-8`) | IVA 19 % | Wompi, Bold, Mercado Pago |
+| MX | MXN | 7 (Ciudad de México, Monterrey, Cancún…) | RFC del SAT (`BDE240115AB1`) | IVA 16 % | Stripe, Mercado Pago |
+| US | USD | 7 (Nueva York, Chicago, Denver, Phoenix…) | EIN (`12-3456789`) | — (depende del estado) | Stripe, Square |
+
+- `branches[].country` guarda el código (`CO`, `MX`, `US`); los nombres que ya había («Estados Unidos») se siguen
+  entendiendo. Con uno de los tres, `taxId` debe tener la forma de su país o es `422` en `fields.taxId` (vacío vale).
+- `business.holidays` son **motivos**, no fechas (`new-year`, `independence`, `holy-thursday`…): cada sede cierra el
+  de su país (la independencia de una sede de Colombia es el 20 de julio y la de una de EE. UU. el 4). Los festivos de
+  Colombia siguen la Ley 51 de 1983 (Ley Emiliani y Semana Santa); los de EE. UU. son los federales y cierran también
+  el día observado; los de México, los del art. 74 de la Ley Federal del Trabajo. Ese día la reserva no ofrece horas.
 
 Los permisos por rol no están aquí: viven en Equipo.
 

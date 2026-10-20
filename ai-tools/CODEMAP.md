@@ -152,6 +152,8 @@ Lo que responde MSW hoy.
 - `POST /auth/step-up/verify` · src/mocks/handlers.ts
 - `POST /auth/signup/code` · src/mocks/handlers.ts
 - `POST /auth/signup` · src/mocks/handlers.ts
+- `POST /auth/unlock/request` · src/mocks/handlers.ts
+- `POST /auth/unlock/verify` · src/mocks/handlers.ts
 - `POST /support/tickets` · src/mocks/handlers.ts
 - `POST /auth/oauth` · src/mocks/handlers.ts
 - `POST /auth/recovery/request` · src/mocks/handlers.ts
@@ -351,18 +353,18 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### auth
 
 - **AuthProvider.tsx** — Sesión de la aplicación. · `AuthProviderProps`, `AuthProvider` · usa: @/lib/api
-- **LockedPanel.tsx** — Tras varios intentos fallidos seguidos el celular queda bloqueado; la salida es un ticket a soporte. · `LockedPanelProps`, `LockedPanel` · piezas: Button, Heading, Text · usa: @/app/i18n, @/icons
-- **LoginForm.tsx** — Entrar en dos pasos: el celular pide el código por SMS y el código abre la sesión. · `LoginFormProps`, `LoginForm` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, InputOtp, Label, PhoneInput, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **LockedPanel.tsx** — Tras varios códigos fallidos seguidos el celular queda bloqueado un rato (crece si se repite). · `LockedPanelProps`, `LockedPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, InputOtp, Label, Text · usa: @/app/i18n, @/icons, @/lib/api
+- **LoginForm.tsx** · `LoginFormProps`, `LoginForm` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, InputOtp, Label, PhoneInput, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **LoginHeroImage.tsx** — La foto de portada del login, servida desde `public/`. · `LOGIN_HERO_IMAGE`, `LoginHeroImage`
 - **LoginPage.tsx** — Entrada a la aplicación en dos mitades. · `LoginPage` · piezas: BarberlyticsLogo, Enter, Foil, Grain, HairCanvas, Halo, Heading, Text, Vignette · usa: @/app/i18n, @/i18n, @/lib/utils, @/themes
 - **RecoveryPanel.tsx** — Olvidé mi número: se escribe el correo registrado y el celular llega allí. · `RecoveryPanelProps`, `RecoveryPanel` · piezas: Alert, AlertDescription, AlertTitle, Button, Heading, Input, Label, Separator, Text · usa: @/app/i18n, @/icons, @/lib/api
 - **RequireAuth.tsx** — Guarda de ruta. · `RequireAuthProps`, `RequireAuth` · usa: @/app/components
-- **SignupPanel.tsx** · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/legal, @/icons, @/lib/api
+- **SignupPanel.tsx** · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/branches, @/features/legal, @/features/settings, @/icons, @/lib/api
 - **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
-- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/sessions/revoke-others, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/features/legal, @/lib/api
+- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/sessions/revoke-others, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /auth/unlock/request, POST /auth/unlock/verify, POST /support/tickets · usa: @/features/legal, @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
-- **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom` · usa: @/lib/api
+- **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom`, `retryAfterFrom` · usa: @/lib/api
 - **authFormParts.tsx** — Etiqueta, control y mensaje de error enlazados por `id`. · `FieldControlProps`, `AuthField`, `FormErrorAlert`, `BackButton` · piezas: Alert, AlertDescription, AlertTitle, Button, Label, Text · usa: @/icons
 - **backupEmailQueries.ts** — El correo de respaldo de quien tiene la sesión. · `backupEmailKeys`, `useBackupEmailQuery`, `useBackupEmailMutations`
 - **device.ts** — «Chrome en macOS», a partir del agente del navegador. · `deviceLabel`, `deviceInfo`
@@ -371,8 +373,9 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **stepUp.ts** · `stepUpToken`, `clearStepUp`, `stepUpApi` · llama: POST /auth/step-up/request, POST /auth/step-up/verify · usa: @/lib/api
 - **timezones.ts** — Zonas IANA de cada país que ofrece `PhoneInput`; la primera es la más poblada. · `COUNTRY_TIMEZONES`, `describeTimezone`, `timezonesFor`
 - **tokenStorage.ts** — Dónde vive el token de acceso en el navegador. · `TokenStorage`, `sessionTokenStorage`, `createMemoryTokenStorage`
-- **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpChannelSchema`, `OtpChannel`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `backupEmailSchema`, `BackupEmail`, `backupEmailRequestSchema`, `BackupEmailRequest`, `backupEmailVerifySchema`, `BackupEmailVerify`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
+- **types.ts** — Celular en E.164 tal como lo emite `PhoneInput`, completo según el país: un celular de Colombia tiene 10 dígi… · `userRoleSchema`, `UserRole`, `phoneSchema`, `authUserSchema`, `AuthUser`, `sessionSchema`, `Session`, `otpChannelSchema`, `OtpChannel`, `otpRequestSchema`, `OtpRequest`, `OTP_LENGTH`, `otpVerifySchema`, `OtpVerify`, `authProviderSchema`, `AuthProvider`, `recoveryRequestSchema`, `RecoveryRequest`, `signupRequestSchema`, `SignupRequest`, `signupSetupSchema`, `SignupSetup`, `signupResultSchema`, `SignupResult`, `backupEmailSchema`, `BackupEmail`, `backupEmailRequestSchema`, `BackupEmailRequest`, `backupEmailVerifySchema`, `BackupEmailVerify`, `ticketReasonSchema`, `TicketReason`, `supportTicketSchema`, `SupportTicketRequest`, `supportTicketResponseSchema`, `SupportTicketResponse`, `AuthStatus` · piezas: parseE164
 - **useAuth.ts** — El usuario autenticado; lanza si se usa fuera de una ruta protegida. · `useAuth`, `useCurrentUser`
+- **useCountdown.ts** — Una cuenta regresiva en segundos: `start(n)` la arranca (desde un evento, nunca al pintar) y `left` dice cuán… · `useCountdown`, `formatCountdown`
 
 ### booking
 
@@ -556,6 +559,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### branches
 
 - **branches.ts** — Las sucursales del negocio. · `BRANCHES`, `DEFAULT_BRANCH_ID`
+- **initialBranch.ts** · `rememberInitialBranch`, `readInitialBranch`
 - **tax.ts** — El impuesto de una cuenta, igual en la reserva en línea, en el cobro de la agenda y en Transacciones. · `TaxedLine`, `linePercent`, `blendedPercent`, `taxOn`, `CartTotals`, `cartTotals`
 - **useBranchCurrency.ts** — La moneda de la sucursal activa (la de la cabecera). · `useBranchCurrency` · piezas: useShellConfig · usa: @/features/settings
 - **useBranchMoney.ts** — Cómo se escribe el dinero en un campo de la sucursal activa: el símbolo de su moneda («$», «€») y cuántos dec… · `useCurrencyInput`, `useBranchToday` · piezas: useShellConfig · usa: @/features/settings, @/i18n, @/lib/time
@@ -804,7 +808,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **LegalPage.tsx** · `LegalPage` · piezas: Alert, AlertDescription, Badge, BarberlyticsLogo, Heading, PageShell, Text · usa: @/app/i18n, @/i18n, @/lib/utils
 - **acceptances.ts** · `acceptancesSchema`, `LegalAcceptances`, `useLegalAcceptances`, `useAcceptDpa` · llama: GET /legal/acceptances, POST /legal/dpa/accept · usa: @/lib/api
 - **consent.ts** — Los textos del consentimiento según el país de la sucursal (docs/API_CONTRACT.md, «Clientes»). · `ConsentCountry`, `ConsentLocale`, `ConsentPack`, `consentCountryOf`, `consentPack`, `consentVersionOf`, `HEALTH_CONSENT_VERSION`, `HealthConsentTexts`, `healthConsentTexts`
-- **sendWindow.ts** — Cuándo se puede mandar una promoción, a la hora del cliente (la de la sede). · `SendCountry`, `SendPlace`, `usHolidays`, `mexicanHolidays`, `colombianHolidays`, `isPromoAllowed`, `nextPromoSlot`, `promoWeek`
+- **sendWindow.ts** — Cuándo se puede mandar una promoción, a la hora del cliente (la de la sede). · `SendCountry`, `SendPlace`, `Holiday`, `holidaysOf`, `holidayOn`, `usHolidays`, `mexicanHolidays`, `colombianHolidays`, `isPromoAllowed`, `nextPromoSlot`, `promoWeek`
 - **useConsentPack.ts** — El texto del consentimiento para una sucursal de la barbería (su país), en el idioma de la app. · `useBranchConsentPack`, `useHealthConsentTexts` · usa: @/features/settings, @/i18n
 
 ### legal/documents
@@ -927,6 +931,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **SettingsListParts.tsx** — Un ajuste que es una lista —sucursales, cierres, impuestos, datáfonos—: las filas, el alta y la edición en un… · `ListFormContext`, `SettingsListMessages`, `SettingsListProps`, `SettingsList` · piezas: Button, ConfirmDialog, DrawerShell, EmptyState, ListItem, Skeleton, Text · usa: @/app/i18n, @/icons, @/lib/api, @/lib/query
 - **SettingsPage.tsx** — Todo lo que se ajusta, en una sola pantalla. · `SettingsPage` · piezas: Breadcrumbs, IconTile, ListItem, ListItemGroup, PageHeader, SectionHeader, ShellHeaderSlot · usa: @/app/i18n, @/features/access
 - **SettingsSectionPage.tsx** — Un ajuste concreto. · `SettingsSectionPage` · piezas: Alert, AlertDescription, AlertTitle, Badge, Breadcrumbs, EmptyState, PageHeader, ShellHeaderSlot · usa: @/app/i18n, @/features/access, @/features/branding
+- **countryPack.ts** — El paquete de cada país (docs/API_CONTRACT.md, «Configuración › Paquete por país»): lo que una barbería de Co… · `PACK_COUNTRIES`, `PackCountry`, `TaxIdKind`, `CountryPack`, `COUNTRY_PACKS`, `packCountryOf`, `packOf`, `GATEWAY_COUNTRY_OK`, `gatewaysFor`, `PACK_TIMEZONES`, `timezonesFor`, `DEFAULT_CLOSED_HOLIDAYS`, `countryHolidays`, `closedForHoliday`, `upcomingClosures`, `nitCheckDigit`, `isValidTaxId`, `findUsualTaxGroup`, `BranchDefaults`, `branchDefaultsFor` · usa: @/features/legal
 - **gatewayProviders.ts** — Las pasarelas de pago que se pueden conectar y lo que cada una deja cobrar en la reserva en línea. · `GATEWAY_PROVIDERS`, `GatewayProvider`, `ONLINE_METHODS`, `OnlineMethod`, `GatewayProviderSpec`, `GATEWAY_SPECS`, `isGatewayProvider`, `keyLooksValid`, `keyPlaceholder`
 - **personalPreferences.ts** — Las preferencias de cada persona, no de la empresa: por ahora, el formato de hora con el que ve su calendario… · `PersonalTimeFormat`, `readPersonalTimeFormat`, `writePersonalTimeFormat`, `usePersonalTimeFormat`
 - **settingsApi.ts** — Contrato de configuración; ver docs/API_CONTRACT.md. · `settingsApi` · llama: GET /settings/${id}, PUT /settings/${id}, GET /settings/lists/${id}, POST /settings/lists/${id}, PATCH /settings/lists/${id}/${itemId}, DELETE /settings/lists/${id}/${itemId}, POST /settings/gateways/test, POST /account/delete · usa: @/lib/api
@@ -940,8 +945,8 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **BillingSettings.tsx** — Plan y facturación: qué plan tiene la barbería, a nombre de quién salen las facturas, con qué tarjeta se paga… · `BillingSettings` · piezas: Badge, Button, Field, IconTile, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/features/calendar, @/features/legal, @/i18n
 - **BookingFunnelCard.tsx** — Cómo convierte la reserva en línea: de cuántos que abren el enlace, cuántos llegan a cada paso y reservan, dó… · `BookingFunnelCard` · piezas: Badge, Progress, Skeleton, Text · usa: @/app/i18n, @/features/booking, @/i18n
 - **BookingSettings.tsx** — Reservas online, en dos vistas: las **reglas** —con cuánta anticipación se reserva, cuándo se puede cancelar,… · `BookingSettings` · piezas: Button, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, Textarea, ThemaTabs · usa: @/app/i18n, @/features/frontDesk
-- **BranchesSettings.tsx** — Sucursales: los locales del negocio. · `BranchesSettings` · piezas: Field, IconTile, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Textarea · usa: @/app/i18n, @/i18n
-- **BusinessSettings.tsx** — Perfil del negocio: cómo se cuenta el tiempo —zona, formato, semana y horario— y dónde encuentra el cliente a… · `BusinessSettings` · piezas: Field, Input, MultiSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ThemaTabs · usa: @/app/i18n
+- **BranchesSettings.tsx** — Sucursales: los locales del negocio. · `BranchesSettings` · piezas: Field, IconTile, Input, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Text, Textarea · usa: @/app/i18n, @/i18n
+- **BusinessSettings.tsx** — Perfil del negocio: cómo se cuenta el tiempo —zona, formato, semana y horario— y dónde encuentra el cliente a… · `BusinessSettings` · piezas: Button, Field, Input, MultiSelect, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text, ThemaTabs · usa: @/app/i18n, @/i18n
 - **CardFeeSettings.tsx** — Recargo por tarjeta: si se cobra, cómo se llama en el recibo y cuánto es —un porcentaje o un monto fijo—. · `CardFeeSettings` · piezas: Field, Input, NumberField, ThemaTabs · usa: @/app/i18n, @/features/calendar
 - **ClosuresSettings.tsx** — Horarios y cierres: los días en que la barbería no atiende. · `ClosuresSettings` · piezas: Badge, Field, IconTile, Input, MultiSelect, Textarea · usa: @/app/i18n, @/features/branches, @/i18n
 - **CommissionSettings.tsx** — Comisiones: qué se le resta al precio antes de calcular la comisión del barbero. · `CommissionSettings` · piezas: Text · usa: @/app/i18n, @/features/calendar
@@ -1128,7 +1133,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `sessionsBySource`, `funnelSummary`
 - **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`, `sendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/features/payments, @/lib/time
-- **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking, @/features/legal
+- **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `isClosed`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking, @/features/legal, @/features/settings
 - **packages.ts** — Paquetes prepagados: la barbería los ofrece en Ajustes (N visitas de un servicio con descuento y vencimiento)… · `PackageOffer`, `packageOffers`, `activePackages`, `buyPackage`, `spendPackages`
 - **recurring.ts** — Dejar una cita fija («cada 3 semanas»): las próximas con el mismo barbero y a la misma hora. · `REPEAT_WEEKS`, `RepeatWeeks`, `MAX_REPEATS`, `repeatAppointment`
 - **reminders.ts** — Los recordatorios que tocan: las horas de Configuración, sin repetir, de la más lejana a la más cercana. · `reminderPlan`, `scheduleMessages`, `cancelMessages`, `rescheduleMessages`, `offerFreedSlot`, `newConfirmToken`
@@ -1139,7 +1144,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **browser.ts** — Service worker para el navegador; se arranca desde `main.tsx` cuando `env.useMocks`. · `worker`
 - **catalogPrices.ts** — El precio de un servicio en una sucursal: el suyo de esa sucursal o el general. · `servicePriceIn`, `productPriceIn`, `barberServicePrice`, `withBranchPrice`
-- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockKnownDevice`, `MockSecurityEvent`, `MockSecurityState`, `MockDb`, `createDb`, `db`
+- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockKnownDevice`, `MockSecurityEvent`, `MockSecurityState`, `MockDb`, `createDb`, `db`, `allAccounts`, `accountById`
 - **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers` · usa: @/features/legal, @/lib/search
 - **media.ts** — El retrato de cada persona del equipo. · `TEAM_PHOTOS`, `galleryFor`, `REFERENCE_PHOTO_NOTE`, `referencePhotosFor`, `SERVICE_PHOTOS`, `PRODUCT_PHOTOS`, `clientPhoto`, `userPhoto`, `ACCOUNT_PHOTOS`, `imageOrNull`
 - **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `ALL_BRANCHES`, `branchesOf`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
@@ -1161,7 +1166,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### customers
 
 - **handlers.ts** — Por cliente, los barberos con los que tiene una cita viva en la agenda real del último año (o por venir). · `profileOf`, `barberName`, `AgendaBarbers`, `agendaBarbers`, `isOwnClient`, `saveProfile`, `findByPhone`, `customersHandlers`
-- **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers`
+- **import.ts** — «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. · `toE164`, `customerImportHandlers` · usa: @/features/settings
 - **privacy.ts** — El plazo para responder según el país de la sede del cliente: Colombia 10 días hábiles para consultas (ver, e… · `dueDateOf`, `logPrivacyRequest`, `exportOf`, `eraseClient`, `privacyHandlers` · usa: @/features/legal
 - **promoCap.ts** — La promoción más cercana a `at` (antes o después) a menos de 30 días, si la hay. · `PROMO_CAP_DAYS`, `promoNear`
 - **relationship.ts** · `relationshipOf`, `relationshipHandlers` · usa: @/features/legal
@@ -1200,6 +1205,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### onboarding
 
 - **handlers.ts** · `onboardingOf`, `onboardingHandlers`
+- **starter.ts** — La barbería que nace con el registro (docs/API_CONTRACT.md, «Registro»): no arranca vacía ni con lo de Estado… · `SignupInput`, `StarterSummary`, `phoneTaken`, `emailTaken`, `startBarbershop` · usa: @/features/settings
 
 ### payroll
 

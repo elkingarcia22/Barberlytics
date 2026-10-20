@@ -23,7 +23,7 @@ type View =
   | { name: "login" }
   | { name: "recovery" }
   | { name: "signup" }
-  | { name: "locked"; phone: string }
+  | { name: "locked"; phone: string; retryAfterSeconds: number | null }
   | { name: "ticket"; context: TicketContext };
 
 const WIDE_VIEWS: ReadonlySet<View["name"]> = new Set(["signup", "ticket"]);
@@ -108,7 +108,7 @@ export function LoginPage() {
                 <LoginForm
                   onForgotNumber={() => setView({ name: "recovery" })}
                   onCreateAccount={() => setView({ name: "signup" })}
-                  onLocked={(phone) => setView({ name: "locked", phone })}
+                  onLocked={(phone, retryAfterSeconds) => setView({ name: "locked", phone, retryAfterSeconds })}
                   onContactSupport={(phone) => setView({ name: "ticket", context: { reason: "other", phone } })}
                 />
               )}
@@ -119,6 +119,7 @@ export function LoginPage() {
               {view.name === "locked" && (
                 <LockedPanel
                   phone={view.phone}
+                  retryAfterSeconds={view.retryAfterSeconds}
                   onBack={toLogin}
                   onCreateTicket={() => setView({ name: "ticket", context: { reason: "lockout", phone: view.phone } })}
                 />

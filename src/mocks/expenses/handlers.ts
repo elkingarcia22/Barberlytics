@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { EXPENSE_CATEGORY_IDS, EXPENSE_PAYMENT_METHODS, expenseDate, type MockExpense, type MockExpenseAttachment, type MockExpenseCustomCategory, type MockExpenseFrequency } from "./seed";
 import { branchNow } from "../settings/branchRules";
@@ -32,7 +32,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});

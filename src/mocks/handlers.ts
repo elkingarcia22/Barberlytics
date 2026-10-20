@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
+import { allAccounts, accountById, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } from "./session";
 import { calendarHandlers } from "./calendar/handlers";
 import { teamHandlers } from "./team/handlers";
@@ -16,6 +16,7 @@ import { ledgerHandlers } from "./transactions/ledger";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
+import { emailTaken, phoneTaken, startBarbershop } from "./onboarding/starter";
 import { workforceHandlers } from "./team/workforce";
 import { servicesHandlers } from "./services/handlers";
 import { productsHandlers } from "./products/handlers";
@@ -54,7 +55,7 @@ function bearer(request: Request): string | null {
 function requireAuth(request: Request) {
   const token = bearer(request);
   const accountId = token ? db.sessions.get(token) : undefined;
-  const account = ACCOUNTS.find((item) => item.id === accountId);
+  const account = accountById(accountId);
   return account ?? null;
 }
 
@@ -107,8 +108,17 @@ function normalizePhone(value: unknown): string {
 
 /** Intentos fallidos seguidos con un mismo celular antes de bloquearlo. */
 export const MAX_LOGIN_FAILURES = 4;
-/** El bloqueo dura un rato, no para siempre: si no, cualquiera podría dejar al dueño fuera con 4 códigos falsos. */
-const LOCK_MS = 15 * 60_000;
+/**
+ * El bloqueo dura un rato, no para siempre: si no, cualquiera podría dejar al dueño fuera con 4 códigos falsos.
+ * Crece si se repite en el mismo día (15 min → 1 h → 24 h), y el dueño lo levanta con su correo de respaldo.
+ */
+const LOCK_STEPS_MS = [15 * 60_000, 60 * 60_000, 24 * 60 * 60_000] as const;
+const LOCK_MS = LOCK_STEPS_MS[0];
+/** Pasado un día sin bloqueos, el siguiente vuelve a ser corto. */
+const LOCK_MEMORY_MS = 24 * 60 * 60_000;
+/** El código del correo para desbloquear vale 10 minutos y aguanta 5 intentos. */
+const UNLOCK_CODE_MS = 10 * 60_000;
+const MAX_UNLOCK_FAILURES = 5;
 /** Pedir códigos tiene tope por número: cada SMS cuesta y se abusa de él para fraude (SMS pumping). */
 const CODE_LIMIT = 5;
 const CODE_WINDOW_MS = 15 * 60_000;
@@ -128,16 +138,31 @@ function isLocked(phone: string): boolean {
 
 function lockedError(phone: string) {
   const until = db.loginLocks.get(phone) ?? Date.now() + LOCK_MS;
-  return error(429, "rate_limited", "Bloqueamos el acceso con este número por seguridad tras varios intentos fallidos. Prueba de nuevo en unos minutos o pide ayuda a soporte.", {
+  return error(429, "rate_limited", "Bloqueamos el acceso con este número por seguridad tras varios intentos fallidos. Espera la cuenta regresiva, desbloquéalo con tu correo de respaldo o pide ayuda a soporte.", {
     details: { reason: "locked", retryAfterSeconds: Math.max(0, Math.ceil((until - Date.now()) / 1000)) },
   });
+}
+
+/** Bloquea el número con la espera que le toca (crece si ya se bloqueó hoy) y avisa a su cuenta. */
+function lockPhone(phone: string): void {
+  const now = Date.now();
+  const previous = db.lockHistory.get(phone);
+  const count = previous && now - previous.at < LOCK_MEMORY_MS ? previous.count + 1 : 1;
+  db.lockHistory.set(phone, { count, at: now });
+  db.loginLocks.set(phone, now + LOCK_STEPS_MS[Math.min(count, LOCK_STEPS_MS.length) - 1]);
+  // Aviso a la cuenta (si el número es de una): lo verá al entrar, sea o no quien se equivocó.
+  const account = allAccounts().find((item) => item.phone === phone);
+  if (account) {
+    db.security = { ...db.security, events: [...db.security.events, { id: `sec_${now.toString(36)}`, accountId: account.id, kind: "locked" as const, label: "", at: new Date(now).toISOString() }].slice(-100) };
+    db.persist();
+  }
 }
 
 function registerFailure(phone: string) {
   const failures = (db.loginFailures.get(phone) ?? 0) + 1;
   db.loginFailures.set(phone, failures);
   if (failures >= MAX_LOGIN_FAILURES) {
-    db.loginLocks.set(phone, Date.now() + LOCK_MS);
+    lockPhone(phone);
     return lockedError(phone);
   }
   return error(401, "unauthorized", BAD_CODE, { details: { attemptsLeft: MAX_LOGIN_FAILURES - failures } });
@@ -171,11 +196,15 @@ function noteDevice(accountId: string, device: { id?: unknown; label?: unknown }
   db.security = { devices: { ...db.security.devices, [accountId]: devices }, events };
 }
 
-function openSession(account: MockAccount) {
+function sessionFor(account: MockAccount): { accessToken: string; user: MockAccount["user"] } {
   const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
   db.sessions.set(token, account.id);
   db.persist();
-  return HttpResponse.json({ accessToken: token, user: account.user });
+  return { accessToken: token, user: account.user };
+}
+
+function openSession(account: MockAccount) {
+  return HttpResponse.json(sessionFor(account));
 }
 
 const USER_STATUSES: readonly MockUserStatus[] = ["active", "invited", "inactive"];
@@ -198,7 +227,19 @@ function validateUserInput(body: DefaultBodyType, existing?: MockUser) {
   return { fields, values: { name, email, area, role, status } };
 }
 
+/** Lo que sí se puede hacer mirando como otro rol: salir, marcar avisos leídos y mandar comentarios. */
+const VIEW_AS_ALLOWED = ["/auth/logout", "/notifications/read", "/feedback", "/feedback/attachments"] as const;
+
 export const handlers = [
+  // «Ver como» es para mirar: con `X-View-As` el servidor no deja cambiar nada (docs/API_CONTRACT.md,
+  // «Permisos en el servidor»). No sigue al resto de handlers solo si es un cambio fuera de la lista.
+  http.all(`${BASE}/*`, ({ request }) => {
+    if (request.method === "GET" || request.method === "HEAD" || !request.headers.get("x-view-as")) return undefined;
+    const path = new URL(request.url).pathname;
+    if (VIEW_AS_ALLOWED.some((allowed) => path.endsWith(allowed))) return undefined;
+    return error(403, "view_as_read_only", "Estás viendo la plataforma como otro rol: es solo para mirar. Vuelve a tu perfil para hacer cambios.");
+  }),
+
   // ---------- Auth ----------
   // Entrar es en dos pasos: el celular pide un código por SMS y el código abre
   // la sesión. Pedirlo responde 204 exista o no el número, para no revelar quién
@@ -230,7 +271,7 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string; device?: { id?: unknown; label?: unknown } };
     const phone = normalizePhone(body.phone);
     if (isLocked(phone)) return lockedError(phone);
-    const account = ACCOUNTS.find((item) => item.phone === phone);
+    const account = allAccounts().find((item) => item.phone === phone);
     if (!account || body.code !== OTP_CODE) return registerFailure(phone);
     db.loginFailures.delete(phone);
     noteDevice(account.id, body.device);
@@ -307,7 +348,6 @@ export const handlers = [
     for (const key of SIGNUP_TEXT_FIELDS) if (!text(body[key])) fields[key] = ["Este campo es obligatorio."];
     const email = text(body.email).toLowerCase();
     if (!EMAIL.test(email)) fields.email = ["Escribe un correo válido."];
-    else if (ACCOUNTS.some((item) => item.email === email)) fields.email = ["Ya hay una cuenta con ese correo. Inicia sesión."];
     if (!PHONE_E164.test(normalizePhone(body.phone))) fields.phone = ["Escribe un celular válido."];
     const barbers = Number(body.barbers);
     if (!Number.isInteger(barbers) || barbers < 1) fields.barbers = ["Escribe cuántos barberos tiene tu equipo."];
@@ -321,7 +361,46 @@ export const handlers = [
     if (!text(body.code)) return error(422, "validation_error", "Escribe el código que te enviamos.", { fields: { code: ["Escribe el código que te enviamos."] } });
     if (text(body.code) !== OTP_CODE) return registerFailure(phone);
     db.loginFailures.delete(phone);
+    // Con el celular ya verificado se puede decir si tiene cuenta: a quien no es su dueño no se le revela nada.
+    if (phoneTaken(phone)) return error(409, "conflict", "Este celular ya tiene una cuenta.", { details: { reason: "phone_taken" }, fields: { phone: ["Este celular ya tiene una cuenta: entra con él."] } });
+    if (emailTaken(email)) return error(409, "conflict", "Ese correo ya tiene una cuenta.", { details: { reason: "email_taken" }, fields: { email: ["Ya hay una cuenta con ese correo. Inicia sesión."] } });
+    const { account, summary } = startBarbershop({ firstName: text(body.firstName), lastName: text(body.lastName), company: text(body.company), email, phone, country: text(body.country), timezone: text(body.timezone) });
+    noteDevice(account.id, body.device as { id?: unknown; label?: unknown } | undefined);
+    // La cuenta entra ya, con su sucursal hecha con el paquete del país.
+    return HttpResponse.json({ ...sessionFor(account), setup: summary }, { status: 201 });
+  }),
+
+  // Desbloquear con el correo de respaldo: manda un código al correo de la cuenta del número bloqueado.
+  // Responde 204 siempre: no revela si el número tiene cuenta, si está bloqueado ni si hay correo de respaldo.
+  http.post(`${BASE}/auth/unlock/request`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string };
+    const phone = normalizePhone(body.phone);
+    if (!PHONE_E164.test(phone)) return error(422, "validation_error", "Escribe un celular válido.", { fields: { phone: ["Escribe un celular válido."] } });
+    const account = allAccounts().find((item) => item.phone === phone);
+    if (account && db.backupEmails[account.id] && isLocked(phone)) db.unlockRequests.set(phone, { expiresAt: Date.now() + UNLOCK_CODE_MS, failures: 0 });
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // El código del correo levanta el bloqueo y abre la sesión (con el aviso de dispositivo si toca).
+  http.post(`${BASE}/auth/unlock/verify`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    const body = (await request.json().catch(() => ({}))) as { phone?: string; code?: string; device?: { id?: unknown; label?: unknown } };
+    const phone = normalizePhone(body.phone);
+    const pending = db.unlockRequests.get(phone);
+    const account = allAccounts().find((item) => item.phone === phone);
+    if (!pending || !account || pending.expiresAt < Date.now()) return error(401, "unauthorized", BAD_CODE);
+    if (body.code !== OTP_CODE) {
+      const failures = pending.failures + 1;
+      if (failures >= MAX_UNLOCK_FAILURES) db.unlockRequests.delete(phone);
+      else db.unlockRequests.set(phone, { ...pending, failures });
+      return error(401, "unauthorized", BAD_CODE, { details: { attemptsLeft: Math.max(0, MAX_UNLOCK_FAILURES - failures) } });
+    }
+    db.unlockRequests.delete(phone);
+    db.loginLocks.delete(phone);
+    db.loginFailures.delete(phone);
+    noteDevice(account.id, body.device);
+    return openSession(account);
   }),
 
   // Ticket a soporte: sin sesión, desde el login. Devuelve el número para seguirlo.
@@ -348,7 +427,7 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as { provider?: string; credential?: string };
     const provider = AUTH_PROVIDERS.find((item) => item === body.provider);
     if (!provider || !body.credential) return error(422, "validation_error", "Proveedor o credencial inválidos.");
-    const account = ACCOUNTS.find((item) => item.providers.includes(provider));
+    const account = allAccounts().find((item) => item.providers.includes(provider));
     if (!account) return error(401, "unauthorized", "Esa cuenta no está vinculada a ninguna barbería.");
     return openSession(account);
   }),

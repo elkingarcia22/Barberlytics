@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { SIMULATED_TOKEN } from "@/features/payments/gateway";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { lineupRank } from "../team/workforce";
 import { releaseAppointmentStock, stockLevel, syncAppointmentStock } from "../inventory/stock";
 import { localIso, parseClock, type MockAppointment, type MockClient } from "../calendar/seed";
@@ -665,7 +665,7 @@ export const bookingHandlers = [
     // Es del dueño: pide la sesión de la app, no la del cliente.
     const header = request.headers.get("authorization");
     const appToken = header?.startsWith("Bearer ") ? header.slice(7) : null;
-    if (!ACCOUNTS.some((account) => account.id === (appToken ? db.sessions.get(appToken) : undefined))) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!accountById(appToken ? db.sessions.get(appToken) : undefined)) return error(401, "unauthorized", "Tu sesión expiró.");
     const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
     return HttpResponse.json(funnelSummary(days));
   }),

@@ -183,7 +183,8 @@ export interface MockKnownDevice {
 export interface MockSecurityEvent {
   id: string;
   accountId: string;
-  kind: "newDevice";
+  /** `newDevice`: entró desde un dispositivo nuevo; `locked`: se bloqueó el acceso con su número. */
+  kind: "newDevice" | "locked";
   label: string;
   at: string;
 }
@@ -214,6 +215,8 @@ export interface MockDb {
   expenseCategories: MockExpenseCustomCategory[];
   /** Los dispositivos desde los que entró cada cuenta y los avisos de seguridad (nuevo dispositivo). */
   security: MockSecurityState;
+  /** Las cuentas que se crearon con el registro (además de las de la demo). */
+  signups: MockAccount[];
   /** La configuración: un documento por ajuste y las listas (sucursales, cierres, impuestos, datáfonos). */
   settings: MockSettingsState;
   /** La reserva en línea: recibos, saldo a favor y cancelaciones de cada cliente. */
@@ -235,6 +238,10 @@ export interface MockDb {
   loginFailures: Map<string, number>;
   /** celular → hasta cuándo está bloqueado el acceso. Solo en memoria. */
   loginLocks: Map<string, number>;
+  /** celular → cuántas veces se bloqueó seguidas y cuándo fue la última (la espera crece). Solo en memoria. */
+  lockHistory: Map<string, { count: number; at: number }>;
+  /** celular → código de desbloqueo por correo pendiente: hasta cuándo vale y cuántos fallos lleva. Solo en memoria. */
+  unlockRequests: Map<string, { expiresAt: number; failures: number }>;
   /** celular → cuándo pidió sus últimos códigos (tope de envíos). Solo en memoria. */
   codeRequests: Map<string, number[]>;
   /** Confirmaciones de identidad recientes (código otra vez antes de algo sensible): token → cuenta y hasta cuándo vale. */
@@ -265,6 +272,7 @@ interface PersistedDb {
   expenses?: MockExpense[];
   expenseCategories?: MockExpenseCustomCategory[];
   security?: MockSecurityState;
+  signups?: MockAccount[];
   settings?: MockSettingsState;
   booking?: MockBookingState;
   payroll?: MockPayrollState;
@@ -311,6 +319,7 @@ export function createDb(): MockDb {
     expenses: saved?.expenses ?? seedExpenses(),
     expenseCategories: saved?.expenseCategories ?? [],
     security: saved?.security ?? { devices: {}, events: [] },
+    signups: saved?.signups ?? [],
     settings: saved?.settings ? upgradeSettings(saved.settings) : seedSettings(),
     booking: saved?.booking ?? emptyBooking(),
     payroll: saved?.payroll ?? emptyPayroll(),
@@ -322,6 +331,8 @@ export function createDb(): MockDb {
     sessions: new Map(saved?.sessions ?? []),
     loginFailures: new Map(),
     loginLocks: new Map(),
+    lockHistory: new Map(),
+    unlockRequests: new Map(),
     codeRequests: new Map(),
     stepUps: new Map(),
     backupEmails: saved?.backupEmails ?? {},
@@ -332,7 +343,7 @@ export function createDb(): MockDb {
       try {
         storage()?.setItem(
           STORAGE_KEY,
-          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, security: db.security, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
+          JSON.stringify({ version: SCHEMA_VERSION, users: db.users, sessions: [...db.sessions.entries()], branding: db.branding, calendar: db.calendar, team: db.team, customers: db.customers, services: db.services, products: db.products, expenses: db.expenses, expenseCategories: db.expenseCategories, security: db.security, signups: db.signups, settings: db.settings, booking: db.booking, payroll: db.payroll, register: db.register, inventory: db.inventory, frontDesk: db.frontDesk, notificationsRead: db.notificationsRead, backupEmails: db.backupEmails } satisfies PersistedDb)
         );
       } catch {
         /* sin almacenamiento: el estado vive solo en memoria */
@@ -349,6 +360,7 @@ export function createDb(): MockDb {
       db.expenses = seedExpenses();
       db.expenseCategories = [];
       db.security = { devices: {}, events: [] };
+      db.signups = [];
       db.settings = seedSettings();
       db.booking = emptyBooking();
       db.payroll = emptyPayroll();
@@ -360,6 +372,8 @@ export function createDb(): MockDb {
       db.sessions.clear();
       db.loginFailures.clear();
       db.loginLocks.clear();
+      db.lockHistory.clear();
+      db.unlockRequests.clear();
       db.codeRequests.clear();
       db.stepUps.clear();
       db.backupEmails = {};
@@ -377,3 +391,9 @@ export function createDb(): MockDb {
 }
 
 export const db = createDb();
+
+/** Las cuentas de la demo y las que se crearon con el registro. */
+export const allAccounts = (): readonly MockAccount[] => [...ACCOUNTS, ...db.signups];
+
+/** La cuenta con ese id (de la demo o del registro). */
+export const accountById = (id: string | null | undefined): MockAccount | undefined => (id ? allAccounts().find((item) => item.id === id) : undefined);

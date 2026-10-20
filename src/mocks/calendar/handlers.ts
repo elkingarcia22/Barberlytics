@@ -1,7 +1,7 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { paymentEntriesOf } from "../transactions/ledger";
 import { cartTotals } from "@/features/branches/tax";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { withRisk } from "./risk";
 import { barberOf, ownAppointments, ownBlocks, ownClientIds, redactClient } from "./scope";
 import { forbidden, sessionOf } from "../session";
@@ -82,7 +82,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;

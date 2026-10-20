@@ -2,7 +2,7 @@ import * as React from "react";
 import { Banknote, Check, CreditCard, Gift, Link2, Plus, Smartphone, Split, SquareStack, Trash2, X } from "lucide-react";
 import { Chip } from "@/components/ai-interaction";
 import { Field, NumberField } from "@/components/forms";
-import { SegmentedControl } from "@/components/selection";
+import { OptionTile, SegmentedControl } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,14 @@ import type { CheckoutController } from "./useCheckout";
  */
 
 const MODES: readonly PayMode[] = ["cash", "card", "link", "gift", "mixed", "parts"];
-const ICONS: Record<PayMode, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, gift: Gift, mixed: Split, parts: SquareStack };
+const ICONS: Record<PayMode, React.ComponentType<{ className?: string }>> = {
+  cash: Banknote,
+  card: CreditCard,
+  link: Link2,
+  gift: Gift,
+  mixed: Split,
+  parts: SquareStack,
+};
 const LINE_ICONS: Record<LineMethod, React.ComponentType<{ className?: string }>> = { cash: Banknote, card: CreditCard, link: Link2, gift: Gift };
 const MIXED_METHODS: readonly LineMethod[] = ["cash", "card", "gift"];
 const PART_METHODS: readonly LineMethod[] = ["cash", "card", "link", "gift"];
@@ -35,40 +42,60 @@ const PART_COUNTS = [2, 3, 4] as const;
 
 const BOX = "flex flex-col gap-3 rounded-xl border border-input bg-surface p-3";
 
-export function PayMethods({ checkout, ctx, target }: { checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null }) {
+/** `select` (lo de siempre): un selector. `tiles`: las seis formas a la vista, en botones de 3 × 2, para elegir de un toque. */
+export function PayMethods({ checkout, ctx, target, layout = "select" }: { checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null; layout?: "select" | "tiles" }) {
   const { t } = checkout;
   const Icon = ICONS[checkout.payChoice];
   return (
     <div className="flex flex-col gap-3" data-testid="checkout-pay-step">
-      <Select value={checkout.payChoice} onValueChange={(value) => checkout.choosePay(value as PayMode)}>
-        {/* El disparador cuenta la forma elegida en dos líneas: sin el recorte a una línea del Select. */}
-        <SelectTrigger className="h-auto min-h-14 py-2 [&>span]:line-clamp-none [&>span]:!flex" aria-label={t("calendar.checkout.method")} data-testid="checkout-method">
-          <span className="flex min-w-0 items-center gap-3 text-left">
-            <IconTile size="md" shape="circle" tone="primary" icon={<Icon />} />
-            <span className="flex min-w-0 flex-col">
-              <Text as="span" weight="medium" truncate>
-                <SelectValue>{t(`calendar.checkout.pay.${checkout.payChoice}`)}</SelectValue>
-              </Text>
-              <Text as="span" size="xs" tone="muted" truncate>
-                {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
-              </Text>
+      {layout === "tiles" ? (
+        <div role="group" aria-label={t("calendar.checkout.method")} className="grid grid-cols-3 gap-2" data-testid="checkout-method-tiles">
+          {MODES.map((mode) => (
+            <OptionTile
+              key={mode}
+              layout="stacked"
+              compact
+              option={{
+                value: mode,
+                label: t(`calendar.checkout.pay.${mode}`),
+                icon: ICONS[mode],
+              }}
+              selected={checkout.payChoice === mode}
+              onSelect={(value) => checkout.choosePay(value as PayMode)}
+            />
+          ))}
+        </div>
+      ) : (
+        <Select value={checkout.payChoice} onValueChange={(value) => checkout.choosePay(value as PayMode)}>
+          {/* El disparador cuenta la forma elegida en dos líneas: sin el recorte a una línea del Select. */}
+          <SelectTrigger className="h-auto min-h-14 py-2 [&>span]:line-clamp-none [&>span]:!flex" aria-label={t("calendar.checkout.method")} data-testid="checkout-method">
+            <span className="flex min-w-0 items-center gap-3 text-left">
+              <IconTile size="md" shape="circle" tone="primary" icon={<Icon />} />
+              <span className="flex min-w-0 flex-col">
+                <Text as="span" weight="medium" truncate>
+                  <SelectValue>{t(`calendar.checkout.pay.${checkout.payChoice}`)}</SelectValue>
+                </Text>
+                <Text as="span" size="xs" tone="muted" truncate>
+                  {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
+                </Text>
+              </span>
             </span>
-          </span>
-        </SelectTrigger>
-        <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-          {MODES.map((mode) => {
-            const ModeIcon = ICONS[mode];
-            return (
-              <SelectItem key={mode} value={mode} data-testid={`checkout-method-${mode}`}>
-                <span className="flex items-center gap-2">
-                  <ModeIcon className="size-4 text-text-muted" />
-                  {t(`calendar.checkout.pay.${mode}`)}
-                </span>
-              </SelectItem>
-            );
-          })}
-        </SelectContent>
-      </Select>
+          </SelectTrigger>
+          <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+            {MODES.map((mode) => {
+              const ModeIcon = ICONS[mode];
+              return (
+                <SelectItem key={mode} value={mode} data-testid={`checkout-method-${mode}`}>
+                  <span className="flex items-center gap-2">
+                    <ModeIcon className="size-4 text-text-muted" />
+                    {t(`calendar.checkout.pay.${mode}`)}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      )}
 
       {checkout.payChoice === "cash" && <CashDetail checkout={checkout} ctx={ctx} />}
       {checkout.payChoice === "card" && <DeviceList checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}
@@ -79,7 +106,9 @@ export function PayMethods({ checkout, ctx, target }: { checkout: CheckoutContro
 
       {checkout.surcharge > 0 && (
         <Text size="xs" tone="muted" data-testid="checkout-surcharge">
-          {t("calendar.checkout.surchargeHint", { amount: ctx.formatMoney(checkout.surcharge) })}
+          {t("calendar.checkout.surchargeHint", {
+            amount: ctx.formatMoney(checkout.surcharge),
+          })}
         </Text>
       )}
     </div>
@@ -95,7 +124,13 @@ function CashDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: Mode
       </Field>
       {change !== null && (
         <Text size="sm" tone={change < 0 ? "negative" : "secondary"} data-testid="checkout-change">
-          {change < 0 ? t("calendar.checkout.missing", { amount: ctx.formatMoney(-change) }) : t("calendar.checkout.changeHint", { amount: ctx.formatMoney(change) })}
+          {change < 0
+            ? t("calendar.checkout.missing", {
+                amount: ctx.formatMoney(-change),
+              })
+            : t("calendar.checkout.changeHint", {
+                amount: ctx.formatMoney(change),
+              })}
         </Text>
       )}
     </div>
@@ -130,7 +165,7 @@ function DeviceList({ checkout, value, onChange }: { checkout: CheckoutControlle
               onClick={() => onChange(device.id)}
               className={cn(
                 "flex min-h-12 w-full items-center gap-3 rounded-xl border bg-surface px-3 py-2 text-left outline-none transition-[border-color,background-color] duration-fast hover:border-primary/50 focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                selected ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input"
+                selected ? "border-primary/60 bg-[linear-gradient(hsl(var(--primary)/0.06),hsl(var(--primary)/0.06))]" : "border-input",
               )}
               data-testid={`checkout-device-${device.id}`}
             >
@@ -158,7 +193,11 @@ function LinkDetail({ checkout, ctx, target, amount, onSent }: { checkout: Check
   const value = amount ?? checkout.total;
   const sent = amount === undefined && checkout.linkSent;
   const url = `https://pagar.barberlytics.com/${(client?.id ?? "c").slice(-6)}-${Math.round(value * 100)}`;
-  const text = t("calendar.checkout.link.message", { name: client?.name.split(" ")[0] ?? "", amount: ctx.formatMoney(value), url });
+  const text = t("calendar.checkout.link.message", {
+    name: client?.name.split(" ")[0] ?? "",
+    amount: ctx.formatMoney(value),
+    url,
+  });
   if (!target || (!target.email && !target.phone)) {
     return (
       <Text size="sm" tone="muted">
@@ -170,13 +209,25 @@ function LinkDetail({ checkout, ctx, target, amount, onSent }: { checkout: Check
     return (
       <Alert variant="info" data-testid="checkout-link-waiting">
         <ThemaIcon name="clock" />
-        <AlertDescription>{t("calendar.checkout.link.waiting", { amount: ctx.formatMoney(value) })}</AlertDescription>
+        <AlertDescription>
+          {t("calendar.checkout.link.waiting", {
+            amount: ctx.formatMoney(value),
+          })}
+        </AlertDescription>
       </Alert>
     );
   }
   return (
     <div className={BOX} data-testid="checkout-link">
-      <SendToClient target={target} kind="payLink" lead={t("calendar.checkout.link.lead", { amount: ctx.formatMoney(value) })} body={text} onSent={onSent ?? checkout.markLinkSent} />
+      <SendToClient
+        target={target}
+        kind="payLink"
+        lead={t("calendar.checkout.link.lead", {
+          amount: ctx.formatMoney(value),
+        })}
+        body={text}
+        onSent={onSent ?? checkout.markLinkSent}
+      />
     </div>
   );
 }
@@ -191,9 +242,20 @@ function GiftDetail({ checkout, ctx }: { checkout: CheckoutController; ctx: Mode
       {checkout.gift && rest > 0.004 && (
         <div className="flex flex-col gap-2">
           <Text size="sm" weight="medium">
-            {t("calendar.checkout.giftCard.rest", { amount: ctx.formatMoney(rest) })}
+            {t("calendar.checkout.giftCard.rest", {
+              amount: ctx.formatMoney(rest),
+            })}
           </Text>
-          <SegmentedControl fullWidth size="sm" value={checkout.giftRest} onChange={(value) => checkout.setGiftRest(value === "card" ? "card" : "cash")} options={(["cash", "card"] as const).map((method) => ({ value: method, label: t(`calendar.checkout.pay.${method}`) }))} />
+          <SegmentedControl
+            fullWidth
+            size="sm"
+            value={checkout.giftRest}
+            onChange={(value) => checkout.setGiftRest(value === "card" ? "card" : "cash")}
+            options={(["cash", "card"] as const).map((method) => ({
+              value: method,
+              label: t(`calendar.checkout.pay.${method}`),
+            }))}
+          />
           {checkout.giftRest === "card" && <DeviceList checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}
         </div>
       )}
@@ -212,7 +274,9 @@ function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: Mode
         <span className="flex min-w-0 flex-1 flex-col">
           <Text weight="medium">{checkout.gift.code}</Text>
           <Text size="xs" tone="muted" tabular>
-            {t("calendar.checkout.giftCard.balance", { amount: ctx.formatMoney(checkout.gift.balance) })}
+            {t("calendar.checkout.giftCard.balance", {
+              amount: ctx.formatMoney(checkout.gift.balance),
+            })}
           </Text>
         </span>
         <Button size="icon-xs" variant="ghost" aria-label={t("calendar.checkout.giftCard.remove")} onClick={checkout.removeGift}>
@@ -229,7 +293,14 @@ function GiftRedeem({ checkout, ctx }: { checkout: CheckoutController; ctx: Mode
         void checkout.applyGift(code);
       }}
     >
-      <Input value={code} onChange={(event) => setCode(event.target.value)} placeholder={t("calendar.checkout.giftCard.placeholder")} aria-label={t("calendar.checkout.giftCard.title")} className="flex-1 [&:not(:placeholder-shown)]:uppercase" data-testid="checkout-gift-code" />
+      <Input
+        value={code}
+        onChange={(event) => setCode(event.target.value)}
+        placeholder={t("calendar.checkout.giftCard.placeholder")}
+        aria-label={t("calendar.checkout.giftCard.title")}
+        className="flex-1 [&:not(:placeholder-shown)]:uppercase"
+        data-testid="checkout-gift-code"
+      />
       <Button type="submit" variant="outline" disabled={!code.trim() || checkout.checkingGift}>
         {t("calendar.checkout.giftCard.apply")}
       </Button>
@@ -290,7 +361,15 @@ function PartsDetail({ checkout, ctx, target }: { checkout: CheckoutController; 
         </Button>
       )}
       <Text size="sm" tone={Math.abs(checkout.linesLeft) > 0.01 ? "warning" : "positive"} data-testid="checkout-parts-left">
-        {Math.abs(checkout.linesLeft) <= 0.01 ? t("calendar.checkout.parts.ok") : checkout.linesLeft > 0 ? t("calendar.checkout.parts.missing", { amount: ctx.formatMoney(checkout.linesLeft) }) : t("calendar.checkout.parts.over", { amount: ctx.formatMoney(-checkout.linesLeft) })}
+        {Math.abs(checkout.linesLeft) <= 0.01
+          ? t("calendar.checkout.parts.ok")
+          : checkout.linesLeft > 0
+            ? t("calendar.checkout.parts.missing", {
+                amount: ctx.formatMoney(checkout.linesLeft),
+              })
+            : t("calendar.checkout.parts.over", {
+                amount: ctx.formatMoney(-checkout.linesLeft),
+              })}
       </Text>
     </div>
   );
@@ -336,7 +415,15 @@ function LineCard({
           </Text>
         )}
         {onRemove && (
-          <Button type="button" size="icon-xs" variant="ghost" aria-label={t("calendar.checkout.parts.remove", { index: index + 1 })} onClick={onRemove}>
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
+            aria-label={t("calendar.checkout.parts.remove", {
+              index: index + 1,
+            })}
+            onClick={onRemove}
+          >
             <Trash2 />
           </Button>
         )}
@@ -389,7 +476,9 @@ function LineCard({
           <GiftRedeem checkout={checkout} ctx={ctx} />
           {overGift && (
             <Text size="xs" tone="warning">
-              {t("calendar.checkout.giftCard.notEnough", { amount: ctx.formatMoney(checkout.gift?.balance ?? 0) })}
+              {t("calendar.checkout.giftCard.notEnough", {
+                amount: ctx.formatMoney(checkout.gift?.balance ?? 0),
+              })}
             </Text>
           )}
         </>
@@ -409,7 +498,10 @@ function LineCard({
           />
         ) : (
           <Button type="button" variant="outline" size="sm" className="self-start" disabled={line.amount <= 0} onClick={() => setSending(true)} data-testid="checkout-line-send">
-            <Link2 /> {t("calendar.checkout.link.sendAmount", { amount: ctx.formatMoney(line.amount) })}
+            <Link2 />{" "}
+            {t("calendar.checkout.link.sendAmount", {
+              amount: ctx.formatMoney(line.amount),
+            })}
           </Button>
         ))}
     </div>

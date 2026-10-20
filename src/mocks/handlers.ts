@@ -17,6 +17,8 @@ import { ledgerHandlers } from "./transactions/ledger";
 import { inventoryHandlers } from "./inventory/handlers";
 import { notificationsHandlers } from "./notifications/handlers";
 import { onboardingHandlers } from "./onboarding/handlers";
+import { payableHandlers } from "./expenses/payables";
+import { goalHandlers } from "./reports/goals";
 import { loyaltyHandlers } from "./customers/loyalty";
 import { couponHandlers } from "./marketing/coupons";
 import { campaignHandlers } from "./marketing/campaigns";
@@ -732,6 +734,8 @@ export const handlers = [
   ...transactionsHandlers,
 
   // ---------- Gastos ----------
+  ...payableHandlers,
+  ...goalHandlers,
   ...expensesHandlers,
 
   // ---------- Nómina ----------

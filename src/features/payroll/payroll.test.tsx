@@ -23,7 +23,7 @@ const PAST_FROM = "2026-09-21";
 const PAST_TO = "2026-09-27";
 
 function member(draft: Partial<PayrollMember> = {}): PayrollMember {
-  return { memberId: "m1", name: "Andrés Beltrán", avatarUrl: null, payout: "commission", rules: null, rentBase: null, salaryBase: null, services: 10, serviceSales: 400, productSales: 0, serviceCommission: 180, productCommission: 0, tips: 40, salary: 0, rent: 0, deductions: 0, net: 220, lines: [], ...draft };
+  return { memberId: "m1", name: "Andrés Beltrán", avatarUrl: null, payout: "commission", rules: null, rentBase: null, salaryBase: null, services: 10, serviceSales: 400, productSales: 0, serviceCommission: 180, productCommission: 0, tips: 40, tipsCash: 0, tipsCard: 40, tipsPaidOut: 0, salary: 0, rent: 0, deductions: 0, net: 220, lines: [], ...draft };
 }
 
 function renderApp(route: string) {

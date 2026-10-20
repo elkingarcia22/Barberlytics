@@ -9,6 +9,7 @@ Cada línea: archivo — qué es · lo que exporta · `llama:` endpoints · `pie
 De `src/app/router.tsx`.
 
 - `/login` → LoginPage
+- `/nomina/comprobante` → PayslipPage
 - `/metricas` → MetricsPage
 - `/dashboard` → Navigate
 - `/calendario` → CalendarPage
@@ -144,6 +145,9 @@ Lo que responde MSW hoy.
 - `PATCH /expenses/:id` · src/mocks/expenses/handlers.ts
 - `POST /expenses/:id/end` · src/mocks/expenses/handlers.ts
 - `DELETE /expenses/:id` · src/mocks/expenses/handlers.ts
+- `GET /expenses/payables` · src/mocks/expenses/payables.ts
+- `POST /expenses/:id/payments` · src/mocks/expenses/payables.ts
+- `DELETE /expenses/:id/payments/:paymentId` · src/mocks/expenses/payables.ts
 - `GET /front-desk/devices` · src/mocks/frontDesk/handlers.ts
 - `POST /front-desk/devices` · src/mocks/frontDesk/handlers.ts
 - `POST /front-desk/devices/:id/code` · src/mocks/frontDesk/handlers.ts
@@ -236,6 +240,8 @@ Lo que responde MSW hoy.
 - `GET /register` · src/mocks/register/handlers.ts
 - `POST /register/movements` · src/mocks/register/handlers.ts
 - `POST /register/close` · src/mocks/register/handlers.ts
+- `GET /reports/goal` · src/mocks/reports/goals.ts
+- `PUT /reports/goal` · src/mocks/reports/goals.ts
 - `GET /reports/income` · src/mocks/reports/income.ts
 - `GET /reports/menu` · src/mocks/reports/menu.ts
 - `GET /reports/week` · src/mocks/reports/week.ts
@@ -349,7 +355,7 @@ Router, providers, layout, navegación y páginas de error.
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Reintentar un mensaje que falló: vuelve a la cola para salir ya. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useRetryMessage`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: POST /messages/${id}/retry, GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -806,11 +812,14 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **ExpenseFormDrawer.tsx** — Registrar o editar un gasto sin salir de la lista. · `ExpenseFormDrawerProps`, `ExpenseFormDrawer` · piezas: Alert, AlertDescription, Button, CardSelection, DrawerShell, Field, Input, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea · usa: @/app/i18n, @/features/access, @/features/branches, @/features/calendar, @/lib/api
 - **ExpensesPage.tsx** — Los gastos de la sucursal. · `ExpensesPage` · piezas: Breadcrumbs, Button, ConfirmDialog, DataListActionRail, DataListBlock, EmptyState, ListItem, MetricCard, MetricRing, PageHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ShellHeaderSlot, ShellRailSlot, Skeleton, ThemaTabs, getChartTheme · usa: @/app/i18n, @/features/access, @/features/branches, @/features/calendar, @/features/team, @/i18n, @/lib/api, @/lib/csv, @/lib/query
 - **IncomeStatementView.tsx** — ¿Cuánto me gané? El mes de la sucursal en un estado de resultados —lo que entró, lo que costó ganarlo y lo fi… · `IncomeStatementViewProps`, `IncomeStatementView` · piezas: Button, MetricCard, Progress, Skeleton, Text · usa: @/app/i18n, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
+- **PayablesView.tsx** — Por pagar: los vencimientos de los gastos fijos del mes, agrupados en vencidos, esta semana, más adelante y p… · `PayablesView` · piezas: Button, EmptyState, MetricCard, Skeleton, StatusBadge, Text · usa: @/app/i18n, @/features/calendar, @/i18n, @/lib/api, @/lib/query
 - **api.ts** — Contrato de gastos; ver docs/API_CONTRACT.md. · `expensesApi` · llama: GET /expenses, POST /expenses, PATCH /expenses/${id}, DELETE /expenses/${id}, POST /expenses/${id}/end, GET /expenses/categories, POST /expenses/categories, DELETE /expenses/categories/${id} · usa: @/lib/api
 - **expensesHome.tsx** — La categoría de la URL (de siempre o propia); la pantalla la compara con la lista. · `ALL`, `KindFilter`, `parseKind`, `parseCategory`, `expensesCsvRows`, `expenseColumns`, `ExpenseCellContext`, `expenseCells` · piezas: Badge · usa: @/app/i18n
 - **expensesShared.tsx** — Las piezas chicas del módulo de gastos: el icono y la insignia por tipo. · `ExpenseGlyph`, `ExpenseKindBadge` · piezas: Badge, IconTile · usa: @/app/i18n
 - **expensesUtils.ts** — Cuántas veces al año se paga cada frecuencia. · `PAYMENTS_PER_YEAR`, `monthlyEquivalent`, `ExpensesSummary`, `activeInMonth`, `summarizeExpenses`
 - **income.ts** — El estado de resultados del mes de una sucursal y su punto de equilibrio. · `incomeStatementSchema`, `IncomeStatement`, `monthKey`, `shiftMonth`, `changePercent`, `useIncomeStatement` · llama: GET /reports/income?branchId=${encodeURIComponent(branchId)}&month=${month} · usa: @/lib/api
+- **payables.ts** — Las cuentas por pagar (docs/API_CONTRACT.md, «Gastos › Por pagar»): en qué días de un mes vence cada gasto fi… · `PayableFrequency`, `PayableExpense`, `DUE_SOON_DAYS`, `dueDatesIn`, `PayableStatus`, `payableStatus`
+- **payablesQueries.ts** · `payableSchema`, `Payable`, `payablesSchema`, `Payables`, `payablesApi`, `usePayables`, `usePayableActions` · llama: GET /expenses/payables, POST /expenses/${expenseId}/payments, DELETE /expenses/${expenseId}/payments/${paymentId} · usa: @/lib/api
 - **queries.ts** — `ownerMemberId`: los gastos de ese barbero de renta; `null`, los de la sucursal. · `expenseKeys`, `useExpensesQuery`, `useCreateExpense`, `useUpdateExpense`, `useEndExpense`, `useRemoveExpense`, `useExpenseCategories`, `useCreateExpenseCategory`
 - **types.ts** — Un gasto fijo se repite con una frecuencia; uno variable pasó una vez. · `expenseKindSchema`, `ExpenseKind`, `expenseFrequencySchema`, `ExpenseFrequency`, `expenseCategorySchema`, `ExpenseCategory`, `expensePaymentMethodSchema`, `ExpensePaymentMethod`, `expenseAttachmentSchema`, `ExpenseAttachment`, `MAX_EXPENSE_ATTACHMENTS`, `expenseSchema`, `Expense`, `expensesResponseSchema`, `ExpensesResponse`, `expenseInputSchema`, `ExpenseInput`, `expenseDateOf`, `isEnded`, `emptyExpenseInput`, `inputFromExpense`, `CATEGORY_KEYS`, `customCategorySchema`, `CustomCategory`, `categoriesResponseSchema`, `categoryLabel`, `PAYMENT_METHOD_KEYS`, `EXPENSE_KIND_KEYS`, `FREQUENCY_KEYS` · usa: @/app/i18n
 
@@ -867,6 +876,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **MetricsPage.tsx** — Métricas: cómo le fue a la barbería, en cinco pestañas. · `MetricsPage` · piezas: Breadcrumbs, PageHeader, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/onboarding, @/features/team, @/lib/query
 - **WeekNarrative.tsx** — «Cómo te fue»: los últimos 7 días contados en palabras para el dueño, con las cifras a la vista. · `WeekNarrative` · llama: GET /reports/week · usa: @/app/i18n, @/features/calendar, @/features/narrative, @/i18n, @/lib/api
 - **api.ts** · `metricsApi` · llama: GET /metrics/business, GET /metrics/customers, GET /metrics/barbers, GET /metrics/marketing, GET /metrics/insights · usa: @/lib/api
+- **goal.ts** — La meta de ingresos del mes de una sede y cómo va (docs/API_CONTRACT.md, «Reportes › Meta del mes»). · `monthGoalSchema`, `MonthGoal`, `useMonthGoal`, `useSetMonthGoal` · llama: GET /reports/goal?branchId=${encodeURIComponent(branchId)}&month=${month}, PUT /reports/goal · usa: @/lib/api
 - **metricsFormat.ts** — Cómo se escriben las cifras del tablero, con la convención del idioma activo. · `MetricsFormatters`, `useMetricsFormatters` · usa: @/features/branches, @/i18n
 - **queries.ts** · `metricsKeys`, `useBusinessMetrics`, `useCustomersMetrics`, `useBarbersMetrics`, `useMarketingMetrics`, `useInsightsMetrics`
 - **types.ts** — «Todas las sucursales»: solo el dueño, y solo si todas cobran en la misma moneda. · `Compared`, `periodGranularitySchema`, `MetricsGranularity`, `incomeLineSchema`, `IncomeLine`, `appointmentStatusSchema`, `AppointmentStatus`, `bookingMethodSchema`, `BookingMethod`, `daypartSchema`, `Daypart`, `paymentMethodSchema`, `PaymentMethod`, `CatalogRow`, `metricsBusinessSchema`, `MetricsBusiness`, `clientTypeSchema`, `ClientType`, `visitFrequencySchema`, `VisitFrequency`, `metricsCustomersSchema`, `MetricsCustomers`, `metricsBarbersSchema`, `MetricsBarbers`, `metricsMarketingSchema`, `MetricsMarketing`, `suggestionGroupSchema`, `SuggestionGroup`, `suggestionTypeSchema`, `metricsInsightsSchema`, `MetricsInsights`, `MetricsParams`, `ALL_BARBERS`, `ALL_BRANCHES`
@@ -878,6 +888,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **CatalogSection.tsx** — Qué se vendió: servicios y productos, por unidades y con su importe al lado. · `CatalogSection` · piezas: BarList, EmptyState · usa: @/app/i18n
 - **MetricsAlerts.tsx** — Lo que del periodo pide una mano: cobros abiertos, cancelaciones y no-shows. · `MetricsAlerts` · piezas: AttentionAction, AttentionStrip · usa: @/app/i18n
 - **MetricsPulse.tsx** — Las cuatro lecturas de arriba: cuánto se vendió, a cuánto el ticket, cuántas citas y cuántas se perdieron. · `MetricsPulse` · piezas: MetricCard, MetricRing, SparklineChart, useChartPalette · usa: @/app/i18n
+- **MonthMoneySection.tsx** — El dinero del mes en Métricas, para quien gestiona: la utilidad (lo que queda después de costos y gastos, del… · `MonthMoneySection` · piezas: Button, MetricCard, NumberField, ProgressRing, SectionHeader, Skeleton, Text · usa: @/app/i18n, @/features/branches, @/features/calendar, @/features/expenses, @/i18n, @/lib/api
 - **SalesSection.tsx** — Cuánto se vendió y de dónde salió: la serie del periodo a la izquierda y el desglose del ingreso a la derecha… · `SalesSection` · piezas: BarList, ChartCard, MetricCard, useChartPalette · usa: @/app/i18n
 
 ### metrics/tabs
@@ -911,6 +922,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PayrollMemberDrawer.tsx** — Cómo se llega al pago de un barbero: su forma de pago y sus reglas, la cuenta —lo que suma y lo que resta— y… · `PayrollMemberDrawerProps`, `PayrollMemberDrawer` · piezas: Badge, Button, DrawerShell, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/i18n
 - **PayrollPage.tsx** — La nómina del periodo: cuánto se le paga a cada barbero y cuánto le deben a la barbería los que rentan su pue… · `PayrollPage` · piezas: Breadcrumbs, Button, DataListBlock, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/csv, @/lib/query, @/lib/utils
 - **PayrollRunBar.tsx** — El estado del periodo y lo siguiente que toca: abierto → aprobar; aprobado → marcar pagado (o reabrir con mot… · `PayrollRunBarProps`, `PayrollRunBar` · piezas: Button, Field, Input, ModalShell, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, StatusBadge, Text, Textarea · usa: @/app/i18n, @/features/calendar, @/features/review, @/i18n
+- **PayslipPage.tsx** — El comprobante de pago de una persona del equipo en un periodo: lo que suma, lo que resta y lo que recibe, co… · `PayslipPage` · piezas: Button, EmptyState, Heading, Skeleton, Text · usa: @/app/i18n, @/features/branding, @/features/customers, @/features/settings, @/features/team, @/i18n, @/lib/query
 - **RentPayments.tsx** — Lo que el barbero de renta le entregó a la barbería en el periodo. · `RentPaymentsProps`, `RentPayments` · piezas: Button, Field, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/i18n
 - **api.ts** — Contrato de nómina; ver docs/API_CONTRACT.md. · `payrollApi` · llama: GET /payroll, POST /payroll/adjustments, DELETE /payroll/adjustments/${id}, POST /payroll/runs, POST /payroll/runs/${id}/pay, POST /payroll/runs/${id}/reopen, POST /payroll/rent-payments, DELETE /payroll/rent-payments/${id}, GET /payroll/loans, POST /payroll/loans, POST /payroll/loans/${id}/cancel · usa: @/lib/api
 - **myPayHome.tsx** · `myPayColumns`, `MyPayCellContext`, `myPayCells` · usa: @/app/i18n
@@ -918,7 +930,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **payrollHome.tsx** — El valor numérico de una columna, para la tabla y para exportar. · `columnIdsFor`, `columnLabel`, `payrollColumns`, `columnValue`, `PayrollCellContext`, `payrollCells` · piezas: Avatar, AvatarFallback, AvatarImage, initialsOf · usa: @/app/i18n
 - **payrollUtils.ts** — Las ayudas sin JSX de la nómina: el resumen y la exportación. · `PayrollSummary`, `summarizePayroll`, `countByPayout`, `earnedOf`
 - **queries.ts** · `payrollKeys`, `usePayrollQuery`, `useAddAdjustment`, `useRemoveAdjustment`, `useApprovePayroll`, `usePayPayroll`, `useReopenPayroll`, `useAddRentPayment`, `useRemoveRentPayment`, `useLoansQuery`, `useAddLoan`, `useCancelLoan` · usa: @/lib/api
-- **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `adjustmentKindSchema`, `AdjustmentKind`, `adjustmentSchema`, `loanSchema`, `PayrollLoan`, `LoanInput`, `PayrollAdjustment`, `payrollMemberSchema`, `PayrollMember`, `runStatusSchema`, `RunStatus`, `payrollRunSchema`, `PayrollRun`, `payrollHistorySchema`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS`, `AdjustmentInput`, `ADJUSTMENT_KEYS`, `ADJUSTMENT_VIEW_KEYS`, `PAY_METHODS`, `PayMethod`, `PAY_METHOD_KEYS`, `RentPaymentInput` · usa: @/app/i18n
+- **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `adjustmentKindSchema`, `AdjustmentKind`, `adjustmentSchema`, `loanSchema`, `PayrollLoan`, `LoanInput`, `PayrollAdjustment`, `payrollMemberSchema`, `PayrollMember`, `runStatusSchema`, `RunStatus`, `payrollRunSchema`, `PayrollRun`, `payrollHistorySchema`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `ADJUSTMENT_KIND_KEYS`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS`, `AdjustmentInput`, `ADJUSTMENT_KEYS`, `ADJUSTMENT_VIEW_KEYS`, `PAY_METHODS`, `PayMethod`, `PAY_METHOD_KEYS`, `RentPaymentInput` · usa: @/app/i18n
 - **usePayrollFilters.ts** — Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y el barbero abierto en el panel. · `usePayrollFilters` · piezas: fromIsoDate, periodRange, toIsoDate · usa: @/features/settings
 
 ### products
@@ -1177,7 +1189,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **browser.ts** — Service worker para el navegador; se arranca desde `main.tsx` cuando `env.useMocks`. · `worker`
 - **catalogPrices.ts** — El precio de un servicio en una sucursal: el suyo de esa sucursal o el general. · `servicePriceIn`, `productPriceIn`, `barberServicePrice`, `withBranchPrice`
-- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockKnownDevice`, `MockSecurityEvent`, `MockSecurityState`, `MockDb`, `createDb`, `db`, `allAccounts`, `accountById`
+- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockGoal`, `MockExpensePayment`, `MockKnownDevice`, `MockSecurityEvent`, `MockSecurityState`, `MockDb`, `createDb`, `db`, `allAccounts`, `accountById`
 - **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers` · usa: @/features/legal, @/lib/search
 - **media.ts** — El retrato de cada persona del equipo. · `TEAM_PHOTOS`, `galleryFor`, `REFERENCE_PHOTO_NOTE`, `referencePhotosFor`, `SERVICE_PHOTOS`, `PRODUCT_PHOTOS`, `clientPhoto`, `userPhoto`, `ACCOUNT_PHOTOS`, `imageOrNull`
 - **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `ALL_BRANCHES`, `branchesOf`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
@@ -1211,7 +1223,8 @@ MSW: implementa docs/API_CONTRACT.md.
 ### expenses
 
 - **handlers.ts** · `expensesHandlers`
-- **seed.ts** — Los gastos del backend simulado: lo que sale de caja en cada sucursal. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpenseCustomCategory`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`
+- **payables.ts** — Los vencimientos del mes de una sede, con su pago si ya se hizo. · `payablesOf`, `payableHandlers` · usa: @/features/expenses
+- **seed.ts** — Las categorías por defecto: la base del estado de resultados y de los presupuestos. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpenseCustomCategory`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`, `seedExpensePayments` · usa: @/features/expenses
 
 ### frontDesk
 
@@ -1266,6 +1279,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### reports
 
+- **goals.ts** — Cómo va la meta: lo ingresado, la proyección al ritmo actual y lo que falta por día. · `goalProgress`, `goalHandlers`
 - **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `incomeStatement`, `incomeHandlers`
 - **menu.ts** · `Quadrant`, `menuEngineering`, `menuHandlers`
 - **week.ts** · `weekFacts`, `weekHandlers`

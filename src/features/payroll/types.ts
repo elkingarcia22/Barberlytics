@@ -20,6 +20,8 @@ export const payrollLineSchema = z.object({
   sale: z.number(),
   commission: z.number(),
   tip: z.number(),
+  /** La parte de la propina que se dejó en efectivo. */
+  tipCash: z.number().default(0),
   deduction: z.number(),
   /** Con renta: si el dinero entró por la caja de la barbería o lo cobró el barbero. */
   collectedBy: z.enum(["shop", "barber"]).nullable().optional(),
@@ -95,6 +97,11 @@ export const payrollMemberSchema = z.object({
   serviceCommission: z.number(),
   productCommission: z.number(),
   tips: z.number(),
+  /** Las propinas por medio: en efectivo y por la caja (tarjeta, enlace, en línea). */
+  tipsCash: z.number().default(0),
+  tipsCard: z.number().default(0),
+  /** Las de efectivo que ya se le entregaron (Configuración › Nómina): se restan del neto. */
+  tipsPaidOut: z.number().default(0),
   salary: z.number(),
   rent: z.number(),
   deductions: z.number(),
@@ -151,6 +158,15 @@ export interface PayrollParams {
   /** Solo la nómina de esta persona (el pago del propio barbero). */
   memberId?: string;
 }
+
+/** El nombre de cada tipo de ajuste. */
+export const ADJUSTMENT_KIND_KEYS: Readonly<Record<"bonus" | "deduction" | "advance" | "shortage" | "loan", AppMessageKey>> = {
+  bonus: "payroll.adjustment.bonus",
+  deduction: "payroll.adjustment.deduction",
+  advance: "payroll.adjustment.advance",
+  shortage: "payroll.adjustment.shortage",
+  loan: "payroll.adjustment.loan",
+};
 
 export const PAYOUT_KEYS: Readonly<Record<Payout, AppMessageKey>> = { commission: "payroll.payout.commission", rent: "payroll.payout.rent", salary: "payroll.payout.salary" };
 export const PAYOUT_HINT_KEYS: Readonly<Record<Payout, AppMessageKey>> = { commission: "payroll.payout.commissionHint", rent: "payroll.payout.rentHint", salary: "payroll.payout.salaryHint" };

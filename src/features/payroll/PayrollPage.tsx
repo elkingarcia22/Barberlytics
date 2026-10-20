@@ -216,7 +216,7 @@ function PayrollHome({ data, filters, fetching, branchId }: PayrollHomeProps) {
         )}
       />
 
-      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} showRulesLink={canManage} adjustments={{ period, locked: run !== null, canManage }} />
+      <PayrollMemberDrawer member={opened} onClose={() => openMember(null)} formatMoney={formatMoney} showRulesLink={canManage} adjustments={{ period, locked: run !== null, canManage }} period={period} />
     </div>
   );
 }

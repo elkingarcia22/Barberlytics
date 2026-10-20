@@ -25,6 +25,7 @@ import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
 import { ExpenseFormDrawer } from "./ExpenseFormDrawer";
 import { IncomeStatementView } from "./IncomeStatementView";
+import { PayablesView } from "./PayablesView";
 import { shiftMonth } from "./income";
 import { useBranchToday } from "@/features/branches";
 import { ALL, expenseCells, expenseColumns, expensesCsvRows, parseCategory, parseKind } from "./expensesHome";
@@ -61,7 +62,10 @@ export function ExpensesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   /* El estado de resultados cruza ventas y nómina: solo para quien ve las dos y mira la sucursal entera. */
   const canSeeIncome = ownerMemberId === null && access.can("payroll") && access.can("transactions");
-  const view = canSeeIncome && searchParams.get("vista") === "resultado" ? "income" : "expenses";
+  const vista = searchParams.get("vista");
+  // Por pagar: los vencimientos de los fijos (gerencia los de la barbería; el barbero de renta, los suyos).
+  const canSeePayables = ownerMemberId !== null || access.role === "owner" || access.role === "admin";
+  const view = canSeeIncome && vista === "resultado" ? "income" : canSeePayables && vista === "por-pagar" ? "payables" : "expenses";
   const monthParam = searchParams.get("mes") ?? "";
   const today = useBranchToday();
   const month = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : today.slice(0, 7);
@@ -84,21 +88,24 @@ export function ExpensesPage() {
 
       <PageHeader title={t("expenses.title")} description={t(ownerMemberId ? "expenses.ownDescription" : "expenses.description")} />
 
-      {canSeeIncome && (
+      {(canSeeIncome || canSeePayables) && (
         <ThemaTabs
           className="mb-section"
           fitContent
           tabs={[
             { id: "expenses", label: t("expenses.view.list") },
-            { id: "income", label: t("expenses.view.income") },
+            ...(canSeePayables ? [{ id: "payables", label: t("expenses.view.payables") }] : []),
+            ...(canSeeIncome ? [{ id: "income", label: t("expenses.view.income") }] : []),
           ]}
           activeTabId={view}
-          onTabChange={(next) => setParam("vista", next === "income" ? "resultado" : null)}
+          onTabChange={(next) => setParam("vista", next === "income" ? "resultado" : next === "payables" ? "por-pagar" : null)}
         />
       )}
 
       {view === "income" ? (
         <IncomeStatementView branchId={branchId} month={month} onMonthChange={(next) => setParam("mes", next)} />
+      ) : view === "payables" ? (
+        <PayablesView branchId={branchId} month={month} ownerMemberId={ownerMemberId} onMonthChange={(next) => setParam("mes", next === today.slice(0, 7) ? null : next)} />
       ) : (
         <QueryBoundary
           query={query}

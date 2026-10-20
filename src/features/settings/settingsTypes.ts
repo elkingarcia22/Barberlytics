@@ -130,7 +130,7 @@ export const paymentsTestSchema = z.object({ ok: z.boolean(), message: z.string(
 export const commissionsSchema = z.object({ deductDiscounts: z.boolean(), deductTaxes: z.boolean(), deductServiceCost: z.boolean(), deductProductCost: z.boolean() });
 export type CommissionSettings = z.infer<typeof commissionsSchema>;
 
-export const payrollCycleSchema = z.object({ cycle: z.enum(["weekly", "biweekly", "monthly"]), startDay: z.number() });
+export const payrollCycleSchema = z.object({ cycle: z.enum(["weekly", "biweekly", "monthly"]), startDay: z.number(), cashTipsPaidOut: z.boolean().default(false) });
 export type PayrollCycleSettings = z.infer<typeof payrollCycleSchema>;
 
 /* ----------------------------------------------------------------- avisos */

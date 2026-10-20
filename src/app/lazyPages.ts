@@ -40,3 +40,4 @@ export const SettingsSectionPage = React.lazy(() => import("@/features/settings/
 export const SectionPlaceholderPage = React.lazy(() =>
   import("@/features/sections/SectionPlaceholderPage").then((m) => ({ default: m.SectionPlaceholderPage }))
 );
+export const PayslipPage = React.lazy(() => import("@/features/payroll/PayslipPage").then((m) => ({ default: m.PayslipPage })));

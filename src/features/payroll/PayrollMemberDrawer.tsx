@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { UserRound } from "lucide-react";
+import { FileText, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { DrawerShell } from "@/components/overlays";
@@ -24,6 +24,8 @@ export interface PayrollMemberDrawerProps {
   showRulesLink?: boolean;
   /** El periodo y si ya está aprobado: con él se ven y se añaden los ajustes. Sin él, no hay ajustes (el barbero mirando lo suyo). */
   adjustments?: { period: { branchId: string; from: string; to: string }; locked: boolean; canManage: boolean };
+  /** El periodo que se mira: con él sale «Comprobante» (para imprimir, guardar en PDF o mandar por WhatsApp). */
+  period?: { branchId: string; from: string; to: string };
 }
 
 const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" };
@@ -33,7 +35,7 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  * cuenta —lo que suma y lo que resta— y servicio por servicio qué regla se
  * aplicó. Las reglas se cambian en su ficha de Equipo, no aquí.
  */
-export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true, adjustments }: PayrollMemberDrawerProps) {
+export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true, adjustments, period }: PayrollMemberDrawerProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
@@ -46,12 +48,20 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
       title={member?.name}
       description={member ? t(PAYOUT_KEYS[member.payout]) : undefined}
       actions={
-        member &&
-        showRulesLink && (
-          <Button variant="outline" onClick={() => navigate(`/usuarios/miembros/${member.memberId}?pestana=${member.payout === "rent" ? "pagos" : "compensacion"}`)}>
-            <UserRound /> {t("payroll.detail.seeRules")}
-          </Button>
-        )
+        member && (showRulesLink || period) ? (
+          <>
+            {period && (
+              <Button variant="outline" onClick={() => navigate(`/nomina/comprobante?miembro=${member.memberId}&sucursal=${period.branchId}&desde=${period.from}&hasta=${period.to}`)} data-testid="payroll-payslip">
+                <FileText /> {t("payroll.payslip.open")}
+              </Button>
+            )}
+            {showRulesLink && (
+              <Button variant="outline" onClick={() => navigate(`/usuarios/miembros/${member.memberId}?pestana=${member.payout === "rent" ? "pagos" : "compensacion"}`)}>
+                <UserRound /> {t("payroll.detail.seeRules")}
+              </Button>
+            )}
+          </>
+        ) : undefined
       }
     >
       {member && (
@@ -67,6 +77,12 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
               {member.productCommission > 0 && <Row label={t("payroll.column.productCommission")} value={`+${formatMoney(member.productCommission)}`} />}
               {member.salary > 0 && <Row label={t("payroll.column.salary")} value={`+${formatMoney(member.salary)}`} />}
               {member.payout === "rent" ? <Row label={t("payroll.rent.held")} value={`+${formatMoney(member.held ?? 0)}`} /> : <Row label={t("payroll.column.tips")} value={`+${formatMoney(member.tips)}`} />}
+              {member.payout !== "rent" && member.tips > 0 && (
+                <p className="-mt-1 text-xs text-text-muted" data-testid="payroll-tips-split">
+                  {t("payroll.detail.tipsSplit", { cash: formatMoney(member.tipsCash), card: formatMoney(member.tipsCard) })}
+                </p>
+              )}
+              {member.tipsPaidOut > 0 && <Row label={t("payroll.detail.tipsPaidOut")} value={`−${formatMoney(member.tipsPaidOut)}`} negative />}
               {member.rent > 0 && <Row label={t("payroll.column.rent")} value={`−${formatMoney(member.rent)}`} negative />}
               {member.deductions > 0 && <Row label={t("payroll.column.deductions")} value={`−${formatMoney(member.deductions)}`} negative />}
               {(member.adjustmentsTotal ?? 0) !== 0 && (

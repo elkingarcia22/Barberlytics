@@ -42,6 +42,8 @@ interface CommissionSettings {
 interface CycleSettings {
   cycle: "weekly" | "biweekly" | "monthly";
   startDay: number;
+  /** Las propinas en efectivo se le entregan al barbero en el momento: la nómina no se las vuelve a pagar. */
+  cashTipsPaidOut?: boolean;
 }
 
 const commissionSettings = (): CommissionSettings => db.settings.sections.commissions as unknown as CommissionSettings;
@@ -230,6 +232,8 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
         sale,
         commission: rate === null ? 0 : round((sale * rate) / 100),
         tip: item.payment?.tip ?? 0,
+        // La parte de la propina que se dejó en efectivo (lo que no entró por la caja de la barbería).
+        tipCash: round((item.payment?.tip ?? 0) * (1 - shopShareOf(item, charged))),
         deduction: round((sale * percent) / 100),
         collectedBy: payout === "rent" ? (held > 0 ? ("shop" as const) : ("barber" as const)) : null,
         held,
@@ -248,6 +252,10 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
   const serviceCommission = round(lines.reduce((sum, line) => sum + line.commission, 0));
   const productCommission = payout === "rent" ? 0 : round((productSales * productPercent) / 100);
   const tips = round(lines.reduce((sum, line) => sum + line.tip, 0));
+  const tipsCash = round(lines.reduce((sum, line) => sum + line.tipCash, 0));
+  const tipsCard = round(tips - tipsCash);
+  // Si la barbería entrega las propinas en efectivo al momento, ya las tiene: no se le vuelven a pagar (renta aparte).
+  const tipsPaidOut = payout !== "rent" && cycleSettings()?.cashTipsPaidOut === true ? tipsCash : 0;
   const salary = payout === "salary" ? round((compensation?.salary ?? 0) * weeks) : 0;
   const rent = payout === "rent" ? round((payments?.rentBase ?? 0) * weeks) : 0;
   const deductions = round(lines.reduce((sum, line) => sum + line.deduction, 0));
@@ -263,7 +271,7 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
    * lo que la barbería le guarda (lo que entró por su caja) menos la renta y las deducciones; las
    * propinas que cobró él en efectivo ya las tiene.
    */
-  const net = payout === "rent" ? round(held - rent - deductions + adjustmentsTotal) : round(serviceCommission + productCommission + tips + salary - rent - deductions + adjustmentsTotal);
+  const net = payout === "rent" ? round(held - rent - deductions + adjustmentsTotal) : round(serviceCommission + productCommission + tips - tipsPaidOut + salary - rent - deductions + adjustmentsTotal);
 
   return {
     memberId: member.id,
@@ -282,6 +290,9 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
     serviceCommission,
     productCommission,
     tips,
+    tipsCash,
+    tipsCard,
+    tipsPaidOut,
     salary,
     rent,
     deductions,

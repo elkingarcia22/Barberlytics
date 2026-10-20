@@ -3,7 +3,7 @@ import type { AppMessageKey } from "@/app/i18n/types";
 import { Field } from "@/components/forms";
 import { CardSelection } from "@/components/selection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SettingsCard, SettingsDocument } from "../SettingsFormParts";
+import { SettingsCard, SettingsDocument, SwitchRow } from "../SettingsFormParts";
 import { payrollCycleSchema, type PayrollCycleSettings as PayrollCycle } from "../settingsTypes";
 
 const CYCLES: readonly { id: PayrollCycle["cycle"]; label: AppMessageKey; hint: AppMessageKey }[] = [
@@ -46,6 +46,7 @@ export function PayrollCycleSettings() {
                 </SelectContent>
               </Select>
             </Field>
+            <SwitchRow label={t("cfg.payroll.cashTips")} hint={t("cfg.payroll.cashTipsHint")} checked={draft.cashTipsPaidOut} onCheckedChange={(checked) => set("cashTipsPaidOut", checked)} testId="payroll-cash-tips" />
           </SettingsCard>
         );
       }}

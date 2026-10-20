@@ -12,6 +12,7 @@ import { useBarbersMetrics, useBusinessMetrics, useCustomersMetrics, useInsights
 import { useMetricsFilters, type MetricsTab } from "./useMetricsFilters";
 import { MetricsPulse } from "./sections/MetricsPulse";
 import { MetricsAlerts } from "./sections/MetricsAlerts";
+import { MonthMoneySection } from "./sections/MonthMoneySection";
 import { SalesSection } from "./sections/SalesSection";
 import { AppointmentsSection } from "./sections/AppointmentsSection";
 import { CatalogSection } from "./sections/CatalogSection";
@@ -19,7 +20,7 @@ import { CustomersDashboard } from "./tabs/CustomersDashboard";
 import { BarbersDashboard } from "./tabs/BarbersDashboard";
 import { MarketingDashboard } from "./tabs/MarketingDashboard";
 import { InsightsDashboard } from "./tabs/InsightsDashboard";
-import type { MetricsBusiness, MetricsParams } from "./types";
+import { ALL_BRANCHES, type MetricsBusiness, type MetricsParams } from "./types";
 import { useAccess } from "@/features/access";
 import { OnboardingChecklist } from "@/features/onboarding/OnboardingChecklist";
 import { WeekNarrative } from "./WeekNarrative";
@@ -59,10 +60,12 @@ function Fading({ stale, children }: { stale: boolean; children: React.ReactNode
   );
 }
 
-function BusinessDashboard({ data }: { data: MetricsBusiness }) {
+function BusinessDashboard({ data, money }: { data: MetricsBusiness; money: { branchId: string; month: string } | null }) {
   return (
     <div className="flex flex-col space-y-section">
       <MetricsPulse data={data} />
+      {/* El dinero del mes (utilidad y meta) es de quien gestiona; el barbero ve sus cifras, no las de la barbería. */}
+      {money && <MonthMoneySection branchId={money.branchId} month={money.month} />}
       <MetricsAlerts data={data} />
       <SalesSection data={data} />
       <AppointmentsSection data={data} />
@@ -75,12 +78,13 @@ function BusinessDashboard({ data }: { data: MetricsBusiness }) {
  * Cada pestaña monta su propia consulta: así el hook vive donde se usa y
  * cambiar de pestaña no dispara las cinco a la vez.
  */
-function BusinessTab({ params }: { params: MetricsParams }) {
+function BusinessTab({ params, manager }: { params: MetricsParams; manager: boolean }) {
   const query = useBusinessMetrics(params);
+  const money = manager && params.branchId !== ALL_BRANCHES ? { branchId: params.branchId, month: params.date.slice(0, 7) } : null;
   return (
     <Fading stale={query.isPlaceholderData}>
       <QueryBoundary query={query} loading={<MetricsLoading />}>
-        {(data) => <BusinessDashboard data={data} />}
+        {(data) => <BusinessDashboard data={data} money={money} />}
       </QueryBoundary>
     </Fading>
   );
@@ -192,7 +196,7 @@ export function MetricsPage() {
           <p className="text-sm text-text-secondary">{t("metrics.insights.window")}</p>
         )}
 
-        {filters.tab === "business" && <BusinessTab params={filters.params} />}
+        {filters.tab === "business" && <BusinessTab params={filters.params} manager={(access.role === "owner" || access.role === "admin") && !filters.isOwn} />}
         {filters.tab === "customers" && <CustomersTab params={filters.params} />}
         {filters.tab === "barbers" && <BarbersTab params={filters.params} own={filters.isOwn} />}
         {filters.tab === "marketing" && <MarketingTab params={filters.params} />}

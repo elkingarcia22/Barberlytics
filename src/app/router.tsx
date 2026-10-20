@@ -23,6 +23,7 @@ import {
   CustomerProfilePage,
   CustomersPage,
   CampaignsPage,
+  PayslipPage,
   ExpensesPage,
   DocsApp,
   LevelsPage,
@@ -68,6 +69,8 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     errorElement: <RouteError />,
     children: [
+      // El comprobante de pago va sin el marco de la app: se imprime o se guarda en PDF limpio.
+      { path: "nomina/comprobante", element: lazy(<PayslipPage />) },
       {
         element: <AppLayout />,
         children: [

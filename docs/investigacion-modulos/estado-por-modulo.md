@@ -40,10 +40,10 @@ aviso de Clipper «Aún no hace cambios por ti».
 **Pendiente**
 - ~~P0 · «Todas las sucursales» para el dueño~~ (hecho el 2026-10-19).
 - ~~P0 · Pestaña «IA» con cifras al azar (`metricsTabs.ts`)~~ (hecho: «Sugerencias» sale de los datos).
-- P1 · Utilidad del periodo dentro de Métricas (hoy solo en Gastos › Estado de resultados).
+- ~~P1 · Utilidad del periodo dentro de Métricas~~ (hecho el 2026-10-20: «El dinero del mes» en Negocio).
 - P1 · Re-reserva, producto/servicio, retención por cohorte a 90 días; el tipo de cliente se reparte al azar.
 - ~~P1 · Ocupación sobre el horario real~~ (hecho: horario de la sede, turnos de 45 min).
-- P1 · Metas y ritmo a la meta; exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
+- P1 · ~~Metas y ritmo a la meta~~ (hecho el 2026-10-20); exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
 - P2 · Comparar sucursales, LTV por canal (~~clientes por origen~~ hecho), vistas guardadas, ~~Marketing real~~ (hecho: sale del `utm`), borrar `features/dashboard`.
 
 **IA que falta**: alertas de anomalías con estacionalidad + resumen semanal por WhatsApp; pronóstico de la semana;
@@ -91,7 +91,7 @@ asistido; alerta de duración real; asistente de catálogo con descripciones.
 **Pendiente**
 - P0 · ~~Libro de pagos de solo agregar; arqueo por denominación, a ciegas, entradas y salidas~~ (hecho el 2026-10-19);
   ~~cierre por turno; recargo por tarjeta como línea~~ (hecho el 2026-10-19); factura o POS electrónico DIAN.
-- P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; propinas por medio y reparto; filtros por barbero y
+- P1 · Bre-B/Nequi/transferencia en la caja y links de pago reales; ~~propinas por medio~~ (hecho el 2026-10-20) y reparto; filtros por barbero y
   método; cobro atómico de la visita; ~~vendedor en la venta de mostrador~~; aviso de cuentas abiertas.
 - P2 · Vender paquetes y membresías en la caja; conciliación; autocobro por QR.
 
@@ -103,7 +103,7 @@ conciliación; propinas sugeridas.
 **Pendiente**
 - ~~P0 · Valor con `$` y 2 decimales fijos; sin periodo ni `from/to`; sin `dueDay`; corte por hora del dispositivo;
   categorías cerradas~~ (hecho el 2026-10-19, ver abajo).
-- P1 · Cuentas por pagar; caja menor ligada al cierre; proveedores como entidad; comprobantes en el CSV; registro de
+- P1 · ~~Cuentas por pagar~~ (hecho el 2026-10-20); caja menor ligada al cierre; proveedores como entidad; comprobantes en el CSV; registro de
   cambios; ficha de solo lectura; búsqueda por proveedor.
 - P2 · Presupuestos, rentabilidad por silla, documento soporte DIAN, contabilidad, aprobación.
 
@@ -114,8 +114,8 @@ WhatsApp; pronóstico de caja a 90 días.
 
 **Pendiente**
 - ~~P0 · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja~~ (hecho el 2026-10-19).
-- P1 · Comprobante PDF y por WhatsApp; dispersión bancaria; propinas efectivo/tarjeta; clasificación laboral; exportar a
-  Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; metas; comparación con el periodo anterior.
+- P1 · ~~Comprobante PDF y por WhatsApp~~; dispersión bancaria; ~~propinas efectivo/tarjeta~~ (hecho el 2026-10-20); clasificación laboral; exportar a
+  Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; metas del barbero; comparación con el periodo anterior.
 - P2 · Horas y recargos, PILA/IBC, nómina electrónica, bolsa de propinas, multi-sucursal.
 
 **IA que falta**: simulador de esquemas; asistente del barbero en Mi pago; metas con progreso; cumplimiento Colombia;
@@ -349,3 +349,9 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - «Campañas mandadas»: salieron, reservaron en 14 días, lo cobrado, usos del cupón, costo y retorno; cancelar lo pendiente.
   - Métricas › Marketing: clientes atendidos por origen (y cuántos nuevos) y lo cobrado por origen.
   - Falta: la plantilla `campana_promocion` aprobada en Meta, entregado y leído reales en los resultados, y correo como canal barato.
+- **Dinero (01, 05, 06 y 07 P1, 2026-10-20).**
+  - Métricas › Negocio, para dueño y administrador con una sede: «El dinero del mes» con la utilidad (del estado de resultados, margen y variación frente a los mismos días del mes anterior) y la meta de ingresos con su ritmo: cuánto va, en cuánto cierra al paso de hoy y cuánto falta por día. La meta se pone, cambia o quita ahí mismo.
+  - Gastos › «Por pagar»: los vencimientos de los gastos fijos del mes según su frecuencia y su día de pago, en vencidos, esta semana, más adelante y pagados; «Marcar pagado» deja quién y cuándo y se puede deshacer. El barbero de renta ve los suyos.
+  - Nómina: la propina se separa en efectivo y tarjeta (por línea y en total). Si la barbería entrega en caja la de efectivo (Configuración › Nómina), se resta del neto para no pagarla dos veces.
+  - Comprobante de pago por persona y periodo (`/nomina/comprobante`, desde el detalle): imprimir o guardar en PDF y enviarlo por WhatsApp con el resumen.
+  - Falta: avisos de pagos por vencer, el pago ligado a la caja, reparto de propinas (bolsa), dispersión bancaria y metas por barbero.

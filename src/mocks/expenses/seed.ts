@@ -4,6 +4,9 @@
  * fechas son relativas a hoy para que «este mes» siempre tenga algo.
  */
 
+import { dueDatesIn } from "@/features/expenses/payables";
+import type { MockExpensePayment } from "../db";
+
 export type MockExpenseKind = "fixed" | "variable";
 export type MockExpenseFrequency = "weekly" | "biweekly" | "monthly" | "quarterly" | "semiannual" | "annual";
 
@@ -123,4 +126,25 @@ export function seedExpenses(now = new Date()): MockExpense[] {
     attachments: [],
     createdBy: "Carolina Vargas",
   }));
+}
+
+/** Hasta cuántos días atrás la demo da por pagados los vencimientos: lo de la última semana sale vencido. */
+const DEMO_PAID_BEFORE_DAYS = 7;
+
+/**
+ * Los vencimientos ya pagados de la demo (cuentas por pagar): todo lo que venció este mes y el anterior hasta hace una
+ * semana, pagado ese mismo día; lo de los últimos días queda vencido para que la lista tenga de todo.
+ */
+export function seedExpensePayments(expenses: readonly MockExpense[], now = new Date()): MockExpensePayment[] {
+  const key = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const cutoff = key(new Date(now.getFullYear(), now.getMonth(), now.getDate() - DEMO_PAID_BEFORE_DAYS));
+  const months = [key(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7), key(now).slice(0, 7)];
+  return expenses
+    .filter((expense) => expense.kind === "fixed")
+    .flatMap((expense) =>
+      months
+        .flatMap((month) => dueDatesIn({ kind: expense.kind, frequency: expense.frequency, start: expenseDate(expense), endDate: expense.endDate ?? null, dueDay: expense.dueDay ?? null }, month))
+        .filter((dueDate) => dueDate < cutoff)
+        .map((dueDate) => ({ id: `exp_pay_${expense.id}_${dueDate}`, expenseId: expense.id, dueDate, amount: expense.amount, paidAt: `${dueDate}T15:00:00.000Z`, method: expense.paymentMethod ?? "bank", by: "Administración" }))
+    );
 }

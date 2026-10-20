@@ -569,6 +569,14 @@ Lo que sale de caja en una sucursal. Un gasto **fijo** se repite con una frecuen
 
 El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes los calcula el front sobre `items`.
 
+**Por pagar** (`src/features/expenses/payables.ts`, compartido con el servidor): los vencimientos de los gastos **fijos** de un mes según su frecuencia, su `date` y su `dueDay` (semanal y quincenal cada 7 o 14 días desde el inicio; trimestral, semestral y anual cada 3, 6 o 12 meses desde el mes de inicio; un `dueDay` que no existe en el mes cae en el último día). Estado: `paid`, `overdue` (ya pasó), `dueSoon` (vence en 7 días o menos) o `upcoming`. Es la caja: el estado de resultados sigue contando el fijo por mes, pagado o no.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/expenses/payables?branchId&month=AAAA-MM&ownerMemberId?` | Dueño o administrador; el barbero de renta, los suyos (se fuerza su `memberId`). `{ month, items: [{ expenseId, name, categoryId, supplier, amount, dueDate, status, payment: { id, expenseId, dueDate, amount, paidAt, method, by } \| null }], totals: { due, paid, pending, overdue } }`, por fecha. `422` sin mes. |
+| POST | `/expenses/:id/payments` | `{ dueDate, method? }`: marca pagado ese vencimiento con quién y cuándo. `201 payment`. `422` si el gasto no vence ese día; `409` si ya estaba pagado; `403` si el gasto no es de quien llama. |
+| DELETE | `/expenses/:id/payments/:paymentId` | Deshace el pago. `204` · `404`. |
+
 ## Reportes (`/reports`)
 
 | Método | Ruta | Notas |
@@ -577,6 +585,13 @@ El «por mes» de un fijo (`amount × pagos al año ÷ 12`) y el resumen del mes
 | GET | `/reports/menu?branchId&days=30\|90\|180` | Solo dueño o administrador. Margen por hora de silla y matriz del catálogo: `{ days, avgMarginPerHour, chairHours, margin, units, costCoverage: { withCost, total }, items: [{ serviceId, name, units, popularity (% de unidades), avgPrice, unitCost, unitCommission, unitMargin, minutesPerUnit, hours, marginPerHour, hasCost, quadrant: "star" \| "plowhorse" \| "puzzle" \| "dog", targetPrice (\| null) }] }`. Margen = precio cobrado (el del barbero) − costo de insumos − comisión real de Nómina repartida por servicio; horas = (duración + preparación) × vendidos. Popular si vende al menos el 70 % del promedio por servicio; rentable si su margen por hora supera el promedio ponderado por horas (Kasavana y Smith). `targetPrice`: el precio con el que llegaría al promedio con la misma comisión y costo. No cuenta lo de barberos de renta. Un servicio sin costo cuenta cero (por eso `costCoverage`). |
 
 Todo va sin impuesto ni propina. **Ingresos**: lo cobrado por el equipo propio (servicios y productos, también ventas de mostrador) más la renta de sillas y las deducciones de los barberos de renta (lo que ellos cobran es suyo), menos devoluciones. **Variables** (crecen con lo vendido): costo del producto vendido (`products.cost`) y comisiones. **Fijos**: salarios, bonos y ajustes de nómina, gastos fijos de la sucursal llevados al mes —en proporción a los días vividos si el mes va a medias— y gastos variables del mes. `contribution = revenue − variables`; `net = contribution − fixedCosts`. **Punto de equilibrio**: lo fijo del mes completo ÷ (`contribution / revenue`); `servicesPerDay` lo divide por el ticket promedio y los días con agenda; `actualPerDay` es lo que se lleva. Un mes a medias se compara con el mismo tramo del anterior (`previous.elapsedDays`).
+
+**Meta del mes** (Métricas › Negocio, solo dueño o administrador y con una sede):
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/reports/goal?branchId&month=AAAA-MM` | `{ month, goal: { branchId, month, revenue, setBy, setAt } \| null, revenue, days, elapsedDays, projected, progress, neededPerDay, onTrack }`. `revenue` es el ingreso del estado de resultados (`revenue.total`); `projected` = `revenue ÷ días vividos × días del mes`; `progress` en % de la meta; `neededPerDay` = lo que falta ÷ los días que quedan (0 si ya se llegó); sin meta, los tres últimos son `null`. `403` a quien no gestiona; `422` sin sucursal o mes. |
+| PUT | `/reports/goal` | `{ branchId, month, revenue }` (mayor que 0) la pone o la cambia; `revenue: null` la quita. Devuelve lo mismo que el GET. `422` con `fields.revenue`. |
 
 ## Equipo en operación (`/team`)
 
@@ -778,7 +793,8 @@ Cómo se calcula (para que cuadre con la caja):
 `adjustment`: `{ id, kind: "bonus" | "deduction" | "advance" | "shortage" | "loan", amount, note, createdAt, createdBy, closureId?, loanId? }`. El bono suma; el descuento, el adelanto, el faltante de caja (`shortage`, con el cierre de donde sale) y la cuota de préstamo restan. La cuota (`loan`, id `loan:<préstamo>:<n>`) la pone el sistema en cada ciclo: no se crea ni se borra por `/payroll/adjustments`.
 **Ventas de mostrador**: las de `POST /sales` con `sellerId` comisionan para esa persona como producto (`productSales`, `productCommission`; `counterSales` = cuántas), con la misma base que un producto en una cita.
 **Ciclo de pago** (Configuración › Nómina): semanal desde el día de la semana; **quincenal = del día elegido a 14 días después y de ahí al día anterior del mes siguiente** (con el día 1: del 1 al 15 y del 16 a fin de mes, como se paga en Colombia y México); mensual desde el día del mes (`src/features/payroll/payCycle.ts`). La pantalla abre en el ciclo en curso.
-`net` = `serviceCommission + productCommission + tips + salary − rent − deductions + adjustmentsTotal`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
+**Propinas por medio de pago**: `line.tipCash` es la parte de la propina que se dejó en efectivo (la de tarjeta, enlace o la parte de tarjeta de un pago mixto entró por la caja de la barbería). `member.tipsCash` y `member.tipsCard` las suman. Si Configuración › Nómina tiene `cashTipsPaidOut: true` (la barbería entrega en caja, cada día, la propina en efectivo), `member.tipsPaidOut` = `tipsCash` y se resta del neto para no pagarla dos veces; con renta no aplica (lo del efectivo ya es suyo).
+`net` = `serviceCommission + productCommission + tips − tipsPaidOut + salary − rent − deductions + adjustmentsTotal`. **Positivo**: la barbería le paga. **Negativo**: el barbero (de renta) le debe a la barbería.
 `run`: `{ id, status: "approved" | "paid", approvedAt, approvedBy, paidAt, paidBy, method, reference } | null` (`null` = abierto). `history`: `[{ at, actor, event: "approved" | "paid" | "reopened", reason }]`.
 
 | Método | Ruta | Notas |
@@ -794,6 +810,8 @@ Cómo se calcula (para que cuadre con la caja):
 | DELETE | `/payroll/rent-payments/:id` | `204`. `404`. |
 | POST | `/payroll/runs/:id/pay` | `{ method, reference? }` → `run` pagado. `409` si ya estaba pagado. |
 | POST | `/payroll/runs/:id/reopen` | `{ reason }` (5+ caracteres): vuelve a abierto y queda en `history`. `204`. `409` si ya está pagado (se corrige con un ajuste en el siguiente periodo); `422` sin motivo. |
+
+**Comprobante** (`/nomina/comprobante?miembro&sucursal&desde&hasta`, sin el marco de la app): lo que suma, lo que resta y lo que recibe una persona en un periodo, con el estado del pago, desde `GET /payroll?…&memberId`. «Imprimir o guardar PDF» usa la impresión del navegador; «Enviar por WhatsApp» abre el chat con el resumen (enlace `wa.me`, sin plantilla). No es nómina electrónica.
 
 ## Configuración (`/settings`)
 

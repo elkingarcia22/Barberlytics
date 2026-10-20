@@ -109,6 +109,7 @@ interface MyPayHomeProps {
 }
 
 function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
+  const branchId = useBranchId();
   const t = useAppT();
   const { formatDate } = useLocale();
   const formatMoney = useMoney();
@@ -167,7 +168,7 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
         )}
       />
 
-      <PayrollMemberDrawer member={detailOpen ? member : null} onClose={() => filters.openMember(null)} formatMoney={formatMoney} showRulesLink={false} />
+      <PayrollMemberDrawer member={detailOpen ? member : null} onClose={() => filters.openMember(null)} formatMoney={formatMoney} showRulesLink={false} period={{ branchId: branchId, from: data.from, to: data.to }} />
     </div>
   );
 }

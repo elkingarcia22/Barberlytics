@@ -1,5 +1,5 @@
 {
-  "sourceHash": "25941fde765f9af2",
+  "sourceHash": "9b3e4d03b6ab990f",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -14066,7 +14066,7 @@
       "id": "side-panel-shell",
       "name": "SidePanelShell",
       "group": "overlays",
-      "description": "Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae solo a un drawer cuando no hay sitio para dos columnas o no hay shell alrededor.",
+      "description": "Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae sola a una hoja que sube desde abajo cuando no hay sitio para dos columnas (celular y tablet) o no hay shell alrededor, como las ventanas de la reserva en línea.",
       "import": "import { SidePanelShell } from \"@/components/overlays\"",
       "source": "src/components/overlays/SidePanelShell.tsx",
       "status": "beta",

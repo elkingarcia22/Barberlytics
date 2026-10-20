@@ -78,7 +78,7 @@ export function ActionFab({
         <div
           aria-hidden
           onClick={() => setOpen(false)}
-          className="pointer-events-auto fixed inset-0 z-rail bg-black/40 animate-in fade-in motion-reduce:animate-none"
+          className="pointer-events-auto fixed inset-0 z-rail bg-black/60 backdrop-blur-sm animate-in fade-in motion-reduce:animate-none"
         />
       )}
 
@@ -86,23 +86,28 @@ export function ActionFab({
         <div className="pointer-events-auto flex flex-col items-end gap-stack">
           {open && (
             <>
-              {selectedCount > 0 && (
-                <FabRow onClick={onClearSelection} label={`Soltar ${selectionLabel(selectedCount, gender)}`} index={0}>
-                  <X className="size-5" />
-                </FabRow>
-              )}
-              {[...rest].reverse().map((action, index) => (
-                <FabRow
-                  key={action.id}
-                  label={railActionLabel(action, selectedCount)}
-                  tone={action.tone}
-                  blockedReason={action.blockedReason}
-                  onClick={() => run(action)}
-                  index={index + (selectedCount > 0 ? 1 : 0)}
-                >
-                  {action.icon}
-                </FabRow>
-              ))}
+              {/* Con muchas acciones la lista no cabe en el celular: se desplaza dentro del alto de la
+                  pantalla en vez de salirse por arriba. Va invertida (lo primero, abajo, junto al pulgar)
+                  para que al abrir el scroll empiece en las acciones más cercanas al botón. */}
+              <div className="-mr-1 flex max-h-[calc(100dvh-12rem)] flex-col-reverse items-end gap-stack overflow-y-auto overscroll-contain py-1 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {rest.map((action, index) => (
+                  <FabRow
+                    key={action.id}
+                    label={railActionLabel(action, selectedCount)}
+                    tone={action.tone}
+                    blockedReason={action.blockedReason}
+                    onClick={() => run(action)}
+                    index={index}
+                  >
+                    {action.icon}
+                  </FabRow>
+                ))}
+                {selectedCount > 0 && (
+                  <FabRow onClick={onClearSelection} label={`Soltar ${selectionLabel(selectedCount, gender)}`} index={rest.length}>
+                    <X className="size-5" />
+                  </FabRow>
+                )}
+              </div>
               {primary && (
                 <button
                   type="button"

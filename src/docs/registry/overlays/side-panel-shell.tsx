@@ -9,7 +9,7 @@ function Demo() {
   return (
     <div className="flex flex-col items-center gap-3">
       <Button onClick={() => setOpen(true)}>Abrir panel</Button>
-      <Text variant="muted">Con sitio (1024px o más) se abre al lado y estrecha la página; sin él, como un drawer.</Text>
+      <Text variant="muted">Con sitio (1024px o más) se abre al lado y estrecha la página; sin él (celular y tablet), como una hoja que sube desde abajo.</Text>
       <SidePanelShell
         open={open}
         onOpenChange={setOpen}
@@ -35,7 +35,7 @@ export const sidePanelShellEntry = defineEntry({
   name: "SidePanelShell",
   group: "overlays",
   description:
-    "Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae solo a un drawer cuando no hay sitio para dos columnas o no hay shell alrededor.",
+    "Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue usable. Es el gesto del panel del Agente IA, para tareas que se hacen mirando lo de atrás —el detalle de una cita con la agenda al lado, un cobro, un bloqueo—. Misma anatomía y props que DrawerShell, y cae sola a una hoja que sube desde abajo cuando no hay sitio para dos columnas (celular y tablet) o no hay shell alrededor, como las ventanas de la reserva en línea.",
   importPath: 'import { SidePanelShell } from "@/components/overlays"',
   sourcePath: "src/components/overlays/SidePanelShell.tsx",
   status: "beta",

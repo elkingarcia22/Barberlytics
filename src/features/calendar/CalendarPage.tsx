@@ -1005,7 +1005,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
             </Button>
           ) : pendingTimeOff > 0 ? (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openPanel({ kind: "timeOff", focus: null })} aria-label={t("calendar.timeOff.pendingCount", { count: pendingTimeOff })} data-testid="calendar-time-off-pending">
-              <Palmtree className="text-warning" /> <span className="tabular-nums">{pendingTimeOff}</span> {t("calendar.timeOff.pendingLower")}
+              <Palmtree className="text-warning" /> <span className="tabular-nums">{pendingTimeOff}</span> <span className="max-sm:hidden">{t("calendar.timeOff.pendingLower")}</span>
             </Button>
           ) : undefined
         }

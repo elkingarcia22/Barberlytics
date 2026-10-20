@@ -24,6 +24,7 @@ import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
 import { StageHeading, TileRow, type Tile } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * La cita ya cerrada —cobrada, o que no se atendió—. Lo que importa ya no es
@@ -157,7 +158,7 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenReboo
         <LinkedField model={model} ctx={ctx} linked={linked} onSelectAppointment={onSelectAppointment} onUnlink={onUnlink} onShowLinked={onShowLinked} />
         <TileRow tiles={tiles} label={t("calendar.panel.after.title")} />
         {/* La acción principal de la cita cerrada: agendarle la próxima. Lo cobrado está en «Ver recibo». */}
-        <div className="flex items-center gap-2">
+        <PanelFooter className="flex-row items-center gap-2">
           <Button size="lg" className="flex-1" onClick={onOpenRebook} data-testid="panel-rebook">
             <ThemaIcon name="calendarAdd" />
             {t("calendar.panel.after.rebook")}
@@ -176,7 +177,7 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenReboo
               </PopoverContent>
             </Popover>
           )}
-        </div>
+        </PanelFooter>
       </section>
       {pinning && <PinSeries model={model} ctx={ctx} onClose={() => setPinning(false)} />}
     </div>

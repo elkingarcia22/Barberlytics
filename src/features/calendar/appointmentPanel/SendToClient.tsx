@@ -11,6 +11,7 @@ import { ThemaIcon } from "@/icons";
 import { ChannelCard } from "@/features/booking/flow/SendReceiptDialog";
 import { useSendToClient, type SendChannel, type SendToClientInput } from "../messages";
 import type { SendTarget } from "./sendTarget";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Mandarle al cliente su recibo o el enlace para reagendar, como el recibo de
@@ -80,10 +81,12 @@ export function SendToClient({ target, kind, body, lead, onSent }: SendToClientP
           </Field>
         </ChannelCard>
       </div>
-      <Button type="button" size="lg" className="w-full" onClick={() => void submit()} disabled={send.isPending} data-testid="panel-send-submit">
-        {send.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="mail" />}
-        {channels.length > 1 ? t("calendar.panel.send.sendBoth") : t("calendar.panel.send.send")}
-      </Button>
+      <PanelFooter>
+        <Button type="button" size="lg" className="w-full" onClick={() => void submit()} disabled={send.isPending} data-testid="panel-send-submit">
+          {send.isPending ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="mail" />}
+          {channels.length > 1 ? t("calendar.panel.send.sendBoth") : t("calendar.panel.send.send")}
+        </Button>
+      </PanelFooter>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { useFreeSlots } from "./useFreeSlots";
 import type { AppointmentModel } from "./useAppointmentModel";
 import { SendToClient } from "./SendToClient";
 import { targetOf } from "./sendTarget";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * «Reagendar», como una página dentro del panel. Arriba se elige cómo: lo
@@ -114,10 +115,12 @@ function PickTime({ model, ctx, group, onDone }: { model: AppointmentModel; ctx:
         </label>
       )}
       <TimeSlotPicker value={value} onChange={setValue} startDate={now} day={slots.day} onDayChange={slots.setDay} isDayDisabled={slots.isDayDisabled} isSlotDisabled={slots.isSlotDisabled} hideUnavailable loading={slots.loading} daysCount={90} />
-      <Button size="lg" onClick={() => void book()} disabled={!value || create.isPending} data-testid="panel-next-book">
-        <ThemaIcon name="calendarAdd" />
-        {value ? (withOthers && others.length > 0 ? t("calendar.panel.next.bookManyAt", { count: others.length + 1, when: when(value) }) : t("calendar.panel.next.bookAt", { when: when(value), barber: firstName })) : t("calendar.panel.next.pick")}
-      </Button>
+      <PanelFooter>
+        <Button size="lg" onClick={() => void book()} disabled={!value || create.isPending} data-testid="panel-next-book">
+          <ThemaIcon name="calendarAdd" />
+          {value ? (withOthers && others.length > 0 ? t("calendar.panel.next.bookManyAt", { count: others.length + 1, when: when(value) }) : t("calendar.panel.next.bookAt", { when: when(value), barber: firstName })) : t("calendar.panel.next.pick")}
+        </Button>
+      </PanelFooter>
     </>
   );
 }

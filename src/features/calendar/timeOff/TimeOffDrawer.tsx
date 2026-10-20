@@ -27,6 +27,7 @@ import { daysOf, type TimeOffPreview } from "./timeOffModel";
 import { BarberField } from "./BarberField";
 import { BlockForm } from "./BlockForm";
 import { AbsenceReview, BlockReview } from "./TimeOffReview";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Las ausencias y los bloqueos del equipo en un panel junto a la agenda, como
@@ -291,9 +292,11 @@ function AbsenceForm({ ctx, branchId, kind, initialMemberId, date, onDone, onPre
       <Text size="xs" tone="muted">
         {t(manages ? "calendar.timeOff.addHintManager" : "calendar.timeOff.addHint")}
       </Text>
-      <Button size="lg" className="w-full" disabled={!ready || request.isPending} onClick={submit} data-testid="time-off-save">
-        {t("calendar.timeOff.saveKind", { kind: label.toLowerCase() })}
-      </Button>
+      <PanelFooter>
+        <Button size="lg" className="w-full" disabled={!ready || request.isPending} onClick={submit} data-testid="time-off-save">
+          {t("calendar.timeOff.saveKind", { kind: label.toLowerCase() })}
+        </Button>
+      </PanelFooter>
     </div>
   );
 }

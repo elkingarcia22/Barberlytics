@@ -19,6 +19,7 @@ import { Stepper } from "@/components/navigation";
 import { formatClock } from "@/components/scheduling";
 import { useCheckout, type CheckoutController } from "./checkout/useCheckout";
 import { useCurrencyInput } from "@/features/branches";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Cobrar, con la cara del panel de la cita: el avance de la cita arriba y una
@@ -96,19 +97,20 @@ function CheckoutPanel({ appointment, open, onOpenChange, ctx, onPaid, companion
             <PayMethods checkout={checkout} ctx={ctx} target={target} />
           </PanelQuestion>
           <OrderCard checkout={checkout} ctx={ctx} appointment={appointment} />
-          {/* Pegado al borde de abajo del panel (por eso -bottom-5, lo del relleno) mientras no se ve su sitio; con espacio, queda en su lugar. */}
-          <div className="sticky -bottom-5 z-10 -mx-4 -mb-4 rounded-b-2xl bg-surface px-4 pb-4 pt-3" data-testid="checkout-pay-bar">
-            <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
-              {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
-              {checkout.payChoice === "link"
-                ? t("calendar.checkout.link.paid", {
-                    total: ctx.formatMoney(checkout.total),
-                  })
-                : t("calendar.checkout.payAmount", {
-                    total: ctx.formatMoney(checkout.total),
-                  })}
-            </Button>
-          </div>
+          <PanelFooter>
+            <div data-testid="checkout-pay-bar">
+              <Button className="w-full" size="lg" onClick={charge} disabled={!checkout.ready || checkout.paying} data-testid="checkout-pay">
+                {checkout.paying ? <Spinner size="sm" tone="inverse" /> : <ThemaIcon name="lock" />}
+                {checkout.payChoice === "link"
+                  ? t("calendar.checkout.link.paid", {
+                      total: ctx.formatMoney(checkout.total),
+                    })
+                  : t("calendar.checkout.payAmount", {
+                      total: ctx.formatMoney(checkout.total),
+                    })}
+              </Button>
+            </div>
+          </PanelFooter>
         </section>
       </div>
       <TipModal open={tipOpen} onOpenChange={setTipOpen} checkout={checkout} ctx={ctx} />

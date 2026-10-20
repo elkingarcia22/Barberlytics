@@ -22,6 +22,7 @@ import { dayWeightOf } from "../dayWeight";
 import { DayWeightBadge } from "../DayWeightBadge";
 import { BLOCK_CATEGORY_KEYS, type TimeBlock } from "../types";
 import { coverageFor, daysOf, isShortHanded } from "./timeOffModel";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Revisar una solicitud antes de aprobarla, con lo que hay que saber en ese
@@ -159,7 +160,7 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
       </PanelQuestion>
 
       {canDecide && absence.status === "pending" && (
-        <div className="sticky bottom-0 flex flex-col gap-2 border-t border-border bg-surface pt-3">
+        <PanelFooter className="gap-2">
           {rejecting && <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("calendar.timeOff.rejectReason")} aria-label={t("calendar.timeOff.rejectReason")} autoFocus data-testid="time-off-reason" />}
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" disabled={decide.isPending || (rejecting && reason.trim().length < 3)} onClick={() => (rejecting ? run("reject") : setRejecting(true))} data-testid="time-off-reject">
@@ -169,7 +170,7 @@ export function AbsenceReview({ absence, absences, ctx, canDecide, onOpenAppoint
               {t("calendar.timeOff.approve")}
             </Button>
           </div>
-        </div>
+        </PanelFooter>
       )}
     </div>
   );
@@ -211,14 +212,14 @@ export function BlockReview({ block, ctx, canDecide, onShowInCalendar, onDone }:
       {onShowInCalendar && <ShowInCalendar onClick={onShowInCalendar} />}
       {block.description && <Text className="border-l-2 border-primary/60 pl-3 italic">«{block.description}»</Text>}
       {canDecide && block.status === "pending" && (
-        <div className="flex gap-2">
+        <PanelFooter className="flex-row gap-2">
           <Button variant="outline" className="flex-1" disabled={remove.isPending} onClick={() => remove.mutate(block.id, done("calendar.timeOff.rejected"))}>
             {t("calendar.timeOff.reject")}
           </Button>
           <Button className="flex-1" disabled={approve.isPending} onClick={() => approve.mutate(block.id, done("calendar.timeOff.approved"))} data-testid="block-approve">
             {t("calendar.timeOff.approve")}
           </Button>
-        </div>
+        </PanelFooter>
       )}
     </div>
   );

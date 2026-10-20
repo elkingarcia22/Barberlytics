@@ -19,6 +19,7 @@ import { useCreateBlock, useUpdateBlock } from "../queries";
 import { BLOCK_CATEGORY_KEYS, BLOCK_REPEAT_KEYS, blockCategorySchema, blockInputSchema, blockRepeatSchema, type Barber, type BlockCategory, type BlockRepeat, type CalendarDay, type TimeBlock } from "../types";
 import { BarberField } from "./BarberField";
 import type { TimeOffPreview } from "./timeOffModel";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Crear o editar un bloqueo: una franja del barbero que deja de estar
@@ -185,10 +186,12 @@ export function BlockForm({ barbers, initialBarberId, date, day, ownOnly = false
         <Textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={2} />
       </Field>
 
-      <Button size="lg" className="w-full" onClick={submit} disabled={saving} data-testid="block-submit">
-        <ThemaIcon name={block ? "check" : "lock"} />
-        {t(block ? "calendar.block.save" : "calendar.block.createFull")}
-      </Button>
+      <PanelFooter>
+        <Button size="lg" className="w-full" onClick={submit} disabled={saving} data-testid="block-submit">
+          <ThemaIcon name={block ? "check" : "lock"} />
+          {t(block ? "calendar.block.save" : "calendar.block.createFull")}
+        </Button>
+      </PanelFooter>
     </div>
   );
 }

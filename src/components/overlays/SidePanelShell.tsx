@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useShellSidePanelHost } from "@/components/app-shell/shellAgentPanelSlot";
 import { AGENT_PANEL_WIDTH, agentPanelTransition } from "@/components/ai/agentPanelMotion";
 import { DrawerShell, type DrawerShellProps } from "./DrawerShell";
+import { PANEL_FOOTER_SLOT_CLASS, PanelFooterSlotProvider, usePanelFooterSlot } from "./PanelFooter";
 
 /**
  * SIDE PANEL SHELL
@@ -50,6 +51,7 @@ export function SidePanelShell(props: SidePanelShellProps) {
   const sideBySide = React.useSyncExternalStore(subscribe, fits, () => false);
   const panelRef = React.useRef<HTMLElement>(null);
   const inline = host !== null && sideBySide;
+  const [footerSlot, setFooterSlot] = usePanelFooterSlot();
 
   // Escape cierra, como en un drawer, y al abrir el foco entra al panel.
   React.useEffect(() => {
@@ -97,7 +99,10 @@ export function SidePanelShell(props: SidePanelShellProps) {
                 )}
               </header>
             )}
-            <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]", !disablePadding && "p-5")}>{children}</div>
+            <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]", !disablePadding && "p-5")}>
+              <PanelFooterSlotProvider value={footerSlot}>{children}</PanelFooterSlotProvider>
+            </div>
+            <div ref={setFooterSlot} className={PANEL_FOOTER_SLOT_CLASS} />
             {footer ? footer : actions ? <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 px-5 py-4">{actions}</footer> : null}
           </aside>
         )}

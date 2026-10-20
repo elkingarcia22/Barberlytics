@@ -13,6 +13,7 @@ import { ChannelCard } from "@/features/booking/flow/SendReceiptDialog";
 import type { ModelContext } from "../calendarModel";
 import { useDepositActions, type DepositChannel } from "../deposit";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { PanelFooter } from "@/components/overlays";
 
 /** Lo que se propone de entrada: el anticipo habitual de la reserva en línea. */
 const SUGGESTED_PERCENTS = [30, 50, 100] as const;
@@ -99,10 +100,12 @@ export function DepositPage({ model, ctx, onDone }: { model: AppointmentModel; c
           {errors.channels}
         </Text>
       )}
-      <Button type="button" size="lg" className="w-full" onClick={submit} disabled={request.isPending} data-testid="panel-deposit-submit">
-        {request.isPending ? <Spinner size="sm" tone="inverse" /> : <HandCoins />}
-        {pending ? t("calendar.deposit.resend") : t("calendar.deposit.send")}
-      </Button>
+      <PanelFooter>
+        <Button type="button" size="lg" className="w-full" onClick={submit} disabled={request.isPending} data-testid="panel-deposit-submit">
+          {request.isPending ? <Spinner size="sm" tone="inverse" /> : <HandCoins />}
+          {pending ? t("calendar.deposit.resend") : t("calendar.deposit.send")}
+        </Button>
+      </PanelFooter>
     </div>
   );
 }

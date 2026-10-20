@@ -874,7 +874,7 @@ describe("Calendario", () => {
     const user = userEvent.setup();
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
     expect(await screen.findByTestId("checkout-total")).toHaveTextContent("$35");
-    // En la versión «Agregar» (la de entrada), el descuento y la tarjeta salen del botón y no antes.
+    // El descuento y la tarjeta salen de «Agregar» y no antes.
     expect(screen.queryByTestId("checkout-discount")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("checkout-add"));
     await user.click(await screen.findByTestId("checkout-add-discount"));
@@ -887,29 +887,26 @@ describe("Calendario", () => {
     await waitFor(() => expect(screen.getByTestId("checkout-total")).toHaveTextContent("$81.5"));
   });
 
-  test("las versiones del cobro: «Actual» lo pone todo a la vista, «Resumen» cierra la cuenta en una línea y «Rápido» pone las formas de pago en botones", async () => {
+  test("«Agregar» otro servicio: se elige en el buscador, se suma a la cuenta y el buscador se va", async () => {
     const user = userEvent.setup();
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
-    const versions = await screen.findByTestId("checkout-version");
-    await user.click(within(versions).getByRole("radio", { name: "Actual" }));
-    expect(screen.getByTestId("checkout-discount-add")).toBeInTheDocument();
-    expect(screen.queryByTestId("checkout-add")).not.toBeInTheDocument();
-    await user.click(within(versions).getByRole("radio", { name: "Resumen" }));
-    expect(screen.getByTestId("checkout-bill-line")).toHaveTextContent("$35");
-    await user.click(screen.getByTestId("checkout-summary-edit"));
-    expect(screen.queryByTestId("checkout-bill-line")).not.toBeInTheDocument();
-    await user.click(within(versions).getByRole("radio", { name: "Rápido" }));
-    expect(screen.getByTestId("checkout-method-tiles")).toBeInTheDocument();
-    expect(screen.getByTestId("checkout-ticket")).toBeInTheDocument();
-    // Se recuerda: la próxima vez abre en «Rápido».
-    expect(window.localStorage.getItem("thema.calendar.checkoutVersion.v1")).toBe("quick");
-    window.localStorage.removeItem("thema.calendar.checkoutVersion.v1");
+    expect(await screen.findByTestId("checkout-total")).toHaveTextContent("$35");
+    await user.click(screen.getByTestId("checkout-add"));
+    await user.click(await screen.findByTestId("checkout-add-service"));
+    const service = ctx.catalog.services[ctx.catalog.services.length - 1];
+    await user.click(await screen.findByRole("option", { name: new RegExp(service.name) }));
+    await waitFor(() => expect(screen.getByTestId("checkout-bill-line")).toHaveTextContent(service.name));
+    // Ni buscador que quede abierto ni otro campo: vuelve el botón «Agregar».
+    expect(screen.getByTestId("checkout-add")).toBeInTheDocument();
+    expect(within(screen.getByTestId("checkout-bill")).queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   test("al cobrar una visita, las demás citas vienen marcadas y se pueden dejar fuera", async () => {
     const user = userEvent.setup();
     const second = { ...APPOINTMENT, id: "a2", start: "2026-09-25T11:00:00", status: "seated" as const };
     renderWithProviders(<CheckoutDrawer open appointment={{ ...APPOINTMENT, status: "seated" }} companions={[second]} onOpenChange={() => {}} ctx={ctx} onPaid={() => {}} />);
+    // La cuenta se abre con «Editar» para ver (y quitar) las citas de la visita.
+    await user.click(await screen.findByTestId("checkout-summary-edit"));
     const visit = await screen.findByTestId("checkout-visit");
     const items = within(visit).getAllByTestId("checkout-visit-item");
     expect(items).toHaveLength(2);

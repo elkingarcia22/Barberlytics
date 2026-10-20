@@ -35,6 +35,8 @@ export type SearchableSelectProps = {
   disabled?: boolean
   /** Abre la lista al aparecer (cuando se pide sumar algo y lo siguiente es elegirlo). */
   defaultOpen?: boolean
+  /** Avisa al abrirse y al cerrarse (también al elegir). */
+  onOpenChange?: (open: boolean) => void
   className?: string
 }
 
@@ -47,9 +49,14 @@ export function SearchableSelect({
   emptyMessage = "No se encontraron resultados.",
   disabled = false,
   defaultOpen = false,
+  onOpenChange,
   className,
 }: SearchableSelectProps) {
-  const [open, setOpen] = React.useState(defaultOpen)
+  const [open, setOpenState] = React.useState(defaultOpen)
+  const setOpen = (next: boolean) => {
+    setOpenState(next)
+    onOpenChange?.(next)
+  }
   const selected = value ? options.find((option) => option.value === value) : undefined
 
   return (

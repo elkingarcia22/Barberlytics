@@ -2,7 +2,7 @@ import * as React from "react";
 import { Banknote, Check, CreditCard, Gift, Link2, Plus, Smartphone, Split, SquareStack, Trash2, X } from "lucide-react";
 import { Chip } from "@/components/ai-interaction";
 import { Field, NumberField } from "@/components/forms";
-import { OptionTile, SegmentedControl } from "@/components/selection";
+import { SegmentedControl } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -42,60 +42,40 @@ const PART_COUNTS = [2, 3, 4] as const;
 
 const BOX = "flex flex-col gap-3 rounded-xl border border-input bg-surface p-3";
 
-/** `select` (lo de siempre): un selector. `tiles`: las seis formas a la vista, en botones de 3 × 2, para elegir de un toque. */
-export function PayMethods({ checkout, ctx, target, layout = "select" }: { checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null; layout?: "select" | "tiles" }) {
+export function PayMethods({ checkout, ctx, target }: { checkout: CheckoutController; ctx: ModelContext; target: SendTarget | null }) {
   const { t } = checkout;
   const Icon = ICONS[checkout.payChoice];
   return (
     <div className="flex flex-col gap-3" data-testid="checkout-pay-step">
-      {layout === "tiles" ? (
-        <div role="group" aria-label={t("calendar.checkout.method")} className="grid grid-cols-3 gap-2" data-testid="checkout-method-tiles">
-          {MODES.map((mode) => (
-            <OptionTile
-              key={mode}
-              layout="stacked"
-              compact
-              option={{
-                value: mode,
-                label: t(`calendar.checkout.pay.${mode}`),
-                icon: ICONS[mode],
-              }}
-              selected={checkout.payChoice === mode}
-              onSelect={(value) => checkout.choosePay(value as PayMode)}
-            />
-          ))}
-        </div>
-      ) : (
-        <Select value={checkout.payChoice} onValueChange={(value) => checkout.choosePay(value as PayMode)}>
-          {/* El disparador cuenta la forma elegida en dos líneas: sin el recorte a una línea del Select. */}
-          <SelectTrigger className="h-auto min-h-14 py-2 [&>span]:line-clamp-none [&>span]:!flex" aria-label={t("calendar.checkout.method")} data-testid="checkout-method">
-            <span className="flex min-w-0 items-center gap-3 text-left">
-              <IconTile size="md" shape="circle" tone="primary" icon={<Icon />} />
-              <span className="flex min-w-0 flex-col">
-                <Text as="span" weight="medium" truncate>
-                  <SelectValue>{t(`calendar.checkout.pay.${checkout.payChoice}`)}</SelectValue>
-                </Text>
-                <Text as="span" size="xs" tone="muted" truncate>
-                  {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
-                </Text>
-              </span>
+      <Select value={checkout.payChoice} onValueChange={(value) => checkout.choosePay(value as PayMode)}>
+        {/* El disparador cuenta la forma elegida en dos líneas: sin el recorte a una línea del Select. */}
+        <SelectTrigger className="h-auto min-h-14 py-2 [&>span]:line-clamp-none [&>span]:!flex" aria-label={t("calendar.checkout.method")} data-testid="checkout-method">
+          <span className="flex min-w-0 items-center gap-3 text-left">
+            <IconTile size="md" shape="circle" tone="primary" icon={<Icon />} />
+            <span className="flex min-w-0 flex-col">
+              <Text as="span" weight="medium" truncate>
+                <SelectValue>{t(`calendar.checkout.pay.${checkout.payChoice}`)}</SelectValue>
+              </Text>
+              <Text as="span" size="xs" tone="muted" truncate>
+                {t(`calendar.checkout.pay.${checkout.payChoice}Hint`)}
+              </Text>
             </span>
-          </SelectTrigger>
-          <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
-            {MODES.map((mode) => {
-              const ModeIcon = ICONS[mode];
-              return (
-                <SelectItem key={mode} value={mode} data-testid={`checkout-method-${mode}`}>
-                  <span className="flex items-center gap-2">
-                    <ModeIcon className="size-4 text-text-muted" />
-                    {t(`calendar.checkout.pay.${mode}`)}
-                  </span>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      )}
+          </span>
+        </SelectTrigger>
+        <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+          {MODES.map((mode) => {
+            const ModeIcon = ICONS[mode];
+            return (
+              <SelectItem key={mode} value={mode} data-testid={`checkout-method-${mode}`}>
+                <span className="flex items-center gap-2">
+                  <ModeIcon className="size-4 text-text-muted" />
+                  {t(`calendar.checkout.pay.${mode}`)}
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
 
       {checkout.payChoice === "cash" && <CashDetail checkout={checkout} ctx={ctx} />}
       {checkout.payChoice === "card" && <DeviceList checkout={checkout} value={checkout.deviceId} onChange={checkout.setDeviceId} />}

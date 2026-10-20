@@ -23,7 +23,7 @@ const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DAY_MS = 86_400_000;
 const DAYS_PER_WEEK = 7;
 const MONTHS_PER_YEAR = 12;
-const PAYMENTS_PER_YEAR: Readonly<Record<NonNullable<MockExpense["frequency"]>, number>> = {
+export const PAYMENTS_PER_YEAR: Readonly<Record<NonNullable<MockExpense["frequency"]>, number>> = {
   weekly: 52,
   biweekly: 26,
   monthly: 12,

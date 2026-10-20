@@ -91,6 +91,11 @@ export const payrollMemberSchema = z.object({
   rentBase: z.number().nullable(),
   /** Salario por semana; solo en salario. */
   salaryBase: z.number().nullable(),
+  /** Con renta: el % de la venta que se le descuenta por cada tipo de cliente que le trae la barbería. */
+  deductionRates: z.object({ walkIn: z.number(), noPreference: z.number(), newClient: z.number() }).nullable().optional(),
+  /** Con renta: los gastos de su silla en el periodo y lo que le queda (ventas y propinas − renta − deducciones − gastos). */
+  chairExpenses: z.object({ fixed: z.number(), variable: z.number(), total: z.number() }).optional(),
+  profit: z.number().optional(),
   services: z.number(),
   serviceSales: z.number(),
   productSales: z.number(),

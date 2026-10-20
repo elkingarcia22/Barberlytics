@@ -1,10 +1,11 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
-import { appointmentsOn } from "../calendar/handlers";
+import { appointmentsOn, peekAppointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import { barbersOf } from "../team/seed";
 import { cycleWindow, payrollOf } from "./compute";
+import { chairExpensesIn } from "../expenses/chair";
 import type { MockAdjustmentKind, MockLoan, MockPayrollRun } from "./state";
 
 /**
@@ -57,11 +58,12 @@ function periodOf(branchId: string, from: string, to: string): { days: number; w
 const runOf = (branchId: string, from: string, to: string) => db.payroll.runs.find((run) => run.branchId === branchId && run.from === from && run.to === to);
 const adjustmentsOf = (branchId: string, from: string, to: string) => db.payroll.adjustments.filter((item) => item.branchId === branchId && item.from === from && item.to === to);
 
-/** La nómina calculada hoy del periodo, con sus ajustes. */
-function computeMembers(branchId: string, from: string, days: number, weeks: number) {
+/** La nómina calculada hoy del periodo, con sus ajustes. Con `peek`, sin guardar los días que nadie abrió (rangos largos). */
+function computeMembers(branchId: string, from: string, days: number, weeks: number, peek = false) {
   const start = new Date(`${from}T00:00:00`);
   const to = dateKey(new Date(start.getTime() + (days - 1) * DAY_MS));
-  const appointments = Array.from({ length: days }, (_, index) => appointmentsOn(branchId, dateKey(new Date(start.getTime() + index * DAY_MS)))).flat();
+  const dayOf = peek ? peekAppointmentsOn : appointmentsOn;
+  const appointments = Array.from({ length: days }, (_, index) => dayOf(branchId, dateKey(new Date(start.getTime() + index * DAY_MS)))).flat();
   const adjustments = adjustmentsOf(branchId, from, to);
   const extras = { sales: salesIn(branchId, from, to), loans: loansOf(branchId), from, to };
   return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments, extras));
@@ -74,7 +76,23 @@ function withRentPayments(member: PayrollMemberRow, branchId: string, from: stri
   if (member.payout !== "rent") return member;
   const payments = (db.payroll.rentPayments ?? []).filter((item) => item.branchId === branchId && item.memberId === member.memberId && item.date >= from && item.date <= to);
   const rentPaid = round(payments.reduce((sum, item) => sum + item.amount, 0));
-  return { ...member, rentPaid, balance: round(member.net + rentPaid), rentPayments: payments.map(({ id, amount, method, date, note, by }) => ({ id, amount, method, date, note, by })) };
+  // «Mi negocio»: lo que vendió (con propinas) menos lo que le paga a la barbería y los gastos de su silla.
+  const row = member as PayrollMemberRow & { serviceSales?: number; productSales?: number; tips?: number; rent?: number; deductions?: number };
+  const chairExpenses = chairExpensesIn(branchId, member.memberId, from, to);
+  const profit = round((row.serviceSales ?? 0) + (row.productSales ?? 0) + (row.tips ?? 0) - (row.rent ?? 0) - (row.deductions ?? 0) - chairExpenses.total);
+  return { ...member, rentPaid, balance: round(member.net + rentPaid), rentPayments: payments.map(({ id, amount, method, date, note, by }) => ({ id, amount, method, date, note, by })), chairExpenses, profit };
+}
+
+/**
+ * La nómina de un periodo tal como la ve la pantalla: la foto fija si se aprobó, si no lo calculado hoy, con los pagos
+ * de renta. La usan el estado de cuenta, el certificado, las metas y los avisos. `null` si el rango no es válido.
+ */
+export function periodPayroll(branchId: string, from: string, to: string, options: { peek?: boolean } = {}) {
+  const period = periodOf(branchId, from, to);
+  if (period instanceof Response) return null;
+  const run = runOf(branchId, from, to);
+  const all = (run ? run.members : computeMembers(branchId, from, period.days, period.weeks, options.peek)) as PayrollMemberRow[];
+  return { run: run ?? null, weeks: run?.weeks ?? period.weeks, members: all.map((member) => withRentPayments(member, branchId, from, to)) as (PayrollMemberRow & Record<string, unknown>)[] };
 }
 
 const runView = (run: MockPayrollRun | undefined) =>

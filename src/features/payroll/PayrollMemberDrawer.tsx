@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { FileText, UserRound } from "lucide-react";
+import { FileText, MessageCircleWarning, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { DrawerShell } from "@/components/overlays";
@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/typography";
+import { MemberGoalEditor } from "./barber/MemberGoalEditor";
+import { PayDisputeList } from "./barber/PayDisputes";
 import { PayrollAdjustments } from "./PayrollAdjustments";
 import { PayrollLoans } from "./PayrollLoans";
 import { RentPayments } from "./RentPayments";
-import { PAYOUT_KEYS, RULE_KEYS, ruleSchema, type CommissionRule, type PayrollMember } from "./types";
+import { PAYOUT_KEYS, RULE_KEYS, ruleSchema, type CommissionRule, type PayrollLine, type PayrollMember } from "./types";
 
 export interface PayrollMemberDrawerProps {
   /** El barbero abierto; `null` cierra el panel. */
@@ -26,6 +28,8 @@ export interface PayrollMemberDrawerProps {
   adjustments?: { period: { branchId: string; from: string; to: string }; locked: boolean; canManage: boolean };
   /** El periodo que se mira: con él sale «Comprobante» (para imprimir, guardar en PDF o mandar por WhatsApp). */
   period?: { branchId: string; from: string; to: string };
+  /** El barbero mirando lo suyo: «No cuadra» en cada cita abre el reclamo. */
+  onDispute?: (line: PayrollLine) => void;
 }
 
 const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" };
@@ -35,7 +39,7 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", 
  * cuenta —lo que suma y lo que resta— y servicio por servicio qué regla se
  * aplicó. Las reglas se cambian en su ficha de Equipo, no aquí.
  */
-export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true, adjustments, period }: PayrollMemberDrawerProps) {
+export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLink = true, adjustments, period, onDispute }: PayrollMemberDrawerProps) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
@@ -109,6 +113,8 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
           {adjustments && member.payout === "rent" && <RentPayments member={member} period={adjustments.period} canManage={adjustments.canManage} formatMoney={formatMoney} />}
           {adjustments && <PayrollAdjustments member={member} period={adjustments.period} locked={adjustments.locked} canManage={adjustments.canManage} formatMoney={formatMoney} />}
           {adjustments && <PayrollLoans member={member} period={adjustments.period} canManage={adjustments.canManage} formatMoney={formatMoney} />}
+          {adjustments?.canManage && <PayDisputeList branchId={adjustments.period.branchId} memberId={member.memberId} canAnswer />}
+          {adjustments?.canManage && member.payout !== "salary" && <MemberGoalEditor branchId={adjustments.period.branchId} memberId={member.memberId} formatMoney={formatMoney} />}
 
           <section aria-label={t("payroll.detail.lines")} className="space-y-2">
             <Text variant="label">{t("payroll.detail.linesCount", { count: member.lines.length })}</Text>
@@ -126,6 +132,7 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
                       <TableHead className="text-right">{t("payroll.line.sale")}</TableHead>
                       <TableHead className="text-right">{member.payout === "rent" ? t("payroll.column.deductions") : t("payroll.line.commission")}</TableHead>
                       <TableHead className="text-right">{t("payroll.column.tips")}</TableHead>
+                      {onDispute && <TableHead className="sr-only">{t("payroll.dispute.short")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -142,6 +149,13 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
                         <TableCell className="text-right tabular-nums">{formatMoney(line.sale)}</TableCell>
                         <TableCell className="text-right tabular-nums">{member.payout === "rent" ? (line.deduction > 0 ? `−${formatMoney(line.deduction)}` : "—") : formatMoney(line.commission)}</TableCell>
                         <TableCell className="text-right tabular-nums text-text-secondary">{line.tip > 0 ? formatMoney(line.tip) : "—"}</TableCell>
+                        {onDispute && (
+                          <TableCell className="text-right">
+                            <Button size="xs" variant="ghost" onClick={() => onDispute(line)} aria-label={t("payroll.dispute.lineAria", { client: line.client })} data-testid="pay-line-dispute">
+                              <MessageCircleWarning /> {t("payroll.dispute.short")}
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -157,7 +171,23 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
 
 function Rules({ member, formatMoney }: { member: PayrollMember; formatMoney: (value: number) => string }) {
   const t = useAppT();
-  if (member.payout === "rent") return <Text variant="muted">{t("payroll.detail.rentRule", { amount: formatMoney(member.rentBase ?? 0) })}</Text>;
+  if (member.payout === "rent") {
+    const rates = member.deductionRates;
+    return (
+      <div className="space-y-2">
+        <Text variant="muted">{t("payroll.detail.rentRule", { amount: formatMoney(member.rentBase ?? 0) })}</Text>
+        {rates && (
+          <div className="flex flex-wrap gap-2" data-testid="payroll-deduction-rates">
+            {(["walkIn", "noPreference", "newClient"] as const).map((rule) => (
+              <Badge key={rule} variant="neutral">
+                {t("payroll.detail.deductionRate", { rule: t(RULE_KEYS[rule]), percent: rates[rule] })}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (member.payout === "salary") return <Text variant="muted">{t("payroll.detail.salaryRule", { amount: formatMoney(member.salaryBase ?? 0) })}</Text>;
   const rules = member.rules;
   if (!rules) return null;

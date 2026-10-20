@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked", "payrollApproved", "payAdjustment", "rentDue", "payDispute", "payDisputeAnswered"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -43,6 +43,11 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   rescheduled: { title: "notifications.rescheduled.title", body: "notifications.rescheduled.body" },
   newDevice: { title: "notifications.newDevice.title", body: "notifications.newDevice.body" },
   accessLocked: { title: "notifications.accessLocked.title", body: "notifications.accessLocked.body" },
+  payrollApproved: { title: "notifications.payrollApproved.title", body: "notifications.payrollApproved.body" },
+  payAdjustment: { title: "notifications.payAdjustment.title", body: "notifications.payAdjustment.body" },
+  rentDue: { title: "notifications.rentDue.title", body: "notifications.rentDue.body" },
+  payDispute: { title: "notifications.payDispute.title", body: "notifications.payDispute.body" },
+  payDisputeAnswered: { title: "notifications.payDisputeAnswered.title", body: "notifications.payDisputeAnswered.body" },
 };
 
 /** Reintentar un mensaje que falló: vuelve a la cola para salir ya. */

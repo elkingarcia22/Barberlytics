@@ -86,12 +86,47 @@ export interface MockRentPayment {
   by: string;
 }
 
+/** «Esto no cuadra»: un barbero reclama su pago de un periodo (o de una cita) y quien gestiona responde. */
+export interface MockPayDispute {
+  id: string;
+  branchId: string;
+  memberId: string;
+  memberName: string;
+  from: string;
+  to: string;
+  appointmentId: string | null;
+  /** «Carlos R. · Corte»: para leerlo sin abrir la cita. */
+  appointmentLabel: string | null;
+  /** Cuándo fue la cita (su inicio). */
+  appointmentAt?: string | null;
+  message: string;
+  createdAt: string;
+  status: "open" | "answered";
+  answer: string | null;
+  answeredBy: string | null;
+  answeredAt: string | null;
+}
+
+/** La meta de un barbero por ciclo de pago: la pone quien gestiona; `null` en lo que no se mide. */
+export interface MockMemberGoal {
+  branchId: string;
+  memberId: string;
+  serviceSales: number | null;
+  productSales: number | null;
+  /** % de clientes que dejan la siguiente cita en la semana. */
+  rebookRate: number | null;
+  setBy: string;
+  setAt: string;
+}
+
 export interface MockPayrollState {
   runs: MockPayrollRun[];
   adjustments: MockPayrollAdjustment[];
   history: MockPayrollHistoryEntry[];
   rentPayments: MockRentPayment[];
   loans?: MockLoan[];
+  disputes?: MockPayDispute[];
+  memberGoals?: MockMemberGoal[];
 }
 
-export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [], rentPayments: [], loans: [] });
+export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [], rentPayments: [], loans: [], disputes: [], memberGoals: [] });

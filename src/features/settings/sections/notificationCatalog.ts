@@ -53,7 +53,9 @@ const WHATSAPP_REPLY = event("whatsappReply", PUSH);
 /** El cliente marcó «Ya llegué» en el kiosco de la sede. */
 const CLIENT_ARRIVED = event("clientArrived", PUSH);
 const NO_SHOW = event("appointmentNoShow", PUSH);
-const CASH = [event("registerDifference", PUSH), event("registerOpen", PUSH), event("payrollDue", PUSH)];
+const CASH = [event("registerDifference", PUSH), event("registerOpen", PUSH), event("payrollDue", PUSH), event("payDispute", PUSH)];
+/** Lo del dinero del barbero: aprobado, pagado, un ajuste y la respuesta a su reclamo. */
+const PAY = [event("payrollApproved", PUSH), event("payrollPaid", PUSH), event("payAdjustment", PUSH), event("payDisputeAnswered", PUSH)];
 const VACATION_DECIDED = [event("vacationApproved", PUSH), event("vacationDenied", PUSH)];
 
 export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonly NotificationGroup[]>> = {
@@ -65,8 +67,8 @@ export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonl
     group("metrics", [...METRICS_HEALTH, ...RETENTION]),
     group("reports", REPORTS),
   ],
-  barberCommission: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, CLIENT_ARRIVED, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
-  barberRent: [group("clients", [...CLIENT_IMPORT, ...CLIENT_STATES]), group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, CLIENT_ARRIVED, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [event("payrollPaid", PUSH)]), group("metrics", METRICS_HEALTH)],
+  barberCommission: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, CLIENT_ARRIVED, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", PAY), group("metrics", METRICS_HEALTH)],
+  barberRent: [group("clients", [...CLIENT_IMPORT, ...CLIENT_STATES]), group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, CLIENT_ARRIVED, event("appointmentNewClient", PUSH), REMINDER]), group("calendar", [...BARBER_DAY, ...VACATION_DECIDED]), group("pay", [...PAY, event("rentDue", PUSH)]), group("metrics", METRICS_HEALTH)],
   frontDesk: [group("appointments", [BOOKING_ONLINE, ...APPOINTMENT_CHANGES, NO_SHOW, CLIENT_ARRIVED, WHATSAPP_FAILED, WHATSAPP_REPLY]), group("calendar", [event("waitlistJoined", PUSH), event("barberBlocked", PUSH), event("vacationApprovedTeam", PUSH), ...VACATION_DECIDED]), group("cash", [event("registerOpen", PUSH)])],
   owner: [
     group("clients", [...CLIENT_IMPORT, event("clientBlocked", PUSH), event("badReview", PUSH), WHATSAPP_FAILED, WHATSAPP_REPLY]),
@@ -108,6 +110,11 @@ export function eventOfNotification(kind: string, status?: unknown): string | nu
     registerOpen: "registerOpen",
     payrollDue: "payrollDue",
     payrollPaid: "payrollPaid",
+    payrollApproved: "payrollApproved",
+    payAdjustment: "payAdjustment",
+    rentDue: "rentDue",
+    payDispute: "payDispute",
+    payDisputeAnswered: "payDisputeAnswered",
     lowReview: "badReview",
     absenceRequested: "vacationRequested",
   };

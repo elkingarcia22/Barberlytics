@@ -1,5 +1,6 @@
 import * as React from "react";
-import { HandCoins, ListChecks } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
+import { FileBadge, HandCoins, ListChecks, MessageCircleWarning } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -10,7 +11,7 @@ import { MetricCard } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
 import { PeriodNavigator } from "@/components/date";
 import { EmptyState } from "@/components/feedback";
-import { Breadcrumbs } from "@/components/navigation";
+import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,12 @@ import { PageHeader } from "@/components/utility";
 import { useAccess } from "@/features/access";
 import { useMoney } from "@/features/calendar/calendarFormat";
 import { useBranchId } from "@/features/team/teamUtils";
+import { BarberGoalCard } from "./barber/BarberGoalCard";
+import { MyClientsView } from "./barber/MyClientsView";
+import { MyReputationView } from "./barber/MyReputationView";
+import { PayDisputeDialog, PayDisputeList, type DisputeTarget } from "./barber/PayDisputes";
+import { RentProfitCard } from "./barber/RentProfitCard";
+import { RentStatementView } from "./barber/RentStatementView";
 import { MyPayStatus } from "./MyPayStatus";
 import { PayNarrative } from "./PayNarrative";
 import { PayrollMemberDrawer } from "./PayrollMemberDrawer";
@@ -29,6 +36,9 @@ import { usePayrollFilters } from "./usePayrollFilters";
 const PAGE_SIZE = 15;
 /** El panel con la cuenta completa vive en la URL (`?miembro=`), como en Nómina; aquí solo hay uno. */
 const OWN = "yo";
+/** Las pestañas, en la URL (`?vista=`): el pago del periodo, el estado de cuenta (renta), sus clientes y su reputación. */
+type MyPayView = "pago" | "estado" | "clientes" | "reputacion";
+const VIEWS: readonly MyPayView[] = ["pago", "estado", "clientes", "reputacion"];
 
 /**
  * El pago del propio barbero, sobre la nómina recortada a su ficha:
@@ -48,8 +58,29 @@ export function MyPayPage() {
   const filters = usePayrollFilters();
   const memberId = access.member?.id;
   const isRent = access.role === "barbero-renta";
+  const formatMoney = useMoney();
   const title = t(isRent ? "nav.myBusiness" : "nav.myEarnings");
   const query = usePayrollQuery({ branchId, from: filters.from, to: filters.to, memberId });
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("vista") as MyPayView | null;
+  const view: MyPayView = requested && VIEWS.includes(requested) && (requested !== "estado" || isRent) ? requested : "pago";
+  const tabs = [
+    { id: "pago", label: t("payroll.mine.tab.pay") },
+    ...(isRent ? [{ id: "estado", label: t("payroll.mine.tab.statement") }] : []),
+    { id: "clientes", label: t("payroll.mine.tab.clients") },
+    { id: "reputacion", label: t("payroll.mine.tab.reputation") },
+  ];
+  const setView = (next: string) =>
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current);
+        if (next === "pago") copy.delete("vista");
+        else copy.set("vista", next);
+        return copy;
+      },
+      { replace: true }
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -57,8 +88,26 @@ export function MyPayPage() {
         <Breadcrumbs items={[title]} />
       </ShellHeaderSlot>
 
-      <PageHeader title={title} description={t(isRent ? "payroll.mine.rentDescription" : "payroll.mine.commissionDescription")} />
+      <PageHeader
+        title={title}
+        description={t(isRent ? "payroll.mine.rentDescription" : "payroll.mine.commissionDescription")}
+        actions={
+          memberId ? (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/mi-pago/certificado?sucursal=${branchId}&miembro=${memberId}`)} data-testid="my-pay-certificate">
+              <FileBadge /> {t("payroll.certificate.open")}
+            </Button>
+          ) : undefined
+        }
+      />
 
+      <ThemaTabs className="mb-stack" variant="page" fitContent tabs={tabs} activeTabId={view} onTabChange={setView} />
+
+      {memberId && view === "estado" && <RentStatementView branchId={branchId} memberId={memberId} formatMoney={formatMoney} />}
+      {memberId && view === "clientes" && <MyClientsView branchId={branchId} memberId={memberId} barberName={(access.member?.name ?? "").split(" ")[0] ?? ""} />}
+      {memberId && view === "reputacion" && <MyReputationView memberId={memberId} />}
+
+      {view === "pago" && (
+        <>
       <div className="mb-section shrink-0" role="group" aria-label={t("payroll.periodAria")}>
         <PeriodNavigator
           granularity={filters.granularity}
@@ -97,6 +146,8 @@ export function MyPayPage() {
       ) : (
         <EmptyState icon="users" title={title} description={t("payroll.mine.noMember")} />
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -110,6 +161,7 @@ interface MyPayHomeProps {
 
 function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
   const branchId = useBranchId();
+  const [dispute, setDispute] = React.useState<DisputeTarget | null>(null);
   const t = useAppT();
   const { formatDate } = useLocale();
   const formatMoney = useMoney();
@@ -124,6 +176,7 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
 
   const isRent = member.payout === "rent";
   const detailOpen = filters.memberId === OWN;
+  const period = { branchId, from: data.from, to: data.to };
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", fetching && "opacity-80 transition-opacity motion-reduce:transition-none")}>
@@ -138,6 +191,11 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
             <AlertDescription>{t("payroll.mine.owesDetail", { rent: formatMoney(member.rent), deductions: formatMoney(member.deductions), held: formatMoney(member.held ?? 0), paid: formatMoney(member.rentPaid ?? 0) })}</AlertDescription>
           </Alert>
         )}
+        <div className="grid gap-stack lg:grid-cols-2">
+          {isRent && <RentProfitCard member={member} formatMoney={formatMoney} />}
+          <BarberGoalCard branchId={branchId} memberId={memberId} formatMoney={formatMoney} />
+        </div>
+        <PayDisputeList branchId={branchId} memberId={memberId} />
       </section>
 
       <DataListBlock
@@ -154,9 +212,14 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
         searchPlaceholder={t("payroll.mine.searchPlaceholder")}
         pageSize={PAGE_SIZE}
         actions={
-          <Button variant="outline" size="sm" onClick={() => filters.openMember(OWN)} data-testid="my-pay-detail">
-            <ListChecks /> {t("payroll.mine.seeDetail")}
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setDispute({ period })} data-testid="my-pay-dispute">
+              <MessageCircleWarning /> {t("payroll.dispute.cta")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => filters.openMember(OWN)} data-testid="my-pay-detail">
+              <ListChecks /> {t("payroll.mine.seeDetail")}
+            </Button>
+          </>
         }
         emptyState={<p className="py-6 text-center text-sm text-text-muted">{t("payroll.mine.empty")}</p>}
         renderListItem={(row) => (
@@ -168,7 +231,15 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
         )}
       />
 
-      <PayrollMemberDrawer member={detailOpen ? member : null} onClose={() => filters.openMember(null)} formatMoney={formatMoney} showRulesLink={false} period={{ branchId: branchId, from: data.from, to: data.to }} />
+      <PayrollMemberDrawer
+        member={detailOpen ? member : null}
+        onClose={() => filters.openMember(null)}
+        formatMoney={formatMoney}
+        showRulesLink={false}
+        period={period}
+        onDispute={(line) => setDispute({ period, line: { appointmentId: line.appointmentId, label: `${line.client} · ${line.service}` } })}
+      />
+      <PayDisputeDialog target={dispute} onClose={() => setDispute(null)} />
     </div>
   );
 }

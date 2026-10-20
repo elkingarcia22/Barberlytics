@@ -10,6 +10,7 @@ De `src/app/router.tsx`.
 
 - `/login` → LoginPage
 - `/nomina/comprobante` → PayslipPage
+- `/mi-pago/certificado` → IncomeCertificatePage
 - `/metricas` → MetricsPage
 - `/dashboard` → Navigate
 - `/calendario` → CalendarPage
@@ -216,6 +217,13 @@ Lo que responde MSW hoy.
 - `GET /notifications` · src/mocks/notifications/handlers.ts
 - `POST /notifications/read` · src/mocks/notifications/handlers.ts
 - `GET /onboarding` · src/mocks/onboarding/handlers.ts
+- `GET /payroll/rent-statement` · src/mocks/payroll/barber.ts
+- `GET /payroll/certificate` · src/mocks/payroll/barber.ts
+- `GET /payroll/goals` · src/mocks/payroll/barber.ts
+- `PUT /payroll/goals` · src/mocks/payroll/barber.ts
+- `GET /payroll/disputes` · src/mocks/payroll/barber.ts
+- `POST /payroll/disputes` · src/mocks/payroll/barber.ts
+- `POST /payroll/disputes/:id/answer` · src/mocks/payroll/barber.ts
 - `GET /payroll` · src/mocks/payroll/handlers.ts
 - `POST /payroll/adjustments` · src/mocks/payroll/handlers.ts
 - `GET /payroll/loans` · src/mocks/payroll/handlers.ts
@@ -270,6 +278,8 @@ Lo que responde MSW hoy.
 - `POST /account/delete` · src/mocks/settings/handlers.ts
 - `GET /settings/:section` · src/mocks/settings/handlers.ts
 - `PUT /settings/:section` · src/mocks/settings/handlers.ts
+- `GET /team/members/:id/reputation` · src/mocks/team/barberHome.ts
+- `GET /team/members/:id/due-clients` · src/mocks/team/barberHome.ts
 - `GET /team/members` · src/mocks/team/handlers.ts
 - `GET /team/members/:id` · src/mocks/team/handlers.ts
 - `POST /team/members` · src/mocks/team/handlers.ts
@@ -355,7 +365,7 @@ Router, providers, layout, navegación y páginas de error.
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
 - **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
-- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`
+- **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`, `IncomeCertificatePage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
 - **notifications.ts** — Reintentar un mensaje que falló: vuelve a la cola para salir ya. · `NotificationKind`, `AppNotification`, `NOTIFICATION_KEYS`, `useRetryMessage`, `useNotifications`, `useMarkNotificationsRead`, `ShellNotificationDeps`, `toShellNotifications` · llama: POST /messages/${id}/retry, GET /notifications, POST /notifications/read · usa: @/app/i18n, @/lib/api
 - **providers.tsx** — Los providers globales, en el orden en que dependen unos de otros: la caché de datos primero, el idioma y el… · `AppProviders` · piezas: ThemaToaster, TooltipProvider · usa: @/features/auth, @/i18n, @/lib/query, @/themes
@@ -914,7 +924,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 ### payroll
 
-- **MyPayPage.tsx** — El pago del propio barbero, sobre la nómina recortada a su ficha: - «Lo que llevo» (comisión): cuánto lleva g… · `MyPayPage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, DataListBlock, EmptyState, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
+- **MyPayPage.tsx** — El pago del propio barbero, sobre la nómina recortada a su ficha: - «Lo que llevo» (comisión): cuánto lleva g… · `MyPayPage` · piezas: Alert, AlertDescription, AlertTitle, Breadcrumbs, Button, DataListBlock, EmptyState, ListItem, MetricCard, PageHeader, PeriodNavigator, ShellHeaderSlot, Skeleton, ThemaTabs · usa: @/app/i18n, @/features/access, @/features/calendar, @/features/team, @/i18n, @/lib/query, @/lib/utils
 - **MyPayStatus.tsx** — ¿Ya me pagaron? El estado del periodo dicho al barbero (provisional, aprobado o pagado y con qué), y lo que m… · `MyPayStatusProps`, `MyPayStatus` · piezas: StatusBadge, Text · usa: @/app/i18n, @/features/team, @/i18n
 - **PayNarrative.tsx** — «¿Por qué esta cifra?»: la nómina del barbero contada en palabras, con las mismas cifras que la página (lo qu… · `PayNarrative` · usa: @/app/i18n, @/features/narrative, @/i18n
 - **PayrollAdjustments.tsx** — Lo que no sale de las citas: un bono, un descuento (un faltante de caja, producto que usó) o un adelanto que… · `PayrollAdjustmentsProps`, `PayrollAdjustments` · piezas: Button, Field, Input, NumberField, SegmentedControl, Text · usa: @/app/i18n, @/i18n
@@ -925,6 +935,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **PayslipPage.tsx** — El comprobante de pago de una persona del equipo en un periodo: lo que suma, lo que resta y lo que recibe, co… · `PayslipPage` · piezas: Button, EmptyState, Heading, Skeleton, Text · usa: @/app/i18n, @/features/branding, @/features/customers, @/features/settings, @/features/team, @/i18n, @/lib/query
 - **RentPayments.tsx** — Lo que el barbero de renta le entregó a la barbería en el periodo. · `RentPaymentsProps`, `RentPayments` · piezas: Button, Field, NumberField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/i18n
 - **api.ts** — Contrato de nómina; ver docs/API_CONTRACT.md. · `payrollApi` · llama: GET /payroll, POST /payroll/adjustments, DELETE /payroll/adjustments/${id}, POST /payroll/runs, POST /payroll/runs/${id}/pay, POST /payroll/runs/${id}/reopen, POST /payroll/rent-payments, DELETE /payroll/rent-payments/${id}, GET /payroll/loans, POST /payroll/loans, POST /payroll/loans/${id}/cancel · usa: @/lib/api
+- **barberPay.ts** · `rentStatementSchema`, `RentStatement`, `certificateSchema`, `IncomeCertificate`, `memberGoalSchema`, `MemberGoal`, `MemberGoalInput`, `disputeSchema`, `PayDispute`, `reputationSchema`, `Reputation`, `dueClientsSchema`, `DueClients`, `useRentStatement`, `useIncomeCertificate`, `useMemberGoal`, `useSetMemberGoal`, `usePayDisputes`, `usePayDisputeActions`, `useReputation`, `useDueClients` · llama: GET /payroll/rent-statement, GET /payroll/certificate, GET /payroll/goals, PUT /payroll/goals, GET /payroll/disputes, POST /payroll/disputes, POST /payroll/disputes/${id}/answer, GET /team/members/${memberId}/reputation, GET /team/members/${memberId}/due-clients · usa: @/features/customers, @/lib/api
 - **myPayHome.tsx** · `myPayColumns`, `MyPayCellContext`, `myPayCells` · usa: @/app/i18n
 - **payCycle.ts** — El ciclo de pago de la nómina (Configuración › Nómina), sin dependencias: lo usan la pantalla y el backend si… · `PayCycle`, `PayCycleSettings`, `payCycleWindow`, `shiftPayCycle`, `cyclesBetween`
 - **payrollHome.tsx** — El valor numérico de una columna, para la tabla y para exportar. · `columnIdsFor`, `columnLabel`, `payrollColumns`, `columnValue`, `PayrollCellContext`, `payrollCells` · piezas: Avatar, AvatarFallback, AvatarImage, initialsOf · usa: @/app/i18n
@@ -932,6 +943,17 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **queries.ts** · `payrollKeys`, `usePayrollQuery`, `useAddAdjustment`, `useRemoveAdjustment`, `useApprovePayroll`, `usePayPayroll`, `useReopenPayroll`, `useAddRentPayment`, `useRemoveRentPayment`, `useLoansQuery`, `useAddLoan`, `useCancelLoan` · usa: @/lib/api
 - **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `adjustmentKindSchema`, `AdjustmentKind`, `adjustmentSchema`, `loanSchema`, `PayrollLoan`, `LoanInput`, `PayrollAdjustment`, `payrollMemberSchema`, `PayrollMember`, `runStatusSchema`, `RunStatus`, `payrollRunSchema`, `PayrollRun`, `payrollHistorySchema`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `ADJUSTMENT_KIND_KEYS`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS`, `AdjustmentInput`, `ADJUSTMENT_KEYS`, `ADJUSTMENT_VIEW_KEYS`, `PAY_METHODS`, `PayMethod`, `PAY_METHOD_KEYS`, `RentPaymentInput` · usa: @/app/i18n
 - **usePayrollFilters.ts** — Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y el barbero abierto en el panel. · `usePayrollFilters` · piezas: fromIsoDate, periodRange, toIsoDate · usa: @/features/settings
+
+### payroll/barber
+
+- **BarberGoalCard.tsx** — La meta del ciclo en curso y cuánto va: ventas de servicios, de productos y cuántos clientes dejan la siguien… · `BarberGoalCard` · piezas: Progress, Text · usa: @/app/i18n, @/features/team, @/i18n
+- **IncomeCertificatePage.tsx** — El certificado de ingresos de una persona del equipo en un rango (hasta un año), mes por mes: para su contado… · `IncomeCertificatePage` · piezas: Button, EmptyState, Heading, SegmentedControl, Skeleton, Text · usa: @/app/i18n, @/features/branding, @/features/settings, @/i18n, @/lib/query
+- **MemberGoalEditor.tsx** — La meta de una persona por ciclo de pago, desde su panel de Nómina: ventas de servicios, de productos y % de… · `MemberGoalEditor` · piezas: Button, Field, NumberField, Text · usa: @/app/i18n, @/features/branches, @/lib/api
+- **MyClientsView.tsx** — Mis clientes por volver: los suyos a los que ya les pasó su ritmo de visita, en riesgo o perdidos (la regla d… · `MyClientsView` · piezas: Button, EmptyState, ListItem, ListItemGroup, Skeleton, Text · usa: @/app/i18n, @/features/customers, @/i18n, @/lib/query
+- **MyReputationView.tsx** — Mi reputación: el promedio de sus reseñas, cómo va frente a los 90 días anteriores, el reparto de estrellas,… · `MyReputationView` · piezas: Badge, EmptyState, MetricCard, Progress, Skeleton, Text · usa: @/app/i18n, @/features/team, @/i18n, @/lib/query
+- **PayDisputes.tsx** — «Esto no cuadra»: el barbero cuenta qué no le cuadra de su pago (del periodo o de una cita) y le llega a quie… · `DisputeTarget`, `PayDisputeDialog`, `PayDisputeList` · piezas: Button, Field, ModalShell, StatusBadge, Text, Textarea · usa: @/app/i18n, @/i18n, @/lib/api
+- **RentProfitCard.tsx** — «Mi negocio» completo para el de renta: lo que vendió con sus propinas menos lo que le paga a la barbería (re… · `RentProfitCard` · piezas: Button · usa: @/app/i18n, @/features/team
+- **RentStatementView.tsx** — El estado de cuenta de la renta, ciclo por ciclo: lo que la barbería le guardó, la renta y las deducciones, l… · `RentStatementView` · piezas: MetricCard, Skeleton, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/i18n, @/lib/query
 
 ### products
 
@@ -1204,7 +1226,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **account.ts** — La cuenta de una cita, igual para el cobro de la agenda y para Transacciones: lo que vale (con el impuesto de… · `AppointmentAccount`, `barberServicePrice`, `appointmentAccount` · usa: @/features/branches
 - **checkoutExtras.ts** — Lo que el cobro de la caja trae además de la cuenta: un descuento, la tarjeta de regalo con que paga (o una q… · `CheckoutPartMethod`, `CheckoutPart`, `CheckoutExtras`, `discountOf`, `parseExtras`, `splitOfParts`
 - **deposits.ts** · `depositHandlers`
-- **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `RHYTHM_WEEKS`, `rhythmOf`, `blocksOn`, `clashMessage`, `resourceMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/booking, @/features/branches, @/features/calendar
+- **handlers.ts** — Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. · `hoursOn`, `barbersIn`, `appointmentsOn`, `peekAppointmentsOn`, `RHYTHM_WEEKS`, `rhythmOf`, `blocksOn`, `clashMessage`, `resourceMessage`, `catalogServices`, `calendarHandlers`, `workingClock` · usa: @/features/booking, @/features/branches, @/features/calendar
 - **risk.ts** — Riesgo de que el cliente no venga (docs/API_CONTRACT.md, «Calendario»). · `RiskReason`, `NoShowRisk`, `noShowRisk`, `noAnswerOf`, `withRisk`
 - **scope.ts** — La ficha del barbero que llama, o `null` si no es barbero (dueño, administrador, recepción). · `barberOf`, `ownClientIds`, `redactClient`, `ownAppointments`, `ownBlocks`
 - **seed.ts** — Los datos del calendario del backend simulado: el equipo con su horario, los clientes, el catálogo y una agen… · `MockWorkingRange`, `MockBarber`, `MockClientType`, `MockNoteKind`, `MockClientNote`, `MockClient`, `MockService`, `MockProduct`, `MockAppointmentStatus`, `MockAppointmentSource`, `MockRepeatRule`, `MockPaymentMethod`, `MockHistoryEntry`, `MockPayment`, `MockVoidedPayment`, `MockRefund`, `MockOnlineSettlement`, `MockDepositRequest`, `MockAppointment`, `MockBlockCategory`, `MockBlockRepeat`, `MockTimeBlock`, `MockWaitlistEntry`, `MockSale`, `SERVICES`, `PRODUCTS`, `WALK_IN_CLIENT`, `seedClients`, `dateKey`, `localIso`, `parseClock`, `clockOf`, `MockUtm`, `SeedDayOptions`, `seedDay`, `seedBlocks`, `blockAppliesOn`
@@ -1222,6 +1244,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### expenses
 
+- **chair.ts** · `chairExpensesIn`
 - **handlers.ts** · `expensesHandlers`
 - **payables.ts** — Los vencimientos del mes de una sede, con su pago si ya se hizo. · `payablesOf`, `payableHandlers` · usa: @/features/expenses
 - **seed.ts** — Las categorías por defecto: la base del estado de resultados y de los presupuestos. · `MockExpenseKind`, `MockExpenseFrequency`, `EXPENSE_CATEGORY_IDS`, `MockExpenseCategory`, `EXPENSE_PAYMENT_METHODS`, `MockExpensePaymentMethod`, `MockExpenseAttachment`, `MockExpenseCustomCategory`, `MockExpense`, `expenseDate`, `fixedActiveIn`, `seedExpenses`, `seedExpensePayments` · usa: @/features/expenses
@@ -1263,9 +1286,10 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### payroll
 
+- **barber.ts** — El estado de cuenta de la renta: ciclo por ciclo, lo que guardó la barbería, la renta, lo pagado y el saldo q… · `rentStatement`, `incomeCertificate`, `goalProgress`, `barberPayHandlers`
 - **compute.ts** — El cálculo de la nómina, sin HTTP. · `Rule`, `Payout`, `cycleWindow`, `loanInstallmentsIn`, `PayrollExtras`, `payrollOf` · usa: @/features/payroll
-- **handlers.ts** — Las ventas de mostrador de la sucursal en el rango (comisiona quien vendió). · `salesIn`, `payrollHandlers`
-- **state.ts** — El bono suma; el descuento, el adelanto y el faltante de caja restan. · `MockAdjustmentKind`, `MockPayrollAdjustment`, `MockLoan`, `MockRunStatus`, `MockPayrollRun`, `MockPayrollHistoryEntry`, `MockRentPayment`, `MockPayrollState`, `emptyPayroll`
+- **handlers.ts** — Las ventas de mostrador de la sucursal en el rango (comisiona quien vendió). · `salesIn`, `periodPayroll`, `payrollHandlers`
+- **state.ts** — El bono suma; el descuento, el adelanto y el faltante de caja restan. · `MockAdjustmentKind`, `MockPayrollAdjustment`, `MockLoan`, `MockRunStatus`, `MockPayrollRun`, `MockPayrollHistoryEntry`, `MockRentPayment`, `MockPayDispute`, `MockMemberGoal`, `MockPayrollState`, `emptyPayroll`
 
 ### products
 
@@ -1280,7 +1304,7 @@ MSW: implementa docs/API_CONTRACT.md.
 ### reports
 
 - **goals.ts** — Cómo va la meta: lo ingresado, la proyección al ritmo actual y lo que falta por día. · `goalProgress`, `goalHandlers`
-- **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `incomeStatement`, `incomeHandlers`
+- **income.ts** — El mes de una sucursal hasta hoy (o completo si ya pasó). · `PAYMENTS_PER_YEAR`, `incomeStatement`, `incomeHandlers`
 - **menu.ts** · `Quadrant`, `menuEngineering`, `menuHandlers`
 - **week.ts** · `weekFacts`, `weekHandlers`
 
@@ -1301,6 +1325,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### team
 
+- **barberHome.ts** — Sus clientes a los que les toca volver, en riesgo o perdidos, del más atrasado al menos. · `reputationOf`, `dueClientsOf`, `barberHomeHandlers` · usa: @/features/customers
 - **handlers.ts** — Una ficha nueva con lo de su rol por defecto; entra «invitada» hasta que active su cuenta. · `validateProfile`, `buildMember`, `addMember`, `teamHandlers`
 - **memberAccess.ts** — Si quien llama gestiona a alguien de ese rol (crear, editar, desactivar, recordar). · `managesMember`, `SELF_EDITABLE`, `maskAccount`, `isMaskedAccount`, `withMaskedBank`, `redactFor`
 - **memberActions.ts** · `memberActionHandlers`

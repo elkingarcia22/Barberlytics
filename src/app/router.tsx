@@ -24,6 +24,7 @@ import {
   CustomersPage,
   CampaignsPage,
   PayslipPage,
+  IncomeCertificatePage,
   ExpensesPage,
   DocsApp,
   LevelsPage,
@@ -71,6 +72,8 @@ export const router = createBrowserRouter([
     children: [
       // El comprobante de pago va sin el marco de la app: se imprime o se guarda en PDF limpio.
       { path: "nomina/comprobante", element: lazy(<PayslipPage />) },
+      // El certificado de ingresos del barbero (o de alguien, para quien gestiona): sin el marco, para imprimir.
+      { path: "mi-pago/certificado", element: lazy(<IncomeCertificatePage />) },
       {
         element: <AppLayout />,
         children: [

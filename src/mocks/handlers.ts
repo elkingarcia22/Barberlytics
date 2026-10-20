@@ -1,3 +1,5 @@
+import { barberHomeHandlers } from "./team/barberHome";
+import { barberPayHandlers } from "./payroll/barber";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { allAccounts, accountById, db, type MockAccount, type MockAuthProvider, type MockBranding, type MockUser, type MockUserRole, type MockUserStatus } from "./db";
 import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } from "./session";
@@ -739,6 +741,8 @@ export const handlers = [
   ...expensesHandlers,
 
   // ---------- Nómina ----------
+  ...barberPayHandlers,
+  ...barberHomeHandlers,
   ...payrollHandlers,
   ...registerHandlers,
   ...frontDeskHandlers,

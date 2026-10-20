@@ -283,6 +283,8 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
         ? { type: compensation.type, basic: compensation.basic, recurring: compensation.recurring, walkIn: compensation.walkIn, noPreference: compensation.noPreference, newClient: compensation.newClient, productPercent: compensation.productPercent, scale: compensation.scale }
         : null,
     rentBase: payout === "rent" ? (payments?.rentBase ?? 0) : null,
+    // Con renta: qué porcentaje de la venta se le descuenta por cada tipo de cliente que le trae la barbería.
+    deductionRates: payout === "rent" && payments ? { walkIn: payments.walkInDeduction, noPreference: payments.noPreferenceDeduction, newClient: payments.newClientDeduction } : null,
     salaryBase: payout === "salary" ? (compensation?.salary ?? 0) : null,
     services: lines.length,
     serviceSales,

@@ -154,7 +154,7 @@ export function appointmentsOn(branchId: string, day: string): MockAppointment[]
  * Las citas de un día para mirarlas sin abrirlo: si el día ya se abrió, las guardadas; si no, las que
  * la semilla generaría (las mismas que verá al abrirlo), sin llenar el almacenamiento del navegador.
  */
-function peekAppointmentsOn(branchId: string, day: string): MockAppointment[] {
+export function peekAppointmentsOn(branchId: string, day: string): MockAppointment[] {
   if (db.calendar.seededDays.includes(`${branchId}:${day}`)) return appointmentsOn(branchId, day);
   return generateDay(branchId, day);
 }

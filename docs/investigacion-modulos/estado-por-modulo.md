@@ -115,7 +115,7 @@ WhatsApp; pronóstico de caja a 90 días.
 **Pendiente**
 - ~~P0 · Ventas de mostrador fuera de la nómina; quincena; préstamo en cuotas y faltante de caja~~ (hecho el 2026-10-19).
 - P1 · ~~Comprobante PDF y por WhatsApp~~; dispersión bancaria; ~~propinas efectivo/tarjeta~~ (hecho el 2026-10-20); clasificación laboral; exportar a
-  Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; metas del barbero; comparación con el periodo anterior.
+  Alegra/Siigo/Aleluya/Buk; más esquemas de comisión; ~~metas del barbero~~ (hecho el 2026-10-20); comparación con el periodo anterior.
 - P2 · Horas y recargos, PILA/IBC, nómina electrónica, bolsa de propinas, multi-sucursal.
 
 **IA que falta**: simulador de esquemas; asistente del barbero en Mi pago; metas con progreso; cumplimiento Colombia;
@@ -126,8 +126,8 @@ pronóstico del costo de personal.
 **Pendiente**
 - ~~P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro~~
   (hecho el 2026-10-19, ver abajo); ~~`/usuarios/lista` con el enum de la plantilla~~ (retirada).
-- P1 · Fichaje; turnos abiertos e intercambio; metas y niveles con criterios; cambio comisión ↔ renta con fecha; estado
-  de cuenta de renta; invitación real e importación; turnos partidos.
+- P1 · Fichaje; turnos abiertos e intercambio; ~~metas~~ y niveles con criterios; cambio comisión ↔ renta con fecha; ~~estado
+  de cuenta de renta~~ (hecho el 2026-10-20); invitación real e importación; turnos partidos.
 - P2 · Portafolio, formación, documentos firmados, ranking.
 
 **IA que falta**: agente que cubre ausencias; coaching semanal; asignación por habilidad para «sin preferencia»; reseñas
@@ -189,8 +189,8 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 
 **Pendiente**
 - ~~P0 · «Hoy» en el celular muestra lo cobrado, no lo que gana~~ (hecho el 2026-10-19).
-- P1 · ~~Quincena~~; % de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
-  certificado; avisos de dinero; «Esto no cuadra»; Mi ficha.
+- P1 · ~~Quincena~~; ~~% de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
+  certificado; avisos de dinero; «Esto no cuadra»~~ (hecho el 2026-10-20); Mi ficha.
 
 **IA que falta**: mis clientes por volver con mensaje aprobado; resumen semanal con una acción; lo que dicen de mí;
 revisión de su pago.
@@ -355,3 +355,14 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Nómina: la propina se separa en efectivo y tarjeta (por línea y en total). Si la barbería entrega en caja la de efectivo (Configuración › Nómina), se resta del neto para no pagarla dos veces.
   - Comprobante de pago por persona y periodo (`/nomina/comprobante`, desde el detalle): imprimir o guardar en PDF y enviarlo por WhatsApp con el resumen.
   - Falta: avisos de pagos por vencer, el pago ligado a la caja, reparto de propinas (bolsa), dispersión bancaria y metas por barbero.
+- **El dinero del barbero (14 P1, 07 y 08, 2026-10-20).**
+  - «Lo que llevo» / «Mi negocio» con pestañas: Pago, Estado de cuenta (renta), Mis clientes y Mi reputación; «Certificado de ingresos» arriba.
+  - Renta: el % de cada deducción (sin cita, sin preferencia, cliente nuevo) en su pago y en el panel de Nómina, y «Lo que te queda»: ventas y propinas menos renta, deducciones y gastos de su silla.
+  - Estado de cuenta de la renta ciclo por ciclo, con lo pagado, lo que la barbería ya le transfirió y el saldo que se arrastra.
+  - Meta por ciclo (ventas de servicios, de productos y % que deja la siguiente cita), la pone gerencia desde el panel de Nómina; en escala, «te faltan X para pasar al 45 %».
+  - Mis clientes por volver (la regla de los avisos de Clientes más los perdidos) con el mensaje de WhatsApp con su nombre y su primer hueco libre, uno por uno o a todos (respeta permiso, franja y tope).
+  - Mi reputación: promedio, últimos 90 días contra los anteriores, reparto de estrellas, lo que más repiten y las últimas reseñas.
+  - Certificado de ingresos mes por mes (este año, año pasado, últimos 12 meses) para imprimir, PDF o CSV.
+  - Avisos de dinero: pago aprobado, ajuste nuevo, renta por vencer cuando va debiendo y respuesta a su reclamo.
+  - «Esto no cuadra» desde el pago o desde una cita: le llega a gerencia con la cita adjunta y se responde desde el panel de Nómina.
+  - Falta: Mi ficha editable, pedir reseña desde su reputación y el apartado sugerido para impuestos.

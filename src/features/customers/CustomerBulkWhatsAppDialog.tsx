@@ -22,6 +22,10 @@ export interface CustomerBulkWhatsAppDialogProps {
   customers: readonly Customer[];
   /** Con qué propósito arranca (el del aviso: cumpleaños, volver…). */
   purpose?: MessagePurpose;
+  /** Quién escribe, si es un barbero a sus clientes: va en el texto en vez de «cualquier barbero». */
+  barberName?: string | null;
+  /** Un hueco libre para ofrecer («el jue 23 a las 10:00»): se suma al mensaje de volver. */
+  slotText?: string | null;
 }
 
 const BLOCK_KEYS: Readonly<Record<SendBlock, AppMessageKey>> = {
@@ -44,11 +48,13 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
  * mes) y un botón por cliente que abre su chat con el mensaje listo y lo anota en su historial. Uno por uno:
  * el navegador no deja abrir muchas pestañas a la vez y así nadie recibe un mensaje sin que alguien lo mande.
  */
-export function CustomerBulkWhatsAppDialog({ open, onOpenChange, customers, purpose: initialPurpose = "thanks" }: CustomerBulkWhatsAppDialogProps) {
+export function CustomerBulkWhatsAppDialog({ open, onOpenChange, customers, purpose: initialPurpose = "thanks", barberName = null, slotText = null }: CustomerBulkWhatsAppDialogProps) {
   const t = useAppT();
   const [purpose, setPurpose] = React.useState<MessagePurpose>(initialPurpose);
-  const template = (next: MessagePurpose) =>
-    templateBody(t, next, { name: NAME_TOKEN, shop: branchName(customers[0]?.branchId ?? ""), barber: null, daysSince: DAYS_TOKEN, bookingUrl: `${window.location.origin}/reservar` });
+  const template = (next: MessagePurpose) => {
+    const body = templateBody(t, next, { name: NAME_TOKEN, shop: branchName(customers[0]?.branchId ?? ""), barber: barberName, daysSince: DAYS_TOKEN, bookingUrl: `${window.location.origin}/reservar` });
+    return next === "rebook" && slotText ? `${body}\n\n${t("customers.bulk.slotLine", { slot: slotText })}` : body;
+  };
   /* «Hoy» se fija al abrir: los días de cada cliente no cambian mientras se escribe. */
   const [now] = React.useState(() => Date.now());
   const daysOf = (id: string): string => {

@@ -117,6 +117,10 @@ administrador, recepción y el barbero de la cita; `params.by` dice quién); `wh
 recepción; `params` trae `phone` y `messageId` para «Llamar» y «Reintentar» desde el aviso); `lowStock`, `outOfStock`, `registerDifference` (diferencia de 1 o
 más en un cierre), `payrollDue` (el ciclo anterior terminó sin aprobar) (dueño y administrador); `registerOpen` (ayer
 hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payrollPaid` (al barbero, con su neto);
+**dinero del barbero**: `payrollApproved` (su periodo quedó aprobado, con su neto), `payAdjustment` (le pusieron un bono,
+descuento o adelanto: `note`, `amount`, `sign`), `rentDue` (al de renta, los 2 últimos días del ciclo si va debiendo:
+`amount`, `to`) y `payDisputeAnswered` (respondieron su reclamo: `by`, `answer`); `payDispute` (un barbero dice que su
+pago no cuadra: dueño y administrador, con `name` y `message`);
 `lowReview` (3 estrellas o menos; solo al dueño). `params` lleva lo necesario para escribirlo en el idioma de quien lee
 (`client`, `day`, `time`, `product`, `count`, `amount`, `from`, `to`…); `href` abre lo que lo causó. El mock recibe
 `role` y `memberId` por parámetro porque la sesión aún no trae el rol del equipo; el backend real los sacará de la sesión.
@@ -605,6 +609,8 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | GET | `/team/members/:id/bank` | Quien gestiona a esa persona o ella misma, con `X-Step-Up`. `{ bankName, accountNumber }` completo. |
 | GET | `/team/lineup/turn?branchId&kind=walkIn\|noPreference` | `{ kind, next, items: [{ memberId, name, avatarUrl, position, count, working, free }] }`. A quién le toca: los encendidos en esa fila que trabajan hoy, primero quien menos clientes de ese tipo lleva hoy y, a igualdad, el que va antes en la fila; `next` es el primero libre ahora. La venta sin cita lo preselecciona y la reserva «sin preferencia» reparte en ese orden. |
 | GET | `/team/home?branchId` | La portada: `members` (cada persona con `chair`, `occupancy`, `services` y `revenue` de la semana, `payout`, `retention` a 90 días, `rentDueOffset`, `openRegisters`), `openShifts` (turnos de la semana que viene sin cubrir por una ausencia aprobada), `series` (7 semanas de ocupación, servicios y turnos), `pendingAbsences`, `absentToday`. |
+| GET | `/team/members/:id/reputation` | El barbero, la suya; gerencia, la de cualquiera. `{ rating, total, sample, last90: { rating, count }, previous90, distribution: [{ stars, count }], themes: [{ id: "punctual" \| "cut" \| "beard" \| "care" \| "wait", tone, count }], recent }`. Los temas salen de palabras de los comentarios; `sample`: son las de ejemplo de la demo. |
+| GET | `/team/members/:id/due-clients?branchId` | Sus clientes por volver (la regla de los avisos de Clientes: le toca volver o en riesgo, más los perdidos), del más atrasado: `{ items: [fila de la lista de Clientes + daysSince], nextSlot: { day, time, serviceId } \| null }` (su primer hueco en 14 días para su servicio de siempre). Hasta 50. |
 | GET | `/team/members/:id/performance?branchId` | Últimos 90 días: `services`, `occupancy`, `rebookRate` (dejó otra cita con él en la semana), `retention`, `avgTicket` (sin impuesto), `productsPerService`, `tips`, `noShows`, `noShowRate`, `rating`, `reviews`. Un barbero solo el suyo (`403`). |
 | GET | `/team/absences?branchId` | `{ items: [{ id, memberId, memberName, branchId, kind: "vacation" \| "sick" \| "personal", startDate, endDate, note, status: "pending" \| "approved" \| "rejected", requestedBy, requestedAt, decidedBy, decidedAt, reason, affected: [{ id, start, client }] }] }`. Un barbero solo las suyas. `affected` son sus citas por atender esos días. |
 | POST | `/team/absences` | `{ branchId, kind, startDate, endDate?, note?, memberId? }`. Comisión, salario y recepción la piden para sí: queda `pending`. El barbero de renta y quien gestiona (para cualquiera, con `memberId`): queda `approved`. `409` si se cruza con otra. |
@@ -812,6 +818,27 @@ Cómo se calcula (para que cuadre con la caja):
 | POST | `/payroll/runs/:id/reopen` | `{ reason }` (5+ caracteres): vuelve a abierto y queda en `history`. `204`. `409` si ya está pagado (se corrige con un ajuste en el siguiente periodo); `422` sin motivo. |
 
 **Comprobante** (`/nomina/comprobante?miembro&sucursal&desde&hasta`, sin el marco de la app): lo que suma, lo que resta y lo que recibe una persona en un periodo, con el estado del pago, desde `GET /payroll?…&memberId`. «Imprimir o guardar PDF» usa la impresión del navegador; «Enviar por WhatsApp» abre el chat con el resumen (enlace `wa.me`, sin plantilla). No es nómina electrónica.
+
+### Del barbero
+
+Lo suyo además de la nómina del periodo. El barbero pide siempre lo propio (el servidor ignora `memberId`); el dueño y el
+administrador, el de cualquiera con `memberId`; recepción, `403`. Con renta, `member` trae además `deductionRates`
+(`{ walkIn, noPreference, newClient }`, el % de la venta por cada tipo de cliente), `chairExpenses` (`{ fixed, variable,
+total }`: los gastos de su silla en el rango, los fijos llevados a los días) y `profit` (ventas + propinas − renta −
+deducciones − gastos de su silla: «Lo que te queda»).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/payroll/rent-statement?branchId&memberId?&cycles=8` | Solo renta (`409 not_rent` si no). Los últimos `cycles` ciclos de pago (hasta 26): `{ memberId, name, rows: [{ from, to, status: "open" \| "approved" \| "paid", held, rent, deductions, adjustments, paid, paidOut, balance, running }], payments, balance }`. `balance` del ciclo = su saldo de nómina + lo que pagó de renta − `paidOut` (lo que la barbería ya le transfirió al pagar un ciclo a su favor); `running` lo arrastra. Negativo: debe. |
+| GET | `/payroll/certificate?branchId&memberId?&from&to` | Certificado de ingresos, hasta un año; `to` se recorta a hoy. `{ memberId, name, generatedAt, from, to, payout, rows: [{ month, from, to, services, sales, tips, adjustments, costs, earned }], totals }`. Comisión y salario: `sales` = comisiones + salario y `earned` = `sales + tips + adjustments`. Renta: `sales` = lo vendido, `costs` = renta + deducciones + gastos de su silla y `earned` = `profit`. `422` si el rango pasa de un año o va al revés. |
+| GET | `/payroll/goals?branchId&memberId?` | La meta del ciclo en curso: `{ cycle: { from, to }, goal: { serviceSales, productSales, rebookRate, setBy, setAt } \| null, progress: { serviceSales, productSales, rebookRate, visits }, nextTier: { percent, from, missing, currentPercent } \| null }`. `rebookRate`: % de sus citas cobradas del ciclo cuyo cliente dejó otra cita en los 7 días siguientes. `nextTier` solo en escala. |
+| PUT | `/payroll/goals` | `{ branchId, memberId, serviceSales?, productSales?, rebookRate? }` (vacío o `null` = no se mide; todo `null` quita la meta). Dueño o administrador. Devuelve lo mismo que el GET. `422` con `fields`. |
+| GET | `/payroll/disputes?branchId&memberId?&status?` | «Esto no cuadra»: `{ items: [{ id, memberId, memberName, from, to, appointmentId, appointmentLabel, appointmentAt, message, createdAt, status: "open" \| "answered", answer, answeredBy, answeredAt }] }`, del más nuevo. |
+| POST | `/payroll/disputes` | Solo el barbero, sobre lo suyo: `{ branchId, from, to, appointmentId?, message }` (10–500). `201`. `422` si la cita no es suya o falta el mensaje; `409` si ya hay uno abierto por lo mismo. |
+| POST | `/payroll/disputes/:id/answer` | `{ answer }` (5+). Dueño o administrador. `409` si ya tiene respuesta. |
+
+**Certificado** (`/mi-pago/certificado?sucursal&miembro&rango=thisYear|lastYear|last12`, sin el marco): mes por mes, para
+imprimir, guardar en PDF o bajar en CSV. Es un resumen de ingresos, no un certificado tributario oficial.
 
 ## Configuración (`/settings`)
 

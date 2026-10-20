@@ -5,6 +5,7 @@ import { isManager, sessionOf } from "../session";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
 import { cycleWindow } from "../payroll/compute";
+import { periodPayroll } from "../payroll/handlers";
 import { stockLevel, stockStatus } from "../inventory/stock";
 
 /**
@@ -30,7 +31,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered";
 
 export interface MockNotification {
   id: string;
@@ -161,6 +162,39 @@ function payrollEvents(branchId: string, now: Date): MockNotification[] {
     for (const member of run.members as { memberId: string; net?: number }[]) {
       items.push({ id: `paid:${run.id}:${member.memberId}`, kind: "payrollPaid", at: run.paidAt as string, href: "/mi-pago", tone: "positive", params: { from: run.from, to: run.to, amount: member.net ?? 0, method: run.method ?? "" }, roles: ["barbero-comision", "barbero-renta"], memberId: member.memberId });
     }
+  }
+  return [...items, ...barberMoneyEvents(branchId, now)];
+}
+
+/** Días antes del cierre del ciclo en que se avisa al de renta que va debiendo. */
+const RENT_DUE_DAYS = 2;
+const BARBERS: readonly Role[] = ["barbero-comision", "barbero-renta"];
+
+/** Los avisos de dinero del barbero (aprobado, ajuste, renta por vencer, respuesta a su reclamo) y los reclamos a gerencia. */
+function barberMoneyEvents(branchId: string, now: Date): MockNotification[] {
+  const items: MockNotification[] = [];
+  for (const run of db.payroll.runs.filter((item) => item.branchId === branchId && recent(item.approvedAt, now))) {
+    for (const member of run.members as { memberId: string; net?: number }[]) {
+      items.push({ id: `approved:${run.id}:${member.memberId}`, kind: "payrollApproved", at: run.approvedAt, href: `/mi-pago?fecha=${run.from}`, tone: "info", params: { from: run.from, to: run.to, amount: member.net ?? 0 }, roles: BARBERS, memberId: member.memberId });
+    }
+  }
+  for (const item of db.payroll.adjustments.filter((entry) => entry.branchId === branchId && recent(entry.createdAt, now))) {
+    items.push({ id: `adjustment:${item.id}`, kind: "payAdjustment", at: item.createdAt, href: `/mi-pago?fecha=${item.from}`, tone: item.kind === "bonus" ? "positive" : "info", params: { note: item.note, amount: item.amount, sign: item.kind === "bonus" ? "+" : "−", from: item.from, to: item.to }, roles: BARBERS, memberId: item.memberId });
+  }
+  // El de renta que va debiendo cuando el ciclo está por cerrar.
+  const window = cycleWindow(now);
+  const from = dateKey(window.from);
+  const to = dateKey(window.to);
+  const warnFrom = dateKey(new Date(window.to.getTime() - RENT_DUE_DAYS * DAY_MS));
+  if (dateKey(now) >= warnFrom && db.team.members.some((member) => member.payments)) {
+    for (const member of periodPayroll(branchId, from, to)?.members ?? []) {
+      const balance = typeof member.balance === "number" ? member.balance : 0;
+      if (member.payout === "rent" && balance < 0) items.push({ id: `rent-due:${member.memberId}:${from}`, kind: "rentDue", at: `${warnFrom}T08:00:00`, href: "/mi-pago", tone: "warning", params: { amount: balance, to }, roles: ["barbero-renta"], memberId: member.memberId });
+    }
+  }
+  for (const dispute of (db.payroll.disputes ?? []).filter((item) => item.branchId === branchId)) {
+    if (dispute.status === "open" && recent(dispute.createdAt, now)) items.push({ id: `dispute:${dispute.id}`, kind: "payDispute", at: dispute.createdAt, href: `/nomina?fecha=${dispute.from}&miembro=${dispute.memberId}`, tone: "warning", params: { name: dispute.memberName, message: dispute.message.slice(0, 120) }, roles: MANAGERS });
+    if (dispute.status === "answered" && dispute.answeredAt && recent(dispute.answeredAt, now)) items.push({ id: `dispute-answer:${dispute.id}`, kind: "payDisputeAnswered", at: dispute.answeredAt, href: `/mi-pago?fecha=${dispute.from}`, tone: "info", params: { by: dispute.answeredBy ?? "", answer: (dispute.answer ?? "").slice(0, 120) }, roles: BARBERS, memberId: dispute.memberId });
   }
   return items;
 }

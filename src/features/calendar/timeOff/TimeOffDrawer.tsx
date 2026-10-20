@@ -139,7 +139,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
     }
     return (
       <div className="flex flex-col gap-4" data-testid="time-off">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-2">
           <SegmentedControl
             size="sm"
             value={status}
@@ -150,7 +150,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
               { value: "all", label: t("calendar.timeOff.all") },
             ]}
           />
-          <Button size="sm" variant="outline" className="shrink-0" onClick={() => setAdding({ type: "add" })} data-testid="time-off-add">
+          <Button size="sm" variant="outline" className="self-end" onClick={() => setAdding({ type: "add" })} data-testid="time-off-add">
             <Plus /> {t("calendar.timeOff.add")}
           </Button>
         </div>

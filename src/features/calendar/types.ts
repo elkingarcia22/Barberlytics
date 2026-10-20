@@ -166,6 +166,8 @@ export const appointmentSchema = z.object({
   /** Si el cliente confirmó que viene (por el enlace del mensaje o porque recepción lo marcó); sin él, sin confirmar. */
   confirmation: z.object({ status: z.enum(["confirmed", "declined", "reschedule_requested"]), at: z.string(), via: z.enum(["link", "reception", "whatsapp"]) }).nullable().optional(),
   /** Riesgo de que no venga, por su historial (ver docs/API_CONTRACT.md). */
+  /** Le salió el mensaje de confirmación o el recordatorio y no respondió (ver docs/API_CONTRACT.md). */
+  noAnswer: z.boolean().optional(),
   risk: z
     .object({ level: z.enum(["low", "medium", "high"]), probability: z.number(), reasons: z.array(z.enum(["pastNoShows", "cancels", "newClient", "farAhead", "unconfirmed", "prepaid", "confirmed"])) })
     .nullable()

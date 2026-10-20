@@ -8,7 +8,7 @@ import type { Appointment } from "../types";
  * (otra hora, que no puede venir) gana sobre «sin confirmar».
  */
 
-export type ConfirmationKind = "confirmed" | "pending" | "reschedule" | "declined";
+export type ConfirmationKind = "confirmed" | "pending" | "noAnswer" | "reschedule" | "declined";
 
 export interface ConfirmationState {
   kind: ConfirmationKind;
@@ -25,12 +25,14 @@ const VIA_KEY: Readonly<Record<"link" | "reception" | "whatsapp", AppMessageKey>
   whatsapp: "calendar.messages.confirmedWhatsapp",
 };
 
-export function confirmationOf(appointment: Pick<Appointment, "status" | "confirmation">): ConfirmationState {
+export function confirmationOf(appointment: Pick<Appointment, "status" | "confirmation"> & { noAnswer?: boolean }): ConfirmationState {
   const arrived = appointment.status === "arrived" || appointment.status === "seated" || appointment.status === "paid";
   if (arrived) return { kind: "confirmed", label: "calendar.messages.confirmed", hint: "calendar.messages.confirmedArrived", arrived };
   const status = appointment.confirmation?.status;
   if (status === "confirmed") return { kind: "confirmed", label: "calendar.messages.confirmed", hint: VIA_KEY[appointment.confirmation?.via ?? "reception"], arrived };
   if (status === "reschedule_requested") return { kind: "reschedule", label: "calendar.messages.rescheduleRequested", hint: "calendar.messages.rescheduleHint", arrived };
   if (status === "declined") return { kind: "declined", label: "calendar.messages.declined", hint: "calendar.messages.declinedHint", arrived };
+  // Le salió el mensaje que pide confirmar y no respondió: hay que llamarlo o reenviárselo.
+  if (appointment.noAnswer && appointment.status === "scheduled") return { kind: "noAnswer", label: "calendar.messages.noAnswer", hint: "calendar.messages.noAnswerHint", arrived };
   return { kind: "pending", label: "calendar.messages.notConfirmed", hint: appointment.status === "scheduled" ? "calendar.messages.pendingHint" : null, arrived };
 }

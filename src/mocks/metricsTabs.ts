@@ -8,6 +8,7 @@ import { sessionsBySource } from "./booking/funnel";
 import { isOverdue } from "@/features/customers/overdue";
 import {
   barbersOfBranch,
+  branchesOf,
   dayRecord,
   daysOf,
   periodOf,
@@ -129,11 +130,18 @@ function payrollNet(id: string, sim: SimulatedPeriod): number {
   const member = db.team.members.find((item) => item.id === id);
   if (!member) return 0;
   const days = daysOf(sim.range);
-  const appointments = days.flatMap((date) => appointmentsOn(sim.branchId, dateKey(date)));
   const from = dateKey(days[0] ?? new Date());
   const to = dateKey(days[days.length - 1] ?? new Date());
-  const adjustments = db.payroll.adjustments.filter((item) => item.branchId === sim.branchId && item.from >= from && item.to <= to);
-  return payrollOf(member, appointments, round2(days.length / DAYS_PER_WEEK), sim.branchId, adjustments).net;
+  // Con «Todas las sucursales», lo de cada sede donde trabaja, sumado.
+  return round2(
+    branchesOf(sim.branchId)
+      .filter((branchId) => member.branchIds.includes(branchId))
+      .reduce((total, branchId) => {
+        const appointments = days.flatMap((date) => appointmentsOn(branchId, dateKey(date)));
+        const adjustments = db.payroll.adjustments.filter((item) => item.branchId === branchId && item.from >= from && item.to <= to);
+        return total + payrollOf(member, appointments, round2(days.length / DAYS_PER_WEEK), branchId, adjustments).net;
+      }, 0)
+  );
 }
 
 function barberOf(id: string, name: string, sim: SimulatedPeriod) {

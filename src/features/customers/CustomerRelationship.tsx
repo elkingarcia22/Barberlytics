@@ -13,7 +13,7 @@ import { Text } from "@/components/typography";
 import { MESSAGE_KIND_KEYS } from "@/features/calendar/messages";
 import { InfoCard, InfoRow } from "@/features/team/teamShared";
 import { branchName } from "./customersUtils";
-import { useCustomerRelationship, useSetMarketingConsent, type CustomerRelationship } from "./relationship";
+import { useCustomerRelationship, useResendGiftCard, useSetMarketingConsent, type CustomerRelationship } from "./relationship";
 import { useBranchConsentPack } from "@/features/legal/useConsentPack";
 import { useCustomerQuery } from "./queries";
 
@@ -119,6 +119,7 @@ export function CustomerWallet({ customerId, formatMoney, showMoney, showContact
               balance: formatMoney(card.balance),
               initial: formatMoney(card.initial),
             })}
+            <GiftSent customerId={customerId} code={card.code} sent={card.sent ?? null} canResend={card.balance > 0} />
           </InfoRow>
         ))}
         {cards.map((card) => (
@@ -247,6 +248,38 @@ function MarketingConsentRow({ customerId, consent }: { customerId: string; cons
         onConfirm={() => save(true)}
       />
     </div>
+  );
+}
+
+/** Si el código de la tarjeta de regalo llegó a quien la recibe, y «Reenviar» si falló o lo perdió. */
+function GiftSent({ customerId, code, sent, canResend }: { customerId: string; code: string; sent: { status: "scheduled" | "sent" | "failed"; at: string } | null; canResend: boolean }) {
+  const t = useAppT();
+  const { formatDate } = useLocale();
+  const resend = useResendGiftCard();
+  const status = sent ? t(sent.status === "sent" ? "customers.rel.giftSent" : sent.status === "failed" ? "customers.rel.giftFailed" : "customers.rel.giftQueued", { date: formatDate(new Date(sent.at), DAY) }) : t("customers.rel.giftNotSent");
+  return (
+    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs" data-testid="customer-gift-sent">
+      <span className={sent?.status === "failed" || !sent ? "text-status-warning" : "text-text-muted"}>{status}</span>
+      {canResend && (
+        <Button
+          size="xs"
+          variant="ghost"
+          disabled={resend.isPending}
+          onClick={() =>
+            resend.mutate(
+              { id: customerId, code },
+              {
+                onSuccess: () => toast.success(t("customers.rel.giftResent")),
+                onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+              }
+            )
+          }
+          data-testid="customer-gift-resend"
+        >
+          {t("customers.rel.giftResend")}
+        </Button>
+      )}
+    </span>
   );
 }
 

@@ -101,6 +101,7 @@ export function eventOfNotification(kind: string, status?: unknown): string | nu
     whatsappReply: "whatsappReply",
     clientArrived: "clientArrived",
     waitlistJoined: "waitlistJoined",
+    rescheduled: "appointmentChanged",
     lowStock: "productLow",
     outOfStock: "productOut",
     registerDifference: "registerDifference",

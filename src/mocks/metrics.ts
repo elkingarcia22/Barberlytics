@@ -24,8 +24,21 @@ export interface CatalogItem {
   price: number;
 }
 
-/** Los barberos de la sucursal, en su orden de la agenda. */
-export const barbersOfBranch = (branchId: string): { id: string; name: string }[] => barbersIn(branchId).map((barber) => ({ id: barber.id, name: barber.name }));
+/** «Todas las sucursales» (solo el dueño): las cifras de todas las sedes activas sumadas. */
+export const ALL_BRANCHES = "all";
+
+/** Las sedes que entran en la consulta: una, o todas las activas. */
+export const branchesOf = (branchId: string): string[] =>
+  branchId === ALL_BRANCHES ? db.settings.lists.branches.filter((item) => item.status !== "inactive").map((item) => item.id) : [branchId];
+
+/** Los barberos de la sucursal (o de todas, sin repetir), en su orden de la agenda. */
+export const barbersOfBranch = (branchId: string): { id: string; name: string }[] => {
+  const seen = new Set<string>();
+  return branchesOf(branchId)
+    .flatMap((id) => barbersIn(id))
+    .filter((barber) => (seen.has(barber.id) ? false : (seen.add(barber.id), true)))
+    .map((barber) => ({ id: barber.id, name: barber.name }));
+};
 
 /** El barbero que pide la consulta, si atiende en esa sucursal; `null` es «todo el equipo». */
 export function resolveMetricsBarber(id: string | null | undefined, branchId: string): { id: string; name: string } | null {
@@ -79,8 +92,12 @@ const PAYMENT: Record<string, PaymentMethod> = { cash: "cash", card: "card", lin
 
 const productOf = (id: string, branchId: string): CatalogItem => ({ id, name: db.products.items.find((item) => item.id === id)?.name ?? id, price: productPriceIn(id, branchId) });
 
-/** Un día de la sucursal tal como pasó: sus citas (de un barbero o de todos), sus ventas y sus devoluciones. */
+/** Un día de la sucursal (o de todas, sumadas) tal como pasó: sus citas (de un barbero o de todos), sus ventas y sus devoluciones. */
 export function dayRecord(date: Date, barberId: string, branchId: string): DayRecord {
+  if (branchId === ALL_BRANCHES) {
+    const records = branchesOf(branchId).map((id) => dayRecord(date, barberId, id));
+    return { date, appointments: records.flatMap((item) => item.appointments), products: records.flatMap((item) => item.products), salesTax: sum(records.map((item) => item.salesTax)), refunds: sum(records.map((item) => item.refunds)) };
+  }
   const key = dateKey(date);
   const mine = appointmentsOn(branchId, key).filter((item) => barberId === "all" || item.barberId === barberId);
   const appointments = mine.map((item): Appointment => {

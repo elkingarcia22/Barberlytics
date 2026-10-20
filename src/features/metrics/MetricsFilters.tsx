@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Users, Store } from "lucide-react";
 import { PeriodNavigator, type PeriodGranularity } from "@/components/date";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocale } from "@/i18n";
@@ -16,14 +16,17 @@ interface MetricsFiltersProps {
   barbers: readonly { id: string; name: string }[];
   /** Un barbero solo ve sus cifras: sin selector. */
   showBarber?: boolean;
+  /** El dueño: esta sucursal o todas sumadas. Sin él, no sale el selector. */
+  allBranches?: boolean;
+  onAllBranchesChange?: (value: boolean) => void;
 }
 
 /**
- * La fila de filtros del tablero: el periodo y el barbero. La sucursal no
- * está aquí a propósito: es el espacio de trabajo y se cambia desde la
- * cabecera, como en el resto de la aplicación.
+ * La fila de filtros del tablero: el periodo y el barbero. La sucursal es el
+ * espacio de trabajo y se cambia desde la cabecera; el dueño puede además
+ * ver todas sumadas («Todas las sucursales»).
  */
-export function MetricsFilters({ granularity, onGranularityChange, date, onDateChange, barberId, onBarberChange, barbers, showBarber = true }: MetricsFiltersProps) {
+export function MetricsFilters({ granularity, onGranularityChange, date, onDateChange, barberId, onBarberChange, barbers, showBarber = true, allBranches = false, onAllBranchesChange }: MetricsFiltersProps) {
   const t = useAppT();
   const { current } = useLocale();
 
@@ -46,6 +49,19 @@ export function MetricsFilters({ granularity, onGranularityChange, date, onDateC
         }}
       />
 
+      <div className="flex flex-wrap items-center gap-2">
+      {onAllBranchesChange && (
+        <Select value={allBranches ? "todas" : "esta"} onValueChange={(value) => onAllBranchesChange(value === "todas")}>
+          <SelectTrigger className="w-[200px]" aria-label={t("metrics.branchScope")} data-testid="metrics-branches">
+            <Store className="size-4 text-text-muted" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="esta">{t("metrics.thisBranch")}</SelectItem>
+            <SelectItem value="todas">{t("metrics.allBranches")}</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       {showBarber && (
         <Select value={barberId} onValueChange={onBarberChange}>
           <SelectTrigger className="w-[200px]" aria-label={t("metrics.barber")} data-testid="metrics-barber">
@@ -62,6 +78,7 @@ export function MetricsFilters({ granularity, onGranularityChange, date, onDateC
           </SelectContent>
         </Select>
       )}
+      </div>
     </div>
   );
 }

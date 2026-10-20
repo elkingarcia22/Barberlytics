@@ -983,8 +983,9 @@ describe("Calendario", () => {
     expect(within(grid).getByText("Andrés Beltrán")).toBeInTheDocument();
     expect(within(grid).queryByText("Lorena Lemos")).toBeNull();
     expect(screen.queryByTestId("calendar-team")).toBeNull();
-    // Ve lo que lleva cobrado él, no la sucursal.
-    expect(screen.getByTestId("calendar-pulse-collected")).toBeInTheDocument();
+    // Ve lo que gana hoy (su comisión y propinas), no lo cobrado de la sucursal.
+    expect(await screen.findByTestId("calendar-earned-today")).toHaveTextContent(/Hoy ganas/);
+    expect(screen.queryByTestId("calendar-pulse-collected")).toBeNull();
     // Su menú de columna no ofrece bloquear (comisión solo ve los bloqueos).
     await user.click(within(grid).getByRole("button", { name: "Opciones de Andrés Beltrán" }));
     expect(await screen.findByRole("menuitem", { name: "Reacomodar retrasos" })).toBeInTheDocument();

@@ -172,3 +172,5 @@ export interface MetricsParams {
 }
 
 export const ALL_BARBERS = "all";
+/** «Todas las sucursales»: solo el dueño, y solo si todas cobran en la misma moneda. */
+export const ALL_BRANCHES = "all";

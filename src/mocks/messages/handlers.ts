@@ -4,6 +4,7 @@ import { messagesOf, syncOutbox } from "../booking/dispatch";
 import { applyReply, repliesOf } from "../booking/replies";
 import type { MockInboundReply } from "../booking/state";
 import { profileOf } from "../customers/handlers";
+import { forbidden, isBarber, sessionOf } from "../session";
 
 /** Lo que «escribe» el cliente al simular una respuesta en la demo. */
 const SIMULATED_TEXT: Readonly<Record<MockInboundReply["intent"], string>> = { confirm: "Confirmo", reschedule: "¿Me la pueden pasar a otra hora?", cancel: "No puedo ir, lo siento", stop: "BAJA", start: "ALTA", help: "AYUDA", other: "¿Tienen parqueadero?" };
@@ -69,6 +70,22 @@ export const messagesHandlers = [
     const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
     const reply = applyReply({ wamid: `sim_${Math.random().toString(36).slice(2, 12)}`, at: new Date().toISOString(), from: (client?.phone ?? "").replace(/\D/g, ""), intent, text: SIMULATED_TEXT[intent], messageId: null, appointmentId: appointment.id });
     return HttpResponse.json({ reply });
+  }),
+
+  // Reintentar un mensaje que falló (desde el aviso): vuelve a la cola para salir ya. Recepción, administrador o dueño.
+  http.post("*/api/messages/:id/retry", async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const session = sessionOf(request);
+    if (session && isBarber(session)) return forbidden("Los mensajes los reintenta recepción.");
+    const message = (db.booking.outbox ?? []).find((item) => item.id === params.id);
+    if (!message) return error(404, "not_found", "Ese mensaje no existe.");
+    if (message.status !== "failed") return error(409, "conflict", "Solo se reintenta un mensaje que falló.");
+    const retried = { ...message, status: "scheduled" as const, sendAt: new Date().toISOString(), sentAt: undefined, error: undefined, queued: false, providerId: null };
+    db.booking.outbox = (db.booking.outbox ?? []).map((item) => (item.id === message.id ? retried : item));
+    db.persist();
+    return HttpResponse.json({ id: retried.id, status: retried.status });
   }),
 
   // Mandar al cliente, desde el panel de la cita, su recibo o el enlace para reagendar: por SMS o correo, en el momento.

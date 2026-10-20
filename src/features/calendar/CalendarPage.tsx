@@ -24,6 +24,7 @@ import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import { CalendarSearch } from "./CalendarSearch";
+import { BarberTodayEarnings } from "./BarberTodayEarnings";
 import { CalendarFilters, type ClientTypeFilterOption, type ResourceFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
@@ -92,6 +93,7 @@ import {
   linkedOf,
   newLinkId,
   isUnpaid,
+  isUnconfirmed,
 } from "./calendarModel";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TimeBlock, type WaitlistEntry } from "./types";
 
@@ -439,8 +441,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
     return CLIENT_TYPE_ORDER.map((type) => ({ id: type, label: t(CLIENT_TYPE_KEYS[type]), count: active.filter((item) => appointmentClientType(dayCatalog, item) === type).length }));
   }, [dayCatalog, day.data, t]);
   const filters = React.useMemo<AgendaFilters>(
-    () => ({ stages: state.focuses, serviceIds: state.serviceIds, clientTypes: state.clientTypes }),
-    [state.focuses, state.serviceIds, state.clientTypes]
+    () => ({ stages: state.focuses, serviceIds: state.serviceIds, clientTypes: state.clientTypes, unconfirmed: state.unconfirmedOnly }),
+    [state.focuses, state.serviceIds, state.clientTypes, state.unconfirmedOnly]
   );
 
   // Barra flotante o cabecera: lo decide la persona en «Personalización».
@@ -957,7 +959,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
           )
         }
         summary={
-          revenue && isDayView && can.showTotals ? (
+          // El barbero ve lo que gana hoy (también en el celular); quien gestiona, lo cobrado del día.
+          ownBarberId && state.isToday && isDayView ? (
+            <BarberTodayEarnings branchId={branchId} memberId={ownBarberId} date={state.dateKey} formatMoney={formatMoney} />
+          ) : revenue && isDayView && can.showTotals ? (
             <Text
               as="span"
               variant="muted"
@@ -994,6 +999,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
               onShowLinkedChange={state.view === "day" ? state.setShowLinked : undefined}
               timeOff={state.view === "day" ? timeOffFilter : undefined}
               onTimeOffChange={state.view === "day" ? state.setTimeOffOnly : undefined}
+              unconfirmed={state.unconfirmedOnly}
+              onUnconfirmedChange={state.setUnconfirmedOnly}
+              unconfirmedCount={(day.data?.appointments ?? []).filter(isUnconfirmed).length}
+              onTomorrowUnconfirmed={state.isToday ? state.openUnconfirmedTomorrow : undefined}
             />
           ) : undefined
         }

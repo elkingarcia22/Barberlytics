@@ -357,7 +357,12 @@ export interface AgendaFilters {
   serviceIds: readonly string[];
   /** Los tipos de cliente que se miran; vacío o sin él, todos. */
   clientTypes?: readonly ClientType[];
+  /** Solo las citas por llegar que el cliente no ha confirmado (incluidas las que no contestaron). */
+  unconfirmed?: boolean;
 }
+
+/** Una cita por llegar que el cliente no confirmó: sin respuesta, sin contestar, pidió otra hora o dijo que no puede. */
+export const isUnconfirmed = (appointment: Pick<Appointment, "status" | "confirmation">): boolean => appointment.status === "scheduled" && appointment.confirmation?.status !== "confirmed";
 
 /** El tipo de cliente de una cita; sin ficha (o de paso) cuenta como «de paso». */
 export const appointmentClientType = (catalog: CalendarCatalog, appointment: Pick<Appointment, "clientId">): ClientType => findClient(catalog, appointment.clientId)?.type ?? "walkin";
@@ -368,6 +373,7 @@ export const appointmentClientType = (catalog: CalendarCatalog, appointment: Pic
  * necesita el catálogo; sin él, ese filtro no se aplica.
  */
 export function matchesFilters(appointment: Appointment, filters: AgendaFilters, now: Date | undefined, catalog?: CalendarCatalog): boolean {
+  if (filters.unconfirmed && !isUnconfirmed(appointment)) return false;
   if (filters.stages.length > 0) {
     const stage = appointmentStage(appointment, now);
     if (!stage || !filters.stages.includes(stage)) return false;
@@ -377,7 +383,7 @@ export function matchesFilters(appointment: Appointment, filters: AgendaFilters,
   return filters.serviceIds.length === 0 || appointment.serviceIds.some((id) => filters.serviceIds.includes(id));
 }
 
-export const hasFilters = (filters: AgendaFilters): boolean => filters.stages.length + filters.serviceIds.length + (filters.clientTypes?.length ?? 0) > 0;
+export const hasFilters = (filters: AgendaFilters): boolean => filters.stages.length + filters.serviceIds.length + (filters.clientTypes?.length ?? 0) + (filters.unconfirmed ? 1 : 0) > 0;
 
 /** Cuántos productos lleva la cuenta de una cita. */
 export const productCount = (appointment: Pick<Appointment, "products">): number => appointment.products.reduce((sum, line) => sum + line.qty, 0);

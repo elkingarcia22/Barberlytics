@@ -10,7 +10,7 @@ import { confirmationOf, type ConfirmationKind } from "./confirmation";
  * llegó ahí va en el tooltip; confirmarla o quitarlo, en el «⋯» de la cita.
  */
 
-const TONE: Record<ConfirmationKind, StatusType> = { confirmed: "completed", pending: "neutral", reschedule: "warning", declined: "error" };
+const TONE: Record<ConfirmationKind, StatusType> = { confirmed: "completed", pending: "neutral", noAnswer: "warning", reschedule: "warning", declined: "error" };
 
 export function ConfirmationBadge({ appointment }: { appointment: Pick<Appointment, "status" | "confirmation"> }) {
   const t = useAppT();

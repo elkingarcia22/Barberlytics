@@ -22,8 +22,8 @@ export interface TemplateContext {
   name: string;
   shop: string;
   barber: string | null;
-  /** Días desde su última visita; `null` si nunca vino. */
-  daysSince: number | null;
+  /** Días desde su última visita (o un marcador, al escribirles a varios); `null` si nunca vino. */
+  daysSince: number | string | null;
   bookingUrl: string;
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { confirmationOf } from "./confirmation";
 
 const at = "2026-10-19T10:00:00.000Z";
@@ -19,5 +19,11 @@ describe("confirmationOf", () => {
 
   it("si ya llegó, cuenta como confirmada aunque nadie la marcara", () => {
     expect(confirmationOf({ status: "arrived", confirmation: null })).toMatchObject({ kind: "confirmed", arrived: true, hint: "calendar.messages.confirmedArrived" });
+  });
+
+  test("sin respuesta al mensaje que pide confirmar: «no contestó»; confirmar después gana", () => {
+    expect(confirmationOf({ status: "scheduled", confirmation: null, noAnswer: true })).toMatchObject({ kind: "noAnswer", label: "calendar.messages.noAnswer" });
+    expect(confirmationOf({ status: "scheduled", confirmation: { status: "confirmed", at: "2026-10-19T10:00:00.000Z", via: "reception" }, noAnswer: true }).kind).toBe("confirmed");
+    expect(confirmationOf({ status: "arrived", confirmation: null, noAnswer: true }).kind).toBe("confirmed");
   });
 });

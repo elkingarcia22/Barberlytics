@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -40,7 +40,17 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   absenceRequested: { title: "notifications.absenceRequested.title", body: "notifications.absenceRequested.body" },
   absenceDecided: { title: "notifications.absenceDecided.title", body: "notifications.absenceDecided.body" },
   waitlistJoined: { title: "notifications.waitlistJoined.title", body: "notifications.waitlistJoined.body" },
+  rescheduled: { title: "notifications.rescheduled.title", body: "notifications.rescheduled.body" },
 };
+
+/** Reintentar un mensaje que falló: vuelve a la cola para salir ya. */
+export function useRetryMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<unknown>(`/messages/${id}/retry`),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
 
 const POLL_MS = 60_000;
 
@@ -70,6 +80,8 @@ export interface ShellNotificationDeps {
   formatDate: (value: Date | number, options?: Intl.DateTimeFormatOptions) => string;
   navigate: (href: string) => void;
   markRead: (ids: readonly string[]) => void;
+  /** Reintentar un mensaje que falló; sin él, el aviso no ofrece «Reintentar». */
+  retryMessage?: (id: string) => void;
 }
 
 /** «2026-10-18» → «18 oct»; las cifras de dinero con la moneda de la sucursal. */
@@ -80,6 +92,20 @@ function formatParams(params: AppNotification["params"], deps: ShellNotification
   if (params.status === "approved" || params.status === "rejected") out.status = deps.t(params.status === "approved" ? "notifications.absenceApproved" : "notifications.absenceRejected");
   if (typeof params.amount === "number") out.direction = deps.t(params.amount < 0 ? "notifications.missing" : "notifications.over");
   return out;
+}
+
+/** Lo que se puede hacer desde el aviso sin abrir nada: a un WhatsApp que falló, llamar al cliente o reintentar. */
+function actionsOf(item: AppNotification, deps: ShellNotificationDeps): { id: string; label: string; onSelect: () => void }[] | undefined {
+  if (item.kind !== "whatsappFailed") return undefined;
+  const phone = typeof item.params.phone === "string" ? item.params.phone.replace(/[^\d+]/g, "") : "";
+  const messageId = typeof item.params.messageId === "string" ? item.params.messageId : "";
+  const done = () => {
+    if (!item.read) deps.markRead([item.id]);
+  };
+  return [
+    ...(phone ? [{ id: "call", label: deps.t("notifications.action.call"), onSelect: () => { done(); window.location.href = `tel:${phone}`; } }] : []),
+    ...(messageId && deps.retryMessage ? [{ id: "retry", label: deps.t("notifications.action.retry"), onSelect: () => { done(); deps.retryMessage?.(messageId); } }] : []),
+  ];
 }
 
 /** Los avisos como los pinta la campana: el texto en el idioma de quien lee y, al tocarlo, leído y abierto. */
@@ -98,6 +124,7 @@ export function toShellNotifications(items: readonly AppNotification[], deps: Sh
         if (!item.read) deps.markRead([item.id]);
         deps.navigate(item.href);
       },
+      actions: actionsOf(item, deps),
     };
   });
 }

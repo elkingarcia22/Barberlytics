@@ -94,6 +94,14 @@ export function useCalendarState(today: Date = new Date()) {
     serviceIds,
     /** Los tipos de cliente que se están mirando; vacío es «todos». */
     clientTypes,
+    /** Solo las citas que el cliente no ha confirmado (`?confirmar=1`). */
+    unconfirmedOnly: searchParams.get("confirmar") === "1",
+    setUnconfirmedOnly: (next: boolean) => set({ confirmar: next ? "1" : undefined }),
+    /** «Sin confirmar mañana»: el día de mañana, en la vista Día, con ese filtro puesto. */
+    openUnconfirmedTomorrow: () => {
+      const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      set({ fecha: toDateKey(tomorrow), vista: undefined, cita: undefined, confirmar: "1" });
+    },
     /** Ver solo los huecos disponibles: las citas se apagan y lo libre se marca. */
     freeOnly: searchParams.get("huecos") === "1",
     setFreeOnly: (next: boolean) => set({ huecos: next ? "1" : undefined }),

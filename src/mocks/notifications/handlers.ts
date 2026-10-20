@@ -30,7 +30,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled";
 
 export interface MockNotification {
   id: string;
@@ -69,6 +69,9 @@ function appointmentEvents(branchId: string, now: Date): MockNotification[] {
     if (cancelled && recent(cancelled.at, now)) items.push({ id: `cancel:${item.id}`, kind: "cancelled", at: cancelled.at, href, tone: "warning", params: { ...base, by: cancelled.actor }, roles: FRONT, memberId: item.barberId });
     const noShow = item.status === "no_show" ? lastEvent(item, "status:no_show") : undefined;
     if (noShow && recent(noShow.at, now)) items.push({ id: `noshow:${item.id}`, kind: "noShow", at: noShow.at, href, tone: "warning", params: base, roles: FRONT, memberId: item.barberId });
+    // La movieron de hora o de barbero: a recepción y al barbero (lo que movió el propio barbero ya lo sabe él).
+    const moved = [...item.history].reverse().find((entry) => entry.event.startsWith("moved:"));
+    if (moved && item.status === "scheduled" && recent(moved.at, now)) items.push({ id: `moved:${item.id}:${moved.id}`, kind: "rescheduled", at: moved.at, href, tone: "info", params: { ...base, by: moved.actor }, roles: [...FRONT, "barbero-comision", "barbero-renta"], memberId: item.barberId });
     // Marcó «Ya llegué» en el kiosco: a su barbero y a recepción (lo que marca recepción ya lo sabe recepción).
     const arrival = lastEvent(item, "status:arrived");
     if (arrival?.actor.startsWith("Kiosco") && recent(arrival.at, now)) items.push({ id: `arrived:${item.id}`, kind: "clientArrived", at: arrival.at, href, tone: "positive", params: base, roles: [...FRONT, "barbero-comision", "barbero-renta"], memberId: item.barberId });
@@ -82,7 +85,8 @@ function appointmentEvents(branchId: string, now: Date): MockNotification[] {
       at: message.sentAt ?? message.sendAt,
       href: appointment ? `/calendario?fecha=${appointment.start.slice(0, 10)}&cita=${appointment.id}` : `/clientes/${message.clientId}`,
       tone: "negative",
-      params: { client: clientName(message.clientId), error: message.error ?? "" },
+      // Con el celular y el mensaje: el aviso ofrece «Llamar» y «Reintentar».
+      params: { client: clientName(message.clientId), error: message.error ?? "", phone: message.to ?? "", messageId: message.id },
       roles: FRONT,
     });
   }

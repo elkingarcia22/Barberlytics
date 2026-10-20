@@ -52,7 +52,7 @@ herramientas de Clipper en las cinco pestañas; impulsores y detractores; coachi
 ## 02 Calendario
 
 **Pendiente**
-- P0 · Estados `reschedule_requested` y `no_answer`; filtro «Sin confirmar mañana».
+- ~~P0 · Estados `reschedule_requested` y `no_answer`; filtro «Sin confirmar mañana»~~ (hecho el 2026-10-19).
 - P0 · Anticipo o tarjeta en archivo con «Pedir anticipo» desde la cita.
 - P1 · Acción directa ante el riesgo (hoy es texto); WhatsApp desde la agenda (solo SMS/correo).
 - P1 · Lista de espera priorizada; cola de walk-ins con espera; buffers (`prep`) en choques y sugerencias.
@@ -67,7 +67,7 @@ priorizada → cita hecha; Clipper en WhatsApp; repartir la tarde de quien se va
 ## 03 Clientes
 
 **Pendiente**
-- P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple. (Permiso aparte para salud: hecho, ver abajo.)
+- ~~P0 · WhatsApp desde avisos (cumpleaños) y en selección múltiple~~ (hecho el 2026-10-19). (Permiso aparte para salud: hecho, ver abajo.)
 - P1 · Fotos y fórmula del corte; etiquetas y grupos; automatizaciones (cumpleaños, gracias, reseña); historial con
   entregado/respondió/reservó; fusionar duplicados; paginación y sucursal en el servidor.
 - P2 · Origen y referidos, motivo del bloqueo, formularios firmados, datos de factura. Deuda: segmentos por hash.
@@ -177,7 +177,7 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 ## 13 Avisos y ayuda
 
 **Pendiente**
-- P0 · Evento «reprogramación»; WhatsApp fallido con «llamar / reintentar».
+- ~~P0 · Evento «reprogramación»; WhatsApp fallido con «llamar / reintentar»~~ (hecho el 2026-10-19).
 - P1 · PWA y push; WhatsApp al dueño; preferencias por persona; ⌘K sobre datos; ayuda por pantalla; «¿Te sirvió?» en el
   servidor; Centro de procesos con trabajos del servidor.
 
@@ -306,3 +306,8 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Faltante de caja: ajuste propio y, desde el cierre con faltante, «Descontar en su nómina».
   - Falta: comprobante PDF, dispersión bancaria, propinas por medio y el préstamo como salida de caja.
 - **Front Desk (16 P0, lo que quedaba).** La cita va a la sede de la cabecera si el barbero trabaja ahí; el walk-in de hoy nace «llegó»; apuntarse a la lista de espera avisa a recepción.
+- **Calendario, Clientes y Avisos (02, 03 y 13 P0).**
+  - «No contestó»: le salió el mensaje que pide confirmar hace más de 2 h y no respondió; se ve en el badge de la cita. Filtro «Sin confirmar» (con las que no contestaron) y atajo «Ver las de mañana sin confirmar».
+  - WhatsApp a varios: desde la selección de la lista o desde el aviso activo (cumpleaños, les toca volver…), con `{nombre}` y `{días}`; el servidor dice a quién no (sin celular, sin permiso, fuera de horario, tope) y cada chat se abre con un clic y queda anotado.
+  - Avisos: «Cita movida» a recepción y al barbero; el WhatsApp fallido trae «Llamar» y «Reintentar».
+  - Falta: marca de «no contestó» en la tarjeta de la agenda (el panel de la cita lo está rediseñando otra sesión) y llamar desde la agenda.

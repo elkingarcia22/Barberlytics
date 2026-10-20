@@ -22,7 +22,7 @@ import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features
 import { DEFAULT_BRANCH_ID, useBranches } from "@/features/branches";
 import { useMessageDispatcher } from "@/features/calendar/messages";
 import { useMoney } from "@/features/calendar/calendarFormat";
-import { toShellNotifications, useMarkNotificationsRead, useNotifications } from "../notifications";
+import { toShellNotifications, useMarkNotificationsRead, useNotifications, useRetryMessage } from "../notifications";
 import { buildSettingsGroups, SETTINGS_ALL } from "@/features/settings/settingsCatalog";
 import { buildAppNavigation, findActiveNavId, showsLegalFooter } from "../navigation";
 import { PageLoader } from "../components/PageLoader";
@@ -33,6 +33,7 @@ import { TOOL_LABEL_KEYS } from "@/features/clipper/tools";
 import { runClipperAction } from "@/features/clipper/proposals";
 import { sendClipperFeedback } from "@/features/clipper/clipperBackend";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { describeError } from "@/lib/api";
 import { useSettingsList } from "@/features/settings/settingsQueries";
 import { branchSchema } from "@/features/settings/settingsTypes";
@@ -151,9 +152,22 @@ export function AppLayout() {
   // La campana: los avisos de esta sucursal para este rol (y, si es barbero, solo los suyos).
   const notificationsQuery = useNotifications({ branchId, role: effectiveRole, memberId: isBarberRole(effectiveRole) ? (access.member?.id ?? null) : null, enabled: Boolean(user) });
   const markRead = useMarkNotificationsRead();
+  const retry = useRetryMessage();
   const notificationItems = React.useMemo(
-    () => toShellNotifications(notificationsQuery.data?.items ?? [], { t, formatMoney, formatDate, navigate, markRead: (ids) => markRead.mutate(ids) }),
-    [notificationsQuery.data, t, formatMoney, formatDate, navigate, markRead]
+    () =>
+      toShellNotifications(notificationsQuery.data?.items ?? [], {
+        t,
+        formatMoney,
+        formatDate,
+        navigate,
+        markRead: (ids) => markRead.mutate(ids),
+        retryMessage: (id) =>
+          retry.mutate(id, {
+            onSuccess: () => toast.success(t("notifications.retried")),
+            onError: (error) => toast.error(describeError(error).title, { description: describeError(error).description }),
+          }),
+      }),
+    [notificationsQuery.data, t, formatMoney, formatDate, navigate, markRead, retry]
   );
   const queryClient = useQueryClient();
   const chatState = React.useSyncExternalStore(chatStore.subscribe, chatStore.getState, chatStore.getState);

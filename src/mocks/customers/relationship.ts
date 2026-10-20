@@ -23,6 +23,8 @@ const MAX_BODY = 1_000;
 const PURPOSES = ["thanks", "rebook", "birthday", "free"] as const;
 /** Volver y cumpleaños son promoción: piden el permiso del cliente (Ley 1581 / 2300). */
 const PROMOTIONAL: ReadonlySet<string> = new Set(["rebook", "birthday"]);
+/** A cuántos se les escribe de una vez desde la lista. */
+const MAX_BULK = 50;
 
 function error(status: number, code: string, message: string) {
   return HttpResponse.json({ code, message }, { status });
@@ -118,7 +120,41 @@ export function relationshipOf(client: MockClient, now = new Date()) {
   };
 }
 
+type SendBlock = "noPhone" | "noConsent" | "outsideWindow" | "promoCap" | "notFound";
+
+/** Si a ese cliente se le puede escribir ese mensaje ahora, y si no, por qué (las mismas reglas que `POST …/messages`). */
+function sendCheck(client: MockClient | undefined, purpose: string, now = new Date()): SendBlock | null {
+  if (!client) return "notFound";
+  if (!client.phone) return "noPhone";
+  if (!PROMOTIONAL.has(purpose)) return null;
+  const profile = profileOf(client);
+  if (profile.marketingConsent?.accepted !== true) return "noConsent";
+  if (promoNear(client.id, now)) return "promoCap";
+  if (!promoWindowOf(profile.branchId, now).allowed) return "outsideWindow";
+  return null;
+}
+
 export const relationshipHandlers = [
+  /**
+   * Antes de escribirles a varios (desde un aviso o una selección): a quién sí y a quién no, con el motivo.
+   * Cada mensaje se abre y se anota uno por uno con `POST /customers/:id/messages`.
+   */
+  http.post(`${BASE}/customers/messages/check`, async ({ request }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const input = (await request.json().catch(() => null)) as { ids?: unknown; purpose?: unknown } | null;
+    const purpose = PURPOSES.find((item) => item === input?.purpose);
+    const ids = Array.isArray(input?.ids) ? input.ids.filter((id): id is string => typeof id === "string").slice(0, MAX_BULK) : [];
+    if (!purpose || ids.length === 0) return HttpResponse.json({ code: "validation", message: "Elige a quién y para qué." }, { status: 422 });
+    const now = new Date();
+    return HttpResponse.json({
+      items: ids.map((id) => {
+        const client = findClient(id);
+        return { id, name: client?.name ?? "", phone: client?.phone ?? "", blocked: sendCheck(client, purpose, now) };
+      }),
+    });
+  }),
+
   http.get(`${BASE}/customers/:id/relationship`, async ({ request, params }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

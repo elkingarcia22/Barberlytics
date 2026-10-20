@@ -52,4 +52,23 @@ export function noShowRisk(appointment: MockAppointment, now = new Date()): NoSh
 }
 
 /** La cita con su riesgo, tal como la entrega la agenda. */
-export const withRisk = (appointment: MockAppointment, now = new Date()) => ({ ...appointment, risk: noShowRisk(appointment, now) });
+/** Horas sin respuesta después del mensaje de confirmación o recordatorio para darlo por «no contestó». */
+const NO_ANSWER_HOURS = 2;
+/** Los mensajes que piden confirmar: el de la reserva y los recordatorios. */
+const ASKS: ReadonlySet<string> = new Set(["confirmation", "reminder", "reminder24h", "reminder2h"]);
+
+/**
+ * «No contestó»: le salió el mensaje de confirmación o el recordatorio hace más de dos horas, no respondió
+ * nada y la cita sigue sin confirmar. Recepción lo llama o le reenvía el mensaje.
+ */
+export function noAnswerOf(appointment: MockAppointment, now = new Date()): boolean {
+  if (appointment.status !== "scheduled" || appointment.confirmation) return false;
+  const sent = (db.booking.outbox ?? []).filter((message) => message.appointmentId === appointment.id && ASKS.has(message.kind) && message.status === "sent" && message.sentAt);
+  if (sent.length === 0) return false;
+  const first = sent.reduce((min, message) => (message.sentAt! < min ? message.sentAt! : min), sent[0].sentAt!);
+  const last = sent.reduce((max, message) => (message.sentAt! > max ? message.sentAt! : max), sent[0].sentAt!);
+  if (now.getTime() - Date.parse(last) < NO_ANSWER_HOURS * 3_600_000) return false;
+  return !(db.booking.inbound ?? []).some((reply) => reply.appointmentId === appointment.id && reply.at >= first);
+}
+
+export const withRisk = (appointment: MockAppointment, now = new Date()) => ({ ...appointment, risk: noShowRisk(appointment, now), noAnswer: noAnswerOf(appointment, now) });

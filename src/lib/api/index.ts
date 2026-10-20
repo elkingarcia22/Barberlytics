@@ -9,6 +9,7 @@ export const apiAuth: ApiAuthBridge = {
   getToken: () => null,
   onUnauthorized: undefined,
   getStepUp: undefined,
+  getViewAs: undefined,
   onStepUpRequired: undefined,
 };
 
@@ -19,6 +20,7 @@ export const api = createApiClient({
     getToken: () => apiAuth.getToken(),
     onUnauthorized: () => apiAuth.onUnauthorized?.(),
     getStepUp: () => apiAuth.getStepUp?.() ?? null,
+    getViewAs: () => apiAuth.getViewAs?.() ?? null,
     onStepUpRequired: () => apiAuth.onStepUpRequired?.() ?? Promise.resolve(false),
   },
 });

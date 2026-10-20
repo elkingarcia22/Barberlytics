@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { countTotal } from "@/features/transactions/denominations";
 import { cycleWindow } from "../payroll/compute";
@@ -31,7 +31,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});

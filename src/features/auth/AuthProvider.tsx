@@ -127,8 +127,8 @@ export function AuthProvider({ children, storage = sessionTokenStorage }: AuthPr
     setUser(profile);
   }, []);
 
-  const value = React.useMemo<AuthContextValue>(() => ({ status, user, requestCode, verifyCode, loginWithProvider, logout, refresh }),
-    [status, user, requestCode, verifyCode, loginWithProvider, logout, refresh]
+  const value = React.useMemo<AuthContextValue>(() => ({ status, user, requestCode, verifyCode, loginWithProvider, startSession: openSession, logout, refresh }),
+    [status, user, requestCode, verifyCode, loginWithProvider, openSession, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

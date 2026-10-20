@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { AuthProvider, AuthStatus, AuthUser, OtpRequest, OtpVerify } from "./types";
+import type { AuthProvider, AuthStatus, AuthUser, OtpRequest, OtpVerify, Session } from "./types";
 
 export interface AuthContextValue {
   status: AuthStatus;
@@ -10,6 +10,8 @@ export interface AuthContextValue {
   verifyCode: (body: OtpVerify) => Promise<AuthUser>;
   /** Entra con una cuenta de Google u Outlook vinculada. */
   loginWithProvider: (provider: AuthProvider) => Promise<AuthUser>;
+  /** Abre una sesión que llegó por otra vía (el registro, el desbloqueo por correo). */
+  startSession: (session: Session) => AuthUser;
   logout: () => Promise<void>;
   /** Vuelve a pedir el perfil (p. ej. tras editarlo). */
   refresh: () => Promise<void>;

@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { packCountryOf, type PackCountry } from "@/features/settings/countryPack";
+import { accountById, db } from "../db";
 import type { MockClient } from "../calendar/seed";
 import { profileOf, saveProfile } from "./handlers";
 
@@ -24,16 +25,19 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const asRecord = (body: DefaultBodyType): Record<string, unknown> => (body && typeof body === "object" ? (body as Record<string, unknown>) : {});
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : typeof value === "number" ? String(value) : "");
 
-/** El indicativo de la sucursal: Colombia +57; Estados Unidos (y por defecto) +1. */
+const DIAL_CODES: Readonly<Record<PackCountry, string>> = { CO: "57", MX: "52", US: "1" };
+
+/** El indicativo de la sucursal según su país (código o nombre); por defecto +1. */
 function dialCodeOf(branchId: string): string {
   const branch = (db.settings.lists.branches as { id: string; country?: string }[]).find((item) => item.id === branchId);
-  return branch?.country === "Colombia" ? "57" : "1";
+  const country = packCountryOf(branch?.country);
+  return country ? DIAL_CODES[country] : "1";
 }
 
 /** «300 123 4567», «(617) 555-0100», «+57 300…» → E.164; `null` si no parece un celular. */

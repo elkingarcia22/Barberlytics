@@ -100,6 +100,22 @@ export const signupRequestSchema = z.object({
 });
 export type SignupRequest = z.infer<typeof signupRequestSchema>;
 
+/** Lo que deja listo el registro: la sucursal con el paquete del país (docs/API_CONTRACT.md, «Registro»). */
+export const signupSetupSchema = z.object({
+  branchId: z.string(),
+  country: z.enum(["CO", "MX", "US"]).nullable(),
+  currency: z.string(),
+  timezone: z.string(),
+  taxGroup: z.string().nullable(),
+  holidays: z.number(),
+  gateways: z.array(z.string()),
+});
+export type SignupSetup = z.infer<typeof signupSetupSchema>;
+
+/** El registro entra directo: la sesión y lo que quedó listo. */
+export const signupResultSchema = sessionSchema.extend({ setup: signupSetupSchema });
+export type SignupResult = z.infer<typeof signupResultSchema>;
+
 /** El correo de respaldo de quien tiene la sesión; `null` si no lo ha configurado. */
 export const backupEmailSchema = z.object({ email: z.string().email().nullable() });
 export type BackupEmail = z.infer<typeof backupEmailSchema>;

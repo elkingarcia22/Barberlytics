@@ -7,17 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { IconTile } from "@/components/utility";
+import { Text } from "@/components/typography";
 import type { FieldErrors } from "../SettingsFormParts";
 import { SettingsList } from "../SettingsListParts";
 import { useSettingsList, useSettingsSection } from "../settingsQueries";
-import { CURRENCIES, branchSchema, gatewaySchema, pricingSchema, taxGroupSchema, type Branch, type BranchInput } from "../settingsTypes";
-
-const TIMEZONES: readonly string[] = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Bogota", "America/Mexico_City"];
+import { CURRENCIES, branchSchema, gatewaySchema, pricingSchema, taxGroupSchema, type Branch, type BranchInput, type Gateway, type TaxGroup } from "../settingsTypes";
+import { COUNTRY_PACKS, GATEWAY_COUNTRY_OK, findUsualTaxGroup, PACK_COUNTRIES, branchDefaultsFor, isValidTaxId, packCountryOf, packOf, timezonesFor, type PackCountry, type TaxIdKind } from "../countryPack";
+import type { AppMessageKey } from "@/app/i18n/types";
 const LANGUAGES: readonly { id: string; name: string }[] = [
   { id: "es", name: "Español" },
   { id: "en", name: "English" },
 ];
 const EMPTY: BranchInput = { name: "", legalName: "", taxId: "", country: "", state: "", city: "", address: "", zipcode: "", phone: "", currency: "USD", language: "es", timezone: "America/New_York", taxGroupId: null, gatewayId: null, description: "" };
+const COUNTRY_KEYS: Readonly<Record<PackCountry, AppMessageKey>> = { CO: "cfg.country.CO", MX: "cfg.country.MX", US: "cfg.country.US" };
+const TAX_ID_KEYS: Readonly<Record<TaxIdKind, { label: AppMessageKey; error: AppMessageKey }>> = {
+  nit: { label: "cfg.taxId.nit", error: "cfg.taxId.nitError" },
+  rfc: { label: "cfg.taxId.rfc", error: "cfg.taxId.rfcError" },
+  ein: { label: "cfg.taxId.ein", error: "cfg.taxId.einError" },
+};
+
+/**
+ * Elegir el país pone lo suyo: moneda, zona (si la que había no es de allí) e idioma; el impuesto habitual si
+ * ya existe con ese nombre, y quita la pasarela si no opera allí.
+ */
+function applyCountry(draft: BranchInput, country: PackCountry, taxGroups: readonly TaxGroup[], gateways: readonly Gateway[]): BranchInput {
+  const pack = COUNTRY_PACKS[country];
+  const defaults = branchDefaultsFor(country, draft);
+  const usualTax = findUsualTaxGroup(country, taxGroups);
+  const gateway = gateways.find((item) => item.id === draft.gatewayId);
+  return {
+    ...draft,
+    country,
+    ...defaults,
+    taxGroupId: usualTax?.id ?? (pack.taxGroup ? draft.taxGroupId : null),
+    gatewayId: gateway && GATEWAY_COUNTRY_OK(gateway.provider, country) ? draft.gatewayId : null,
+  };
+}
+
 /** El valor de un select que no elige nada (Radix no admite la cadena vacía). */
 const NONE = "none";
 const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short", year: "numeric" };
@@ -41,6 +67,8 @@ export function BranchesSettings() {
     if (draft.name.trim().length < 2) errors.name = t("cfg.branches.error.name");
     for (const key of REQUIRED) if (!draft[key].trim()) errors[key] = t("cfg.required");
     if (draft.phone.replace(/\D/g, "").length < 8) errors.phone = t("cfg.branches.error.phone");
+    const pack = packOf(draft.country);
+    if (pack && !isValidTaxId(pack.country, draft.taxId)) errors.taxId = t(TAX_ID_KEYS[pack.taxIdKind].error);
     return errors;
   };
 
@@ -64,7 +92,7 @@ export function BranchesSettings() {
         ),
       })}
       emptyDraft={{ ...EMPTY, currency: pricing.data?.currency ?? EMPTY.currency }}
-      toDraft={({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description }) => ({ name, legalName, taxId, country, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description })}
+      toDraft={({ name, legalName, taxId, country: written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description }) => ({ name, legalName, taxId, country: packCountryOf(written) ?? written, state, city, address, zipcode, phone, currency, language, timezone, taxGroupId, gatewayId, description })}
       validate={validate}
       messages={{
         count: (count) => t("cfg.branches.count", { count }),
@@ -82,14 +110,26 @@ export function BranchesSettings() {
         editAria: (label) => t("cfg.editAria", { name: label }),
         removeAria: (label) => t("cfg.removeAria", { name: label }),
       }}
-      renderForm={({ draft, set, errors }) => (
+      renderForm={({ draft, set, replace, errors }) => (
         <>
           <Field label={t("cfg.branches.name")} required error={errors.name}>
             <Input value={draft.name} onChange={(event) => set("name", event.target.value)} aria-invalid={!!errors.name} autoComplete="off" data-testid="branches-name" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("cfg.company.country")} required error={errors.country}>
-              <Input value={draft.country} onChange={(event) => set("country", event.target.value)} aria-invalid={!!errors.country} autoComplete="off" data-testid="branches-country" />
+              <Select value={draft.country || undefined} onValueChange={(value) => replace(packCountryOf(value) ? applyCountry(draft, value as PackCountry, taxGroups.data?.items ?? [], gateways.data?.items ?? []) : { ...draft, country: value })}>
+                <SelectTrigger aria-invalid={!!errors.country} data-testid="branches-country">
+                  <SelectValue placeholder={t("cfg.branches.countryPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {PACK_COUNTRIES.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {t(COUNTRY_KEYS[code])}
+                    </SelectItem>
+                  ))}
+                  {draft.country && !packCountryOf(draft.country) && <SelectItem value={draft.country}>{draft.country}</SelectItem>}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label={t("cfg.branches.state")} required error={errors.state}>
               <Input value={draft.state} onChange={(event) => set("state", event.target.value)} aria-invalid={!!errors.state} autoComplete="off" data-testid="branches-state" />
@@ -101,20 +141,25 @@ export function BranchesSettings() {
               <Input value={draft.zipcode} onChange={(event) => set("zipcode", event.target.value)} autoComplete="off" inputMode="numeric" />
             </Field>
           </div>
+          {packOf(draft.country)?.taxGroup && !draft.taxGroupId && (
+            <Text variant="muted" data-testid="branches-pack-tax">
+              {t("cfg.branches.packTax", { tax: packOf(draft.country)?.taxGroup?.name ?? "" })}
+            </Text>
+          )}
           <Field label={t("cfg.branches.address")}>
             <Input value={draft.address} onChange={(event) => set("address", event.target.value)} autoComplete="off" />
           </Field>
           <Field label={t("cfg.company.phone")} required error={errors.phone}>
-            <PhoneInput value={draft.phone} onValueChange={(value) => set("phone", value)} defaultCountry="US" aria-invalid={!!errors.phone} data-testid="branches-phone" />
+            <PhoneInput value={draft.phone} onValueChange={(value) => set("phone", value)} defaultCountry={packCountryOf(draft.country) ?? "US"} aria-invalid={!!errors.phone} data-testid="branches-phone" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={t("cfg.business.timezone")} required>
               <Select value={draft.timezone} onValueChange={(value) => set("timezone", value)}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="branches-timezone">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIMEZONES.map((zone) => (
+                  {timezonesFor(draft.country, draft.timezone).map((zone) => (
                     <SelectItem key={zone} value={zone}>
                       {zone.replace("_", " ")}
                     </SelectItem>
@@ -124,7 +169,7 @@ export function BranchesSettings() {
             </Field>
             <Field label={t("cfg.pricing.currencyField")} required>
               <Select value={draft.currency} onValueChange={(value) => set("currency", value)}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="branches-currency">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,7 +219,7 @@ export function BranchesSettings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>{t("cfg.branches.noGateway")}</SelectItem>
-                  {(gateways.data?.items ?? []).map((gateway) => (
+                  {(gateways.data?.items ?? []).filter((gateway) => gateway.id === draft.gatewayId || !packCountryOf(draft.country) || GATEWAY_COUNTRY_OK(gateway.provider, packCountryOf(draft.country) as PackCountry)).map((gateway) => (
                     <SelectItem key={gateway.id} value={gateway.id}>
                       {gateway.name}
                     </SelectItem>
@@ -187,8 +232,8 @@ export function BranchesSettings() {
             <Field label={t("cfg.company.legalName")}>
               <Input value={draft.legalName} onChange={(event) => set("legalName", event.target.value)} autoComplete="off" />
             </Field>
-            <Field label={t("cfg.company.identification")}>
-              <Input value={draft.taxId} onChange={(event) => set("taxId", event.target.value)} autoComplete="off" />
+            <Field label={packOf(draft.country) ? t(TAX_ID_KEYS[(packOf(draft.country) as NonNullable<ReturnType<typeof packOf>>).taxIdKind].label) : t("cfg.company.identification")} error={errors.taxId}>
+              <Input value={draft.taxId} onChange={(event) => set("taxId", event.target.value)} placeholder={packOf(draft.country)?.taxIdExample} aria-invalid={!!errors.taxId} autoComplete="off" data-testid="branches-taxId" />
             </Field>
           </div>
           <Field label={t("cfg.description")}>

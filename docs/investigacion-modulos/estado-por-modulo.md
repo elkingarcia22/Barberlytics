@@ -19,17 +19,17 @@ Cómo leer la columna «IA hoy»: **modelo** = llama a Claude u otro modelo; **e
 | 06 Gastos | Fecha, categoría, comprobantes, estado de resultados | Periodos, categorías propias, cuentas por pagar | Ninguna | Foto → gasto; duplicados |
 | 07 Nómina | 4 errores corregidos, periodos, ajustes, renta | Quincena, comprobante PDF, dispersión, metas | Estadística + modelo («¿Por qué?») | Simulador de esquemas de comisión |
 | 08 Equipo | Portada real, ausencias, fila viva, rendimiento | Mi ficha, botones sin acción, datos bancarios, fichaje | Ninguna | Cubrir ausencias; coaching semanal |
-| 09 Configuración | Sucursales, pasarelas, recordatorios, puesta en marcha | Festivos por país, plantillas editables, horario por sede | Ninguna | Configurar conversando; auditoría con cifras |
+| 09 Configuración | Sucursales, pasarelas, recordatorios, puesta en marcha, paquete por país | Plantillas editables, horario por sede, pasarela real | Ninguna | Configurar conversando; auditoría con cifras |
 | 10 Reserva en línea | Cola real, zona horaria, token de tarjeta, voz | Respuestas de WhatsApp, pasarela real, reservable por agentes | Estadística + reglas + modelo (voz) | Clipper en WhatsApp; «lo de siempre» con un sí |
 | 11 Clipper | Modelo, sesión, herramientas, acciones, evaluaciones | Aviso que contradice, foco por ficha, resumen del día | Modelo | Resumen del día; núcleo compartido con la reserva |
-| 12 Acceso | Roles en servidor, código endurecido, step-up, registro | Avisos de dispositivo, invitar equipo, Google sin sesión | Ninguna | Lista de precios desde una foto |
+| 12 Acceso | Roles en servidor, código endurecido, step-up, registro que entra, desbloqueo por correo | Invitar equipo, Google sin sesión, passkeys | Ninguna | Lista de precios desde una foto |
 | 13 Avisos y ayuda | Bandeja real por rol, preferencias | Reprogramación, PWA/push, WhatsApp al dueño | Modelo (semanal) + reglas | Resumen diario por WhatsApp |
 | 14 Barbero | Neto único, Mi pago, ausencias | Mi ficha, «mis clientes por volver», metas | Modelo («¿Por qué?») | Mis clientes por volver con el mensaje listo |
-| 15 Marketing | Promoción exige permiso en la cola | STOP/BAJA, franja horaria, Marketing real, reseñas de ejemplo | Reglas + etiqueta | Reactivación automática con tope |
+| 15 Marketing | Permiso, STOP/BAJA, franja horaria y tope en el servidor; Marketing real | Campañas, reseña en Google, cupones, referidos | Reglas + etiqueta | Reactivación automática con tope |
 | 16 Front Desk | Cobro solo por la caja, turno de barberos | Kiosco, check-in que avisa, cola de walk-ins | Reglas | Espera estimada |
 | 17 Producción y legal | Sesión firmada, cola, token de tarjeta, CSP | Backend real, cookie httpOnly, borrar/exportar cliente, contratos | Modelo con controles | Avisar que Clipper es IA; quitar «IA» de las reglas |
 
-**Cosas que se ven mal** (se corrigen el 2026-10-19, ver abajo): la pestaña «IA» de Métricas con cifras al azar, la
+**Cosas que se veían mal** (corregidas el 2026-10-19, ver abajo): la pestaña «IA» de Métricas con cifras al azar, la
 «confianza alta» del asistente del Calendario sobre reglas, `AiGeneratedBadge` en reglas (crear cita, reacomodo) y el
 aviso de Clipper «Aún no hace cambios por ti».
 
@@ -39,12 +39,12 @@ aviso de Clipper «Aún no hace cambios por ti».
 
 **Pendiente**
 - ~~P0 · «Todas las sucursales» para el dueño~~ (hecho el 2026-10-19).
-- P0 · Pestaña «IA» con cifras al azar (`metricsTabs.ts`): «nunca han reservado» y retención del medidor de salud.
+- ~~P0 · Pestaña «IA» con cifras al azar (`metricsTabs.ts`)~~ (hecho: «Sugerencias» sale de los datos).
 - P1 · Utilidad del periodo dentro de Métricas (hoy solo en Gastos › Estado de resultados).
 - P1 · Re-reserva, producto/servicio, retención por cohorte a 90 días; el tipo de cliente se reparte al azar.
 - P1 · Ocupación sobre el horario real (siguen `CHAIR_SLOTS_PER_DAY` y `CHAIRS`).
 - P1 · Metas y ritmo a la meta; exportar; rango libre e interanual; renta separada del neto del equipo; «actualizado hace…».
-- P2 · Comparar sucursales, LTV por canal, vistas guardadas, Marketing real (canales y campañas al azar), borrar `features/dashboard`.
+- P2 · Comparar sucursales, LTV por canal, vistas guardadas, ~~Marketing real~~ (hecho: sale del `utm`), borrar `features/dashboard`.
 
 **IA que falta**: alertas de anomalías con estacionalidad + resumen semanal por WhatsApp; pronóstico de la semana;
 herramientas de Clipper en las cinco pestañas; impulsores y detractores; coaching por barbero; comparación con pares.
@@ -135,7 +135,8 @@ por barbero; horas según demanda; sobrecarga.
 ## 09 Configuración
 
 **Pendiente**
-- P0 · Paquete por país (festivos, zonas, NIT); pasarela real y Bre-B; puesta en marcha precargada y con inicio propio.
+- ~~P0 · Paquete por país (festivos, zonas, NIT); puesta en marcha precargada~~ (hecho el 2026-10-19); pasarela real y Bre-B;
+  inicio propio de la puesta en marcha.
 - P1 · Plantillas de mensajes editables; horario por sucursal y por día; importar catálogo y equipo; registro de cambios;
   integraciones (Google, Instagram); plan y facturación; búsqueda por campo.
 - P2 · Exportar todo, ajustes heredados por sucursal, preferencias en el servidor, dominio propio.
@@ -158,7 +159,7 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 ## 11 Clipper
 
 **Pendiente**
-- P0 · Correr la evaluación con clave real; caducidad del historial; aviso «Aún no hace cambios por ti» (se corrige);
+- P0 · Correr la evaluación con clave real; caducidad del historial; ~~aviso «Aún no hace cambios por ti»~~ (corregido);
   cupos compartidos (hoy en memoria).
 - P1 · Un solo núcleo con la reserva; foco por cliente, barbero, nómina y métricas; resumen del día; conversación por voz;
   historial en el servidor.
@@ -167,8 +168,8 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 ## 12 Acceso y puesta en marcha
 
 **Pendiente**
-- P0 · «Ver como» de solo lectura (no verificado); cuenta regresiva y desbloqueo con correo; ~~avisos de nuevo dispositivo~~;
-  el registro no abre sesión y no detecta celular repetido.
+- ~~P0 · «Ver como» de solo lectura; cuenta regresiva y desbloqueo con correo; avisos de nuevo dispositivo; el registro
+  no abre sesión y no detecta celular repetido~~ (hecho el 2026-10-19).
 - P1 · Invitar al equipo por WhatsApp; importar catálogo, equipo y citas; código por WhatsApp; cambiar número; passkeys;
   sesiones y dispositivos; modo tablet con PIN; cookie `httpOnly`; sesión firmada con Google y Microsoft.
 
@@ -196,8 +197,8 @@ revisión de su pago.
 ## 15 Marketing y fidelización
 
 **Pendiente**
-- P0 · STOP/BAJA por webhook (se hace el 2026-10-19); franja horaria y tope mensual; Métricas › Marketing al azar; reseñas
-  de ejemplo en la reserva pública; ~~tarjeta de regalo sin envío~~; membresía fija en el panel de la cita.
+- ~~P0 · STOP/BAJA por webhook; franja horaria y tope mensual; Métricas › Marketing al azar; reseñas de ejemplo en la
+  reserva pública; tarjeta de regalo sin envío~~ (hecho el 2026-10-19); membresía fija en el panel de la cita.
 - P1 · Campañas, automatizaciones, reseña en Google, cupones administrables, canje en la caja, referidos, correo.
 
 **IA que falta**: reactivación automática con tope y hora habitual; texto de campaña; segmentos sugeridos; clasificador de
@@ -208,7 +209,7 @@ respuestas; retorno por canal con UTM.
 **Pendiente**
 - ~~P0 · Kiosco por sede; check-in que avisa; cola de walk-ins; la cita nueva cae en la primera sucursal; el walk-in
   nace «programado»; `waitlistJoined` sin emitir~~ (hecho el 2026-10-19); `phone/check` sin perfil (decisión del usuario: no se toca).
-- P1 · «Ya casi te toca», QR de fila, pantalla `/turnos`, PIN del personal, terminal, propina en pantalla, idioma grande.
+- P1 · ~~«Ya casi te toca»~~, QR de fila, ~~pantalla `/turnos`~~, PIN del personal, terminal, propina en pantalla, idioma grande.
 
 **IA que falta**: espera estimada; «¿hay turno?» por WhatsApp; afluencia del día; barbero sugerido para el walk-in.
 
@@ -217,8 +218,8 @@ respuestas; retorno por canal con UTM.
 **Pendiente**
 - P0 · Backend real con `tenant_id` y RLS; cookie `httpOnly`; pasarela real; ~~horarios legales y STOP/HELP~~; permiso de
   ~~salud~~; ~~paquete legal y DPA~~ (borradores); ~~borrar y exportar cliente~~; voz con plan pago; Sentry, copias, PITR; aviso de privacidad CO.
-- P1 · Límites compartidos; archivos privados; auditoría; DIAN; 10DLC; entornos; cuenta bancaria enmascarada; insignias
-  «IA» sobre reglas; Clipper se presenta como IA; accesibilidad con axe; retención.
+- P1 · Límites compartidos; archivos privados; auditoría; DIAN; 10DLC; entornos; ~~cuenta bancaria enmascarada; insignias
+  «IA» sobre reglas; Clipper se presenta como IA~~; accesibilidad con axe; retención.
 
 ---
 
@@ -317,3 +318,10 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - La tarjeta de regalo manda su código por WhatsApp (plantilla `tarjeta_regalo`) y recepción la reenvía desde la ficha.
   - Aviso de dispositivo nuevo para la propia cuenta, con «No fui yo» que cierra las demás sesiones.
   - Falta: «Cómo te fue» de todas las sucursales, la vista Agenda por defecto en el celular del barbero, aviso por SMS o correo del dispositivo nuevo y passkeys.
+- **Paquete por país y acceso (09 y 12 P0).**
+  - Colombia, México y EE. UU. traen su moneda, zonas, identificación fiscal (NIT con dígito de verificación, RFC, EIN, validados en la app y el servidor), impuesto habitual y pasarelas que operan allí. Elegir el país en una sucursal lo pone todo.
+  - Festivos con nombre por país (Ley Emiliani y Semana Santa en Colombia, federales con el día observado en EE. UU., LFT en México), los mismos que usa la franja de promociones. El negocio elige en qué festivos cierra por motivo y cada sede cierra el de su país; la reserva no ofrece horas ese día.
+  - El registro entra directo: crea la sucursal con el paquete del país, el IVA habitual, los festivos y la ficha de la dueña, y dice qué quedó listo. Un celular o un correo que ya tienen cuenta se rechazan, solo después de verificar el código.
+  - Bloqueo de 15 min → 1 h → 24 h con cuenta regresiva, desbloqueo con el correo de respaldo y aviso a la cuenta; «Reenviar código» espera 30 s.
+  - «Ver como» es de solo lectura en el servidor (`X-View-As`).
+  - Falta: barbería aparte por registro (el mock tiene una), pasarela real, horario por sede y factura electrónica DIAN.

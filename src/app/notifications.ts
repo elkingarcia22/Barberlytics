@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -42,6 +42,7 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   waitlistJoined: { title: "notifications.waitlistJoined.title", body: "notifications.waitlistJoined.body" },
   rescheduled: { title: "notifications.rescheduled.title", body: "notifications.rescheduled.body" },
   newDevice: { title: "notifications.newDevice.title", body: "notifications.newDevice.body" },
+  accessLocked: { title: "notifications.accessLocked.title", body: "notifications.accessLocked.body" },
 };
 
 /** Reintentar un mensaje que falló: vuelve a la cola para salir ya. */

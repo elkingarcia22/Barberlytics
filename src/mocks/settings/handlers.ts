@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { isValidTaxId, packOf, type TaxIdKind } from "@/features/settings/countryPack";
+import { accountById, db } from "../db";
 import { forbidden, hasStepUp, isManager, sessionOf, stepUpRequired } from "../session";
 import { GATEWAY_SPECS, isGatewayProvider, keyLooksValid } from "@/features/settings/gatewayProviders";
 import type { MockListItem, MockSettingsList, MockSettingsSection } from "./seed";
@@ -29,7 +30,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const asRecord = (body: DefaultBodyType | unknown): Body => (body && typeof body === "object" && !Array.isArray(body) ? (body as Body) : {});
@@ -78,6 +79,12 @@ const SECTION_RULES: Partial<Record<MockSettingsSection, (body: Body) => Fields>
   company: (body): Fields => (text(body.name).length < 2 ? { name: ["Escribe el nombre de la empresa."] } : {}),
 };
 
+const TAX_ID_ERRORS: Readonly<Record<TaxIdKind, string>> = {
+  nit: "El NIT no cuadra con su dígito de verificación.",
+  rfc: "El RFC no tiene la forma del SAT (letras, fecha AAMMDD y homoclave).",
+  ein: "El EIN son nueve dígitos: 12-3456789.",
+};
+
 const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null) => Fields> = {
   branches: (body, currentId) => {
     const fields: Fields = {};
@@ -86,6 +93,9 @@ const LIST_RULES: Record<MockSettingsList, (body: Body, currentId: string | null
     else if (db.settings.lists.branches.some((item) => item.id !== currentId && text(item.name).toLowerCase() === name.toLowerCase())) fields.name = ["Ya hay una sucursal con ese nombre."];
     for (const key of ["country", "state", "city", "timezone", "currency"]) if (!text(body[key])) fields[key] = ["Este dato es obligatorio."];
     if (text(body.phone).replace(/\D/g, "").length < 8) fields.phone = ["Escribe un teléfono válido."];
+    // La identificación fiscal con la forma de su país (NIT con dígito de verificación, RFC, EIN).
+    const pack = packOf(text(body.country));
+    if (pack && !isValidTaxId(pack.country, text(body.taxId))) fields.taxId = [TAX_ID_ERRORS[pack.taxIdKind]];
     const taxGroupId = body.taxGroupId ?? null;
     if (taxGroupId !== null && !db.settings.lists.taxGroups.some((item) => item.id === taxGroupId)) fields.taxGroupId = ["Ese impuesto no existe."];
     const gatewayId = body.gatewayId ?? null;

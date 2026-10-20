@@ -27,6 +27,8 @@ export interface ApiAuthBridge {
   onUnauthorized?: () => void;
   /** La confirmación de identidad vigente (`X-Step-Up`), si hay. */
   getStepUp?: () => string | null;
+  /** El rol con el que se está mirando («Ver como», `X-View-As`): el servidor no deja cambiar nada así. */
+  getViewAs?: () => string | null;
   /**
    * El servidor pidió confirmar la identidad: quien escucha pide el código y resuelve `true` cuando
    * hay una confirmación nueva (se repite la petición una vez) o `false` si la persona desistió.
@@ -113,6 +115,8 @@ export function createApiClient({ baseUrl, auth, fetchImpl }: ApiClientOptions):
     if (token) headers.Authorization = `Bearer ${token}`;
     const stepUp = auth?.getStepUp?.();
     if (stepUp) headers["X-Step-Up"] = stepUp;
+    const viewAs = auth?.getViewAs?.();
+    if (viewAs) headers["X-View-As"] = viewAs;
 
     let response: Response;
     try {

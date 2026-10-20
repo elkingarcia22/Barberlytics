@@ -14,7 +14,8 @@ import { ThemaIcon } from "@/icons";
 import { describeError } from "@/lib/api";
 import { useAuth } from "./useAuth";
 import { describePhone } from "./phoneLabel";
-import { attemptsLeftFrom, isLockedError } from "./authErrors";
+import { attemptsLeftFrom, isLockedError, retryAfterFrom } from "./authErrors";
+import { useCountdown } from "./useCountdown";
 import { OTP_LENGTH, otpRequestSchema, type AuthProvider, type OtpChannel, type OtpRequest } from "./types";
 
 interface LocationState {
@@ -37,7 +38,8 @@ export interface LoginFormProps {
   onForgotNumber: () => void;
   onCreateAccount: () => void;
   /** El backend bloqueó el celular tras varios intentos fallidos seguidos. */
-  onLocked: (phone: string) => void;
+  /** El número quedó bloqueado; `retryAfterSeconds` es lo que falta según el servidor. */
+  onLocked: (phone: string, retryAfterSeconds: number | null) => void;
   /** Ni el SMS ni el correo de respaldo: abrir un ticket con soporte. */
   onContactSupport: (phone: string) => void;
 }
@@ -51,6 +53,9 @@ export interface LoginFormProps {
  * dice si la cuenta lo tiene, así que el texto lo plantea en condicional y
  * ofrece soporte a quien no lo configuró.
  */
+/** Segundos antes de poder pedir otro código. */
+const RESEND_AFTER_SECONDS = 30;
+
 export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContactSupport }: LoginFormProps) {
   const t = useAppT();
   const { requestCode, verifyCode, loginWithProvider } = useAuth();
@@ -64,6 +69,8 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
   const [code, setCode] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [wasResent, setWasResent] = React.useState(false);
+  // Reenviar espera un poco: cada toque es un SMS pagado y el código suele llegar en segundos.
+  const resendWait = useCountdown();
   const [serverError, setServerError] = React.useState<ServerError | null>(null);
   const [pendingProvider, setPendingProvider] = React.useState<AuthProvider | null>(null);
 
@@ -81,9 +88,10 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
       setChannel("sms");
       setCode("");
       setWasResent(false);
+      resendWait.start(RESEND_AFTER_SECONDS);
       setStep("code");
     } catch (error) {
-      if (isLockedError(error)) return onLocked(values.phone);
+      if (isLockedError(error)) return onLocked(values.phone, retryAfterFrom(error));
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
     }
   });
@@ -97,8 +105,9 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
       setCode("");
       setWasResent(next === channel);
       setChannel(next);
+      resendWait.start(RESEND_AFTER_SECONDS);
     } catch (error) {
-      if (isLockedError(error)) return onLocked(phone);
+      if (isLockedError(error)) return onLocked(phone, retryAfterFrom(error));
       setServerError({ title: t("auth.errorTitle"), description: describeError(error).description });
     } finally {
       setIsVerifying(false);
@@ -113,7 +122,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
       await verifyCode({ phone, code: value });
       enter();
     } catch (error) {
-      if (isLockedError(error)) return onLocked(phone);
+      if (isLockedError(error)) return onLocked(phone, retryAfterFrom(error));
       const attemptsLeft = attemptsLeftFrom(error);
       const warning =
         attemptsLeft === null ? "" : attemptsLeft === 1 ? t("auth.code.lastAttempt") : t("auth.code.attemptsLeft", { count: attemptsLeft });
@@ -192,9 +201,9 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
             {t("auth.code.submit")}
           </Button>
           <div className="flex items-center justify-between gap-4">
-            <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy} onClick={() => void resendCode()} data-testid="login-resend">
+            <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={isBusy || resendWait.left > 0} onClick={() => void resendCode()} data-testid="login-resend">
               <ThemaIcon name="refresh" size="xs" />
-              {t("auth.code.resend")}
+              {resendWait.left > 0 ? t("auth.code.resendIn", { seconds: resendWait.left }) : t("auth.code.resend")}
             </Button>
             {wasResent && (
               <Text variant="caption" role="status">

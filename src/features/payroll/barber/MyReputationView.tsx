@@ -1,7 +1,11 @@
-import { Star } from "lucide-react";
+import { Send, Star } from "lucide-react";
+import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
 import { useLocale } from "@/i18n";
+import { describeError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { useRequestReviews, useReviewCandidates } from "@/features/team/operations/operationsApi";
 import { QueryBoundary } from "@/lib/query";
 import { MetricCard } from "@/components/charts";
 import { EmptyState } from "@/components/feedback";
@@ -25,13 +29,49 @@ const THEME_KEYS: Readonly<Record<Reputation["themes"][number]["id"], AppMessage
  * Mi reputación: el promedio de sus reseñas, cómo va frente a los 90 días anteriores, el reparto de estrellas, lo que
  * más repiten sus clientes y las últimas reseñas. En la demo, las de ejemplo van marcadas.
  */
-export function MyReputationView({ memberId }: { memberId: string }) {
+export function MyReputationView({ memberId, branchId }: { memberId: string; branchId: string }) {
   const t = useAppT();
   const query = useReputation(memberId);
   return (
-    <QueryBoundary query={query} loading={<Skeleton className="h-72 w-full rounded-2xl" />}>
-      {(data) => (data.total === 0 ? <EmptyState icon="star" title={t("payroll.reputation.emptyTitle")} description={t("payroll.reputation.emptyHint")} /> : <ReputationBody data={data} />)}
-    </QueryBoundary>
+    <div className="space-y-section">
+      <AskForReviews memberId={memberId} branchId={branchId} />
+      <QueryBoundary query={query} loading={<Skeleton className="h-72 w-full rounded-2xl" />}>
+        {(data) => (data.total === 0 ? <EmptyState icon="star" title={t("payroll.reputation.emptyTitle")} description={t("payroll.reputation.emptyHint")} /> : <ReputationBody data={data} />)}
+      </QueryBoundary>
+    </div>
+  );
+}
+
+/**
+ * «Pide reseñas»: los clientes que atendió en las dos últimas semanas sin calificar la visita (ni pedido en 30 días)
+ * reciben por WhatsApp el mismo mensaje del pedido automático, con su nombre. Sin candidatos no se muestra.
+ */
+function AskForReviews({ memberId, branchId }: { memberId: string; branchId: string }) {
+  const t = useAppT();
+  const candidates = useReviewCandidates(branchId, memberId);
+  const ask = useRequestReviews(branchId, memberId);
+  const items = candidates.data?.items ?? [];
+  if (items.length === 0) return null;
+  const names = items.slice(0, 3).map((item) => item.name.split(" ")[0]).join(", ");
+  return (
+    <InfoCard
+      title={t("payroll.reputation.ask.title")}
+      description={t("payroll.reputation.ask.hint", { count: items.length, names, more: Math.max(0, items.length - 3) })}
+      actions={
+        <Button
+          size="sm"
+          disabled={ask.isPending}
+          onClick={() => ask.mutate(undefined, { onSuccess: (data) => toast.success(t("payroll.reputation.ask.sent", { count: data.sent })), onError: (error) => toast.error(describeError(error).description) })}
+          data-testid="ask-reviews"
+        >
+          <Send /> {t("payroll.reputation.ask.send", { count: items.length })}
+        </Button>
+      }
+    >
+      <Text size="xs" tone="muted">
+        {t("payroll.reputation.ask.note")}
+      </Text>
+    </InfoCard>
   );
 }
 

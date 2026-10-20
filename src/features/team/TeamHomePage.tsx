@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { format } from "date-fns";
 import { ArrowUpNarrowWide, BellRing, CalendarCheck, CheckCircle2, Layers, ListOrdered, Pencil, Plane, ToggleRight, TriangleAlert, Upload, UserMinus, UserPlus, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,6 @@ import {
   branchName,
   formatRowDate,
   membersOfRole,
-  offsetToDate,
   teamCells,
   teamColumns,
   teamMetrics,
@@ -568,8 +566,8 @@ export function TeamHomePage() {
                   <TableCell className="text-text-secondary">{t("team.chair", { number: shift.chair })}</TableCell>
                   <TableCell className="text-text-secondary">{t(shift.reasonKey)}</TableCell>
                   <TableCell className="text-right">
-                    {/* Cubrir el turno es mover sus citas a otro barbero: se abre ese día en la agenda. */}
-                    <Button size="xs" variant="outline" onClick={() => navigate(`/calendario?fecha=${format(offsetToDate(shift.dayOffset), "yyyy-MM-dd")}`)}>
+                    {/* Cubrir el turno: se asigna en Ausencias › Turnos y sus citas pasan a quien lo cubre. */}
+                    <Button size="xs" variant="outline" onClick={() => navigate("/usuarios/ausencias?vista=turnos")}>
                       {t("team.shifts.assign")}
                     </Button>
                   </TableCell>

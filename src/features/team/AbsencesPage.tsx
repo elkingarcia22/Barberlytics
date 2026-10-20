@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/data-display/StatusBadge";
 import { EmptyState } from "@/components/feedback";
 import { Field } from "@/components/forms";
 import { Breadcrumbs, ThemaTabs } from "@/components/navigation";
+import { SegmentedControl } from "@/components/selection";
 import { ModalShell } from "@/components/overlays";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,12 +21,29 @@ import { PageHeader } from "@/components/utility";
 import { isBarberRole, useAccess } from "@/features/access";
 import { AbsenceRequestDrawer } from "./AbsenceRequestDrawer";
 import { useMembersQuery } from "./queries";
+import { ShiftsView } from "./operations/ShiftsView";
 import { InfoCard } from "./teamShared";
 import { useBranchId } from "./teamUtils";
-import { ABSENCE_KIND_KEYS, ABSENCE_STATUS_KEYS, useAbsences, useCancelAbsence, useDecideAbsence, type Absence } from "./workforce";
+import {
+  ABSENCE_KIND_KEYS,
+  ABSENCE_STATUS_KEYS,
+  useAbsences,
+  useCancelAbsence,
+  useDecideAbsence,
+  type Absence,
+} from "./workforce";
 
-const DAY: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
-const WHEN: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
+const DAY: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+};
+const WHEN: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+};
 const AFFECTED_SHOWN = 5;
 const MIN_REASON = 3;
 type StatusTab = Absence["status"];
@@ -45,61 +63,143 @@ export function AbsencesPage() {
   const manages = access.role === "owner" || access.role === "admin";
   const [requesting, setRequesting] = React.useState(false);
   const [tab, setTab] = React.useState<StatusTab>("pending");
+  // «Turnos»: los turnos abiertos por ausencias y los cambios entre compañeros (`?vista=turnos`).
+  const [params, setParams] = useSearchParams();
+  const section = params.get("vista") === "turnos" ? "turnos" : "ausencias";
+  const setSection = (next: string) =>
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current);
+        if (next === "turnos") copy.set("vista", "turnos");
+        else copy.delete("vista");
+        return copy;
+      },
+      { replace: true },
+    );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ShellHeaderSlot>
-        <Breadcrumbs items={[{ label: t("nav.home"), onClick: () => navigate("/metricas") }, { label: t("team.title"), onClick: () => navigate("/usuarios") }, t("team.absence.title")]} />
+        <Breadcrumbs
+          items={[
+            { label: t("nav.home"), onClick: () => navigate("/metricas") },
+            { label: t("team.title"), onClick: () => navigate("/usuarios") },
+            t("team.absence.title"),
+          ]}
+        />
       </ShellHeaderSlot>
       <PageHeader
         title={t("team.absence.title")}
-        description={t(manages ? "team.absence.description" : "team.absence.descriptionOwn")}
+        description={t(
+          manages ? "team.absence.description" : "team.absence.descriptionOwn",
+        )}
         actions={
           <Button onClick={() => setRequesting(true)} data-testid="absence-new">
-            <Plus /> {t(manages || access.role === "barbero-renta" ? "team.absence.create" : "team.absence.request")}
+            <Plus />{" "}
+            {t(
+              manages || access.role === "barbero-renta"
+                ? "team.absence.create"
+                : "team.absence.request",
+            )}
           </Button>
         }
       />
-      <QueryBoundary query={query} loading={<Skeleton className="h-64 w-full rounded-2xl" />}>
-        {(data) => {
-          const counts = { pending: 0, approved: 0, rejected: 0 };
-          for (const item of data.items) counts[item.status] += 1;
-          const rows = data.items.filter((item) => item.status === tab);
-          return (
-            <>
-              <ThemaTabs
-                className="mb-section"
-                variant="page"
-                fitContent
-                tabs={(["pending", "approved", "rejected"] as const).map((id) => ({ id, label: t(ABSENCE_STATUS_KEYS[id]), badge: counts[id] }))}
-                activeTabId={tab}
-                onTabChange={(next) => setTab(next as StatusTab)}
-              />
-              {rows.length === 0 ? (
-                <EmptyState icon="calendar" title={t("team.absence.empty")} description={t(tab === "pending" ? "team.absence.emptyPending" : "team.absence.emptyHint")} />
-              ) : (
-                <div className="space-y-stack" data-testid="absence-list">
-                  {rows.map((absence) => (
-                    <AbsenceCard key={absence.id} absence={absence} manages={manages} own={absence.memberId === access.member?.id} />
-                  ))}
-                </div>
-              )}
-            </>
-          );
-        }}
-      </QueryBoundary>
+      <SegmentedControl
+        className="mb-section w-fit"
+        value={section}
+        onChange={setSection}
+        options={[
+          { value: "ausencias", label: t("team.absence.sectionAbsences") },
+          { value: "turnos", label: t("team.absence.sectionShifts") },
+        ]}
+        ariaLabel={t("team.absence.sections")}
+      />
+      {section === "turnos" ? (
+        <ShiftsView
+          branchId={branchId}
+          manages={manages}
+          memberId={access.member?.id ?? null}
+          members={members.data?.items ?? []}
+        />
+      ) : (
+        <QueryBoundary
+          query={query}
+          loading={<Skeleton className="h-64 w-full rounded-2xl" />}
+        >
+          {(data) => {
+            const counts = { pending: 0, approved: 0, rejected: 0 };
+            for (const item of data.items) counts[item.status] += 1;
+            const rows = data.items.filter((item) => item.status === tab);
+            return (
+              <>
+                <ThemaTabs
+                  className="mb-section"
+                  variant="page"
+                  fitContent
+                  tabs={(["pending", "approved", "rejected"] as const).map(
+                    (id) => ({
+                      id,
+                      label: t(ABSENCE_STATUS_KEYS[id]),
+                      badge: counts[id],
+                    }),
+                  )}
+                  activeTabId={tab}
+                  onTabChange={(next) => setTab(next as StatusTab)}
+                />
+                {rows.length === 0 ? (
+                  <EmptyState
+                    icon="calendar"
+                    title={t("team.absence.empty")}
+                    description={t(
+                      tab === "pending"
+                        ? "team.absence.emptyPending"
+                        : "team.absence.emptyHint",
+                    )}
+                  />
+                ) : (
+                  <div className="space-y-stack" data-testid="absence-list">
+                    {rows.map((absence) => (
+                      <AbsenceCard
+                        key={absence.id}
+                        absence={absence}
+                        manages={manages}
+                        own={absence.memberId === access.member?.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          }}
+        </QueryBoundary>
+      )}
       <AbsenceRequestDrawer
         open={requesting}
         onOpenChange={setRequesting}
         branchId={branchId}
-        members={manages ? (members.data?.items ?? []).filter((member) => isBarberRole(member.role) || member.role === "recepcion") : []}
+        members={
+          manages
+            ? (members.data?.items ?? []).filter(
+                (member) =>
+                  isBarberRole(member.role) || member.role === "recepcion",
+              )
+            : []
+        }
         approvesItself={manages || access.role === "barbero-renta"}
       />
     </div>
   );
 }
 
-function AbsenceCard({ absence, manages, own }: { absence: Absence; manages: boolean; own: boolean }) {
+function AbsenceCard({
+  absence,
+  manages,
+  own,
+}: {
+  absence: Absence;
+  manages: boolean;
+  own: boolean;
+}) {
   const t = useAppT();
   const navigate = useNavigate();
   const { formatDate } = useLocale();
@@ -107,26 +207,57 @@ function AbsenceCard({ absence, manages, own }: { absence: Absence; manages: boo
   const cancel = useCancelAbsence();
   const [rejecting, setRejecting] = React.useState(false);
   const [reason, setReason] = React.useState("");
-  const fail = (error: unknown) => toast.error(describeError(error).title, { description: describeError(error).description });
-  const range = absence.startDate === absence.endDate ? formatDate(new Date(`${absence.startDate}T12:00:00`), DAY) : `${formatDate(new Date(`${absence.startDate}T12:00:00`), DAY)} – ${formatDate(new Date(`${absence.endDate}T12:00:00`), DAY)}`;
+  const fail = (error: unknown) =>
+    toast.error(describeError(error).title, {
+      description: describeError(error).description,
+    });
+  const range =
+    absence.startDate === absence.endDate
+      ? formatDate(new Date(`${absence.startDate}T12:00:00`), DAY)
+      : `${formatDate(new Date(`${absence.startDate}T12:00:00`), DAY)} – ${formatDate(new Date(`${absence.endDate}T12:00:00`), DAY)}`;
   const canCancel = manages || (own && absence.status === "pending");
 
   return (
     <InfoCard
       title={`${absence.memberName} · ${t(ABSENCE_KIND_KEYS[absence.kind])}`}
       description={range}
-      actions={<StatusBadge status={absence.status === "approved" ? "active" : absence.status === "pending" ? "pending" : "inactive"} label={t(ABSENCE_STATUS_KEYS[absence.status])} />}
+      actions={
+        <StatusBadge
+          status={
+            absence.status === "approved"
+              ? "active"
+              : absence.status === "pending"
+                ? "pending"
+                : "inactive"
+          }
+          label={t(ABSENCE_STATUS_KEYS[absence.status])}
+        />
+      }
     >
       <div className="space-y-3" data-testid={`absence-${absence.id}`}>
         {absence.note && <Text variant="muted">{absence.note}</Text>}
-        {absence.status === "rejected" && absence.reason && <Text variant="muted">{t("team.absence.rejectedBecause", { reason: absence.reason })}</Text>}
+        {absence.status === "rejected" && absence.reason && (
+          <Text variant="muted">
+            {t("team.absence.rejectedBecause", { reason: absence.reason })}
+          </Text>
+        )}
         {absence.affected.length > 0 ? (
           <div className="space-y-1">
-            <Text variant="label">{t("team.absence.affected", { count: absence.affected.length })}</Text>
+            <Text variant="label">
+              {t("team.absence.affected", { count: absence.affected.length })}
+            </Text>
             <ul className="text-sm text-text-secondary">
               {absence.affected.slice(0, AFFECTED_SHOWN).map((item) => (
                 <li key={item.id}>
-                  <button type="button" className="hover:underline" onClick={() => navigate(`/calendario?fecha=${item.start.slice(0, 10)}&cita=${item.id}`)}>
+                  <button
+                    type="button"
+                    className="hover:underline"
+                    onClick={() =>
+                      navigate(
+                        `/calendario?fecha=${item.start.slice(0, 10)}&cita=${item.id}`,
+                      )
+                    }
+                  >
                     {formatDate(new Date(item.start), WHEN)} · {item.client}
                   </button>
                 </li>
@@ -137,22 +268,56 @@ function AbsenceCard({ absence, manages, own }: { absence: Absence; manages: boo
           <Text variant="muted">{t("team.absence.noAffected")}</Text>
         )}
         <Text variant="muted" className="text-xs">
-          {t("team.absence.requestedBy", { name: absence.requestedBy, date: formatDate(new Date(absence.requestedAt), WHEN) })}
-          {absence.decidedBy ? ` · ${t("team.absence.decidedBy", { name: absence.decidedBy })}` : ""}
+          {t("team.absence.requestedBy", {
+            name: absence.requestedBy,
+            date: formatDate(new Date(absence.requestedAt), WHEN),
+          })}
+          {absence.decidedBy
+            ? ` · ${t("team.absence.decidedBy", { name: absence.decidedBy })}`
+            : ""}
         </Text>
         <div className="flex flex-wrap gap-2">
           {manages && absence.status === "pending" && (
             <>
-              <Button size="sm" onClick={() => decide.mutate({ id: absence.id, decision: "approve" }, { onSuccess: () => toast.success(t("team.absence.approved")), onError: fail })} disabled={decide.isPending} data-testid="absence-approve">
+              <Button
+                size="sm"
+                onClick={() =>
+                  decide.mutate(
+                    { id: absence.id, decision: "approve" },
+                    {
+                      onSuccess: () =>
+                        toast.success(t("team.absence.approved")),
+                      onError: fail,
+                    },
+                  )
+                }
+                disabled={decide.isPending}
+                data-testid="absence-approve"
+              >
                 <Check /> {t("team.absence.approve")}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setRejecting(true)} data-testid="absence-reject">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRejecting(true)}
+                data-testid="absence-reject"
+              >
                 <X /> {t("team.absence.reject")}
               </Button>
             </>
           )}
           {canCancel && absence.status !== "rejected" && (
-            <Button size="sm" variant="ghost" onClick={() => cancel.mutate(absence.id, { onSuccess: () => toast.success(t("team.absence.cancelled")), onError: fail })} disabled={cancel.isPending}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                cancel.mutate(absence.id, {
+                  onSuccess: () => toast.success(t("team.absence.cancelled")),
+                  onError: fail,
+                })
+              }
+              disabled={cancel.isPending}
+            >
               <Trash2 /> {t("team.absence.cancel")}
             </Button>
           )}
@@ -171,7 +336,18 @@ function AbsenceCard({ absence, manages, own }: { absence: Absence; manages: boo
             <Button
               variant="destructive"
               disabled={reason.trim().length < MIN_REASON || decide.isPending}
-              onClick={() => decide.mutate({ id: absence.id, decision: "reject", reason: reason.trim() }, { onSuccess: () => (setRejecting(false), toast.success(t("team.absence.rejected"))), onError: fail })}
+              onClick={() =>
+                decide.mutate(
+                  { id: absence.id, decision: "reject", reason: reason.trim() },
+                  {
+                    onSuccess: () => (
+                      setRejecting(false),
+                      toast.success(t("team.absence.rejected"))
+                    ),
+                    onError: fail,
+                  },
+                )
+              }
               data-testid="absence-reject-confirm"
             >
               {t("team.absence.reject")}
@@ -180,10 +356,13 @@ function AbsenceCard({ absence, manages, own }: { absence: Absence; manages: boo
         }
       >
         <Field label={t("team.absence.reason")} required>
-          <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} />
+          <Textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+          />
         </Field>
       </ModalShell>
     </InfoCard>
   );
 }
-

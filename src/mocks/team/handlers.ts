@@ -1,7 +1,8 @@
+import { validBreaks } from "@/features/team/shiftRanges";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, hasStepUp, sessionOf, stepUpRequired } from "../session";
-import { isMaskedAccount, managesMember, redactFor, SELF_EDITABLE, withMaskedBank } from "./memberAccess";
+import { isMaskedAccount, managesMember, redactFor, RENTER_SELF_EDITABLE, SELF_EDITABLE, withMaskedBank } from "./memberAccess";
 import {
   isBarberRole,
   memberName,
@@ -93,7 +94,12 @@ function validateSchedule(input: unknown): Record<string, MockWorkingRange | nul
     }
     const range = value as Record<string, unknown>;
     if (!CLOCK.test(text(range.start)) || !CLOCK.test(text(range.end)) || text(range.end) <= text(range.start)) return null;
-    result[day] = { start: text(range.start), end: text(range.end) };
+    // Turno partido: los descansos van dentro de la franja, sin pisarse.
+    const breaks = (Array.isArray(range.breaks) ? range.breaks : []).map((item) => ({ start: text(asRecord(item).start), end: text(asRecord(item).end) }));
+    if (breaks.some((item) => !CLOCK.test(item.start) || !CLOCK.test(item.end))) return null;
+    const next: MockWorkingRange = { start: text(range.start), end: text(range.end), ...(breaks.length > 0 ? { breaks } : {}) };
+    if (!validBreaks(next)) return null;
+    result[day] = next;
   }
   return result;
 }
@@ -221,8 +227,11 @@ export const teamHandlers = [
     if (!manages && !isSelf) return forbidden("Esa ficha la edita quien gestiona al equipo.");
     if (!manages) {
       // Su propia ficha: cómo se presenta y su contacto. Lo demás (nivel, servicios, dinero, permisos) se lo pide a gerencia.
-      const locked = Object.keys(input).filter((key) => !SELF_EDITABLE.has(key) && JSON.stringify(input[key]) !== JSON.stringify((existing as unknown as Record<string, unknown>)[key]));
+      const editable = existing.role === "barbero-renta" ? RENTER_SELF_EDITABLE : SELF_EDITABLE;
+      const locked = Object.keys(input).filter((key) => !editable.has(key) && JSON.stringify(input[key]) !== JSON.stringify((existing as unknown as Record<string, unknown>)[key]));
       if (locked.length > 0) return forbidden("Eso lo cambia quien gestiona al equipo.");
+      // Sus precios sí; el reparto de comisión de cada servicio no (no aplica a la renta y lo fija gerencia).
+      if (Array.isArray(input.services)) input.services = (input.services as MockTeamMember["services"]).map((row) => { const before = existing.services.find((item) => item.serviceId === row.serviceId); return { ...row, splitCommission: before?.splitCommission ?? null, extraCommission: before?.extraCommission ?? null }; });
     }
     // La cuenta bancaria llega enmascarada si no se tocó; cambiarla desvía la plata: pide confirmar la identidad.
     if (input.payments && typeof input.payments === "object") {
@@ -257,7 +266,7 @@ export const teamHandlers = [
     if (input.payments && typeof input.payments === "object") next = { ...next, payments: input.payments as MockTeamMember["payments"] };
     if ("schedule" in input) {
       const schedule = validateSchedule(input.schedule);
-      if (!schedule) fields.schedule = ["Cada día marcado necesita una hora de cierre posterior a la de inicio."];
+      if (!schedule) fields.schedule = ["Cada día marcado necesita una hora de cierre posterior a la de inicio, y sus descansos van dentro de la franja sin pisarse."];
       else next = { ...next, schedule };
     }
     if (input.permissions) next = { ...next, permissions: sanitizePermissions(input.permissions, existing.permissions) };

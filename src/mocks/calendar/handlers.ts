@@ -1,3 +1,4 @@
+import { rangesOf } from "@/features/team/shiftRanges";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { promoDiscount } from "@/features/booking/pricing";
 import { COUPON_PROBLEMS, checkCoupon, redeemCoupon } from "../marketing/coupons";
@@ -14,7 +15,7 @@ import { branchNow, itemTaxPercent, taxInclusive } from "../settings/branchRules
 import { appointmentAccount } from "./account";
 import { cancelMessages, newConfirmToken, offerFreedSlot, rescheduleMessages, scheduleMessages } from "../booking/reminders";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
-import { barbersOf, isBarberRole, memberName, type MockTeamMember } from "../team/seed";
+import { barbersOf, isBarberRole, memberName, type MockTeamMember, type MockWorkingRange } from "../team/seed";
 import type { MockCatalogService } from "../services/seed";
 import type { MockCatalogProduct } from "../products/seed";
 import { deriveProfile } from "../customers/seed";
@@ -98,16 +99,17 @@ function fixedHours(member: MockTeamMember): MockBarber["workingHours"] {
   return Object.fromEntries(
     Object.entries(member.schedule)
       .filter(([, range]) => range !== null)
-      .map(([day, range]) => [Number(day), [range as { start: string; end: string }]])
+      .map(([day, range]) => [Number(day), rangesOf(range as MockWorkingRange)])
   );
 }
 
 /** Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. */
 export function hoursOn(member: MockTeamMember, day: string): { start: string; end: string }[] {
   const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === day);
-  if (override) return override.range ? [override.range] : [];
+  if (override) return override.range ? rangesOf(override.range) : [];
   const range = member.schedule[String(new Date(`${day}T00:00:00`).getDay())];
-  return range ? [range] : [];
+  // Un turno partido son varias franjas: los descansos no se agendan.
+  return range ? rangesOf(range) : [];
 }
 
 /** Los barberos activos de la sucursal, en su orden de calendario, como los ve la agenda. */

@@ -1,5 +1,6 @@
 import { HttpResponse } from "msw";
 import { accountById, db, type MockAccount, type MockTeamRole } from "./db";
+import { applyDuePayoutChanges, liveTeamRole } from "./team/payoutSchedule";
 
 /**
  * Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha
@@ -17,7 +18,10 @@ export function sessionOf(request: Request): MockSession | null {
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
   const account = accountById(accountId);
-  return account ? { account, teamRole: account.user.teamRole, memberId: account.user.memberId } : null;
+  if (!account) return null;
+  // Los cambios de forma de pago con fecha se aplican al llegar el día; el rol del barbero sigue al de su ficha.
+  applyDuePayoutChanges();
+  return { account, teamRole: liveTeamRole(account), memberId: account.user.memberId };
 }
 
 /** Dueño o administrador: gestionan la sucursal (nómina, configuración, equipo). */

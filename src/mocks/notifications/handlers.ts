@@ -31,7 +31,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered" | "shiftRequested" | "shiftSwapAsked" | "shiftDecided";
 
 export interface MockNotification {
   id: string;
@@ -199,6 +199,20 @@ function barberMoneyEvents(branchId: string, now: Date): MockNotification[] {
   return items;
 }
 
+/** Los turnos: a gerencia lo que hay que aprobar, al compañero el cambio que le ofrecen, a quien pidió lo que se decidió. */
+function shiftEvents(branchId: string, now: Date): MockNotification[] {
+  const items: MockNotification[] = [];
+  for (const request of (db.team.shiftRequests ?? []).filter((item) => item.branchId === branchId)) {
+    const params = { name: request.requesterName, with: request.withName ?? "", day: request.date, kind: request.kind };
+    const href = "/usuarios/ausencias?vista=turnos";
+    const toApprove = (request.kind === "cover" && request.status === "pending") || (request.kind === "swap" && request.status === "accepted");
+    if (toApprove && recent(request.createdAt, now)) items.push({ id: `shift:${request.id}:${request.status}`, kind: "shiftRequested", at: request.createdAt, href, tone: "info", params, roles: MANAGERS });
+    if (request.kind === "swap" && request.status === "pending" && recent(request.createdAt, now)) items.push({ id: `shift-swap:${request.id}`, kind: "shiftSwapAsked", at: request.createdAt, href, tone: "info", params: { ...params, withDay: request.withDate ?? "" }, roles: ["barbero-comision", "barbero-renta"], memberId: request.withMemberId ?? null });
+    if ((request.status === "approved" || request.status === "rejected") && request.decidedAt && request.decidedBy !== request.requesterName && recent(request.decidedAt, now)) items.push({ id: `shift-decided:${request.id}`, kind: "shiftDecided", at: request.decidedAt, href, tone: request.status === "approved" ? "positive" : "warning", params: { ...params, status: request.status }, roles: ["barbero-comision", "barbero-renta"], memberId: request.requesterId });
+  }
+  return items;
+}
+
 function reviewEvents(now: Date): MockNotification[] {
   return (db.booking.reviews ?? [])
     .filter((review) => review.rating <= LOW_RATING && recent(review.createdAt, now))
@@ -240,7 +254,7 @@ function securityEvents(accountId: string | null, now: Date): MockNotification[]
 
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. */
 export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date(), accountId: string | null = null): MockNotification[] {
-  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now)];
+  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now), ...shiftEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
   return [...all, ...securityEvents(accountId, now)]
     .filter((item) => item.accountId !== undefined || (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))

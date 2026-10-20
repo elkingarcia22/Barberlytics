@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
-import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
+import { Layers, Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -24,6 +24,8 @@ import { useCreateLevel, useLevelsQuery, useMembersQuery, useRemoveLevel, useUpd
 import { MemberAvatar } from "./teamShared";
 import { isBarberRole, type Level, type TeamMember } from "./types";
 import { useBranchId } from "./teamUtils";
+import { LevelReadiness, LevelRulesDialog } from "./operations/LevelRules";
+import { useLevelSummary } from "./operations/levelSummary";
 
 /**
  * Niveles: la lista con cuántos barberos tiene cada uno, y crear, editar o
@@ -48,6 +50,8 @@ export function LevelsPage() {
   const canDelete = access.can("levels", "delete");
   const [dialog, setDialog] = React.useState<{ mode: "create" } | { mode: "edit"; level: Level } | null>(null);
   const [pendingDelete, setPendingDelete] = React.useState<Level | null>(null);
+  const [rulesOf, setRulesOf] = React.useState<Level | null>(null);
+  const manages = access.role === "owner" || access.role === "admin";
   const barbers = (members.data?.items ?? []).filter((member) => isBarberRole(member.role) && member.status !== "inactive");
   const byLevel = (id: string | null) => barbers.filter((member) => member.levelId === id);
 
@@ -81,7 +85,7 @@ export function LevelsPage() {
         {(data) => (
           <ListItemGroup data-testid="levels-list">
             {data.items.map((level) => (
-              <LevelRow key={level.id} level={level} barbers={byLevel(level.id)} onEdit={canEdit ? () => setDialog({ mode: "edit", level }) : undefined} onDelete={canDelete ? () => setPendingDelete(level) : undefined} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />
+              <LevelRow key={level.id} level={level} barbers={byLevel(level.id)} onRules={manages ? () => setRulesOf(level) : undefined} onEdit={canEdit ? () => setDialog({ mode: "edit", level }) : undefined} onDelete={canDelete ? () => setPendingDelete(level) : undefined} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />
             ))}
             {byLevel(null).length > 0 && (
               <ListItem leading={<IconTile icon={<Layers />} tone="neutral" />} title={t("teamLevels.unassigned")} description={t("teamLevels.unassignedHint")} meta={<Faces members={byLevel(null)} onOpen={(id) => navigate(`/usuarios/miembros/${id}`)} />} />
@@ -90,6 +94,8 @@ export function LevelsPage() {
         )}
       </QueryBoundary>
 
+      {manages && <LevelReadiness branchId={branchId} />}
+      <LevelRulesDialog key={rulesOf?.id ?? "none"} level={rulesOf} onClose={() => setRulesOf(null)} />
       <LevelDialog
         key={`${useOpenKey(dialog !== null)}-${dialog?.mode === "edit" ? dialog.level.id : "new"}`}
         state={dialog}
@@ -158,10 +164,12 @@ function Faces({ members, onOpen }: { members: readonly TeamMember[]; onOpen: (i
   );
 }
 
-function LevelRow({ level, barbers, onEdit, onDelete, onOpen }: { level: Level; barbers: readonly TeamMember[]; onEdit?: () => void; onDelete?: () => void; onOpen: (id: string) => void }) {
+function LevelRow({ level, barbers, onRules, onEdit, onDelete, onOpen }: { level: Level; barbers: readonly TeamMember[]; onRules?: () => void; onEdit?: () => void; onDelete?: () => void; onOpen: (id: string) => void }) {
   const t = useAppT();
+  const summary = useLevelSummary();
   const count = barbers.length;
   const rowActions = [
+    ...(onRules ? [{ id: "rules", label: t("teamLevels.rules.open"), icon: <SlidersHorizontal />, onSelect: onRules }] : []),
     ...(onEdit ? [{ id: "edit", label: t("teamLevels.edit"), icon: <Pencil />, onSelect: onEdit }] : []),
     ...(onDelete ? [{ id: "delete", label: t("teamLevels.delete"), icon: <Trash2 />, tone: "danger" as const, blockedReason: count > 0 ? t("teamLevels.deleteHint") : null, onSelect: onDelete }] : []),
   ];
@@ -169,7 +177,7 @@ function LevelRow({ level, barbers, onEdit, onDelete, onOpen }: { level: Level; 
     <ListItem
       leading={<IconTile icon={<Layers />} tone={count > 0 ? "primary" : "neutral"} />}
       title={level.name}
-      description={count === 0 ? t("teamLevels.noBarbers") : count === 1 ? t("teamLevels.barbersOne") : t("teamLevels.barbers", { count })}
+      description={`${count === 0 ? t("teamLevels.noBarbers") : count === 1 ? t("teamLevels.barbersOne") : t("teamLevels.barbers", { count })} · ${summary(level)}`}
       meta={
         <span className="flex items-center gap-3">
           <Faces members={barbers} onOpen={onOpen} />

@@ -1,3 +1,4 @@
+import { isCovered } from "./shifts";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { db } from "../db";
 import { appointmentsOn, hoursOn } from "../calendar/handlers";
@@ -74,7 +75,7 @@ export const lineupRank = (branchId: string, day: string): string[] => lineupTur
  * Las ausencias. La demo trae dos solicitudes por aprobar (relativas a hoy) para que se vea el flujo en
  * la agenda: unas vacaciones la semana que viene y un permiso de un día.
  */
-const absences = (): MockAbsence[] => db.team.absences ?? demoAbsences();
+export const absences = (): MockAbsence[] => db.team.absences ?? demoAbsences();
 
 const nameOf = (memberId: string) => {
   const member = memberOf(memberId);
@@ -210,7 +211,7 @@ function openShifts(branchId: string, now: Date) {
     barbers.forEach((member, index) => {
       const absence = absences().find((item) => item.memberId === member.id && item.status === "approved" && item.startDate <= day && day <= item.endDate);
       const range = hoursOn(member, day)[0];
-      if (absence && range) shifts.push({ id: `${absence.id}:${day}`, dayOffset: offset, slot: `${range.start} – ${range.end}`, branchId, chair: index + 1, reason: absence.kind, memberName: memberName(member) });
+      if (absence && range && !isCovered(absence.id, day)) shifts.push({ id: `${absence.id}:${day}`, dayOffset: offset, slot: `${range.start} – ${range.end}`, branchId, chair: index + 1, reason: absence.kind, memberName: memberName(member) });
     });
   }
   return shifts;

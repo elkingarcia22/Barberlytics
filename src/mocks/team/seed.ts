@@ -16,11 +16,24 @@ export type MockTeamStatus = "active" | "invited" | "inactive";
 export interface MockWorkingRange {
   start: string;
   end: string;
+  /** Turno partido: los descansos del día dentro de la franja (el almuerzo). */
+  breaks?: { start: string; end: string }[];
+}
+
+/** Lo que hace falta en los últimos 90 días (y de antigüedad) para llegar a un nivel; `null` = no se mide. */
+export interface MockLevelCriteria {
+  services90: number | null;
+  rebookRate: number | null;
+  rating: number | null;
+  months: number | null;
 }
 
 export interface MockLevel {
   id: string;
   name: string;
+  /** Cuánto sobre el precio de la carta cobra quien está en este nivel (1 = el precio de la carta). */
+  priceFactor?: number;
+  criteria?: MockLevelCriteria;
 }
 
 export interface MockServiceOverride {
@@ -243,11 +256,16 @@ export const ROLE_PERMISSION_DEFAULTS: Readonly<Record<MockTeamRole, MockPermiss
 
 /* -------------------------------------------------------------- niveles */
 
+/** Turno partido: el mismo descanso todos los días que trabaja (el almuerzo). */
+const withBreak = (schedule: Record<string, MockWorkingRange | null>, pause: { start: string; end: string }): Record<string, MockWorkingRange | null> =>
+  Object.fromEntries(Object.entries(schedule).map(([day, range]) => [day, range ? { ...range, breaks: [pause] } : null]));
+
+/** Los niveles, del primero al último: el orden es el camino de ascenso. */
 export const LEVELS: readonly MockLevel[] = [
-  { id: "lvl_aprendiz", name: "Aprendiz" },
-  { id: "lvl_junior", name: "Junior" },
-  { id: "lvl_senior", name: "Senior" },
-  { id: "lvl_master", name: "Master" },
+  { id: "lvl_aprendiz", name: "Aprendiz", priceFactor: 0.8, criteria: { services90: null, rebookRate: null, rating: null, months: null } },
+  { id: "lvl_junior", name: "Junior", priceFactor: 0.9, criteria: { services90: 60, rebookRate: null, rating: 4.3, months: 3 } },
+  { id: "lvl_senior", name: "Senior", priceFactor: 1, criteria: { services90: 150, rebookRate: 40, rating: 4.5, months: 12 } },
+  { id: "lvl_master", name: "Master", priceFactor: 1.25, criteria: { services90: 250, rebookRate: 55, rating: 4.7, months: 24 } },
 ];
 
 /* ------------------------------------------------------------- personas */
@@ -345,7 +363,7 @@ export function seedTeam(): MockTeamMember[] {
     person(4, "Andrés", "Beltrán", "barbero-comision", "ma", { levelId: "lvl_master", schedule: week(MON_SAT, "09:00", "19:00"), description: "Especialista en corte clásico y barba a navaja.", instagram: "https://instagram.com/andres.barber", facebook: "https://facebook.com/andres.barber", skills: ["Corte clásico", "Barba a navaja", "Fade"], compensation: { basic: 45, recurring: 50 } }),
     person(29, "Emilio", "Arango", "barbero-comision", "ma", { levelId: "lvl_junior", schedule: week(MON_SAT, "10:00", "19:00"), skills: ["Corte clásico", "Fade", "Corte niño"] }),
     person(30, "Paola", "Zuluaga", "barbero-renta", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "09:00", "17:00"), instagram: "https://instagram.com/paola.cuts", skills: ["Barba a navaja", "Barba", "Diseño", "Corte clásico"] }),
-    person(5, "Nicolás", "Duarte", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(TUE_SAT, "10:00", "20:00"), skills: ["Fade", "Diseño", "Barba"] }),
+    person(5, "Nicolás", "Duarte", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: withBreak(week(TUE_SAT, "10:00", "20:00"), { start: "14:00", end: "15:00" }), skills: ["Fade", "Diseño", "Barba"] }),
     person(6, "Valeria", "Marín", "barbero-renta", "ma", { levelId: "lvl_master", schedule: week(MON_FRI, "08:00", "16:00"), bookingVisible: true, options: { newClients: false }, skills: ["Corte clásico", "Barba a navaja", "Tratamientos"] }),
     person(7, "Tomás", "Peña", "barbero-renta", "ma", { levelId: "lvl_junior", schedule: week(WED_SAT, "12:00", "22:00"), skills: ["Fade", "Corte clásico", "Corte niño"] }),
     person(8, "Daniela", "Osorio", "barbero-comision", "ma", { levelId: "lvl_senior", schedule: week(MON_SAT, "09:00", "18:00", { "3": { start: "09:00", end: "13:00" } }), skills: ["Color", "Tratamientos", "Corte clásico"], compensation: { type: "salary", salary: 650 } }),

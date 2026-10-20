@@ -1,3 +1,4 @@
+import { PayoutChangeCard } from "./operations/PayoutChangeCard";
 import * as React from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { ArrowLeft, CalendarDays, Check, Pencil, Trash2, UserMinus, UserPlus, X } from "lucide-react";
@@ -259,7 +260,11 @@ function MemberProfile({ member, levels, services, formatMoney, editing, onEditi
       ) : editingTab ? (
         <TabEditor key={`${member.id}-${formTab}`} tab={formTab} selfService={viewer.selfService} member={member} levels={levels} services={services} formatMoney={formatMoney} saving={saving} onSave={onSave} onCancel={() => onEditingChange(false)} />
       ) : (
-        <MemberTabView tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
+        <>
+          <MemberTabView tab={formTab} member={member} levels={levels} services={services} formatMoney={formatMoney} showPrivate={viewer.seesPrivate} />
+          {/* Cambiar de comisión a renta (o a salario) con fecha, sin recrear a la persona: solo quien gestiona. */}
+          {(formTab === "compensation" || formTab === "payments") && (access.role === "owner" || access.role === "admin") && !viewer.isSelf && <PayoutChangeCard member={member} />}
+        </>
       )}
 
       {!editingTab && (

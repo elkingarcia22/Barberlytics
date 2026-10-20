@@ -126,8 +126,8 @@ pronóstico del costo de personal.
 **Pendiente**
 - ~~P0 · «Cargar miembros», «Recordar invitación» y «Desactivar» sin acción; Mi ficha no editable; datos bancarios en claro~~
   (hecho el 2026-10-19, ver abajo); ~~`/usuarios/lista` con el enum de la plantilla~~ (retirada).
-- P1 · Fichaje; turnos abiertos e intercambio; ~~metas~~ y niveles con criterios; cambio comisión ↔ renta con fecha; ~~estado
-  de cuenta de renta~~ (hecho el 2026-10-20); invitación real e importación; turnos partidos.
+- P1 · ~~Fichaje; turnos abiertos e intercambio; metas y niveles con criterios; cambio comisión ↔ renta con fecha; estado
+  de cuenta de renta; turnos partidos~~ (hecho el 2026-10-20); invitación real e importación.
 - P2 · Portafolio, formación, documentos firmados, ranking.
 
 **IA que falta**: agente que cubre ausencias; coaching semanal; asignación por habilidad para «sin preferencia»; reseñas
@@ -190,7 +190,7 @@ recordatorios; foto de referencia descrita; horas y barbero recomendados.
 **Pendiente**
 - ~~P0 · «Hoy» en el celular muestra lo cobrado, no lo que gana~~ (hecho el 2026-10-19).
 - P1 · ~~Quincena~~; ~~% de cada deducción; «Mi negocio» con gastos; «Mi reputación»; metas; mis clientes por volver; PDF y
-  certificado; avisos de dinero; «Esto no cuadra»~~ (hecho el 2026-10-20); Mi ficha.
+  certificado; avisos de dinero; «Esto no cuadra»; Mi ficha~~ (hecho el 2026-10-20).
 
 **IA que falta**: mis clientes por volver con mensaje aprobado; resumen semanal con una acción; lo que dicen de mí;
 revisión de su pago.
@@ -366,3 +366,11 @@ Se va completando aquí lo que se corrige a partir de esta lista.
   - Avisos de dinero: pago aprobado, ajuste nuevo, renta por vencer cuando va debiendo y respuesta a su reclamo.
   - «Esto no cuadra» desde el pago o desde una cita: le llega a gerencia con la cita adjunta y se responde desde el panel de Nómina.
   - Falta: Mi ficha editable, pedir reseña desde su reputación y el apartado sugerido para impuestos.
+- **Operación del equipo (08 P0 y P1, 14, 2026-10-20).**
+  - Turnos partidos: cada día del horario lleva descansos (el almuerzo); la agenda y la reserva los ven como franjas y no agendan ahí. Nicolás Duarte trae uno en la demo.
+  - Fichaje: «Marcar entrada / Salida» en la cabecera para los empleados (no el dueño ni el de renta); Horas de trabajo › Fichajes muestra la semana de cada uno contra su horario, llegadas tarde y días sin fichar.
+  - Turnos abiertos e intercambio (Ausencias › Turnos): el día de alguien con ausencia aprobada lo pide un barbero libre o gerencia se lo asigna a quien está libre; un cambio de día entre dos lo acepta el compañero y lo aprueba gerencia. Al aprobarse cambian los horarios de ese día y las citas pasan solas; avisos en cada paso.
+  - Niveles con reglas: factor de precio y criterios (servicios en 90 días, % que deja la siguiente cita, calificación, antigüedad); «Quién está listo para subir» con el avance de cada uno y ascenso que puede ajustar sus precios; el barbero ve «Tu nivel» en su pago.
+  - Cambio de forma de pago con fecha (comisión ↔ salario ↔ renta) desde su ficha: hoy se aplica, más adelante queda programado; la nómina de antes conserva la forma de entonces y el rol de la cuenta sigue a la ficha.
+  - Mi ficha: el de renta edita su horario, sus precios y sus opciones; acceso directo desde su pago. «Pide reseñas» en Mi reputación a sus clientes de las dos últimas semanas sin calificar.
+  - Falta: fichaje con PIN desde la tablet del Front Desk, corregir un fichaje, reglas de horas extra, invitación real e importación, y que el rol de la cuenta cambie también en el backend real.

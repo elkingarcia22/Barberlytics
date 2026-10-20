@@ -1,8 +1,8 @@
 import { addDays, format, startOfWeek } from "date-fns";
 import type { Locale } from "date-fns";
 import { useShellConfig } from "@/components/app-shell";
-import { parseClock } from "@/components/scheduling";
 import { BRANCHES, DEFAULT_BRANCH_ID } from "@/features/branches";
+import { workedMinutes } from "./shiftRanges";
 import type { ServiceOverride, TeamMember, WeekSchedule } from "./types";
 
 /** Las ayudas sin JSX del módulo de equipo. */
@@ -45,7 +45,7 @@ export function weekdayLabel(day: string, locale: Locale): string {
 export function weeklyHours(value: WeekSchedule): number {
   const minutes = WEEKDAYS.reduce((sum, day) => {
     const range = value[day];
-    return sum + (range ? Math.max(0, parseClock(range.end) - parseClock(range.start)) : 0);
+    return sum + (range ? workedMinutes(range) : 0);
   }, 0);
   return Math.round((minutes / 60) * 10) / 10;
 }

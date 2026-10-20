@@ -18,6 +18,7 @@ import { emptyBooking, type MockBookingState } from "./booking/state";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { withBarberPrices } from "./team/pricing";
 import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember, type MockAbsence } from "./team/seed";
+import type { MockPayoutChange, MockShiftRequest, MockTimeEntry } from "./team/operationsState";
 
 export type MockUserStatus = "active" | "invited" | "inactive";
 export type MockUserRole = "admin" | "manager" | "member";
@@ -164,6 +165,12 @@ export interface MockTeamState {
   overrides: MockScheduleOverride[];
   /** Ausencias pedidas, aprobadas o rechazadas. */
   absences?: MockAbsence[];
+  /** Fichajes de entrada y salida de los empleados (sin el barbero de renta). */
+  timeEntries?: MockTimeEntry[];
+  /** Pedidos de cubrir un turno abierto o de cambiar un turno con alguien. */
+  shiftRequests?: MockShiftRequest[];
+  /** Cambios de forma de pago (comisión ↔ renta ↔ salario) con su fecha. */
+  payoutChanges?: MockPayoutChange[];
 }
 
 const emptyTeam = (): MockTeamState => {

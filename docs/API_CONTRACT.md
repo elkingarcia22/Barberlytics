@@ -121,6 +121,9 @@ hubo cobros y nadie cerró la caja; dueño, administrador, recepción); `payroll
 descuento o adelanto: `note`, `amount`, `sign`), `rentDue` (al de renta, los 2 últimos días del ciclo si va debiendo:
 `amount`, `to`) y `payDisputeAnswered` (respondieron su reclamo: `by`, `answer`); `payDispute` (un barbero dice que su
 pago no cuadra: dueño y administrador, con `name` y `message`);
+**turnos**: `shiftRequested` (un turno por aprobar —cubrir pendiente o cambio aceptado—: dueño y administrador),
+`shiftSwapAsked` (al compañero al que le proponen un cambio, con `day` y `withDay`) y `shiftDecided` (a quien lo pidió,
+con `status`);
 `lowReview` (3 estrellas o menos; solo al dueño). `params` lleva lo necesario para escribirlo en el idioma de quien lee
 (`client`, `day`, `time`, `product`, `count`, `amount`, `from`, `to`…); `href` abre lo que lo causó. El mock recibe
 `role` y `memberId` por parámetro porque la sesión aún no trae el rol del equipo; el backend real los sacará de la sesión.
@@ -609,6 +612,8 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | GET | `/team/members/:id/bank` | Quien gestiona a esa persona o ella misma, con `X-Step-Up`. `{ bankName, accountNumber }` completo. |
 | GET | `/team/lineup/turn?branchId&kind=walkIn\|noPreference` | `{ kind, next, items: [{ memberId, name, avatarUrl, position, count, working, free }] }`. A quién le toca: los encendidos en esa fila que trabajan hoy, primero quien menos clientes de ese tipo lleva hoy y, a igualdad, el que va antes en la fila; `next` es el primero libre ahora. La venta sin cita lo preselecciona y la reserva «sin preferencia» reparte en ese orden. |
 | GET | `/team/home?branchId` | La portada: `members` (cada persona con `chair`, `occupancy`, `services` y `revenue` de la semana, `payout`, `retention` a 90 días, `rentDueOffset`, `openRegisters`), `openShifts` (turnos de la semana que viene sin cubrir por una ausencia aprobada), `series` (7 semanas de ocupación, servicios y turnos), `pendingAbsences`, `absentToday`. |
+| GET | `/team/members/:id/review-candidates?branchId` | Sus clientes cobrados en los últimos 14 días sin reseña de esa visita ni pedido en 30 días: `{ items: [{ appointmentId, clientId, name, at }] }`. El barbero, los suyos; gerencia, de cualquiera. |
+| POST | `/team/members/:id/review-requests` | `{ branchId, appointmentIds? }`: programa ya el mensaje `reviewRequest` (el del pedido automático, con su nombre) a esos candidatos. No es promoción; tope de uno cada 30 días por cliente. `{ sent }`. |
 | GET | `/team/members/:id/reputation` | El barbero, la suya; gerencia, la de cualquiera. `{ rating, total, sample, last90: { rating, count }, previous90, distribution: [{ stars, count }], themes: [{ id: "punctual" \| "cut" \| "beard" \| "care" \| "wait", tone, count }], recent }`. Los temas salen de palabras de los comentarios; `sample`: son las de ejemplo de la demo. |
 | GET | `/team/members/:id/due-clients?branchId` | Sus clientes por volver (la regla de los avisos de Clientes: le toca volver o en riesgo, más los perdidos), del más atrasado: `{ items: [fila de la lista de Clientes + daysSince], nextSlot: { day, time, serviceId } \| null }` (su primer hueco en 14 días para su servicio de siempre). Hasta 50. |
 | GET | `/team/members/:id/performance?branchId` | Últimos 90 días: `services`, `occupancy`, `rebookRate` (dejó otra cita con él en la semana), `retention`, `avgTicket` (sin impuesto), `productsPerService`, `tips`, `noShows`, `noShowRate`, `rating`, `reviews`. Un barbero solo el suyo (`403`). |
@@ -616,6 +621,59 @@ Además de las fichas (`/team/members`), niveles, orden y horarios:
 | POST | `/team/absences` | `{ branchId, kind, startDate, endDate?, note?, memberId? }`. Comisión, salario y recepción la piden para sí: queda `pending`. El barbero de renta y quien gestiona (para cualquiera, con `memberId`): queda `approved`. `409` si se cruza con otra. |
 | POST | `/team/absences/:id/approve` · `/reject` | Dueño, administrador o recepción (los barberos no). Aprobar crea un bloqueo diario en su agenda (`vacation`, `sick` o `personal`); rechazar pide `{ reason }`. `409` si ya se decidió. |
 | DELETE | `/team/absences/:id` | La propia pendiente, o cualquiera si gestiona; quita su bloqueo. |
+
+
+### Horario y turnos partidos
+
+Cada día del horario (`schedule["0".."6"]`, y la excepción de un día) es `{ start, end, breaks? }`: `breaks` son hasta 3
+descansos dentro de la franja, sin pisarse (`422` si no). La agenda y la reserva los ven como varias franjas
+(`workingHours`), así que nadie agenda en el almuerzo; las horas de la semana no cuentan los descansos
+(`src/features/team/shiftRanges.ts`, compartido con el servidor). El barbero de renta edita su propio horario, sus precios
+(sin el reparto de comisión, que se conserva) y sus opciones; el resto, solo cómo se presenta y su contacto.
+
+### Fichaje
+
+Fichan los empleados (administrador, recepción, comisión y salario); el dueño y el barbero de renta no (`403`).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/team/clock/me?branchId` | `{ canClock, branchId, open: entry \| null, today: entry[], shift: { start, end } \| null }`. `entry`: `{ id, branchId, memberId, clockIn, clockOut (\| null), by }`. |
+| POST | `/team/clock` | `{ branchId, action: "in" \| "out" }` de la propia persona. `409` si ya está dentro (o no tiene entrada abierta). Devuelve lo mismo que `me`. |
+| GET | `/team/timesheet?branchId&from&to` | Dueño o administrador; hasta un mes. `{ from, to, rows: [{ memberId, name, role, workedMinutes, scheduledMinutes, daysWorked, lateDays, absentDays, open, entries }] }`. `scheduledMinutes` cuenta hasta ayer (hoy solo si ya fichó); tarde = más de 10 min después del inicio de su franja; `absentDays` = tenía turno y no fichó. |
+
+### Turnos abiertos e intercambio
+
+Un turno abierto es un día de trabajo de alguien con ausencia aprobada en las dos semanas que vienen. `shiftRequest`:
+`{ id, kind: "cover" \| "swap", requesterId, requesterName, date, range, absentMemberId?, withMemberId?, withName?, withDate?, withRange?, status: "pending" \| "accepted" \| "approved" \| "rejected" \| "cancelled", createdAt, decidedBy, decidedAt, reason }`.
+Al aprobarse se crean las excepciones de horario de cada uno ese día y sus citas por atender pasan a quien trabaja (con
+`barber:<nombre>` en su historia).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/team/shifts?branchId` | `{ open: [{ id: "<ausencia>:<día>", date, absenceId, memberId, memberName, reason, range, available: [{ memberId, name }], requests }], requests }`. `available`: quién no trabaja ni está de ausencia ese día. Gerencia ve todos los pedidos; el barbero, los suyos y los que le proponen. |
+| POST | `/team/shifts/cover` | `{ shiftId }`. Un barbero libre ese día (`409` si trabaja, `422` si es su propio turno). Queda `pending`. |
+| POST | `/team/shifts/assign` | `{ shiftId, memberId }`. Gerencia: queda `approved` y aplicado; los demás pedidos de ese turno se rechazan. |
+| POST | `/team/shifts/swap` | `{ date, withMemberId, withDate }`. El barbero trabaja `date` y no `withDate`; el compañero al revés (`409`/`422` si no). Queda `pending`. |
+| POST | `/team/shifts/requests/:id/accept` · `/decline` | El compañero del cambio. `accept` lo deja `accepted`. |
+| POST | `/team/shifts/requests/:id/approve` · `/reject` | Gerencia. Cubrir: desde `pending`; cambio: desde `accepted` (`409` si falta que acepte). `{ reason? }` al rechazar. |
+| DELETE | `/team/shifts/requests/:id` | Quien lo pidió, mientras no esté decidido. `204`. |
+
+### Niveles y forma de pago
+
+`level`: `{ id, name, priceFactor, criteria: { services90, rebookRate, rating, months } }` (cada criterio `null` = no se pide).
+El orden de los niveles es el camino de ascenso.
+
+| Método | Ruta | Notas |
+|---|---|---|
+| PUT | `/team/levels/:id/rules` | `{ priceFactor (0,5–3), criteria }`. Dueño o administrador. `422` con `fields`. |
+| GET | `/team/levels/progress?branchId` | `{ items: [{ memberId, name, level, next: { id, name, priceFactor } \| null, have: { services90, rebookRate, rating, months }, checks: [{ id, need, have, met }], ready }] }`. Lo que lleva sale de sus últimos 90 días (rendimiento), su calificación y su antigüedad. El barbero recibe solo el suyo. |
+| POST | `/team/members/:id/promote` | `{ levelId, reprice }`. Con `reprice`, sus precios pasan al de la carta × el factor del nivel. |
+| GET | `/team/members/:id/payout-changes` | `{ items: [{ id, memberId, effectiveDate, from, to, status: "scheduled" \| "applied" \| "cancelled", note, createdBy, createdAt, after }] }`. |
+| POST | `/team/members/:id/payout-change` | `{ to: "commission" \| "salary" \| "rent", effectiveDate, amount?, note? }`. Dueño o administrador. `amount`: % básico, salario o renta por semana (vacío: el que tenía o el de siempre). Hoy o antes se aplica ya; más adelante queda programado y se aplica al llegar el día. `409` si ya tiene esa forma o hay otro programado. |
+| DELETE | `/team/payout-changes/:id` | Cancela uno programado (`409` si ya se aplicó). |
+
+La nómina de un periodo que empezó antes de un cambio aplicado se calcula con la forma de entonces (rol, compensación y
+pagos guardados en el cambio). El rol de la cuenta del barbero sigue al de su ficha (`/auth/me`, la sesión).
 
 ## Recepción y kiosco (`/front-desk`, `/kiosk`)
 

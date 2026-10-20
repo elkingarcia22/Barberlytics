@@ -1,3 +1,7 @@
+import { careerHandlers } from "./team/careers";
+import { liveUser } from "./team/payoutSchedule";
+import { shiftHandlers } from "./team/shifts";
+import { timeClockHandlers } from "./team/timeClock";
 import { barberHomeHandlers } from "./team/barberHome";
 import { barberPayHandlers } from "./payroll/barber";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
@@ -208,7 +212,7 @@ function sessionFor(account: MockAccount): { accessToken: string; user: MockAcco
   const token = `mock-${account.id}-${Math.random().toString(36).slice(2)}`;
   db.sessions.set(token, account.id);
   db.persist();
-  return { accessToken: token, user: account.user };
+  return { accessToken: token, user: liveUser(account) };
 }
 
 function openSession(account: MockAccount) {
@@ -503,7 +507,7 @@ export const handlers = [
     await delay(LATENCY_MS);
     const account = requireAuth(request);
     if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
-    return HttpResponse.json(account.user);
+    return HttpResponse.json(liveUser(account));
   }),
 
   http.post(`${BASE}/auth/logout`, async ({ request }) => {
@@ -743,6 +747,9 @@ export const handlers = [
   // ---------- Nómina ----------
   ...barberPayHandlers,
   ...barberHomeHandlers,
+  ...timeClockHandlers,
+  ...shiftHandlers,
+  ...careerHandlers,
   ...payrollHandlers,
   ...registerHandlers,
   ...frontDeskHandlers,

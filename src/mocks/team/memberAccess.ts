@@ -15,6 +15,8 @@ export const managesMember = (session: MockSession, role: MockTeamRole): boolean
 
 /** Lo que cada quien cambia de su propia ficha sin pedírselo a nadie: cómo se presenta y cómo se le contacta. */
 export const SELF_EDITABLE: ReadonlySet<string> = new Set(["firstName", "lastName", "phone", "email", "description", "instagram", "facebook", "avatarUrl", "skills", "gallery"]);
+/** El barbero de renta además lleva su negocio: su horario, sus precios, sus opciones y si sale en la reserva. */
+export const RENTER_SELF_EDITABLE: ReadonlySet<string> = new Set([...SELF_EDITABLE, "schedule", "services", "options", "bookingVisible"]);
 
 const MASK = "••••";
 

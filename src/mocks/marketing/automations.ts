@@ -96,6 +96,23 @@ export function onVisitPaid(appointment: MockAppointment, now = new Date()): Moc
   return created;
 }
 
+/** Si a ese cliente ya se le pidió una reseña en los últimos 30 días. */
+export const reviewAskedRecently = (clientId: string, now = new Date()): boolean =>
+  outbox().some((item) => item.clientId === clientId && item.kind === "reviewRequest" && item.status !== "cancelled" && now.getTime() - Date.parse(item.sendAt) < REVIEW_COOLDOWN_DAYS * DAY_MS);
+
+/**
+ * El barbero pide la reseña de una cita suya (desde «Mi reputación»): el mismo mensaje del pedido automático, ya, con su
+ * nombre. No es promoción; respeta el tope de una cada 30 días por cliente. Devuelve lo programado o `null`.
+ */
+export function askForReview(appointment: MockAppointment, by: string, now = new Date()): MockOutboxMessage | null {
+  const client = db.calendar.clients.find((item) => item.id === appointment.clientId);
+  if (!client || client.id === WALK_IN_CLIENT.id || !client.phone || profileOf(client).deleted || reviewAskedRecently(client.id, now)) return null;
+  const barber = db.team.members.find((member) => member.id === appointment.barberId);
+  const created = { ...message(client, "reviewRequest", now, [firstName(client.name), barber?.firstName ?? branchName(appointment.branchId), reviewLink()], appointment.id), by };
+  push([created]);
+  return created;
+}
+
 /**
  * Los cumpleaños de hoy (en la zona de la sede de cada cliente): con permiso de promociones, sin otra promoción a menos
  * de 30 días y sin felicitación este año. Sale en la próxima franja legal. Devuelve lo programado.

@@ -6,6 +6,7 @@ import { dateKey } from "../calendar/seed";
 import { barbersOf } from "../team/seed";
 import { cycleWindow, payrollOf } from "./compute";
 import { chairExpensesIn } from "../expenses/chair";
+import { memberAt } from "../team/payoutSchedule";
 import type { MockAdjustmentKind, MockLoan, MockPayrollRun } from "./state";
 
 /**
@@ -66,7 +67,8 @@ function computeMembers(branchId: string, from: string, days: number, weeks: num
   const appointments = Array.from({ length: days }, (_, index) => dayOf(branchId, dateKey(new Date(start.getTime() + index * DAY_MS)))).flat();
   const adjustments = adjustmentsOf(branchId, from, to);
   const extras = { sales: salesIn(branchId, from, to), loans: loansOf(branchId), from, to };
-  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments, extras));
+  // Cada quien con su forma de pago de entonces: un cambio de comisión a renta no reescribe los periodos anteriores.
+  return barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(memberAt(member, from), appointments, weeks, branchId, adjustments, extras));
 }
 
 type PayrollMemberRow = { memberId: string; payout: string; net: number };

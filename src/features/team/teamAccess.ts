@@ -74,7 +74,8 @@ export function memberAccess(access: Access, member: TeamMember): MemberAccess {
     if (!tabs.includes(tab)) return false;
     // En su propia ficha, quien no gestiona al equipo (barbero, recepción) cambia cómo se presenta y su
     // contacto; nivel, servicios, dinero, horario y permisos se los pide a gerencia (el servidor lo exige).
-    if (isSelf && !selfManages) return tab === "profile";
+    // El de renta, además, lleva su negocio: su horario, sus precios y sus opciones.
+    if (isSelf && !selfManages) return tab === "profile" || (member.role === "barbero-renta" && (tab === "schedule" || tab === "services" || tab === "options"));
     if (tab === "permissions") return !isSelf && access.can("permissions", "edit") && managesRole(access, member.role);
     if (tab === "compensation" || tab === "payments") return seesBarberMoney(access) && (manages || isSelf);
     // Su propio perfil lo edita quien no es barbero (el barbero ya salió arriba).

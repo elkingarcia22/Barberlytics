@@ -13,10 +13,12 @@ export type TeamRole = z.infer<typeof teamRoleSchema>;
 export const memberStatusSchema = z.enum(["active", "invited", "inactive"]);
 export type MemberStatus = z.infer<typeof memberStatusSchema>;
 
-export const workingRangeSchema = z.object({ start: z.string(), end: z.string() });
+export const workingRangeSchema = z.object({ start: z.string(), end: z.string(), breaks: z.array(z.object({ start: z.string(), end: z.string() })).optional() });
 export type WorkingRange = z.infer<typeof workingRangeSchema>;
 
-export const levelSchema = z.object({ id: z.string(), name: z.string() });
+export const levelCriteriaSchema = z.object({ services90: z.number().nullable(), rebookRate: z.number().nullable(), rating: z.number().nullable(), months: z.number().nullable() });
+/** Un nivel: su nombre, cuánto sobre la carta cobra quien está en él y lo que hace falta para llegar. */
+export const levelSchema = z.object({ id: z.string(), name: z.string(), priceFactor: z.number().optional(), criteria: levelCriteriaSchema.optional() });
 export type Level = z.infer<typeof levelSchema>;
 
 export const serviceOverrideSchema = z.object({

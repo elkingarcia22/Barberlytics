@@ -43,7 +43,7 @@ const METRICS_HEALTH = [event("metricDown", EMAIL_PUSH), event("metricUp", EMAIL
 const RETENTION = [event("retentionAbove", PUSH, { unit: "percent", default: 70 }), event("retentionBelow", PUSH, { unit: "percent", default: 40 })];
 const REPORTS = [event("reportDaily", EMAIL_PUSH), event("reportWeekly", EMAIL_PUSH), event("reportMonthly", EMAIL_PUSH), event("reportQuarterly", EMAIL_PUSH), event("reportYearly", EMAIL_PUSH), event("priceSuggestion", EMAIL_PUSH)];
 const SHOP_OCCUPANCY = event("shopOccupancy", PUSH, { unit: "percent", default: 85 });
-const TIME_OFF = [event("barberBlocked", PUSH), event("vacationRequested", PUSH), event("rentVacation", PUSH)];
+const TIME_OFF = [event("barberBlocked", PUSH), event("vacationRequested", PUSH), event("rentVacation", PUSH), event("shiftRequested", PUSH)];
 const BARBER_DAY = [event("waitlistAssigned", PUSH), event("specialResources", PUSH)];
 const REMINDER = event("appointmentReminder", PUSH, { unit: "minutes", default: 30 });
 /* Lo que también sale en la campana de la app («En la app»): apagarlo aquí lo saca de ahí. */
@@ -56,7 +56,7 @@ const NO_SHOW = event("appointmentNoShow", PUSH);
 const CASH = [event("registerDifference", PUSH), event("registerOpen", PUSH), event("payrollDue", PUSH), event("payDispute", PUSH)];
 /** Lo del dinero del barbero: aprobado, pagado, un ajuste y la respuesta a su reclamo. */
 const PAY = [event("payrollApproved", PUSH), event("payrollPaid", PUSH), event("payAdjustment", PUSH), event("payDisputeAnswered", PUSH)];
-const VACATION_DECIDED = [event("vacationApproved", PUSH), event("vacationDenied", PUSH)];
+const VACATION_DECIDED = [event("vacationApproved", PUSH), event("vacationDenied", PUSH), event("shiftSwapAsked", PUSH), event("shiftDecided", PUSH)];
 
 export const NOTIFICATION_CATALOG: Readonly<Record<NotificationAudience, readonly NotificationGroup[]>> = {
   admin: [
@@ -115,6 +115,9 @@ export function eventOfNotification(kind: string, status?: unknown): string | nu
     rentDue: "rentDue",
     payDispute: "payDispute",
     payDisputeAnswered: "payDisputeAnswered",
+    shiftRequested: "shiftRequested",
+    shiftSwapAsked: "shiftSwapAsked",
+    shiftDecided: "shiftDecided",
     lowReview: "badReview",
     absenceRequested: "vacationRequested",
   };

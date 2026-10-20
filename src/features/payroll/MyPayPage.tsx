@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { FileBadge, HandCoins, ListChecks, MessageCircleWarning } from "lucide-react";
+import { FileBadge, HandCoins, ListChecks, MessageCircleWarning, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { QueryBoundary } from "@/lib/query";
@@ -25,6 +25,7 @@ import { MyReputationView } from "./barber/MyReputationView";
 import { PayDisputeDialog, PayDisputeList, type DisputeTarget } from "./barber/PayDisputes";
 import { RentProfitCard } from "./barber/RentProfitCard";
 import { RentStatementView } from "./barber/RentStatementView";
+import { MyLevelCard } from "@/features/team/operations/MyLevelCard";
 import { MyPayStatus } from "./MyPayStatus";
 import { PayNarrative } from "./PayNarrative";
 import { PayrollMemberDrawer } from "./PayrollMemberDrawer";
@@ -93,9 +94,14 @@ export function MyPayPage() {
         description={t(isRent ? "payroll.mine.rentDescription" : "payroll.mine.commissionDescription")}
         actions={
           memberId ? (
-            <Button variant="outline" size="sm" onClick={() => navigate(`/mi-pago/certificado?sucursal=${branchId}&miembro=${memberId}`)} data-testid="my-pay-certificate">
-              <FileBadge /> {t("payroll.certificate.open")}
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/usuarios/miembros/${memberId}`)} data-testid="my-pay-profile">
+                <UserRound /> {t("payroll.mine.profileLink")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/mi-pago/certificado?sucursal=${branchId}&miembro=${memberId}`)} data-testid="my-pay-certificate">
+                <FileBadge /> {t("payroll.certificate.open")}
+              </Button>
+            </>
           ) : undefined
         }
       />
@@ -104,7 +110,7 @@ export function MyPayPage() {
 
       {memberId && view === "estado" && <RentStatementView branchId={branchId} memberId={memberId} formatMoney={formatMoney} />}
       {memberId && view === "clientes" && <MyClientsView branchId={branchId} memberId={memberId} barberName={(access.member?.name ?? "").split(" ")[0] ?? ""} />}
-      {memberId && view === "reputacion" && <MyReputationView memberId={memberId} />}
+      {memberId && view === "reputacion" && <MyReputationView memberId={memberId} branchId={branchId} />}
 
       {view === "pago" && (
         <>
@@ -194,6 +200,7 @@ function MyPayHome({ data, memberId, filters, fetching }: MyPayHomeProps) {
         <div className="grid gap-stack lg:grid-cols-2">
           {isRent && <RentProfitCard member={member} formatMoney={formatMoney} />}
           <BarberGoalCard branchId={branchId} memberId={memberId} formatMoney={formatMoney} />
+          <MyLevelCard branchId={branchId} />
         </div>
         <PayDisputeList branchId={branchId} memberId={memberId} />
       </section>

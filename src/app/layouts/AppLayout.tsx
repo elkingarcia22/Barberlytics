@@ -1,3 +1,4 @@
+import { ClockInButton } from "@/features/team/operations/ClockInButton";
 import * as React from "react";
 import { apiAuth } from "@/lib/api";
 import { legalHref } from "@/features/legal/documents";
@@ -339,6 +340,8 @@ export function AppLayout() {
       brand,
       navigation,
       roles,
+      // Fichar: el botón se esconde solo para quien no ficha.
+      headerActions: <ClockInButton />,
       notifications: notificationItems,
       onMarkAllNotificationsRead: () => markRead.mutate(notificationItems.filter((item) => item.unread).map((item) => item.id)),
       // Novedades se apaga hasta tener notas de versión propias: las de ejemplo eran de otro producto.

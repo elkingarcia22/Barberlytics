@@ -1,5 +1,5 @@
 import { PRODUCTS, SERVICES, type MockClient } from "../calendar/seed";
-import { HEALTH_CONSENT_VERSION } from "@/features/legal/consent";
+import { HEALTH_CONSENT_VERSION, consentCountryOf, consentVersionOf } from "@/features/legal/consent";
 import { PRODUCT_PHOTOS } from "../media";
 
 /**
@@ -231,6 +231,9 @@ export function deriveProfile(client: MockClient, now = new Date()): MockCustome
     tags: DEMO_TAGS[hashOf(client.id, 7) % DEMO_TAGS.length],
     source: DEMO_SOURCES[hashOf(client.id, 8) % DEMO_SOURCES.length],
     // En la demo, quien ya trae alergias o medicamentos anotados dio el permiso al anotarlos.
+    // En la demo, unos tres de cada cinco aceptaron promociones al reservar (con el texto vigente de su país): así las
+    // campañas, la reactivación y el cumpleaños tienen a quién escribirle. Los demás quedan sin permiso, como en la vida real.
+    ...(hashOf(client.id, 9) % 5 < 3 ? { marketingConsent: { accepted: true, at: new Date(now.getTime() - (20 + (hashOf(client.id, 10) % 400)) * DAY_MS).toISOString(), source: "booking" as const, version: consentVersionOf(place[0]), country: consentCountryOf(place[0]) } } : {}),
     ...(client.notes.some((note) => note.kind !== "note") ? { healthConsent: { accepted: true, at: new Date(now.getTime() - (30 + (hashOf(client.id, 4) % 300)) * DAY_MS).toISOString(), source: "app" as const, version: HEALTH_CONSENT_VERSION } } : {}),
   };
 }

@@ -1,7 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { legalVersion } from "@/features/legal/documents";
 import { Route, Routes } from "react-router";
-import { renderWithProviders, screen, waitFor, userEvent, within } from "@/test/render";
+import { act, renderWithProviders, screen, waitFor, userEvent, within } from "@/test/render";
 import { db } from "@/mocks/db";
 import { OTP_CODE } from "@/mocks/handlers";
 import { LoginPage } from "./LoginPage";
@@ -110,14 +110,24 @@ describe("entrar con celular y código", () => {
     expect(tokenStorage.get()).toBeNull();
   });
 
-  test("se puede reenviar el código y cambiar el número", async () => {
-    renderWithProviders(<App />, { route: "/login" });
-    const user = userEvent.setup();
-    await requestCode(user);
-    await user.click(screen.getByTestId("login-resend"));
-    expect(await screen.findByRole("status")).toHaveTextContent(/código nuevo/i);
-    await user.click(screen.getByRole("button", { name: /cambiar número/i }));
-    expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
+  test("reenviar espera 30 s con la cuenta a la vista; luego reenvía y se puede cambiar el número", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderWithProviders(<App />, { route: "/login" });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await requestCode(user);
+      const resend = screen.getByTestId("login-resend");
+      expect(resend).toBeDisabled();
+      expect(resend).toHaveTextContent(/reenviar en 30 s/i);
+      act(() => vi.advanceTimersByTime(31_000));
+      await waitFor(() => expect(resend).toBeEnabled());
+      await user.click(resend);
+      expect(await screen.findByRole("status")).toHaveTextContent(/código nuevo/i);
+      await user.click(screen.getByRole("button", { name: /cambiar número/i }));
+      expect(await screen.findByRole("heading", { name: /inicia sesión/i })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("si el SMS no llega, el código se pide al correo de respaldo y entra igual", async () => {
@@ -288,6 +298,23 @@ describe("bloqueo por intentos fallidos", () => {
     expect(await screen.findByRole("heading", { name: /bloqueamos el acceso/i })).toBeInTheDocument();
   });
 
+  test("el bloqueo dice cuánto falta y se levanta con el correo de respaldo", async () => {
+    db.backupEmails.acc_admin = "carolina@barberia.co";
+    db.loginFailures.set("+573001234567", 3);
+    renderWithProviders(<App />, { route: "/privado" });
+    const user = userEvent.setup();
+    await requestCode(user);
+    await typeCode(user, "000000");
+    expect(await screen.findByTestId("locked-countdown")).toHaveTextContent(/podrás intentarlo otra vez en 1[45]:\d\d/i);
+    await user.click(screen.getByTestId("locked-email"));
+    expect(await screen.findByText(/te mandamos un código/i)).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: /código del correo/i });
+    await user.click(within(group).getByLabelText(/carácter 1 de 6/i));
+    await user.paste(OTP_CODE);
+    expect(await screen.findByText(/hola carolina vargas/i)).toBeInTheDocument();
+    expect(db.loginLocks.has("+573001234567")).toBe(false);
+  });
+
   test("entrar bien pone el contador en cero", async () => {
     db.loginFailures.set("+573001234567", 3);
     renderWithProviders(<App />, { route: "/privado" });
@@ -323,7 +350,10 @@ describe("crear cuenta", () => {
     const withoutCode = await post("/auth/signup", { ...form, acceptTerms: true });
     expect(((await withoutCode.json()) as { fields?: Record<string, unknown> }).fields).toHaveProperty("code");
     expect((await post("/auth/signup", { ...form, acceptTerms: true, code: "000000" })).status).toBe(401);
-    expect((await post("/auth/signup", { ...form, acceptTerms: true, code: OTP_CODE })).status).toBe(204);
+    // Con todo en regla entra directo: la sesión y la sucursal hecha con el paquete del país.
+    const created = await post("/auth/signup", { ...form, acceptTerms: true, code: OTP_CODE });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({ accessToken: expect.any(String), user: { teamRole: "owner" }, setup: { country: "CO", currency: "COP", timezone: "America/Bogota", taxGroup: "IVA Colombia" } });
   });
 
   test("la zona horaria espera al país", async () => {

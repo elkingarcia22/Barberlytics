@@ -1,5 +1,5 @@
 import { HttpResponse } from "msw";
-import { ACCOUNTS, db, type MockAccount, type MockTeamRole } from "./db";
+import { accountById, db, type MockAccount, type MockTeamRole } from "./db";
 
 /**
  * Quién llama, visto por el servidor: la cuenta de la sesión con su rol en la barbería y su ficha
@@ -16,7 +16,7 @@ export function sessionOf(request: Request): MockSession | null {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  const account = ACCOUNTS.find((item) => item.id === accountId);
+  const account = accountById(accountId);
   return account ? { account, teamRole: account.user.teamRole, memberId: account.user.memberId } : null;
 }
 

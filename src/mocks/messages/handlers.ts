@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { messagesOf, syncOutbox } from "../booking/dispatch";
 import { applyReply, repliesOf } from "../booking/replies";
 import type { MockInboundReply } from "../booking/state";
@@ -28,7 +28,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 /** Lo más largo que se acepta de un mensaje al cliente (un recibo con varias líneas cabe de sobra). */

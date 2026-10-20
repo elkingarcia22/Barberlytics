@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { WALK_IN_CLIENT, type MockClient } from "../calendar/seed";
 import { activePackages } from "../booking/packages";
 import { cardsOf, loyaltyOf, serviceName } from "../booking/logic";
@@ -35,7 +35,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const findClient = (id: unknown): MockClient | undefined => (id === WALK_IN_CLIENT.id ? undefined : db.calendar.clients.find((client) => client.id === id && !profileOf(client).deleted));

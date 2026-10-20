@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { appointmentAccount } from "../calendar/account";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
@@ -39,7 +39,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 const productCost = (productId: string, qty: number) => (db.products.items.find((item) => item.id === productId)?.cost ?? 0) * qty;

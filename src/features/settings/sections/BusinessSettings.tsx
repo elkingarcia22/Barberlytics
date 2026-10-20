@@ -1,23 +1,28 @@
+import * as React from "react";
 import { useAppT } from "@/app/i18n";
 import type { AppMessageKey } from "@/app/i18n/types";
+import { useLocale } from "@/i18n";
 import { Field, MultiSelect } from "@/components/forms";
 import { ThemaTabs } from "@/components/navigation";
+import { Text } from "@/components/typography";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsCard, SettingsDocument, type FieldErrors } from "../SettingsFormParts";
-import { businessSchema, type BusinessSettings as Business } from "../settingsTypes";
+import { useSettingsList } from "../settingsQueries";
+import { branchSchema, businessSchema, type BusinessSettings as Business } from "../settingsTypes";
+import { DEFAULT_CLOSED_HOLIDAYS, PACK_COUNTRIES, PACK_TIMEZONES, countryHolidays, packCountryOf, upcomingClosures, type PackCountry } from "../countryPack";
 
-const TIMEZONES: readonly string[] = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Bogota", "America/Mexico_City"];
+const COUNTRY_KEYS: Readonly<Record<PackCountry, AppMessageKey>> = { CO: "cfg.country.CO", MX: "cfg.country.MX", US: "cfg.country.US" };
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+const NEXT_CLOSURES = 3;
 
-const HOLIDAYS: readonly { id: string; key: AppMessageKey }[] = [
-  { id: "new-year", key: "cfg.business.holiday.newYear" },
-  { id: "mlk", key: "cfg.business.holiday.mlk" },
-  { id: "memorial", key: "cfg.business.holiday.memorial" },
-  { id: "independence", key: "cfg.business.holiday.independence" },
-  { id: "labor", key: "cfg.business.holiday.labor" },
-  { id: "thanksgiving", key: "cfg.business.holiday.thanksgiving" },
-  { id: "christmas", key: "cfg.business.holiday.christmas" },
-];
+/** «AAAA-MM-DD» de hoy, en la hora del dispositivo. */
+const todayKey = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
+const dateOf = (key: string): Date => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)));
 
 const LINKS = ["website", "instagram", "facebook", "googleMaps"] as const;
 const LINK_KEYS: Record<(typeof LINKS)[number], AppMessageKey> = { website: "cfg.business.website", instagram: "cfg.business.instagram", facebook: "cfg.business.facebook", googleMaps: "cfg.business.googleMaps" };
@@ -29,6 +34,19 @@ const URL_LIKE = /^https?:\/\/\S+\.\S+/;
  */
 export function BusinessSettings() {
   const t = useAppT();
+  const { formatDate } = useLocale();
+  const branches = useSettingsList("branches", branchSchema);
+  const [today] = React.useState(todayKey);
+  // Los países de las sucursales activas, en el orden del paquete: sus festivos son las opciones.
+  const countries = React.useMemo(() => {
+    const present = new Set((branches.data?.items ?? []).filter((branch) => branch.status === "active").map((branch) => packCountryOf(branch.country)));
+    return PACK_COUNTRIES.filter((country) => present.has(country));
+  }, [branches.data]);
+  const year = Number(today.slice(0, 4));
+  const holidayOptions = React.useMemo(() => {
+    const ids = [...new Set(countries.flatMap((country) => countryHolidays(country, year).map((holiday) => holiday.id)))];
+    return ids.map((id) => ({ value: id, label: t(`cfg.holiday.${id}` as AppMessageKey) }));
+  }, [countries, year, t]);
 
   const validate = (draft: Business): FieldErrors => {
     const errors: FieldErrors = {};
@@ -49,7 +67,7 @@ export function BusinessSettings() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TIMEZONES.map((zone) => (
+                    {(PACK_TIMEZONES.includes(draft.timezone) ? PACK_TIMEZONES : [draft.timezone, ...PACK_TIMEZONES]).map((zone) => (
                       <SelectItem key={zone} value={zone}>
                         {zone.replace("_", " ")}
                       </SelectItem>
@@ -91,8 +109,28 @@ export function BusinessSettings() {
               </div>
             </div>
             <Field label={t("cfg.business.holidays")} description={t("cfg.business.holidaysHint")}>
-              <MultiSelect options={HOLIDAYS.map((holiday) => ({ value: holiday.id, label: t(holiday.key) }))} value={draft.holidays} onValueChange={(value) => set("holidays", value)} placeholder={t("cfg.business.holidaysPlaceholder")} searchPlaceholder={t("cfg.search")} emptyMessage={t("cfg.noResults")} />
+              <MultiSelect options={holidayOptions} value={draft.holidays} onValueChange={(value) => set("holidays", value)} placeholder={t("cfg.business.holidaysPlaceholder")} searchPlaceholder={t("cfg.search")} emptyMessage={t("cfg.noResults")} data-testid="business-holidays" />
             </Field>
+            {countries.length === 0 && branches.data && <Text variant="muted">{t("cfg.business.holidaysNone")}</Text>}
+            <ul className="space-y-2" data-testid="business-holidays-next">
+              {countries.map((country) => {
+                const next = upcomingClosures(country, draft.holidays, today, NEXT_CLOSURES);
+                const usual = DEFAULT_CLOSED_HOLIDAYS[country];
+                const hasUsual = usual.every((id) => draft.holidays.includes(id));
+                return (
+                  <li key={country} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="text-text-secondary">
+                      {t("cfg.business.holidaysNext", { country: t(COUNTRY_KEYS[country]), dates: next.length > 0 ? next.map((holiday) => formatDate(dateOf(holiday.observedDate ?? holiday.date), DATE_OPTIONS)).join(" · ") : "—" })}
+                    </span>
+                    {!hasUsual && (
+                      <Button type="button" variant="outline" size="xs" onClick={() => set("holidays", [...new Set([...draft.holidays, ...usual])])} data-testid={`business-holidays-use-${country}`}>
+                        {t("cfg.business.holidaysUse", { country: t(COUNTRY_KEYS[country]) })}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </SettingsCard>
 
           <SettingsCard title={t("cfg.business.links")} description={t("cfg.business.linksHint")}>

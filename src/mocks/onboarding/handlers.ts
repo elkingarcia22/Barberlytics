@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from "msw";
-import { ACCOUNTS, db } from "../db";
+import { accountById, db } from "../db";
 import { barbersOf } from "../team/seed";
 import { WALK_IN_CLIENT } from "../calendar/seed";
 
@@ -16,7 +16,7 @@ function requireAuth(request: Request) {
   const header = request.headers.get("authorization");
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   const accountId = token ? db.sessions.get(token) : undefined;
-  return ACCOUNTS.find((item) => item.id === accountId) ?? null;
+  return accountById(accountId) ?? null;
 }
 
 type Step = { id: "company" | "branch" | "hours" | "services" | "team" | "payments" | "booking" | "clients"; done: boolean; href: string };

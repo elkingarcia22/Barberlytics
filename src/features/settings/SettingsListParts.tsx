@@ -26,6 +26,8 @@ import type { SettingsListId } from "./settingsTypes";
 export interface ListFormContext<D> {
   draft: D;
   set: <K extends keyof D>(key: K, value: D[K]) => void;
+  /** Cambiar varios campos a la vez (elegir el país pone moneda, zona e idioma). */
+  replace: (next: D) => void;
   errors: FieldErrors;
   /** `true` al editar una fila existente. */
   editing: boolean;
@@ -92,6 +94,10 @@ function ListBody<T extends { id: string }, D extends object>({ list, schema, ic
   const set = <K extends keyof D>(key: K, value: D[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key as string]: undefined }));
+  };
+  const replace = (next: D) => {
+    setDraft(next);
+    setErrors({});
   };
 
   const submit = (event: React.FormEvent) => {
@@ -181,7 +187,7 @@ function ListBody<T extends { id: string }, D extends object>({ list, schema, ic
       >
         {editing !== null && (
           <form id={FORM_ID} onSubmit={submit} noValidate className="space-y-5">
-            {renderForm({ draft, set, errors, editing: editing !== "new" })}
+            {renderForm({ draft, set, replace, errors, editing: editing !== "new" })}
           </form>
         )}
       </DrawerShell>

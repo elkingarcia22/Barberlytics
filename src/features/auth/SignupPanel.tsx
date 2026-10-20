@@ -16,11 +16,19 @@ import { authApi } from "./api";
 import { AuthField, BackButton, FormErrorAlert } from "./authFormParts";
 import { applyServerFieldErrors } from "./authErrors";
 import { describeTimezone, timezonesFor } from "./timezones";
-import { signupRequestSchema, type SignupRequest } from "./types";
+import { signupRequestSchema, type SignupRequest, type SignupSetup } from "./types";
+import { useAuth } from "./useAuth";
+import { rememberInitialBranch } from "@/features/branches/initialBranch";
+import { GATEWAY_SPECS, isGatewayProvider } from "@/features/settings/gatewayProviders";
+import type { AppMessageKey } from "@/app/i18n/types";
+import { toast } from "sonner";
 
 export interface SignupPanelProps {
   onBack: () => void;
 }
+
+/** Lo que dura a la vista el resumen de lo que quedó listo. */
+const WELCOME_MS = 12_000;
 
 const COUNTRIES = [...PHONE_COUNTRIES].sort((a, b) => a.name.localeCompare(b.name, "es"));
 
@@ -55,7 +63,7 @@ function AcceptLegal() {
 
 export function SignupPanel({ onBack }: SignupPanelProps) {
   const t = useAppT();
-  const [done, setDone] = React.useState<Pick<SignupRequest, "email" | "company"> | null>(null);
+  const { startSession } = useAuth();
   const [serverError, setServerError] = React.useState<string | null>(null);
   // El celular se verifica en el mismo registro: primero se manda el código, luego se crea la cuenta con él.
   const [codeSent, setCodeSent] = React.useState(false);
@@ -74,6 +82,17 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
     form.setValue("timezone", zones.length === 1 ? zones[0] : "", { shouldValidate: form.formState.isSubmitted });
   };
 
+  /** Lo que quedó listo con el paquete del país, en una o dos frases. */
+  const welcomeOf = (setup: SignupSetup): string => {
+    const parts = setup.country
+      ? [t("auth.signup.welcomeBody", { country: t(`cfg.country.${setup.country}` as AppMessageKey), currency: setup.currency, zone: describeTimezone(setup.timezone), holidays: setup.holidays })]
+      : [];
+    if (setup.taxGroup) parts.push(t("auth.signup.welcomeTax", { tax: setup.taxGroup }));
+    const gateways = setup.gateways.filter(isGatewayProvider).map((provider) => GATEWAY_SPECS[provider].name);
+    if (gateways.length > 0) parts.push(t("auth.signup.welcomeGateways", { gateways: gateways.join(", ") }));
+    return parts.join(" ");
+  };
+
   const submit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
@@ -82,29 +101,15 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
         setCodeSent(true);
         return;
       }
-      await authApi.signup(values);
-      setDone({ email: values.email, company: values.company });
+      const result = await authApi.signup(values);
+      rememberInitialBranch(result.setup.branchId);
+      toast.success(t("auth.signup.welcome", { company: values.company }), { description: welcomeOf(result.setup), duration: WELCOME_MS });
+      // Con la sesión abierta, la página de entrada lleva sola a la app.
+      startSession(result);
     } catch (error) {
       if (!applyServerFieldErrors(error, form.setError)) setServerError(describeError(error).description);
     }
   });
-
-  if (done) {
-    return (
-      <>
-        <ThemaIcon name="success" size="lg" tone="positive" className="mb-4" />
-        <Heading level={3} id="login-heading">
-          {t("auth.signup.doneTitle")}
-        </Heading>
-        <Text tone="secondary" className="mt-1.5">
-          {t("auth.signup.done", done)}
-        </Text>
-        <Button type="button" size="lg" className="mt-7 w-full" onClick={onBack}>
-          {t("auth.recovery.back")}
-        </Button>
-      </>
-    );
-  }
 
   return (
     <>

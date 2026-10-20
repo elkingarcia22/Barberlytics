@@ -159,35 +159,99 @@ const cached = (key: string, build: () => string[]): ReadonlySet<string> => {
   return days;
 };
 
+/** Un festivo con nombre: `id` es el mismo en cada país para el mismo motivo («independence», «christmas»). */
+export interface Holiday {
+  id: string;
+  date: string;
+  /** EE. UU.: el día que se descansa si cae en fin de semana (si es otro). */
+  observedDate?: string;
+}
+
+const day = (id: string, date: string, observedDate?: string): Holiday => (observedDate && observedDate !== date ? { id, date, observedDate } : { id, date });
+
+/** Los festivos federales de EE. UU. (5 U.S.C. 6103), con el día que se observa si cae en fin de semana. */
+function usNamed(year: number): Holiday[] {
+  const fixed = (id: string, month: number, date: number) => day(id, iso(year, month, date), observed(year, month, date));
+  return [
+    fixed("new-year", 1, 1),
+    day("mlk", nthWeekday(year, 1, 1, 3)),
+    day("presidents", nthWeekday(year, 2, 1, 3)),
+    day("memorial", nthWeekday(year, 5, 1, -1)),
+    fixed("juneteenth", 6, 19),
+    fixed("independence", 7, 4),
+    day("labor", nthWeekday(year, 9, 1, 1)),
+    day("columbus", nthWeekday(year, 10, 1, 2)),
+    fixed("veterans", 11, 11),
+    day("thanksgiving", nthWeekday(year, 11, 4, 4)),
+    fixed("christmas", 12, 25),
+  ];
+}
+
+/** Los días de descanso obligatorio de México (Ley Federal del Trabajo, art. 74). */
+function mxNamed(year: number): Holiday[] {
+  return [
+    day("new-year", iso(year, 1, 1)),
+    day("constitution", nthWeekday(year, 2, 1, 1)),
+    day("juarez", nthWeekday(year, 3, 1, 3)),
+    day("labor", iso(year, 5, 1)),
+    day("independence", iso(year, 9, 16)),
+    // La transmisión del Poder Ejecutivo Federal, cada seis años desde 2024.
+    ...(year >= 2024 && (year - 2024) % 6 === 0 ? [day("transition", iso(year, 10, 1))] : []),
+    day("revolution", nthWeekday(year, 11, 1, 3)),
+    day("christmas", iso(year, 12, 25)),
+  ];
+}
+
+/** Los festivos de Colombia (Ley 51 de 1983): los que se corren al lunes y los de Semana Santa. */
+function coNamed(year: number): Holiday[] {
+  const sunday = easter(year);
+  return [
+    day("new-year", iso(year, 1, 1)),
+    day("epiphany", toMonday(year, 1, 6)),
+    day("saint-joseph", toMonday(year, 3, 19)),
+    day("holy-thursday", shift(sunday, -3)),
+    day("good-friday", shift(sunday, -2)),
+    day("labor", iso(year, 5, 1)),
+    day("ascension", shift(sunday, 43)), // jueves +39, al lunes
+    day("corpus-christi", shift(sunday, 64)), // jueves +60, al lunes
+    day("sacred-heart", shift(sunday, 71)), // viernes +68, al lunes
+    day("saints-peter-paul", toMonday(year, 6, 29)),
+    day("independence", iso(year, 7, 20)),
+    day("boyaca", iso(year, 8, 7)),
+    day("assumption", toMonday(year, 8, 15)),
+    day("race", toMonday(year, 10, 12)),
+    day("all-saints", toMonday(year, 11, 1)),
+    day("cartagena", toMonday(year, 11, 11)),
+    day("immaculate", iso(year, 12, 8)),
+    day("christmas", iso(year, 12, 25)),
+  ];
+}
+
+const NAMED: Partial<Record<SendCountry, (year: number) => Holiday[]>> = { CO: coNamed, US: usNamed, MX: mxNamed };
+
+/** Los festivos de un país en ese año, en orden y con nombre; vacío si el país no tiene calendario aquí. */
+export function holidaysOf(country: SendCountry, year: number): readonly Holiday[] {
+  return [...(NAMED[country]?.(year) ?? [])].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** El festivo de ese día en ese país (también el día observado en EE. UU.), o `null`. */
+export function holidayOn(country: SendCountry, date: string): Holiday | null {
+  const year = Number(date.slice(0, 4));
+  return holidaysOf(country, year).find((item) => item.date === date || item.observedDate === date) ?? null;
+}
+
 /** Los festivos federales de EE. UU. (5 U.S.C. 6103): el día y, si cae en fin de semana, el que se observa. */
 export function usHolidays(year: number): ReadonlySet<string> {
-  const fixed: [number, number][] = [[1, 1], [6, 19], [7, 4], [11, 11], [12, 25]];
   return cached(`US-${year}`, () => [
-    ...fixed.flatMap(([month, day]) => [iso(year, month, day), observed(year, month, day)]),
+    ...usNamed(year).flatMap((item) => [item.date, ...(item.observedDate ? [item.observedDate] : [])]),
     // El 1 de enero del año siguiente puede observarse el viernes 31 de diciembre.
     observed(year + 1, 1, 1),
-    nthWeekday(year, 1, 1, 3), // Martin Luther King Jr.
-    nthWeekday(year, 2, 1, 3), // Presidents' Day
-    nthWeekday(year, 5, 1, -1), // Memorial Day
-    nthWeekday(year, 9, 1, 1), // Labor Day
-    nthWeekday(year, 10, 1, 2), // Columbus Day
-    nthWeekday(year, 11, 4, 4), // Thanksgiving
   ]);
 }
 
 /** Los días de descanso obligatorio de México (Ley Federal del Trabajo, art. 74). */
 export function mexicanHolidays(year: number): ReadonlySet<string> {
-  return cached(`MX-${year}`, () => [
-    iso(year, 1, 1),
-    nthWeekday(year, 2, 1, 1), // Constitución
-    nthWeekday(year, 3, 1, 3), // Natalicio de Benito Juárez
-    iso(year, 5, 1),
-    iso(year, 9, 16),
-    nthWeekday(year, 11, 1, 3), // Revolución
-    iso(year, 12, 25),
-    // La transmisión del Poder Ejecutivo Federal, cada seis años desde 2024.
-    ...(year >= 2024 && (year - 2024) % 6 === 0 ? [iso(year, 10, 1)] : []),
-  ]);
+  return cached(`MX-${year}`, () => mxNamed(year).map((item) => item.date));
 }
 
 const HOLIDAYS: Partial<Record<SendCountry, (year: number) => ReadonlySet<string>>> = {
@@ -198,27 +262,7 @@ const HOLIDAYS: Partial<Record<SendCountry, (year: number) => ReadonlySet<string
 
 /** Los festivos de Colombia de ese año («AAAA-MM-DD»). */
 export function colombianHolidays(year: number): ReadonlySet<string> {
-  const sunday = easter(year);
-  return cached(`CO-${year}`, () => [
-    iso(year, 1, 1),
-    iso(year, 5, 1),
-    iso(year, 7, 20),
-    iso(year, 8, 7),
-    iso(year, 12, 8),
-    iso(year, 12, 25),
-    toMonday(year, 1, 6),
-    toMonday(year, 3, 19),
-    toMonday(year, 6, 29),
-    toMonday(year, 8, 15),
-    toMonday(year, 10, 12),
-    toMonday(year, 11, 1),
-    toMonday(year, 11, 11),
-    shift(sunday, -3), // Jueves Santo
-    shift(sunday, -2), // Viernes Santo
-    shift(sunday, 43), // Ascensión (jueves +39, al lunes)
-    shift(sunday, 64), // Corpus Christi (jueves +60, al lunes)
-    shift(sunday, 71), // Sagrado Corazón (viernes +68, al lunes)
-  ]);
+  return cached(`CO-${year}`, () => coNamed(year).map((item) => item.date));
 }
 
 // ── La franja ────────────────────────────────────────────────────────────────────────────────────

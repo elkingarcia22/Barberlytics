@@ -24,3 +24,10 @@ export function attemptsLeftFrom(error: unknown): number | null {
   const value = (error.details as { attemptsLeft?: unknown }).attemptsLeft;
   return typeof value === "number" ? value : null;
 }
+
+/** Cuántos segundos faltan para poder intentarlo otra vez, si el backend lo dijo (bloqueo). */
+export function retryAfterFrom(error: unknown): number | null {
+  if (!isApiError(error) || !error.details || typeof error.details !== "object") return null;
+  const value = (error.details as { retryAfterSeconds?: unknown }).retryAfterSeconds;
+  return typeof value === "number" && value >= 0 ? value : null;
+}

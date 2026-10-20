@@ -350,6 +350,8 @@ export interface SaleInput {
   branchId: string;
   items: ProductLine[];
   method: PaymentMethod;
+  /** Quién vendió: comisiona en su nómina; `null`, la venta es de la barbería. */
+  sellerId?: string | null;
 }
 
 export interface NoteInput {

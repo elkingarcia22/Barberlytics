@@ -91,7 +91,7 @@ export function incomeStatement(branchId: string, month: string, now = new Date(
   // Nómina del mes: comisiones (crecen con lo vendido), salarios y ajustes (fijos) y la renta que pagan los de renta.
   const weeks = round(range.elapsed / DAYS_PER_WEEK);
   const adjustments = db.payroll.adjustments.filter((item) => item.branchId === branchId && item.from >= first && item.to <= last);
-  const payroll = barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments));
+  const payroll = barbersOf(db.team.members, db.team.orders, branchId).map((member) => payrollOf(member, appointments, weeks, branchId, adjustments, { sales, loans: db.payroll.loans ?? [], from: first, to: last }));
   const staff = payroll.filter((item) => item.payout !== "rent");
   const renters = new Set(payroll.filter((item) => item.payout === "rent").map((item) => item.memberId));
 

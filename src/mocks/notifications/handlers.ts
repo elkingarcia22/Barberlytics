@@ -30,7 +30,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined";
 
 export interface MockNotification {
   id: string;
@@ -84,6 +84,21 @@ function appointmentEvents(branchId: string, now: Date): MockNotification[] {
       tone: "negative",
       params: { client: clientName(message.clientId), error: message.error ?? "" },
       roles: FRONT,
+    });
+  }
+  // Alguien se apuntó a la lista de espera (desde la reserva o recepción): a recepción, para ofrecerle un hueco.
+  for (const entry of db.calendar.waitlist.filter((item) => item.branchId === branchId && recent(item.createdAt, now))) {
+    const service = db.services.items.find((item) => item.id === entry.serviceId)?.name ?? "";
+    const slot = entry.slots[0];
+    items.push({
+      id: `waitlist:${entry.id}`,
+      kind: "waitlistJoined",
+      at: entry.createdAt,
+      href: slot ? `/calendario?fecha=${slot.date}` : "/calendario",
+      tone: "info",
+      params: { client: clientName(entry.clientId), service, day: slot?.date ?? "", time: slot?.time ?? "" },
+      roles: FRONT,
+      memberId: entry.barberId,
     });
   }
   // Lo que respondieron por WhatsApp y recepción tiene que resolver (confirmar y BAJA ya se aplicaron solos).

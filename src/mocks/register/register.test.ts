@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { db } from "../db";
 import { ledgerOf } from "../transactions/ledger";
 import { expectedOf } from "./handlers";
+import { dateKey } from "../calendar/seed";
 
 const OWNER = "mock-acc_admin-register";
 const RECEPTION = "mock-acc_reception-register";
@@ -61,7 +62,8 @@ describe("caja: a ciegas, por denominación y con entradas y salidas", () => {
     expect(before.length).toBeGreaterThan(0);
     const voided = await call(OWNER, `/appointments/${paid.id}/void-payment`, post({ reason: "Cobrado a otro cliente" }));
     expect(voided.ok).toBe(true);
-    const day = new Date().toISOString().slice(0, 10);
+    // El libro cuenta por día local (como la caja), no por día UTC.
+    const day = dateKey(new Date());
     const original = ledgerOf("ma", DAY, DAY).entries.filter((entry) => entry.appointmentId === paid.id);
     expect(original.map((entry) => [entry.kind, entry.amount])).toEqual(expect.arrayContaining(before.map((entry) => [entry.kind, entry.amount])));
     const reversals = ledgerOf("ma", day, day).entries.filter((entry) => entry.appointmentId === paid.id && entry.kind === "void");

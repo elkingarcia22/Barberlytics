@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
-import { adjustmentSchema, payrollResponseSchema, payrollRunSchema, type AdjustmentInput, type PayrollAdjustment, type PayrollParams, type PayrollResponse, type PayrollRun, type RentPaymentInput } from "./types";
+import { z } from "zod";
+import { adjustmentSchema, loanSchema, payrollResponseSchema, payrollRunSchema, type AdjustmentInput, type LoanInput, type PayrollAdjustment, type PayrollParams, type PayrollResponse, type PayrollRun, type RentPaymentInput } from "./types";
 
 /** Contrato de nómina; ver docs/API_CONTRACT.md. */
 export const payrollApi = {
@@ -11,4 +12,7 @@ export const payrollApi = {
   reopen: (id: string, reason: string) => api.post<void>(`/payroll/runs/${id}/reopen`, { reason }),
   addRentPayment: (input: RentPaymentInput) => api.post<unknown>("/payroll/rent-payments", input),
   removeRentPayment: (id: string) => api.delete<void>(`/payroll/rent-payments/${id}`),
+  loans: (branchId: string, memberId: string, signal?: AbortSignal) => api.get("/payroll/loans", { query: { branchId, memberId }, schema: z.object({ items: z.array(loanSchema) }), signal }),
+  addLoan: (input: LoanInput) => api.post("/payroll/loans", input, { schema: loanSchema }),
+  cancelLoan: (id: string) => api.post(`/payroll/loans/${id}/cancel`, {}, { schema: loanSchema }),
 };

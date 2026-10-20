@@ -2,6 +2,7 @@ import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { ACCOUNTS, db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf } from "../session";
 import { countTotal } from "@/features/transactions/denominations";
+import { cycleWindow } from "../payroll/compute";
 import { appointmentsOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
 import type { MockCashMovement, MockRegisterClosure } from "./state";
@@ -113,6 +114,30 @@ const movementsOf = (branchId: string, date: string): MockCashMovement[] => (db.
 const closureOf = (branchId: string, date: string): MockRegisterClosure | undefined => (db.register?.closures ?? []).find((item) => item.branchId === branchId && item.date === date);
 
 export const registerHandlers = [
+  // Cargar el faltante de un cierre a la nómina de quien cerró o de quien responda: un ajuste «faltante de caja» en su ciclo.
+  http.post(`${BASE}/register/:id/shortage`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    if (!isManager(sessionOf(request)!)) return forbidden("El faltante lo carga el dueño o el administrador.");
+    const closure = (db.register?.closures ?? []).find((item) => item.id === params.id);
+    if (!closure) return error(404, "not_found", "Ese cierre no existe.");
+    if (closure.difference >= 0) return error(409, "conflict", "Ese cierre no tiene faltante.");
+    if (closure.shortage) return error(409, "conflict", "Ese faltante ya se cargó.");
+    const memberId = text(asRecord(await request.json().catch(() => ({}))).memberId);
+    if (!db.team.members.some((member) => member.id === memberId)) return error(422, "validation", "Elige a quién se le descuenta.", { fields: { memberId: ["Elige a quién se le descuenta."] } });
+    const window = cycleWindow(new Date(`${closure.date}T00:00:00`));
+    const from = dateKey(window.from);
+    const to = dateKey(window.to);
+    if (db.payroll.runs.some((run) => run.branchId === closure.branchId && run.from === from && run.to === to)) return error(409, "conflict", "La nómina de ese ciclo ya está aprobada: reábrela para cargar el faltante.");
+    const adjustment = { id: `adj_${Date.now().toString(36)}`, branchId: closure.branchId, from, to, memberId, kind: "shortage" as const, amount: round(-closure.difference), note: `Faltante de caja del ${closure.date}`, createdAt: new Date().toISOString(), createdBy: account.user.name, closureId: closure.id };
+    const updated: MockRegisterClosure = { ...closure, shortage: { memberId, adjustmentId: adjustment.id, by: account.user.name, at: adjustment.createdAt } };
+    db.payroll = { ...db.payroll, adjustments: [...db.payroll.adjustments, adjustment] };
+    db.register = { closures: (db.register?.closures ?? []).map((item) => (item.id === closure.id ? updated : item)), movements: db.register?.movements ?? [] };
+    db.persist();
+    return HttpResponse.json(updated);
+  }),
+
   http.get(`${BASE}/register`, async ({ request }) => {
     await delay(LATENCY_MS);
     if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");

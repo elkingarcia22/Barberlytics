@@ -98,4 +98,6 @@ export const frontDeskEs = {
   "cfg.notify.event.clientArrived": "El cliente marcó que llegó en el kiosco",
   "notifications.clientArrived.title": "Llegó {client}",
   "notifications.clientArrived.body": "Marcó «Ya llegué» en el kiosco para su cita de las {time}.",
+  "notifications.waitlistJoined.title": "{client} está en lista de espera",
+  "notifications.waitlistJoined.body": "Quiere {service} el {day} a las {time}: si se libera un hueco, ofréceselo.",
 } as const;

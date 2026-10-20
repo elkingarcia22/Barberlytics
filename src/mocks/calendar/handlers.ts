@@ -6,7 +6,7 @@ import { withRisk } from "./risk";
 import { barberOf, ownAppointments, ownBlocks, ownClientIds, redactClient } from "./scope";
 import { forbidden, sessionOf } from "../session";
 import { moveStock, releaseAppointmentStock, syncAppointmentStock } from "../inventory/stock";
-import { itemTaxPercent, taxInclusive } from "../settings/branchRules";
+import { branchNow, itemTaxPercent, taxInclusive } from "../settings/branchRules";
 import { appointmentAccount } from "./account";
 import { cancelMessages, newConfirmToken, offerFreedSlot, rescheduleMessages, scheduleMessages } from "../booking/reminders";
 import { productPriceIn, servicePriceIn } from "../catalogPrices";
@@ -427,12 +427,17 @@ export const calendarHandlers = [
     const own = barberOf(request);
     if (own && values.barberId !== own) return forbidden("Solo agendas en tu columna.");
     const barberMember = findBarber(values.barberId)!;
-    const barber = { id: barberMember.id, branchId: barberMember.branchIds[0] ?? "ma", name: memberName(barberMember) };
+    const body = asRecord(rawBody);
+    // La cita va a la sede donde se crea (la de la cabecera), si el barbero trabaja en ella; si no, a la suya.
+    const requestedBranch = text(body.branchId);
+    const branchId = requestedBranch && barberMember.branchIds.includes(requestedBranch) ? requestedBranch : (barberMember.branchIds[0] ?? "ma");
+    const barber = { id: barberMember.id, branchId, name: memberName(barberMember) };
     const durationMin = values.serviceIds.reduce((sum, id) => sum + (catalogServices().find((service) => service.id === id)?.durationMin ?? 0), 0);
     const day = values.start.slice(0, 10);
     const time = values.start.slice(11, 16);
     appointmentsOn(barber.branchId, day);
-    const body = asRecord(rawBody);
+    // Un cliente sin cita que se registra hoy ya está en el local: nace «llegó», no «agendada».
+    const arrivedNow = values.walkIn && values.repeat === "none" && day === branchNow(branchId).slice(0, 10);
     const clash = body.force === true && !own ? null : (clashMessage(barber.branchId, values.barberId, day, parseClock(time), durationMin) ?? resourceMessage(barber.branchId, { id: "", serviceIds: values.serviceIds, barberId: values.barberId, durationMin, start: values.start, status: "scheduled" }));
     if (clash) return error(409, "conflict", clash, { fields: { start: [clash] } });
     const seriesId = values.repeat === "none" ? null : `ser_${Date.now().toString(36)}`;
@@ -452,7 +457,7 @@ export const calendarHandlers = [
         products: [],
         start: localIso(occurrenceDay, time),
         durationMin,
-        status: "scheduled",
+        status: arrivedNow ? "arrived" : "scheduled",
         barberReady: false,
         walkIn: values.walkIn,
         source: values.walkIn ? "walkin" : "internal",
@@ -461,7 +466,7 @@ export const calendarHandlers = [
         notes: values.notes,
         createdAt: new Date().toISOString(),
         createdBy: actorOf(account.user.name, body),
-        history: [entry(actorOf(account.user.name, body), values.walkIn ? "walkin" : "created")],
+        history: arrivedNow ? [entry(actorOf(account.user.name, body), "walkin"), entry(actorOf(account.user.name, body), "status:arrived")] : [entry(actorOf(account.user.name, body), values.walkIn ? "walkin" : "created")],
         payment: null,
         confirmToken: newConfirmToken(),
       });
@@ -945,7 +950,11 @@ export const calendarHandlers = [
       0,
       taxInclusive()
     );
-    const sale = { id: `sale_${Date.now().toString(36)}`, branchId, items, method, tax, total, paidAt: new Date().toISOString() };
+    // Quién vendió: comisiona en su nómina. El barbero vende a su nombre; recepción elige (o la venta es de la barbería).
+    const own = barberOf(request);
+    const sellerInput = text(input.sellerId);
+    const sellerId = own ?? (sellerInput && db.team.members.some((member) => member.id === sellerInput) ? sellerInput : null);
+    const sale = { id: `sale_${Date.now().toString(36)}`, branchId, items, method, tax, total, paidAt: new Date().toISOString(), sellerId };
     db.calendar.sales = [...db.calendar.sales, sale];
     for (const item of items) moveStock({ branchId, productId: item.productId, delta: -item.qty, reason: "sale", ref: sale.id, by: account.user.name });
     db.persist();

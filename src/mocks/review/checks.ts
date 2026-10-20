@@ -61,7 +61,8 @@ function periodPayroll(branchId: string, from: string, to: string) {
   const days = dayList(from, to);
   const appointments = days.flatMap((day) => appointmentsOn(branchId, day));
   const adjustments = db.payroll.adjustments.filter((item) => item.branchId === branchId && item.from === from && item.to === to);
-  return { appointments, adjustments, members: barbersOf(db.team.members, db.team.orders, branchId).map((member) => ({ member, row: payrollOf(member, appointments, days.length / 7, branchId, adjustments) })) };
+  const extras = { sales: db.calendar.sales.filter((sale) => sale.branchId === branchId && sale.paidAt.slice(0, 10) >= from && sale.paidAt.slice(0, 10) <= to), loans: (db.payroll.loans ?? []).filter((loan) => loan.branchId === branchId), from, to };
+  return { appointments, adjustments, members: barbersOf(db.team.members, db.team.orders, branchId).map((member) => ({ member, row: payrollOf(member, appointments, days.length / 7, branchId, adjustments, extras) })) };
 }
 
 /** Lo raro de una nómina antes de aprobarla. */

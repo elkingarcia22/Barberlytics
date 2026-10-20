@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { toast } from "sonner";
 import { describeError } from "@/lib/api";
 import { payrollApi } from "./api";
-import type { AdjustmentInput, PayrollParams, RentPaymentInput } from "./types";
+import type { AdjustmentInput, LoanInput, PayrollParams, RentPaymentInput } from "./types";
 
 export const payrollKeys = {
   all: ["payroll"] as const,
@@ -41,3 +41,9 @@ export const usePayPayroll = () => usePayrollMutation(({ id, method, reference }
 export const useReopenPayroll = () => usePayrollMutation(({ id, reason }: { id: string; reason: string }) => payrollApi.reopen(id, reason));
 export const useAddRentPayment = () => usePayrollMutation((input: RentPaymentInput) => payrollApi.addRentPayment(input));
 export const useRemoveRentPayment = () => usePayrollMutation((id: string) => payrollApi.removeRentPayment(id));
+
+export function useLoansQuery(branchId: string, memberId: string, enabled = true) {
+  return useQuery({ queryKey: [...payrollKeys.all, "loans", branchId, memberId], queryFn: ({ signal }) => payrollApi.loans(branchId, memberId, signal), enabled });
+}
+export const useAddLoan = () => usePayrollMutation((input: LoanInput) => payrollApi.addLoan(input));
+export const useCancelLoan = () => usePayrollMutation((id: string) => payrollApi.cancelLoan(id));

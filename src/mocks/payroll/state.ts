@@ -4,7 +4,8 @@
  * una regla. Los ajustes (bono, descuento, adelanto) son del periodo abierto y entran en esa foto.
  */
 
-export type MockAdjustmentKind = "bonus" | "deduction" | "advance";
+/** El bono suma; el descuento, el adelanto y el faltante de caja restan. */
+export type MockAdjustmentKind = "bonus" | "deduction" | "advance" | "shortage";
 
 export interface MockPayrollAdjustment {
   id: string;
@@ -18,6 +19,27 @@ export interface MockPayrollAdjustment {
   note: string;
   createdAt: string;
   createdBy: string;
+  /** Un faltante de caja cargado desde el cierre: de qué cierre sale. */
+  closureId?: string | null;
+}
+
+/**
+ * Un préstamo a alguien del equipo: se le entregó el dinero y se le descuenta en cuotas iguales, una por
+ * ciclo de pago desde el ciclo de `startDate`. La cuota sale sola en la nómina de cada ciclo.
+ */
+export interface MockLoan {
+  id: string;
+  branchId: string;
+  memberId: string;
+  amount: number;
+  installments: number;
+  /** AAAA-MM-DD: desde el ciclo que contiene esta fecha. */
+  startDate: string;
+  note: string;
+  createdAt: string;
+  createdBy: string;
+  /** Se canceló (lo pagó de una vez o se perdonó): desde ese día no salen más cuotas. */
+  cancelledAt?: string | null;
 }
 
 export type MockRunStatus = "approved" | "paid";
@@ -69,6 +91,7 @@ export interface MockPayrollState {
   adjustments: MockPayrollAdjustment[];
   history: MockPayrollHistoryEntry[];
   rentPayments: MockRentPayment[];
+  loans?: MockLoan[];
 }
 
-export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [], rentPayments: [] });
+export const emptyPayroll = (): MockPayrollState => ({ runs: [], adjustments: [], history: [], rentPayments: [], loans: [] });

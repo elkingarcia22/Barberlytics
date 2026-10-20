@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -39,6 +39,7 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   lowReview: { title: "notifications.lowReview.title", body: "notifications.lowReview.body" },
   absenceRequested: { title: "notifications.absenceRequested.title", body: "notifications.absenceRequested.body" },
   absenceDecided: { title: "notifications.absenceDecided.title", body: "notifications.absenceDecided.body" },
+  waitlistJoined: { title: "notifications.waitlistJoined.title", body: "notifications.waitlistJoined.body" },
 };
 
 const POLL_MS = 60_000;

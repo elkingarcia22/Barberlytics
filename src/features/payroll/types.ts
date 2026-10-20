@@ -40,10 +40,43 @@ export const commissionRulesSchema = z.object({
 });
 export type CommissionRules = z.infer<typeof commissionRulesSchema>;
 
-/** Un ajuste del periodo: lo que no sale de las citas. El bono suma; el descuento y el adelanto restan. */
-export const adjustmentKindSchema = z.enum(["bonus", "deduction", "advance"]);
+/**
+ * Un ajuste del periodo: lo que no sale de las citas. El bono suma; el descuento, el adelanto y el faltante de
+ * caja restan. La cuota de un préstamo (`loan`) la pone el sistema en cada ciclo y no se borra a mano.
+ */
+export const adjustmentKindSchema = z.enum(["bonus", "deduction", "advance", "shortage"]);
 export type AdjustmentKind = z.infer<typeof adjustmentKindSchema>;
-export const adjustmentSchema = z.object({ id: z.string(), kind: adjustmentKindSchema, amount: z.number(), note: z.string(), createdAt: z.string(), createdBy: z.string() });
+export const adjustmentSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["bonus", "deduction", "advance", "shortage", "loan"]),
+  amount: z.number(),
+  note: z.string(),
+  createdAt: z.string(),
+  createdBy: z.string(),
+  closureId: z.string().nullable().optional(),
+  loanId: z.string().nullable().optional(),
+});
+
+export const loanSchema = z.object({
+  id: z.string(),
+  memberId: z.string(),
+  amount: z.number(),
+  installments: z.number(),
+  startDate: z.string(),
+  note: z.string(),
+  createdAt: z.string(),
+  createdBy: z.string(),
+  cancelledAt: z.string().nullable().optional(),
+});
+export type PayrollLoan = z.infer<typeof loanSchema>;
+export interface LoanInput {
+  branchId: string;
+  memberId: string;
+  amount: number;
+  installments: number;
+  startDate: string;
+  note: string;
+}
 export type PayrollAdjustment = z.infer<typeof adjustmentSchema>;
 
 export const payrollMemberSchema = z.object({
@@ -72,6 +105,8 @@ export const payrollMemberSchema = z.object({
   balance: z.number().optional(),
   rentPayments: z.array(z.object({ id: z.string(), amount: z.number(), method: z.string(), date: z.string(), note: z.string(), by: z.string() })).optional(),
   adjustments: z.array(adjustmentSchema).optional(),
+  /** Ventas de mostrador que hizo (comisionan como producto). */
+  counterSales: z.number().optional(),
   /** Lo que suman los ajustes: los bonos menos descuentos y adelantos. */
   adjustmentsTotal: z.number().optional(),
   /** Positivo: la barbería le paga. Negativo: el barbero le debe a la barbería. */
@@ -142,7 +177,11 @@ export const ADJUSTMENT_KEYS: Readonly<Record<AdjustmentKind, AppMessageKey>> = 
   bonus: "payroll.adjustment.bonus",
   deduction: "payroll.adjustment.deduction",
   advance: "payroll.adjustment.advance",
+  shortage: "payroll.adjustment.shortage",
 };
+
+/** Todos los ajustes que se ven, con la cuota de préstamo que pone el sistema. */
+export const ADJUSTMENT_VIEW_KEYS: Readonly<Record<PayrollAdjustment["kind"], AppMessageKey>> = { ...ADJUSTMENT_KEYS, loan: "payroll.adjustment.loan" };
 
 /** Con qué se paga la nómina. */
 export const PAY_METHODS = ["cash", "transfer", "nequi", "breb"] as const;

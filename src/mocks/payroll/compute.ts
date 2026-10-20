@@ -5,7 +5,10 @@ import { appointmentsOn } from "../calendar/handlers";
 import { dateKey, type MockAppointment } from "../calendar/seed";
 import { taxInclusive } from "../settings/branchRules";
 import { memberName, type MockCompensation, type MockTeamMember } from "../team/seed";
-import type { MockPayrollAdjustment } from "./state";
+import type { MockLoan, MockPayrollAdjustment } from "./state";
+import type { MockSale } from "../calendar/seed";
+import { itemTaxPercent } from "../settings/branchRules";
+import { payCycleWindow, shiftPayCycle } from "@/features/payroll/payCycle";
 
 /**
  * El cálculo de la nómina, sin HTTP. Cuadra con la caja:
@@ -71,19 +74,9 @@ function rateOf(compensation: MockCompensation, rule: Rule, cycleSales: number):
 
 const localDay = (iso: string): Date => new Date(`${iso.slice(0, 10)}T00:00:00`);
 
-/** Los días del ciclo de pago que contiene esa fecha: semanal o quincenal desde el día de la semana elegido, o mensual desde el día del mes. */
+/** Los días del ciclo de pago que contiene esa fecha (semanal, quincenal del 1 al 15 y del 16 a fin de mes, o mensual). */
 export function cycleWindow(day: Date, settings: CycleSettings = cycleSettings()): { from: Date; to: Date } {
-  if (settings.cycle === "monthly") {
-    const startDay = Math.min(Math.max(1, settings.startDay), 28);
-    const from = new Date(day.getFullYear(), day.getMonth() - (day.getDate() < startDay ? 1 : 0), startDay);
-    return { from, to: new Date(from.getFullYear(), from.getMonth() + 1, startDay - 1) };
-  }
-  const length = settings.cycle === "biweekly" ? 14 : 7;
-  // La quincena cuenta desde un lunes fijo (5 de enero de 2026) movido al día de la semana elegido.
-  const anchor = new Date(2026, 0, 5 + ((settings.startDay - 1 + 7) % 7));
-  const offset = Math.floor((day.getTime() - anchor.getTime()) / DAY_MS);
-  const from = new Date(anchor.getTime() + (offset - (((offset % length) + length) % length)) * DAY_MS);
-  return { from, to: new Date(from.getTime() + (length - 1) * DAY_MS) };
+  return payCycleWindow(day, settings);
 }
 
 const isPaid = (item: MockAppointment) => item.status === "paid" && item.payment !== null;
@@ -157,9 +150,56 @@ function firstVisitsOf(appointments: readonly MockAppointment[]): Set<string> {
   return new Set([...firstByClient.values()].map((item) => item.id));
 }
 
-const ADJUSTMENT_SIGN: Record<MockPayrollAdjustment["kind"], 1 | -1> = { bonus: 1, deduction: -1, advance: -1 };
+const ADJUSTMENT_SIGN: Record<MockPayrollAdjustment["kind"] | "loan", 1 | -1> = { bonus: 1, deduction: -1, advance: -1, shortage: -1, loan: -1 };
 
-export function payrollOf(member: MockTeamMember, appointments: readonly MockAppointment[], weeks: number, branchId: string, adjustments: readonly MockPayrollAdjustment[]) {
+/** La base de comisión de una venta de mostrador: al precio de la sucursal, menos el impuesto incluido y el costo si así se pide. */
+function saleBase(sale: MockSale, settings: CommissionSettings): number {
+  return round(
+    sale.items.reduce((sum, row) => {
+      const product = db.products.items.find((item) => item.id === row.productId);
+      const gross = productPriceIn(row.productId, sale.branchId) * row.qty;
+      const percent = itemTaxPercent(product?.taxRate, sale.branchId);
+      const tax = settings.deductTaxes && taxInclusive() ? gross - gross / (1 + percent / 100) : 0;
+      const cost = settings.deductProductCost ? (product?.cost ?? 0) * row.qty : 0;
+      return sum + Math.max(0, gross - tax - cost);
+    }, 0)
+  );
+}
+
+const iso = (date: Date) => dateKey(date);
+
+/**
+ * Las cuotas de préstamo que caen en el rango: la k-ésima cuota sale en el k-ésimo ciclo de pago desde el
+ * de `startDate`. Cuotas iguales; la última se lleva lo que sobra del redondeo.
+ */
+export function loanInstallmentsIn(loans: readonly MockLoan[], from: string, to: string): { loan: MockLoan; index: number; amount: number; cycleFrom: string }[] {
+  const settings = cycleSettings();
+  const result: { loan: MockLoan; index: number; amount: number; cycleFrom: string }[] = [];
+  for (const loan of loans) {
+    const each = Math.floor((loan.amount / loan.installments) * 100) / 100;
+    let window = payCycleWindow(localDay(loan.startDate), settings);
+    for (let index = 0; index < loan.installments; index += 1) {
+      const start = iso(window.from);
+      if (start > to) break;
+      // Cancelado: deja de salir desde el ciclo en curso (el que aún no termina el día de la cancelación).
+      const cancelled = loan.cancelledAt && loan.cancelledAt.slice(0, 10) <= iso(window.to);
+      if (!cancelled && start >= from) result.push({ loan, index, amount: index === loan.installments - 1 ? round(loan.amount - each * (loan.installments - 1)) : each, cycleFrom: start });
+      window = shiftPayCycle(window.from, settings, 1);
+    }
+  }
+  return result;
+}
+
+export interface PayrollExtras {
+  /** Las ventas de mostrador del periodo (comisiona quien vendió). */
+  sales?: readonly MockSale[];
+  /** Los préstamos de la sucursal (sus cuotas del periodo se descuentan solas). */
+  loans?: readonly MockLoan[];
+  from?: string;
+  to?: string;
+}
+
+export function payrollOf(member: MockTeamMember, appointments: readonly MockAppointment[], weeks: number, branchId: string, adjustments: readonly MockPayrollAdjustment[], extras: PayrollExtras = {}) {
   const settings = commissionSettings();
   const cycleSales = cycleSalesFor(branchId, settings);
   const payout = payoutOf(member);
@@ -200,7 +240,10 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
   const lines = entries.map((entry) => entry.line);
 
   const serviceSales = round(lines.reduce((sum, line) => sum + line.sale, 0));
-  const productSales = round(entries.reduce((sum, entry) => sum + entry.productSale, 0));
+  // Lo que vendió en el mostrador (sin cita) también comisiona como producto.
+  const counterSales = (extras.sales ?? []).filter((sale) => sale.sellerId === member.id);
+  const counterBase = round(counterSales.reduce((sum, sale) => sum + saleBase(sale, settings), 0));
+  const productSales = round(entries.reduce((sum, entry) => sum + entry.productSale, 0) + counterBase);
   const productPercent = compensation?.productPercent ?? 0;
   const serviceCommission = round(lines.reduce((sum, line) => sum + line.commission, 0));
   const productCommission = payout === "rent" ? 0 : round((productSales * productPercent) / 100);
@@ -209,7 +252,11 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
   const rent = payout === "rent" ? round((payments?.rentBase ?? 0) * weeks) : 0;
   const deductions = round(lines.reduce((sum, line) => sum + line.deduction, 0));
   const mineAdjustments = adjustments.filter((item) => item.memberId === member.id);
-  const adjustmentsTotal = round(mineAdjustments.reduce((sum, item) => sum + ADJUSTMENT_SIGN[item.kind] * item.amount, 0));
+  // Las cuotas de sus préstamos que caen en el periodo: salen solas, como un ajuste que no se borra a mano.
+  const installments = extras.from && extras.to ? loanInstallmentsIn((extras.loans ?? []).filter((loan) => loan.memberId === member.id), extras.from, extras.to) : [];
+  const loanAdjustments = installments.map(({ loan, index, amount, cycleFrom }) => ({ id: `loan:${loan.id}:${index}`, kind: "loan" as const, amount, note: `${index + 1}/${loan.installments} · ${loan.note}`, createdAt: cycleFrom, createdBy: loan.createdBy, loanId: loan.id }));
+  const allAdjustments = [...mineAdjustments.map(({ id, kind, amount, note, createdAt, createdBy, closureId }) => ({ id, kind, amount, note, createdAt, createdBy, closureId: closureId ?? null, loanId: null })), ...loanAdjustments.map((item) => ({ ...item, closureId: null }))];
+  const adjustmentsTotal = round(allAdjustments.reduce((sum, item) => sum + ADJUSTMENT_SIGN[item.kind] * item.amount, 0));
   const held = round(lines.reduce((sum, line) => sum + line.held, 0));
   /*
    * Positivo: la barbería le paga. Negativo: el barbero le debe a la barbería. Con renta, el neto es
@@ -239,7 +286,8 @@ export function payrollOf(member: MockTeamMember, appointments: readonly MockApp
     rent,
     deductions,
     held,
-    adjustments: mineAdjustments.map(({ id, kind, amount, note, createdAt, createdBy }) => ({ id, kind, amount, note, createdAt, createdBy })),
+    adjustments: allAdjustments,
+    counterSales: counterSales.length,
     adjustmentsTotal,
     net,
     lines,

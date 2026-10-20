@@ -239,6 +239,8 @@ export interface MockSale {
   tax?: number;
   total: number;
   paidAt: string;
+  /** Quién vendió (una ficha del equipo): comisiona en su nómina. Sin él, la venta es de la barbería. */
+  sellerId?: string | null;
 }
 
 /* --------------------------------------------------------------- catalog */

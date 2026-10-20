@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Text } from "@/components/typography";
 import { PayrollAdjustments } from "./PayrollAdjustments";
+import { PayrollLoans } from "./PayrollLoans";
 import { RentPayments } from "./RentPayments";
 import { PAYOUT_KEYS, RULE_KEYS, ruleSchema, type CommissionRule, type PayrollMember } from "./types";
 
@@ -91,6 +92,7 @@ export function PayrollMemberDrawer({ member, onClose, formatMoney, showRulesLin
 
           {adjustments && member.payout === "rent" && <RentPayments member={member} period={adjustments.period} canManage={adjustments.canManage} formatMoney={formatMoney} />}
           {adjustments && <PayrollAdjustments member={member} period={adjustments.period} locked={adjustments.locked} canManage={adjustments.canManage} formatMoney={formatMoney} />}
+          {adjustments && <PayrollLoans member={member} period={adjustments.period} canManage={adjustments.canManage} formatMoney={formatMoney} />}
 
           <section aria-label={t("payroll.detail.lines")} className="space-y-2">
             <Text variant="label">{t("payroll.detail.linesCount", { count: member.lines.length })}</Text>

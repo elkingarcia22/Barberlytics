@@ -17,7 +17,10 @@ import { ThemaTabs } from "@/components/navigation";
 import { useBranchCurrency } from "@/features/branches";
 import { CashCount } from "./CashCount";
 import { countTotal } from "./denominations";
-import { expectedInDrawer, useAddCashMovement, useCloseRegister, useRegisterDay, type CashMovement, type RegisterDay } from "./register";
+import { useAccess } from "@/features/access";
+import { useMembersQuery } from "@/features/team/queries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { expectedInDrawer, useAddCashMovement, useChargeShortage, useCloseRegister, useRegisterDay, type CashMovement, type RegisterDay } from "./register";
 
 export interface RegisterCloseDrawerProps {
   open: boolean;
@@ -110,6 +113,7 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
             <Line label={t("transactions.register.difference")} value={differenceLabel(t, formatMoney, closure.difference)} tone={closure.difference === 0 ? "positive" : "warning"} strong />
           </dl>
           {closure.blind && closure.difference !== 0 && <Text variant="muted">{t("transactions.register.blindReview")}</Text>}
+          {closure.difference < 0 && <ShortageCharge branchId={data.branchId} closureId={closure.id} charged={closure.shortage ?? null} />}
           {closure.note && <Text variant="muted">{closure.note}</Text>}
           <Text variant="muted">{t("transactions.register.closedBy", { name: closure.closedBy, time: formatTime(closure.closedAt) })}</Text>
         </section>
@@ -142,6 +146,42 @@ function RegisterBody({ data, formatMoney, formatTime }: { data: RegisterDay; fo
           </Button>
         </section>
       )}
+    </div>
+  );
+}
+
+/** El faltante de un cierre se puede descontar en la nómina de quien responde por él (dueño o administrador). */
+function ShortageCharge({ branchId, closureId, charged }: { branchId: string; closureId: string; charged: { memberId: string; by: string } | null }) {
+  const t = useAppT();
+  const access = useAccess();
+  const manages = access.role === "owner" || access.role === "admin";
+  const members = useMembersQuery(branchId).data?.items ?? [];
+  const charge = useChargeShortage();
+  const [memberId, setMemberId] = React.useState("");
+  const nameOf = (id: string) => {
+    const member = members.find((item) => item.id === id);
+    return member ? `${member.firstName} ${member.lastName}` : id;
+  };
+  if (charged) return <Text variant="muted" data-testid="register-shortage-charged">{t("transactions.register.shortageCharged", { name: nameOf(charged.memberId), by: charged.by })}</Text>;
+  if (!manages) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 p-3" data-testid="register-shortage">
+      <Text variant="muted" className="w-full">{t("transactions.register.shortageHint")}</Text>
+      <Select value={memberId} onValueChange={setMemberId}>
+        <SelectTrigger className="w-56" aria-label={t("transactions.register.shortageWho")} data-testid="register-shortage-member">
+          <SelectValue placeholder={t("transactions.register.shortageWho")} />
+        </SelectTrigger>
+        <SelectContent>
+          {members.filter((item) => item.status === "active").map((item) => (
+            <SelectItem key={item.id} value={item.id}>
+              {item.firstName} {item.lastName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button size="sm" variant="outline" disabled={!memberId || charge.isPending} onClick={() => charge.mutate({ closureId, memberId }, { onSuccess: () => toast.success(t("transactions.register.shortageDone")) })} data-testid="register-shortage-save">
+        {t("transactions.register.shortageCharge")}
+      </Button>
     </div>
   );
 }

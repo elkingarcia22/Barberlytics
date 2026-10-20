@@ -1,3 +1,4 @@
+import { useBranchId } from "@/features/team/teamUtils";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calendarApi } from "./api";
 import type {
@@ -131,8 +132,10 @@ export function useVoidPayment() {
 
 export function useCreateAppointment() {
   const invalidate = useInvalidateAgenda();
+  // La cita va a la sede de la cabecera (no a la primera del barbero, que puede trabajar en varias).
+  const branchId = useBranchId();
   return useMutation({
-    mutationFn: (input: AppointmentInput) => calendarApi.createAppointment(input),
+    mutationFn: (input: AppointmentInput) => calendarApi.createAppointment(input, branchId),
     onSuccess: invalidate,
   });
 }

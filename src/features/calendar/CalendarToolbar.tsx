@@ -93,14 +93,13 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
         </div>
       )}
 
-      {/* En el celular la fecha ocupa su fila entera; las herramientas van en la siguiente. */}
-      <div className="flex items-center gap-1 max-sm:w-full">
+      <div className="flex items-center gap-1">
         <Button variant="outline" size="icon" aria-label={prevLabel} onClick={() => step(-1)}>
           <ChevronLeft />
         </Button>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-[10.5rem] justify-between max-sm:min-w-0 max-sm:flex-1" aria-label={t("calendar.jumpToDate")} data-testid="calendar-date">
+            <Button variant="outline" className="min-w-[10.5rem] justify-between" aria-label={t("calendar.jumpToDate")} data-testid="calendar-date">
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="font-semibold">{label}</span>
                 {dateBadge}
@@ -131,10 +130,12 @@ export function CalendarToolbar({ date, isToday, view, team, barbers, onDateChan
         )}
       </div>
 
-      {status}
+      {/* En el celular «Filtros» baja con las herramientas y se va con ellas a la derecha. */}
+      {status && <div className="max-sm:ml-auto">{status}</div>}
       {summary}
 
-      <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
+      {/* Las herramientas, a la derecha: también cuando bajan a su propia fila en el celular. */}
+      <div className={cn("flex flex-wrap items-center justify-end gap-2", status ? "sm:ml-auto" : "ml-auto")}>
         {search}
         {beforeView}
         {/* La vista en un menú y no en cuatro segmentos: la fila tiene que caber

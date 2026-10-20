@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -41,6 +41,7 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   absenceDecided: { title: "notifications.absenceDecided.title", body: "notifications.absenceDecided.body" },
   waitlistJoined: { title: "notifications.waitlistJoined.title", body: "notifications.waitlistJoined.body" },
   rescheduled: { title: "notifications.rescheduled.title", body: "notifications.rescheduled.body" },
+  newDevice: { title: "notifications.newDevice.title", body: "notifications.newDevice.body" },
 };
 
 /** Reintentar un mensaje que falló: vuelve a la cola para salir ya. */
@@ -82,6 +83,8 @@ export interface ShellNotificationDeps {
   markRead: (ids: readonly string[]) => void;
   /** Reintentar un mensaje que falló; sin él, el aviso no ofrece «Reintentar». */
   retryMessage?: (id: string) => void;
+  /** «No fui yo» en el aviso de dispositivo nuevo: cerrar las demás sesiones de la cuenta. */
+  revokeOtherSessions?: () => void;
 }
 
 /** «2026-10-18» → «18 oct»; las cifras de dinero con la moneda de la sucursal. */
@@ -96,6 +99,10 @@ function formatParams(params: AppNotification["params"], deps: ShellNotification
 
 /** Lo que se puede hacer desde el aviso sin abrir nada: a un WhatsApp que falló, llamar al cliente o reintentar. */
 function actionsOf(item: AppNotification, deps: ShellNotificationDeps): { id: string; label: string; onSelect: () => void }[] | undefined {
+  if (item.kind === "newDevice") {
+    if (!deps.revokeOtherSessions) return undefined;
+    return [{ id: "revoke", label: deps.t("notifications.action.notMe"), onSelect: () => { if (!item.read) deps.markRead([item.id]); deps.revokeOtherSessions?.(); } }];
+  }
   if (item.kind !== "whatsappFailed") return undefined;
   const phone = typeof item.params.phone === "string" ? item.params.phone.replace(/[^\d+]/g, "") : "";
   const messageId = typeof item.params.messageId === "string" ? item.params.messageId : "";
@@ -122,7 +129,8 @@ export function toShellNotifications(items: readonly AppNotification[], deps: Sh
       tone: item.tone,
       onSelect: () => {
         if (!item.read) deps.markRead([item.id]);
-        deps.navigate(item.href);
+        // Un aviso de seguridad no lleva a ninguna pantalla: se lee aquí.
+        if (item.href) deps.navigate(item.href);
       },
       actions: actionsOf(item, deps),
     };

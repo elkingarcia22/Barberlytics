@@ -67,7 +67,7 @@ export interface MockOutboxMessage {
    * `receipt` y `rebookLink`: los mandó el equipo desde el panel de la cita (el recibo, el enlace para
    * reagendar), por SMS o correo; salen en el momento.
    */
-  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost";
+  kind: "confirmation" | "rescheduled" | "reminder24h" | "reminder2h" | "reminder" | "slotFreed" | "manual" | "reactivation" | "receipt" | "rebookLink" | "payLink" | "queueAlmost" | "giftCard";
   /** Con `reminder`: a cuántas horas de la cita sale (las que eligió la barbería en Configuración). */
   hoursBefore?: number;
   sendAt: string;
@@ -119,6 +119,8 @@ export interface MockGiftCard {
   recipientContact: string;
   message: string;
   createdAt: string;
+  /** El mensaje con el código que se le mandó a quien la recibe (el último, si se reenvió). */
+  messageId?: string | null;
 }
 
 /** Llegó a un paso de la reserva: anónimo, para medir dónde se van. */

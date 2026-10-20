@@ -40,7 +40,7 @@ import { alternatives, earliest, joinWaitlist, type WaitlistWindow } from "./alt
 import { cancelMessages, newConfirmToken, offerFreedSlot, rescheduleMessages, scheduleMessages } from "./reminders";
 import { MAX_REPEATS, REPEAT_WEEKS, repeatAppointment, type RepeatWeeks } from "./recurring";
 import { addReview, reviewOfAppointment, reviewsOf } from "./reviews";
-import { createGiftCard, findGiftCard, spendGiftCard } from "./giftCards";
+import { createGiftCard, findGiftCard, spendGiftCard, sendGiftCard } from "./giftCards";
 import { activePackages, buyPackage, packageOffers, spendPackages } from "./packages";
 import { FUNNEL_STEPS, funnelSummary, recordEvent } from "./funnel";
 
@@ -712,6 +712,8 @@ export const bookingHandlers = [
     const charged = chargeCard(client, input, "card");
     if (charged instanceof Response) return charged;
     const card = createGiftCard({ initial: amount, buyerId: client.id, recipientName, recipientContact, message: text(input.message).slice(0, 200) });
+    // Lo que la pantalla promete: el código sale por WhatsApp a quien la recibe.
+    sendGiftCard(card, client.name, text(input.branchId) || "ma", client.name);
     db.persist();
     return HttpResponse.json({ code: card.code, amount: card.initial, sentTo: `•••• ${recipientContact.replace(/\D/g, "").slice(-4)}`, paidWith: `${charged.brand} •••• ${charged.last4}` }, { status: 201 });
   }),

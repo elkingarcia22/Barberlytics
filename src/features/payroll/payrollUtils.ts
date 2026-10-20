@@ -36,4 +36,10 @@ export const countByPayout = (members: readonly PayrollMember[]): Readonly<Recor
   salary: members.filter((member) => member.payout === "salary").length,
 });
 
+/** Lo que gana el barbero en el día: su comisión y propinas; si renta su silla, lo que vendió y sus propinas menos las deducciones. */
+export function earnedOf(member: Pick<PayrollMember, "payout" | "serviceCommission" | "productCommission" | "tips" | "serviceSales" | "productSales" | "deductions">): number {
+  const value = member.payout === "rent" ? member.serviceSales + member.productSales + member.tips - member.deductions : member.serviceCommission + member.productCommission + member.tips;
+  return Math.round(value * 100) / 100;
+}
+
 export { toCsv } from "@/lib/csv";

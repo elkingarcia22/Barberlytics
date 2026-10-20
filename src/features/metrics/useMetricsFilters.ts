@@ -4,7 +4,7 @@ import { fromIsoDate, toIsoDate, type PeriodGranularity } from "@/components/dat
 import { useAccess } from "@/features/access";
 import { useBranchId } from "@/features/team/teamUtils";
 import type { TeamRole } from "@/features/team/types";
-import { ALL_BARBERS, periodGranularitySchema, type MetricsParams } from "./types";
+import { ALL_BARBERS, ALL_BRANCHES, periodGranularitySchema, type MetricsParams } from "./types";
 
 export const METRICS_TABS = ["business", "customers", "barbers", "marketing", "insights"] as const;
 export type MetricsTab = (typeof METRICS_TABS)[number];
@@ -68,8 +68,11 @@ export function useMetricsFilters() {
     [setSearchParams]
   );
 
-  // La sucursal de la cabecera viaja en la consulta: cada una tiene sus cifras.
-  const branchId = useBranchId();
+  // La sucursal de la cabecera viaja en la consulta: cada una tiene sus cifras. El dueño puede ver todas sumadas.
+  const headerBranch = useBranchId();
+  const canSeeAll = access.role === "owner";
+  const allBranches = canSeeAll && searchParams.get("sucursales") === "todas";
+  const branchId = allBranches ? ALL_BRANCHES : headerBranch;
   const params: MetricsParams = { granularity, date: toIsoDate(date), barberId, branchId };
   const today = toIsoDate(new Date());
 
@@ -82,6 +85,10 @@ export function useMetricsFilters() {
     date,
     barberId,
     params,
+    /** El dueño mira todas las sucursales sumadas (`?sucursales=todas`). */
+    canSeeAll,
+    allBranches,
+    setAllBranches: (value: boolean) => set({ sucursales: value ? "todas" : undefined, barber: undefined }),
     setTab: (value: MetricsTab) => set({ tab: value === "business" ? undefined : value }),
     setGranularity: (value: PeriodGranularity) => set({ period: value === "month" ? undefined : value }),
     setDate: (value: Date) => {

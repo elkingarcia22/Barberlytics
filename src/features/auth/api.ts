@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { legalVersion } from "@/features/legal/documents";
+import { deviceInfo } from "./device";
 import {
   authUserSchema,
   backupEmailSchema,
@@ -22,8 +23,10 @@ import {
 export const authApi = {
   /** Envía el código por SMS (o al correo de respaldo con `channel: "email"`); no abre sesión. */
   requestCode: (body: OtpRequest) => api.post<void>("/auth/otp/request", body),
-  /** El código correcto abre la sesión. */
-  verifyCode: (body: OtpVerify) => api.post<Session>("/auth/otp/verify", body, { schema: sessionSchema }),
+  /** El código correcto abre la sesión. Va con el dispositivo: si es nuevo, el servidor avisa a la cuenta. */
+  verifyCode: (body: OtpVerify) => api.post<Session>("/auth/otp/verify", { ...body, device: deviceInfo() }, { schema: sessionSchema }),
+  /** «No fui yo»: cierra todas las sesiones de la cuenta menos esta. */
+  revokeOtherSessions: () => api.post<{ closed: number }>("/auth/sessions/revoke-others"),
   /** `credential` es lo que entregó el SDK del proveedor en el navegador (ver `providers.ts`). */
   loginWithProvider: (provider: AuthProvider, credential: string) =>
     api.post<Session>("/auth/oauth", { provider, credential }, { schema: sessionSchema }),

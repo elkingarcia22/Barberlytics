@@ -18,7 +18,7 @@ export const relationshipSchema = z.object({
   membership: z.object({ every: z.number(), progress: z.number(), available: z.number(), reward: z.string(), rewardValue: z.number() }).nullable(),
   packages: z.array(z.object({ id: z.string(), name: z.string(), service: z.string(), remaining: z.number(), total: z.number(), expiresAt: z.string() })),
   credit: z.number(),
-  giftCards: z.array(z.object({ code: z.string(), recipientName: z.string(), initial: z.number(), balance: z.number(), createdAt: z.string() })),
+  giftCards: z.array(z.object({ code: z.string(), recipientName: z.string(), initial: z.number(), balance: z.number(), createdAt: z.string(), sent: z.object({ status: z.enum(["scheduled", "sent", "failed"]), at: z.string() }).nullable().optional() })),
   cards: z.array(z.object({ id: z.string(), brand: z.string(), last4: z.string(), expMonth: z.number(), expYear: z.number() })),
   reviews: z.array(z.object({ id: z.string(), rating: z.number(), comment: z.string(), barber: z.string(), createdAt: z.string() })),
   waitlist: z.array(z.object({ id: z.string(), branchId: z.string(), service: z.string(), barber: z.string().nullable(), slots: z.array(z.object({ date: z.string(), time: z.string() })), createdAt: z.string() })),
@@ -52,6 +52,8 @@ export const relationshipApi = {
   /** Anota un mensaje escrito desde la ficha (se abre en WhatsApp aparte). `409 no_consent` si es promoción sin permiso. */
   logMessage: (id: string, input: { purpose: MessagePurpose; body: string }) => api.post<CustomerRelationship>(`/customers/${id}/messages`, input, { schema: relationshipSchema }),
   setMarketing: (id: string, marketing: boolean) => api.patch<CustomerRelationship>(`/customers/${id}/consent`, { marketing }, { schema: relationshipSchema }),
+  /** Reenvía por WhatsApp el código de una tarjeta de regalo que compró el cliente. */
+  resendGiftCard: (id: string, code: string) => api.post<CustomerRelationship>(`/customers/${id}/gift-cards/${encodeURIComponent(code)}/resend`, {}, { schema: relationshipSchema }),
   /** A quién de la lista se le puede escribir ese mensaje ahora y, si no, por qué. */
   checkBulk: (ids: readonly string[], purpose: MessagePurpose) => api.post("/customers/messages/check", { ids, purpose }, { schema: bulkCheckSchema }),
   /** Retirarlo borra sus alergias y medicamentos anotados (y queda en el registro de solicitudes). */
@@ -96,4 +98,12 @@ export function useSetHealthConsent() {
 /** A quién de la lista se le puede escribir (se vuelve a pedir al cambiar el propósito). */
 export function useBulkSendCheck(ids: readonly string[], purpose: MessagePurpose, enabled: boolean) {
   return useQuery({ queryKey: ["customers", "bulk-check", purpose, [...ids].sort().join(",")], queryFn: () => relationshipApi.checkBulk(ids, purpose), enabled: enabled && ids.length > 0 });
+}
+
+export function useResendGiftCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, code }: { id: string; code: string }) => relationshipApi.resendGiftCard(id, code),
+    onSuccess: (data, { id }) => queryClient.setQueryData(relationshipKey(id), data),
+  });
 }

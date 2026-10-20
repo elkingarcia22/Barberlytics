@@ -115,6 +115,7 @@ Lo que responde MSW hoy.
 - `POST /customers/:id/privacy-requests` · src/mocks/customers/privacy.ts
 - `GET /privacy-requests` · src/mocks/customers/privacy.ts
 - `POST /privacy-requests/:id/done` · src/mocks/customers/privacy.ts
+- `POST /customers/:id/gift-cards/:code/resend` · src/mocks/customers/relationship.ts
 - `POST /customers/messages/check` · src/mocks/customers/relationship.ts
 - `GET /customers/:id/relationship` · src/mocks/customers/relationship.ts
 - `POST /customers/:id/messages` · src/mocks/customers/relationship.ts
@@ -146,6 +147,7 @@ Lo que responde MSW hoy.
 - `POST /kiosk/queue` · src/mocks/frontDesk/handlers.ts
 - `POST /auth/otp/request` · src/mocks/handlers.ts
 - `POST /auth/otp/verify` · src/mocks/handlers.ts
+- `POST /auth/sessions/revoke-others` · src/mocks/handlers.ts
 - `POST /auth/step-up/request` · src/mocks/handlers.ts
 - `POST /auth/step-up/verify` · src/mocks/handlers.ts
 - `POST /auth/signup/code` · src/mocks/handlers.ts
@@ -356,11 +358,12 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **SignupPanel.tsx** · `SignupPanelProps`, `SignupPanel` · piezas: Button, Checkbox, Heading, Input, NumberField, PHONE_COUNTRIES, PhoneInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Text · usa: @/app/i18n, @/features/legal, @/icons, @/lib/api
 - **StepUpHost.tsx** — El diálogo que pide el código cuando el servidor responde `step_up_required`. · `StepUpHost` · piezas: Alert, AlertDescription, Button, Field, Input, ModalShell · usa: @/app/i18n, @/lib/api
 - **SupportTicketPanel.tsx** — De dónde viene la persona: prellena lo que ya se sabe. · `TicketContext`, `SupportTicketPanelProps`, `SupportTicketPanel` · piezas: Button, Heading, Input, PhoneInput, Text, Textarea · usa: @/app/i18n, @/icons, @/lib/api
-- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/features/legal, @/lib/api
+- **api.ts** · `authApi` · llama: POST /auth/otp/request, POST /auth/otp/verify, POST /auth/sessions/revoke-others, POST /auth/oauth, GET /auth/me, POST /auth/logout, POST /auth/recovery/request, GET /auth/backup-email, POST /auth/backup-email, POST /auth/backup-email/verify, DELETE /auth/backup-email, POST /auth/signup, POST /auth/signup/code, POST /support/tickets · usa: @/features/legal, @/lib/api
 - **authContext.ts** · `AuthContextValue`, `AuthContext`
 - **authErrors.ts** — Pinta en su campo los errores `fields` del servidor. · `applyServerFieldErrors`, `isLockedError`, `attemptsLeftFrom` · usa: @/lib/api
 - **authFormParts.tsx** — Etiqueta, control y mensaje de error enlazados por `id`. · `FieldControlProps`, `AuthField`, `FormErrorAlert`, `BackButton` · piezas: Alert, AlertDescription, AlertTitle, Button, Label, Text · usa: @/icons
 - **backupEmailQueries.ts** — El correo de respaldo de quien tiene la sesión. · `backupEmailKeys`, `useBackupEmailQuery`, `useBackupEmailMutations`
+- **device.ts** — «Chrome en macOS», a partir del agente del navegador. · `deviceLabel`, `deviceInfo`
 - **phoneLabel.ts** — «+573001234567» → «+57 300 123 4567», para decir a qué número se envió el código. · `describePhone` · piezas: formatNational, parseE164
 - **providers.ts** — Pide al proveedor (Google Identity Services, MSAL para Outlook) la credencial con la que el backend abre la s… · `requestProviderCredential` · usa: @/lib/api
 - **stepUp.ts** · `stepUpToken`, `clearStepUp`, `stepUpApi` · llama: POST /auth/step-up/request, POST /auth/step-up/verify · usa: @/lib/api
@@ -570,6 +573,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### calendar
 
 - **AppointmentDrawer.tsx** — El panel de una cita. · `AppointmentDrawerProps`, `AppointmentDrawer` · piezas: IconTile, SidePanelShell, calendarLocale, formatClock · usa: @/app/i18n, @/i18n, @/icons
+- **BarberTodayEarnings.tsx** — «Hoy ganas»: la pregunta diaria del barbero, en la fila de la agenda y también en el celular. · `BarberTodayEarnings` · piezas: Text · usa: @/app/i18n, @/features/payroll
 - **BlockDrawer.tsx** — Crear bloqueo: una franja del barbero que deja de estar disponible — almuerzo, reunión, enfermedad, vacacione… · `BlockDrawerProps`, `BlockDrawer` · piezas: Button, DatePicker, DrawerSection, Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SidePanelShell, Text, Textarea, parseClock · usa: @/app/i18n, @/i18n, @/lib/api
 - **BlockOptionsDialog.tsx** — Lo que se hace al tocar un bloqueo, para quien agenda sin las reglas de la casa (dueño, administrador, recepc… · `BlockOptionsDialogProps`, `BlockOptionsDialog` · piezas: ActionTile, IconTile, ModalShell, Text · usa: @/app/i18n
 - **CalendarAgendaView.tsx** — La vista Agenda: las citas del día una debajo de otra, repartidas en mañana, tarde y noche, con el cliente, e… · `CalendarAgendaViewProps`, `CalendarAgendaView` · piezas: Button, EmptyState, ListItem, ListItemGroup, RowContextMenu, ScheduleColorDot, ScheduleMarkers, Text, minutesOfDay, scheduleColorClass · usa: @/app/i18n, @/i18n, @/lib/utils
@@ -729,7 +733,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **overdue.ts** · `OverdueFacts`, `isOverdue`
 - **privacy.ts** — Los derechos del cliente sobre sus datos (docs/API_CONTRACT.md, «Clientes › Datos y privacidad»): la copia de… · `PRIVACY_REQUEST_TYPES`, `PRIVACY_CHANNELS`, `PrivacyRequestType`, `PrivacyChannel`, `PRIVACY_TYPE_KEYS`, `PRIVACY_CHANNEL_KEYS`, `privacyRequestSchema`, `PrivacyRequest`, `privacyApi`, `usePrivacyRequests`, `useLogPrivacyRequest`, `useClosePrivacyRequest`, `downloadJson`, `useExportCustomerData`, `useEraseCustomer` · llama: GET /privacy-requests${query ? `?${query}` : ""}, POST /customers/${clientId}/privacy-requests, POST /privacy-requests/${id}/done, GET /customers/${clientId}/export?channel=${channel}, POST /customers/${clientId}/erase · usa: @/lib/api
 - **queries.ts** · `customerKeys`, `useCustomersQuery`, `useCustomerQuery`, `useCreateCustomer`, `useUpdateCustomer`, `useSetCustomerBlocked`, `useDeleteCustomer`, `useAddCustomerNote`, `useAddGuest`, `useRemoveGuest` · usa: @/features/calendar
-- **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `sendBlockSchema`, `SendBlock`, `BulkCheck`, `MarketingConsent`, `HealthConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent`, `useSetHealthConsent`, `useBulkSendCheck` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent, POST /customers/messages/check · usa: @/features/calendar, @/lib/api
+- **relationship.ts** — Volver y cumpleaños son promoción: piden el permiso del cliente. · `relationshipSchema`, `CustomerRelationship`, `sendBlockSchema`, `SendBlock`, `BulkCheck`, `MarketingConsent`, `HealthConsent`, `MESSAGE_PURPOSES`, `MessagePurpose`, `isPromotional`, `whatsappLink`, `relationshipApi`, `useCustomerRelationship`, `useLogMessage`, `useSetMarketingConsent`, `useSetHealthConsent`, `useBulkSendCheck`, `useResendGiftCard` · llama: GET /customers/${id}/relationship, POST /customers/${id}/messages, PATCH /customers/${id}/consent, POST /customers/${id}/gift-cards/${encodeURIComponent(code)}/resend, POST /customers/messages/check · usa: @/features/calendar, @/lib/api
 - **rhythm.ts** — Se le puede escribir: aceptó promociones, no se le escribió hace poco, tiene celular y hay hueco que ofrecer. · `NextVisit`, `ReactivationCandidate`, `skipReasonSchema`, `SkipReason`, `canReactivate`, `useNextVisit`, `useReactivationCandidates`, `useApproveReactivation` · llama: GET /customers/${customerId}/next-visit, GET /customers/reactivation, POST /customers/reactivation · usa: @/lib/api
 - **types.ts** — En qué momento de la relación está un cliente. · `customerSegmentSchema`, `CustomerSegment`, `customerSchema`, `Customer`, `customersResponseSchema`, `CustomersResponse`, `customerAppointmentStatusSchema`, `CustomerAppointmentStatus`, `customerAppointmentSchema`, `CustomerAppointment`, `customerPaymentSchema`, `CustomerPayment`, `customerGuestSchema`, `CustomerGuest`, `customerProductSchema`, `CustomerProduct`, `customerDetailSchema`, `CustomerDetail`, `customerInputSchema`, `CustomerInput`, `EMPTY_CUSTOMER_INPUT`, `GuestInput`, `SEGMENT_KEYS`, `SEGMENT_HINT_KEYS`, `APPOINTMENT_STATUS_KEYS`, `APPOINTMENT_SOURCE_KEYS`, `PAYMENT_METHOD_KEYS`, `splitName`, `inputFromDetail` · usa: @/app/i18n, @/features/calendar
 - **whatsappTemplates.ts** — El texto de partida para cada propósito; «libre» arranca con el saludo. · `PURPOSE_KEYS`, `TemplateContext`, `templateBody` · usa: @/app/i18n
@@ -802,7 +806,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **api.ts** · `metricsApi` · llama: GET /metrics/business, GET /metrics/customers, GET /metrics/barbers, GET /metrics/marketing, GET /metrics/insights · usa: @/lib/api
 - **metricsFormat.ts** — Cómo se escriben las cifras del tablero, con la convención del idioma activo. · `MetricsFormatters`, `useMetricsFormatters` · usa: @/features/branches, @/i18n
 - **queries.ts** · `metricsKeys`, `useBusinessMetrics`, `useCustomersMetrics`, `useBarbersMetrics`, `useMarketingMetrics`, `useInsightsMetrics`
-- **types.ts** · `Compared`, `periodGranularitySchema`, `MetricsGranularity`, `incomeLineSchema`, `IncomeLine`, `appointmentStatusSchema`, `AppointmentStatus`, `bookingMethodSchema`, `BookingMethod`, `daypartSchema`, `Daypart`, `paymentMethodSchema`, `PaymentMethod`, `CatalogRow`, `metricsBusinessSchema`, `MetricsBusiness`, `clientTypeSchema`, `ClientType`, `visitFrequencySchema`, `VisitFrequency`, `metricsCustomersSchema`, `MetricsCustomers`, `metricsBarbersSchema`, `MetricsBarbers`, `metricsMarketingSchema`, `MetricsMarketing`, `suggestionGroupSchema`, `SuggestionGroup`, `suggestionTypeSchema`, `metricsInsightsSchema`, `MetricsInsights`, `MetricsParams`, `ALL_BARBERS`
+- **types.ts** — «Todas las sucursales»: solo el dueño, y solo si todas cobran en la misma moneda. · `Compared`, `periodGranularitySchema`, `MetricsGranularity`, `incomeLineSchema`, `IncomeLine`, `appointmentStatusSchema`, `AppointmentStatus`, `bookingMethodSchema`, `BookingMethod`, `daypartSchema`, `Daypart`, `paymentMethodSchema`, `PaymentMethod`, `CatalogRow`, `metricsBusinessSchema`, `MetricsBusiness`, `clientTypeSchema`, `ClientType`, `visitFrequencySchema`, `VisitFrequency`, `metricsCustomersSchema`, `MetricsCustomers`, `metricsBarbersSchema`, `MetricsBarbers`, `metricsMarketingSchema`, `MetricsMarketing`, `suggestionGroupSchema`, `SuggestionGroup`, `suggestionTypeSchema`, `metricsInsightsSchema`, `MetricsInsights`, `MetricsParams`, `ALL_BARBERS`, `ALL_BRANCHES`
 - **useMetricsFilters.ts** — Las pestañas que ve cada rol (docs/roles/02-metricas-caja-nomina.md): - el barbero por comisión, como en prod… · `METRICS_TABS`, `MetricsTab`, `metricsTabsFor`, `useMetricsFilters` · piezas: fromIsoDate, toIsoDate · usa: @/features/access, @/features/team
 
 ### metrics/sections
@@ -849,7 +853,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **myPayHome.tsx** · `myPayColumns`, `MyPayCellContext`, `myPayCells` · usa: @/app/i18n
 - **payCycle.ts** — El ciclo de pago de la nómina (Configuración › Nómina), sin dependencias: lo usan la pantalla y el backend si… · `PayCycle`, `PayCycleSettings`, `payCycleWindow`, `shiftPayCycle`, `cyclesBetween`
 - **payrollHome.tsx** — El valor numérico de una columna, para la tabla y para exportar. · `columnIdsFor`, `columnLabel`, `payrollColumns`, `columnValue`, `PayrollCellContext`, `payrollCells` · piezas: Avatar, AvatarFallback, AvatarImage, initialsOf · usa: @/app/i18n
-- **payrollUtils.ts** — Las ayudas sin JSX de la nómina: el resumen y la exportación. · `PayrollSummary`, `summarizePayroll`, `countByPayout`
+- **payrollUtils.ts** — Las ayudas sin JSX de la nómina: el resumen y la exportación. · `PayrollSummary`, `summarizePayroll`, `countByPayout`, `earnedOf`
 - **queries.ts** · `payrollKeys`, `usePayrollQuery`, `useAddAdjustment`, `useRemoveAdjustment`, `useApprovePayroll`, `usePayPayroll`, `useReopenPayroll`, `useAddRentPayment`, `useRemoveRentPayment`, `useLoansQuery`, `useAddLoan`, `useCancelLoan` · usa: @/lib/api
 - **types.ts** — Cómo se le paga a cada barbero: comisión por servicio, renta de su puesto o salario. · `payoutSchema`, `Payout`, `ruleSchema`, `CommissionRule`, `payrollLineSchema`, `PayrollLine`, `commissionRulesSchema`, `CommissionRules`, `adjustmentKindSchema`, `AdjustmentKind`, `adjustmentSchema`, `loanSchema`, `PayrollLoan`, `LoanInput`, `PayrollAdjustment`, `payrollMemberSchema`, `PayrollMember`, `runStatusSchema`, `RunStatus`, `payrollRunSchema`, `PayrollRun`, `payrollHistorySchema`, `payrollResponseSchema`, `PayrollResponse`, `PayrollParams`, `PAYOUT_KEYS`, `PAYOUT_HINT_KEYS`, `RULE_KEYS`, `AdjustmentInput`, `ADJUSTMENT_KEYS`, `ADJUSTMENT_VIEW_KEYS`, `PAY_METHODS`, `PayMethod`, `PAY_METHOD_KEYS`, `RentPaymentInput` · usa: @/app/i18n
 - **usePayrollFilters.ts** — Lo que decide qué nómina se ve, en la URL: el periodo, la forma de pago y el barbero abierto en el panel. · `usePayrollFilters` · piezas: fromIsoDate, periodRange, toIsoDate · usa: @/features/settings
@@ -1099,7 +1103,7 @@ MSW: implementa docs/API_CONTRACT.md.
 - **alternatives.ts** — Qué servicios cubre cada habilidad. · `SKILL_SERVICES`, `Alternative`, `alternatives`, `earliest`, `WaitlistWindow`, `joinWaitlist`
 - **dispatch.ts** — El outbox de la app y la cola de WhatsApp del servidor (`/api/whatsapp/queue`, ver server/whatsapp/queue). · `WhatsAppPayload`, `QueueRequest`, `QueueView`, `EnqueueResult`, `Queue`, `httpQueue`, `payloadOf`, `SyncCounts`, `syncOutbox`, `messagesOf` · usa: @/features/legal, @/lib/api
 - **funnel.ts** — El embudo de la reserva en línea: cada vez que alguien llega a un paso se guarda un evento anónimo (sesión, p… · `FUNNEL_STEPS`, `FunnelStep`, `recordEvent`, `sessionsBySource`, `funnelSummary`
-- **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`
+- **giftCards.ts** — Tarjetas de regalo: se compran con tarjeta para alguien (llega su código por WhatsApp) y se usan al pagar una… · `DEMO_GIFT_CODE`, `findGiftCard`, `createGiftCard`, `spendGiftCard`, `sendGiftCard`
 - **handlers.ts** — Para las pruebas: cada prueba empieza sin intentos acumulados. · `resetBookingLimits`, `bookingHandlers`, `bookingServiceName` · usa: @/features/booking, @/features/payments, @/lib/time
 - **logic.ts** — Los barberos que el cliente puede elegir en una sucursal, en el orden del calendario. · `bookingRules`, `tipOptions`, `bookableBarbers`, `barberPrice`, `publicServicesIn`, `serviceName`, `durationOf`, `branchHoursToday`, `shop`, `cardFeeRule`, `catalog`, `barberFree`, `availability`, `clientByPhone`, `isBlockedPhone`, `customerOf`, `depositAmount`, `loyaltyOf`, `redeemLoyalty`, `cardsOf`, `saveCard`, `updateCard`, `removeCard`, `bookedOf`, `reservationView`, `myAppointments`, `findReservationLine`, `visitSuggestion`, `branchDetail`, `reservationTaxPercent` · usa: @/features/booking, @/features/legal
 - **packages.ts** — Paquetes prepagados: la barbería los ofrece en Ajustes (N visitas de un servicio con descuento y vencimiento)… · `PackageOffer`, `packageOffers`, `activePackages`, `buyPackage`, `spendPackages`
@@ -1112,10 +1116,10 @@ MSW: implementa docs/API_CONTRACT.md.
 
 - **browser.ts** — Service worker para el navegador; se arranca desde `main.tsx` cuando `env.useMocks`. · `worker`
 - **catalogPrices.ts** — El precio de un servicio en una sucursal: el suyo de esa sucursal o el general. · `servicePriceIn`, `productPriceIn`, `barberServicePrice`, `withBranchPrice`
-- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockDb`, `createDb`, `db`
+- **db.ts** — El rol en la barbería y la ficha de equipo de quien entra: con ellos el servidor recorta lo que ve. · `MockUserStatus`, `MockUserRole`, `MockUser`, `MockAuthProvider`, `MockAccount`, `MockTeamRole`, `seededRandom`, `seedUsers`, `ACCOUNTS`, `MockBranding`, `MockCalendarState`, `MockTeamState`, `MockKnownDevice`, `MockSecurityEvent`, `MockSecurityState`, `MockDb`, `createDb`, `db`
 - **handlers.ts** — Código por SMS del backend simulado; en producción cada envío genera uno distinto. · `OTP_CODE`, `MAX_LOGIN_FAILURES`, `handlers` · usa: @/features/legal
 - **media.ts** — El retrato de cada persona del equipo. · `TEAM_PHOTOS`, `galleryFor`, `REFERENCE_PHOTO_NOTE`, `referencePhotosFor`, `SERVICE_PHOTOS`, `PRODUCT_PHOTOS`, `clientPhoto`, `userPhoto`, `ACCOUNT_PHOTOS`, `imageOrNull`
-- **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
+- **metrics.ts** — Lo que el tablero sabe de un servicio o producto. · `CatalogItem`, `ALL_BRANCHES`, `branchesOf`, `barbersOfBranch`, `resolveMetricsBarber`, `daysOf`, `sum`, `round2`, `Appointment`, `DayRecord`, `dayRecord`, `PeriodTotals`, `totalsOf`, `countBy`, `daypartOf`, `MetricsQuery`, `SimulatedPeriod`, `simulatePeriod`, `periodOf`, `previousOf`, `buildBusinessMetrics` · piezas: fromIsoDate, periodRange, previousPeriodRange, toIsoDate · usa: @/features/metrics
 - **metricsTabs.ts** · `buildCustomersMetrics`, `buildBarbersMetrics`, `buildMarketingMetrics`, `buildInsightsMetrics` · piezas: periodRange, toIsoDate · usa: @/features/customers, @/features/metrics
 - **random.ts** — Generador pseudoaleatorio con semilla (mulberry32): la misma semilla, la misma serie. · `seededRandom`
 - **sampleData.ts** — Los datos de ejemplo de la demo (reseñas de barberos, el embudo de la reserva) se ven solo mientras esto esté… · `sampleDataOn`
@@ -1168,7 +1172,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### notifications
 
-- **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers` · usa: @/features/settings
+- **handlers.ts** — Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. · `NotificationKind`, `MockNotification`, `notificationsFor`, `notificationsHandlers` · usa: @/features/settings
 
 ### onboarding
 

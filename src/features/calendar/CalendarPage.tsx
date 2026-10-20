@@ -24,6 +24,7 @@ import { CalendarMonthView } from "./CalendarMonthView";
 import { AppointmentDrawer } from "./AppointmentDrawer";
 import { CreateAppointmentDrawer, type CreateAppointmentDraft, type CreateAppointmentInitial } from "./CreateAppointmentDrawer";
 import { CalendarSearch } from "./CalendarSearch";
+import { BarberTodayEarnings } from "./BarberTodayEarnings";
 import { CalendarFilters, type ClientTypeFilterOption, type ResourceFilterOption, type ServiceFilterOption } from "./CalendarFilters";
 import { CalendarViewOptions } from "./CalendarViewOptions";
 import { useCalendarCardPrefs } from "./calendarCardPrefs";
@@ -956,7 +957,10 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
           )
         }
         summary={
-          revenue && isDayView && can.showTotals ? (
+          // El barbero ve lo que gana hoy (también en el celular); quien gestiona, lo cobrado del día.
+          ownBarberId && state.isToday && isDayView ? (
+            <BarberTodayEarnings branchId={branchId} memberId={ownBarberId} date={state.dateKey} formatMoney={formatMoney} />
+          ) : revenue && isDayView && can.showTotals ? (
             <Text
               as="span"
               variant="muted"

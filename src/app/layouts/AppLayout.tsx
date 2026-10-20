@@ -14,7 +14,7 @@ import { useLocale } from "@/i18n";
 import { useTheme } from "@/themes";
 import { useAppT } from "../i18n";
 import type { AppMessageKey } from "../i18n/types";
-import { StepUpHost, useAuth } from "@/features/auth";
+import { StepUpHost, authApi, useAuth } from "@/features/auth";
 import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
@@ -161,6 +161,11 @@ export function AppLayout() {
         formatDate,
         navigate,
         markRead: (ids) => markRead.mutate(ids),
+        revokeOtherSessions: () =>
+          void authApi
+            .revokeOtherSessions()
+            .then((result) => toast.success(t("notifications.revoked", { count: result.closed })))
+            .catch((error: unknown) => toast.error(describeError(error).title, { description: describeError(error).description })),
         retryMessage: (id) =>
           retry.mutate(id, {
             onSuccess: () => toast.success(t("notifications.retried")),

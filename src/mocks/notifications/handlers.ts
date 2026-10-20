@@ -30,7 +30,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice";
 
 export interface MockNotification {
   id: string;
@@ -43,6 +43,8 @@ export interface MockNotification {
   /** Para quién es: roles y, si es de un barbero en particular, su ficha. */
   roles: readonly Role[];
   memberId?: string | null;
+  /** Un aviso de la propia cuenta (seguridad): solo lo ve ella, sea cual sea su rol. */
+  accountId?: string;
 }
 
 function requireAuth(request: Request) {
@@ -187,12 +189,20 @@ const isOn = (role: Role, item: MockNotification): boolean => {
   return toggles[`${AUDIENCE_OF_ROLE[role]}.${eventId}.push`] !== false;
 };
 
-/** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos). */
-export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date()): MockNotification[] {
+/** Entró desde un dispositivo nuevo: a la propia cuenta, para que lo reconozca o cierre las demás sesiones. */
+function securityEvents(accountId: string | null, now: Date): MockNotification[] {
+  if (!accountId) return [];
+  return db.security.events
+    .filter((item) => item.accountId === accountId && recent(item.at, now))
+    .map((item) => ({ id: `security:${item.id}`, kind: "newDevice" as const, at: item.at, href: "", tone: "warning" as const, params: { device: item.label }, roles: [], accountId }));
+}
+
+/** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. */
+export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date(), accountId: string | null = null): MockNotification[] {
   const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
-  return all
-    .filter((item) => (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))
+  return [...all, ...securityEvents(accountId, now)]
+    .filter((item) => item.accountId !== undefined || (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))
     // Lo que se apagó en Configuración › Recordatorios y avisos («En la app») no sale en la campana.
     .filter((item) => isOn(role, item))
     .sort((a, b) => b.at.localeCompare(a.at))
@@ -211,7 +221,7 @@ export const notificationsHandlers = [
     const session = sessionOf(request)!;
     const role = isManager(session) ? parseRole(params.get("role") ?? session.teamRole) : session.teamRole;
     const memberId = isManager(session) ? (params.get("memberId") ?? session.memberId) : session.memberId;
-    const items = notificationsFor(params.get("branchId") ?? "ma", role, memberId);
+    const items = notificationsFor(params.get("branchId") ?? "ma", role, memberId, new Date(), account.id);
     const read = new Set(db.notificationsRead.filter((key) => key.startsWith(`${account.id}:`)).map((key) => key.slice(account.id.length + 1)));
     const view = items.map((item) => ({ id: item.id, kind: item.kind, at: item.at, href: item.href, tone: item.tone, params: item.params, read: read.has(item.id) }));
     return HttpResponse.json({ items: view, unread: view.filter((item) => !item.read).length });

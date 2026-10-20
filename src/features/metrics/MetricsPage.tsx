@@ -185,6 +185,8 @@ export function MetricsPage() {
             onBarberChange={filters.setBarberId}
             barbers={barbers}
             showBarber={!filters.isOwn}
+            allBranches={filters.allBranches}
+            onAllBranchesChange={filters.canSeeAll ? filters.setAllBranches : undefined}
           />
         ) : (
           <p className="text-sm text-text-secondary">{t("metrics.insights.window")}</p>

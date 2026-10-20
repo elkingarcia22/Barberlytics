@@ -40,7 +40,7 @@ Cualquier estado ≥ 400 devuelve:
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
 | POST | `/auth/otp/request` | `{ phone, channel?: "sms" \| "email" }` | `204` siempre (no revela si el número existe ni si tiene correo de respaldo) · `422` · `429` bloqueado o más de 5 códigos en 15 min (`details.reason: "too_many_codes"`) |
-| POST | `/auth/otp/verify` | `{ phone, code }` | `200 { accessToken, user }` · `401` con el **mismo mensaje** para número no registrado y código malo (`details.attemptsLeft`) · `429` bloqueado (`details.retryAfterSeconds`) |
+| POST | `/auth/otp/verify` | `{ phone, code, device? }` (`device: { id, label }`, el id que guarda el navegador y «Chrome · macOS»; si la cuenta ya tenía otros y este es nuevo, queda el aviso `newDevice` para ella) | `200 { accessToken, user }` · `401` con el **mismo mensaje** para número no registrado y código malo (`details.attemptsLeft`) · `429` bloqueado (`details.retryAfterSeconds`) |
 | POST | `/auth/step-up/request` | — (con sesión) | `200 { phoneHint }`: un código nuevo al celular de la cuenta, con los mismos topes y bloqueo que al entrar |
 | POST | `/auth/step-up/verify` | `{ code }` (con sesión) | `200 { token, expiresAt }`: confirma la identidad por 5 minutos y solo para esa cuenta · `401`/`429` como al entrar |
 | POST | `/auth/signup/code` | `{ phone }` | `204` manda el código al celular del registro (mismos topes y bloqueo que al entrar) · `422` celular inválido |
@@ -92,6 +92,8 @@ La campana. No hay tabla de avisos: salen de lo que pasó en la sucursal y cada 
 | GET | `/notifications?branchId&role&memberId?` | `{ items: [{ id, kind, at, href, tone: "info" \| "warning" \| "negative" \| "positive", params, read }], unread }`, los 30 más recientes. Cada aviso es un evento del catálogo de Configuración › Recordatorios y avisos para el destinatario de ese rol (`onlineBooking` → `bookingOnline`, `cancelled` → `appointmentCancelled`, `noShow` → `appointmentNoShow`, `lowStock`/`outOfStock` → `productLow`/`productOut`, `lowReview` → `badReview`, `absenceRequested` → `vacationRequested`, `absenceDecided` → `vacationApproved`/`vacationDenied`, y con su mismo nombre `whatsappFailed`, `registerDifference`, `registerOpen`, `payrollDue`, `payrollPaid`): si `<destinatario>.<evento>.push` («En la app») está apagado, no sale. |
 | POST | `/notifications/read` | `{ ids }`. `204`. Lo leído se guarda por cuenta. |
 
+`newDevice` (entró desde un dispositivo nuevo: solo a la propia cuenta, con `params.device`; su acción «No fui yo» llama a
+`POST /auth/sessions/revoke-others`, que cierra todas las sesiones de la cuenta menos la actual y responde `{ closed }`);
 `kind` y para quién: `onlineBooking`, `cancelled`, `noShow` (dueño, administrador, recepción y el barbero de la cita);
 `waitlistJoined` (alguien se apuntó a la lista de espera en los últimos días: dueño, administrador y recepción, con
 `client`, `service`, `day` y `time` de la primera franja);
@@ -164,6 +166,7 @@ impuesto registrado, sus ventas de mostrador y sus devoluciones. Para el mismo d
 Transacciones (total + propina). Lo que la agenda no registra todavía (canal de llegada, campañas, tipo de
 cliente a lo largo del tiempo, ocupación sobre el horario real) se reparte sobre los totales reales.
 `GET /metrics/insights?branchId` mira los últimos tres meses de esa sucursal.
+**Todas las sucursales**: `branchId=all` en `/metrics/business|customers|barbers|marketing` suma las sedes activas (citas, ventas, barberos sin repetir y la nómina de cada uno en cada sede). Solo el dueño (`403` a los demás) y solo si todas cobran en la misma moneda (`409 mixed_currency`).
 
 ```json
 {
@@ -833,7 +836,7 @@ trae sus propias alarmas (`VALARM` el día antes y 2 h antes).
 | `POST` | `/booking/appointments/:id/review` | Con token. `{ rating: 1–5, comment? }` → `201`. Solo citas que ocurrieron (`409 not_completed`) y una vez (`409 already_reviewed`). La cita trae `review: { rating } \| null`. |
 | `POST` | `/booking/packages/buy` | Sesión. `{ packageId, savedCardId? \| card? }` → `201 { package: { id, name, serviceId, remaining, total, expiresAt }, paidWith }`; `404` si ya no se vende, `422 card_required`. Los paquetes a la venta vienen en `GET /booking/shop` (`packages`) y los del cliente en su perfil (`packages`, solo vigentes y con visitas). En `POST /booking/reservations`, `usePackages: true` paga con una visita cada servicio cubierto (al precio del barbero asignado) y lo devuelve en `totals.prepaid`. |
 | `POST` | `/booking/gift-cards/check` | `{ code }` → `{ code, balance }`; `404 gift_invalid`, `422 gift_empty`. El código no distingue mayúsculas ni guiones. |
-| `POST` | `/booking/gift-cards` | Con token. Comprar una tarjeta de regalo `{ amount (10–500), recipientName, recipientContact, message?, card \| savedCardId }` → `201 { code, amount, sentTo, paidWith }`. El código le llega a quien la recibe por WhatsApp. |
+| `POST` | `/booking/gift-cards` | Con token. Comprar una tarjeta de regalo `{ amount (10–500), recipientName, recipientContact, message?, card \| savedCardId }` → `201 { code, amount, sentTo, paidWith }`. El código le llega a quien la recibe por WhatsApp: entra a la cola como `giftCard` (plantilla `tarjeta_regalo`, de servicio) con su nombre, quien la regala, el saldo y el código. Recepción la reenvía con `POST /customers/:id/gift-cards/:code/resend`; la ficha muestra en `giftCards[].sent` si salió o falló. |
 | `POST` | `/booking/events` | Público, anónimo: `{ sessionId, step, surface: link\|widget\|preview, source }` → `204`. Un evento por paso al que llega la sesión; la vista previa del panel no cuenta. |
 | `GET` | `/booking/funnel?days` | Con la sesión de la app (es del dueño). `{ days, demo, started, bookings, conversion, steps: [{ step, sessions, rate }], sources: [{ source, sessions, bookings }] }`. Sin datos reales, `demo: true` con un embudo de ejemplo. |
 | `GET` | `/booking/me/appointments` | Con token: `{ upcoming, past, reservations }`. |

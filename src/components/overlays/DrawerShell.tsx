@@ -10,6 +10,7 @@ import {
   SheetTrigger,
   useBodyScrollLock,
 } from "@/components/ui/sheet"
+import { PANEL_FOOTER_SLOT_CLASS, PanelFooterSlotProvider, usePanelFooterSlot } from "./PanelFooter"
 
 export interface DrawerShellProps {
   /** Controlled open state */
@@ -139,6 +140,7 @@ export function DrawerShell({
   overlayStyle,
 }: DrawerShellProps) {
   const sizeClass = sideSizeClasses[side][size]
+  const [footerSlot, setFooterSlot] = usePanelFooterSlot()
 
   // Un drawer no modal tapa la página igual que uno modal, pero Radix ya no le
   // congela el fondo, así que lo pide por su cuenta mientras está abierto.
@@ -183,8 +185,9 @@ export function DrawerShell({
             !disablePadding && "p-4"
           )}
         >
-          {children}
+          <PanelFooterSlotProvider value={footerSlot}>{children}</PanelFooterSlotProvider>
         </div>
+        <div ref={setFooterSlot} className={PANEL_FOOTER_SLOT_CLASS} />
 
         {footer ? (
           footer

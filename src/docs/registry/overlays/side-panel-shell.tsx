@@ -72,8 +72,8 @@ export const sidePanelShellEntry = defineEntry({
     { name: "disablePadding", type: "boolean", default: "false", description: "Quita el padding del cuerpo." },
   ],
   guidelines: {
-    do: ["Úsalo cuando la tarea necesita ver la página de atrás: una agenda, una lista, un tablero.", "Mantén un solo panel abierto a la vez: abrir otro cierra el anterior y el hueco no salta.", "Compón el cuerpo con `DrawerSection`, igual que en un drawer."],
-    dont: ["No lo uses para un formulario que pide toda la atención: ahí va `DrawerShell` o `ModalShell`.", "No pongas dentro confirmaciones destructivas: abre un `ConfirmDialog` encima.", "No fijes anchos propios: el panel decide cuánto le quita a la página."],
+    do: ["Úsalo cuando la tarea necesita ver la página de atrás: una agenda, una lista, un tablero.", "Mantén un solo panel abierto a la vez: abrir otro cierra el anterior y el hueco no salta.", "Compón el cuerpo con `DrawerSection`, igual que en un drawer.", "Envuelve la acción principal en `PanelFooter`: queda fija abajo, como pie, aunque viva dentro de una página del cuerpo."],
+    dont: ["No lo uses para un formulario que pide toda la atención: ahí va `DrawerShell` o `ModalShell`.", "No pongas dentro confirmaciones destructivas: abre un `ConfirmDialog` encima.", "No fijes anchos propios: el panel decide cuánto le quita a la página.", "No dejes el botón principal al final del cuerpo con scroll: se pierde de vista."],
   },
   related: ["drawer-shell", "drawer-section", "ai-agent-drawer", "confirm-dialog"],
 });

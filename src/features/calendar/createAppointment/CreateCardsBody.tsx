@@ -14,6 +14,7 @@ import { ExtrasCard, SubmitButton, TotalLine } from "./createSummary";
 import { SuggestedSlots, TimeChooser, TimeProblems } from "./createTime";
 import { barberPrice, type CreateDraft } from "./useCreateDraft";
 import type { CreateBodyProps } from "./createBody";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * «Crear cita» como «Arma la cita» (la que eligió el usuario el 2026-10-19 entre
@@ -136,10 +137,10 @@ export function CreateCardsBody({ draft, branchId, onCreateClient }: CreateBodyP
         )}
       </PanelQuestion>
 
-      <div className="flex flex-col gap-3 pt-1">
+      <PanelFooter>
         <TotalLine draft={draft} />
         <SubmitButton draft={draft} />
-      </div>
+      </PanelFooter>
     </section>
   );
 }

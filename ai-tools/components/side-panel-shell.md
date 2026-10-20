@@ -28,9 +28,11 @@ import { SidePanelShell } from "@/components/overlays"
 - Sí: Úsalo cuando la tarea necesita ver la página de atrás: una agenda, una lista, un tablero.
 - Sí: Mantén un solo panel abierto a la vez: abrir otro cierra el anterior y el hueco no salta.
 - Sí: Compón el cuerpo con `DrawerSection`, igual que en un drawer.
+- Sí: Envuelve la acción principal en `PanelFooter`: queda fija abajo, como pie, aunque viva dentro de una página del cuerpo.
 - No: No lo uses para un formulario que pide toda la atención: ahí va `DrawerShell` o `ModalShell`.
 - No: No pongas dentro confirmaciones destructivas: abre un `ConfirmDialog` encima.
 - No: No fijes anchos propios: el panel decide cuánto le quita a la página.
+- No: No dejes el botón principal al final del cuerpo con scroll: se pierde de vista.
 
 Relacionados: drawer-shell, drawer-section, ai-agent-drawer, confirm-dialog
 

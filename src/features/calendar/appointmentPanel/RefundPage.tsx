@@ -15,6 +15,7 @@ import type { RefundItem } from "../types";
 import { PanelQuestion } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
 import { useCurrencyInput } from "@/features/branches";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * Devolver, dentro del panel (no en un modal ni en otra pantalla): se marca
@@ -165,9 +166,11 @@ export function RefundPage({ model, ctx, onDone }: { model: AppointmentModel; ct
         <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("calendar.refund.whyPlaceholder")} aria-label={t("calendar.refund.why")} data-testid="panel-refund-reason" />
       </PanelQuestion>
 
-      <Button size="lg" variant="destructive" disabled={!valid || refund.isPending} onClick={submit} data-testid="panel-refund-submit">
-        {t("calendar.refund.submit", { amount: ctx.formatMoney(Math.max(0, amount)) })}
-      </Button>
+      <PanelFooter>
+        <Button size="lg" variant="destructive" disabled={!valid || refund.isPending} onClick={submit} data-testid="panel-refund-submit">
+          {t("calendar.refund.submit", { amount: ctx.formatMoney(Math.max(0, amount)) })}
+        </Button>
+      </PanelFooter>
     </div>
   );
 }

@@ -30,6 +30,7 @@ import { STATUS_KEYS } from "../types";
 import type { PanelPages } from "./panelHooks";
 import { QuickTiles, StageHeading, TicketSummary } from "./StageParts";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * El cuerpo del panel de una cita («Tarjeta + Arma la cita», la que eligió el
@@ -189,18 +190,20 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
         {stage === "toCollect" && <TicketSummary model={model} ctx={ctx} />}
         {/* Al final de la tarjeta: los atajos (solo si hacen falta) y debajo la acción principal con su «⋯». */}
         <QuickTiles model={model} onChange={() => fieldsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
-        <Popover open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
-          <PopoverAnchor asChild>
-            <div className="flex items-center gap-2">
-              <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
-              <MoreActionsMenu model={model} actions={more} extra={menuExtra} onConfirm={(action) => requestAnimationFrame(() => setConfirming(action))} />
-            </div>
-          </PopoverAnchor>
-          {/* Lo cierra un clic fuera o Escape, no el foco que el menú devuelve a su botón al cerrarse. */}
-          <PopoverContent align="end" className="w-72" onFocusOutside={(event) => event.preventDefault()}>
-            {confirming && <StatusConfirmContent model={model} action={confirming} onClose={() => setConfirming(null)} />}
-          </PopoverContent>
-        </Popover>
+        <PanelFooter>
+          <Popover open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
+            <PopoverAnchor asChild>
+              <div className="flex items-center gap-2">
+                <ActionButton model={model} action={mainAction(model)} variant="default" size="lg" className="flex-1" />
+                <MoreActionsMenu model={model} actions={more} extra={menuExtra} onConfirm={(action) => requestAnimationFrame(() => setConfirming(action))} />
+              </div>
+            </PopoverAnchor>
+            {/* Lo cierra un clic fuera o Escape, no el foco que el menú devuelve a su botón al cerrarse. */}
+            <PopoverContent align="end" className="w-72" onFocusOutside={(event) => event.preventDefault()}>
+              {confirming && <StatusConfirmContent model={model} action={confirming} onClose={() => setConfirming(null)} />}
+            </PopoverContent>
+          </Popover>
+        </PanelFooter>
       </section>
     </div>
   );

@@ -11,6 +11,7 @@ import type { Totals } from "@/features/booking/pricing";
 import { durationLabel, type ModelContext } from "../calendarModel";
 import { PAYMENT_METHOD_KEYS, type Payment } from "../types";
 import type { AppointmentModel } from "./useAppointmentModel";
+import { PanelFooter } from "@/components/overlays";
 
 /**
  * El recibo de la cita cobrada, dentro del panel y con la cara del de la
@@ -77,10 +78,12 @@ export function ReceiptPage({ model, ctx, onSend }: { model: AppointmentModel; c
         <OrderSummary totals={totals} money={ctx.formatMoney} lines={lines} />
       </div>
       {onSend && (
-        <Button type="button" size="lg" className="w-full" onClick={onSend} data-testid="panel-receipt-send">
-          <ThemaIcon name="send" />
-          {t("calendar.panel.after.send")}
-        </Button>
+        <PanelFooter>
+          <Button type="button" size="lg" className="w-full" onClick={onSend} data-testid="panel-receipt-send">
+            <ThemaIcon name="send" />
+            {t("calendar.panel.after.send")}
+          </Button>
+        </PanelFooter>
       )}
     </div>
   );

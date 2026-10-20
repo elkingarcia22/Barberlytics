@@ -234,7 +234,18 @@ export function ResourceDayGrid({
   // El arrastre de un asa se pinta en vivo sin pasar por quien monta la rejilla: solo el final se guarda.
   const [resizing, setResizing] = React.useState<{ id: string; width: number } | null>(null);
   const widthOf = (id: string): number | undefined => (resizing?.id === id ? resizing.width : columnWidths?.[id]);
-  const tracks = resources.length > 0 ? resources.map((resource) => columnTrack(widthOf(resource.id))).join(" ") : columnTrack(undefined);
+  // Si todas las columnas a la vista tienen ancho fijo (p. ej. un solo barbero ajustado), la última
+  // se estira: si no, la rejilla quedaba pegada a la izquierda con el resto vacío.
+  const allFixed = resources.length > 0 && resources.every((resource) => widthOf(resource.id) !== undefined);
+  const tracks =
+    resources.length > 0
+      ? resources
+          .map((resource, index) => {
+            const width = widthOf(resource.id);
+            return allFixed && index === resources.length - 1 && resizing?.id !== resource.id ? `minmax(${columnTrack(width)}, 1fr)` : columnTrack(width);
+          })
+          .join(" ")
+      : columnTrack(undefined);
   const contentWidth = resources.map((resource) => {
     const width = widthOf(resource.id);
     return width === undefined ? SCHEDULE_COLUMN_DEFAULT : columnTrack(width);

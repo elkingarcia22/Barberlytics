@@ -27,8 +27,9 @@ function ScrollToTop({ signal }: { signal: string }) {
  * menú lateral es el árbol de secciones y artículos, la búsqueda de la
  * cabecera busca artículos y el resto del cromo (sucursal, rol, novedades,
  * sesión) se apaga porque aquí no hay barbería que administrar.
+ * `standalone` es la ayuda sola (`npm run export:help`): no hay app a la que volver.
  */
-export function HelpShell({ children }: { children: React.ReactNode }) {
+export function HelpShell({ children, standalone = false }: { children: React.ReactNode; standalone?: boolean }) {
   const t = useAppT();
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,12 +81,14 @@ export function HelpShell({ children }: { children: React.ReactNode }) {
           {/* Solo los idiomas en que está escrito el contenido: en otro, la ayuda saldría a medias. */}
           <LanguageSelector compact only={HELP_LOCALES} />
           <ThemeModeToggle />
-          <Button asChild className="gap-inline">
-            <Link to="/metricas">
-              <AppWindow className="size-3.5" />
-              {t("help.openApp")}
-            </Link>
-          </Button>
+          {!standalone && (
+            <Button asChild className="gap-inline">
+              <Link to="/metricas">
+                <AppWindow className="size-3.5" />
+                {t("help.openApp")}
+              </Link>
+            </Button>
+          )}
         </>
       ),
       chrome: {
@@ -104,7 +107,7 @@ export function HelpShell({ children }: { children: React.ReactNode }) {
       isDark: resolvedMode === "dark",
       onToggleDark: (isDark) => setMode(isDark ? "dark" : "light"),
     };
-  }, [index, location.pathname, navigate, resolvedMode, setMode, t]);
+  }, [index, location.pathname, navigate, resolvedMode, setMode, standalone, t]);
 
   return (
     <AdminShell config={config}>

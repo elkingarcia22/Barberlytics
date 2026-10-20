@@ -11,9 +11,9 @@ import "./help.css";
  * El centro de ayuda, montado en `/ayuda/*`. Las rutas son las del contenido:
  * `/ayuda/<seccion>` y `/ayuda/<seccion>/<articulo>`, más `/ayuda/buscar?q=`.
  */
-export function HelpApp() {
+export function HelpApp({ standalone = false }: { standalone?: boolean }) {
   return (
-    <HelpShell>
+    <HelpShell standalone={standalone}>
       <Routes>
         <Route index element={<HelpHomePage />} />
         <Route path="buscar" element={<HelpSearchPage />} />

@@ -1,4 +1,4 @@
-import { hexToHsl, rgbToHex } from "./color";
+import { hexToHsl, hslToHex, rgbToHex } from "./color";
 
 /**
  * Los colores de un logo, para proponerlos como primario y secundario del tema.
@@ -70,6 +70,22 @@ export function paletteFromPixels(data: ArrayLike<number>, max = 4): string[] {
     if (picked.length === max) break;
   }
   return picked;
+}
+
+/** Cuánto se aleja el tono del secundario cuando el logo tiene un solo color. */
+const SINGLE_COLOR_TONE_SHIFT = 22;
+
+/**
+ * La propuesta del logo. Con dos colores, son esos dos. Con uno solo, el secundario
+ * no se inventa otro color (un rojo no trae un verde): es un tono del mismo, más
+ * profundo, o más claro si el color ya es oscuro.
+ */
+export function proposeBrandColors(colors: readonly string[]): { primary: string; secondary: string; singleColor: boolean } {
+  const [primary, second] = colors;
+  if (second) return { primary, secondary: second, singleColor: false };
+  const hsl = hexToHsl(primary);
+  const l = hsl.l > 40 ? hsl.l - SINGLE_COLOR_TONE_SHIFT : hsl.l + SINGLE_COLOR_TONE_SHIFT;
+  return { primary, secondary: hslToHex({ ...hsl, l }).toUpperCase(), singleColor: true };
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

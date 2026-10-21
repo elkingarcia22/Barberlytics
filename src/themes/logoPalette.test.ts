@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { hexToHsl, hexToRgb } from "./color";
-import { paletteFromPixels } from "./logoPalette";
+import { paletteFromPixels, proposeBrandColors } from "./logoPalette";
 
 /** Píxeles RGBA: `count` veces cada color, en orden. */
 function pixels(...runs: [color: string, count: number, alpha?: number][]): number[] {
@@ -29,5 +29,24 @@ describe("paletteFromPixels", () => {
 
   test("un detalle mínimo no llega a la propuesta", () => {
     expect(paletteFromPixels(pixels(["#C8102E", 990], ["#22AA44", 10]))).toHaveLength(1);
+  });
+});
+
+describe("proposeBrandColors", () => {
+  test("con dos colores propone esos dos", () => {
+    expect(proposeBrandColors(["#C8102E", "#0B3D91"])).toEqual({ primary: "#C8102E", secondary: "#0B3D91", singleColor: false });
+  });
+
+  test("con un solo color, el secundario es un tono del mismo matiz, no otro color", () => {
+    const { primary, secondary, singleColor } = proposeBrandColors(["#C8102E"]);
+    expect(singleColor).toBe(true);
+    expect(primary).toBe("#C8102E");
+    expect(Math.abs(hexToHsl(secondary).h - hexToHsl(primary).h)).toBeLessThan(2);
+    expect(hexToHsl(secondary).l).toBeLessThan(hexToHsl(primary).l);
+  });
+
+  test("si el único color ya es oscuro, el tono va hacia lo claro", () => {
+    const { primary, secondary } = proposeBrandColors(["#0B1F4D"]);
+    expect(hexToHsl(secondary).l).toBeGreaterThan(hexToHsl(primary).l);
   });
 });

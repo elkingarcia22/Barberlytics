@@ -1413,7 +1413,7 @@ Presets, tokens derivados y selector.
 - **color.ts** — Utilidades de color mínimas para derivar una paleta completa a partir de un único color primario. · `Hsl`, `hexToRgb`, `rgbToHex`, `hexToHsl`, `hslToHex`, `hslChannels`, `hexToChannels`, `shiftLightness`, `mix`, `relativeLuminance`, `contrastRatio`, `apcaContrast`, `readableForeground`
 - **customTheme.ts** — El tema «Personalizado»: la barbería elige su primario y su secundario (a mano o desde los colores de su logo… · `CUSTOM_THEME_ID`, `CustomColors`, `DEFAULT_CUSTOM_COLORS`, `isHexColor`, `isCustomColors`, `fitToMode`, `buildCustomPreset`
 - **fonts.ts** — Catálogo de tipografías que un tema puede usar. · `FontId`, `HeadingFontId`, `FontSource`, `FontOption`, `FONT_OPTIONS`, `DEFAULT_BODY_FONT`, `DEFAULT_HEADING_FONT`, `findFont`, `isFontId`, `resolveHeadingFont`, `fontStylesheetUrl`, `ensureFontLoaded`
-- **logoPalette.ts** — Los colores dominantes de unos píxeles RGBA (los de `ImageData.data`), como HEX y de mayor a menor presencia. · `paletteFromPixels`, `extractLogoPalette`
+- **logoPalette.ts** — Los colores dominantes de unos píxeles RGBA (los de `ImageData.data`), como HEX y de mayor a menor presencia. · `paletteFromPixels`, `proposeBrandColors`, `extractLogoPalette`
 - **presets.ts** — Profundidad del modo oscuro. · `NeutralTint`, `DarkDepth`, `ThemeTier`, `ThemePreset`, `THEME_PRESETS`, `DEFAULT_THEME_ID`, `findPreset`
 - **themeContext.ts** · `THEME_STORAGE_KEY`, `ThemeContextValue`, `ThemeContext`, `useTheme`
 - **useForcedPreset.ts** — Fuerza un preset mientras la pantalla está montada, sin tocar el que la persona eligió: no se guarda y al des… · `useForcedPreset`

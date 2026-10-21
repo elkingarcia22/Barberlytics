@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ThemaIcon } from "@/icons";
 import { SegmentedGroup } from "@/components/ui/segmented-group";
 import { useTheme } from "./themeContext";
-import { extractLogoPalette } from "./logoPalette";
-import { hexToHsl, hslToHex } from "./color";
+import { extractLogoPalette, proposeBrandColors } from "./logoPalette";
 import type { CustomColors } from "./customTheme";
 
 type Slot = keyof CustomColors;
@@ -22,16 +21,6 @@ function useLogoPalette(logoSrc: string | null | undefined) {
   });
 }
 
-/** Si el logo tiene un solo color, el secundario es su complementario cercano (120° más allá). */
-function proposeFromLogo(colors: readonly string[]): CustomColors {
-  const [primary, second] = colors;
-  if (second) return { primary, secondary: second };
-  const hsl = hexToHsl(primary);
-  return {
-    primary,
-    secondary: hslToHex({ ...hsl, h: hsl.h + 120 }).toUpperCase(),
-  };
-}
 
 function Dot({ color }: { color: string }) {
   return <span aria-hidden className="size-3 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15" style={{ backgroundColor: color }} />;
@@ -46,7 +35,7 @@ export function CustomThemeEditor({ logoSrc, onUploadLogo }: { logoSrc?: string 
   const [slot, setSlot] = React.useState<Slot>("primary");
   const logo = useLogoPalette(logoSrc);
   const logoColors = logo.data ?? [];
-  const proposal = logoColors.length > 0 ? proposeFromLogo(logoColors) : null;
+  const proposal = logoColors.length > 0 ? proposeBrandColors(logoColors) : null;
   const proposalApplied = proposal && proposal.primary === customColors.primary && proposal.secondary === customColors.secondary;
 
   const chosen = customColors[slot];
@@ -79,10 +68,16 @@ export function CustomThemeEditor({ logoSrc, onUploadLogo }: { logoSrc?: string 
               <Dot color={proposal.secondary} />
             </span>
             <span className="min-w-0 flex-1 truncate text-xs text-text-secondary">
-              {proposalApplied ? "Estás usando los colores de tu logo." : "Tu logo propone estos dos."}
+              {proposal.singleColor
+                  ? proposalApplied
+                    ? "Tu color y un tono suyo."
+                    : "Un color: lo combinamos con un tono suyo."
+                  : proposalApplied
+                    ? "Estás usando los colores de tu logo."
+                    : "Tu logo propone estos dos."}
             </span>
             {!proposalApplied && (
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setCustomColors(proposal)}>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setCustomColors({ primary: proposal.primary, secondary: proposal.secondary })}>
                 <ThemaIcon name="sparkles" size="xs" />
                 Usarlos
               </Button>

@@ -25,8 +25,8 @@ describe("buildThemeTokens", () => {
   });
 
   test("gray presets produce near-neutral backgrounds", () => {
-    const orange = findPreset("orange");
-    const light = buildThemeTokens(orange, "light");
+    const crimson = findPreset("crimson");
+    const light = buildThemeTokens(crimson, "light");
     const [, sat] = light["--background"].split(" ");
     expect(Number.parseFloat(sat)).toBeLessThanOrEqual(20);
   });
@@ -90,7 +90,7 @@ describe("Premium preset", () => {
   test("dark mode sinks the app background below the standard 9% lightness", () => {
     const [, , lightness] = buildThemeTokens(premium, "dark")["--background"].split(" ");
     expect(Number.parseFloat(lightness)).toBeLessThanOrEqual(6);
-    const [, , standard] = buildThemeTokens(findPreset("orange"), "dark")["--background"].split(" ");
+    const [, , standard] = buildThemeTokens(findPreset("crimson"), "dark")["--background"].split(" ");
     expect(Number.parseFloat(standard)).toBe(9);
   });
 
@@ -146,7 +146,7 @@ describe("AI gradient", () => {
   });
 
   test("emits the five mesh stops with rgb triplets", () => {
-    const tokens = buildThemeTokens(findPreset("orange"), "dark");
+    const tokens = buildThemeTokens(findPreset("crimson"), "dark");
     for (let i = 1; i <= 5; i++) {
       expect(tokens[`--color-ai-stop-${i}`]).toMatch(/^#[0-9a-f]{6}$/);
       expect(tokens[`--color-ai-stop-${i}-rgb`]).toMatch(/^\d+, \d+, \d+$/);
@@ -164,7 +164,7 @@ describe("AI gradient", () => {
   test("a saturated gradient takes white ink and a pale one takes dark ink", () => {
     expect(buildThemeTokens(thema, "light")["--color-ai-ink"]).toBe("#ffffff");
     expect(buildThemeTokens(findPreset("premium-platino"), "dark")["--color-ai-ink"]).toBe(AI_DARK_INK);
-    expect(buildThemeTokens(findPreset("orange"), "light")["--color-ai-ink"]).toBe(AI_DARK_INK);
+    expect(buildThemeTokens(findPreset("premium-jade"), "light")["--color-ai-ink"]).toBe(AI_DARK_INK);
   });
 
   test("a near tie goes to the dark ink (Premium light: cream on the left)", () => {

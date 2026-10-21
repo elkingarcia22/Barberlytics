@@ -386,7 +386,7 @@ Router, providers, layout, navegación y páginas de error.
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, BARBERLYTICS_LOGO_COLORS, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
 - **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`, `IncomeCertificatePage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
@@ -630,7 +630,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### branding
 
 - **BrandIdentitySettings.tsx** — Ajuste «Identidad de marca»: la empresa sube su logo y su nombre, y el menú lateral los encaja con `BrandSlot… · `BrandIdentitySettings` · piezas: Alert, AlertDescription, Button, Card, Field, FormSection, Heading, Input, Text, UploadZone, logoShape · usa: @/icons, @/lib/query
-- **BrandLogoSection.tsx** — «Logo» dentro de Personalización: el isologo actual y la puerta para cambiarlo. · `BrandLogoSectionProps`, `BrandLogoSection` · piezas: BrandSlot, Button, Text · usa: @/icons
+- **BrandLogoSection.tsx** — «Logo» dentro de Personalización: el isologo actual, la puerta para cambiarlo y, si la barbería subió uno, vo… · `BrandLogoSectionProps`, `BrandLogoSection` · piezas: BrandSlot, Button, Text · usa: @/icons
 - **BrandMenuPreview.tsx** — El menú lateral en miniatura, con los tokens del modo pedido: cuadro del rail y fila del panel. · `BrandMenuPreview` · piezas: BrandSlot, Text · usa: @/themes
 - **api.ts** — Contrato de identidad de la empresa; ver docs/API_CONTRACT.md. · `brandingApi` · llama: GET /company/branding, PUT /company/branding · usa: @/lib/api
 - **logoFile.ts** — Alto mínimo de un PNG/JPG/WebP para que se vea nítido a 32px en pantallas retina. · `MIN_RASTER_HEIGHT`, `LogoFile`, `readLogoFile`, `logoQualityWarning`
@@ -1406,7 +1406,7 @@ Idiomas y textos traducibles.
 
 Presets, tokens derivados y selector.
 
-- **CustomThemeEditor.tsx** — «Personalizado»: el primario y el secundario de la barbería, elegidos en el espectro o propuestos a partir de… · `CustomThemeEditor` · piezas: Button, ColorPicker, SegmentedGroup · usa: @/icons
+- **CustomThemeEditor.tsx** — «Personalizado»: el primario y el secundario de la barbería, elegidos en el espectro o propuestos a partir de… · `CustomThemeEditorProps`, `CustomThemeEditor` · piezas: Button, ColorPicker, SegmentedGroup · usa: @/icons
 - **ThemeProvider.tsx** · `ThemeProvider`
 - **ThemeSelector.tsx** — Muestra pequeña de un preset: el primario claro y el oscuro, en diagonal. · `ThemeSwatch`, `ThemeSelectorProps`, `ThemeSelectorPanel`, `ThemeSelector`, `ThemeModeToggle` · piezas: Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Popover, PopoverContent, PopoverTrigger, SegmentedGroup, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipTrigger · usa: @/lib/utils
 - **buildTokens.ts** — Mapa `--variable` → valor, listo para `style.setProperty` o para un bloque CSS. · `ThemeMode`, `ResolvedMode`, `RadiusScale`, `ThemeTokens`, `RADIUS_FACTORS`, `buildRadiusTokens`, `DensityScale`, `DENSITY_FACTORS`, `buildSpacingTokens`, `ThemeFonts`, `buildFontTokens`, `AI_DARK_INK`, `aiInk`, `buildThemeTokens`, `themeToCss`

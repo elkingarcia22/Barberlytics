@@ -19,7 +19,8 @@ import type { AppMessageKey } from "../i18n/types";
 import { StepUpHost, authApi, useAuth } from "@/features/auth";
 import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
-import { BrandLogoSection, useBrandingQuery } from "@/features/branding";
+import { BrandLogoSection, useBrandingQuery, useSaveBranding } from "@/features/branding";
+import { BARBERLYTICS_LOGO_COLORS } from "@/components/ui/barberlyticsBrandColors";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, readInitialBranch, useBranches } from "@/features/branches";
 import { useMessageDispatcher } from "@/features/calendar/messages";
@@ -145,6 +146,7 @@ export function AppLayout() {
   // «Barbería». Mientras carga (o si falla) va la flecha de Barberlytics con
   // el mismo formato, así el menú nunca cambia de forma.
   const { data: branding } = useBrandingQuery();
+  const { mutate: saveBranding, isPending: isResettingLogo } = useSaveBranding();
   // La ayuda: el botón de la cabecera abre el panel de la pantalla actual y
   // los artículos entran en la búsqueda general como objetos que se abren.
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
@@ -324,9 +326,12 @@ export function AppLayout() {
           close();
           navigate("/configuracion/identidad");
         }}
+        // Quitar el logo propio deja el nombre como está: solo vuelve la flecha de Barberlytics.
+        onReset={() => saveBranding({ name: branding?.name ?? null, logo: null, logoDark: null })}
+        isResetting={isResettingLogo}
       />
     ),
-    [brand, navigate]
+    [brand, navigate, branding?.name, saveBranding, isResettingLogo]
   );
 
   const navigation = React.useMemo(() => buildAppNavigation(t, access), [t, access]);
@@ -409,7 +414,7 @@ export function AppLayout() {
       // esto»— así que cuelgan de una sola puerta, «Personalización», con la
       // pastilla del color activo puesta encima para reconocerlo sin abrir
       // nada.
-      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} onUploadLogo={() => navigate("/configuracion/identidad")} />,
+      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} defaultLogoColors={BARBERLYTICS_LOGO_COLORS} />,
       isDark: resolvedMode === "dark",
       onToggleDark: (dark) => setMode(dark ? "dark" : "light"),
       onLogout: () => {

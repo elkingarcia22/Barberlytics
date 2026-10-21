@@ -222,13 +222,6 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     neutral: "tinted",
   },
   {
-    id: "orange",
-    name: "Naranja",
-    description: "Energético; funciona bien en productos de aprendizaje.",
-    primary: { light: "#EA580C", dark: "#FB923C" },
-    neutral: "gray",
-  },
-  {
     id: "crimson",
     name: "Rojo",
     description: "Carmesí decidido; para marcas con carácter y avisos que importan.",

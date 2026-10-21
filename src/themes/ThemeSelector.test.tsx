@@ -40,3 +40,15 @@ describe("Personalizado", () => {
     });
   });
 });
+
+describe("Personalizado sin logo propio", () => {
+  test("propone los colores del logo por defecto y «Usarlos» los aplica", async () => {
+    const { ThemeSelectorPanel } = await import("./ThemeSelector");
+    renderWithProviders(<ThemeSelectorPanel advanced={false} defaultLogoColors={["#D9B36A", "#6B4312"]} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("radio", { name: "Personalizado" }));
+    expect(screen.getByText("Los de Barberlytics, tu logo por defecto.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /usarlos/i }));
+    expect(JSON.parse(window.localStorage.getItem("thema-theme") ?? "{}")).toMatchObject({ custom: { primary: "#D9B36A", secondary: "#6B4312" } });
+  });
+});

@@ -13,8 +13,8 @@ import { useCloseWorkspaceMenu } from "./workspaceMenuContext";
 export interface PersonalizationMenuProps {
   /** El logo de la barbería, para proponer sus colores en el tema «Personalizado». */
   logoSrc?: string | null;
-  /** Lleva a subir el logo (Personalización se cierra antes). */
-  onUploadLogo?: () => void;
+  /** Los colores del logo por defecto, para proponerlos cuando no hay uno propio. */
+  defaultLogoColors?: readonly string[];
   /** Sección propia del producto arriba del color (p. ej. el logo). Recibe cómo cerrar el panel y el menú de la marca. */
   leading?: (close: () => void) => React.ReactNode;
   className?: string;
@@ -30,7 +30,7 @@ export interface PersonalizationMenuProps {
  * menú de perfil— para no tapar el menú que la contiene; en pantalla
  * estrecha, donde no cabe al lado, cuelga del propio ítem.
  */
-export function PersonalizationMenu({ leading, logoSrc, onUploadLogo, className, style }: PersonalizationMenuProps) {
+export function PersonalizationMenu({ leading, logoSrc, defaultLogoColors, className, style }: PersonalizationMenuProps) {
   const t = useT();
   const { preset } = useTheme();
   const [open, setOpen] = React.useState(false);
@@ -43,7 +43,9 @@ export function PersonalizationMenu({ leading, logoSrc, onUploadLogo, className,
   }, [closeWorkspaceMenu]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // Modal: mientras está abierto, el resto del menú de la marca no reacciona al cursor (antes
+    // «Cuenta» o «Negocio» abrían su submenú encima) y solo un clic afuera lo cierra.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -72,7 +74,11 @@ export function PersonalizationMenu({ leading, logoSrc, onUploadLogo, className,
         align={isCompact ? "end" : "start"}
         sideOffset={isCompact ? 6 : 10}
         collisionPadding={12}
-        className={cn("w-[320px] max-h-[75vh] space-y-4 overflow-y-auto p-4", SHELL_MENU_PANEL)}
+        // El panel común va primero: su `p-2` pisaba el relleno y el contenido rozaba las esquinas redondeadas.
+        className={cn(SHELL_MENU_PANEL, "w-[340px] max-h-[75vh] space-y-4 overflow-y-auto p-5")}
+        // Se abre con clic y se cierra con clic afuera. Al pasar el cursor por las otras filas del menú
+        // de la marca, ese menú les da el foco; sin esto el panel lo tomaba por un clic afuera y se cerraba.
+        onFocusOutside={(event) => event.preventDefault()}
       >
         {/* Sin «Más ajustes»: radio, densidad y tipografía se eligen una vez
             al montar el negocio, no aquí. Quien las necesite las encuentra en
@@ -81,13 +87,7 @@ export function PersonalizationMenu({ leading, logoSrc, onUploadLogo, className,
         <ThemeSelectorPanel
           advanced={false}
           logoSrc={logoSrc}
-          onUploadLogo={
-            onUploadLogo &&
-            (() => {
-              closeAll();
-              onUploadLogo();
-            })
-          }
+          defaultLogoColors={defaultLogoColors}
         />
         <LanguagePickerPanel />
         {/* Mismo ajuste que Modo e Idioma: etiqueta del marco y el segmentado del sistema. */}

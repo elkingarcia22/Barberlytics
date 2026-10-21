@@ -18,3 +18,10 @@ export const BARBERLYTICS_BRAND_DARK: FaviconStops = ["#F3E1AE", "#D9B36A", "#A8
  */
 export const BARBERLYTICS_ICON_TILE: FaviconStops = BARBERLYTICS_BRAND_DARK;
 export const BARBERLYTICS_ICON_ARROW = "#0E0D0C";
+
+/**
+ * Los dos colores del logo de Barberlytics como marca de una barbería: el champán y el
+ * bronce profundo del gradiente. «Personalizado» los propone cuando la barbería no ha
+ * subido un logo propio y en su menú se ve el de Barberlytics.
+ */
+export const BARBERLYTICS_LOGO_COLORS: readonly string[] = [BARBERLYTICS_BRAND_DARK[1], BARBERLYTICS_BRAND_LIGHT[2]];

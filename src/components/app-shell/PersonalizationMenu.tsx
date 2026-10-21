@@ -11,6 +11,8 @@ import { SHELL_MENU_PANEL } from "./shellPanel";
 import { useCloseWorkspaceMenu } from "./workspaceMenuContext";
 
 export interface PersonalizationMenuProps {
+  /** El logo de la barbería, para proponer sus colores en el tema «Personalizado». */
+  logoSrc?: string | null;
   /** Sección propia del producto arriba del color (p. ej. el logo). Recibe cómo cerrar el panel y el menú de la marca. */
   leading?: (close: () => void) => React.ReactNode;
   className?: string;
@@ -26,7 +28,7 @@ export interface PersonalizationMenuProps {
  * menú de perfil— para no tapar el menú que la contiene; en pantalla
  * estrecha, donde no cabe al lado, cuelga del propio ítem.
  */
-export function PersonalizationMenu({ leading, className, style }: PersonalizationMenuProps) {
+export function PersonalizationMenu({ leading, logoSrc, className, style }: PersonalizationMenuProps) {
   const t = useT();
   const { preset } = useTheme();
   const [open, setOpen] = React.useState(false);
@@ -74,7 +76,7 @@ export function PersonalizationMenu({ leading, className, style }: Personalizati
             al montar el negocio, no aquí. Quien las necesite las encuentra en
             el selector completo de Fundamentos › Temas. */}
         {leading?.(closeAll)}
-        <ThemeSelectorPanel advanced={false} />
+        <ThemeSelectorPanel advanced={false} logoSrc={logoSrc} />
         <LanguagePickerPanel />
         {/* Mismo ajuste que Modo e Idioma: etiqueta del marco y el segmentado del sistema. */}
         <SegmentedGroup<ActionsPlacement>

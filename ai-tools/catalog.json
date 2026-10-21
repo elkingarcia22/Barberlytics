@@ -1,5 +1,5 @@
 {
-  "sourceHash": "9b3e4d03b6ab990f",
+  "sourceHash": "cfea94d26dc43dd9",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -9474,6 +9474,90 @@
       ],
       "docs": "/docs#/components/guided-tour",
       "ficha": "ai-tools/components/guided-tour.md"
+    },
+    {
+      "id": "color-picker",
+      "name": "ColorPicker",
+      "group": "forms",
+      "description": "Elegir un color dentro del espectro: área de saturación y brillo, barra de matiz y el HEX escrito, con una fila opcional de muestras sugeridas (los colores de un logo, la paleta de la marca). Se maneja con ratón, dedo o teclado; entra y sale HEX `#RRGGBB`.",
+      "import": "import { ColorPicker } from \"@/components/forms\"",
+      "source": "src/components/forms/ColorPicker.tsx",
+      "status": "beta",
+      "tags": [
+        "form",
+        "color",
+        "a11y",
+        "controlado"
+      ],
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "default": null,
+          "description": "Color actual en HEX `#RRGGBB` (controlado)."
+        },
+        {
+          "name": "onChange",
+          "type": "(color: string) => void",
+          "default": null,
+          "description": "Se llama con el HEX en mayúsculas al arrastrar, teclear (al salir del campo o con Enter) o elegir una muestra."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "\"Color\"",
+          "description": "Nombre accesible; de él salen los del área, la barra de matiz y el campo HEX."
+        },
+        {
+          "name": "swatches",
+          "type": "{ color: string; label?: string }[]",
+          "default": null,
+          "description": "Muestras sugeridas encima del espectro."
+        },
+        {
+          "name": "swatchesLabel",
+          "type": "string",
+          "default": "\"Sugeridos\"",
+          "description": "Título de la fila de muestras."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": null,
+          "description": "Se aplica al contenedor externo."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Úsalo cuando el color es un dato que la persona decide (su marca, una categoría), no para elegir entre unos pocos tonos fijos.",
+          "Ofrece `swatches` cuando hay colores que probablemente quiere (los de su logo, los ya usados): casi nadie atina un color de marca a mano.",
+          "Si el color se usa como texto o fondo de interfaz, ajústalo después para que contraste (el tema «Personalizado» lo hace con `fitToMode`) y dilo."
+        ],
+        "dont": [
+          "No lo uses para elegir entre los colores del sistema: para eso están los presets y los tonos semánticos.",
+          "No pintes con el valor tal cual texto pequeño sin comprobar el contraste."
+        ]
+      },
+      "related": [
+        "field",
+        "single-select"
+      ],
+      "examples": [
+        {
+          "id": "brand",
+          "title": "Color de marca con los colores del logo",
+          "description": "Es lo que usa el tema «Personalizado» de Personalización: arriba los colores que se leyeron del logo, debajo el espectro para afinarlos. Las muestras se marcan cuando coinciden con el color elegido.",
+          "code": "<ColorPicker\n  value={color}\n  onChange={setColor}\n  label=\"Color primario\"\n  swatches={logoColors.map((color) => ({ color, label: `Del logo: ${color}` }))}\n  swatchesLabel=\"Colores de tu logo\"\n/>"
+        },
+        {
+          "id": "field",
+          "title": "Dentro de un formulario",
+          "description": "Con `Field` para la etiqueta y la ayuda; el selector ya trae sus propios nombres accesibles a partir de `label`.",
+          "code": "<Field label=\"Color de la categoría\" description=\"Se ve en la agenda y en los reportes.\">\n  <ColorPicker value={color} onChange={setColor} label=\"Color de la categoría\" />\n</Field>"
+        }
+      ],
+      "docs": "/docs#/components/color-picker",
+      "ficha": "ai-tools/components/color-picker.md"
     },
     {
       "id": "field",

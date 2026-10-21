@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**216 componentes** en 22 familias · 101 iconos en el registro · 113 tokens.
+**217 componentes** en 22 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -86,10 +86,11 @@ Heading y Text: la escala tipográfica como componentes, sin tamaños a mano.
 - **Heading** [heading] — Los seis niveles de título del sistema como un componente. `@/components/typography`
 - **Text** [text] — Todo el texto que no es un título: cuerpo, etiquetas, ayudas, cifras y código inline. `@/components/typography`
 
-## Formularios · 10
+## Formularios · 11
 
 Campos, secciones y selects compuestos.
 
+- **ColorPicker** [color-picker] (beta) — Elegir un color dentro del espectro: área de saturación y brillo, barra de matiz y el HEX escrito, con una fila opcional de muestras sugeri… `@/components/forms`
 - **Field** [field] — El envoltorio de un control de formulario: etiqueta, descripción, error y estado deshabilitado, con los ids y aria-describedby inyectados e… `@/components/forms`
 - **FilterBar** [filter-bar] (beta) — La cabecera de filtros de un listado: una tarjeta con búsqueda, un hueco para los selects y otro para las acciones, y debajo la fila de chi… `@/components/filters`
 - **FormSection** [form-section] — Una tarjeta que agrupa campos relacionados bajo un título, una descripción y un slot de acciones. `@/components/forms`

@@ -409,7 +409,7 @@ export function AppLayout() {
       // esto»— así que cuelgan de una sola puerta, «Personalización», con la
       // pastilla del color activo puesta encima para reconocerlo sin abrir
       // nada.
-      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} />,
+      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} />,
       isDark: resolvedMode === "dark",
       onToggleDark: (dark) => setMode(dark ? "dark" : "light"),
       onLogout: () => {

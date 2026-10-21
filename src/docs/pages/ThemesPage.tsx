@@ -148,6 +148,13 @@ export function ThemesPage() {
               <li>• El radio escala los siete pasos (xs → 3xl) con un factor: recto ×0, suave ×0.6, normal ×1, amplio ×1.45.</li>
               <li>• La tipografía (cuerpo y títulos) se elige en el selector; un preset puede sugerir la suya con <code className="rounded bg-muted px-1 font-mono text-[12px]">fonts</code> y las de Google se cargan solo al elegirlas.</li>
               <li>• El gradiente de IA se deriva del primario; un preset puede fijar el suyo con <code className="rounded bg-muted px-1 font-mono text-[12px]">ai</code>.</li>
+              <li>
+                • <strong>Personalizado</strong> (la última pastilla del selector) arma el tema con un primario y un secundario que elige la barbería en un{" "}
+                <code className="rounded bg-muted px-1 font-mono text-[12px]">ColorPicker</code> o que se leen de su logo (
+                <code className="rounded bg-muted px-1 font-mono text-[12px]">extractLogoPalette</code>). El primario se aclara u oscurece en cada modo hasta contrastar 4,5:1 (
+                <code className="rounded bg-muted px-1 font-mono text-[12px]">fitToMode</code>); el secundario cierra los degradados de marca e IA. Se guarda en{" "}
+                <code className="rounded bg-muted px-1 font-mono text-[12px]">custom</code> dentro de la misma preferencia.
+              </li>
             </ul>
           </div>
         </div>

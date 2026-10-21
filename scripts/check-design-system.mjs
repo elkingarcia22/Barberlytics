@@ -61,6 +61,8 @@ const RAW_SVG = /<svg[\s>]/;
  * - `GlassIcon.tsx`: los gradientes son el efecto de vidrio, no color de interfaz.
  * - `border-beam`/`moving-border-beam`: el haz es un degradado decorativo que el
  *   usuario ajustó a mano; cambiarlo cambiaría la identidad de IA.
+ * - `ColorPicker.tsx`: el espectro (matiz, saturación, brillo) es el propio dato que
+ *   se elige; no hay token que lo pinte.
  * - `HairCanvas.tsx`: pinta en canvas con los tokens del tema ya resueltos
  *   (`--primary`, `--foreground`), igual que charts; no hay clase que llegue ahí.
  * - `themes/`: el selector de tema es cromo del marco y usa su propia escala
@@ -72,6 +74,7 @@ const BRAND_AND_EFFECT = [
   /^src\/icons\/GlassIcon\.tsx$/,
   /^src\/components\/ui\/(moving-)?border-beam\.tsx$/,
   /^src\/components\/atmosphere\/HairCanvas\.tsx$/,
+  /^src\/components\/forms\/ColorPicker\.tsx$/,
 ];
 
 const ALLOW = {

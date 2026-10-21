@@ -2,6 +2,7 @@ import * as React from "react";
 import type { DensityScale, RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } from "./buildTokens";
 import type { FontId, FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
+import type { CustomColors } from "./customTheme";
 
 export const THEME_STORAGE_KEY = "thema-theme";
 
@@ -12,6 +13,10 @@ export interface ThemeContextValue {
   setPreset: (id: string) => void;
   /** Fuerza un preset sin guardarlo (el login usa `premium`); `null` lo suelta. Ver `useForcedPreset`. */
   setPresetOverride: (id: string | null) => void;
+  /** Primario y secundario del tema «Personalizado» (los últimos elegidos, aunque no esté activo). */
+  customColors: CustomColors;
+  /** Guarda los colores y activa «Personalizado». */
+  setCustomColors: (colors: CustomColors) => void;
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
   /** El modo realmente aplicado, con `system` ya resuelto. */

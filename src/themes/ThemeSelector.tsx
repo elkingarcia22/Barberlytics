@@ -145,7 +145,7 @@ export function ThemeSelectorPanel({
           <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Color</legend>
           <span className="truncate text-[11px] font-medium text-text-secondary">{preset.name}</span>
         </div>
-        {/* Solo la pastilla, sin el nombre de cada una: con 14 presets, la
+        {/* Solo la pastilla, sin el nombre de cada una: con una docena de presets, la
             versión con nombre ocupaba siete filas. El nombre se lee en el
             tooltip y, del activo, en la etiqueta de arriba. */}
         <div role="radiogroup" aria-label="Color" className="flex flex-wrap gap-2">

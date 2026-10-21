@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { AI_DARK_INK, buildFontTokens, buildRadiusTokens, buildSpacingTokens, buildThemeTokens, DENSITY_FACTORS, RADIUS_FACTORS, themeToCss } from "./buildTokens";
 import { contrastRatio, hexToHsl } from "./color";
-import { findPreset, THEME_PRESETS } from "./presets";
+import { DEFAULT_THEME_ID, findPreset, THEME_PRESETS } from "./presets";
 
 const thema = findPreset("thema");
 
@@ -25,8 +25,8 @@ describe("buildThemeTokens", () => {
   });
 
   test("gray presets produce near-neutral backgrounds", () => {
-    const rose = findPreset("rose");
-    const light = buildThemeTokens(rose, "light");
+    const orange = findPreset("orange");
+    const light = buildThemeTokens(orange, "light");
     const [, sat] = light["--background"].split(" ");
     expect(Number.parseFloat(sat)).toBeLessThanOrEqual(20);
   });
@@ -90,7 +90,7 @@ describe("Premium preset", () => {
   test("dark mode sinks the app background below the standard 9% lightness", () => {
     const [, , lightness] = buildThemeTokens(premium, "dark")["--background"].split(" ");
     expect(Number.parseFloat(lightness)).toBeLessThanOrEqual(6);
-    const [, , standard] = buildThemeTokens(findPreset("amber"), "dark")["--background"].split(" ");
+    const [, , standard] = buildThemeTokens(findPreset("orange"), "dark")["--background"].split(" ");
     expect(Number.parseFloat(standard)).toBe(9);
   });
 
@@ -146,7 +146,7 @@ describe("AI gradient", () => {
   });
 
   test("emits the five mesh stops with rgb triplets", () => {
-    const tokens = buildThemeTokens(findPreset("rose"), "dark");
+    const tokens = buildThemeTokens(findPreset("orange"), "dark");
     for (let i = 1; i <= 5; i++) {
       expect(tokens[`--color-ai-stop-${i}`]).toMatch(/^#[0-9a-f]{6}$/);
       expect(tokens[`--color-ai-stop-${i}-rgb`]).toMatch(/^\d+, \d+, \d+$/);
@@ -264,7 +264,9 @@ describe("themeToCss", () => {
 
 describe("findPreset", () => {
   test("falls back to the default preset", () => {
-    expect(findPreset("no-existe").id).toBe("thema");
-    expect(findPreset(undefined).id).toBe("thema");
+    expect(findPreset("no-existe").id).toBe(DEFAULT_THEME_ID);
+    expect(findPreset(undefined).id).toBe(DEFAULT_THEME_ID);
+    // Un tema retirado que quedó guardado en el navegador.
+    expect(findPreset("rose").id).toBe(DEFAULT_THEME_ID);
   });
 });

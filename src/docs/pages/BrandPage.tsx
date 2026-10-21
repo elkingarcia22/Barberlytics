@@ -512,7 +512,7 @@ export function BrandPage() {
         </div>
       </DocSection>
 
-      <DocSection id="temas" title="En los catorce temas" description="Cada tema pinta el logo con su propio primario y su propia gradación de IA. En cada recuadro: el logotipo con el gradiente de marca y, debajo, la flecha en marca, en IA y en una tinta.">
+      <DocSection id="temas" title="En los doce temas" description="Cada tema pinta el logo con su propio primario y su propia gradación de IA. En cada recuadro: el logotipo con el gradiente de marca y, debajo, la flecha en marca, en IA y en una tinta.">
         <div className="grid gap-4 lg:grid-cols-2">
           {THEME_PRESETS.map((item) => (
             <PresetCard key={item.id} preset={item} />

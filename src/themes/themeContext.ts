@@ -3,6 +3,7 @@ import type { DensityScale, RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } 
 import type { FontId, FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 import type { CustomColors } from "./customTheme";
+import type { StoredTheme } from "./ThemeProvider";
 
 export const THEME_STORAGE_KEY = "thema-theme";
 
@@ -17,6 +18,11 @@ export interface ThemeContextValue {
   customColors: CustomColors;
   /** Guarda los colores y activa «Personalizado». */
   setCustomColors: (colors: CustomColors) => void;
+  /** Todo lo guardado ahora mismo, para volver a ello con `restoreSnapshot` (cerrar sin guardar). */
+  snapshot: StoredTheme;
+  restoreSnapshot: (snapshot: StoredTheme) => void;
+  /** Color y modo de fábrica (Premium, oscuro), sin colores personalizados. */
+  resetAppearance: () => void;
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
   /** El modo realmente aplicado, con `system` ya resuelto. */

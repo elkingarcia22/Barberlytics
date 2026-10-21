@@ -20,6 +20,7 @@ import { StepUpHost, authApi, useAuth } from "@/features/auth";
 import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery, useSaveBranding } from "@/features/branding";
+import { PersonalizationPanel } from "@/features/personalization";
 import { BARBERLYTICS_LOGO_AI, BARBERLYTICS_LOGO_COLORS } from "@/components/ui/barberlyticsBrandColors";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, readInitialBranch, useBranches } from "@/features/branches";
@@ -319,22 +320,20 @@ export function AppLayout() {
     }),
     [branding]
   );
-  // «Cambiar» en Personalización lleva a Identidad de marca, donde vive el recortador.
-  const personalizationLeading = React.useCallback(
-    (close: () => void) => (
-      <BrandLogoSection
-        logo={brand.logo}
-        name={brand.productName}
-        onChange={() => {
-          close();
-          navigate("/configuracion/identidad");
-        }}
-        // Quitar el logo propio deja el nombre como está: solo vuelve la flecha de Barberlytics.
-        onReset={() => saveBranding({ name: branding?.name ?? null, logo: null, logoDark: null })}
-        isResetting={isResettingLogo}
-      />
-    ),
-    [brand, navigate, branding?.name, saveBranding, isResettingLogo]
+  // Personalización es un panel lateral que empuja la página: vive aquí y no en el menú
+  // de la marca, que se cierra al abrirlo.
+  const [personalizationOpen, setPersonalizationOpen] = React.useState(false);
+  // «Cambiar» lleva a Identidad de marca con el panel aún abierto: al subir el logo,
+  // «Desde tu logo» propone sus colores ahí mismo.
+  const personalizationLogo = (
+    <BrandLogoSection
+      logo={brand.logo}
+      name={brand.productName}
+      onChange={() => navigate("/configuracion/identidad")}
+      // Quitar el logo propio deja el nombre como está: solo vuelve la flecha de Barberlytics.
+      onReset={() => saveBranding({ name: branding?.name ?? null, logo: null, logoDark: null })}
+      isResetting={isResettingLogo}
+    />
   );
 
   const navigation = React.useMemo(() => buildAppNavigation(t, access), [t, access]);
@@ -417,7 +416,7 @@ export function AppLayout() {
       // esto»— así que cuelgan de una sola puerta, «Personalización», con la
       // pastilla del color activo puesta encima para reconocerlo sin abrir
       // nada.
-      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} defaultLogo={BARBERLYTICS_DEFAULT_LOGO} />,
+      workspaceMenuExtra: <PersonalizationMenu onOpen={() => setPersonalizationOpen(true)} />,
       isDark: resolvedMode === "dark",
       onToggleDark: (dark) => setMode(dark ? "dark" : "light"),
       onLogout: () => {
@@ -428,7 +427,7 @@ export function AppLayout() {
         void logout().then(() => navigate("/login", { replace: true }));
       },
     }),
-    [user, brand, roles, notificationItems, markRead, effectiveRole, selectRole, branchId, branches, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, personalizationLeading, shellMode, chatHistory, chatState.activeId, chatBackend]
+    [user, brand, roles, notificationItems, markRead, effectiveRole, selectRole, branchId, branches, settings, helpObjects, navigation, activeNavId, location.pathname, navigate, resolvedMode, setMode, logout, t, shellMode, chatHistory, chatState.activeId, chatBackend]
   );
 
   const openAgent = React.useCallback(() => {
@@ -451,6 +450,13 @@ export function AppLayout() {
             <React.Suspense fallback={<PageLoader />}>
               <Outlet />
             </React.Suspense>
+            <PersonalizationPanel
+              open={personalizationOpen}
+              onOpenChange={setPersonalizationOpen}
+              leading={personalizationLogo}
+              logoSrc={brand.logo?.src}
+              defaultLogo={BARBERLYTICS_DEFAULT_LOGO}
+            />
           </PageHeaderExtrasProvider>
         </RailAgentProvider>
         <ChatPanel

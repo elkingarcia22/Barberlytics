@@ -386,7 +386,7 @@ Router, providers, layout, navegación y páginas de error.
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, BARBERLYTICS_LOGO_AI, BARBERLYTICS_LOGO_COLORS, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, BARBERLYTICS_LOGO_AI, BARBERLYTICS_LOGO_COLORS, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/personalization, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
 - **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`, `IncomeCertificatePage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
@@ -981,6 +981,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **RentProfitCard.tsx** — «Mi negocio» completo para el de renta: lo que vendió con sus propinas menos lo que le paga a la barbería (re… · `RentProfitCard` · piezas: Button · usa: @/app/i18n, @/features/team
 - **RentStatementView.tsx** — El estado de cuenta de la renta, ciclo por ciclo: lo que la barbería le guardó, la renta y las deducciones, l… · `RentStatementView` · piezas: MetricCard, Skeleton, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Text · usa: @/app/i18n, @/i18n, @/lib/query
 
+### personalization
+
+- **PersonalizationPanel.tsx** — Personalización en un panel lateral que empuja la página: lo que se cambia se ve al momento en la pantalla de… · `PersonalizationPanelProps`, `PersonalizationPanel` · piezas: Button, DEFAULT_SCREEN_ACTIONS_PLACEMENT, PanelFooter, SegmentedGroup, SidePanelShell, useActionsPlacement · usa: @/i18n, @/themes
+
 ### products
 
 - **InventoryView.tsx** — Las existencias de la sucursal. · `InventoryViewProps`, `InventoryView` · piezas: AttentionAction, AttentionStrip, DataListActionRail, DataListBlock, ListItem, ShellRailSlot, Skeleton · usa: @/app/i18n, @/features/customers, @/i18n, @/lib/query
@@ -1407,7 +1411,7 @@ Idiomas y textos traducibles.
 Presets, tokens derivados y selector.
 
 - **CustomThemeEditor.tsx** — «Personalizado»: el primario, el secundario y el degradado de IA de la barbería, elegidos en el espectro o pr… · `CustomThemeEditorProps`, `DefaultLogo`, `CustomThemeEditor` · piezas: Button, ColorPicker, SegmentedGroup · usa: @/icons
-- **ThemeProvider.tsx** · `ThemeProvider`
+- **ThemeProvider.tsx** — Lo que se guarda del tema; también la «foto» que toma Personalización para deshacer. · `StoredTheme`, `ThemeProvider`
 - **ThemeSelector.tsx** — Muestra pequeña de un preset: el primario claro y el oscuro, en diagonal. · `ThemeSwatch`, `ThemeSelectorProps`, `ThemeSelectorPanel`, `ThemeSelector`, `ThemeModeToggle` · piezas: Accordion, AccordionContent, AccordionItem, AccordionTrigger, Button, Popover, PopoverContent, PopoverTrigger, SegmentedGroup, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipTrigger · usa: @/lib/utils
 - **buildTokens.ts** — Mapa `--variable` → valor, listo para `style.setProperty` o para un bloque CSS. · `ThemeMode`, `ResolvedMode`, `RadiusScale`, `ThemeTokens`, `RADIUS_FACTORS`, `buildRadiusTokens`, `DensityScale`, `DENSITY_FACTORS`, `buildSpacingTokens`, `ThemeFonts`, `buildFontTokens`, `AI_DARK_INK`, `aiInk`, `buildThemeTokens`, `themeToCss`
 - **color.ts** — Utilidades de color mínimas para derivar una paleta completa a partir de un único color primario. · `Hsl`, `hexToRgb`, `rgbToHex`, `hexToHsl`, `hslToHex`, `hslChannels`, `hexToChannels`, `shiftLightness`, `mix`, `relativeLuminance`, `contrastRatio`, `apcaContrast`, `readableForeground`

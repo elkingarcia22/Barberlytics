@@ -121,6 +121,12 @@ export const en: MessageCatalog = {
   "shell.actionsPlacement.inline": "On the screen",
   "shell.actionsPlacement.railHint": "Actions live in a floating bar you can move.",
   "shell.actionsPlacement.inlineHint": "Actions live in each screen's header.",
+  "shell.personalization.description": "See it live; save to keep it.",
+  "shell.personalization.save": "Save",
+  "shell.personalization.reset": "Reset",
+  "shell.personalization.unsaved": "Unsaved changes. Closing will undo them.",
+  "shell.personalization.saved": "Personalization saved",
+  "shell.personalization.resetHint": "Back to Premium, dark mode, Spanish and floating bar. Save to keep it.",
 
   "language.label": "Language",
   "language.change": "Change language",

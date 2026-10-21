@@ -135,6 +135,12 @@ export const es = {
   "shell.actionsPlacement.inline": "En la pantalla",
   "shell.actionsPlacement.railHint": "Las acciones van en una barra flotante que puedes mover.",
   "shell.actionsPlacement.inlineHint": "Las acciones van en la cabecera de cada pantalla.",
+  "shell.personalization.description": "Lo ves al momento; guarda para quedártelo.",
+  "shell.personalization.save": "Guardar",
+  "shell.personalization.reset": "Restablecer",
+  "shell.personalization.unsaved": "Cambios sin guardar. Si cierras, se deshacen.",
+  "shell.personalization.saved": "Personalización guardada",
+  "shell.personalization.resetHint": "Volvimos a Premium, modo oscuro, español y barra flotante. Guarda para quedártelo.",
 
   // ── El selector de idioma ──
   "language.label": "Idioma",

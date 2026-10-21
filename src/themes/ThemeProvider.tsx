@@ -5,7 +5,8 @@ import { DEFAULT_BODY_FONT, DEFAULT_HEADING_FONT, ensureFontLoaded, findFont, FO
 import { ThemeContext, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
 import { buildCustomPreset, CUSTOM_THEME_ID, DEFAULT_CUSTOM_COLORS, isCustomColors, type CustomColors } from "./customTheme";
 
-interface StoredTheme {
+/** Lo que se guarda del tema; también la «foto» que toma Personalización para deshacer. */
+export interface StoredTheme {
   preset: string;
   mode: ThemeMode;
   radius: RadiusScale;
@@ -134,6 +135,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setPreset: (id) => setStored((prev) => ({ ...prev, preset: id === CUSTOM_THEME_ID ? CUSTOM_THEME_ID : findPreset(id).id })),
       customColors,
       setCustomColors: (colors) => setStored((prev) => ({ ...prev, preset: CUSTOM_THEME_ID, custom: colors })),
+      snapshot: stored,
+      restoreSnapshot: (snapshot) => setStored(snapshot),
+      // De fábrica es el color y el modo; radio, densidad y tipografía no se tocan desde Personalización.
+      resetAppearance: () => setStored((prev) => ({ ...prev, preset: DEFAULT_STORED.preset, mode: DEFAULT_STORED.mode, custom: undefined })),
       setPresetOverride,
       mode: stored.mode,
       setMode: (mode) => setStored((prev) => ({ ...prev, mode })),
@@ -149,7 +154,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       fonts: FONT_OPTIONS,
       tokens,
     }),
-    [preset, customColors, stored.mode, stored.radius, stored.density, resolvedMode, tokens, font, headingFont]
+    [preset, customColors, stored, resolvedMode, tokens, font, headingFont]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

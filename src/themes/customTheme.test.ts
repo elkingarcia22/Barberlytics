@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { buildThemeTokens } from "./buildTokens";
 import { contrastRatio } from "./color";
-import { buildCustomPreset, CUSTOM_THEME_ID, fitToMode, isCustomColors } from "./customTheme";
+import { automaticAiColors, buildCustomPreset, CUSTOM_THEME_ID, fitToMode, isCustomColors } from "./customTheme";
 
 describe("buildCustomPreset", () => {
   test("arma un preset con el id custom y los dos colores en el degradado de marca", () => {
@@ -41,5 +41,35 @@ describe("isCustomColors", () => {
     expect(isCustomColors({ primary: "red", secondary: "#0B3D91" })).toBe(false);
     expect(isCustomColors({ primary: "#C8102E" })).toBe(false);
     expect(isCustomColors(null)).toBe(false);
+  });
+});
+
+describe("colores de IA", () => {
+  test("sin `ai`, el degradado de IA va del primario al secundario", () => {
+    const colors = { primary: "#C8102E", secondary: "#0B3D91" };
+    const preset = buildCustomPreset(colors);
+    expect(preset.ai?.start).toBe(automaticAiColors(colors).start);
+    expect(preset.ai?.end).toBe(automaticAiColors(colors).end);
+  });
+
+  test("con `ai`, manda ese degradado y la marca no cambia", () => {
+    const base = buildCustomPreset({ primary: "#C8102E", secondary: "#0B3D91" });
+    const preset = buildCustomPreset({ primary: "#C8102E", secondary: "#0B3D91", ai: { start: "#7C3AED", end: "#06B6D4" } });
+    expect(preset.ai?.start).toBe("#7C3AED");
+    expect(preset.ai?.end).toBe("#06B6D4");
+    expect(preset.primary).toEqual(base.primary);
+  });
+
+  test("un `ai` mal formado no se acepta al leer lo guardado", () => {
+    expect(isCustomColors({ primary: "#C8102E", secondary: "#0B3D91", ai: { start: "violeta" } })).toBe(false);
+    expect(isCustomColors({ primary: "#C8102E", secondary: "#0B3D91", ai: { start: "#7C3AED", end: "#06B6D4" } })).toBe(true);
+  });
+});
+
+describe("paradas fijas de IA", () => {
+  test("si el degradado trae paradas, se usan tal cual en vez de interpolar", () => {
+    const stops = ["#F0CE86", "#DE8C3A", "#2E9CB0", "#2E9CB0", "#3F72D8"] as const;
+    const preset = buildCustomPreset({ primary: "#D9B36A", secondary: "#6B4312", ai: { start: "#F0CE86", end: "#3F72D8", stops } });
+    expect(preset.ai?.stops).toEqual(stops);
   });
 });

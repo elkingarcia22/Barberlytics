@@ -88,8 +88,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const customColors = stored.custom ?? DEFAULT_CUSTOM_COLORS;
   const customPreset = React.useMemo(
-    () => buildCustomPreset({ primary: customColors.primary, secondary: customColors.secondary }),
-    [customColors.primary, customColors.secondary]
+    // `customColors` solo cambia de referencia cuando cambian los colores (primario, secundario o IA):
+    // los demás ajustes conservan `stored.custom` al copiar lo guardado.
+    () => buildCustomPreset(customColors),
+    [customColors]
   );
   const activeId = presetOverride ?? stored.preset;
   const preset = activeId === CUSTOM_THEME_ID ? customPreset : findPreset(activeId);

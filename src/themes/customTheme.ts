@@ -15,8 +15,24 @@ export const CUSTOM_THEME_ID = "custom";
 export interface CustomColors {
   /** El color de botones, enlaces y la marca (HEX `#rrggbb`). */
   primary: string;
-  /** El acompañante: cierra el degradado de marca y el de IA (HEX `#rrggbb`). */
+  /** El acompañante: cierra el degradado de marca y, si no hay `ai`, el de IA (HEX `#rrggbb`). */
   secondary: string;
+  /**
+   * El degradado de IA, de `start` a `end`. Sin él sale del primario y el secundario
+   * (`automaticAiColors`); con él, la barbería lo eligió a mano o desde su logo.
+   */
+  ai?: AiColors;
+}
+
+export interface AiColors {
+  start: string;
+  end: string;
+  /**
+   * Las cinco paradas de las mallas, si se fijan a mano. Sin ellas se interpolan por el
+   * matiz, que entre colores opuestos (oro y azul) pasa por el verde: un degradado de
+   * marca como «Forja» las trae puestas.
+   */
+  stops?: readonly [string, string, string, string, string];
 }
 
 /** El punto de partida al abrir «Personalizado» por primera vez: el oro y el azul de Premium. */
@@ -28,10 +44,17 @@ export function isHexColor(value: unknown): value is string {
   return typeof value === "string" && HEX.test(value);
 }
 
+function isAiColors(value: unknown): value is AiColors {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AiColors>;
+  const stopsOk = candidate.stops === undefined || (Array.isArray(candidate.stops) && candidate.stops.length === 5 && candidate.stops.every(isHexColor));
+  return isHexColor(candidate.start) && isHexColor(candidate.end) && stopsOk;
+}
+
 export function isCustomColors(value: unknown): value is CustomColors {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<CustomColors>;
-  return isHexColor(candidate.primary) && isHexColor(candidate.secondary);
+  return isHexColor(candidate.primary) && isHexColor(candidate.secondary) && (candidate.ai === undefined || isAiColors(candidate.ai));
 }
 
 /** Fondos de referencia de cada modo para medir el contraste (los de los neutros teñidos). */
@@ -66,10 +89,19 @@ function hueStops(from: string, to: string): readonly [string, string, string, s
   return [from, at(0.3), at(0.55), at(0.55), to];
 }
 
+function aiPreset({ start, end, stops }: AiColors): NonNullable<ThemePreset["ai"]> {
+  return { start, end, stops: stops ?? hueStops(start, end) };
+}
+
 /** Por debajo de esta saturación el primario es un gris: los neutros no se tiñen. */
 const GRAY_SATURATION = 8;
 
-export function buildCustomPreset({ primary, secondary }: CustomColors): ThemePreset {
+/** El degradado de IA cuando no se eligió uno: del primario al secundario, en su versión para oscuro. */
+export function automaticAiColors({ primary, secondary }: Pick<CustomColors, "primary" | "secondary">): AiColors {
+  return { start: fitToMode(primary, "dark"), end: fitToMode(secondary, "dark", GRAPHIC_CONTRAST) };
+}
+
+export function buildCustomPreset({ primary, secondary, ai }: CustomColors): ThemePreset {
   const primaryLight = fitToMode(primary, "light");
   const primaryDark = fitToMode(primary, "dark");
   const secondaryLight = fitToMode(secondary, "light", GRAPHIC_CONTRAST);
@@ -91,6 +123,10 @@ export function buildCustomPreset({ primary, secondary }: CustomColors): ThemePr
       light: [shiftLightness(primaryLight, 10), primaryLight, secondaryLight],
       dark: [shiftLightness(primaryDark, 10), primaryDark, secondaryDark],
     },
-    ai: { start: primaryDark, end: secondaryDark, stops: hueStops(primaryDark, secondaryDark) },
+    ai: aiPreset(
+      ai
+        ? { start: fitToMode(ai.start, "dark", GRAPHIC_CONTRAST), end: fitToMode(ai.end, "dark", GRAPHIC_CONTRAST), stops: ai.stops }
+        : automaticAiColors({ primary, secondary })
+    ),
   };
 }

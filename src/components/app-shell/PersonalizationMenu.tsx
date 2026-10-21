@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useCompactViewport } from "@/components/action-rail/useCompactViewport";
 import { useActionsPlacement, type ActionsPlacement } from "@/components/action-rail/actionsPlacement";
 import { SegmentedGroup } from "@/components/ui/segmented-group";
-import { ThemeSelectorPanel, ThemeSwatch, useTheme } from "@/themes";
+import { ThemeSelectorPanel, ThemeSwatch, useTheme, type DefaultLogo } from "@/themes";
 import { LanguagePickerPanel, useT } from "@/i18n";
 import { SHELL_MENU_PANEL } from "./shellPanel";
 import { useCloseWorkspaceMenu } from "./workspaceMenuContext";
@@ -13,8 +13,8 @@ import { useCloseWorkspaceMenu } from "./workspaceMenuContext";
 export interface PersonalizationMenuProps {
   /** El logo de la barbería, para proponer sus colores en el tema «Personalizado». */
   logoSrc?: string | null;
-  /** Los colores del logo por defecto, para proponerlos cuando no hay uno propio. */
-  defaultLogoColors?: readonly string[];
+  /** El logo por defecto (colores e IA), para proponerlo cuando no hay uno propio. */
+  defaultLogo?: DefaultLogo;
   /** Sección propia del producto arriba del color (p. ej. el logo). Recibe cómo cerrar el panel y el menú de la marca. */
   leading?: (close: () => void) => React.ReactNode;
   className?: string;
@@ -30,7 +30,7 @@ export interface PersonalizationMenuProps {
  * menú de perfil— para no tapar el menú que la contiene; en pantalla
  * estrecha, donde no cabe al lado, cuelga del propio ítem.
  */
-export function PersonalizationMenu({ leading, logoSrc, defaultLogoColors, className, style }: PersonalizationMenuProps) {
+export function PersonalizationMenu({ leading, logoSrc, defaultLogo, className, style }: PersonalizationMenuProps) {
   const t = useT();
   const { preset } = useTheme();
   const [open, setOpen] = React.useState(false);
@@ -87,7 +87,7 @@ export function PersonalizationMenu({ leading, logoSrc, defaultLogoColors, class
         <ThemeSelectorPanel
           advanced={false}
           logoSrc={logoSrc}
-          defaultLogoColors={defaultLogoColors}
+          defaultLogo={defaultLogo}
         />
         <LanguagePickerPanel />
         {/* Mismo ajuste que Modo e Idioma: etiqueta del marco y el segmentado del sistema. */}

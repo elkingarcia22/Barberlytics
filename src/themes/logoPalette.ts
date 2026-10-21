@@ -72,6 +72,30 @@ export function paletteFromPixels(data: ArrayLike<number>, max = 4): string[] {
   return picked;
 }
 
+/** Saturación mínima de los colores de IA propuestos: un degradado apagado no se lee como IA. */
+const AI_MIN_SATURATION = 72;
+/** Si el logo da un solo matiz, el fin del degradado de IA se aleja este tanto en el círculo. */
+const AI_HUE_SPREAD = 40;
+
+const vivid = (hex: string, hueShift = 0) => {
+  const hsl = hexToHsl(hex);
+  return hslToHex({ h: hsl.h + hueShift, s: Math.max(hsl.s, AI_MIN_SATURATION), l: Math.min(Math.max(hsl.l, 45), 62) }).toUpperCase();
+};
+
+/**
+ * El degradado de IA que se propone desde el logo: sus colores, avivados. Con tres o más,
+ * del segundo al tercero (el primario ya tiene su sitio); con dos, del primero al segundo;
+ * con uno (o dos del mismo matiz), ese color y un vecino en el círculo para que se vea.
+ */
+export function proposeAiColors(colors: readonly string[]): { start: string; end: string } {
+  const [first, second, third] = colors;
+  const [from, to] = third ? [second, third] : [first, second];
+  const start = vivid(from);
+  // Dos tonos del mismo color (dos dorados) darían un degradado que no se ve: el fin se aleja.
+  if (!to || hueDistance(hexToHsl(from).h, hexToHsl(to).h) < MIN_HUE_DISTANCE) return { start, end: vivid(from, AI_HUE_SPREAD) };
+  return { start, end: vivid(to) };
+}
+
 /** Cuánto se aleja el tono del secundario cuando el logo tiene un solo color. */
 const SINGLE_COLOR_TONE_SHIFT = 22;
 

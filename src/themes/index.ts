@@ -1,4 +1,5 @@
 export { ThemeProvider } from "./ThemeProvider";
+export type { DefaultLogo } from "./CustomThemeEditor";
 export { useTheme, THEME_STORAGE_KEY, type ThemeContextValue } from "./themeContext";
 export { useForcedPreset } from "./useForcedPreset";
 export { ThemeSelector, ThemeSelectorPanel, ThemeModeToggle, ThemeSwatch, type ThemeSelectorProps } from "./ThemeSelector";

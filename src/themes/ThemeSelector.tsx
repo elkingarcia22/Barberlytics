@@ -12,7 +12,7 @@ import type { DensityScale, RadiusScale, ThemeMode } from "./buildTokens";
 import type { FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 import { CUSTOM_THEME_ID } from "./customTheme";
-import { CustomThemeEditor } from "./CustomThemeEditor";
+import { CustomThemeEditor, type DefaultLogo } from "./CustomThemeEditor";
 
 const MODES: readonly { id: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "light", label: "Claro", icon: Sun },
@@ -124,13 +124,13 @@ export function ThemeSelectorPanel({
    */
   advanced = true,
   logoSrc,
-  defaultLogoColors,
+  defaultLogo,
 }: {
   advanced?: boolean;
   /** El logo de la barbería: en «Personalizado» se le leen los colores para proponerlos. */
   logoSrc?: string | null;
-  /** Los colores del logo que se ve sin uno propio; «Personalizado» los propone. */
-  defaultLogoColors?: readonly string[];
+  /** El logo que se ve sin uno propio (colores e IA); «Personalizado» lo propone. */
+  defaultLogo?: DefaultLogo;
 }) {
   const { preset, presets, setPreset, customColors, mode, setMode, radius, setRadius, density, setDensity, font, setFont, headingFont, setHeadingFont, fonts } = useTheme();
 
@@ -210,7 +210,7 @@ export function ThemeSelectorPanel({
             <TooltipContent side="bottom">Tus colores: elige primario y secundario, o tómalos de tu logo.</TooltipContent>
           </Tooltip>
         </div>
-        {isCustom && <CustomThemeEditor logoSrc={logoSrc} defaultLogoColors={defaultLogoColors} />}
+        {isCustom && <CustomThemeEditor logoSrc={logoSrc} defaultLogo={defaultLogo} />}
       </fieldset>
 
       <SegmentedGroup

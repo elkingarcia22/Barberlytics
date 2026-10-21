@@ -20,7 +20,7 @@ import { StepUpHost, authApi, useAuth } from "@/features/auth";
 import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_HOME, teamRoleFromSession, writeViewAs } from "@/features/access";
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery, useSaveBranding } from "@/features/branding";
-import { BARBERLYTICS_LOGO_COLORS } from "@/components/ui/barberlyticsBrandColors";
+import { BARBERLYTICS_LOGO_AI, BARBERLYTICS_LOGO_COLORS } from "@/components/ui/barberlyticsBrandColors";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, readInitialBranch, useBranches } from "@/features/branches";
 import { useMessageDispatcher } from "@/features/calendar/messages";
@@ -41,6 +41,9 @@ import { describeError } from "@/lib/api";
 import { useSettingsList } from "@/features/settings/settingsQueries";
 import { branchSchema } from "@/features/settings/settingsTypes";
 import { agentFocus, withAgentFocus } from "@/lib/chat";
+
+/** Sin logo propio se ve el de Barberlytics: «Personalizado» propone sus colores y su IA. */
+const BARBERLYTICS_DEFAULT_LOGO = { colors: BARBERLYTICS_LOGO_COLORS, ai: BARBERLYTICS_LOGO_AI };
 
 /** Lo que cada persona pregunta primero: las puertas de arranque del chat. */
 const CHAT_SUGGESTION_KEYS = ["chat.suggestion1", "chat.suggestion2", "chat.suggestion3", "chat.suggestion4"] as const;
@@ -414,7 +417,7 @@ export function AppLayout() {
       // esto»— así que cuelgan de una sola puerta, «Personalización», con la
       // pastilla del color activo puesta encima para reconocerlo sin abrir
       // nada.
-      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} defaultLogoColors={BARBERLYTICS_LOGO_COLORS} />,
+      workspaceMenuExtra: <PersonalizationMenu leading={personalizationLeading} logoSrc={brand.logo?.src} defaultLogo={BARBERLYTICS_DEFAULT_LOGO} />,
       isDark: resolvedMode === "dark",
       onToggleDark: (dark) => setMode(dark ? "dark" : "light"),
       onLogout: () => {

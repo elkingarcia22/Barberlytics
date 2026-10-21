@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { hexToHsl, hexToRgb } from "./color";
-import { paletteFromPixels, proposeBrandColors } from "./logoPalette";
+import { paletteFromPixels, proposeAiColors, proposeBrandColors } from "./logoPalette";
 
 /** Píxeles RGBA: `count` veces cada color, en orden. */
 function pixels(...runs: [color: string, count: number, alpha?: number][]): number[] {
@@ -48,5 +48,29 @@ describe("proposeBrandColors", () => {
   test("si el único color ya es oscuro, el tono va hacia lo claro", () => {
     const { primary, secondary } = proposeBrandColors(["#0B1F4D"]);
     expect(hexToHsl(secondary).l).toBeGreaterThan(hexToHsl(primary).l);
+  });
+});
+
+describe("proposeAiColors", () => {
+  test("dos tonos del mismo color no dan un degradado plano", () => {
+    const ai = proposeAiColors(["#D9B36A", "#6B4312"]);
+    expect(Math.abs(hexToHsl(ai.end).h - hexToHsl(ai.start).h)).toBeGreaterThanOrEqual(28);
+  });
+
+  test("los colores de IA salen del logo y se avivan", () => {
+    const ai = proposeAiColors(["#8A6420", "#1F7A5A"]);
+    expect(Math.abs(hexToHsl(ai.start).h - hexToHsl("#8A6420").h)).toBeLessThan(2);
+    expect(hexToHsl(ai.start).s).toBeGreaterThanOrEqual(70);
+  });
+
+  test("con tres colores usa el segundo y el tercero", () => {
+    const ai = proposeAiColors(["#C8102E", "#0B3D91", "#1F7A5A"]);
+    expect(Math.abs(hexToHsl(ai.start).h - hexToHsl("#0B3D91").h)).toBeLessThan(2);
+    expect(Math.abs(hexToHsl(ai.end).h - hexToHsl("#1F7A5A").h)).toBeLessThan(2);
+  });
+
+  test("con un solo color, el fin se aleja en el círculo para que se vea el degradado", () => {
+    const ai = proposeAiColors(["#C8102E"]);
+    expect(ai.start).not.toBe(ai.end);
   });
 });

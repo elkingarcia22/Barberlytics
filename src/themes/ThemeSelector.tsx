@@ -124,10 +124,13 @@ export function ThemeSelectorPanel({
    */
   advanced = true,
   logoSrc,
+  onUploadLogo,
 }: {
   advanced?: boolean;
   /** El logo de la barbería: en «Personalizado» se le leen los colores para proponerlos. */
   logoSrc?: string | null;
+  /** Lleva a subir el logo, cuando no hay uno propio que leer. */
+  onUploadLogo?: () => void;
 }) {
   const { preset, presets, setPreset, customColors, mode, setMode, radius, setRadius, density, setDensity, font, setFont, headingFont, setHeadingFont, fonts } = useTheme();
 
@@ -207,7 +210,7 @@ export function ThemeSelectorPanel({
             <TooltipContent side="bottom">Tus colores: elige primario y secundario, o tómalos de tu logo.</TooltipContent>
           </Tooltip>
         </div>
-        {isCustom && <CustomThemeEditor logoSrc={logoSrc} />}
+        {isCustom && <CustomThemeEditor logoSrc={logoSrc} onUploadLogo={onUploadLogo} />}
       </fieldset>
 
       <SegmentedGroup

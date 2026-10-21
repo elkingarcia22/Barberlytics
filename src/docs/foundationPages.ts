@@ -20,7 +20,7 @@ export const FOUNDATION_PAGES: readonly FoundationPage[] = [
   {
     id: "themes",
     label: { es: "Temas", en: "Themes" },
-    description: { es: "Doce presets, el personalizado y cómo se arma uno nuevo.", en: "Twelve presets, the custom one and how to build a new one." },
+    description: { es: "Once presets, el personalizado y cómo se arma uno nuevo.", en: "Eleven presets, the custom one and how to build a new one." },
     icon: Palette,
   },
   {

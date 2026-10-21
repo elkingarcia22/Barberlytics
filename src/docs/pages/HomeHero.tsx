@@ -82,7 +82,7 @@ function SpecRow({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * La ficha del tema activo: su nombre, su descripción, los doce presets y
+ * La ficha del tema activo: su nombre, su descripción, los once presets y
  * los tres ajustes que no son color (radio, densidad y letra de títulos).
  * Es la prueba del mensaje del hero —un sistema, muchos temas— sin fingir una
  * pantalla de producto: lo que se ve aquí son los tokens, que es de lo que va

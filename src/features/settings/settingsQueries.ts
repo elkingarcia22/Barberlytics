@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { bookingKeys } from "@/features/booking/queries";
 import type { ZodType } from "zod";
 import { settingsApi } from "./settingsApi";
 import type { SettingsListId, SettingsSectionId } from "./settingsTypes";
@@ -18,7 +19,12 @@ export function useSaveSettingsSection<T>(id: SettingsSectionId, schema: ZodType
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: unknown) => settingsApi.saveSection(id, schema, body),
-    onSuccess: (saved) => queryClient.setQueryData(settingsKeys.section(id), saved),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(settingsKeys.section(id), saved);
+      // La reserva en línea se arma con varias secciones (reglas, cobros, propinas, apariencia):
+      // tiene que volver a pedirse para que «Ver la reserva» muestre lo recién guardado.
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.shop() });
+    },
   });
 }
 

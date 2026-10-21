@@ -155,6 +155,11 @@ export function ThemesPage() {
                 <code className="rounded bg-muted px-1 font-mono text-[12px]">fitToMode</code>); el secundario cierra los degradados de marca e IA. Se guarda en{" "}
                 <code className="rounded bg-muted px-1 font-mono text-[12px]">custom</code> dentro de la misma preferencia.
               </li>
+              <li>
+                • Una pantalla puede forzar su apariencia sin tocar lo que eligió quien mira con{" "}
+                <code className="rounded bg-muted px-1 font-mono text-[12px]">useForcedAppearance</code> (preset, colores y modo; se suelta al salir). Lo usa la
+                reserva en línea para verse como la configuró la barbería en Configuración › Reserva online › Apariencia, guardado en el servidor y no en el navegador.
+              </li>
             </ul>
           </div>
         </div>

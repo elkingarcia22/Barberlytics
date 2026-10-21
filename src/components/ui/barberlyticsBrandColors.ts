@@ -33,3 +33,6 @@ export const BARBERLYTICS_LOGO_AI = {
   // Por el cobre y el turquesa, como en Premium: interpolado por el matiz pasaría por el verde.
   stops: ["#F0CE86", "#DE8C3A", "#2E9CB0", "#2E9CB0", "#3F72D8"],
 } as const;
+
+/** El logo de Barberlytics como «logo de la barbería» cuando no subió uno: sus colores y su IA, para proponerlos. */
+export const BARBERLYTICS_DEFAULT_LOGO = { colors: BARBERLYTICS_LOGO_COLORS, ai: BARBERLYTICS_LOGO_AI };

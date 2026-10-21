@@ -38,6 +38,21 @@ describe("diccionarios", () => {
 });
 
 describe("LocaleProvider", () => {
+  test("un idioma forzado gana a lo guardado, no se guarda y al salir devuelve el lang", () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "es");
+    document.documentElement.lang = "es-CO";
+    const { unmount } = render(
+      <LocaleProvider forcedLocale="en">
+        <Probe />
+      </LocaleProvider>
+    );
+    expect(screen.getByTestId("cancel").textContent).toBe("Cancel");
+    expect(document.documentElement.lang).toBe("en-US");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("es");
+    unmount();
+    expect(document.documentElement.lang).toBe("es-CO");
+  });
+
   test("arranca en español y traduce con el diccionario fuente", () => {
     render(
       <LocaleProvider defaultLocale="es">

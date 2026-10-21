@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bookingAppearanceSchema, GENERAL_BOOKING_APPEARANCE } from "@/lib/booking/appearance";
 import { GATEWAY_PROVIDERS, type GatewayProvider } from "./gatewayProviders";
 import { defaultWeekHours } from "@/features/branches/branchHours";
 
@@ -48,6 +49,8 @@ export const bookingSchema = z.object({
   lateFeePercent: z.number(),
   maxCancellations: z.number(),
   policy: z.string(),
+  /** Cómo se ve la reserva para el cliente: la general o la que elija la barbería. */
+  appearance: bookingAppearanceSchema.default(GENERAL_BOOKING_APPEARANCE),
   /** Los pone el servidor; no se editan. */
   links: z.object({ widgetId: z.string(), scriptUrl: z.string(), bookingUrl: z.string(), frontDeskUrl: z.string(), portalUrl: z.string() }),
 });

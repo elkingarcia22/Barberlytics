@@ -14,17 +14,19 @@ import { SettingsCard, SettingsDocument, SwitchRow, type FieldErrors } from "../
 import { bookingSchema, type BookingSettings as Booking } from "../settingsTypes";
 import { buildBookingUrl, renderPolicy, widgetSnippet } from "./bookingUtils";
 import { BookingFunnelCard } from "./BookingFunnelCard";
+import { BookingAppearanceCard } from "./BookingAppearanceCard";
 import { KioskDevicesPanel } from "@/features/frontDesk/KioskDevicesPanel";
 
 const SLOT_INTERVALS: readonly number[] = [10, 15, 20, 30, 45, 60];
 const WAIT_MINUTES: readonly number[] = [5, 10, 15, 20, 30, 45, 60];
 const CANCEL_HOURS: readonly number[] = [1, 2, 3, 6, 12, 24, 48];
-const VIEWS = ["reglas", "enlaces"] as const;
+const VIEWS = ["reglas", "apariencia", "enlaces"] as const;
 type View = (typeof VIEWS)[number];
 
 /**
- * Reservas online, en dos vistas: las **reglas** —con cuánta anticipación se
- * reserva, cuándo se puede cancelar, qué se le dice al cliente— y los
+ * Reservas online, en tres vistas: las **reglas** —con cuánta anticipación se
+ * reserva, cuándo se puede cancelar, qué se le dice al cliente—, la **apariencia**
+ * —cómo la ve el cliente: tema, modo, idioma y logo, guardados en la barbería— y los
  * **enlaces y widgets** —lo que se copia para poner la reserva, el portal del
  * cliente y el kiosco en el sitio de la barbería—. En producción el portal
  * era un ajuste aparte; es la misma pregunta: cómo llega el cliente.
@@ -67,12 +69,15 @@ export function BookingSettings() {
             fitContent
             tabs={[
               { id: "reglas", label: t("cfg.booking.view.rules") },
+              { id: "apariencia", label: t("cfg.booking.view.appearance") },
               { id: "enlaces", label: t("cfg.booking.view.links") },
             ]}
             activeTabId={view}
             onTabChange={pickView}
           />
-          {view === "reglas" ? <Rules draft={draft} set={set} errors={errors} /> : <Links links={draft.links} />}
+          {view === "reglas" && <Rules draft={draft} set={set} errors={errors} />}
+          {view === "apariencia" && <BookingAppearanceCard value={draft.appearance} onChange={(appearance) => set("appearance", appearance)} />}
+          {view === "enlaces" && <Links links={draft.links} />}
         </>
       )}
     </SettingsDocument>

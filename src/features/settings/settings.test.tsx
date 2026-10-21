@@ -317,3 +317,23 @@ describe("pantallas de configuración", () => {
     expect(confirm).toBeEnabled();
   });
 });
+
+describe("apariencia de la reserva", () => {
+  test("arranca en la general; con una propia, lo guardado llega a lo que lee la reserva", async () => {
+    const user = userEvent.setup();
+    renderSection("agendamiento", "?vista=apariencia");
+    const general = await screen.findByTestId("booking-appearance-general");
+    expect(screen.queryByTestId("booking-appearance-own")).toBeNull();
+
+    await user.click(general);
+    const own = await screen.findByTestId("booking-appearance-own");
+    await user.click(within(own).getByRole("radio", { name: "Rojo" }));
+    await user.click(within(own).getByRole("radio", { name: "Claro" }));
+    await user.click(within(own).getByRole("radio", { name: "English" }));
+    await user.click(await screen.findByTestId("settings-save"));
+    await waitFor(() => expect(screen.queryByTestId("settings-save")).toBeNull());
+
+    const shop = (await import("@/mocks/booking/logic")).shop();
+    expect(shop.appearance).toMatchObject({ useGeneral: false, theme: "crimson", mode: "light", locale: "en" });
+  });
+});

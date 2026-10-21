@@ -1,3 +1,4 @@
+import { GENERAL_BOOKING_APPEARANCE } from "@/lib/booking/appearance";
 import { defaultWeekHours } from "@/features/branches/branchHours";
 /**
  * La configuración del backend simulado. Dos formas de dato:
@@ -112,6 +113,8 @@ export function seedSettings(): MockSettingsState {
         lateFeePercent: 10,
         maxCancellations: 5,
         policy: DEFAULT_POLICY,
+        // La reserva arranca con la marca por defecto (Configuración › Reserva online › Apariencia).
+        appearance: GENERAL_BOOKING_APPEARANCE,
         links: { widgetId: WIDGET_ID, scriptUrl: "https://widgets.example.com/barberia-widgets.js", bookingUrl: `https://reservas.example.com/book/${DEMO_ACCOUNT}`, frontDeskUrl: `https://reservas.example.com/front-desk/${DEMO_ACCOUNT}`, portalUrl: `https://reservas.example.com/portal/${DEMO_ACCOUNT}` },
       },
       pricing: { currency: "USD", taxInclusive: false },

@@ -3,7 +3,7 @@ import type { DensityScale, RadiusScale, ResolvedMode, ThemeMode, ThemeTokens } 
 import type { FontId, FontOption, HeadingFontId } from "./fonts";
 import type { ThemePreset } from "./presets";
 import type { CustomColors } from "./customTheme";
-import type { StoredTheme } from "./ThemeProvider";
+import type { StoredTheme, ThemeOverride } from "./ThemeProvider";
 
 export const THEME_STORAGE_KEY = "thema-theme";
 
@@ -14,6 +14,8 @@ export interface ThemeContextValue {
   setPreset: (id: string) => void;
   /** Fuerza un preset sin guardarlo (el login usa `premium`); `null` lo suelta. Ver `useForcedPreset`. */
   setPresetOverride: (id: string | null) => void;
+  /** Fuerza preset, colores y modo sin guardarlos; `null` lo suelta. Ver `useForcedAppearance`. */
+  setThemeOverride: (override: ThemeOverride | null) => void;
   /** Primario y secundario del tema «Personalizado» (los últimos elegidos, aunque no esté activo). */
   customColors: CustomColors;
   /** Guarda los colores y activa «Personalizado». */

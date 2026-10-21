@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bookingAppearanceSchema } from "@/lib/booking/appearance";
 import type { CardTokenInput } from "@/features/payments/gateway";
 import { ONLINE_METHODS } from "@/features/settings/gatewayProviders";
 
@@ -61,6 +62,8 @@ export const bookingShopSchema = z.object({
   /** El anticipo que se pide a algunos clientes para pagar en la barbería, o nada si no se pide. */
   deposit: z.object({ percent: z.number() }).nullable().default(null),
   branches: z.array(bookingBranchSchema),
+  /** La apariencia que eligió la barbería para la reserva; `null` = la general. */
+  appearance: bookingAppearanceSchema.nullable().default(null),
 });
 export type BookingShop = z.infer<typeof bookingShopSchema>;
 

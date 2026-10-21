@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { describeError } from "@/lib/api";
+import { bookingKeys } from "@/features/booking/queries";
 import { brandingApi } from "./api";
 import type { BrandingInput } from "./types";
 
@@ -25,6 +26,8 @@ export function useSaveBranding() {
     mutationFn: (input: BrandingInput) => brandingApi.save(input),
     onSuccess: (branding) => {
       queryClient.setQueryData(brandingKeys.all, branding);
+      // La reserva en línea muestra este logo si no tiene uno propio.
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.shop() });
       toast.success(branding.logo ? "Logo guardado" : "Se restableció la marca Barberlytics", {
         description: branding.logo ? "Ya se ve en el menú de toda la empresa." : "El menú vuelve a mostrar el logo de Barberlytics.",
       });

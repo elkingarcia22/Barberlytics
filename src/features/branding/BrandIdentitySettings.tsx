@@ -31,7 +31,7 @@ function toDraft(branding: Branding): Draft {
 
 const sameDraft = (a: Draft, b: Draft) => a.name.trim() === b.name.trim() && a.logo === b.logo && a.logoDark === b.logoDark;
 
-function LogoUpload({
+export function LogoUpload({
   label,
   description,
   value,

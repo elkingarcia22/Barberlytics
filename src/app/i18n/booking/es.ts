@@ -11,6 +11,8 @@ export const bookingEs = {
   "booking.preview.copy": "Copiar enlace",
   "booking.preview.copied": "Enlace copiado",
   "booking.preview.open": "Abrir a pantalla completa",
+  "booking.preview.viewLight": "Ver la reserva en claro",
+  "booking.preview.viewDark": "Ver la reserva en oscuro",
   "booking.preview.mode": "Cómo lo ve tu cliente",
   "booking.preview.phone": "Celular",
   "booking.preview.tablet": "Tablet",

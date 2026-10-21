@@ -8,6 +8,8 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.preview.copy": "Copy link",
   "booking.preview.copied": "Link copied",
   "booking.preview.open": "Open full screen",
+  "booking.preview.viewLight": "View booking in light mode",
+  "booking.preview.viewDark": "View booking in dark mode",
   "booking.preview.mode": "How your client sees it",
   "booking.preview.phone": "Phone",
   "booking.preview.tablet": "Tablet",

@@ -6,7 +6,7 @@ import { ThemaIcon } from "@/icons";
 import { SegmentedGroup } from "@/components/ui/segmented-group";
 import { useTheme } from "./themeContext";
 import { extractLogoPalette, proposeAiColors, proposeBrandColors } from "./logoPalette";
-import { automaticAiColors, type AiColors } from "./customTheme";
+import { automaticAiColors, buildCustomPreset, type AiColors, type CustomColors } from "./customTheme";
 
 type Slot = "primary" | "secondary" | "ai";
 type AiSlot = "start" | "end";
@@ -64,8 +64,8 @@ function proposalLabel({ isDefault, singleColor, applied }: { isDefault: boolean
  * El degradado de IA: automático (del primario al secundario) o elegido a mano, con su
  * inicio y su fin. Lo que se toca aquí solo cambia la IA; marca y botones siguen igual.
  */
-function AiColorsEditor({ swatches }: { swatches: readonly ColorPickerSwatch[] }) {
-  const { customColors, setCustomColors, preset } = useTheme();
+function AiColorsEditor({ swatches, value: customColors, onChange: setCustomColors }: { swatches: readonly ColorPickerSwatch[] } & ColorsControl) {
+  const preset = React.useMemo(() => buildCustomPreset(customColors), [customColors]);
   const [part, setPart] = React.useState<AiSlot>("start");
   const isAutomatic = !customColors.ai;
   const current = customColors.ai ?? automaticAiColors(customColors);
@@ -110,13 +110,29 @@ function AiColorsEditor({ swatches }: { swatches: readonly ColorPickerSwatch[] }
   );
 }
 
+/** Un editor controlado: recibe los colores y avisa cada cambio. */
+interface ColorsControl {
+  value: CustomColors;
+  onChange: (colors: CustomColors) => void;
+}
+
 /**
- * «Personalizado»: el primario, el secundario y el degradado de IA de la barbería,
- * elegidos en el espectro o propuestos a partir de su logo —el propio o, si no subió
- * uno, el de Barberlytics que se ve en su menú—. Todo se aplica al instante.
+ * «Personalizado» de la Personalización: el mismo editor sobre los colores guardados en
+ * este navegador, que se aplican al instante.
  */
-export function CustomThemeEditor({ logoSrc, defaultLogo }: CustomThemeEditorProps) {
-  const { customColors, setCustomColors, preset } = useTheme();
+export function CustomThemeEditor(props: CustomThemeEditorProps) {
+  const { customColors, setCustomColors } = useTheme();
+  return <CustomColorsEditor {...props} value={customColors} onChange={setCustomColors} />;
+}
+
+/**
+ * El primario, el secundario y el degradado de IA, elegidos en el espectro o propuestos a
+ * partir del logo —el propio o, si no hay uno, el de Barberlytics—. Controlado: lo usan la
+ * Personalización (colores de este navegador) y la apariencia de la reserva en línea
+ * (colores guardados en la barbería).
+ */
+export function CustomColorsEditor({ logoSrc, defaultLogo, value: customColors, onChange: setCustomColors }: CustomThemeEditorProps & ColorsControl) {
+  const preset = React.useMemo(() => buildCustomPreset(customColors), [customColors]);
   const [slot, setSlot] = React.useState<Slot>("primary");
   const logo = useLogoPalette(logoSrc);
   const isDefault = !logoSrc;
@@ -180,7 +196,11 @@ export function CustomThemeEditor({ logoSrc, defaultLogo }: CustomThemeEditorPro
       />
 
       {slot === "ai" ? (
-        <AiColorsEditor swatches={[...logoSwatches, ...(proposal ? [proposal.ai.start, proposal.ai.end].map((color) => ({ color, label: `IA del logo: ${color}` })) : [])]} />
+        <AiColorsEditor
+          value={customColors}
+          onChange={setCustomColors}
+          swatches={[...logoSwatches, ...(proposal ? [proposal.ai.start, proposal.ai.end].map((color) => ({ color, label: `IA del logo: ${color}` })) : [])]}
+        />
       ) : (
         <ColorPicker
           key={slot}

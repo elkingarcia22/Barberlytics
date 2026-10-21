@@ -15,6 +15,7 @@ import { consentCountryOf } from "@/features/legal/consent";
 import { closedForHoliday } from "@/features/settings/countryPack";
 import { welcomeCoupon } from "../marketing/coupons";
 import { fitsInHours, hoursOnDate } from "@/features/branches/branchHours";
+import type { BookingAppearance } from "@/lib/booking/appearance";
 
 /**
  * Las derivaciones de la reserva en línea: lo que ve el cliente sale de lo
@@ -44,6 +45,7 @@ const booking = () => db.settings.sections.booking as {
   lateFeePercent: number;
   maxCancellations: number;
   policy: string;
+  appearance?: BookingAppearance;
 };
 
 export const bookingRules = () => {
@@ -101,6 +103,8 @@ export function branchHoursToday(branchId: string): { opensAt: string; closesAt:
 
 export function shop() {
   const rules = bookingRules();
+  // La apariencia propia de la reserva (Configuración › Reserva online); sin ella, la general.
+  const appearance = rules.appearance && !rules.appearance.useGeneral ? rules.appearance : null;
   const tips = tipOptions();
   const company = db.settings.sections.company as { name: string; phone: string };
   const branches = (db.settings.lists.branches as unknown as { id: string; name: string; address: string; city: string; phone: string; status: string }[])
@@ -124,8 +128,9 @@ export function shop() {
   return {
     // La marca de la barbería tal como la subió en Identidad; sin ella, Barberlytics.
     name: db.branding.name ?? "Barberlytics",
-    logoUrl: db.branding.logo,
-    logoDarkUrl: db.branding.logoDark,
+    // Un logo propio de la reserva gana al de Identidad de marca.
+    logoUrl: appearance?.logo ?? db.branding.logo,
+    logoDarkUrl: appearance?.logo ? appearance.logoDark : db.branding.logoDark,
     coverUrl: COVER,
     phone: company.phone,
     currency: (db.settings.sections.pricing as { currency: string }).currency,
@@ -146,6 +151,7 @@ export function shop() {
     packages: rules.paymentMethods.card ? packageOffers().map((offer) => ({ ...offer, regular: (db.services.items.find((item) => item.id === offer.serviceId)?.price ?? 0) * offer.sessions })) : [],
     deposit: rules.deposit.enabled && rules.paymentMethods.payAtShop && rules.paymentMethods.card ? { percent: rules.deposit.percent } : null,
     branches,
+    appearance,
   };
 }
 

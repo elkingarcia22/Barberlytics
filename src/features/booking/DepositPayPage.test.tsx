@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { renderWithProviders, screen, userEvent } from "@/test/render";
 import { db } from "@/mocks/db";
 import { appointmentsOn } from "@/mocks/calendar/handlers";
@@ -21,6 +21,12 @@ describe("el enlace de anticipo", () => {
   beforeEach(() => {
     db.reset();
     db.sessions.set(OWNER, "acc_admin");
+    // La página habla el idioma de la reserva, que por defecto es el del navegador del cliente: uno en español.
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["es-CO"]);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   test("muestra el monto y la cita, y al pagar queda guardada", async () => {

@@ -8,6 +8,7 @@ import { useLocale } from "@/i18n";
 import { api, describeError } from "@/lib/api";
 import { EmptyState, Spinner } from "@/components/feedback";
 import { Text } from "@/components/typography";
+import { BookingAppearance } from "./BookingAppearance";
 
 const confirmedSchema = z.object({ start: z.string(), client: z.string(), branch: z.string(), confirmedAt: z.string().nullable() });
 
@@ -17,7 +18,16 @@ const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", mont
  * Lo que abre el botón «Confirmar» del WhatsApp: confirma la cita con el token del enlace, sin
  * pedir código ni sesión (el token es de esa cita y no se adivina). La agenda la marca confirmada.
  */
+/** Lo ve el cliente: con la apariencia y el idioma que eligió la barbería para la reserva. */
 export function ConfirmAppointmentPage() {
+  return (
+    <BookingAppearance>
+      <ConfirmAppointmentPageContent />
+    </BookingAppearance>
+  );
+}
+
+function ConfirmAppointmentPageContent() {
   const t = useAppT();
   const { formatDate } = useLocale();
   const [params] = useSearchParams();

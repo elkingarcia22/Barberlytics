@@ -8,6 +8,7 @@ import { EmptyState, Spinner } from "@/components/feedback";
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
 import { depositApi } from "@/features/calendar/deposit";
+import { BookingAppearance } from "./BookingAppearance";
 
 const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" };
 
@@ -16,7 +17,16 @@ const WHEN: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", mont
  * producción lleva a la página de la pasarela de la sede (Wompi, Stripe…) y vuelve con el pago confirmado por su
  * webhook. Sin sesión ni código: el token es de esa cita y no se adivina.
  */
+/** Lo ve el cliente: con la apariencia y el idioma que eligió la barbería para la reserva. */
 export function DepositPayPage() {
+  return (
+    <BookingAppearance>
+      <DepositPayPageContent />
+    </BookingAppearance>
+  );
+}
+
+function DepositPayPageContent() {
   const t = useAppT();
   const { formatDate, current } = useLocale();
   const [params] = useSearchParams();

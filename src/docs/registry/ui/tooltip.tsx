@@ -196,7 +196,7 @@ export const tooltipEntry = defineEntry({
   ],
   guidelines: {
     do: ["Nombra los botones de solo icono con tooltip y `aria-label`.", "Una línea corta; si necesitas más, usa HoverCard o Popover.", "Envuelve los triggers deshabilitados en un `<span tabIndex={0}>`."],
-    dont: ["No pongas información imprescindible solo en un tooltip: en móvil no hay hover.", "No metas enlaces ni botones dentro; el contenido no es interactivo.", "No montes otro `TooltipProvider` global; ya existe en la app."],
+    dont: ["No pongas información imprescindible solo en un tooltip: en móvil no hay hover.", "No metas enlaces ni botones dentro; el contenido no es interactivo.", "No montes otro `TooltipProvider` global; ya existe en la app.", "No añadas un tooltip a mano para enseñar un texto cortado con elipsis: lo hace `TruncationTooltip` en toda la app."],
   },
   related: ["hover-card", "popover", "button"],
 });

@@ -37,6 +37,7 @@ const customer = (draft: Partial<BookingCustomer> = {}): BookingCustomer => ({
   credit: 0,
   upcoming: 0,
   cards: [],
+  hasSavedCards: false,
   depositRequired: false,
   loyalty: null,
   packages: [],
@@ -999,7 +1000,7 @@ describe("pantalla de la reserva", () => {
   });
 
   test("el nuevo deja sus datos sin código y el código se pide al llegar al pago", () => {
-    const phoned = bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", askProfile: true, onlyBranchId: null });
+    const phoned = bookingReducer(initialBookingState(), { type: "startWithPhone", phone: "+573202172738", token: null, askProfile: true, onlyBranchId: null });
     expect(phoned).toMatchObject({ step: "profile", phone: "+573202172738", token: null, customer: null, verified: false });
     const profile = { firstName: "Carlos", lastName: "Pérez", email: "carlos@correo.com", marketing: false };
     const started = bookingReducer(phoned, { type: "profileDrafted", profile, onlyBranchId: null });

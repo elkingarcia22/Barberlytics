@@ -80,8 +80,14 @@ const findClient = (id: string) => db.calendar.clients.find((client) => client.i
 
 /** Una sesión verificada es de un cliente (su id) o de un celular nuevo aún sin perfil (`phone:+57…`). */
 const PHONE_SESSION = "phone:";
-/** La sesión de vista previa (reconocido por su celular, sin código): solo sirve para su propuesta de visita. */
+/**
+ * La sesión sin código (reconocido por su celular, o el nuevo que acaba de crear su ficha): sirve para su
+ * propuesta de visita, reservar y pagar con lo que escriba en el momento y la lista de espera. Lo que
+ * expone o gasta lo guardado —sus tarjetas, saldo, paquetes, cortesías y «Mis citas»— pide el código.
+ */
 const PREVIEW_SESSION = "preview:";
+/** Un celular nuevo, sin código: solo sirve para crear su ficha (que pasa a ser una sesión sin código). */
+const NEW_PHONE_SESSION = "newphone:";
 const sessionValue = (request: Request): string | undefined => {
   const token = request.headers.get("x-booking-token");
   return token ? db.bookingSessions.get(token) : undefined;
@@ -92,7 +98,7 @@ function sessionClient(request: Request): MockClient | null {
   return value && !value.startsWith(PHONE_SESSION) && !value.startsWith(PREVIEW_SESSION) ? findClient(value) ?? null : null;
 }
 
-/** El cliente de una sesión verificada o de vista previa: solo para lo que se ve sin código. */
+/** El cliente de una sesión verificada o sin código: para lo que no necesita el código. */
 function previewClient(request: Request): MockClient | null {
   const value = sessionValue(request);
   if (value?.startsWith(PREVIEW_SESSION)) return findClient(value.slice(PREVIEW_SESSION.length)) ?? null;
@@ -104,6 +110,21 @@ const sessionPhone = (request: Request): string | null => {
   const value = sessionValue(request);
   return value?.startsWith(PHONE_SESSION) ? value.slice(PHONE_SESSION.length) : null;
 };
+
+/** El celular nuevo de una sesión sin código, que aún no tiene ficha. */
+const newPhoneOf = (request: Request): string | null => {
+  const value = sessionValue(request);
+  return value?.startsWith(NEW_PHONE_SESSION) ? value.slice(NEW_PHONE_SESSION.length) : null;
+};
+
+/**
+ * Lo que se ve sin código: nada de correo, tarjetas, saldo, paquetes ni membresía. Solo si tiene
+ * tarjetas guardadas (sin cuáles), para pedir el código cuando quiera pagar con una.
+ */
+function previewCustomerOf(client: MockClient) {
+  const full = customerOf(client);
+  return { ...full, email: "", cards: [], hasSavedCards: full.cards.length > 0, credit: 0, packages: [], loyalty: null };
+}
 
 const NO_SESSION = () => error(403, "booking_session", "Tu sesión venció. Escribe tu celular y el código otra vez.");
 
@@ -138,10 +159,12 @@ const MAX_HOLDER = 80;
  * pasarela los recibe en sus campos y devuelve un token (`src/features/payments/gateway.ts`).
  * Devuelve la marca y los últimos 4, o la respuesta de error.
  */
-function chargeCard(client: MockClient, input: Record<string, unknown>, via: "card" | "wallet"): { last4: string; brand: string } | Response {
+function chargeCard(client: MockClient, input: Record<string, unknown>, via: "card" | "wallet", verified: boolean): { last4: string; brand: string } | Response {
   if (via === "wallet") return { last4: "4242", brand: "Wallet" };
   const savedCardId = text(input.savedCardId);
   if (savedCardId) {
+    // Cobrar una tarjeta guardada es lo único del pago que pide el código.
+    if (!verified) return error(403, "booking_session", "Confirma con el código para pagar con tu tarjeta guardada.");
     // Una tarjeta guardada se cobra con su token: aquí nunca llega el número.
     const saved = cardsOf(client.id).find((item) => item.id === savedCardId);
     if (!saved) return error(422, "card_invalid", "Esa tarjeta ya no está guardada. Elige otra.", { fields: { card: ["Esa tarjeta ya no está guardada. Elige otra."] } });
@@ -309,7 +332,7 @@ export const bookingHandlers = [
   http.post(`${BASE}/waitlist`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const client = sessionClient(request);
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
     const branchId = text(input.branchId);
     const date = text(input.date);
@@ -326,7 +349,7 @@ export const bookingHandlers = [
 
   http.delete(`${BASE}/waitlist/:id`, async ({ request, params }) => {
     await delay(LATENCY_MS);
-    const client = sessionClient(request);
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
     const entry = db.calendar.waitlist.find((item) => item.id === params.id);
     // Solo quien se apuntó puede salir de la lista.
@@ -376,7 +399,9 @@ export const bookingHandlers = [
     // El celular es el verificado con el código, no el que diga el formulario.
     const already = sessionClient(request);
     if (already) return HttpResponse.json(customerOf(already));
-    const phone = sessionPhone(request);
+    // El nuevo sin código crea su ficha igual; su sesión sigue sin código (no ve lo guardado de nadie).
+    const unverifiedPhone = newPhoneOf(request);
+    const phone = sessionPhone(request) ?? unverifiedPhone;
     if (!phone) return NO_SESSION();
     const firstName = text(input.firstName);
     const lastName = text(input.lastName);
@@ -389,6 +414,11 @@ export const bookingHandlers = [
     const token = request.headers.get("x-booking-token") ?? "";
     const existing = clientByPhone(phone);
     if (existing) {
+      // Sin código, un número que ya es de alguien no entrega su perfil: solo lo que se ve sin código.
+      if (unverifiedPhone) {
+        db.bookingSessions.set(token, `${PREVIEW_SESSION}${existing.id}`);
+        return HttpResponse.json(previewCustomerOf(existing));
+      }
       db.bookingSessions.set(token, existing.id);
       return HttpResponse.json(customerOf(existing));
     }
@@ -396,15 +426,15 @@ export const bookingHandlers = [
     db.calendar.clients = [...db.calendar.clients, client];
     const now = new Date().toISOString();
     saveProfile(client.id, { ...profileOf(client), email, onlineOnly: false, blocked: false, guests: [], createdAt: now, marketingConsent: { accepted: input.marketing === true, at: now, source: "booking", ...consentProof(text(input.branchId) || firstBranchId()) } });
-    // La sesión del celular pasa a ser la del cliente recién creado.
-    db.bookingSessions.set(token, client.id);
+    // La sesión del celular pasa a ser la del cliente recién creado (sin código, sigue sin código).
+    db.bookingSessions.set(token, unverifiedPhone ? `${PREVIEW_SESSION}${client.id}` : client.id);
     return HttpResponse.json(customerOf(client), { status: 201 });
   }),
 
   http.post(`${BASE}/promo`, async ({ request }) => {
     await delay(LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    const client = sessionClient(request);
+    const client = previewClient(request);
     // Los cupones son los de la barbería (Configuración › Cupones), con sus fechas y topes.
     const serviceIds = Array.isArray(input.serviceIds) ? input.serviceIds.filter((id): id is string => typeof id === "string") : [];
     const result = checkCoupon(text(input.code), { clientId: client?.id ?? null, isNewClient: client ? customerOf(client).isNew : true, appointments: Number(input.appointments) || 1, serviceIds, branchId: text(input.branchId) || firstBranchId() });
@@ -415,9 +445,11 @@ export const bookingHandlers = [
   http.post(`${BASE}/reservations`, async ({ request }) => {
     await delay(PAY_LATENCY_MS);
     const input = asRecord(await request.json().catch(() => ({})));
-    // Quien reserva (y a quien se cobra una tarjeta guardada) es el de la sesión verificada.
-    const client = sessionClient(request);
+    // Quien reserva es el de la sesión, con o sin código; cobrarle una tarjeta guardada, su saldo, sus
+    // paquetes o su cortesía sí pide la sesión verificada.
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
+    const verified = sessionClient(request) !== null;
     const branchId = text(input.branchId);
     const items = Array.isArray(input.items) ? input.items : [];
     if (items.length === 0) return error(422, "validation", "Aún no hay citas.");
@@ -440,11 +472,11 @@ export const bookingHandlers = [
     const method = text(input.method) as MockReservation["payment"]["method"];
     // Cortesía de cliente frecuente: si la pide y tiene una por usar, se descuenta el servicio de cortesía
     // a lo que cobra el barbero de la cita que lo lleva (cada barbero tiene su precio).
-    const loyalty = input.useReward === true ? customer.loyalty : null;
+    const loyalty = verified && input.useReward === true ? customer.loyalty : null;
     const rewardItem = loyalty ? plan.planned.find((item) => item.serviceIds.includes(loyalty.rewardServiceId)) : undefined;
     const rewardValue = loyalty && loyalty.available > 0 ? ((rewardItem && barberPrice(rewardItem.barberId, loyalty.rewardServiceId, branchId)) ?? loyalty.rewardValue) : 0;
     // Paquetes: cada cita con un servicio que tiene visitas por usar se paga con una.
-    const coverage = input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId, branchId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
+    const coverage = verified && input.usePackages === true ? coverByPackages(plan.planned.map((item) => item.serviceIds.map((serviceId) => ({ serviceId, price: barberPrice(item.barberId, serviceId, branchId) ?? 0 }))), activePackages(client.id)) : { amount: 0, used: {} };
     // Tarjeta de regalo: paga primero; lo que sobra queda en ella.
     const giftCode = text(input.giftCode);
     const giftCard = giftCode ? findGiftCard(giftCode) : undefined;
@@ -465,20 +497,21 @@ export const bookingHandlers = [
       const deposit = customer.depositRequired ? Math.min(depositAmount(totals), totals.total) : 0;
       if (deposit > 0) {
         if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige una tarjeta para el anticipo.", { fields: { card: ["Elige una tarjeta para el anticipo."] } });
-        const charged = chargeCard(client, input, "card");
+        const charged = chargeCard(client, input, "card", verified);
         if (charged instanceof Response) return charged;
         payment = { method, status: "pending", last4: charged.last4, brand: charged.brand, paid: deposit };
       } else {
         payment = { method, status: "pending", last4: null, brand: null, paid: 0 };
       }
     } else if (method === "credit") {
+      if (!verified) return NO_SESSION();
       if (customer.credit < totals.total) return error(422, "validation", "Tu saldo a favor no alcanza para esta reserva.");
       db.booking.credits = { ...db.booking.credits, [client.id]: Math.round((customer.credit - totals.total) * 100) / 100 };
       payment = { method, status: "paid", last4: null, brand: null, paid: totals.total };
     } else if (method === "card" || method === "wallet" || method === "pse" || method === "nequi") {
       if (!rules.paymentMethods.card || !onlineMethods.includes(method)) return error(422, "validation", "Esta sucursal no recibe ese método de pago en línea.");
       // PSE y Nequi los aprueba el banco o la app del cliente en la pasarela; el simulado los da por aprobados.
-      const charged = method === "pse" || method === "nequi" ? { last4: null, brand: null } : chargeCard(client, input, method);
+      const charged = method === "pse" || method === "nequi" ? { last4: null, brand: null } : chargeCard(client, input, method, verified);
       if (charged instanceof Response) return charged;
       payment = { method, status: "paid", last4: charged.last4, brand: charged.brand, paid: totals.total };
     } else {
@@ -575,13 +608,15 @@ export const bookingHandlers = [
     const client = clientByPhone(phone);
     // Un número bloqueado responde como cliente, sin perfil: lo sabe tras el código.
     if (isBlockedPhone(phone, client)) return HttpResponse.json({ returning: true, token: null, customer: null });
-    if (!client) return HttpResponse.json({ returning: false, token: null, customer: null });
-    seedDemoGuests(client);
     const token = `bkp_${crypto.randomUUID()}`;
+    // El nuevo recibe una sesión que solo sirve para crear su ficha: reserva y paga sin código.
+    if (!client) {
+      db.bookingSessions.set(token, `${NEW_PHONE_SESSION}${phone}`);
+      return HttpResponse.json({ returning: false, token, customer: null });
+    }
+    seedDemoGuests(client);
     db.bookingSessions.set(token, `${PREVIEW_SESSION}${client.id}`);
-    // Lo justo para su bienvenida: nada de correo, tarjetas, saldo, paquetes ni membresía hasta el código.
-    const customer = { ...customerOf(client), email: "", cards: [], credit: 0, packages: [], loyalty: null };
-    return HttpResponse.json({ returning: true, token, customer });
+    return HttpResponse.json({ returning: true, token, customer: previewCustomerOf(client) });
   }),
 
   http.post(`${BASE}/otp/request`, async ({ request }) => {
@@ -676,13 +711,15 @@ export const bookingHandlers = [
 
   http.post(`${BASE}/packages/buy`, async ({ request }) => {
     await delay(PAY_LATENCY_MS);
-    const client = sessionClient(request);
+    // Con tarjeta nueva, sin código; con una guardada, verificada (`chargeCard`).
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
+    const verified = sessionClient(request) !== null;
     const input = asRecord(await request.json().catch(() => ({})));
     const offer = packageOffers().find((item) => item.id === text(input.packageId));
     if (!offer) return error(404, "not_found", "Ese paquete ya no está a la venta.");
     if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige con qué tarjeta pagas.", { fields: { card: ["Elige con qué tarjeta pagas."] } });
-    const charged = chargeCard(client, input, "card");
+    const charged = chargeCard(client, input, "card", verified);
     if (charged instanceof Response) return charged;
     const owned = buyPackage(client.id, offer);
     db.persist();
@@ -701,8 +738,10 @@ export const bookingHandlers = [
 
   http.post(`${BASE}/gift-cards`, async ({ request }) => {
     await delay(PAY_LATENCY_MS);
-    const client = sessionClient(request);
+    // Con tarjeta nueva, sin código; con una guardada, verificada (`chargeCard`).
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
+    const verified = sessionClient(request) !== null;
     const input = asRecord(await request.json().catch(() => ({})));
     const amount = Math.round(Number(input.amount) * 100) / 100;
     const recipientName = text(input.recipientName);
@@ -713,7 +752,7 @@ export const bookingHandlers = [
     if (recipientContact.replace(/\D/g, "").length < 8) fields.recipientContact = ["Escribe su celular para mandarle el código."];
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     if (!text(input.savedCardId) && !input.card) return error(422, "card_required", "Elige con qué tarjeta pagas.", { fields: { card: ["Elige con qué tarjeta pagas."] } });
-    const charged = chargeCard(client, input, "card");
+    const charged = chargeCard(client, input, "card", verified);
     if (charged instanceof Response) return charged;
     const card = createGiftCard({ initial: amount, buyerId: client.id, recipientName, recipientContact, message: text(input.message).slice(0, 200) });
     // Lo que la pantalla promete: el código sale por WhatsApp a quien la recibe.
@@ -751,7 +790,7 @@ export const bookingHandlers = [
 
   http.post(`${BASE}/appointments/:id/repeat`, async ({ request, params }) => {
     await delay(LATENCY_MS);
-    const client = sessionClient(request);
+    const client = previewClient(request);
     if (!client) return NO_SESSION();
     const original = db.calendar.appointments.find((item) => item.id === params.id && item.clientId === client.id);
     if (!original || original.status === "cancelled") return error(404, "not_found", "Esa cita no existe.");
@@ -797,10 +836,10 @@ export const bookingHandlers = [
     return HttpResponse.json({ appointment: bookedOf(updated), fee: terms.fee, refund: terms.refund, refundTo });
   }),
 
-  // Nota y fotos para el barbero, ya con la reserva hecha: se suman a las de sus citas.
+  // Nota y fotos para el barbero, ya con la reserva hecha (con o sin código: es la suya): se suman a las de sus citas.
   http.post(`${BASE}/reservations/:id/details`, async ({ request, params }) => {
     await delay(LATENCY_MS);
-    const client = sessionClient(request);
+    const client = previewClient(request);
     if (!client) return error(403, "booking_session", "Vuelve a pedir el código para agregar tu nota.");
     const reservation = db.booking.reservations.find((item) => item.id === params.id && item.customerId === client.id);
     if (!reservation) return error(404, "not_found", "Esa reserva no existe.");

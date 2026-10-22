@@ -190,6 +190,11 @@ export const bookingCustomerSchema = z.object({
   upcoming: z.number(),
   /** Sus tarjetas guardadas para pagar sin volver a escribirlas. */
   cards: z.array(savedCardSchema).default([]),
+  /**
+   * Reconocido sin código, `cards` viene vacía: esto dice si tiene alguna guardada (sin decir cuál),
+   * para pedirle el código solo si elige pagar con tarjeta.
+   */
+  hasSavedCards: z.boolean().default(false),
   /** Para pagar en la barbería debe dejar anticipo (cliente nuevo o con inasistencias). */
   depositRequired: z.boolean().default(false),
   /** Sus paquetes con visitas por usar (los vencidos o agotados no vienen). */

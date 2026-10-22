@@ -216,7 +216,7 @@ export const textEntry = defineEntry({
     {
       id: "truncate",
       title: "Párrafo con truncado",
-      description: "`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`.",
+      description: "`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`. En los dos casos, si el texto no cabe, pasar el ratón o llegar con el teclado muestra el texto completo en un tooltip (`TruncationTooltip`, global).",
       code: `<Text truncate className="w-64">
   Ana María Ospina completó la autoevaluación y envió comentarios a tres pares.
 </Text>
@@ -241,7 +241,7 @@ export const textEntry = defineEntry({
     { name: "tone", type: '"default" | "secondary" | "muted" | "inverse" | "primary" | "positive" | "negative" | "warning"', default: '"default"', description: "Color desde tokens. Gana al tono que fije el `variant`." },
     { name: "variant", type: '"body" | "lead" | "muted" | "small" | "label" | "caption" | "code"', default: '"body"', description: "Combinación lista de tamaño, peso y tono. `code` además usa `span` y monoespaciada." },
     { name: "as", type: "keyof JSX.IntrinsicElements", default: '"p"', description: "Etiqueta a renderizar. Usa `span` para texto en línea." },
-    { name: "truncate", type: "boolean", default: "false", description: "Una sola línea con elipsis." },
+    { name: "truncate", type: "boolean", default: "false", description: "Una sola línea con elipsis. Si se corta, el texto completo sale en un tooltip sin hacer nada más." },
     { name: "tabular", type: "boolean", default: "false", description: "`tabular-nums`: dígitos de ancho fijo para cifras alineadas." },
     { name: "...props", type: "React.HTMLAttributes<HTMLElement>", description: "Atributos nativos, incluido `className`." },
   ],

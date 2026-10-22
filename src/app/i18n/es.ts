@@ -1262,7 +1262,6 @@ export const appEs = {
   "calendar.action.walkInSale": "Venta sin cita",
   "calendar.action.collections": "Lista de cobros",
   "calendar.action.waitlist": "Lista de espera",
-  "calendar.action.block": "Crear bloque de tiempo",
   "calendar.action.workHours": "Horario de trabajo",
   "calendar.action.more": "Más acciones",
   "calendar.nobody.title": "Nadie trabaja este día",

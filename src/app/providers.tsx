@@ -2,6 +2,7 @@ import type * as React from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemaToaster } from "@/components/feedback";
+import { TruncationTooltip } from "@/components/overlays";
 import { ThemeProvider } from "@/themes";
 import { LocaleProvider } from "@/i18n";
 import { APP_MESSAGES } from "./i18n";
@@ -22,6 +23,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           <TooltipProvider delayDuration={200}>
             <AuthProvider>{children}</AuthProvider>
             <ThemaToaster />
+            <TruncationTooltip />
           </TooltipProvider>
         </ThemeProvider>
       </LocaleProvider>

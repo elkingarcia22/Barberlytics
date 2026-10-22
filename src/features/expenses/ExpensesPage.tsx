@@ -8,7 +8,7 @@ import { describeError } from "@/lib/api";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
-import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
+import { DataListActionRail, railFilterAction, type RailActionSpec } from "@/components/action-rail";
 import { DataListBlock } from "@/components/blocks";
 import { MetricCard, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
@@ -266,6 +266,24 @@ function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, t
     ],
     [canCreate, canEdit, canDelete, createKind, single, t, endFixed, exportCsv]
   );
+  // Fijos y variables también se pueden poner a la vista en la barra («Editar acciones»).
+  const railActions = React.useMemo<readonly RailActionSpec[]>(() => {
+    const toggleKind = (of: ExpenseKind) =>
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current);
+          if (params.get("tipo") === of) params.delete("tipo");
+          else params.set("tipo", of);
+          return params;
+        },
+        { replace: true }
+      );
+    return [
+      ...actions,
+      railFilterAction({ id: "kind-fixed", label: t("expenses.kind.fixedPlural"), icon: <CalendarSync className="size-5" strokeWidth={2} />, active: kind === "fixed", onToggle: () => toggleKind("fixed") }),
+      railFilterAction({ id: "kind-variable", label: t("expenses.kind.variablePlural"), icon: <Receipt className="size-5" strokeWidth={2} />, active: kind === "variable", onToggle: () => toggleKind("variable") }),
+    ];
+  }, [actions, kind, setSearchParams, t]);
 
   const formDrawer = (
     <ExpenseFormDrawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} expense={drawer?.kind === "edit" ? drawer.expense : null} kind={drawer?.kind === "create" ? drawer.of : "fixed"} branchId={branchId} ownerMemberId={ownerMemberId} />
@@ -450,7 +468,7 @@ function ExpensesHome({ expenses: allExpenses, branchId, ownerMemberId, month, t
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={actions} gender="m" isBlocked={drawer !== null || removing !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={railActions} gender="m" isBlocked={drawer !== null || removing !== null} />
         </ShellRailSlot>
       )}
 

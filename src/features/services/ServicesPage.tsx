@@ -7,7 +7,7 @@ import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
-import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
+import { DataListActionRail, railFilterAction, type RailActionSpec } from "@/components/action-rail";
 import { DataListBlock } from "@/components/blocks";
 import { MetricCard, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
@@ -219,6 +219,15 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
     clearSelection();
   };
   const pickAlert = (id: ServiceAlertId) => setFilters({ aviso: alert === id ? null : id });
+  // El tipo y los avisos de la lista también se pueden poner a la vista en la barra («Editar acciones»).
+  const railActions = [
+    ...actions,
+    railFilterAction({ id: "kind-service", label: t("services.kind.services"), icon: <Scissors className="size-5" strokeWidth={2} />, active: kind === "service", onToggle: () => pickKind(kind === "service" ? ALL : "service") }),
+    railFilterAction({ id: "kind-combo", label: t("services.kind.combos"), icon: <Layers className="size-5" strokeWidth={2} />, active: kind === "combo", onToggle: () => pickKind(kind === "combo" ? ALL : "combo") }),
+    ...SERVICE_ALERTS.filter((item) => can.seesMoney || item.id !== "noCost").map((item) =>
+      railFilterAction({ id: item.id, label: t(item.labelKey), icon: <item.icon className="size-5" strokeWidth={2} />, active: alert === item.id, onToggle: () => pickAlert(item.id) })
+    ),
+  ];
 
   const activeCategory = categories.find((item) => item.id === category);
   const categoryHint = activeCategory ? activeCategory.description || t("services.category.noDescription") : t("services.category.allHint");
@@ -402,7 +411,7 @@ function ServicesHome({ catalog, branchId }: { catalog: ServicesCatalog; branchI
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="m" isBlocked={drawer !== null || removing !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={railActions} gender="m" isBlocked={drawer !== null || removing !== null} />
         </ShellRailSlot>
       )}
 

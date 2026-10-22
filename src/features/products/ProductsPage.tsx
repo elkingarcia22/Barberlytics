@@ -7,7 +7,7 @@ import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
-import { DataListActionRail, type RailActionSpec } from "@/components/action-rail";
+import { DataListActionRail, railFilterAction, type RailActionSpec } from "@/components/action-rail";
 import { DataListBlock } from "@/components/blocks";
 import { MetricCard, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
@@ -211,6 +211,11 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
     clearSelection();
   };
   const pickAlert = (id: ProductAlertId) => setFilters({ aviso: alert === id ? null : id });
+  // Los avisos de la lista también se pueden poner a la vista en la barra («Editar acciones»).
+  const railActions = [
+    ...actions,
+    ...PRODUCT_ALERTS.map((item) => railFilterAction({ id: item.id, label: t(item.labelKey), icon: <item.icon className="size-5" strokeWidth={2} />, active: alert === item.id, onToggle: () => pickAlert(item.id) })),
+  ];
 
   const activeCategory = categories.find((item) => item.id === category);
   const categoryHint = activeCategory ? activeCategory.description || t("products.category.noDescription") : t("products.category.allHint");
@@ -376,7 +381,7 @@ function ProductsHome({ catalog, branchId }: { catalog: ProductsCatalog; branchI
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={actions} gender="m" isBlocked={drawer !== null || removing !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={clearSelection} actions={railActions} gender="m" isBlocked={drawer !== null || removing !== null} />
         </ShellRailSlot>
       )}
 

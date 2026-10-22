@@ -152,7 +152,7 @@ const side = useRailPopoutSide();    // "top" tumbada · "left" de pie`,
     { name: "useRailAutoHide()", type: "readonly [boolean, (value: boolean) => void]", description: "Si la barra se recoge al salir el puntero, persistida en `thema.actionRail.autoHide.v1`." },
     { name: "useRailPosition()", type: "readonly [RailPosition | null, (value) => void]", description: "Dónde se soltó la barra tras arrastrarla; `null` es el dock. No se persiste." },
     { name: "useRailAxis() / useRailIsVertical()", type: "() => RailOrientation / () => boolean", description: "El eje que ve una pieza: el del shell que la envuelve o, sin shell, la preferencia." },
-    { name: "«Editar acciones»", type: "RailLayoutContext", description: "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor`: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla." },
+    { name: "«Editar acciones»", type: "RailLayoutContext", description: "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor` en un drawer lateral: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla." },
     { name: "useRailPopoutSide()", type: '() => "top" | "left"', description: "Hacia dónde abrir tooltips y popovers, siempre lejos de la barra." },
   ],
   guidelines: {

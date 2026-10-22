@@ -7,7 +7,7 @@ import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
 import { QueryBoundary } from "@/lib/query";
 import { ShellHeaderSlot, ShellRailSlot } from "@/components/app-shell";
-import { DataListActionRail } from "@/components/action-rail";
+import { DataListActionRail, railFilterAction } from "@/components/action-rail";
 import { DataListBlock } from "@/components/blocks";
 import { MetricCard, MetricDial, MetricRing, getChartTheme } from "@/components/charts";
 import { ListItem } from "@/components/data-display/ListItem";
@@ -214,6 +214,11 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
     setSelected(new Set());
   };
   const pickAlert = (id: CustomerAlertId) => setFilters({ aviso: alert === id ? null : id });
+  // Los avisos de la lista también se pueden poner a la vista en la barra («Editar acciones»).
+  const railActions = [
+    ...actions,
+    ...CUSTOMER_ALERTS.map((item) => railFilterAction({ id: item.id, label: t(item.labelKey), icon: <item.icon className="size-5" strokeWidth={2} />, active: alert === item.id, onToggle: () => pickAlert(item.id) })),
+  ];
 
   const segmentHint = segment === ALL_SEGMENTS ? t("customers.segment.allHint") : t(SEGMENT_HINT_KEYS[segment]);
   const hasFilter = segment !== ALL_SEGMENTS || alert !== null || tagFilter !== null || originFilter !== null;
@@ -402,7 +407,7 @@ function CustomersHome({ allRows }: { allRows: readonly Customer[] }) {
 
       {railOwnsActions && (
         <ShellRailSlot>
-          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={actions} gender="m" isBlocked={drawer !== null || confirmBlock !== null || confirmDelete !== null} />
+          <DataListActionRail selectedCount={selected.size} onClearSelection={() => setSelected(new Set())} actions={railActions} gender="m" isBlocked={drawer !== null || confirmBlock !== null || confirmDelete !== null} />
         </ShellRailSlot>
       )}
 

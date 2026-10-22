@@ -1,7 +1,7 @@
 import * as React from "react";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ModalShell } from "@/components/overlays";
+import { DrawerShell } from "@/components/overlays";
 import { SelectableRow } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { IconTile } from "@/components/utility";
@@ -14,7 +14,7 @@ import { declaredRailLayout, RAIL_LAYOUT_SECONDARY_MAX, type RailLayout, type Ra
  * y hasta tres que se quedan a la vista, de entre todas las acciones de la
  * pantalla y sus filtros rápidos. Lo demás se pliega en «más acciones».
  *
- * Arriba, la barra como quedaría, para que la decisión se vea antes de
+ * Se abre en el panel lateral, como los demás formularios de la app. Arriba, la barra como quedaría, para que la decisión se vea antes de
  * guardarla. «Restablecer» vuelve a lo que la pantalla trae de serie.
  */
 export interface RailActionsEditorProps extends RailLayoutEditing {
@@ -68,10 +68,10 @@ export function RailActionsEditor({ open, onOpenChange, actions, layout, setLayo
   };
 
   return (
-    <ModalShell
+    <DrawerShell
       open={open}
       onOpenChange={onOpenChange}
-      size="lg"
+      size="md"
       title="Editar acciones"
       description={`Elige la acción principal y hasta ${RAIL_LAYOUT_SECONDARY_MAX} que se queden a la vista. Lo demás queda en «Más acciones».`}
       footer={
@@ -150,7 +150,7 @@ export function RailActionsEditor({ open, onOpenChange, actions, layout, setLayo
           )}
         </section>
       </div>
-    </ModalShell>
+    </DrawerShell>
   );
 }
 

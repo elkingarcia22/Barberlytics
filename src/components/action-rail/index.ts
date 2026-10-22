@@ -38,7 +38,7 @@ export { DrawerActionRail, DrawerRailButton } from "./DrawerActionRail";
 export { DataListActionRail } from "./DataListActionRail";
 export type { DataListActionRailProps, RailActionScope, RailActionSpec } from "./DataListActionRail";
 export { ActionFab } from "./ActionFab";
-export { railScreenTiers } from "./railActions";
+export { railFilterAction, railScreenTiers } from "./railActions";
 export type { ActionFabProps } from "./ActionFab";
 export { useCompactViewport } from "./useCompactViewport";
 export { railActionsFor, railActionLabel, railModeFor, selectionLabel } from "./railActions";

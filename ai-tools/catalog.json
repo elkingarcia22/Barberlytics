@@ -1,5 +1,5 @@
 {
-  "sourceHash": "b139b81ce120d60d",
+  "sourceHash": "0fe791e1d702bbca",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -456,7 +456,7 @@
           "name": "RailActionSpec.filter / active",
           "type": "boolean / boolean",
           "default": null,
-          "description": "Un filtro rápido de la pantalla («Sin confirmar»), no una acción: no sale en la barra hasta que alguien lo elige en «Editar acciones» (ajustes de la barra), y entonces se enciende y se apaga desde ahí. `active` lo pinta pulsado. Sigue también en el panel de Filtros de la pantalla."
+          "description": "Un filtro rápido de la pantalla («Sin confirmar»), no una acción: no sale en la barra hasta que alguien lo elige en «Editar acciones» (ajustes de la barra), y entonces se enciende y se apaga desde ahí. `active` lo pinta pulsado. Sigue también en el panel de Filtros de la pantalla. Se declara con `railFilterAction({ id, label, icon, active, onToggle })`."
         },
         {
           "name": "RailActionSpec.tone",
@@ -1116,7 +1116,7 @@
           "name": "«Editar acciones»",
           "type": "RailLayoutContext",
           "default": null,
-          "description": "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor`: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla."
+          "description": "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor` en un drawer lateral: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla."
         },
         {
           "name": "useRailPopoutSide()",

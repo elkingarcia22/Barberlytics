@@ -18,7 +18,7 @@ import { RailSettingsMenu, useRailOrientation, useRailAutoHide, useRailPosition 
 | `useRailAutoHide()` | `readonly [boolean, (value: boolean) => void]` |  | Si la barra se recoge al salir el puntero, persistida en `thema.actionRail.autoHide.v1`. |
 | `useRailPosition()` | `readonly [RailPosition \| null, (value) => void]` |  | Dónde se soltó la barra tras arrastrarla; `null` es el dock. No se persiste. |
 | `useRailAxis() / useRailIsVertical()` | `() => RailOrientation / () => boolean` |  | El eje que ve una pieza: el del shell que la envuelve o, sin shell, la preferencia. |
-| `«Editar acciones»` | `RailLayoutContext` |  | Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor`: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla. |
+| `«Editar acciones»` | `RailLayoutContext` |  | Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor` en un drawer lateral: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla. |
 | `useRailPopoutSide()` | `() => "top" \| "left"` |  | Hacia dónde abrir tooltips y popovers, siempre lejos de la barra. |
 
 ## Guías

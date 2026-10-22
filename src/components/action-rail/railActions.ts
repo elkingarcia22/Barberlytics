@@ -111,3 +111,28 @@ export function toSearchActions(actions: readonly RailActionSpec[]): readonly Se
     onSelect: () => action.onSelect?.(),
   }))
 }
+
+/**
+ * Un filtro rápido declarado como acción de la barra: no sale hasta que la
+ * persona lo elige en «Editar acciones» y, puesto, se enciende y se apaga.
+ * El id lleva `filter-` delante para no chocar con una acción del mismo nombre.
+ */
+export function railFilterAction(filter: {
+  id: string
+  label: string
+  icon: React.ReactNode
+  active: boolean
+  onToggle: () => void
+  blockedReason?: string | null
+}): RailActionSpec {
+  return {
+    id: `filter-${filter.id}`,
+    label: filter.label,
+    icon: filter.icon,
+    scope: ["screen"],
+    filter: true,
+    active: filter.active,
+    blockedReason: filter.blockedReason ?? null,
+    onSelect: filter.onToggle,
+  }
+}

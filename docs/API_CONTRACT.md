@@ -309,7 +309,7 @@ La agenda de una sucursal. Las horas de las citas viajan en **ISO local sin zona
 | GET | `/waitlist?branchId&date?` | `{ items: [{ id, branchId, clientId, serviceId, barberId, slots: [{ date, time }], createdAt }] }`. |
 | POST | `/waitlist` | `{ branchId, clientId, serviceId, barberId \| null, slots }`. `201`. |
 | DELETE | `/waitlist/:id` | `204`. |
-| POST | `/sales` | Venta rápida de productos: `{ branchId, items: [{ productId, qty }], method, sellerId? }`. `201 { id, items, method, total, paidAt, sellerId }`. `sellerId` (quién vendió) comisiona en su nómina; el barbero vende siempre a su nombre; sin él, la venta es de la barbería. |
+| POST | `/sales` | Venta de producto (antes «venta rápida»): `{ branchId, items: [{ productId, qty }], method, sellerId? }`. `201 { id, items, method, total, paidAt, sellerId }`. `sellerId` (quién vendió) comisiona en su nómina; el barbero vende siempre a su nombre; sin él, la venta es de la barbería. |
 
 `history.event` es un código estable que el front traduce: `created`, `walkin`, `barber_ready`, `status:<estado>`, `moved:<inicio>`, `barber:<nombre>`, `duration:<min>`, `paid:<método>`.
 
@@ -510,7 +510,7 @@ El catálogo de lo que se vende en mostrador. Como el de servicios, es la **fuen
 
 ## Inventario (`/inventory`)
 
-Existencias ligeras por sucursal de los productos activos y a la venta. Se mueven solas: el cobro de una cita descuenta sus productos, la venta rápida (`POST /sales`) los suyos y la reserva en línea **aparta** los que lleva desde que se reserva (vuelven si se cancela o se marca «no vino»; al cobrar solo se descuenta la diferencia, ver `stockTaken` en la cita). En mostrador se puede vender aunque el sistema diga 0 (queda en negativo: toca contar); en línea no: lo agotado no sale en `GET /booking/catalog` y `POST /booking/reservations` responde `409 out_of_stock` si no alcanza.
+Existencias ligeras por sucursal de los productos activos y a la venta. Se mueven solas: el cobro de una cita descuenta sus productos, la venta de producto (`POST /sales`) los suyos y la reserva en línea **aparta** los que lleva desde que se reserva (vuelven si se cancela o se marca «no vino»; al cobrar solo se descuenta la diferencia, ver `stockTaken` en la cita). En mostrador se puede vender aunque el sistema diga 0 (queda en negativo: toca contar); en línea no: lo agotado no sale en `GET /booking/catalog` y `POST /booking/reservations` responde `409 out_of_stock` si no alcanza.
 
 `stockItem`: `{ productId, name, sku, categoryId, imageUrl, onHand, min, status: "ok" | "low" | "out", sold30, daysLeft (\| null), lastMovementAt (\| null) }`. `low` es `onHand ≤ min`; `sold30`, lo vendido en 30 días (citas cobradas y ventas rápidas); `daysLeft`, para cuántos días alcanza a ese ritmo.
 

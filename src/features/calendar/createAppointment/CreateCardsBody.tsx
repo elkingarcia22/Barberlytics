@@ -8,8 +8,8 @@ import { durationLabel } from "../calendarModel";
 import { ClientAvatar, PersonAvatar, ServiceThumb } from "../calendarShared";
 import { CLIENT_TYPE_KEYS, REPEAT_KEYS } from "../types";
 import { InlineList, PanelField, PanelQuestion } from "../appointmentPanel/bookingStyle";
-import { SearchBox } from "./SearchBox";
-import { matchClients, useWhenLabel } from "./createModel";
+import { useWhenLabel } from "./createModel";
+import { ClientPicker } from "./ClientPicker";
 import { ExtrasCard, SubmitButton, TotalLine } from "./createSummary";
 import { SuggestedSlots, TimeChooser, TimeProblems } from "./createTime";
 import { barberPrice, type CreateDraft } from "./useCreateDraft";
@@ -147,12 +147,14 @@ export function CreateCardsBody({ draft, branchId, onCreateClient }: CreateBodyP
 
 function ClientList({ draft, onCreateClient, onClose, onPicked }: { draft: CreateDraft; onCreateClient: () => void; onClose: () => void; onPicked: () => void }) {
   const t = useAppT();
-  const [query, setQuery] = React.useState("");
-  const matches = matchClients(draft.ctx.catalog.clients, query);
   return (
-    <InlineList
-      title={t("calendar.create.pickClient")}
-      description={query.trim() ? undefined : t("calendar.createV.frequentHint")}
+    <ClientPicker
+      clients={draft.ctx.catalog.clients}
+      selectedId={draft.clientId}
+      onPick={(clientId) => {
+        draft.setClientId(clientId);
+        onPicked();
+      }}
       onClose={onClose}
       footer={
         <Button variant="outline" className="flex-1" onClick={onCreateClient}>
@@ -160,41 +162,7 @@ function ClientList({ draft, onCreateClient, onClose, onPicked }: { draft: Creat
           {t("calendar.create.createClient")}
         </Button>
       }
-    >
-      <div className="flex flex-col gap-3">
-        <SearchBox value={query} onChange={setQuery} placeholder={t("calendar.panel.client.searchPlaceholder")} autoFocus testId="create-client-search" />
-        {matches.length === 0 ? (
-          <Text size="sm" tone="muted" className="px-1 py-2">
-            {t("calendar.panel.client.noMatch", { query: query.trim() })}
-          </Text>
-        ) : (
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label={t("calendar.panel.fields.client")}>
-            {matches.map((client) => (
-              <SelectableRow
-                key={client.id}
-                role="radio"
-                checked={client.id === draft.clientId}
-                label={client.name}
-                leading={<ClientAvatar client={client} />}
-                onClick={() => {
-                  draft.setClientId(client.id);
-                  onPicked();
-                }}
-              >
-                <span className="flex flex-col">
-                  <Text as="span" weight="medium">
-                    {client.name}
-                  </Text>
-                  <Text as="span" size="xs" tone="muted" tabular>
-                    {`${t(CLIENT_TYPE_KEYS[client.type])} · ${client.phone}`}
-                  </Text>
-                </span>
-              </SelectableRow>
-            ))}
-          </div>
-        )}
-      </div>
-    </InlineList>
+    />
   );
 }
 

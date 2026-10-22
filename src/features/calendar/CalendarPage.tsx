@@ -475,8 +475,13 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         workHours: () => openPanel({ kind: "workHours", barberId: null }),
         gaps: () => openPanel({ kind: "gaps" }),
         timeOff: () => openPanel({ kind: "timeOff", focus: null }),
+      }, {
+        // Los mismos de «Filtros»; huecos y enlazadas solo pintan en la vista Día.
+        unconfirmed: { active: state.unconfirmedOnly, toggle: () => state.setUnconfirmedOnly(!state.unconfirmedOnly) },
+        freeOnly: { active: state.freeOnly, toggle: () => state.setFreeOnly(!state.freeOnly), blockedReason: state.view === "day" ? null : t("calendar.filters.dayOnly") },
+        linked: { active: state.showLinked, toggle: () => state.setShowLinked(!state.showLinked), blockedReason: state.view === "day" ? null : t("calendar.filters.dayOnly") },
       }),
-    [openPanel, t]
+    [openPanel, t, state]
   );
 
   useCalendarShortcuts({

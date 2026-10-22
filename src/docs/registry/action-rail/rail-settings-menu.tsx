@@ -92,7 +92,7 @@ export const railSettingsMenuEntry = defineEntry({
   name: "RailSettingsMenu",
   group: "action-rail",
   description:
-    "Los ajustes propios de la barra —en qué eje se tiende y si se oculta sola— detrás de un solo botón, para no gastar dos huecos de icono en cosas que no tocan el contenido. Escribe en las preferencias compartidas que exponen useRailOrientation y useRailAutoHide, persistidas en localStorage para que la barra sea la misma en todas las pantallas.",
+    "Los ajustes propios de la barra —en qué eje se tiende y si se oculta sola— detrás de un solo botón, para no gastar dos huecos de icono en cosas que no tocan el contenido. En una barra de pantalla (`DataListActionRail`) suma «Editar acciones»: la persona elige la acción principal y hasta tres a la vista, de entre todas las acciones de la pantalla y sus filtros rápidos, y la elección se guarda por pantalla. Escribe en las preferencias compartidas que exponen useRailOrientation y useRailAutoHide, persistidas en localStorage para que la barra sea la misma en todas las pantallas.",
   importPath: 'import { RailSettingsMenu, useRailOrientation, useRailAutoHide, useRailPosition } from "@/components/action-rail"',
   sourcePath: "src/components/action-rail/RailSettingsMenu.tsx",
   status: "stable",
@@ -152,11 +152,13 @@ const side = useRailPopoutSide();    // "top" tumbada · "left" de pie`,
     { name: "useRailAutoHide()", type: "readonly [boolean, (value: boolean) => void]", description: "Si la barra se recoge al salir el puntero, persistida en `thema.actionRail.autoHide.v1`." },
     { name: "useRailPosition()", type: "readonly [RailPosition | null, (value) => void]", description: "Dónde se soltó la barra tras arrastrarla; `null` es el dock. No se persiste." },
     { name: "useRailAxis() / useRailIsVertical()", type: "() => RailOrientation / () => boolean", description: "El eje que ve una pieza: el del shell que la envuelve o, sin shell, la preferencia." },
+    { name: "«Editar acciones»", type: "RailLayoutContext", description: "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor`: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla." },
     { name: "useRailPopoutSide()", type: '() => "top" | "left"', description: "Hacia dónde abrir tooltips y popovers, siempre lejos de la barra." },
   ],
   guidelines: {
     do: [
       "Deja que el shell monte el menú; una pantalla solo aporta acciones.",
+      "Declara bien el peso de serie (`primary`, `overflow`): es lo que ve quien nunca abre «Editar acciones» y a lo que vuelve «Restablecer».",
       "Lee la orientación con `useRailAxis` en las piezas nuevas, así funcionan dentro y fuera del shell.",
       "Enciende `keepOpen` en el shell mientras haya selección: auto-ocultar no debe esconder una acción que se está a punto de usar.",
     ],

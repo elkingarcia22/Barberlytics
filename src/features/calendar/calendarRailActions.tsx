@@ -1,4 +1,4 @@
-import { CalendarPlus, CalendarSearch, Clock, ListChecks, Footprints, Palmtree, ShoppingBag, UsersRound } from "lucide-react";
+import { CalendarPlus, CalendarSearch, Clock, Link2, ListChecks, Footprints, MessageCircleQuestion, Palmtree, ShoppingBag, SquareDashed, UsersRound } from "lucide-react";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { AppMessageKey } from "@/app/i18n/types";
 
@@ -23,8 +23,42 @@ export interface CalendarRailHandlers {
   timeOff: () => void;
 }
 
-export function calendarRailActions(t: (key: AppMessageKey) => string, on: CalendarRailHandlers): readonly RailActionSpec[] {
+/** Un filtro rápido de la agenda: si está puesto y cómo cambiarlo. `blockedReason` cuando la vista no lo usa. */
+export interface CalendarQuickFilter {
+  active: boolean;
+  toggle: () => void;
+  blockedReason?: string | null;
+}
+
+/**
+ * Los filtros que se pueden poner a la vista en la barra («Editar acciones»).
+ * No salen hasta que alguien los elige; siguen también en «Filtros».
+ */
+export interface CalendarRailFilters {
+  unconfirmed: CalendarQuickFilter;
+  freeOnly: CalendarQuickFilter;
+  linked: CalendarQuickFilter;
+}
+
+export function calendarRailActions(t: (key: AppMessageKey) => string, on: CalendarRailHandlers, filters?: CalendarRailFilters): readonly RailActionSpec[] {
+  const quick = (id: string, label: string, icon: RailActionSpec["icon"], filter: CalendarQuickFilter): RailActionSpec => ({
+    id,
+    label,
+    icon,
+    scope: ["screen"],
+    filter: true,
+    active: filter.active,
+    blockedReason: filter.blockedReason ?? null,
+    onSelect: filter.toggle,
+  });
   return [
+    ...(filters
+      ? [
+          quick("filter-unconfirmed", t("calendar.filters.unconfirmed"), <MessageCircleQuestion className="size-5" strokeWidth={2} />, filters.unconfirmed),
+          quick("filter-free", t("calendar.filters.freeOnly"), <SquareDashed className="size-5" strokeWidth={2} />, filters.freeOnly),
+          quick("filter-linked", t("calendar.filters.linked"), <Link2 className="size-5" strokeWidth={2} />, filters.linked),
+        ]
+      : []),
     { id: "quick-sale", label: t("calendar.action.quickSale"), icon: <ShoppingBag className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.quickSale },
     { id: "walk-in-queue", label: t("frontDesk.queue.title"), icon: <UsersRound className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.walkInQueue },
     { id: "walk-in-sale", label: t("calendar.action.walkInSale"), icon: <Footprints className="size-5" strokeWidth={2} />, scope: ["screen"], onSelect: on.walkInSale },

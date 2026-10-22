@@ -1065,6 +1065,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.filters.freeOnly": "Available slots only",
   "calendar.filters.freeOnlyHint": "Dims appointments and marks free time to book.",
   "calendar.filters.linked": "Show linked appointments",
+  "calendar.filters.dayOnly": "Only in Day view",
   "calendar.filters.linkedHint": "Highlights each group in its color; the rest dim.",
   "calendar.free.title": "Free",
   "calendar.view.agenda": "Agenda",

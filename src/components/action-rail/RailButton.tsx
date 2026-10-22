@@ -17,6 +17,7 @@ export function RailButton({
   onClick,
   blockedReason = null,
   tone = "default",
+  pressed,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -24,6 +25,8 @@ export function RailButton({
   /** Explains why the action is unavailable; when set, the button disables. */
   blockedReason?: string | null;
   tone?: "default" | "danger";
+  /** Un filtro rápido: se enciende y se apaga. Encendido, el botón se ve pulsado. */
+  pressed?: boolean;
 }) {
   const disabled = blockedReason !== null;
   const side = useRailPopoutSide();
@@ -36,11 +39,13 @@ export function RailButton({
           onClick={disabled ? undefined : onClick}
           disabled={disabled}
           aria-label={label}
+          aria-pressed={pressed}
           className={cn(
             "dock-item hover-icon-pop relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
             tone === "danger"
               ? "text-status-negative hover:bg-status-negative/15 focus-visible:ring-status-negative/40 disabled:hover:text-status-negative"
-              : "text-nav-foreground/60 hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:ring-nav-foreground/30 disabled:hover:text-nav-foreground/60"
+              : "text-nav-foreground/60 hover:bg-nav-foreground/10 hover:text-nav-foreground focus-visible:ring-nav-foreground/30 disabled:hover:text-nav-foreground/60",
+            pressed && "bg-primary/25 text-nav-foreground hover:bg-primary/30"
           )}
         >
           {icon}

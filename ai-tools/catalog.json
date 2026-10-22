@@ -1,5 +1,5 @@
 {
-  "sourceHash": "43b57662c9ff845e",
+  "sourceHash": "b139b81ce120d60d",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -453,6 +453,12 @@
           "description": "La pliega en el menú «más acciones» en vez de darle sitio en la barra. Es para lo que se configura una vez —un alta de catálogo, una regla—: sigue estando, pero no compite con lo que se hace a diario. El plegado por `inlineLimit` es otra cosa: aquel es por sitio, este es por peso."
         },
         {
+          "name": "RailActionSpec.filter / active",
+          "type": "boolean / boolean",
+          "default": null,
+          "description": "Un filtro rápido de la pantalla («Sin confirmar»), no una acción: no sale en la barra hasta que alguien lo elige en «Editar acciones» (ajustes de la barra), y entonces se enciende y se apaga desde ahí. `active` lo pinta pulsado. Sigue también en el panel de Filtros de la pantalla."
+        },
+        {
           "name": "RailActionSpec.tone",
           "type": "\"default\" | \"danger\"",
           "default": "\"default\"",
@@ -501,6 +507,12 @@
           "description": "Una decisión inmersiva se adueñó de una fila: la barra se desmonta en vez de ofrecer algo que no viene a cuento."
         },
         {
+          "name": "layoutKey",
+          "type": "string",
+          "default": null,
+          "description": "Con qué nombre se guarda la elección de «Editar acciones». Por defecto, la ruta de la pantalla con los ids cambiados por `:id`: la ficha de un cliente y la de otro comparten elección."
+        },
+        {
           "name": "isBlocked",
           "type": "boolean",
           "default": "false",
@@ -514,6 +526,7 @@
           "Usa `countInLabel` en lo que actúa sobre todo lo marcado, para que se lea a cuántos va a afectar antes de pulsar.",
           "Si la barra manda, deja la cabecera de la pantalla sin botones: tenerlos en los dos sitios es tenerlos duplicados.",
           "Marca con `overflow` lo que se configura una vez y se olvida: así la barra enseña de un vistazo lo que de verdad se hace a diario.",
+          "Declara como `filter` los filtros que alguien querría tener a un toque: así se pueden elegir en «Editar acciones» sin ocupar sitio de serie.",
           "Prueba la pantalla estrecha: ahí las acciones pasan al botón flotante y las etiquetas se leen enteras, así que una etiqueta larga se nota antes que en la barra."
         ],
         "dont": [
@@ -1053,7 +1066,7 @@
       "id": "rail-settings-menu",
       "name": "RailSettingsMenu",
       "group": "action-rail",
-      "description": "Los ajustes propios de la barra —en qué eje se tiende y si se oculta sola— detrás de un solo botón, para no gastar dos huecos de icono en cosas que no tocan el contenido. Escribe en las preferencias compartidas que exponen useRailOrientation y useRailAutoHide, persistidas en localStorage para que la barra sea la misma en todas las pantallas.",
+      "description": "Los ajustes propios de la barra —en qué eje se tiende y si se oculta sola— detrás de un solo botón, para no gastar dos huecos de icono en cosas que no tocan el contenido. En una barra de pantalla (`DataListActionRail`) suma «Editar acciones»: la persona elige la acción principal y hasta tres a la vista, de entre todas las acciones de la pantalla y sus filtros rápidos, y la elección se guarda por pantalla. Escribe en las preferencias compartidas que exponen useRailOrientation y useRailAutoHide, persistidas en localStorage para que la barra sea la misma en todas las pantallas.",
       "import": "import { RailSettingsMenu, useRailOrientation, useRailAutoHide, useRailPosition } from \"@/components/action-rail\"",
       "source": "src/components/action-rail/RailSettingsMenu.tsx",
       "status": "stable",
@@ -1100,6 +1113,12 @@
           "description": "El eje que ve una pieza: el del shell que la envuelve o, sin shell, la preferencia."
         },
         {
+          "name": "«Editar acciones»",
+          "type": "RailLayoutContext",
+          "default": null,
+          "description": "Sale solo dentro de una barra que lo provee (`DataListActionRail`). Abre `RailActionsEditor`: principal + hasta 3 a la vista; lo demás se pliega y los filtros no elegidos no salen. Se guarda en `thema.actionRail.layout.v1:<ruta>`; «Restablecer» vuelve a lo que declaró la pantalla."
+        },
+        {
           "name": "useRailPopoutSide()",
           "type": "() => \"top\" | \"left\"",
           "default": null,
@@ -1109,6 +1128,7 @@
       "guidelines": {
         "do": [
           "Deja que el shell monte el menú; una pantalla solo aporta acciones.",
+          "Declara bien el peso de serie (`primary`, `overflow`): es lo que ve quien nunca abre «Editar acciones» y a lo que vuelve «Restablecer».",
           "Lee la orientación con `useRailAxis` en las piezas nuevas, así funcionan dentro y fuera del shell.",
           "Enciende `keepOpen` en el shell mientras haya selección: auto-ocultar no debe esconder una acción que se está a punto de usar."
         ],

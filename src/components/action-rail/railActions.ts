@@ -25,6 +25,14 @@ export interface RailActionSpec {
    * estando, pero no compite con lo que se hace a diario.
    */
   overflow?: boolean
+  /**
+   * Un filtro rápido de la pantalla («Sin confirmar», «Solo huecos»), no una
+   * acción: no sale en la barra salvo que la persona lo elija en «Editar
+   * acciones», y tocarlo lo enciende o lo apaga. `active` dice si está puesto.
+   */
+  filter?: boolean
+  /** Con `filter`: el filtro está puesto. El botón se ve pulsado. */
+  active?: boolean
   /** Añade el recuento a la etiqueta cuando hay varios: «Duplicar (3)». */
   countInLabel?: boolean
   /** Por qué no se puede ahora. La deja a la vista, apagada y explicada. */
@@ -80,10 +88,11 @@ export function railScreenTiers(actions: readonly RailActionSpec[]): {
   folded: readonly RailActionSpec[]
 } {
   const screen = railActionsFor(actions, 0)
+  // Un filtro solo ocupa sitio si la persona lo puso a la vista; plegado no tiene sentido (ya está en Filtros).
   return {
-    primary: screen.find((action) => action.primary),
+    primary: screen.find((action) => action.primary && !action.filter),
     inline: screen.filter((action) => !action.primary && !action.overflow),
-    folded: screen.filter((action) => !action.primary && action.overflow),
+    folded: screen.filter((action) => !action.primary && action.overflow && !action.filter),
   }
 }
 

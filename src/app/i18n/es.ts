@@ -1101,6 +1101,7 @@ export const appEs = {
   "calendar.filters.freeOnly": "Solo huecos disponibles",
   "calendar.filters.freeOnlyHint": "Apaga las citas y marca los ratos libres para agendar.",
   "calendar.filters.linked": "Ver citas enlazadas",
+  "calendar.filters.dayOnly": "Solo en la vista Día",
   "calendar.filters.linkedHint": "Resalta cada grupo con su color; las demás se apagan.",
   "calendar.free.title": "Libre",
   "calendar.view.agenda": "Agenda",

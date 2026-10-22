@@ -17,6 +17,7 @@ import { ActionFab } from "./ActionFab";
 import { useCompactViewport } from "./useCompactViewport";
 import { usePublishSearchActions } from "@/components/search";
 import { useAnnounceRail, useRailAgentAction } from "./railAgent";
+import { RailLayoutContext, useRailLayoutActions } from "./railLayout";
 import {
   railActionLabel,
   railActionsFor,
@@ -45,6 +46,11 @@ export interface DataListActionRailProps {
   locked?: boolean;
   /** Un panel modal tomó la pantalla: la barra se recoge y deja de responder. */
   isBlocked?: boolean;
+  /**
+   * Con qué nombre se guarda la elección de «Editar acciones». Por defecto, la
+   * ruta de la pantalla (con los ids cambiados por `:id`).
+   */
+  layoutKey?: string;
 }
 
 /** Cinco caben sin apretar; la sexta ya pide plegarse. */
@@ -92,12 +98,14 @@ export function DataListActionRail({
   inlineLimit = DEFAULT_INLINE_LIMIT,
   locked = false,
   isBlocked = false,
+  layoutKey,
 }: DataListActionRailProps) {
   // El agente de IA de la app, si lo hay, cierra la barra por la derecha como
   // una segunda principal con el degradado de la IA: es de todas las
   // pantallas, no una acción más de esta.
   const agent = useRailAgentAction();
-  const actions = screenActions;
+  // La principal y las tres a la vista que eligió la persona («Editar acciones», en los ajustes de la barra).
+  const { actions, editing } = useRailLayoutActions(screenActions, layoutKey);
   useAnnounceRail();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const isCompact = useCompactViewport();
@@ -159,6 +167,7 @@ export function DataListActionRail({
   // que quien la monta tenga que acordarse de envolverla.
   return (
     <TooltipProvider>
+      <RailLayoutContext.Provider value={editing}>
       <ActionRailShell
         keepOpen={selectedCount > 0 || isMenuOpen}
         isBlocked={isBlocked}
@@ -236,6 +245,7 @@ export function DataListActionRail({
                     label={action.label}
                     tone={action.tone}
                     blockedReason={action.blockedReason}
+                    pressed={action.filter ? Boolean(action.active) : undefined}
                     onClick={() => action.onSelect?.()}
                   />
                 </AnimatedActionItem>
@@ -275,6 +285,7 @@ export function DataListActionRail({
           )
         }
       />
+      </RailLayoutContext.Provider>
     </TooltipProvider>
   );
 }

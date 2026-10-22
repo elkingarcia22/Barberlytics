@@ -17,6 +17,7 @@ import { DataListActionRail } from "@/components/action-rail"
 | `RailActionSpec.scope` | `("screen" \| "single" \| "bulk")[]` |  | `screen` sin selección; `single` solo con un registro; `bulk` con varios. Duplicar suele ser `["single", "bulk"]`. |
 | `RailActionSpec.primary` | `boolean` |  | La acción rellena que cierra la fila. Solo una, y solo con `scope: ["screen"]`. |
 | `RailActionSpec.overflow` | `boolean` |  | La pliega en el menú «más acciones» en vez de darle sitio en la barra. Es para lo que se configura una vez —un alta de catálogo, una regla—: sigue estando, pero no compite con lo que se hace a diario. El plegado por `inlineLimit` es otra cosa: aquel es por sitio, este es por peso. |
+| `RailActionSpec.filter / active` | `boolean / boolean` |  | Un filtro rápido de la pantalla («Sin confirmar»), no una acción: no sale en la barra hasta que alguien lo elige en «Editar acciones» (ajustes de la barra), y entonces se enciende y se apaga desde ahí. `active` lo pinta pulsado. Sigue también en el panel de Filtros de la pantalla. |
 | `RailActionSpec.tone` | `"default" \| "danger"` | `"default"` | `danger` tiñe la acción destructiva. |
 | `RailActionSpec.countInLabel` | `boolean` |  | Añade el recuento a la etiqueta con varios marcados: «Duplicar (3)». |
 | `RailActionSpec.blockedReason` | `string \| null` |  | Por qué no se puede ahora. La deja a la vista y apagada, con el motivo: explicar vale más que esconder. |
@@ -25,6 +26,7 @@ import { DataListActionRail } from "@/components/action-rail"
 | `gender` | `"f" \| "m"` | `"m"` | Concordancia del recuento: «3 seleccionadas» frente a «3 seleccionados». |
 | `inlineLimit` | `number` | `5` | Cuántas caben antes de plegarse al menú «más». |
 | `locked` | `boolean` | `false` | Una decisión inmersiva se adueñó de una fila: la barra se desmonta en vez de ofrecer algo que no viene a cuento. |
+| `layoutKey` | `string` |  | Con qué nombre se guarda la elección de «Editar acciones». Por defecto, la ruta de la pantalla con los ids cambiados por `:id`: la ficha de un cliente y la de otro comparten elección. |
 | `isBlocked` | `boolean` | `false` | Un panel modal tomó la pantalla: la barra se recoge a su pastilla y deja de responder. Vuelve sola al cerrarlo. |
 
 ## Guías
@@ -34,6 +36,7 @@ import { DataListActionRail } from "@/components/action-rail"
 - Sí: Usa `countInLabel` en lo que actúa sobre todo lo marcado, para que se lea a cuántos va a afectar antes de pulsar.
 - Sí: Si la barra manda, deja la cabecera de la pantalla sin botones: tenerlos en los dos sitios es tenerlos duplicados.
 - Sí: Marca con `overflow` lo que se configura una vez y se olvida: así la barra enseña de un vistazo lo que de verdad se hace a diario.
+- Sí: Declara como `filter` los filtros que alguien querría tener a un toque: así se pueden elegir en «Editar acciones» sin ocupar sitio de serie.
 - Sí: Prueba la pantalla estrecha: ahí las acciones pasan al botón flotante y las etiquetas se leen enteras, así que una etiqueta larga se nota antes que en la barra.
 - No: No pongas más de una acción `primary`: la fila se cierra con una sola y dos compiten.
 - No: No escondas una acción que no se puede usar ahora; dale `blockedReason` y explica por qué.

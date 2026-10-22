@@ -119,6 +119,7 @@ export const dataListActionRailEntry = defineEntry({
     { name: "RailActionSpec.scope", type: '("screen" | "single" | "bulk")[]', description: "`screen` sin selección; `single` solo con un registro; `bulk` con varios. Duplicar suele ser `[\"single\", \"bulk\"]`." },
     { name: "RailActionSpec.primary", type: "boolean", description: "La acción rellena que cierra la fila. Solo una, y solo con `scope: [\"screen\"]`." },
     { name: "RailActionSpec.overflow", type: "boolean", description: "La pliega en el menú «más acciones» en vez de darle sitio en la barra. Es para lo que se configura una vez —un alta de catálogo, una regla—: sigue estando, pero no compite con lo que se hace a diario. El plegado por `inlineLimit` es otra cosa: aquel es por sitio, este es por peso." },
+    { name: "RailActionSpec.filter / active", type: "boolean / boolean", description: "Un filtro rápido de la pantalla («Sin confirmar»), no una acción: no sale en la barra hasta que alguien lo elige en «Editar acciones» (ajustes de la barra), y entonces se enciende y se apaga desde ahí. `active` lo pinta pulsado. Sigue también en el panel de Filtros de la pantalla." },
     { name: "RailActionSpec.tone", type: '"default" | "danger"', default: '"default"', description: "`danger` tiñe la acción destructiva." },
     { name: "RailActionSpec.countInLabel", type: "boolean", description: "Añade el recuento a la etiqueta con varios marcados: «Duplicar (3)»." },
     { name: "RailActionSpec.blockedReason", type: "string | null", description: "Por qué no se puede ahora. La deja a la vista y apagada, con el motivo: explicar vale más que esconder." },
@@ -127,6 +128,7 @@ export const dataListActionRailEntry = defineEntry({
     { name: "gender", type: '"f" | "m"', default: '"m"', description: "Concordancia del recuento: «3 seleccionadas» frente a «3 seleccionados»." },
     { name: "inlineLimit", type: "number", default: "5", description: "Cuántas caben antes de plegarse al menú «más»." },
     { name: "locked", type: "boolean", default: "false", description: "Una decisión inmersiva se adueñó de una fila: la barra se desmonta en vez de ofrecer algo que no viene a cuento." },
+    { name: "layoutKey", type: "string", description: "Con qué nombre se guarda la elección de «Editar acciones». Por defecto, la ruta de la pantalla con los ids cambiados por `:id`: la ficha de un cliente y la de otro comparten elección." },
     { name: "isBlocked", type: "boolean", default: "false", description: "Un panel modal tomó la pantalla: la barra se recoge a su pastilla y deja de responder. Vuelve sola al cerrarlo." },
   ],
   guidelines: {
@@ -136,6 +138,7 @@ export const dataListActionRailEntry = defineEntry({
       "Usa `countInLabel` en lo que actúa sobre todo lo marcado, para que se lea a cuántos va a afectar antes de pulsar.",
       "Si la barra manda, deja la cabecera de la pantalla sin botones: tenerlos en los dos sitios es tenerlos duplicados.",
       "Marca con `overflow` lo que se configura una vez y se olvida: así la barra enseña de un vistazo lo que de verdad se hace a diario.",
+      "Declara como `filter` los filtros que alguien querría tener a un toque: así se pueden elegir en «Editar acciones» sin ocupar sitio de serie.",
       "Prueba la pantalla estrecha: ahí las acciones pasan al botón flotante y las etiquetas se leen enteras, así que una etiqueta larga se nota antes que en la barra.",
     ],
     dont: [

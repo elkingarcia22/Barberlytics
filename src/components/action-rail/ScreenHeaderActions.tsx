@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePublishSearchActions } from "@/components/search";
 import { railScreenTiers, toSearchActions, type RailActionSpec } from "./railActions";
+import { useRailLayoutActions } from "./railLayout";
 
 /**
  * En la barra flotante cada acción es un icono de 20 px; dentro de un botón o
@@ -50,7 +51,9 @@ const MenuItems = ({ actions }: { actions: readonly RailActionSpec[] }) =>
  * `railScreenTiers`, el mismo que usa la barra. Así cambiar dónde se ven las
  * acciones no les cambia cuál pesa más.
  */
-export function ScreenHeaderActions({ actions, moreLabel, compact = false }: ScreenHeaderActionsProps) {
+export function ScreenHeaderActions({ actions: declared, moreLabel, compact = false }: ScreenHeaderActionsProps) {
+  // La misma elección de «Editar acciones» que la barra: cambiar de sitio las acciones no cambia cuáles son.
+  const { actions } = useRailLayoutActions(declared);
   const tiers = railScreenTiers(actions);
   const { primary } = tiers;
   const inline = compact ? [] : tiers.inline;
@@ -93,7 +96,8 @@ export function ScreenHeaderActions({ actions, moreLabel, compact = false }: Scr
       )}
 
       {inline.map((action) => (
-        <Button key={action.id} variant="outline" onClick={() => action.onSelect?.()}>
+        // Un filtro rápido puesto se ve pulsado, como en la barra.
+        <Button key={action.id} variant={action.filter && action.active ? "secondary" : "outline"} aria-pressed={action.filter ? Boolean(action.active) : undefined} onClick={() => action.onSelect?.()}>
           {withTextIcon(action.icon)} {action.label}
         </Button>
       ))}

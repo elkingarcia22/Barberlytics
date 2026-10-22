@@ -1,11 +1,13 @@
 import * as React from "react";
-import { Check, LayoutPanelTop, Minimize2, PanelBottom, PanelBottomDashed, PanelRight, Pin, Settings } from "lucide-react";
+import { Check, LayoutPanelTop, Minimize2, PanelBottom, PanelBottomDashed, PanelRight, Pin, Settings, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useActionsPlacement } from "./actionsPlacement";
 import { useRailAutoHide } from "./railAutoHide";
 import { useRailOrientation, useRailPopoutSide, type RailOrientation } from "./railOrientation";
+import { RailLayoutContext } from "./railLayout";
+import { RailActionsEditor } from "./RailActionsEditor";
 
 /**
  * The bar's own preferences — how it behaves and which way it lies — behind a
@@ -22,9 +24,12 @@ export function RailSettingsMenu() {
   const [orientation, setOrientation] = useRailOrientation();
   const [placement, setPlacement] = useActionsPlacement();
   const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const layout = React.useContext(RailLayoutContext);
   const side = useRailPopoutSide();
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -51,6 +56,20 @@ export function RailSettingsMenu() {
         collisionPadding={16}
         className="w-[240px] rounded-2xl border-primary/15 bg-surface-nav p-2 text-nav-foreground/60 shadow-rail"
       >
+        {/* Solo en una barra de pantalla: elegir la principal y las tres a la vista. */}
+        {layout && (
+          <SettingGroup label="Acciones" className="mb-1.5">
+            <ChoiceRow
+              icon={<SlidersHorizontal className="h-[18px] w-[18px]" strokeWidth={2} />}
+              label="Editar acciones"
+              onClick={() => {
+                setOpen(false);
+                setEditing(true);
+              }}
+            />
+          </SettingGroup>
+        )}
+
         <SettingGroup label="Orientación">
           <ChoiceRow
             icon={<PanelBottom className="h-[18px] w-[18px]" strokeWidth={2} />}
@@ -101,6 +120,8 @@ export function RailSettingsMenu() {
         </SettingGroup>
       </PopoverContent>
     </Popover>
+    {layout && editing && <RailActionsEditor {...layout} open={editing} onOpenChange={setEditing} />}
+    </>
   );
 }
 
@@ -141,7 +162,8 @@ function ChoiceRow({
 }: {
   icon: React.ReactNode;
   label: string;
-  active: boolean;
+  /** Sin él la fila es una acción, no una de dos opciones. */
+  active?: boolean;
   onClick: () => void;
 }) {
   return (

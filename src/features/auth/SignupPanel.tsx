@@ -249,7 +249,7 @@ export function SignupPanel({ onBack }: SignupPanelProps) {
           </div>
         )}
 
-        <Button type="submit" size="lg" className="btn-sweep mt-2 w-full" disabled={isSubmitting} data-testid="signup-submit">
+        <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting} data-testid="signup-submit">
           {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="userAdd" size="sm" tone="inverse" />}
           {codeSent ? t("auth.signup.submit") : t("auth.signup.sendCode")}
         </Button>

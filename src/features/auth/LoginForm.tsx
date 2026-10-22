@@ -196,7 +196,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
               aria-label={t("auth.code.label")}
             />
           </div>
-          <Button type="submit" size="lg" className="btn-sweep w-full" disabled={isBusy || code.length !== OTP_LENGTH} data-testid="login-verify">
+          <Button type="submit" size="lg" className="w-full" disabled={isBusy || code.length !== OTP_LENGTH} data-testid="login-verify">
             {isVerifying ? <Loader2 className="animate-spin" /> : <ThemaIcon name="arrowRight" size="sm" tone="inverse" />}
             {t("auth.code.submit")}
           </Button>
@@ -284,7 +284,7 @@ export function LoginForm({ onForgotNumber, onCreateAccount, onLocked, onContact
           )}
         </div>
 
-        <Button type="submit" size="lg" className="btn-sweep w-full" disabled={isBusy} data-testid="login-submit">
+        <Button type="submit" size="lg" className="w-full" disabled={isBusy} data-testid="login-submit">
           {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="smsCode" size="sm" tone="inverse" />}
           {t("auth.submit")}
         </Button>

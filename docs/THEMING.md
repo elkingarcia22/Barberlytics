@@ -38,8 +38,8 @@ Lo que **no** cambia con el tema, a propósito: positivo, negativo, warning, inf
 `src/themes/presets.test.ts` recorre todos los presets en ambos modos y exige: 4.5:1 entre el primario y
 `--primary-foreground` (texto de botón), 7:1 del texto primario y 4.5:1 del secundario sobre fondo y
 card, y 3:1 del primario sobre el fondo (enlaces, ítem activo). Por eso los componentes deben usar
-`text-primary-foreground` sobre `bg-primary` y nunca `text-white`: en Premium, Cian, Ámbar, Rosa o
-Grafito el primario oscuro es claro y el blanco se pierde.
+`text-primary-foreground` sobre `bg-primary` y nunca `text-white`: en Premium o Cian el primario
+oscuro es claro y el blanco se pierde.
 
 ## Tipografía
 

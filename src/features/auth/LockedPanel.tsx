@@ -104,7 +104,7 @@ export function LockedPanel({ phone, retryAfterSeconds, onCreateTicket, onBack }
             <Label htmlFor="unlock-code">{t("auth.locked.emailCode")}</Label>
             <InputOtp id="unlock-code" length={OTP_LENGTH} groups={[3, 3]} value={code} onChange={setCode} onComplete={(value) => void submit(value)} disabled={busy} autoFocus aria-label={t("auth.locked.emailCode")} data-testid="unlock-code" />
           </div>
-          <Button type="submit" size="lg" className="btn-sweep w-full" disabled={busy || code.length !== OTP_LENGTH} data-testid="unlock-submit">
+          <Button type="submit" size="lg" className="w-full" disabled={busy || code.length !== OTP_LENGTH} data-testid="unlock-submit">
             {busy ? <Loader2 className="animate-spin" /> : <ThemaIcon name="arrowRight" size="sm" tone="inverse" />}
             {t("auth.locked.emailSubmit")}
           </Button>
@@ -118,12 +118,12 @@ export function LockedPanel({ phone, retryAfterSeconds, onCreateTicket, onBack }
             </Text>
           </div>
           {ready ? (
-            <Button type="button" size="lg" className="btn-sweep mt-7 w-full" onClick={onBack} data-testid="locked-try-again">
+            <Button type="button" size="lg" className="mt-7 w-full" onClick={onBack} data-testid="locked-try-again">
               <ThemaIcon name="arrowRight" size="sm" tone="inverse" />
               {t("auth.locked.tryAgain")}
             </Button>
           ) : (
-            <Button type="button" size="lg" className="btn-sweep mt-7 w-full" onClick={() => void requestEmail()} disabled={busy} data-testid="locked-email">
+            <Button type="button" size="lg" className="mt-7 w-full" onClick={() => void requestEmail()} disabled={busy} data-testid="locked-email">
               {busy ? <Loader2 className="animate-spin" /> : <Mail />}
               {t("auth.locked.byEmail")}
             </Button>

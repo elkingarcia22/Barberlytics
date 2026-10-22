@@ -2,7 +2,7 @@
 
 Generado con `npm run catalog` desde `src/docs/registry`. No se edita a mano. Las reglas están en `AGENTS.md`.
 
-**217 componentes** en 22 familias · 101 iconos en el registro · 113 tokens.
+**218 componentes** en 22 familias · 101 iconos en el registro · 113 tokens.
 
 Este archivo es el índice: sirve para elegir la pieza. Antes de usarla, abre su ficha en `ai-tools/components/<id>.md` (props, guías y ejemplos); el `<id>` va entre corchetes en cada línea. No leas `catalog.json` entero: es el mismo contenido para consultarlo con un script.
 
@@ -130,7 +130,7 @@ Tabs, sub-navegación, breadcrumbs y paginación.
 - **ThemaProductHeader** [thema-product-header] — La cabecera de un producto dentro de la plataforma: logo del cliente a la izquierda, título del módulo y un hueco a la derecha para accione… `@/components/navigation`
 - **ThemaTabs** [thema-tabs] — Las dos únicas tiras de pestañas de la app, sobre el primitivo `ui/tabs`: `view` cambia un panel dentro de la página con un track hundido,… `@/components/navigation`
 
-## Overlays · 6
+## Overlays · 7
 
 Drawers, modales y diálogos de confirmación.
 
@@ -140,6 +140,7 @@ Drawers, modales y diálogos de confirmación.
 - **ModalShell** [modal-shell] — El modal centrado del producto sobre `Dialog`: cabecera con título y descripción, cuerpo y un pie con acciones o completamente propio. `@/components/overlays`
 - **SidePanelShell** [side-panel-shell] (beta) — Un panel de trabajo que se abre al lado del contenido en vez de encima: entra por la derecha y empuja la página, que se estrecha y sigue us… `@/components/overlays`
 - **TemplateCatalogDrawer** [template-catalog-drawer] — El catálogo de plantillas en un panel: galería por estantes con buscador y dos vistas, una plantilla destacada arriba, y un paso más adentr… `@/components/templates`
+- **TruncationTooltip** [truncation-tooltip] — La regla del sistema para el texto cortado: todo texto que se corta con elipsis muestra el texto completo en un tooltip al pasar el ratón o… `@/components/overlays`
 
 ## Feedback · 5
 

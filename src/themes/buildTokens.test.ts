@@ -56,8 +56,9 @@ describe("buildThemeTokens", () => {
   });
 
   test("picks a readable foreground for a near-white dark primary", () => {
-    const graphite = findPreset("graphite");
-    expect(buildThemeTokens(graphite, "dark")["--primary-foreground"]).not.toBe("0 0% 100%");
+    // Un primario casi blanco en oscuro (como el del antiguo Grafito) lleva tinta oscura encima.
+    const nearWhite = { ...findPreset("premium"), primary: { light: "#1F2937", dark: "#E5E7EB" } };
+    expect(buildThemeTokens(nearWhite, "dark")["--primary-foreground"]).not.toBe("0 0% 100%");
   });
 
   test("every preset emits a brand gradient and a brand glow shadow", () => {

@@ -34,7 +34,7 @@ Para el centro de ayuda en local: `ayuda-contenido` (sirve el `dist/` del repo v
 - `src/styles/globals.css` — mapa semántico shadcn (`--primary`, `--muted`…), `.dark`, utilidades de motion.
 - `src/styles/atmosphere.css` — la capa de marca (cabello, poste, tijeras, grano, halo, reveal); sus
   componentes viven en `src/components/atmosphere/` y su doc en `/docs#/group/atmosphere`.
-- `src/themes/` — 11 presets + «Personalizado» (`customTheme.ts`), `buildTokens.ts`, `ThemeProvider`, `ThemeSelector`.
+- `src/themes/` — 10 presets + «Personalizado» (`customTheme.ts`), `buildTokens.ts`, `ThemeProvider`, `ThemeSelector`.
 - `src/components/ui/` — primitivos shadcn/Radix; `src/components/<familia>/` — piezas del producto
   (forms, selection, navigation, overlays, feedback, data-display, date, upload, charts, ai,
   ai-interaction, action-rail, app-shell, layout, media, utility, typography, filters, search).

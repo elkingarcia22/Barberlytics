@@ -127,7 +127,7 @@ export function SupportTicketPanel({ context, onBack }: SupportTicketPanelProps)
           {(control) => <Textarea {...control} rows={4} maxLength={1000} disabled={isSubmitting} {...form.register("message")} />}
         </AuthField>
 
-        <Button type="submit" size="lg" className="btn-sweep mt-2 w-full" disabled={isSubmitting} data-testid="ticket-submit">
+        <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting} data-testid="ticket-submit">
           {isSubmitting ? <Loader2 className="animate-spin" /> : <ThemaIcon name="ticket" size="sm" tone="inverse" />}
           {t("auth.ticket.submit")}
         </Button>

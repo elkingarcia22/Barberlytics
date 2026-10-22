@@ -17,7 +17,7 @@ import { Text } from "@/components/typography"
 | `tone` | `"default" \| "secondary" \| "muted" \| "inverse" \| "primary" \| "positive" \| "negative" \| "warning"` | `"default"` | Color desde tokens. Gana al tono que fije el `variant`. |
 | `variant` | `"body" \| "lead" \| "muted" \| "small" \| "label" \| "caption" \| "code"` | `"body"` | Combinación lista de tamaño, peso y tono. `code` además usa `span` y monoespaciada. |
 | `as` | `keyof JSX.IntrinsicElements` | `"p"` | Etiqueta a renderizar. Usa `span` para texto en línea. |
-| `truncate` | `boolean` | `false` | Una sola línea con elipsis. |
+| `truncate` | `boolean` | `false` | Una sola línea con elipsis. Si se corta, el texto completo sale en un tooltip sin hacer nada más. |
 | `tabular` | `boolean` | `false` | `tabular-nums`: dígitos de ancho fijo para cifras alineadas. |
 | `...props` | `React.HTMLAttributes<HTMLElement>` |  | Atributos nativos, incluido `className`. |
 
@@ -100,7 +100,7 @@ Cada `variant` fija una combinación habitual. Un eje explícito (`tone`, `size`
 
 ### Párrafo con truncado
 
-`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`.
+`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`. En los dos casos, si el texto no cabe, pasar el ratón o llegar con el teclado muestra el texto completo en un tooltip (`TruncationTooltip`, global).
 
 ```tsx
 <Text truncate className="w-64">

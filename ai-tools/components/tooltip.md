@@ -27,6 +27,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 - No: No pongas información imprescindible solo en un tooltip: en móvil no hay hover.
 - No: No metas enlaces ni botones dentro; el contenido no es interactivo.
 - No: No montes otro `TooltipProvider` global; ya existe en la app.
+- No: No añadas un tooltip a mano para enseñar un texto cortado con elipsis: lo hace `TruncationTooltip` en toda la app.
 
 Relacionados: hover-card, popover, button
 

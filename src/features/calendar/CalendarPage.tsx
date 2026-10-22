@@ -463,7 +463,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const weekBarberIds = teamIds(team);
   const weekBarber = weekBarberIds.length === 1 ? (ctx?.catalog.barbers.find((barber) => barber.id === weekBarberIds[0]) ?? null) : null;
 
-  // Lo que el rol no puede hacer no se ofrece: ir a los horarios sin ver Equipo.
   // El horario de trabajo lo ven todos (el barbero, el suyo); quién lo cambia lo decide el drawer.
   const railActions = React.useMemo(
     () =>
@@ -474,7 +473,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
         workHours: () => openPanel({ kind: "workHours", barberId: null }),
-        assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
         timeOff: () => openPanel({ kind: "timeOff", focus: null }),
       }),

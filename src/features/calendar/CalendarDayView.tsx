@@ -73,8 +73,10 @@ export interface CalendarDayViewProps {
   onResize: (appointment: Appointment, drop: ScheduleDrop) => void;
   /** Sin él (un barbero solo ve su columna) no se ofrece ver a todo el equipo. */
   onSeeAll?: () => void;
-  /** Sin él (sin permiso sobre Equipo) no se ofrece ir a los horarios. */
+  /** Abre el horario de trabajo (el drawer del calendario). */
   onConfigureHours?: () => void;
+  /** El turno de ese barbero ese día, en el drawer del horario. */
+  onBarberHours?: (barber: Barber) => void;
   /** Las opciones de la columna que el rol permite: sin la función, la opción no sale. */
   onViewBarber?: (barber: Barber) => void;
   onBlockBarber?: (barber: Barber) => void;
@@ -118,6 +120,7 @@ export function CalendarDayView({
   onResize,
   onSeeAll,
   onConfigureHours,
+  onBarberHours,
   onViewBarber,
   onBlockBarber,
   onReflowBarber,
@@ -246,6 +249,7 @@ export function CalendarDayView({
           if (!barber) return [];
           return [
             ...(onViewBarber ? [{ id: "view", label: t("calendar.barberMenu.view"), icon: <UserRound className="size-4" />, onSelect: () => onViewBarber(barber) }] : []),
+            ...(onBarberHours ? [{ id: "hours", label: t("calendar.barberMenu.hours"), icon: <Clock className="size-4" />, onSelect: () => onBarberHours(barber) }] : []),
             ...(onReflowBarber ? [{ id: "reflow", label: t("calendar.reflow.menu"), icon: <Shuffle className="size-4" />, onSelect: () => onReflowBarber(barber) }] : []),
             ...(onBlockBarber ? [{ id: "block", label: t("calendar.barberMenu.block"), icon: <Ban className="size-4" />, onSelect: () => onBlockBarber(barber) }] : []),
           ];

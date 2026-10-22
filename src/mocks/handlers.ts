@@ -11,6 +11,7 @@ import { forbidden, hasStepUp, isBarber, isManager, sessionOf, stepUpRequired } 
 import { calendarHandlers } from "./calendar/handlers";
 import { depositHandlers } from "./calendar/deposits";
 import { teamHandlers } from "./team/handlers";
+import { scheduleHandlers } from "./team/scheduleHandlers";
 import { memberActionHandlers } from "./team/memberActions";
 import { customersHandlers } from "./customers/handlers";
 import { relationshipHandlers } from "./customers/relationship";
@@ -712,6 +713,7 @@ export const handlers = [
   // ---------- Equipo ----------
   ...workforceHandlers,
   ...memberActionHandlers,
+  ...scheduleHandlers,
   ...teamHandlers,
 
   // ---------- Clientes ----------

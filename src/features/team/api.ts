@@ -6,8 +6,12 @@ import {
   levelsResponseSchema,
   memberSchema,
   membersResponseSchema,
+  scheduleImpactSchema,
   scheduleOverrideSchema,
   weekResponseSchema,
+  workingRangeSchema,
+  type ScheduleImpact,
+  type ShiftScope,
   type BranchOrder,
   type Level,
   type MemberDraft,
@@ -71,4 +75,11 @@ export const teamApi = {
   setOverride: (memberId: string, date: string, range: WorkingRange | null) =>
     api.put("/team/schedule/override", { memberId, date, range }, { schema: scheduleOverrideSchema }),
   clearOverride: (memberId: string, date: string) => api.delete<void>("/team/schedule/override", { query: { memberId, date } }),
+  /** «Este y los siguientes»: el horario fijo de ese día de la semana, desde esa fecha. */
+  setWeekday: (memberId: string, from: string, range: WorkingRange | null) => api.put("/team/schedule/weekday", { memberId, from, range }, { schema: z.object({ memberId: z.string(), weekday: z.string(), range: workingRangeSchema.nullable() }) }),
+  /** Las citas por atender que quedarían fuera del turno nuevo. */
+  impact: (input: { memberId: string; date: string; range: WorkingRange | null; scope: ShiftScope }, signal?: AbortSignal) =>
+    api.post<{ items: ScheduleImpact[] }>("/team/schedule/impact", input, { schema: scheduleImpactSchema, signal }),
+  /** Copiar los turnos de una semana a otra (lunes AAAA-MM-DD). */
+  copyWeek: (branchId: string, from: string, to: string) => api.post("/team/schedule/copy-week", { branchId, from, to }, { schema: z.object({ changed: z.number(), members: z.array(z.string()) }) }),
 };

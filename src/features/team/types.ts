@@ -130,7 +130,8 @@ export const branchOrderSchema = z.object({
 });
 export type BranchOrder = z.infer<typeof branchOrderSchema>;
 
-export const scheduleDaySchema = z.object({ date: z.string(), range: workingRangeSchema.nullable(), overridden: z.boolean() });
+/** Un día de la semana del equipo: el turno que rige, si es una excepción y el horario fijo de ese día de la semana. */
+export const scheduleDaySchema = z.object({ date: z.string(), range: workingRangeSchema.nullable(), overridden: z.boolean(), fixed: workingRangeSchema.nullable().optional() });
 export type ScheduleDay = z.infer<typeof scheduleDaySchema>;
 
 export const weekResponseSchema = z.object({
@@ -140,6 +141,15 @@ export const weekResponseSchema = z.object({
 });
 export type WeekResponse = z.infer<typeof weekResponseSchema>;
 export type WeekRow = WeekResponse["rows"][number];
+
+/** Una cita por atender que quedaría fuera del horario nuevo (antes de guardar, para moverla o avisar). */
+export const scheduleImpactSchema = z.object({
+  items: z.array(z.object({ id: z.string(), date: z.string(), start: z.string(), durationMin: z.number(), clientName: z.string(), serviceName: z.string() })),
+});
+export type ScheduleImpact = z.infer<typeof scheduleImpactSchema>["items"][number];
+
+/** Hasta dónde llega un cambio de turno: solo esa fecha, o ese día de la semana desde esa fecha («este y los siguientes»). */
+export type ShiftScope = "day" | "following";
 
 export const scheduleOverrideSchema = z.object({ id: z.string(), memberId: z.string(), date: z.string(), range: workingRangeSchema.nullable() });
 

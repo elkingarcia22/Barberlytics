@@ -1,3 +1,4 @@
+import { calendarHoursEs } from "./calendar/hours.es";
 import { calendarPanelEs } from "./calendar/panel.es";
 import { calendarCheckoutEs } from "./calendar/checkout.es";
 import { calendarTimeOffEs } from "./calendar/timeOff.es";
@@ -1578,6 +1579,7 @@ export const appEs = {
   "calendar.walkInSale.turnShort": "Le toca · lleva {count} sin cita hoy",
   "calendar.barberMenu.view": "Ver barbero",
   "calendar.barberMenu.edit": "Editar perfil de barbero",
+  "calendar.barberMenu.hours": "Cambiar su turno de hoy",
   "calendar.barberMenu.block": "Crear bloque de tiempo",
   "calendar.moved": "Cita movida",
   "calendar.movedHint": "{client} ahora con {barber}, {time}.",
@@ -2224,14 +2226,14 @@ export const appEs = {
 
   // ── Horas de trabajo ──
   "teamHours.title": "Horas de trabajo",
-  "teamHours.description": "El turno de cada barbero, semana por semana. Toca un turno para cambiar solo ese día; el horario fijo vive en la ficha.",
+  "teamHours.description": "El turno de cada barbero, semana por semana. Toca un turno para cambiarlo solo ese día o ese día de todas las semanas; el horario completo vive en la ficha.",
   "teamHours.thisWeek": "Esta semana",
   "teamHours.prevWeek": "Semana anterior",
   "teamHours.nextWeek": "Semana siguiente",
   "teamHours.members": "Equipo",
   "teamHours.barbers": "{count} barberos",
   "teamHours.notWorking": "No está trabajando",
-  "teamHours.editDay": "Editar este día",
+  "teamHours.editDay": "Cambiar turno",
   "teamHours.deleteShift": "Borrar este turno",
   "teamHours.restoreFixed": "Volver al horario fijo",
   "teamHours.overridden": "Cambiado solo esta semana",
@@ -4817,6 +4819,7 @@ export const appEs = {
   ...calendarPanelEs,
   ...calendarCheckoutEs,
   ...calendarTimeOffEs,
+  ...calendarHoursEs,
   ...frontDeskEs,
   ...legalEs,
   ...calendarDayPanelEs,

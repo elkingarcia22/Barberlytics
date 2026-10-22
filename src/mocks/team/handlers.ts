@@ -83,6 +83,18 @@ export function validateProfile(input: Record<string, unknown>, existing?: MockT
   return { fields, values: { firstName, lastName, phone, email, levelId } };
 }
 
+/** Una franja de trabajo válida (entrada antes que salida, descansos dentro y sin pisarse), o `null`. */
+export function validateRange(value: unknown): MockWorkingRange | null {
+  if (!value || typeof value !== "object") return null;
+  const range = value as Record<string, unknown>;
+  if (!CLOCK.test(text(range.start)) || !CLOCK.test(text(range.end)) || text(range.end) <= text(range.start)) return null;
+  // Turno partido: los descansos van dentro de la franja, sin pisarse.
+  const breaks = (Array.isArray(range.breaks) ? range.breaks : []).map((item) => ({ start: text(asRecord(item).start), end: text(asRecord(item).end) }));
+  if (breaks.some((item) => !CLOCK.test(item.start) || !CLOCK.test(item.end))) return null;
+  const next: MockWorkingRange = { start: text(range.start), end: text(range.end), ...(breaks.length > 0 ? { breaks } : {}) };
+  return validBreaks(next) ? next : null;
+}
+
 function validateSchedule(input: unknown): Record<string, MockWorkingRange | null> | null {
   if (!input || typeof input !== "object") return null;
   const result: Record<string, MockWorkingRange | null> = {};
@@ -92,19 +104,27 @@ function validateSchedule(input: unknown): Record<string, MockWorkingRange | nul
       result[day] = null;
       continue;
     }
-    const range = value as Record<string, unknown>;
-    if (!CLOCK.test(text(range.start)) || !CLOCK.test(text(range.end)) || text(range.end) <= text(range.start)) return null;
-    // Turno partido: los descansos van dentro de la franja, sin pisarse.
-    const breaks = (Array.isArray(range.breaks) ? range.breaks : []).map((item) => ({ start: text(asRecord(item).start), end: text(asRecord(item).end) }));
-    if (breaks.some((item) => !CLOCK.test(item.start) || !CLOCK.test(item.end))) return null;
-    const next: MockWorkingRange = { start: text(range.start), end: text(range.end), ...(breaks.length > 0 ? { breaks } : {}) };
-    if (!validBreaks(next)) return null;
-    result[day] = next;
+    const range = validateRange(value);
+    if (!range) return null;
+    result[day] = range;
   }
   return result;
 }
 
-function weekDays(weekStart: string): string[] {
+/**
+ * Quién cambia el horario de alguien (docs/WORK_HOURS_RESEARCH.md): quien lo gestiona (dueño, administrador) todo;
+ * recepción, solo un día concreto (arregla el día, no el horario fijo); el barbero de renta, el suyo. El de comisión
+ * no: pide la ausencia.
+ */
+export function canEditHours(request: Request, member: MockTeamMember, scope: "day" | "pattern"): boolean {
+  const session = sessionOf(request);
+  if (!session) return true;
+  if (session.teamRole === "barbero-renta" && session.memberId === member.id) return true;
+  if (scope === "day" && session.teamRole === "recepcion") return true;
+  return managesMember(session, member.role);
+}
+
+export function weekDays(weekStart: string): string[] {
   const start = new Date(`${weekStart}T00:00:00`);
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(start);
@@ -403,7 +423,7 @@ export const teamHandlers = [
       days: days.map((date) => {
         const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === date);
         const weekday = String(new Date(`${date}T00:00:00`).getDay());
-        return { date, range: override ? override.range : (member.schedule[weekday] ?? null), overridden: Boolean(override) };
+        return { date, range: override ? override.range : (member.schedule[weekday] ?? null), overridden: Boolean(override), fixed: member.schedule[weekday] ?? null };
       }),
     }));
     return HttpResponse.json({ weekStart, days, rows });
@@ -415,15 +435,14 @@ export const teamHandlers = [
     const input = asRecord(await request.json().catch(() => ({})));
     const memberId = text(input.memberId);
     const date = text(input.date);
-    if (!findMember(memberId)) return error(404, "not_found", "Esa persona no existe.");
+    const member = findMember(memberId);
+    if (!member) return error(404, "not_found", "Esa persona no existe.");
+    if (!canEditHours(request, member, "day")) return forbidden("Tu rol no cambia el horario de esta persona.");
     if (!DAY_KEY.test(date)) return error(422, "validation", "Fecha inválida.", { fields: { date: ["Fecha inválida."] } });
     let range: MockWorkingRange | null = null;
     if (input.range && typeof input.range === "object") {
-      const value = input.range as Record<string, unknown>;
-      if (!CLOCK.test(text(value.start)) || !CLOCK.test(text(value.end)) || text(value.end) <= text(value.start)) {
-        return error(422, "validation", "La hora fin debe ser posterior a la de inicio.", { fields: { end: ["La hora fin debe ser posterior a la de inicio."] } });
-      }
-      range = { start: text(value.start), end: text(value.end) };
+      range = validateRange(input.range);
+      if (!range) return error(422, "validation", "La hora fin debe ser posterior a la de inicio y los descansos van dentro, sin pisarse.", { fields: { end: ["La hora fin debe ser posterior a la de inicio."] } });
     }
     const override: MockScheduleOverride = { id: `ovr_${Date.now().toString(36)}`, memberId, date, range };
     db.team.overrides = [...db.team.overrides.filter((item) => !(item.memberId === memberId && item.date === date)), override];
@@ -437,6 +456,8 @@ export const teamHandlers = [
     const url = new URL(request.url);
     const memberId = url.searchParams.get("memberId") ?? "";
     const date = url.searchParams.get("date") ?? "";
+    const member = findMember(memberId);
+    if (member && !canEditHours(request, member, "day")) return forbidden("Tu rol no cambia el horario de esta persona.");
     db.team.overrides = db.team.overrides.filter((item) => !(item.memberId === memberId && item.date === date));
     db.persist();
     return new HttpResponse(null, { status: 204 });

@@ -645,6 +645,18 @@ descansos dentro de la franja, sin pisarse (`422` si no). La agenda y la reserva
 (`src/features/team/shiftRanges.ts`, compartido con el servidor). El barbero de renta edita su propio horario, sus precios
 (sin el reparto de comisión, que se conserva) y sus opciones; el resto, solo cómo se presenta y su contacto.
 
+Quién cambia turnos (investigación en `docs/WORK_HOURS_RESEARCH.md`): dueño y administrador, todo; recepción, solo el
+turno de una fecha; el barbero de renta, el suyo; el de comisión, nada (`403`: pide la ausencia).
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/team/schedule?branchId&week` | La semana (lunes `AAAA-MM-DD`): `{ weekStart, days, rows: [{ memberId, name, avatarUrl, days: [{ date, range, overridden, fixed }] }] }`. `range` es el turno que rige (la excepción o el fijo); `fixed`, el horario fijo de ese día de la semana. |
+| PUT | `/team/schedule/override` | `{ memberId, date, range \| null }`: el turno de una fecha («solo este día»), con sus `breaks`. `null` = no trabaja. `403` · `422`. |
+| DELETE | `/team/schedule/override?memberId&date` | Ese día vuelve al horario fijo. `204`. |
+| PUT | `/team/schedule/weekday` | `{ memberId, from, range \| null }`: «este y los siguientes» — el horario fijo del día de la semana de `from` cambia; la excepción de `from` se quita y las de fechas posteriores se conservan. Dueño, administrador o el barbero de renta (el suyo); recepción `403`. |
+| POST | `/team/schedule/impact` | `{ memberId, date, range \| null, scope: "day" \| "following" }`: las citas por atender (agendadas, llegó, en silla) que quedarían fuera del turno nuevo, `{ items: [{ id, date, start, durationMin, clientName, serviceName }] }`. Con `following`, ese día de la semana las próximas 8 semanas, sin las fechas que tienen su propia excepción. No bloquea: la pantalla avisa y deja guardar. |
+| POST | `/team/schedule/copy-week` | `{ branchId, from, to }` (lunes): el turno que rige cada día de `from` pasa a `to` como excepción (si difiere del fijo); las excepciones de `to` se reemplazan. `{ changed, members }`. |
+
 ### Fichaje
 
 Fichan los empleados (administrador, recepción, comisión y salario); el dueño y el barbero de renta no (`403`).

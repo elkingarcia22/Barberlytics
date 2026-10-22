@@ -11,6 +11,7 @@ import {
 import {
   CalendarDays,
   ChevronLeft,
+  Copy,
   ChevronRight,
   Pencil,
   RotateCcw,
@@ -36,14 +37,17 @@ import {
   type ShiftRow,
 } from "@/components/scheduling";
 import { EditShiftDrawer } from "./EditShiftDrawer";
-import { useClearOverride, useSetOverride, useWeekQuery } from "./queries";
+import { hoursAccess } from "./hours/shiftEditing";
+import { useClearOverride, useCopyWeek, useSetOverride, useWeekQuery } from "./queries";
 import type { WeekRow } from "./types";
 import { useBranchId } from "./teamUtils";
 import { TimesheetView } from "./operations/TimesheetView";
 
 /**
  * Horas de trabajo: el turno de cada barbero, semana por semana. Tocar un
- * turno cambia solo ese día; el horario fijo se edita en la ficha.
+ * turno abre el mismo editor que el calendario (solo ese día o «este y los
+ * siguientes»); la semana pasada se copia con un botón. El horario fijo
+ * completo sigue en la ficha.
  */
 
 const capitalize = (value: string) =>
@@ -56,6 +60,8 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
   // Ver la semana del equipo no es cambiarla: los turnos de un día van por «Equipo · Editar».
   const access = useAccess();
   const canEdit = access.can("team", "edit");
+  // Cambiar el turno de un día: también recepción y el barbero de renta (el suyo), como en el calendario.
+  const hours = hoursAccess(access);
   const dateLocale = calendarLocale(locale);
   const branchId = useBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -97,6 +103,7 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
     );
   const setOverride = useSetOverride();
   const clearOverride = useClearOverride();
+  const copyWeek = useCopyWeek();
   const [editing, setEditing] = React.useState<{
     row: WeekRow;
     day: ShiftDay;
@@ -200,6 +207,35 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
             {t("teamHours.thisWeek")}
           </Button>
         )}
+        {/* Repetir la semana pasada tal cual (con sus cambios de día), como en las apps de turnos. */}
+        {canEdit && view === "turnos" && (
+          <Button
+            variant="outline"
+            className="ml-auto"
+            disabled={copyWeek.isPending}
+            onClick={() =>
+              copyWeek.mutate(
+                {
+                  branchId,
+                  from: format(addWeeks(weekStart, -1), "yyyy-MM-dd"),
+                  to: weekKey,
+                },
+                {
+                  onSuccess: (result) =>
+                    toast.success(
+                      result.changed > 0
+                        ? t("hours.week.copied", { count: result.changed })
+                        : t("hours.week.copiedNone"),
+                    ),
+                  onError: fail,
+                },
+              )
+            }
+            data-testid="hours-copy-week"
+          >
+            <Copy /> {t("hours.week.copyPrevious")}
+          </Button>
+        )}
       </div>
 
       {view === "fichajes" ? (
@@ -252,7 +288,7 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
                 const source = data.rows.find(
                   (item) => item.memberId === row.id,
                 );
-                if (!source || !canEdit) return [];
+                if (!source || !hours.canEditDay(row.id)) return [];
                 const key = format(day.date, "yyyy-MM-dd");
                 return [
                   {
@@ -309,24 +345,9 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
         onOpenChange={(open) => !open && setEditing(null)}
         row={editing?.row ?? null}
         day={editing?.day ?? null}
-        saving={setOverride.isPending}
-        onSave={(range) => {
-          if (!editing) return;
-          setOverride.mutate(
-            {
-              memberId: editing.row.memberId,
-              date: format(editing.day.date, "yyyy-MM-dd"),
-              range,
-            },
-            {
-              onSuccess: () => {
-                toast.success(t("teamHours.saved"));
-                setEditing(null);
-              },
-              onError: fail,
-            },
-          );
-        }}
+        onOpenAppointment={(item) =>
+          navigate(`/calendario?fecha=${item.date}&cita=${item.id}`)
+        }
       />
     </div>
   );

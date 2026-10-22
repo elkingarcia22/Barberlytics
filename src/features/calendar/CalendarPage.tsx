@@ -31,6 +31,7 @@ import { useCalendarCardPrefs } from "./calendarCardPrefs";
 import { appointmentContextActions, blockContextActions } from "./calendarContextActions";
 import type { AppointmentActionId } from "./appointmentPlaybook";
 import { GapsDrawer } from "./GapsDrawer";
+import { WorkHoursDrawer } from "./WorkHoursDrawer";
 import { dayGaps } from "./gapsModel";
 import { dayPulse } from "./pulseModel";
 import { CalendarAssistantDrawer } from "./CalendarAssistantDrawer";
@@ -124,6 +125,7 @@ type Panel =
   | { kind: "walkInSale" }
   | { kind: "walkInQueue" }
   | { kind: "gaps" }
+  | { kind: "workHours"; barberId: string | null }
   | { kind: "timeOff"; focus: TimeOffFocus }
   | { kind: "day"; date: Date }
   | { kind: "removeBlock"; block: TimeBlock }
@@ -462,7 +464,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const weekBarber = weekBarberIds.length === 1 ? (ctx?.catalog.barbers.find((barber) => barber.id === weekBarberIds[0]) ?? null) : null;
 
   // Lo que el rol no puede hacer no se ofrece: ir a los horarios sin ver Equipo.
-  const hiddenRailActions = React.useMemo(() => new Set(can.canViewTeam ? [] : ["work-hours"]), [can.canViewTeam]);
+  // El horario de trabajo lo ven todos (el barbero, el suyo); quién lo cambia lo decide el drawer.
   const railActions = React.useMemo(
     () =>
       calendarRailActions(t, {
@@ -471,12 +473,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInSale: () => openPanel({ kind: "walkInSale" }),
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
-        workHours: () => navigate("/usuarios"),
+        workHours: () => openPanel({ kind: "workHours", barberId: null }),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
         timeOff: () => openPanel({ kind: "timeOff", focus: null }),
-      }).filter((action) => !hiddenRailActions.has(action.id)),
-    [hiddenRailActions, navigate, openPanel, t]
+      }),
+    [openPanel, t]
   );
 
   useCalendarShortcuts({
@@ -1210,7 +1212,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                         onMove={onMove}
                         onResize={onResize}
                         onSeeAll={ownBarberId ? undefined : () => state.setTeam("all")}
-                        onConfigureHours={can.canViewTeam ? () => navigate("/usuarios") : undefined}
+                        onConfigureHours={() => openPanel({ kind: "workHours", barberId: null })}
+                        onBarberHours={(barber: Barber) => openPanel({ kind: "workHours", barberId: barber.id })}
                         onViewBarber={can.canViewTeam ? (barber: Barber) => navigate(`/usuarios/miembros/${barber.id}`) : undefined}
                         onBlockBarber={can.canCreateBlock ? (barber: Barber) => openPanel({ kind: "timeOff", focus: { type: "add", kind: "block", barberId: barber.id } }) : undefined}
                         onReflowBarber={planForBarber}
@@ -1369,6 +1372,19 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   closePanel();
                   state.openAppointmentOn(date, id);
                 }}
+              />
+
+              <WorkHoursDrawer
+                open={panel?.kind === "workHours"}
+                onOpenChange={(open) => !open && closePanel()}
+                date={state.date}
+                ownBarberId={ctx.access?.ownBarberId ?? null}
+                focusBarberId={panel?.kind === "workHours" ? panel.barberId : null}
+                onOpenAppointment={(date, id) => {
+                  closePanel();
+                  state.openAppointmentOn(date, id);
+                }}
+                onOpenTimeOff={() => openPanel({ kind: "timeOff", focus: null })}
               />
 
               <GapsDrawer

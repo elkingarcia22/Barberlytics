@@ -1,3 +1,4 @@
+import { calendarHoursEn } from "./calendar/hours.en";
 import { calendarPanelEn } from "./calendar/panel.en";
 import { calendarCheckoutEn } from "./calendar/checkout.en";
 import { calendarTimeOffEn } from "./calendar/timeOff.en";
@@ -1542,6 +1543,7 @@ export const appEn: AppMessageCatalog = {
   "calendar.walkInSale.turnShort": "Their turn · {count} walk-ins today",
   "calendar.barberMenu.view": "View barber",
   "calendar.barberMenu.edit": "Edit barber profile",
+  "calendar.barberMenu.hours": "Change today's shift",
   "calendar.barberMenu.block": "Create time block",
   "calendar.moved": "Appointment moved",
   "calendar.movedHint": "{client} now with {barber}, {time}.",
@@ -2188,14 +2190,14 @@ export const appEn: AppMessageCatalog = {
 
   // ── Working hours ──
   "teamHours.title": "Working hours",
-  "teamHours.description": "Each barber's shift, week by week. Tap a shift to change only that day; the fixed schedule lives in the profile.",
+  "teamHours.description": "Each barber's shift, week by week. Tap a shift to change it for that day only or for that weekday every week; the full schedule lives in the profile.",
   "teamHours.thisWeek": "This week",
   "teamHours.prevWeek": "Previous week",
   "teamHours.nextWeek": "Next week",
   "teamHours.members": "Team",
   "teamHours.barbers": "{count} barbers",
   "teamHours.notWorking": "Not working",
-  "teamHours.editDay": "Edit this day",
+  "teamHours.editDay": "Change shift",
   "teamHours.deleteShift": "Delete this shift",
   "teamHours.restoreFixed": "Back to fixed schedule",
   "teamHours.overridden": "Changed this week only",
@@ -4780,6 +4782,7 @@ export const appEn: AppMessageCatalog = {
   ...calendarPanelEn,
   ...calendarCheckoutEn,
   ...calendarTimeOffEn,
+  ...calendarHoursEn,
   ...frontDeskEn,
   ...legalEn,
   ...calendarDayPanelEn,

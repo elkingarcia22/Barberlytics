@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/queries";
 import { teamApi, type MemberImportRow } from "./api";
-import type { BranchOrder, MemberDraft, MemberPatch, TeamMember, WorkingRange } from "./types";
+import type { BranchOrder, MemberDraft, MemberPatch, ShiftScope, TeamMember, WorkingRange } from "./types";
 
 /**
  * Claves jerárquicas del equipo. Cualquier cambio en una persona refresca
@@ -115,6 +115,30 @@ export function useSetOverride() {
 export function useClearOverride() {
   const invalidate = useInvalidateTeam();
   return useMutation({ mutationFn: ({ memberId, date }: { memberId: string; date: string }) => teamApi.clearOverride(memberId, date), onSuccess: invalidate });
+}
+
+/** «Este y los siguientes»: cambia el horario fijo de ese día de la semana desde la fecha dada. */
+export function useSetWeekday() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({
+    mutationFn: ({ memberId, from, range }: { memberId: string; from: string; range: WorkingRange | null }) => teamApi.setWeekday(memberId, from, range),
+    onSuccess: invalidate,
+  });
+}
+
+/** Las citas que quedarían fuera del turno que se está armando (se pide de nuevo al cambiarlo). */
+export function useScheduleImpact(input: { memberId: string; date: string; range: WorkingRange | null; scope: ShiftScope } | null) {
+  return useQuery({
+    queryKey: [...teamKeys.all, "impact", input] as const,
+    queryFn: ({ signal }) => teamApi.impact(input!, signal),
+    enabled: input !== null,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCopyWeek() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: ({ branchId, from, to }: { branchId: string; from: string; to: string }) => teamApi.copyWeek(branchId, from, to), onSuccess: invalidate });
 }
 
 export function useRemindMembers() {

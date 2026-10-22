@@ -547,7 +547,7 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByText("Confirma tu cita")).toBeInTheDocument();
   }, LONG_CONVERSATION_MS);
 
-  test("agenda en lista: «Confirma tu cita» ya no pide tus datos; el código se pide al pagar y, si es nuevo, su ficha", async () => {
+  test("agenda en lista: «Confirma tu cita» ya no pide tus datos; al pagar, sin código, el nuevo deja su ficha", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="agenda-list" />);
     await agendaNewPhone(user);
@@ -560,14 +560,18 @@ describe("las otras dos experiencias", () => {
     expect(await screen.findByRole("heading", { name: "Confirma tu cita" })).toBeInTheDocument();
     expect(screen.queryByText("Tus datos")).toBeNull();
     await user.click(screen.getByRole("button", { name: /Continuar al pago/ }));
-    // El pago empieza por el código, mandado solo al celular de la portada.
-    expect(await screen.findByRole("heading", { name: "Confirma que eres tú" })).toBeInTheDocument();
-    expect(screen.queryByText("Propina para tu barbero")).toBeNull();
-    await waitFor(() => expect(screen.getAllByRole("textbox")[0]).toBeEnabled());
-    await user.click(screen.getAllByRole("textbox")[0]);
-    await user.keyboard(DEMO_CODE);
-    // Número nuevo: su ficha, sin salir del pago.
+    // Número nuevo: su ficha, sin código y sin salir del pago.
     expect(await screen.findByRole("heading", { name: "Tus datos" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Confirma que eres tú" })).toBeNull();
+    await user.type(screen.getByRole("textbox", { name: /^Nombre/ }), "Ana");
+    await user.type(screen.getByRole("textbox", { name: /^Apellido/ }), "Rojas");
+    await user.type(screen.getByRole("textbox", { name: /^Correo/ }), "ana@example.com");
+    await user.click(screen.getByRole("button", { name: "Crear perfil y seguir" }));
+    // Ya con su ficha, el cobro: ningún método viene marcado y el botón pide elegir uno.
+    expect(await screen.findByRole("heading", { name: "Pago" })).toBeInTheDocument();
+    const methods = screen.getByRole("radiogroup", { name: "¿Cómo pagas?" });
+    expect(within(methods).getAllByRole("button").filter((tile) => tile.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: /Elige cómo pagas/ })).toBeDisabled();
   });
 
   test("conversación: se conoce a un barbero o una sede antes de elegir y la conversación retoma", async () => {
@@ -736,13 +740,10 @@ describe("las otras dos experiencias", () => {
     await user.click(within(products).getByRole("button", { name: "Sumar" }));
     await user.click(within(products).getByRole("button", { name: /Agregar · 2/ }));
     expect(await screen.findByText(/× 2 a tu pedido/)).toBeInTheDocument();
-    // Pagar en la barbería y reservar.
-    // Reconocida por su celular, sin código: el código llega al pagar.
+    // Pagar en la barbería y reservar: reconocida por su celular, sin código.
     await write("confirmar y pagar");
-    await screen.findByText(/Te acabo de mandar un/);
-    await write(DEMO_CODE);
-    await screen.findByText("¡Listo, confirmado!");
     await screen.findByRole("group", { name: "¿Le dejas propina a tu barbero?" });
+    expect(screen.queryByText(/Te acabo de mandar un/)).toBeNull();
     await write("sin propina");
     await screen.findByRole("group", { name: "¿Tienes un cupón o una tarjeta de regalo?" });
     await write("no");
@@ -806,10 +807,9 @@ describe("las otras dos experiencias", () => {
     await user.click(within(more).getByRole("button", { name: /pagar/i }));
     expect(await screen.findByText(/para reservarla necesito saber quién eres/)).toBeInTheDocument();
     await user.type(screen.getByTestId("chat-input"), "3202172738{Enter}");
-    await screen.findByText(/Te acabo de mandar un/);
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
-    // Ya con quien reserva, sigue al pago con lo armado (sin volver a empezar).
+    // Ya con quien reserva (sin código), sigue al pago con lo armado (sin volver a empezar).
     expect(await screen.findByRole("group", { name: /propina/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Te acabo de mandar un/)).toBeNull();
   }, LONG_CONVERSATION_MS);
 
   test("conversación: lo pedido en la portada sigue en pie después de elegir la sede", async () => {
@@ -829,7 +829,7 @@ describe("las otras dos experiencias", () => {
     expect(screen.queryByRole("group", { name: "¿Qué te vas a hacer?" })).toBeNull();
   }, LONG_CONVERSATION_MS);
 
-  test("conversación: un número nuevo arma la cita sin código y al pagar llegan el código y su ficha", async () => {
+  test("conversación: un número nuevo arma la cita sin código y al pagar deja su ficha, también sin código", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
     await user.click(await screen.findByRole("button", { name: /Ir a la conversación/ }));
@@ -839,15 +839,14 @@ describe("las otras dos experiencias", () => {
     await user.click(within(days).getAllByRole("button", { name: /^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/ })[1]);
     const times = await screen.findByRole("group", { name: /^¿A qué hora el / });
     await user.click(within(times).getAllByRole("button", { name: /\d:\d\d/ })[0]);
-    // Al pagar, recién ahí, el código al celular que dio y luego su ficha.
+    // Al pagar, recién ahí, su ficha (sin código).
     const more = await screen.findByRole("group", { name: /Algo más/ });
     await user.click(within(more).getByRole("button", { name: /pagar/i }));
-    expect(await screen.findByText(/Te acabo de mandar un/)).toBeInTheDocument();
-    await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     expect(await screen.findByText(/Cómo te llamas/)).toBeInTheDocument();
+    expect(screen.queryByText(/Te acabo de mandar un/)).toBeNull();
   }, LONG_CONVERSATION_MS);
 
-  test("conversación: al cliente de siempre lo reconoce su celular; el código llega solo al pagar", async () => {
+  test("conversación: al cliente de siempre lo reconoce su celular; el código llega solo para usar sus tarjetas guardadas", async () => {
     const user = userEvent.setup();
     renderWithProviders(<BookingFlow version="chat" />);
     // La portada primero: «Ir a la conversación» entra sin decir nada.
@@ -869,13 +868,23 @@ describe("las otras dos experiencias", () => {
     await user.click(within(days).getAllByRole("button", { name: /^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/ })[1]);
     const times = await screen.findByRole("group", { name: /^¿A qué hora el / });
     await user.click(within(times).getAllByRole("button", { name: /\d:\d\d/ })[0]);
-    // Al pagar llega el código; no se repite en el hilo y no vuelve a saludar.
+    // Pagar no pide el código.
     const more = await screen.findByRole("group", { name: /Algo más/ });
     await user.click(within(more).getByRole("button", { name: /pagar/i }));
+    await screen.findByRole("group", { name: /propina/i });
+    expect(screen.queryByText(/Te acabo de mandar un/)).toBeNull();
+    await user.type(screen.getByTestId("chat-input"), "sin propina{Enter}");
+    await screen.findByRole("group", { name: "¿Tienes un cupón o una tarjeta de regalo?" });
+    await user.type(screen.getByTestId("chat-input"), "no{Enter}");
+    const methods = await screen.findByRole("group", { name: "¿Cómo quieres pagar?" });
+    await user.click(within(methods).getByRole("button", { name: /^Tarjeta/ }));
+    // Con tarjetas guardadas, para usarlas el código; no se repite en el hilo y no vuelve a saludar.
+    const saved = await screen.findByRole("group", { name: "Usa tus tarjetas guardadas" });
+    await user.click(within(saved).getByRole("button", { name: /Usar mis tarjetas guardadas/ }));
     expect(await screen.findByText(/Te acabo de mandar un/)).toBeInTheDocument();
     await user.type(screen.getByTestId("chat-input"), `${DEMO_CODE}{Enter}`);
     expect(screen.queryByText(DEMO_CODE)).toBeNull();
     expect(await screen.findByText("¡Listo, confirmado!")).toBeInTheDocument();
-    expect(await screen.findByRole("group", { name: /propina/i })).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: /tarjeta/i })).toBeInTheDocument();
   }, LONG_CONVERSATION_MS);
 });

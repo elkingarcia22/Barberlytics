@@ -38,8 +38,16 @@ export function usePaymentController() {
   const savedCards = customer?.cards ?? [];
   const [cardChoice, setCardChoice] = React.useState<string>(() => firstUsableCard(savedCards, NEW_CARD));
   const [savedCvc, setSavedCvc] = React.useState("");
+  // Al confirmar el código llegan sus tarjetas: se abre en la primera que no esté vencida.
+  const [cardsSeen, setCardsSeen] = React.useState(savedCards.length);
+  if (savedCards.length !== cardsSeen) {
+    setCardsSeen(savedCards.length);
+    if (cardsSeen === 0 && cardChoice === NEW_CARD) setCardChoice(firstUsableCard(savedCards, NEW_CARD));
+  }
   // Guardar la tarjeta es una decisión del cliente: empieza sin marcar.
   const [saveCard, setSaveCard] = React.useState(false);
+  // Reconocido sin código y con tarjetas guardadas: para usarlas, el código; o paga con otra sin él.
+  const [skipSavedCards, setSkipSavedCards] = React.useState(false);
   const chosenSaved = savedCards.find((item) => item.id === cardChoice) ?? null;
   // Anticipo: a quien la barbería se lo pide (nuevo o con inasistencias), pagar en la barbería cobra una parte ya.
   const depositPercent = customer?.depositRequired && shop.deposit ? shop.deposit.percent : null;
@@ -71,7 +79,8 @@ export function usePaymentController() {
   const available = methods.filter((option) => !option.disabled);
   // Si la tarjeta de regalo cubre todo, no hay nada más que cobrar.
   const coveredByGift = totals.total === 0 && totals.gift > 0;
-  const method: PayMethod | null = coveredByGift ? "gift" : state.method && available.some((option) => option.value === state.method) ? state.method : ((available[0]?.value as PayMethod | undefined) ?? null);
+  // Ningún método viene marcado: lo elige el cliente.
+  const method: PayMethod | null = coveredByGift ? "gift" : state.method && available.some((option) => option.value === state.method) ? state.method : null;
   // La tarjeta elegida (guardada o la nueva ya escrita), dicha como en el recibo.
   const payCard = chosenSaved ? `${chosenSaved.brand} •••• ${chosenSaved.last4}` : card && digitsOf(card.number).length >= 4 ? `${t("booking.payment.card")} •••• ${digitsOf(card.number).slice(-4)}` : null;
   React.useEffect(() => {
@@ -84,6 +93,8 @@ export function usePaymentController() {
   const deposit = method === "shop" && depositPercent !== null ? depositOf(totals, depositPercent) : 0;
   /** Pide tarjeta: el pago con tarjeta o el anticipo de quien paga en la barbería. */
   const usesCard = method === "card" || deposit > 0;
+  /** Va a pagar con tarjeta, tiene guardadas y aún no confirmó el código: se le pide antes de mostrarlas. */
+  const needsCardCode = usesCard && !state.verified && Boolean(customer?.hasSavedCards) && !skipSavedCards;
 
   const serverCardError = isApiError(reserve.error) ? reserve.error.fieldErrors?.card?.[0] : undefined;
   const payLabel =
@@ -92,6 +103,10 @@ export function usePaymentController() {
   /** Revisa que el cobro esté completo; avisa de lo que falta y dice si se puede seguir. */
   const validate = () => {
     if (!customer || !state.branchId || !method) return false;
+    if (needsCardCode) {
+      toastMissing(t, [t("booking.payment.codeMissing")]);
+      return false;
+    }
     if (usesCard && !chosenSaved && !card) {
       toastMissing(t, [t("booking.payment.cardMissing")]);
       setSheet({ open: true, prefill: false });
@@ -187,6 +202,9 @@ export function usePaymentController() {
     deposit,
     depositPercent,
     usesCard,
+    needsCardCode,
+    skipSavedCards,
+    setSkipSavedCards,
     coveredByGift,
     payLabel,
     pay,

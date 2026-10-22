@@ -54,6 +54,8 @@ export interface CheckoutKit {
   startNewCard: (lead?: string) => void;
   /** El CVC de una tarjeta guardada, en su hoja: nunca escrito en el chat. */
   askSavedCvc: (card: { id: string; brand: string; last4: string }) => void;
+  /** Reconocido sin código y con tarjetas guardadas: el código para verlas (al confirmarlo, a elegir tarjeta). */
+  verifyForCards: () => void;
 }
 
 /** Lo que cambia el total bajo las citas: paquete, membresía, descuento, impuestos, propina, recargo y regalo. */
@@ -75,7 +77,7 @@ export function adjustmentRows(t: ReturnType<typeof useAppT>, fmt: { money: (val
  * versiones), el resumen para confirmar, el recibo y mover o cancelar una cita.
  */
 export function useChatCheckout(kit: CheckoutKit) {
-  const { settle, receiptPlan, t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard, askSavedCvc } = kit;
+  const { settle, receiptPlan, t, fmt, shop, queryClient, apply, say, ask, busy, expect, stateRef, catalogRef, totalsRef, payment, suggestion, managing, rescheduling, pendingManage, serviceNames, barberName, onFinish, askMore, startBooking, askDay, askPhone, askServices, askNext, startNewCard, askSavedCvc, verifyForCards } = kit;
 
   /* ── pagar ── */
 
@@ -179,7 +181,18 @@ export function useChatCheckout(kit: CheckoutKit) {
 
   const askCard = () =>
     say(() => {
-      const cards = stateRef.current.customer?.cards ?? [];
+      const current = stateRef.current;
+      // Tiene tarjetas guardadas pero no confirmó el código: para usarlas, el código; o una nueva sin él.
+      if (!current.verified && current.customer?.hasSavedCards) {
+        return {
+          text: t("booking.payment.savedCode.lead"),
+          question: makeQuestion("card", t("booking.payment.savedCode.title"), [
+            { label: t("booking.payment.savedCode.useSaved"), value: "verify", emoji: "🔒" },
+            { label: t("booking.payment.savedCode.newCard"), value: "new", emoji: "➕" },
+          ]),
+        };
+      }
+      const cards = current.customer?.cards ?? [];
       if (cards.length === 0) {
         startNewCard();
         return null;
@@ -367,6 +380,7 @@ export function useChatCheckout(kit: CheckoutKit) {
       }
       case "card": {
         if (value === "new" || !value) return startNewCard();
+        if (value === "verify") return verifyForCards();
         payment.current?.chooseCard(value);
         const card = current.customer?.cards.find((item) => item.id === value);
         return card ? askSavedCvc(card) : askConfirm();
@@ -401,5 +415,5 @@ export function useChatCheckout(kit: CheckoutKit) {
     return true;
   };
 
-  return { checkout, askMethod, askConfirm, reserved, manage, answerCheckout, submitReceiptTarget: receipt.submitTarget, answerTypedReceipt: receipt.answerTyped };
+  return { checkout, askMethod, askCard, askConfirm, reserved, manage, answerCheckout, submitReceiptTarget: receipt.submitTarget, answerTypedReceipt: receipt.answerTyped };
 }

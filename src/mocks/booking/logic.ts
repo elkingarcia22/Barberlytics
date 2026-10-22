@@ -283,6 +283,7 @@ export function customerOf(client: MockClient) {
     : client.visits > 0
       ? { branchId: profile.branchId, serviceIds: ["svc_corte"], barberId, at: client.lastVisitAt ?? new Date().toISOString() }
       : null;
+  const cards = cardsOf(client.id);
   return {
     id: client.id,
     firstName: client.name.split(" ")[0] ?? client.name,
@@ -295,7 +296,8 @@ export function customerOf(client: MockClient) {
     lastVisit,
     credit: db.booking.credits[client.id] ?? 0,
     upcoming: mine.filter((item) => isLive(item) && item.status === "scheduled" && startInstant(item).getTime() >= now).length,
-    cards: cardsOf(client.id),
+    cards,
+    hasSavedCards: cards.length > 0,
     depositRequired: needsDeposit(client, client.visits === 0 && !last),
     loyalty: loyaltyOf(client),
     packages: activePackages(client.id).map(({ id, name, serviceId, remaining, total, expiresAt }) => ({ id, name, serviceId, remaining, total, expiresAt })),

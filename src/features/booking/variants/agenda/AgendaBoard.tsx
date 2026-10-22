@@ -241,7 +241,7 @@ export function AgendaBoard({ onNeedSignIn, timeMissing = false, heldCount = 0 }
           {!isWaiting && !hasSlots && <AlternativeBarbers day={day} onDayChange={setDay} />}
 
           {!isWaiting &&
-            (state.customer && state.verified ? (
+            (state.customer ? (
               <WaitlistCard
                 key={`${dayKey}|${draft?.barberId ?? "any"}`}
                 day={day}

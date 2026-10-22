@@ -9,7 +9,8 @@ import { ThemaIcon } from "@/icons";
 import { describeError, isApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useBookingFlow } from "../flow/BookingContext";
-import { PayIdentity } from "../flow/PayIdentity";
+import { needsCardBuyer } from "../bookingState";
+import { CardBuyerIdentity } from "../flow/PayIdentity";
 import { toastMissing } from "../flow/missingData";
 import { brandFromName, isCvcComplete, type CardValues } from "../flow/cardValidation";
 import { NewCardSheet } from "../flow/NewCardSheet";
@@ -28,11 +29,11 @@ import { useBuyPackageMutation } from "../queries";
 export function PackagesStep() {
   const t = useAppT();
   const { state } = useBookingFlow();
-  // Se paga con su tarjeta: primero el código (al cliente de siempre se le reconoce sin él al entrar).
-  if (!state.verified || !state.customer) {
+  // Se paga con tarjeta: sin código, salvo que ya tenga tarjetas guardadas (para verlas, el código).
+  if (!state.customer || needsCardBuyer(state)) {
     return (
-      <StepLayout title={t("booking.payIdentity.title")} lead={t("booking.payIdentity.leadBuy")}>
-        <PayIdentity />
+      <StepLayout title={t(state.customer ? "booking.payIdentity.title" : "booking.payIdentity.whoTitle")} lead={t(state.customer ? "booking.payIdentity.leadBuy" : "booking.payIdentity.whoLead")}>
+        <CardBuyerIdentity />
       </StepLayout>
     );
   }

@@ -22,6 +22,7 @@ import { NewCardSheet } from "./NewCardSheet";
 import { OrderSummary } from "./OrderSummary";
 import { PackagesToggle } from "./PackagesToggle";
 import { PromoField } from "./PromoField";
+import { CodeGate } from "./PayIdentity";
 import { NEW_CARD, SavedCardPicker } from "./SavedCardPicker";
 import type { PaymentController } from "./usePaymentController";
 
@@ -137,7 +138,24 @@ export function PaymentPanel({ payment, showOrder = true, compact = false, onCha
             <AlertDescription>{t("booking.payment.deposit.body", { percent: depositPercent ?? 0, rest: fmt.money(Math.max(0, totals.total - deposit)), hours: shop.cancelHours })}</AlertDescription>
           </Alert>
         )}
-        {usesCard && (
+        {payment.needsCardCode && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
+            <div className="flex flex-col gap-1">
+              <Text size="sm" weight="semibold">
+                {t("booking.payment.savedCode.title")}
+              </Text>
+              <Text size="sm" tone="secondary">
+                {t("booking.payment.savedCode.lead")}
+              </Text>
+            </div>
+            <CodeGate />
+            <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => payment.setSkipSavedCards(true)}>
+              <ThemaIcon name="plus" />
+              {t("booking.payment.savedCode.newCard")}
+            </Button>
+          </div>
+        )}
+        {usesCard && !payment.needsCardCode && (
           <SavedCardPicker
             cards={payment.savedCards}
             value={payment.cardChoice}

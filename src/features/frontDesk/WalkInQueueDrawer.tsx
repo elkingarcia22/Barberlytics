@@ -1,26 +1,29 @@
 import * as React from "react";
-import { DoorOpen, Footprints, Globe, Plus, UsersRound } from "lucide-react";
+import { DoorOpen, Footprints, Globe, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
-import { DrawerSection, SidePanelShell } from "@/components/overlays";
+import { PanelFooter, SidePanelShell } from "@/components/overlays";
 import { EmptyState } from "@/components/feedback";
 import { Field, SearchableSelect } from "@/components/forms";
 import { Text } from "@/components/typography";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { PersonAvatar, ServiceThumb } from "@/features/calendar/calendarShared";
 import type { ModelContext } from "@/features/calendar/calendarModel";
+import { InlineList, PanelField, PanelQuestion } from "@/features/calendar/appointmentPanel/bookingStyle";
+import { FieldIcon, SaleCard, SaleCardHead } from "@/features/calendar/saleParts";
 import { useQueueActions, useWalkInQueue, type QueueEntry } from "./api";
 
 /**
- * La fila de quien llega sin cita, en recepción: quién espera, en qué orden, cuánto le falta (aprox.) y
- * con quién le tocaría. «Llamar» lo pasa a la agenda como «Llegó» con ese barbero; «Se fue» lo saca y
- * cuenta como cliente que no se atendió. Se puede sumar a alguien desde aquí (además del kiosco).
- * Cada uno dice por dónde llegó: en línea (se unió desde el enlace y puede venir de camino) o en el
- * local (caminando, por el kiosco o en recepción).
+ * La fila de quien llega sin cita, en recepción, con la cara de «Crear cita»: la tarjeta teñida con
+ * cuántos esperan (en el local y en línea) y, debajo, quién sigue y los demás en orden, cada uno una
+ * tarjeta que se abre en su sitio con lo que pidió, cuánto le falta (aprox.) y sus dos acciones.
+ * «Llamar» lo pasa a la agenda como «Llegó» con ese barbero; «Se fue» lo saca y cuenta como cliente
+ * que no se atendió. Se puede sumar a alguien desde aquí (además del kiosco). Abajo, un solo botón:
+ * llamar a quien sigue.
  */
 
 export interface WalkInQueueDrawerProps {
@@ -35,73 +38,88 @@ export interface WalkInQueueDrawerProps {
 const NO_PREFERENCE = "__any";
 const MINUTE_MS = 60_000;
 
-/** En línea o en el local: lo primero que recepción necesita saber para llamar a alguien. */
-function SourceBadge({ source }: { source: QueueEntry["source"] }) {
+/** La espera y con quién: por separado para el detalle, juntas en la tarjeta cerrada. */
+function useWaitParts() {
   const t = useAppT();
-  if (source === "online")
-    return (
-      <Badge variant="info" className="gap-1" data-testid="queue-source-online">
-        <Globe className="size-3" aria-hidden />
-        {t("frontDesk.queue.source.online")}
-      </Badge>
-    );
+  return (entry: QueueEntry) => {
+    const wait = entry.waitMin === null || entry.waitMax === null ? t("frontDesk.queue.noTimeToday") : entry.waitMax <= 10 ? t("frontDesk.queue.almostNow") : t("frontDesk.queue.wait", { min: entry.waitMin, max: entry.waitMax });
+    const who = entry.barberName ? t("frontDesk.queue.asked", { name: entry.barberName }) : entry.suggestedBarberName ? t("frontDesk.queue.with", { name: entry.suggestedBarberName }) : null;
+    const barber = entry.barberName ? t("frontDesk.queue.askedFor", { name: entry.barberName }) : entry.suggestedBarberName ? t("frontDesk.queue.anyWith", { name: entry.suggestedBarberName }) : t("frontDesk.queue.anyBarber");
+    return { wait, barber, line: [wait, who].filter(Boolean).join(" · ") };
+  };
+}
+
+/** El turno, teñido por cómo llegó: azul si se unió en línea (puede venir de camino), del tema si ya está en el local. */
+function Position({ entry }: { entry: QueueEntry }) {
+  const t = useAppT();
   return (
-    <Badge variant="neutral" className="gap-1" data-testid="queue-source-walkin">
-      <Footprints className="size-3" aria-hidden />
-      {t(source === "kiosk" ? "frontDesk.queue.source.kiosk" : "frontDesk.queue.source.reception")}
-    </Badge>
+    <span
+      className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums", entry.source === "online" ? "bg-status-info/15 text-status-info" : "bg-primary/15 text-primary")}
+      aria-label={t("frontDesk.queue.position", { position: entry.position })}
+    >
+      {entry.position}
+    </span>
   );
 }
 
-function WaitRange({ entry }: { entry: QueueEntry }) {
+const sourceKey = (entry: QueueEntry) => (entry.source === "online" ? "frontDesk.queue.source.online" : entry.source === "kiosk" ? "frontDesk.queue.source.kiosk" : "frontDesk.queue.source.reception");
+
+/** Una persona de la fila: cerrada dice cómo llegó, quién es y su espera; abierta, el detalle y sus acciones. */
+function QueueRow({ entry, now, open, onToggle, canManage, onCall, onLeave, busy }: { entry: QueueEntry; now: number; open: boolean; onToggle: () => void; canManage: boolean; onCall: () => void; onLeave: () => void; busy: boolean }) {
   const t = useAppT();
-  if (entry.waitMin === null || entry.waitMax === null) return <span className="text-status-warning">{t("frontDesk.queue.noTimeToday")}</span>;
-  if (entry.waitMax <= 10) return <span>{t("frontDesk.queue.almostNow")}</span>;
-  return <span>{t("frontDesk.queue.wait", { min: entry.waitMin, max: entry.waitMax })}</span>;
+  const waitParts = useWaitParts();
+  const parts = waitParts(entry);
+  const waited = Math.max(0, Math.round((now - Date.parse(entry.joinedAt)) / MINUTE_MS));
+  const SourceIcon = entry.source === "online" ? Globe : Footprints;
+  return (
+    <div className="flex flex-col gap-2" data-testid="queue-entry" data-source={entry.source}>
+      <PanelField eyebrow={t(sourceKey(entry))} value={entry.firstName} detail={parts.line} leading={<Position entry={entry} />} open={open} onOpen={onToggle} testId={`queue-entry-${entry.id}`} />
+      {open && (
+        <InlineList
+          title={t("frontDesk.queue.detailTitle", { position: entry.position, name: entry.firstName })}
+          onClose={onToggle}
+          footer={
+            canManage ? (
+              <>
+                <Button type="button" variant="outline" className="flex-1" onClick={onLeave} disabled={busy} data-testid="queue-leave">
+                  <DoorOpen aria-hidden />
+                  {t("frontDesk.queue.left")}
+                </Button>
+                <Button type="button" className="flex-1" onClick={onCall} disabled={busy} data-testid="queue-call">
+                  <Footprints aria-hidden />
+                  {t("frontDesk.queue.call")}
+                </Button>
+              </>
+            ) : undefined
+          }
+        >
+          <div className="flex flex-col gap-1 px-1">
+            <Fact label={t("frontDesk.queue.services")} value={entry.services.join(" + ")} />
+            <Fact label={t("frontDesk.queue.barber")} value={parts.barber} />
+            <Fact label={t("frontDesk.queue.waitLabel")} value={parts.wait} />
+            <span className="flex items-center gap-2 py-1.5">
+              <SourceIcon className={cn("size-4 shrink-0", entry.source === "online" ? "text-status-info" : "text-text-muted")} aria-hidden />
+              <Text size="sm" tone="secondary">
+                {t(entry.source === "online" ? "frontDesk.queue.joinedOnline" : "frontDesk.queue.waited", { minutes: waited })}
+              </Text>
+            </span>
+          </div>
+        </InlineList>
+      )}
+    </div>
+  );
 }
 
-/** `now`: cuándo llegó la fila (se refresca cada 20 s): con él se cuenta cuánto lleva esperando. */
-function QueueRow({ entry, now, canManage, onCall, onLeave, busy }: { entry: QueueEntry; now: number; canManage: boolean; onCall: () => void; onLeave: () => void; busy: boolean }) {
-  const t = useAppT();
-  const waited = Math.max(0, Math.round((now - Date.parse(entry.joinedAt)) / MINUTE_MS));
+function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <li className="flex flex-col gap-2 rounded-xl border border-input bg-surface p-3" data-testid="queue-entry">
-      <div className="flex items-start gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold tabular-nums text-primary" aria-label={t("frontDesk.queue.position", { position: entry.position })}>
-          {entry.position}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Text as="span" weight="medium" className="truncate">
-              {entry.firstName}
-            </Text>
-            <SourceBadge source={entry.source} />
-          </div>
-          <Text as="p" size="sm" tone="muted" className="truncate">
-            {entry.services.join(" + ")} · {entry.barberName ? t("frontDesk.queue.asked", { name: entry.barberName }) : t("frontDesk.queue.anyBarber")}
-          </Text>
-          <Text as="p" size="sm">
-            <WaitRange entry={entry} />
-            {entry.suggestedBarberName && !entry.barberName && <span className="text-text-muted"> · {t("frontDesk.queue.with", { name: entry.suggestedBarberName })}</span>}
-          </Text>
-          <Text as="p" size="xs" tone="muted">
-            {t(entry.source === "online" ? "frontDesk.queue.joinedOnline" : "frontDesk.queue.waited", { minutes: waited })}
-          </Text>
-        </div>
-      </div>
-      {canManage && (
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onLeave} disabled={busy} data-testid="queue-leave">
-            <DoorOpen aria-hidden />
-            {t("frontDesk.queue.left")}
-          </Button>
-          <Button type="button" size="sm" onClick={onCall} disabled={busy} data-testid="queue-call">
-            <Footprints aria-hidden />
-            {t("frontDesk.queue.call")}
-          </Button>
-        </div>
-      )}
-    </li>
+    <div className="flex items-start justify-between gap-4 py-1.5">
+      <Text size="sm" tone="secondary" className="shrink-0">
+        {label}
+      </Text>
+      <Text size="sm" weight="medium" className="text-right">
+        {value}
+      </Text>
+    </div>
   );
 }
 
@@ -128,7 +146,7 @@ function AddToQueue({ branchId, ctx, onDone }: { branchId: string; ctx: ModelCon
     );
   };
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-xl border border-dashed border-input p-3" data-testid="queue-add-form">
+    <form onSubmit={submit} className="space-y-3 px-1" data-testid="queue-add-form">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("frontDesk.queue.firstName")} required>
           <Input value={firstName} onChange={(event) => setFirstName(event.target.value)} autoComplete="off" maxLength={40} data-testid="queue-add-name" />
@@ -179,62 +197,87 @@ export function WalkInQueueDrawer({ open, onOpenChange, branchId, ctx, canManage
   const t = useAppT();
   const queue = useWalkInQueue(branchId, open);
   const { call, leave } = useQueueActions(branchId);
+  const [openId, setOpenId] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
   const waiting = queue.data?.waiting ?? [];
   const online = waiting.filter((entry) => entry.source === "online").length;
   const busy = call.isPending || leave.isPending;
   const onError = (error: unknown) => toast.error(describeError(error).title, { description: describeError(error).description });
+  const [first, ...rest] = waiting;
+
+  const callEntry = (entry: QueueEntry) =>
+    call.mutate(
+      { id: entry.id, barberId: null },
+      {
+        onSuccess: () => {
+          toast.success(t("frontDesk.queue.called", { name: entry.firstName }));
+          setOpenId(null);
+        },
+        onError,
+      }
+    );
+  const row = (entry: QueueEntry) => (
+    <QueueRow
+      key={entry.id}
+      entry={entry}
+      now={queue.dataUpdatedAt}
+      open={openId === entry.id}
+      onToggle={() => setOpenId((current) => (current === entry.id ? null : entry.id))}
+      canManage={canManage}
+      busy={busy}
+      onCall={() => callEntry(entry)}
+      onLeave={() => leave.mutate({ id: entry.id, reason: "left" }, { onSuccess: () => setOpenId(null), onError })}
+    />
+  );
 
   return (
-    <SidePanelShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("frontDesk.queue.title")}
-      description={queue.data ? t("frontDesk.queue.summary", { waiting: waiting.length, served: queue.data.served, left: queue.data.left }) : t("frontDesk.queue.hint")}
-    >
-      <DrawerSection
-        icon={UsersRound}
-        tone="brand"
-        title={t("frontDesk.queue.title")}
-        hint={waiting.length > 0 ? t("frontDesk.queue.split", { here: waiting.length - online, online }) : t("frontDesk.queue.hint")}
-        action={
-          canManage && !adding ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => setAdding(true)} data-testid="queue-add">
-              <Plus aria-hidden />
-              {t("frontDesk.queue.add")}
-            </Button>
-          ) : undefined
-        }
-      >
-        <div className="space-y-3" data-testid="walk-in-queue">
-          {adding && <AddToQueue branchId={branchId} ctx={ctx} onDone={() => setAdding(false)} />}
-          {waiting.length === 0 && !adding ? (
-            <EmptyState icon="queue" title={t("frontDesk.queue.emptyTitle")} description={t("frontDesk.queue.emptyHint")} />
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("frontDesk.queue.title")}>
+      <div data-testid="walk-in-queue">
+        <SaleCard testId="walk-in-queue-cards">
+          <SaleCardHead
+            eyebrow={t("frontDesk.queue.title")}
+            title={waiting.length > 0 ? t("frontDesk.queue.headWaiting", { count: waiting.length }) : t("frontDesk.queue.emptyTitle")}
+            lead={queue.data ? t("frontDesk.queue.headLead", { here: waiting.length - online, online, served: queue.data.served, left: queue.data.left }) : t("frontDesk.queue.hint")}
+          />
+
+          {first ? (
+            <>
+              <PanelQuestion title={t("frontDesk.queue.next")}>{row(first)}</PanelQuestion>
+              {rest.length > 0 && (
+                <PanelQuestion title={t("frontDesk.queue.after", { count: rest.length })}>
+                  <div className="flex flex-col gap-2">{rest.map(row)}</div>
+                </PanelQuestion>
+              )}
+            </>
           ) : (
-            <ol className="space-y-2">
-              {waiting.map((entry) => (
-                <QueueRow
-                  key={entry.id}
-                  entry={entry}
-                  now={queue.dataUpdatedAt}
-                  canManage={canManage}
-                  busy={busy}
-                  onCall={() =>
-                    call.mutate(
-                      { id: entry.id, barberId: null },
-                      { onSuccess: () => toast.success(t("frontDesk.queue.called", { name: entry.firstName })), onError }
-                    )
-                  }
-                  onLeave={() => leave.mutate({ id: entry.id, reason: "left" }, { onError })}
-                />
-              ))}
-            </ol>
+            !adding && <EmptyState icon="queue" title={t("frontDesk.queue.emptyTitle")} description={t("frontDesk.queue.emptyHint")} />
           )}
-          <Text as="p" size="xs" tone="muted">
+
+          {canManage && (
+            <PanelQuestion title={t("frontDesk.queue.addQuestion")}>
+              <PanelField eyebrow={t("frontDesk.queue.add")} value="" placeholder={t("frontDesk.queue.addPlaceholder")} leading={<FieldIcon icon={UserPlus} filled={false} />} open={adding} onOpen={() => setAdding((current) => !current)} testId="queue-add" />
+              {adding && (
+                <InlineList title={t("frontDesk.queue.addSubmit")} description={t("frontDesk.queue.phoneHint")} onClose={() => setAdding(false)}>
+                  <AddToQueue branchId={branchId} ctx={ctx} onDone={() => setAdding(false)} />
+                </InlineList>
+              )}
+            </PanelQuestion>
+          )}
+
+          <Text size="xs" tone="muted">
             {t("frontDesk.queue.estimateNote")}
           </Text>
-        </div>
-      </DrawerSection>
+
+          {canManage && first && (
+            <PanelFooter>
+              <Button size="lg" className="w-full" onClick={() => callEntry(first)} disabled={busy} data-testid="queue-call-next">
+                <Footprints aria-hidden />
+                {t("frontDesk.queue.callNext", { name: first.firstName })}
+              </Button>
+            </PanelFooter>
+          )}
+        </SaleCard>
+      </div>
     </SidePanelShell>
   );
 }

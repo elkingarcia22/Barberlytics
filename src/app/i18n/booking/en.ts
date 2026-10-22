@@ -194,13 +194,11 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
 
   "booking.services.title": "Choose your services",
   "booking.services.lead": "Add several to the same appointment: they're done back to back with the same barber.",
-  "booking.services.search": "Search a service",
   "booking.services.all": "All",
   "booking.services.popular": "Popular",
   "booking.services.combo": "Combo",
   "booking.services.from": "from {price}",
   "booking.services.minutes": "{count} min",
-  "booking.services.empty": "No services with that name.",
   "booking.services.emptyBranch": "This location doesn't offer online services yet.",
   "booking.services.selected": "{count} service · {minutes} min",
   "booking.services.selected_plural": "{count} services · {minutes} min",

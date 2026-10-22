@@ -208,13 +208,11 @@ export const bookingEs = {
   // ── Servicios ──
   "booking.services.title": "Elige tus servicios",
   "booking.services.lead": "Puedes sumar varios a la misma cita: se hacen seguidos con el mismo barbero.",
-  "booking.services.search": "Buscar un servicio",
   "booking.services.all": "Todos",
   "booking.services.popular": "Popular",
   "booking.services.combo": "Combo",
   "booking.services.from": "desde {price}",
   "booking.services.minutes": "{count} min",
-  "booking.services.empty": "No hay servicios con ese nombre.",
   "booking.services.emptyBranch": "Esta sede todavía no ofrece servicios en línea.",
   "booking.services.selected": "{count} servicio · {minutes} min",
   "booking.services.selected_plural": "{count} servicios · {minutes} min",

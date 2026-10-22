@@ -237,7 +237,7 @@ export function useChatBooking({
       const from = values.length > 0 ? Math.min(...values) : service.price;
       return { label: service.name, value: service.id, description: t("booking.agenda.whatSummary", { minutes: service.durationMin, price: fmt.money(from) }), ...(service.imageUrl ? { image: service.imageUrl } : {}) };
     });
-    ask(makeQuestion("services", t("booking.chat.servicesTitle"), entries, { hint: t("booking.chat.servicesHint"), searchPlaceholder: t("booking.services.search"), multiple: { confirmLabel: t("booking.services.next") } }), text);
+    ask(makeQuestion("services", t("booking.chat.servicesTitle"), entries, { hint: t("booking.chat.servicesHint"), multiple: { confirmLabel: t("booking.services.next") } }), text);
   };
 
   /** Lo que se está buscando: la cita en borrador o la que se está moviendo. */

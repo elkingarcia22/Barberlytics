@@ -267,7 +267,6 @@ export const bookingVariantsEs = {
   "booking.chat.whichService": "¿Qué **servicio** quieres? Elige en la lista o escríbemelo.",
   "booking.chat.barberLead": "¡Buena elección! {services}.",
   "booking.chat.barberTitle": "¿Con quién quieres ir?",
-  "booking.chat.barberSearch": "Buscar barbero",
   "booking.chat.anyBarberHint": "Te doy la hora más pronta con quien esté libre.",
   "booking.chat.dayTitle": "¿Qué día te queda bien?",
   "booking.chat.dayHintWith": "Te muestro los días de {name}.",

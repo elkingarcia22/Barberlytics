@@ -37,3 +37,27 @@ describe("ResourceDayGrid: ancho de las columnas", () => {
     expect(onColumnResize).toHaveBeenLastCalledWith("andres", null);
   });
 });
+
+describe("ResourceDayGrid: una columna por día", () => {
+  const MONDAY = new Date(2026, 8, 21);
+  const WEEK: ScheduleResource[] = [0, 1, 2].map((offset) => {
+    const date = new Date(2026, 8, 21 + offset);
+    return { id: `d${offset}`, name: `Día ${offset}`, date, workingHours: [{ start: "09:00", end: "18:00" }] };
+  });
+
+  test("cada columna enseña sus citas, su día en la cabecera y hoy resaltado", () => {
+    const events = [{ id: "e1", resourceId: "d1", start: new Date(2026, 8, 22, 10), end: new Date(2026, 8, 22, 11), title: "Marcela Gómez" }];
+    renderWithProviders(<ResourceDayGrid date={MONDAY} resources={WEEK} events={events} now={new Date(2026, 8, 23, 11)} />);
+    expect(screen.getByText("Marcela Gómez")).toBeInTheDocument();
+    expect(screen.getByText("23")).toHaveAttribute("aria-current", "date");
+    expect(screen.getByText("22")).not.toHaveAttribute("aria-current");
+  });
+
+  test("tocar un hueco devuelve la fecha de su columna, no la de la rejilla", () => {
+    const onSlotClick = vi.fn();
+    renderWithProviders(<ResourceDayGrid date={MONDAY} resources={WEEK} events={[]} now={MONDAY} startHour={9} endHour={10} onSlotClick={onSlotClick} />);
+    const [slot] = screen.getAllByRole("button", { name: /Día 2/ });
+    fireEvent.click(slot);
+    expect(onSlotClick).toHaveBeenCalledWith(expect.objectContaining({ resourceId: "d2", start: new Date(2026, 8, 23, 9) }));
+  });
+});

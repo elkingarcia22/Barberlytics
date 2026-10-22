@@ -53,6 +53,7 @@ import { useBlocksQuery, useCatalogQuery, useDayQuery, useRemoveBlock, useRhythm
 import { Palmtree, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalendarWeekView } from "./CalendarWeekView";
+import { CalendarWeekBarberView } from "./CalendarWeekBarberView";
 import { moveStart, reflowPlan, type ReflowPlan } from "./reflowModel";
 import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
@@ -93,6 +94,7 @@ import {
   newLinkId,
   isUnpaid,
   isUnconfirmed,
+  teamIds,
 } from "./calendarModel";
 import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TeamFilter, type TimeBlock, type WaitlistEntry } from "./types";
 
@@ -455,6 +457,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
   const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
+  // Con un solo barbero a la vista, la semana es su agenda por horas, no la tabla de ocupación del equipo.
+  const weekBarberIds = teamIds(team);
+  const weekBarber = weekBarberIds.length === 1 ? (ctx?.catalog.barbers.find((barber) => barber.id === weekBarberIds[0]) ?? null) : null;
 
   // Lo que el rol no puede hacer no se ofrece: ir a los horarios sin ver Equipo.
   const hiddenRailActions = React.useMemo(() => new Set(can.canViewTeam ? [] : ["work-hours"]), [can.canViewTeam]);
@@ -1118,7 +1123,30 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   onSelectDay={openDayPanel}
                 />
               ) : state.view === "week" ? (
-                <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} selectedDay={dayPanelDate} rhythm={rhythm.data} onSelectDay={openDayPanel} />
+                weekBarber ? (
+                  <CalendarWeekBarberView
+                    branchId={branchId}
+                    date={state.date}
+                    barber={weekBarber}
+                    ctx={ctx}
+                    now={nowDate}
+                    filters={filters}
+                    slotHeight={slotHeight}
+                    hideBlock={hideBlock}
+                    onSlotClick={onSlotClick}
+                    onOpenAppointment={(appointment) => {
+                      setPanel(null);
+                      state.openAppointmentKeepingView(parseLocal(appointment.start), appointment.id);
+                    }}
+                    onOpenBlock={(block, blockDate) => {
+                      state.setDate(blockDate);
+                      openBlock(block);
+                    }}
+                    appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
+                  />
+                ) : (
+                  <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} selectedDay={dayPanelDate} rhythm={rhythm.data} onSelectDay={openDayPanel} />
+                )
               ) : (
                 <QueryBoundary query={day} loading={<GridSkeleton />}>
                   {(data: CalendarDay) =>

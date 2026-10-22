@@ -1,9 +1,9 @@
 import * as React from "react";
 import { UserRound, Ban } from "lucide-react";
-import { findConflicts, ResourceDayGrid, SCHEDULE_DENSITIES, type ScheduleEvent } from "@/components/scheduling";
+import { findConflicts, ResourceDayGrid, SCHEDULE_DENSITIES, type ScheduleEvent, type ScheduleResource } from "@/components/scheduling";
 import { defineEntry, definePlayground } from "../types";
 import { ValueReadout } from "../date/_shared";
-import { DAY, EVENTS, GROUPED_EVENTS, SEGMENTED_EVENTS, NOW, PROPOSALS, RESOURCES, RESOURCES_WITH_ALERT } from "./_shared";
+import { at, DAY, EVENTS, GROUPED_EVENTS, SEGMENTED_EVENTS, NOW, PROPOSALS, RESOURCES, RESOURCES_WITH_ALERT } from "./_shared";
 
 const FRAME = "min-h-[36rem] items-start";
 
@@ -50,6 +50,27 @@ function PlaygroundDemo({ startHour, endHour, withNow, draggable }: { startHour:
 
 function BasicDemo() {
   return <ResourceDayGrid date={DAY} resources={RESOURCES} events={EVENTS} now={NOW} startHour={8} endHour={20} height="30rem" />;
+}
+
+/** La semana de Andrés: una columna por día (lunes 21 a domingo 27), cada una con su fecha. */
+const WEEK_DAYS = Array.from({ length: 7 }, (_, index) => at(21 + index));
+const WEEK_RESOURCES: readonly ScheduleResource[] = WEEK_DAYS.map((day, index) => ({
+  id: `d${index}`,
+  name: day.toLocaleDateString("es", { weekday: "long", day: "numeric" }),
+  subtitle: index === 6 ? "No trabaja" : `${(index % 3) + 1} citas`,
+  date: day,
+  workingHours: index === 6 ? [] : [{ start: "09:00", end: "19:00" }],
+}));
+const WEEK_EVENTS: readonly ScheduleEvent[] = [
+  { id: "w1", resourceId: "d0", start: at(21, 9), end: at(21, 9, 45), title: "Marcela Gómez", subtitle: "Corte clásico", status: { label: "Cobrada", tone: "positive" }, locked: true },
+  { id: "w2", resourceId: "d1", start: at(22, 11), end: at(22, 12), title: "Santiago Rojas", subtitle: "Corte + barba" },
+  { id: "w3", resourceId: "d2", start: at(23, 10, 30), end: at(23, 11), title: "Camila Torres", subtitle: "Cejas" },
+  { id: "w4", resourceId: "d4", start: at(25, 11, 30), end: at(25, 12, 15), title: "Mariana López", subtitle: "Fade", action: { label: "Ingresar", onClick: () => undefined } },
+  ...WEEK_DAYS.slice(0, 6).map((day, index) => ({ id: `l${index}`, resourceId: `d${index}`, start: at(day.getDate(), 13), end: at(day.getDate(), 14), title: "Almuerzo", kind: "block" as const, locked: true })),
+];
+
+function WeekDemo() {
+  return <ResourceDayGrid date={WEEK_DAYS[0]} resources={WEEK_RESOURCES} events={WEEK_EVENTS} now={NOW} startHour={8} endHour={20} height="30rem" />;
 }
 
 function DragDemo() {
@@ -185,6 +206,21 @@ export const resourceDayGridEntry = defineEntry({
       render: () => <BasicDemo />,
     },
     {
+      id: "week",
+      title: "La semana de una persona",
+      description:
+        "Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.",
+      layout: "stretch",
+      frameClassName: FRAME,
+      code: `<ResourceDayGrid
+  date={lunes}
+  resources={diasDeLaSemana.map((dia) => ({ id: clave(dia), name: nombreLargo(dia), subtitle: "3 citas", date: dia, workingHours: horario(dia) }))}
+  events={citas.map((cita) => ({ ...cita, resourceId: clave(cita.start) }))}
+  onSlotClick={({ start }) => crearCita({ barberId: andres.id, start })}
+/>`,
+      render: () => <WeekDemo />,
+    },
+    {
       id: "drag",
       title: "Mover y estirar",
       description:
@@ -295,7 +331,7 @@ export const resourceDayGridEntry = defineEntry({
   ],
   props: [
     { name: "date", type: "Date", description: "El día que se muestra." },
-    { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo." },
+    { name: "resources", type: "ScheduleResource[]", description: "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. Con `date`, la columna es ese día (la semana de una persona) y la cabecera pasa a ser el día." },
     { name: "events", type: "ScheduleEvent[]", description: "Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: \"block\"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, color, highlight, joinTop, joinBottom }) marca las citas enlazadas con un icono de su color y, resaltadas, un borde discontinuo de ese color; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema." },
     { name: "startHour / endHour", type: "number", default: "6 / 24", description: "Primera y última hora visibles (la última exclusiva)." },
     { name: "slotMinutes", type: "number", default: "30", description: "Minutos por franja; también el paso al arrastrar." },

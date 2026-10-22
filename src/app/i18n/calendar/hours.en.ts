@@ -2,7 +2,6 @@ import type { calendarHoursEs } from "./hours.es";
 
 export const calendarHoursEn: Record<keyof typeof calendarHoursEs, string> = {
   "hours.drawer.title": "Working hours",
-  "hours.drawer.hint": "Who works and when. Tap someone to change their shift.",
   "hours.drawer.working": "{count} working",
   "hours.drawer.total": "{hours} h in total",
   "hours.drawer.off": "Off",
@@ -122,4 +121,16 @@ export const calendarHoursEn: Record<keyof typeof calendarHoursEs, string> = {
   "hours.log.title": "Latest changes",
   "hours.log.empty": "No changes yet.",
   "hours.log.notified": "Notified",
+  "hours.view.question": "How do you want to see it?",
+  "hours.view.day": "Day",
+  "hours.view.week": "Week",
+  "hours.view.barber": "By barber",
+  "hours.view.mine": "My week",
+  "hours.drawer.whoWorks": "Working",
+  "hours.drawer.whoOff": "Off",
+  "hours.drawer.weekTitle": "The team's week",
+  "hours.drawer.barberWeek": "{name}'s week",
+  "hours.drawer.people": "{count} person(s)",
+  "hours.drawer.hoursShort": "{hours} h",
+  "hours.drawer.cycleWeek": "week {week} of {count} in the cycle",
 };

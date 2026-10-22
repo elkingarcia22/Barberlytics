@@ -1,7 +1,6 @@
 /** El horario de trabajo: el drawer del calendario y el editor de turno que comparte con Equipo › Horas de trabajo. */
 export const calendarHoursEs = {
   "hours.drawer.title": "Horario de trabajo",
-  "hours.drawer.hint": "Quién trabaja y en qué horas. Toca a alguien para cambiar su turno.",
   "hours.drawer.working": "{count} trabajan",
   "hours.drawer.total": "{hours} h en total",
   "hours.drawer.off": "Libre",
@@ -123,4 +122,16 @@ export const calendarHoursEs = {
   "hours.log.title": "Últimos cambios",
   "hours.log.empty": "Sin cambios todavía.",
   "hours.log.notified": "Avisado",
+  "hours.view.question": "¿Cómo lo quieres ver?",
+  "hours.view.day": "Día",
+  "hours.view.week": "Semana",
+  "hours.view.barber": "Por barbero",
+  "hours.view.mine": "Mi semana",
+  "hours.drawer.whoWorks": "Trabajan",
+  "hours.drawer.whoOff": "Libres",
+  "hours.drawer.weekTitle": "La semana del equipo",
+  "hours.drawer.barberWeek": "La semana de {name}",
+  "hours.drawer.people": "{count} persona(s)",
+  "hours.drawer.hoursShort": "{hours} h",
+  "hours.drawer.cycleWeek": "semana {week} de {count} del ciclo",
 } as const;

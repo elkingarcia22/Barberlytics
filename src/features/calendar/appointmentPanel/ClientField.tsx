@@ -20,9 +20,9 @@ import type { AppointmentModel } from "./useAppointmentModel";
  * El cliente como una tarjeta más de la cita, como el servicio o el barbero:
  * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» es su resumen: la
  * membresía y, en orden, lo que el barbero y el negocio deben saber antes de
- * atenderlo (actitud, alergias, si cumple, si se está perdiendo, la última vez,
- * su nota, su barbero), cada punto como entrada a su pestaña de la página, y el
- * contacto. Se puede cambiar de cliente (se agendó a
+ * atenderlo (si cumple, si se está perdiendo, la última vez, su nota, su
+ * barbero; la actitud y la salud ya van arriba en la cita), cada punto como
+ * entrada a su pestaña de la página, y el contacto. Se puede cambiar de cliente (se agendó a
  * otro, o a nombre de quien llamó) hasta cobrar; el barbero de comisión, solo
  * mientras no ha llegado.
  */

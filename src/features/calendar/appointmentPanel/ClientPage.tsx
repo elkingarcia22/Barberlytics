@@ -9,8 +9,8 @@ import { Stepper, ThemaTabs } from "@/components/navigation";
 import { AppointmentNotesTab } from "../appointmentTabs/AppointmentNotesTab";
 import { JOURNEY, type ModelContext } from "../calendarModel";
 import { CLIENT_TYPE_KEYS } from "../types";
-import { ActionButton, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
-import { ConductAlert, ConductSection } from "./ClientConduct";
+import { ActionButton, LoyaltyStrip } from "./PanelParts";
+import { ConductSection } from "./ClientConduct";
 import { LoyaltyFacts, VisitGaps, VisitList } from "./ClientHistory";
 import { lastVisitOf, useClientVisits } from "./clientVisits";
 import type { ClientTab } from "./clientHighlightsModel";
@@ -21,8 +21,8 @@ import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
  * El cliente dentro del panel (la tarjeta de la cita está en `ClientField`):
  * la fila que resume quién es y lleva a su página. La página va en cuatro
  * pestañas, por lo que se pregunta: «Resumen» (membresía, si cumple, su
- * recorrido nuevo → VIP, contacto y la ficha completa), «Cuidado» (actitud
- * reportada, alergias y medicamentos, y sus notas), «Visitas» (su ritmo, los
+ * recorrido nuevo → VIP, contacto y la ficha completa), «Cuidado» (sus notas
+ * por tipo —alergias y medicamentos incluidos— y la actitud reportada), «Visitas» (su ritmo, los
  * días entre visitas y todas las visitas) y «Fidelidad» (con qué barbero se
  * queda). Cada punto de «Sobre {nombre}» abre la suya.
  */
@@ -165,13 +165,7 @@ export function ClientPageContent({ model, ctx, onOpenClient, onReportConduct, i
 
       {tab === "care" && (
         <div className="flex flex-col gap-6" data-testid="panel-client-tab-care">
-          {(model.critical.length > 0 || model.conduct.length > 0) && (
-            <Group title={t("calendar.panel.client.careTitle")}>
-              <ConductAlert model={model} compact />
-              <CriticalAlerts model={model} compact />
-            </Group>
-          )}
-          {/* Las notas del cliente: verlas por tipo, dejar una nueva y corregir o borrar cada una, como en la pestaña «Notas». */}
+          {/* Sin avisos encima: alergias y medicamentos ya son notas aquí (por tipo) y la actitud va en su sección; repetirlos era leer lo mismo dos veces. */}
           <AppointmentNotesTab client={known} />
           <Group title={t("calendar.conduct.title")}>
             <ConductSection model={model} onReport={onReportConduct} />

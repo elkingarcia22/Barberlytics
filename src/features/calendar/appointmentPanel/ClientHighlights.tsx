@@ -1,10 +1,9 @@
-import { CalendarCheck, Flag, History, Pill, Scissors, StickyNote, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
+import { CalendarCheck, History, Scissors, StickyNote, UserRound, type LucideIcon } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { IconTile } from "@/components/utility/IconTile";
 import type { ModelContext } from "../calendarModel";
-import { useReasonsLine } from "./ClientConduct";
 import { clientHighlights, type ClientHighlight, type ClientTab } from "./clientHighlightsModel";
 import { useClientVisits } from "./clientVisits";
 import type { AppointmentModel } from "./useAppointmentModel";
@@ -15,8 +14,6 @@ import type { AppointmentModel } from "./useAppointmentModel";
  */
 
 const ICONS: Readonly<Record<ClientHighlight["kind"], LucideIcon>> = {
-  conduct: Flag,
-  health: Pill,
   reliability: CalendarCheck,
   rhythm: History,
   lastVisit: Scissors,
@@ -29,14 +26,11 @@ const SHORT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" 
 export function ClientHighlights({ model, ctx, onOpen }: { model: AppointmentModel; ctx: ModelContext; onOpen: (tab: ClientTab) => void }) {
   const t = useAppT();
   const { formatDate } = useLocale();
-  const reasonsOf = useReasonsLine();
   const known = model.known;
   const visits = useClientVisits(known?.id);
   if (!known) return null;
   const preferred = known.preferredBarberId ? ctx.catalog.barbers.find((barber) => barber.id === known.preferredBarberId) : undefined;
   const items = clientHighlights({
-    conduct: model.conduct,
-    critical: model.critical,
     notes: model.notes,
     visits: known.visits,
     noShows: known.noShows,
@@ -52,10 +46,6 @@ export function ClientHighlights({ model, ctx, onOpen }: { model: AppointmentMod
 
   const text = (item: ClientHighlight): { title: string; description?: string } => {
     switch (item.kind) {
-      case "conduct":
-        return { title: item.count > 1 ? t("calendar.conduct.count", { count: item.count }) : t("calendar.conduct.tag"), description: [reasonsOf(item.report), item.report.text].filter(Boolean).join(" · ") };
-      case "health":
-        return { title: t(item.note.kind === "allergy" ? "calendar.detail.allergy" : "calendar.detail.medication"), description: item.note.text };
       case "reliability":
         return { title: t("calendar.panel.highlight.visits", { count: item.visits }), description: t("calendar.panel.highlight.reliability", { noShows: item.noShows, cancellations: item.cancellations }) };
       case "rhythm":
@@ -79,11 +69,11 @@ export function ClientHighlights({ model, ctx, onOpen }: { model: AppointmentMod
   return (
     <ListItemGroup aria-label={t("calendar.panel.highlight.title")} data-testid="panel-client-highlights">
       {items.map((item) => {
-        const Icon = item.kind === "health" && item.note.kind === "allergy" ? TriangleAlert : ICONS[item.kind];
+        const Icon = ICONS[item.kind];
         const { title, description } = text(item);
         return (
           <ListItem
-            key={item.kind === "health" ? `health-${item.note.id}` : item.kind}
+            key={item.kind}
             size="sm"
             leading={<IconTile size="sm" shape="circle" tone={item.tone} icon={<Icon />} />}
             title={title}

@@ -5,8 +5,6 @@ import { clientHighlights, type HighlightsInput } from "./clientHighlightsModel"
 const visit = (start: string, barberId: string | null, service = "Fade"): CustomerAppointment => ({ id: start, service, start, barber: barberId ? "Andrés" : null, barberId, source: "internal", requestedBarber: false, status: "completed", total: 30 });
 
 const base: HighlightsInput = {
-  conduct: [],
-  critical: [],
   notes: [],
   visits: 6,
   noShows: 0,
@@ -21,16 +19,12 @@ const base: HighlightsInput = {
 };
 
 describe("clientHighlights", () => {
-  test("lo que hay que cuidar va primero y cada punto lleva a su pestaña", () => {
+  test("cada punto lleva a su pestaña, en orden; la actitud y la salud no se repiten (van arriba en la cita)", () => {
     const items = clientHighlights({
       ...base,
-      conduct: [{ id: "c1", reasons: ["rude"], text: "Fue grosero", appointmentId: null, by: "Ana", createdAt: "2026-10-01T10:00:00.000Z" }],
-      critical: [{ id: "n1", kind: "medication", text: "Anticoagulantes", createdAt: "2026-09-01T10:00:00.000Z" }],
       notes: [{ id: "n2", kind: "note", text: "Le gusta corto", createdAt: "2026-09-02T10:00:00.000Z" }],
     });
     expect(items.map((item) => [item.kind, item.tab])).toEqual([
-      ["conduct", "care"],
-      ["health", "care"],
       ["reliability", "visits"],
       ["rhythm", "visits"],
       ["lastVisit", "visits"],

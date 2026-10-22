@@ -1,12 +1,12 @@
 import { differenceInCalendarDays } from "date-fns";
 import type { CustomerAppointment } from "@/features/customers/types";
-import type { ClientNote, ConductReport } from "../types";
+import type { ClientNote } from "../types";
 import { barberLoyalty, completedVisits, lastVisitOf } from "./clientVisits";
 
 /**
- * Lo primero que se lee de un cliente en «Sobre {nombre}», en el orden en que importa: lo que el
- * barbero debe cuidar (actitud, alergias, medicamentos), si cumple, si se está perdiendo, qué se hizo
- * la última vez, su nota y con quién se queda. Cada punto lleva a su pestaña de la página.
+ * Lo primero que se lee de un cliente en «Sobre {nombre}», en el orden en que importa: si cumple, si
+ * se está perdiendo, qué se hizo la última vez, su nota y con quién se queda. La actitud, alergias y
+ * medicamentos no van: ya salen arriba en la cita (etiquetas y avisos). Cada punto lleva a su pestaña.
  */
 
 export type ClientTab = "summary" | "care" | "visits" | "loyalty";
@@ -14,8 +14,6 @@ export type ClientTab = "summary" | "care" | "visits" | "loyalty";
 export type HighlightTone = "negative" | "warning" | "neutral";
 
 export type ClientHighlight =
-  | { kind: "conduct"; tab: "care"; tone: "negative"; report: ConductReport; count: number }
-  | { kind: "health"; tab: "care"; tone: "warning"; note: ClientNote }
   | { kind: "reliability"; tab: "visits"; tone: HighlightTone; visits: number; noShows: number; cancellations: number }
   | { kind: "rhythm"; tab: "visits"; tone: HighlightTone; daysSince: number; every: number | null; overdue: boolean }
   | { kind: "lastVisit"; tab: "visits"; tone: "neutral"; visit: CustomerAppointment }
@@ -26,8 +24,6 @@ export type ClientHighlight =
 export const OVERDUE_FACTOR = 1.5;
 
 export interface HighlightsInput {
-  conduct: readonly ConductReport[];
-  critical: readonly ClientNote[];
   notes: readonly ClientNote[];
   visits: number;
   noShows: number;
@@ -43,9 +39,6 @@ export interface HighlightsInput {
 
 export function clientHighlights(input: HighlightsInput): ClientHighlight[] {
   const out: ClientHighlight[] = [];
-  const [report] = input.conduct;
-  if (report) out.push({ kind: "conduct", tab: "care", tone: "negative", report, count: input.conduct.length });
-  for (const note of input.critical) out.push({ kind: "health", tab: "care", tone: "warning", note });
   out.push({ kind: "reliability", tab: "visits", tone: input.noShows > 0 ? "warning" : "neutral", visits: input.visits, noShows: input.noShows, cancellations: input.cancellations });
   const lastVisit = lastVisitOf(input.history, input.lastVisit);
   if (lastVisit) {

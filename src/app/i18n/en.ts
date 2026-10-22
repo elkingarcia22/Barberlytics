@@ -1116,7 +1116,6 @@ export const appEn: AppMessageCatalog = {
   "agent.metrics.2": "Which service brings in the most money?",
   "agent.metrics.3": "How many new clients came back?",
   "agent.metrics.4": "What does retention rate mean?",
-  "calendar.action.assistant": "Day summary with Clipper",
   "agent.name": "Clipper",
   "calendar.pulse.allStates": "All statuses",
   "calendar.pulse.toCollect": "To collect",

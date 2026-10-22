@@ -386,7 +386,7 @@ Router, providers, layout, navegación y páginas de error.
 ### layouts
 
 - **AgentButton.tsx** — El agente de IA en la cabecera de todas las pantallas: un botón del mismo tamaño que las demás acciones, con… · `AgentButton` · piezas: AiSparkGlyph, Button, useRailVisible · usa: @/app/i18n
-- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, BARBERLYTICS_DEFAULT_LOGO, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/feedback, @/features/legal, @/features/personalization, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
+- **AppLayout.tsx** · `AppLayout` · piezas: AdminShell, AiSparkGlyph, BARBERLYTICS_DEFAULT_LOGO, ChatPanel, ChatProvider, ChatScreen, ChatVoiceMode, ClipperIcon, CommentsToggle, PageHeaderExtrasProvider, PersonalizationMenu, RailAgentProvider · usa: @/features/access, @/features/auth, @/features/branches, @/features/branding, @/features/calendar, @/features/clipper, @/features/comments, @/features/feedback, @/features/legal, @/features/personalization, @/features/settings, @/features/team, @/help/HelpGuidesDrawer, @/help/content, @/i18n, @/lib/api, @/lib/chat, @/themes
 
 - **lazyPages.ts** — Cada pantalla se carga en diferido: el primer render solo trae el shell. · `DashboardPage`, `CalendarPage`, `CustomersPage`, `CampaignsPage`, `CustomerProfilePage`, `ServicesPage`, `ServiceProfilePage`, `ServiceOrderPage`, `ProductsPage`, `ProductProfilePage`, `TransactionsPage`, `ExpensesPage`, `PayrollPage`, `MyPayPage`, `MemberProfilePage`, `MemberWizardPage`, `WorkHoursPage`, `LevelsPage`, `BarberOrderPage`, `LineupPage`, `AbsencesPage`, `MetricsPage`, `TeamHomePage`, `DocsApp`, `BookingPage`, `LegalPage`, `TurnBoardPage`, `KioskPage`, `ConfirmAppointmentPage`, `DepositPayPage`, `HelpApp`, `SettingsPage`, `SettingsSectionPage`, `SectionPlaceholderPage`, `PayslipPage`, `IncomeCertificatePage`
 - **navigation.ts** — El árbol con los rótulos ya traducidos. · `buildAppNavigation`, `APP_NAVIGATION`, `findActiveNavId`, `showsLegalFooter` · usa: @/features/access
@@ -441,7 +441,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 
 - **BookingAppearance.tsx** — Las páginas que ve el cliente fuera de la reserva (confirmar la cita, pagar el anticipo), con su apariencia. · `BookingAppearance` · usa: @/app/i18n, @/i18n
 - **BookingFlow.tsx** · `BookingFlowProps`, `BookingFlow` · piezas: Grain, Halo, PortalContainerProvider, Skeleton, ThemaToaster · usa: @/app/i18n, @/lib/query, @/lib/utils
-- **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, CommentLayer, CommentsPanel, CommentsProvider, CommentsToggle, Grain, SegmentedControl, Text · usa: @/app/i18n, @/i18n, @/icons, @/themes
+- **BookingPage.tsx** — «Agendamiento online»: la reserva que ve el cliente de la barbería. · `BookingPage` · piezas: Badge, Button, CommentLayer, CommentsPanel, CommentsProvider, CommentsToggle, Grain, SegmentedControl, Text · usa: @/app/i18n, @/i18n, @/icons, @/lib/comments, @/themes
 - **ConfirmAppointmentPage.tsx** — Lo ve el cliente: con la apariencia y el idioma que eligió la barbería para la reserva. · `ConfirmAppointmentPage` · llama: POST /booking/confirm · piezas: EmptyState, Spinner, Text · usa: @/app/i18n, @/i18n, @/lib/api
 - **DepositPayPage.tsx** — Lo ve el cliente: con la apariencia y el idioma que eligió la barbería para la reserva. · `DepositPayPage` · piezas: Button, EmptyState, Heading, Spinner, Text · usa: @/app/i18n, @/features/calendar, @/i18n, @/lib/api
 - **api.ts** — Contrato de la reserva en línea; ver docs/API_CONTRACT.md. · `bookingApi` · llama: GET /booking/shop, GET /booking/branches/${branchId}, GET /booking/catalog, GET /booking/availability, GET /booking/alternatives, GET /booking/earliest, POST /booking/waitlist, DELETE /booking/waitlist/${id}, GET /booking/me/suggestion, POST /booking/customers, PATCH /booking/me/cards/${id}, DELETE /booking/me/cards/${id}, POST /booking/promo, POST /booking/reservations, POST /booking/phone/check, POST /booking/otp/request, POST /booking/otp/verify, GET /booking/me/appointments, PATCH /booking/appointments/${id}, GET /booking/barbers/${barberId}/reviews, POST /booking/appointments/${id}/review, POST /booking/events, GET /booking/funnel, POST /booking/packages/buy, POST /booking/gift-cards/check, POST /booking/gift-cards, POST /booking/appointments/${id}/repeat, POST /booking/appointments/${id}/cancel, POST /booking/reservations/${reservationId}/details, POST /booking/reservations/${reservationId}/receipt · usa: @/lib/api
@@ -795,6 +795,10 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 ### clipper/evals
 
 - **questions.ts** — El conjunto de evaluación de Clipper (informe 11, P0 «Evaluaciones y registro»): preguntas como las hace el e… · `EvalVariant`, `EvalExpect`, `EvalQuestion`, `CLIPPER_EVALS` · usa: @/lib/clipper
+
+### comments
+
+- **PlatformComments.tsx** — Los comentarios de revisión en toda la plataforma, los mismos de la reserva en línea: el botón va en la cabec… · `PlatformCommentsProvider`, `PlatformCommentLayer`, `PlatformCommentsPanel` · piezas: CommentLayer, CommentsPanel, CommentsProvider, SidePanelShell, useComments · usa: @/features/booking, @/lib/comments
 
 ### customers
 
@@ -1192,6 +1196,11 @@ Cliente de API, consultas y utilidades sin interfaz.
 ### clipper
 
 - **toolCatalog.ts** — Las herramientas de Clipper: qué puede consultar y proponer, y quién. · `ClipperRole`, `ClipperToolSpec`, `CLIPPER_TOOLS`, `ClipperToolName`, `isClipperRole`, `toolsFor`
+
+### comments
+
+- **locate.ts** — «Botón «Guardar cambios»»: el elemento concreto bajo el clic, o el texto más cercano si no hay uno. · `describeElement`, `describeSection`, `describeModule`, `LocateOptions`, `locateCommentPoint`
+- **scope.ts** — La reserva en línea y la plataforma guardan sus comentarios en la misma hoja. · `PLATFORM_CONTEXT_PREFIX`, `platformContextOf`, `isPlatformThread`, `isBookingThread`
 
 ### help
 

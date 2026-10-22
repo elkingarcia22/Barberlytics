@@ -82,7 +82,8 @@ async function sendEvents(events: CommentEvent[]): Promise<boolean> {
  *
  * «No leído» es de cada navegador: no se guarda, se calcula con lo que llega de otras personas.
  */
-export function useSharedComments(author: CommentAuthor) {
+export function useSharedComments(author: CommentAuthor, options: { include?: (thread: CommentThread) => boolean } = {}) {
+  const { include } = options;
   const [remote, setRemote] = React.useState<CommentEvent[]>([]);
   const [pending, setPending] = React.useState<CommentEvent[]>([]);
   const [unreadIds, setUnreadIds] = React.useState<ReadonlySet<string>>(new Set());
@@ -95,11 +96,18 @@ export function useSharedComments(author: CommentAuthor) {
     return [...remote, ...pending.filter((event) => !confirmed.has(event.id))];
   }, [remote, pending]);
   const base = React.useMemo(() => reduceEvents(events), [events]);
-  const threads = React.useMemo<CommentThread[]>(() => base.map((thread) => ({ ...thread, unread: unreadIds.has(thread.id) })), [base, unreadIds]);
-  const threadsRef = React.useRef(threads);
+  // Todos los hilos de la hoja; `threadsRef` los guarda todos para que el cambio de una sola parte
+  // (la reserva o la plataforma) no se lea como si se hubieran borrado los de la otra.
+  const allThreads = React.useMemo<CommentThread[]>(() => base.map((thread) => ({ ...thread, unread: unreadIds.has(thread.id) })), [base, unreadIds]);
+  const threadsRef = React.useRef(allThreads);
   React.useLayoutEffect(() => {
-    threadsRef.current = threads;
-  }, [threads]);
+    threadsRef.current = allThreads;
+  }, [allThreads]);
+  const includeRef = React.useRef(include);
+  React.useLayoutEffect(() => {
+    includeRef.current = include;
+  }, [include]);
+  const threads = React.useMemo(() => (include ? allThreads.filter(include) : allThreads), [allThreads, include]);
 
   const pendingRef = React.useRef(pending);
   React.useLayoutEffect(() => {
@@ -163,7 +171,10 @@ export function useSharedComments(author: CommentAuthor) {
   }, [flush, receive]);
 
   const onThreadsChange = React.useCallback(
-    (next: CommentThread[]) => {
+    (nextScoped: CommentThread[]) => {
+      // Lo que llega es solo la parte visible: se le suman los hilos de fuera del alcance tal como están.
+      const scope = includeRef.current;
+      const next = scope ? [...threadsRef.current.filter((thread) => !scope(thread)), ...nextScoped] : nextScoped;
       const added = diffThreads(threadsRef.current, next, author);
       setUnreadIds(new Set(next.filter((thread) => thread.unread).map((thread) => thread.id)));
       if (added.length === 0) return;

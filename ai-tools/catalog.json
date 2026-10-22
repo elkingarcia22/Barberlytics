@@ -1,5 +1,5 @@
 {
-  "sourceHash": "0748753794c0bce4",
+  "sourceHash": "3d99d5abf71fc162",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -5658,6 +5658,12 @@
           "description": "Oculta el pill flotante inferior 'Haz clic donde quieras comentar' en modo comentar."
         },
         {
+          "name": "locate",
+          "type": "(point: { x: number; y: number }) => CommentLocation | undefined",
+          "default": null,
+          "description": "Describe dónde cayó el clic (ruta, módulo, sección y elemento) a partir de sus coordenadas en la ventana; queda en el hilo (`thread.location`) y el panel lo muestra. En la app se usa `locateCommentPoint` de `@/lib/comments/locate`, que salta la capa de clics (`data-comment-overlay`) para leer lo que hay debajo."
+        },
+        {
           "name": "className",
           "type": "string",
           "default": null,
@@ -5692,7 +5698,7 @@
       "id": "comments-panel",
       "name": "CommentsPanel",
       "group": "comments",
-      "description": "Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.",
+      "description": "Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Si el hilo trae `location`, la lista muestra la sección y el elemento, y el detalle, módulo, sección y elemento. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.",
       "import": "import { CommentsPanel } from \"@/components/comments\"",
       "source": "src/components/comments/CommentsPanel.tsx",
       "status": "stable",

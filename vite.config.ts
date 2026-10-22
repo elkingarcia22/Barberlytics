@@ -11,11 +11,12 @@ import * as whatsappQueue from "./api/whatsapp/queue"
 import * as whatsappWebhook from "./api/whatsapp/webhook"
 import { GET as whatsappInbox } from "./api/whatsapp/inbox"
 import { POST as smsInbound } from "./api/sms/inbound"
+import * as comments from "./api/comments/index"
 import { serverFunctionsInDev } from "./server/http/devServer"
 import { runDue } from "./server/whatsapp/queue"
 
 /**
- * La voz de Clipper, Clipper, la narración, la sesión firmada y la cola de WhatsApp también en local,
+ * La voz de Clipper, Clipper, la narración, la sesión firmada, la cola de WhatsApp y los comentarios también en local,
  * con el mismo código que Vercel (ver server/http/devServer). El servidor de desarrollo hace además de
  * cron: cada 30 s envía lo que ya toca de la cola.
  */
@@ -31,6 +32,9 @@ const serverFunctions = serverFunctionsInDev(
     "/api/whatsapp/webhook": { GET: whatsappWebhook.GET, POST: whatsappWebhook.POST },
     "/api/whatsapp/inbox": { GET: whatsappInbox },
     "/api/sms/inbound": { POST: smsInbound },
+    // Los comentarios de revisión (reserva y plataforma) van a la hoja de Google si hay cuenta de servicio;
+    // sin ella responde 503 y los comentarios siguen en memoria.
+    "/api/comments": { GET: comments.GET, POST: comments.POST },
   },
   { tick: () => runDue() }
 )

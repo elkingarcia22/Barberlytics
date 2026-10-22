@@ -1,6 +1,6 @@
 # CommentsPanel
 
-Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.
+Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Si el hilo trae `location`, la lista muestra la sección y el elemento, y el detalle, módulo, sección y elemento. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.
 
 Familia: Comentarios · Doc: `/docs#/components/comments-panel` · Fuente: `src/components/comments/CommentsPanel.tsx`
 

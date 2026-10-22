@@ -324,7 +324,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
 
   // ── Client: summary and full page ──
   "calendar.panel.client.contact": "Contact",
-  "calendar.panel.client.important": "What matters",
   "calendar.panel.client.latestNote": "Note",
   "calendar.panel.client.moreNotes": "+{count} more note(s) on their page",
   "calendar.panel.client.loyaltyTitle": "Loyalty",

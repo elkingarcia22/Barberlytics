@@ -339,7 +339,6 @@ export const calendarPanelEs = {
 
   // ── El cliente: resumen y página completa ──
   "calendar.panel.client.contact": "Contacto",
-  "calendar.panel.client.important": "Lo importante",
   "calendar.panel.client.latestNote": "Nota",
   "calendar.panel.client.moreNotes": "+{count} nota(s) más en su página",
   "calendar.panel.client.loyaltyTitle": "Fidelidad",

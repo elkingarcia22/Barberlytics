@@ -44,7 +44,7 @@ describe("clientTags", () => {
   test("warns about reported behavior before anything else about the client", () => {
     const report = { id: "r1", reasons: ["rude"], text: "", appointmentId: null, by: "Recepción", createdAt: "2026-10-01T10:00:00.000Z" } as const;
     const tag = clientTags(model({ conduct: [{ ...report, reasons: [...report.reasons] }] }), t).find((item) => item.id === "conduct");
-    expect(tag?.tone).toBe("danger");
+    expect(tag).toMatchObject({ tone: "danger", label: "calendar.conduct.reason.rude" });
   });
 
   test("marks a ready reward when the membership is full", () => {

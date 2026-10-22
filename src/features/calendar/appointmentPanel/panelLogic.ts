@@ -2,7 +2,7 @@ import { isSameDay } from "date-fns";
 import type { useAppT } from "@/app/i18n";
 import { appointmentEnd, appointmentStart, durationLabel, isFirstVisit } from "../calendarModel";
 import type { AppointmentActionId } from "../appointmentPlaybook";
-import { PAYMENT_METHOD_KEYS, type AppointmentStatus } from "../types";
+import { CONDUCT_REASON_KEYS, PAYMENT_METHOD_KEYS, type AppointmentStatus } from "../types";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
 /** La lógica de las piezas del panel que no pinta nada: etiquetas, reloj y reparto de acciones. */
@@ -28,8 +28,9 @@ export function clientTags(model: AppointmentModel, t: Translate, options: { ope
   if (requested) tags.push({ id: "requested", label: t("calendar.panel.tag.requested", { name: requested.name.split(" ")[0] }), tone: "neutral" });
   if (appointment.referencePhotos?.length) tags.push({ id: "photo", label: t("calendar.panel.tag.photo"), tone: "neutral" });
   if (options.operational) return tags;
-  // La actitud reportada se ve antes de atenderlo: el porqué está en su tarjeta y en su página.
-  if (model.conduct.length > 0) tags.push({ id: "conduct", label: t("calendar.conduct.tag"), tone: "danger" });
+  // La actitud reportada se ve antes de atenderlo, dicha tal cual («Fue grosero»): el último reporte; los demás, en su página.
+  const [conduct] = model.conduct;
+  if (conduct) tags.push({ id: "conduct", label: conduct.reasons.map((reason) => t(CONDUCT_REASON_KEYS[reason])).join(" · "), tone: "danger" });
   if (known && known.noShows > 0) tags.push({ id: "noShows", label: known.noShows === 1 ? t("calendar.panel.tag.noShowsOne") : t("calendar.panel.tag.noShows", { count: known.noShows }), tone: "warning" });
   // Lo que la barbería le restringió: se ve donde se decide (y se cambia en los atajos de la cita cerrada).
   if (known?.blocked) tags.push({ id: "blocked", label: t("calendar.panel.tag.blocked"), tone: "danger" });

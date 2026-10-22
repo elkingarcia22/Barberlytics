@@ -12,16 +12,14 @@ import { ClientAvatar } from "../calendarShared";
 import { matchesPerson } from "@/lib/search/personSearch";
 import { CLIENT_TYPE_KEYS, type Appointment, type AppointmentPatch } from "../types";
 import { ClientSummaryRow, Fact } from "./ClientPage";
-import { ConductAlert } from "./ClientConduct";
-import { ActionButton, CriticalAlerts } from "./PanelParts";
+import { ActionButton } from "./PanelParts";
 import { InlineList, PanelField } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
  * El cliente como una tarjeta más de la cita, como el servicio o el barbero:
- * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» es su resumen: lo
- * importante primero (la actitud reportada, alergias y medicamentos, su última
- * nota), luego lo que se pregunta en el mostrador (membresía y ritmo, visitas,
+ * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» es su resumen: su
+ * última nota (la actitud y la salud ya van en las etiquetas de arriba), luego lo que se pregunta en el mostrador (membresía y ritmo, visitas,
  * barbero de siempre, contacto) y el paso a su página, donde está todo. Se puede cambiar de cliente (se agendó a
  * otro, o a nombre de quien llamó) hasta cobrar; el barbero de comisión, solo
  * mientras no ha llegado.
@@ -95,7 +93,7 @@ function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: App
     >
       <div className="flex flex-col gap-3" data-testid="panel-client-who">
         <ClientSummaryRow model={model} onOpen={onOpenPage} />
-        <ClientImportant model={model} />
+        <ClientLatestNote model={model} />
         <div className="px-1">
           <Fact label={t("calendar.panel.client.visits")} value={String(known.visits)} />
           <Fact label={t("calendar.client.lastVisit")} value={model.lastVisit ? `${formatDate(model.lastVisit, { day: "numeric", month: "short" })}${daysSince !== null ? ` · ${t("calendar.panel.client.lastValue", { days: daysSince })}` : ""}` : "—"} />
@@ -122,29 +120,26 @@ function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: App
   );
 }
 
-/** Lo que no se puede pasar por alto antes de atenderlo: la actitud, la salud y su última nota (el resto, en su página). */
-function ClientImportant({ model }: { model: AppointmentModel }) {
+/**
+ * Su última nota (el resto, en su página). La actitud, alergias y medicamentos
+ * no se repiten aquí: ya van en las etiquetas y alertas de arriba de la cita.
+ */
+function ClientLatestNote({ model }: { model: AppointmentModel }) {
   const t = useAppT();
   const [latest, ...older] = model.notes;
-  if (model.conduct.length === 0 && model.critical.length === 0 && !latest) return null;
+  if (!latest) return null;
   return (
-    <section aria-label={t("calendar.panel.client.important")} className="flex flex-col gap-2" data-testid="panel-client-important">
-      <ConductAlert model={model} compact />
-      <CriticalAlerts model={model} compact />
-      {latest && (
-        <div className="flex flex-col gap-0.5 rounded-xl bg-surface-subtle px-3 py-2">
-          <Text size="xs" tone="muted">
-            {t("calendar.panel.client.latestNote")}
-          </Text>
-          <Text size="sm" className="line-clamp-2">
-            {latest.text}
-          </Text>
-          {older.length > 0 && (
-            <Text size="xs" tone="muted">
-              {t("calendar.panel.client.moreNotes", { count: older.length })}
-            </Text>
-          )}
-        </div>
+    <section aria-label={t("calendar.panel.client.latestNote")} className="flex flex-col gap-0.5 rounded-xl bg-surface-subtle px-3 py-2" data-testid="panel-client-important">
+      <Text size="xs" tone="muted">
+        {t("calendar.panel.client.latestNote")}
+      </Text>
+      <Text size="sm" className="line-clamp-2">
+        {latest.text}
+      </Text>
+      {older.length > 0 && (
+        <Text size="xs" tone="muted">
+          {t("calendar.panel.client.moreNotes", { count: older.length })}
+        </Text>
       )}
     </section>
   );

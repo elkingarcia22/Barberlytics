@@ -1,6 +1,7 @@
 import * as React from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarX2, Palmtree, Plus, Stethoscope, UserRound } from "lucide-react";
+import { SaleCard, SaleCardHead } from "../saleParts";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -30,8 +31,9 @@ import { AbsenceReview, BlockReview } from "./TimeOffReview";
 import { PanelFooter } from "@/components/overlays";
 
 /**
- * Las ausencias y los bloqueos del equipo en un panel junto a la agenda, como
- * los huecos: arriba lo que falta aprobar; filtros por tipo y por estado; cada
+ * Las ausencias y los bloqueos del equipo en un panel junto a la agenda, con la
+ * cara de «Crear cita»: la tarjeta teñida con lo que falta aprobar arriba;
+ * filtros por estado y por tipo; un solo botón abajo para agregar; cada
  * fila abre su revisión (días, citas afectadas, el equipo esos días) con
  * aprobar o rechazar. Desde aquí también se agregan vacaciones, una incapacidad
  * o un permiso o se bloquea una franja, en una página propia del panel (la
@@ -106,6 +108,7 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
   const shownAbsences = absences.filter((item) => (kind === "all" || kind === item.kind) && (status === "all" || item.status === status));
   const shownBlocks = kind === "all" || kind === "block" ? pendingBlocks.filter((block) => !block.id.startsWith("blk_abs_")) : [];
   const pendingCount = absences.filter((item) => item.status === "pending").length + (blocksQuery.data?.items ?? []).filter((block) => block.status === "pending").length;
+  const upcomingBlocks = (blocksQuery.data?.items ?? []).filter((block) => block.endDate >= today && !block.id.startsWith("blk_abs_")).length;
 
   const range = (startDate: string, endDate: string) => {
     const days = daysOf(startDate, endDate);
@@ -139,45 +142,59 @@ export function TimeOffDrawer({ open, onOpenChange, ctx, branchId, focus = null,
         );
     }
     return (
-      <div className="flex flex-col gap-4" data-testid="time-off">
-        <div className="flex flex-col gap-2">
-          <SegmentedControl
-            size="sm"
-            value={status}
-            onChange={(value) => setStatus(value as Status)}
-            options={[
-              { value: "pending", label: pendingCount > 0 ? `${t("calendar.timeOff.pending")} · ${pendingCount}` : t("calendar.timeOff.pending") },
-              { value: "approved", label: t("calendar.timeOff.approvedShort") },
-              { value: "all", label: t("calendar.timeOff.all") },
-            ]}
+      <div data-testid="time-off">
+        <SaleCard testId="time-off-cards">
+          <SaleCardHead
+            eyebrow={t("calendar.timeOff.title")}
+            title={pendingCount > 0 ? t("calendar.timeOff.headPending", { count: pendingCount }) : t("calendar.timeOff.headNone")}
+            lead={t("calendar.timeOff.headLead", { absences: absences.length, blocks: upcomingBlocks })}
           />
-          <Button size="sm" variant="outline" className="self-end" onClick={() => setAdding({ type: "add" })} data-testid="time-off-add">
-            <Plus /> {t("calendar.timeOff.add")}
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {KINDS.map((item) => (
-            <Chip key={item} size="sm" label={item === "all" ? t("calendar.timeOff.all") : item === "block" ? t("calendar.timeOff.blocks") : t(ABSENCE_KIND_KEYS[item])} selected={kind === item} onClick={() => setKind(item)} />
-          ))}
-        </div>
-        {shownAbsences.length === 0 && shownBlocks.length === 0 ? (
-          <EmptyState icon="calendar" title={t(status === "pending" ? "calendar.timeOff.emptyPending" : "calendar.timeOff.empty")} description={t("calendar.timeOff.emptyHint")} />
-        ) : (
-          <ListItemGroup>
-            {shownAbsences.map((item) => (
-              <AbsenceRow key={item.id} absence={item} ctx={ctx} range={range(item.startDate, item.endDate)} onOpen={() => setSelected({ type: "absence", id: item.id })} />
-            ))}
-            {shownBlocks.map((block) => (
-              <BlockRow key={block.id} block={block} ctx={ctx} range={range(block.startDate, block.endDate)} onOpen={() => setSelected({ type: "block", id: block.id })} />
-            ))}
-          </ListItemGroup>
-        )}
+          <PanelQuestion title={t("calendar.timeOff.show")}>
+            <div className="flex flex-col gap-2">
+              <SegmentedControl
+                fullWidth
+                size="sm"
+                value={status}
+                onChange={(value) => setStatus(value as Status)}
+                options={[
+                  { value: "pending", label: pendingCount > 0 ? `${t("calendar.timeOff.pending")} · ${pendingCount}` : t("calendar.timeOff.pending") },
+                  { value: "approved", label: t("calendar.timeOff.approvedShort") },
+                  { value: "all", label: t("calendar.timeOff.all") },
+                ]}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {KINDS.map((item) => (
+                  <Chip key={item} size="sm" label={item === "all" ? t("calendar.timeOff.all") : item === "block" ? t("calendar.timeOff.blocks") : t(ABSENCE_KIND_KEYS[item])} selected={kind === item} tone={kind === item ? "primary" : "default"} onClick={() => setKind(item)} />
+                ))}
+              </div>
+            </div>
+          </PanelQuestion>
+          {shownAbsences.length === 0 && shownBlocks.length === 0 ? (
+            <EmptyState icon="calendar" title={t(status === "pending" ? "calendar.timeOff.emptyPending" : "calendar.timeOff.empty")} description={t("calendar.timeOff.emptyHint")} />
+          ) : (
+            <PanelQuestion title={t("calendar.timeOff.listTitle", { count: shownAbsences.length + shownBlocks.length })}>
+              <ListItemGroup>
+                {shownAbsences.map((item) => (
+                  <AbsenceRow key={item.id} absence={item} ctx={ctx} range={range(item.startDate, item.endDate)} onOpen={() => setSelected({ type: "absence", id: item.id })} />
+                ))}
+                {shownBlocks.map((block) => (
+                  <BlockRow key={block.id} block={block} ctx={ctx} range={range(block.startDate, block.endDate)} onOpen={() => setSelected({ type: "block", id: block.id })} />
+                ))}
+              </ListItemGroup>
+            </PanelQuestion>
+          )}
+          <PanelFooter>
+            <Button size="lg" className="w-full" onClick={() => setAdding({ type: "add" })} data-testid="time-off-add">
+              <Plus /> {t("calendar.timeOff.addTitle")}
+            </Button>
+          </PanelFooter>
+        </SaleCard>
       </div>
     );
   };
 
   return (
-    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.timeOff.title")} description={t("calendar.timeOff.hint")}>
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.timeOff.title")}>
       {body()}
     </SidePanelShell>
   );
@@ -233,7 +250,8 @@ function AddTimeOff({ preset, ctx, branchId, date, day, canBlock, onDone, onPrev
   const ownId = ctx.access?.ownBarberId ?? null;
   const barberId = ownId ?? preset.barberId ?? null;
   return (
-    <div className="flex flex-col gap-5" data-testid="time-off-add-page">
+    <SaleCard testId="time-off-add-page">
+      <SaleCardHead eyebrow={t(preset.block ? "calendar.timeOff.editingEyebrow" : "calendar.timeOff.newEyebrow")} title={kind === "block" ? t("calendar.timeOff.kindBlock") : t(ABSENCE_KIND_KEYS[kind])} lead={t(kind === "block" ? "calendar.timeOff.leadBlock" : "calendar.timeOff.leadAbsence")} />
       {/* Editando un bloqueo ya no se cambia de tipo. */}
       {!preset.block && <SegmentedControl fullWidth size="sm" value={kind} onChange={(value) => setKind(value as AddKind)} options={kinds.map((item) => ({ value: item, label: item === "block" ? t("calendar.timeOff.kindBlock") : t(ABSENCE_KIND_KEYS[item]) }))} ariaLabel={t("calendar.timeOff.what")} />}
       {kind === "block" ? (
@@ -241,7 +259,7 @@ function AddTimeOff({ preset, ctx, branchId, date, day, canBlock, onDone, onPrev
       ) : (
         <AbsenceForm ctx={ctx} branchId={branchId} kind={kind} initialMemberId={barberId} date={date} onDone={onDone} onPreview={onPreview} />
       )}
-    </div>
+    </SaleCard>
   );
 }
 

@@ -1226,7 +1226,6 @@ export const appEn: AppMessageCatalog = {
   "calendar.action.walkInSale": "Walk-in sale",
   "calendar.action.collections": "Collections list",
   "calendar.action.waitlist": "Waitlist",
-  "calendar.action.block": "Create time block",
   "calendar.action.workHours": "Working hours",
   "calendar.action.more": "More actions",
   "calendar.nobody.title": "Nobody works this day",

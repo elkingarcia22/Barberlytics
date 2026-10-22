@@ -7,7 +7,10 @@ import { useSharedComments } from "./useSharedComments";
 const author = { id: "a", name: "Ana" };
 const create = (threadId: string, context: string): CommentEvent => ({ id: `e-${threadId}`, at: "2026-10-21T10:00:00.000Z", action: "create", threadId, messageId: `m-${threadId}`, authorId: "l", authorName: "Luis", body: "Hola", x: 1, y: 2, context });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  window.localStorage.clear();
+});
 
 describe("useSharedComments con alcance", () => {
   test("la plataforma solo ve sus hilos y comentar no borra los de la reserva", async () => {
@@ -27,5 +30,31 @@ describe("useSharedComments con alcance", () => {
     act(() => result.current.onThreadsChange(result.current.threads.map((thread) => ({ ...thread, resolved: true }))));
     await waitFor(() => expect(posted.length).toBe(1));
     expect(posted[0].map((event) => [event.action, event.threadId])).toEqual([["resolve", "t-app"]]);
+  });
+
+  test("sin servidor, lo comentado sigue ahí al recargar y sube cuando el servidor responde", async () => {
+    let online = false;
+    const posted: CommentEvent[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (!online) return Response.json({ code: "server" }, { status: 503 });
+      if (init?.method === "POST") {
+        posted.push(...(JSON.parse(String(init.body)) as { events: CommentEvent[] }).events);
+        return Response.json({ saved: 1 });
+      }
+      return Response.json({ events: posted });
+    });
+
+    const first = renderHook(() => useSharedComments(author, { include: isPlatformThread }));
+    const thread = { id: "t-new", x: 10, y: 20, context: "app:/calendario", resolved: false, unread: false, messages: [{ id: "m-new", author, body: "Revisar", createdAt: "2026-10-22T10:00:00.000Z" }] };
+    act(() => first.result.current.onThreadsChange([thread]));
+    expect(first.result.current.threads.map((item) => item.id)).toEqual(["t-new"]);
+    first.unmount();
+
+    // Recargar: el hilo vuelve desde este navegador.
+    online = true;
+    const second = renderHook(() => useSharedComments(author, { include: isPlatformThread }));
+    expect(second.result.current.threads.map((item) => item.id)).toEqual(["t-new"]);
+    await waitFor(() => expect(posted.map((event) => event.threadId)).toEqual(["t-new"]));
+    await waitFor(() => expect(window.localStorage.getItem("thema.comments.pending")).toBeNull());
   });
 });

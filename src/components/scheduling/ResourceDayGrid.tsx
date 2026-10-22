@@ -169,7 +169,10 @@ export function ResourceDayGrid({
   const nowDate = React.useMemo(() => now ?? new Date(), [now]);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
-  const { preview, bind, wasDragged } = useScheduleDrag({ bodyRef, day: date, dayStart, dayEnd, step, onMove: onEventMove, onResize: onEventResize, validate: validateDrop, onRejected: onDropRejected });
+  // Con una columna por día, soltar en otra columna es cambiar de día: la fecha del destino es la de esa columna.
+  const dayByResource = React.useMemo(() => new Map(resources.flatMap((resource) => (resource.date ? [[resource.id, resource.date] as const] : []))), [resources]);
+  const dropDayOf = React.useCallback((resourceId: string): Date => dayByResource.get(resourceId) ?? date, [dayByResource, date]);
+  const { preview, bind, wasDragged } = useScheduleDrag({ bodyRef, day: date, dayOf: dropDayOf, dayStart, dayEnd, step, onMove: onEventMove, onResize: onEventResize, validate: validateDrop, onRejected: onDropRejected });
 
   // Cada columna enseña su propio día (la semana de una persona) o el de la rejilla.
   const dayOf = React.useCallback((resource: ScheduleResource): Date => resource.date ?? date, [date]);

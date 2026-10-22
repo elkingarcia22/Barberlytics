@@ -1,5 +1,5 @@
 {
-  "sourceHash": "2896ed987bfc541a",
+  "sourceHash": "43b57662c9ff845e",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -14757,7 +14757,7 @@
         {
           "id": "week",
           "title": "La semana de una persona",
-          "description": "Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.",
+          "description": "Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Arrastrar una tarjeta a otra columna la lleva a ese día: `onEventMove` y `validateDrop` reciben la fecha de la columna destino. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.",
           "code": "<ResourceDayGrid\n  date={lunes}\n  resources={diasDeLaSemana.map((dia) => ({ id: clave(dia), name: nombreLargo(dia), subtitle: \"3 citas\", date: dia, workingHours: horario(dia) }))}\n  events={citas.map((cita) => ({ ...cita, resourceId: clave(cita.start) }))}\n  onSlotClick={({ start }) => crearCita({ barberId: andres.id, start })}\n/>"
         },
         {

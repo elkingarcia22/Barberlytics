@@ -68,7 +68,7 @@ Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se oscurece 
 
 ### La semana de una persona
 
-Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.
+Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Arrastrar una tarjeta a otra columna la lleva a ese día: `onEventMove` y `validateDrop` reciben la fecha de la columna destino. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.
 
 ```tsx
 <ResourceDayGrid

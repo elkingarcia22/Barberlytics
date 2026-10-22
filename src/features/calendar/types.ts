@@ -251,6 +251,12 @@ export const calendarDaySchema = z.object({
 });
 export type CalendarDay = z.infer<typeof calendarDaySchema>;
 
+/** El día contra el que se valida un cambio de agenda (mover, estirar): sus citas, bloqueos y excepciones, y su fecha. */
+export interface TargetDay {
+  data: CalendarDay;
+  date: Date;
+}
+
 export const monthDaySchema = z.object({ date: z.string(), occupancy: z.number().nullable(), count: z.number() });
 export const calendarMonthSchema = z.object({ month: z.string(), days: z.array(monthDaySchema) });
 

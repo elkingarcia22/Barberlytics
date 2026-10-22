@@ -60,4 +60,34 @@ describe("ResourceDayGrid: una columna por día", () => {
     fireEvent.click(slot);
     expect(onSlotClick).toHaveBeenCalledWith(expect.objectContaining({ resourceId: "d2", start: new Date(2026, 8, 23, 9) }));
   });
+
+  test("arrastrar una cita a otra columna la lleva a ese día, y la validación ve el día destino", () => {
+    const onEventMove = vi.fn();
+    const validateDrop = vi.fn(() => null);
+    const events = [{ id: "e1", resourceId: "d0", start: new Date(2026, 8, 21, 10), end: new Date(2026, 8, 21, 10, 30), title: "Marcela Gómez" }];
+    const { container } = renderWithProviders(
+      <ResourceDayGrid date={MONDAY} resources={WEEK} events={events} now={MONDAY} startHour={9} endHour={12} onEventClick={() => undefined} onEventMove={onEventMove} validateDrop={validateDrop} />
+    );
+    // jsdom no mide: cada columna ocupa 100 px a lo ancho y el cuerpo 360 px de alto para 3 horas (2 px por minuto).
+    const body = container.querySelector<HTMLElement>("[data-resource-id='d0']")!.parentElement!;
+    vi.spyOn(body, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 360));
+    WEEK.forEach((resource, index) => {
+      const column = container.querySelector<HTMLElement>(`[data-resource-id='${resource.id}']`)!;
+      vi.spyOn(column, "getBoundingClientRect").mockReturnValue(new DOMRect(index * 100, 0, 100, 360));
+    });
+    // jsdom no captura el puntero: basta con que exista.
+    Element.prototype.setPointerCapture ??= () => undefined;
+    Element.prototype.releasePointerCapture ??= () => undefined;
+    Element.prototype.hasPointerCapture ??= () => false;
+    // Los eventos burbujean hasta la tarjeta, que es la que escucha el arrastre.
+    const card = screen.getByText("Marcela Gómez");
+    const at = (x: number, y: number) => ({ pointerId: 1, pointerType: "mouse", button: 0, clientX: x, clientY: y });
+    fireEvent.pointerDown(card, at(50, 60));
+    fireEvent.pointerMove(card, at(150, 90));
+    // Una hora más tarde (120 px = 60 min) y una columna a la derecha: martes 22 a las 11:00.
+    fireEvent.pointerUp(card, at(150, 180));
+    const drop = { resourceId: "d1", start: new Date(2026, 8, 22, 11), end: new Date(2026, 8, 22, 11, 30) };
+    expect(validateDrop).toHaveBeenLastCalledWith(expect.objectContaining({ id: "e1" }), drop);
+    expect(onEventMove).toHaveBeenCalledWith(expect.objectContaining({ id: "e1" }), drop);
+  });
 });

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CalendarPlus, Send } from "lucide-react";
+import { CalendarPlus, ListOrdered, Send } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { SidePanelShell } from "@/components/overlays";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
@@ -18,7 +18,8 @@ import type { CalendarDay, WaitlistEntry } from "./types";
  * Los huecos del día en un panel junto a la agenda: cuánto tiempo libre
  * queda, cuánto se podría vender todavía y, hueco a hueco, qué cabe y a quién
  * de la lista de espera ofrecérselo. Cada fila agenda ahí mismo —abre el alta
- * con el barbero y la hora puestos— u ofrece el hueco a quien espera.
+ * con el barbero y la hora puestos— u ofrece el hueco a quien espera. La
+ * lista de espera entera se abre desde aquí: es donde se usa.
  */
 
 export interface GapsDrawerProps {
@@ -28,6 +29,8 @@ export interface GapsDrawerProps {
   date: Date;
   day: CalendarDay | undefined;
   waitlist: readonly WaitlistEntry[];
+  /** Abre la lista de espera completa (apuntar o quitar a alguien). */
+  onOpenWaitlist: () => void;
   onBook: (gap: DayGap) => void;
   onOffer: (gap: DayGap, entry: WaitlistEntry) => void;
 }
@@ -35,7 +38,7 @@ export interface GapsDrawerProps {
 const MIN_OPTIONS = [15, 30, 45, 60] as const;
 type GroupBy = "barber" | "time";
 
-export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onBook, onOffer }: GapsDrawerProps) {
+export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onOpenWaitlist, onBook, onOffer }: GapsDrawerProps) {
   const t = useAppT();
   const [min, setMin] = React.useState<number>(30);
   const [groupBy, setGroupBy] = React.useState<GroupBy>("barber");
@@ -55,7 +58,14 @@ export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onBoo
   }, [gaps, groupBy]);
 
   return (
-    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.gaps.title")} description={t("calendar.gaps.hint")}>
+    <SidePanelShell open={open} onOpenChange={onOpenChange} size="lg" title={t("calendar.gaps.title")} description={t("calendar.gaps.hint")}
+      headerActions={
+        <Button size="xs" variant="outline" onClick={onOpenWaitlist} data-testid="calendar-gaps-waitlist">
+          <ListOrdered /> {t("calendar.action.waitlist")}
+          {waitlist.length > 0 && <span className="tabular-nums text-text-muted">{waitlist.length}</span>}
+        </Button>
+      }
+    >
       <div className="space-y-4" data-testid="calendar-gaps">
         <dl className={`grid gap-3 ${showTotals ? "grid-cols-3" : "grid-cols-2"}`} data-testid="calendar-gaps-summary">
           <Stat label={t("calendar.gaps.stat.count")} value={String(summary.count)} />

@@ -471,7 +471,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInSale: () => openPanel({ kind: "walkInSale" }),
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
-        waitlist: () => openPanel({ kind: "waitlist" }),
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
@@ -1357,6 +1356,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 date={state.date}
                 day={day.data}
                 waitlist={waitlistItems}
+                onOpenWaitlist={() => openPanel({ kind: "waitlist" })}
                 onBook={(gap) => openPanel({ kind: "create", initial: { barberId: gap.barber.id, start: gap.start } })}
                 onOffer={(gap, entry) => openPanel({ kind: "create", initial: { clientId: entry.clientId, serviceId: entry.serviceId, barberId: gap.barber.id, start: gap.start } })}
               />

@@ -6,7 +6,16 @@ import {
   levelsResponseSchema,
   memberSchema,
   membersResponseSchema,
+  closuresResponseSchema,
   scheduleImpactSchema,
+  scheduleLogSchema,
+  schedulePlanSchema,
+  scheduleTemplateSchema,
+  type ClosureInput,
+  type ClosuresResponse,
+  type PlanInput,
+  type SchedulePlan,
+  type ScheduleTemplate,
   scheduleOverrideSchema,
   weekResponseSchema,
   workingRangeSchema,
@@ -72,11 +81,22 @@ export const teamApi = {
 
   week: (branchId: string, weekStart: string, signal?: AbortSignal) =>
     api.get<WeekResponse>("/team/schedule", { query: { branchId, week: weekStart }, schema: weekResponseSchema, signal }),
-  setOverride: (memberId: string, date: string, range: WorkingRange | null) =>
-    api.put("/team/schedule/override", { memberId, date, range }, { schema: scheduleOverrideSchema }),
-  clearOverride: (memberId: string, date: string) => api.delete<void>("/team/schedule/override", { query: { memberId, date } }),
-  /** «Este y los siguientes»: el horario fijo de ese día de la semana, desde esa fecha. */
-  setWeekday: (memberId: string, from: string, range: WorkingRange | null) => api.put("/team/schedule/weekday", { memberId, from, range }, { schema: z.object({ memberId: z.string(), weekday: z.string(), range: workingRangeSchema.nullable() }) }),
+  setOverride: (memberId: string, date: string, range: WorkingRange | null, notify = true) =>
+    api.put("/team/schedule/override", { memberId, date, range, notify }, { schema: scheduleOverrideSchema }),
+  clearOverride: (memberId: string, date: string, notify = true) => api.delete<void>("/team/schedule/override", { query: { memberId, date, notify: notify ? undefined : "false" } }),
+  /** «Este y los siguientes»: un horario nuevo desde esa fecha con ese día de la semana cambiado (lo anterior no se toca). */
+  setWeekday: (memberId: string, from: string, range: WorkingRange | null, notify = true) => api.put("/team/schedule/weekday", { memberId, from, range, notify }, { schema: z.object({ memberId: z.string(), weekday: z.string(), range: workingRangeSchema.nullable() }) }),
+  plans: (branchId: string, signal?: AbortSignal) => api.get<{ items: SchedulePlan[] }>("/team/schedule/plans", { query: { branchId }, schema: z.object({ items: z.array(schedulePlanSchema) }), signal }),
+  createPlan: (input: PlanInput) => api.post("/team/schedule/plans", input, { schema: z.object({ created: z.number() }) }),
+  removePlan: (id: string) => api.delete<void>(`/team/schedule/plans/${id}`),
+  templates: (branchId: string, signal?: AbortSignal) => api.get<{ items: ScheduleTemplate[] }>("/team/schedule/templates", { query: { branchId }, schema: z.object({ items: z.array(scheduleTemplateSchema) }), signal }),
+  removeTemplate: (id: string) => api.delete<void>(`/team/schedule/templates/${id}`),
+  closures: (branchId: string, year: number, signal?: AbortSignal) => api.get<ClosuresResponse>("/team/schedule/closures", { query: { branchId, year: String(year) }, schema: closuresResponseSchema, signal }),
+  setHoliday: (branchId: string, date: string, closed: boolean) => api.put("/team/schedule/holidays", { branchId, date, closed }, { schema: z.object({ date: z.string(), closed: z.boolean() }) }),
+  addClosure: (input: ClosureInput) => api.post("/team/schedule/closures", input, { schema: z.object({ id: z.string() }) }),
+  removeClosure: (id: string) => api.delete<void>(`/team/schedule/closures/${id}`),
+  closureImpact: (input: ClosureInput, signal?: AbortSignal) => api.post<{ items: ScheduleImpact[] }>("/team/schedule/closures/impact", input, { schema: scheduleImpactSchema, signal }),
+  log: (branchId: string, signal?: AbortSignal) => api.get("/team/schedule/log", { query: { branchId }, schema: scheduleLogSchema, signal }),
   /** Las citas por atender que quedarían fuera del turno nuevo. */
   impact: (input: { memberId: string; date: string; range: WorkingRange | null; scope: ShiftScope }, signal?: AbortSignal) =>
     api.post<{ items: ScheduleImpact[] }>("/team/schedule/impact", input, { schema: scheduleImpactSchema, signal }),

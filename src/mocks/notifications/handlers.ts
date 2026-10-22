@@ -36,7 +36,7 @@ const ROLES: readonly Role[] = ["owner", "admin", "recepcion", "barbero-comision
 const MANAGERS: readonly Role[] = ["owner", "admin"];
 const FRONT: readonly Role[] = ["owner", "admin", "recepcion"];
 
-export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered" | "shiftRequested" | "shiftSwapAsked" | "shiftDecided" | "unpaidAccounts" | "payableDue";
+export type NotificationKind = "onlineBooking" | "cancelled" | "noShow" | "whatsappFailed" | "whatsappReply" | "clientArrived" | "lowStock" | "outOfStock" | "registerDifference" | "registerOpen" | "payrollDue" | "payrollPaid" | "lowReview" | "absenceRequested" | "absenceDecided" | "waitlistJoined" | "rescheduled" | "newDevice" | "accessLocked" | "payrollApproved" | "payAdjustment" | "rentDue" | "payDispute" | "payDisputeAnswered" | "shiftRequested" | "shiftSwapAsked" | "shiftDecided" | "unpaidAccounts" | "payableDue" | "scheduleChanged";
 
 export interface MockNotification {
   id: string;
@@ -218,6 +218,17 @@ function shiftEvents(branchId: string, now: Date): MockNotification[] {
   return items;
 }
 
+/** Al barbero, cuando otra persona le cambia el horario (un día, un horario nuevo, una plantilla, un cierre). */
+function scheduleEvents(branchId: string, now: Date): MockNotification[] {
+  return (db.team.scheduleLog ?? [])
+    .filter((change) => change.branchId === branchId && change.notify && recent(change.at, now))
+    .filter((change) => {
+      const member = db.team.members.find((item) => item.id === change.memberId);
+      return !member || `${member.firstName} ${member.lastName}` !== change.by;
+    })
+    .map((change) => ({ id: `schedule:${change.id}`, kind: "scheduleChanged" as const, at: change.at, href: `/calendario?fecha=${change.date}`, tone: "info" as const, params: { by: change.by, day: change.date, change: change.kind }, roles: BARBERS, memberId: change.memberId }));
+}
+
 /** Las cuentas de días anteriores sin cobrar: un aviso al día a quien cobra. */
 function unpaidEvents(branchId: string, now: Date): MockNotification[] {
   const today = dateKey(now);
@@ -285,7 +296,7 @@ function securityEvents(accountId: string | null, now: Date): MockNotification[]
 
 /** Los avisos de una sucursal para ese rol (y, si es barbero, solo los suyos), más los de seguridad de la cuenta. */
 export function notificationsFor(branchId: string, role: Role, memberId: string | null, now = new Date(), accountId: string | null = null): MockNotification[] {
-  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now), ...shiftEvents(branchId, now), ...unpaidEvents(branchId, now), ...payableEvents(branchId, now)];
+  const all = [...appointmentEvents(branchId, now), ...stockEvents(branchId, now), ...registerEvents(branchId, now), ...payrollEvents(branchId, now), ...reviewEvents(now), ...absenceEvents(branchId, now), ...shiftEvents(branchId, now), ...scheduleEvents(branchId, now), ...unpaidEvents(branchId, now), ...payableEvents(branchId, now)];
   const barber = role === "barbero-comision" || role === "barbero-renta";
   return [...all, ...securityEvents(accountId, now)]
     .filter((item) => item.accountId !== undefined || (barber ? item.memberId === memberId && (item.roles.includes(role) || ["onlineBooking", "cancelled", "noShow"].includes(item.kind)) : item.roles.includes(role) && (item.kind !== "absenceDecided" || item.memberId === memberId)))

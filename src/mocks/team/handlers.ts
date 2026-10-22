@@ -1,4 +1,6 @@
 import { validBreaks } from "@/features/team/shiftRanges";
+import { closureOn, cycleIndex, insertPlan, logChange, patternRange, planOn, shiftRange } from "./scheduleModel";
+import { dateKey } from "../calendar/seed";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { accountById, db } from "../db";
 import { forbidden, hasStepUp, sessionOf, stepUpRequired } from "../session";
@@ -122,6 +124,17 @@ export function canEditHours(request: Request, member: MockTeamMember, scope: "d
   if (session.teamRole === "barbero-renta" && session.memberId === member.id) return true;
   if (scope === "day" && session.teamRole === "recepcion") return true;
   return managesMember(session, member.role);
+}
+
+/** Quién hizo el cambio, para el historial y el aviso. */
+export function actorOf(request: Request): string {
+  return requireAuth(request)?.user.name ?? "La barbería";
+}
+
+/** El plan que rige al empezar la semana, si hay uno. */
+function planSummary(memberId: string, weekStart: string) {
+  const plan = planOn(memberId, weekStart);
+  return plan ? { id: plan.id, from: plan.from, to: plan.to, cycleWeeks: plan.cycleWeeks, cycleWeek: cycleIndex(plan, weekStart) + 1, templateName: plan.templateName ?? null } : null;
 }
 
 export function weekDays(weekStart: string): string[] {
@@ -287,7 +300,12 @@ export const teamHandlers = [
     if ("schedule" in input) {
       const schedule = validateSchedule(input.schedule);
       if (!schedule) fields.schedule = ["Cada día marcado necesita una hora de cierre posterior a la de inicio, y sus descansos van dentro de la franja sin pisarse."];
-      else next = { ...next, schedule };
+      else {
+        next = { ...next, schedule };
+        // Con horarios con vigencia, el de la ficha rige desde hoy (el pasado queda como estaba).
+        const today = dateKey(new Date());
+        if ((db.team.plans ?? []).some((plan) => plan.memberId === existing.id)) insertPlan({ id: `plan_${existing.id}_${today}_${Date.now().toString(36)}`, memberId: existing.id, from: today, to: null, cycleWeeks: 1, weeks: [schedule] });
+      }
     }
     if (input.permissions) next = { ...next, permissions: sanitizePermissions(input.permissions, existing.permissions) };
     if (input.options && typeof input.options === "object") next = { ...next, options: input.options as MockTeamMember["options"] };
@@ -420,13 +438,21 @@ export const teamHandlers = [
       memberId: member.id,
       name: memberName(member),
       avatarUrl: member.avatarUrl,
+      // El plan que rige la semana (vigencia y en qué semana del ciclo va), para leerlo junto al turno.
+      plan: planSummary(member.id, weekStart),
       days: days.map((date) => {
-        const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === date);
-        const weekday = String(new Date(`${date}T00:00:00`).getDay());
-        return { date, range: override ? override.range : (member.schedule[weekday] ?? null), overridden: Boolean(override), fixed: member.schedule[weekday] ?? null };
+        const shift = shiftRange(member, date);
+        // Un festivo cerrado o un cierre recortan el turno: lo que se ve es lo que se trabaja.
+        const closure = closureOn(branchId, date);
+        const range = closure?.closed ? null : shift.range;
+        return { date, range, overridden: shift.overridden, fixed: patternRange(member, date) };
       }),
     }));
-    return HttpResponse.json({ weekStart, days, rows });
+    const closures = days.flatMap((date) => {
+      const closure = closureOn(branchId, date);
+      return closure ? [{ date, ...closure }] : [];
+    });
+    return HttpResponse.json({ weekStart, days, rows, closures });
   }),
 
   http.put(`${BASE}/team/schedule/override`, async ({ request }) => {
@@ -446,6 +472,7 @@ export const teamHandlers = [
     }
     const override: MockScheduleOverride = { id: `ovr_${Date.now().toString(36)}`, memberId, date, range };
     db.team.overrides = [...db.team.overrides.filter((item) => !(item.memberId === memberId && item.date === date)), override];
+    logChange({ memberId, branchId: member.branchIds[0] ?? "ma", by: actorOf(request), kind: "day", date, notify: input.notify !== false });
     db.persist();
     return HttpResponse.json(override);
   }),
@@ -459,6 +486,7 @@ export const teamHandlers = [
     const member = findMember(memberId);
     if (member && !canEditHours(request, member, "day")) return forbidden("Tu rol no cambia el horario de esta persona.");
     db.team.overrides = db.team.overrides.filter((item) => !(item.memberId === memberId && item.date === date));
+    if (member) logChange({ memberId, branchId: member.branchIds[0] ?? "ma", by: actorOf(request), kind: "day", date, notify: url.searchParams.get("notify") !== "false" });
     db.persist();
     return new HttpResponse(null, { status: 204 });
   }),

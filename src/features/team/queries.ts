@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/queries";
 import { teamApi, type MemberImportRow } from "./api";
-import type { BranchOrder, MemberDraft, MemberPatch, ShiftScope, TeamMember, WorkingRange } from "./types";
+import type { BranchOrder, ClosureInput, MemberDraft, MemberPatch, PlanInput, ShiftScope, TeamMember, WorkingRange } from "./types";
 
 /**
  * Claves jerárquicas del equipo. Cualquier cambio en una persona refresca
@@ -107,21 +107,21 @@ export function useSaveOrder() {
 export function useSetOverride() {
   const invalidate = useInvalidateTeam();
   return useMutation({
-    mutationFn: ({ memberId, date, range }: { memberId: string; date: string; range: WorkingRange | null }) => teamApi.setOverride(memberId, date, range),
+    mutationFn: ({ memberId, date, range, notify }: { memberId: string; date: string; range: WorkingRange | null; notify?: boolean }) => teamApi.setOverride(memberId, date, range, notify),
     onSuccess: invalidate,
   });
 }
 
 export function useClearOverride() {
   const invalidate = useInvalidateTeam();
-  return useMutation({ mutationFn: ({ memberId, date }: { memberId: string; date: string }) => teamApi.clearOverride(memberId, date), onSuccess: invalidate });
+  return useMutation({ mutationFn: ({ memberId, date, notify }: { memberId: string; date: string; notify?: boolean }) => teamApi.clearOverride(memberId, date, notify), onSuccess: invalidate });
 }
 
 /** «Este y los siguientes»: cambia el horario fijo de ese día de la semana desde la fecha dada. */
 export function useSetWeekday() {
   const invalidate = useInvalidateTeam();
   return useMutation({
-    mutationFn: ({ memberId, from, range }: { memberId: string; from: string; range: WorkingRange | null }) => teamApi.setWeekday(memberId, from, range),
+    mutationFn: ({ memberId, from, range, notify }: { memberId: string; from: string; range: WorkingRange | null; notify?: boolean }) => teamApi.setWeekday(memberId, from, range, notify),
     onSuccess: invalidate,
   });
 }
@@ -139,6 +139,57 @@ export function useScheduleImpact(input: { memberId: string; date: string; range
 export function useCopyWeek() {
   const invalidate = useInvalidateTeam();
   return useMutation({ mutationFn: ({ branchId, from, to }: { branchId: string; from: string; to: string }) => teamApi.copyWeek(branchId, from, to), onSuccess: invalidate });
+}
+
+export function usePlansQuery(branchId: string) {
+  return useQuery({ queryKey: [...teamKeys.all, "plans", branchId] as const, queryFn: ({ signal }) => teamApi.plans(branchId, signal) });
+}
+
+export function useCreatePlan() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (input: PlanInput) => teamApi.createPlan(input), onSuccess: invalidate });
+}
+
+export function useRemovePlan() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (id: string) => teamApi.removePlan(id), onSuccess: invalidate });
+}
+
+export function useTemplatesQuery(branchId: string) {
+  return useQuery({ queryKey: [...teamKeys.all, "templates", branchId] as const, queryFn: ({ signal }) => teamApi.templates(branchId, signal) });
+}
+
+export function useRemoveTemplate() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (id: string) => teamApi.removeTemplate(id), onSuccess: invalidate });
+}
+
+export function useClosuresQuery(branchId: string, year: number) {
+  return useQuery({ queryKey: [...teamKeys.all, "closures", branchId, year] as const, queryFn: ({ signal }) => teamApi.closures(branchId, year, signal) });
+}
+
+export function useSetHoliday() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: ({ branchId, date, closed }: { branchId: string; date: string; closed: boolean }) => teamApi.setHoliday(branchId, date, closed), onSuccess: invalidate });
+}
+
+export function useAddClosure() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (input: ClosureInput) => teamApi.addClosure(input), onSuccess: invalidate });
+}
+
+export function useRemoveClosure() {
+  const invalidate = useInvalidateTeam();
+  return useMutation({ mutationFn: (id: string) => teamApi.removeClosure(id), onSuccess: invalidate });
+}
+
+/** Las citas que un cierre dejaría fuera (de todo el equipo de la sede). */
+export function useClosureImpact(input: ClosureInput | null) {
+  return useQuery({ queryKey: [...teamKeys.all, "closure-impact", input] as const, queryFn: ({ signal }) => teamApi.closureImpact(input!, signal), enabled: input !== null, placeholderData: keepPreviousData });
+}
+
+export function useScheduleLogQuery(branchId: string) {
+  return useQuery({ queryKey: [...teamKeys.all, "schedule-log", branchId] as const, queryFn: ({ signal }) => teamApi.log(branchId, signal) });
 }
 
 export function useRemindMembers() {

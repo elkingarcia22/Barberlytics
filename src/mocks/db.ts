@@ -17,7 +17,8 @@ import { emptyFrontDesk, type MockFrontDeskState } from "./frontDesk/state";
 import { emptyBooking, type MockBookingState } from "./booking/state";
 import { seedBlocks, seedClients, type MockAppointment, type MockClient, type MockSale, type MockTimeBlock, type MockWaitlistEntry } from "./calendar/seed";
 import { withBarberPrices } from "./team/pricing";
-import { LEVELS, seedOrders, seedOverrides, seedTeam, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember, type MockAbsence } from "./team/seed";
+import type { MockClosure, MockHolidayClosed, MockScheduleChange, MockSchedulePlan, MockScheduleTemplate } from "./team/scheduleModel";
+import { LEVELS, seedOrders, seedOverrides, seedTeam, seedTemplates, type MockBranchOrder, type MockLevel, type MockScheduleOverride, type MockTeamMember, type MockAbsence } from "./team/seed";
 import type { MockPayoutChange, MockShiftRequest, MockTimeEntry } from "./team/operationsState";
 
 export type MockUserStatus = "active" | "invited" | "inactive";
@@ -171,11 +172,21 @@ export interface MockTeamState {
   shiftRequests?: MockShiftRequest[];
   /** Cambios de forma de pago (comisión ↔ renta ↔ salario) con su fecha. */
   payoutChanges?: MockPayoutChange[];
+  /** Horarios con vigencia y ciclo de 1 a 4 semanas (docs/WORK_HOURS_RESEARCH.md). */
+  plans?: MockSchedulePlan[];
+  /** Plantillas de horario con nombre («Mañana», «Tarde»…), por sede. */
+  templates?: MockScheduleTemplate[];
+  /** Cierres propios de cada sede (día entero o con horario reducido). */
+  closures?: MockClosure[];
+  /** Los festivos que una sede cierra. */
+  holidaysClosed?: MockHolidayClosed[];
+  /** Quién cambió qué horario y cuándo (y si se le avisó al barbero). */
+  scheduleLog?: MockScheduleChange[];
 }
 
 const emptyTeam = (): MockTeamState => {
   const members = withBarberPrices(seedTeam(), seedServices().items);
-  return { members, levels: [...LEVELS], orders: seedOrders(members), overrides: seedOverrides() };
+  return { members, levels: [...LEVELS], orders: seedOrders(members), overrides: seedOverrides(), templates: seedTemplates() };
 };
 
 /** Un dispositivo desde el que entró una cuenta: un id que guarda el navegador y cómo se ve («Chrome en macOS»). */
@@ -291,7 +302,7 @@ export interface MockDb {
 
 const STORAGE_KEY = "thema.mock.db";
 /** Sube cuando cambia la semilla (equipo, catálogo…): lo guardado con otra versión se descarta. */
-const SCHEMA_VERSION = 41;
+const SCHEMA_VERSION = 42;
 
 interface PersistedDb {
   version?: number;

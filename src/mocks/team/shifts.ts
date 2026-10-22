@@ -1,3 +1,4 @@
+import { patternRange, shiftRange } from "./scheduleModel";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { db } from "../db";
 import { forbidden, isBarber, isManager, sessionOf, unauthorized } from "../session";
@@ -28,9 +29,7 @@ const memberOf = (id: string | null | undefined): MockTeamMember | undefined => 
 
 /** La franja del día de alguien (con sus descansos): la excepción de esa fecha o su horario fijo. */
 function dayRange(member: MockTeamMember, day: string): MockWorkingRange | null {
-  const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === day);
-  if (override) return override.range;
-  return member.schedule[String(new Date(`${day}T00:00:00`).getDay())] ?? null;
+  return shiftRange(member, day).range;
 }
 
 const works = (member: MockTeamMember, day: string) => hoursOn(member, day).length > 0;
@@ -45,7 +44,7 @@ export function openShiftsOf(branchId: string, now = new Date()) {
     const day = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset));
     for (const absence of absences().filter((item) => item.branchId === branchId && item.status === "approved" && item.startDate <= day && day <= item.endDate)) {
       const member = memberOf(absence.memberId);
-      const range = member ? member.schedule[String(new Date(`${day}T00:00:00`).getDay())] : null;
+      const range = member ? patternRange(member, day) : null;
       if (!member || !range || isCovered(absence.id, day)) continue;
       const pending = requests().filter((item) => item.kind === "cover" && item.absenceId === absence.id && item.date === day && item.status === "pending");
       // Quién puede cubrirlo: los barberos de la sede que ese día no trabajan ni están de ausencia.

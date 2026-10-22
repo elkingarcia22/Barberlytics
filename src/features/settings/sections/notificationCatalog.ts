@@ -44,7 +44,7 @@ const RETENTION = [event("retentionAbove", PUSH, { unit: "percent", default: 70 
 const REPORTS = [event("reportDaily", EMAIL_PUSH), event("reportWeekly", EMAIL_PUSH), event("reportMonthly", EMAIL_PUSH), event("reportQuarterly", EMAIL_PUSH), event("reportYearly", EMAIL_PUSH), event("priceSuggestion", EMAIL_PUSH)];
 const SHOP_OCCUPANCY = event("shopOccupancy", PUSH, { unit: "percent", default: 85 });
 const TIME_OFF = [event("barberBlocked", PUSH), event("vacationRequested", PUSH), event("rentVacation", PUSH), event("shiftRequested", PUSH)];
-const BARBER_DAY = [event("waitlistAssigned", PUSH), event("specialResources", PUSH)];
+const BARBER_DAY = [event("waitlistAssigned", PUSH), event("specialResources", PUSH), event("scheduleChanged", PUSH)];
 const REMINDER = event("appointmentReminder", PUSH, { unit: "minutes", default: 30 });
 /* Lo que también sale en la campana de la app («En la app»): apagarlo aquí lo saca de ahí. */
 const BOOKING_ONLINE = event("bookingOnline", PUSH);
@@ -118,6 +118,7 @@ export function eventOfNotification(kind: string, status?: unknown): string | nu
     shiftRequested: "shiftRequested",
     shiftSwapAsked: "shiftSwapAsked",
     shiftDecided: "shiftDecided",
+    scheduleChanged: "scheduleChanged",
     unpaidAccounts: "unpaidAccounts",
     payableDue: "payableDue",
     lowReview: "badReview",

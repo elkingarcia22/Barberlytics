@@ -7,7 +7,7 @@ import type { ShiftDay } from "@/components/scheduling";
 import { useAccess } from "@/features/access";
 import { ShiftEditor } from "./hours/ShiftEditor";
 import { hoursAccess } from "./hours/shiftEditing";
-import type { ScheduleImpact, WeekRow } from "./types";
+import type { DayClosure, ScheduleImpact, WeekRow } from "./types";
 
 /**
  * Cambiar el turno de un día desde la semana del equipo: el mismo editor que el drawer del
@@ -21,11 +21,13 @@ export interface EditShiftDrawerProps {
   day: ShiftDay | null;
   /** Abrir una cita que quedaría fuera del turno nuevo. */
   onOpenAppointment: (item: ScheduleImpact) => void;
+  /** El festivo o cierre de la sede ese día, si hay. */
+  closure?: DayClosure | null;
 }
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-export function EditShiftDrawer({ open, onOpenChange, row, day, onOpenAppointment }: EditShiftDrawerProps) {
+export function EditShiftDrawer({ open, onOpenChange, row, day, onOpenAppointment, closure = null }: EditShiftDrawerProps) {
   const t = useAppT();
   const { locale } = useLocale();
   const access = useAccess();
@@ -49,6 +51,7 @@ export function EditShiftDrawer({ open, onOpenChange, row, day, onOpenAppointmen
           access={hoursAccess(access)}
           onDone={() => onOpenChange(false)}
           onOpenAppointment={onOpenAppointment}
+          closure={closure}
         />
       )}
     </DrawerShell>

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "../db";
 import { appointmentsOn, hoursOn } from "../calendar/handlers";
 import { dateKey } from "../calendar/seed";
+import { patternRange } from "./scheduleModel";
 
 const OWNER = "mock-acc_admin-hours";
 const BARBER = "mock-acc_barber-hours";
@@ -43,11 +44,11 @@ describe("horario de trabajo", () => {
 
   test("«este y los siguientes» cambia el horario fijo de ese día de la semana; recepción no puede", async () => {
     const day = nextWorkday("team-04");
-    const weekday = String(new Date(`${day}T00:00:00`).getDay());
     const range = { start: "12:00", end: "20:00" };
     expect((await call(RECEPTION, "/team/schedule/weekday", send("PUT", { memberId: "team-04", from: day, range }))).status).toBe(403);
     expect((await call(OWNER, "/team/schedule/weekday", send("PUT", { memberId: "team-04", from: day, range }))).status).toBe(200);
-    expect(member("team-04").schedule[weekday]).toEqual(range);
+    // Rige desde esa fecha como un horario nuevo; el de la ficha queda para lo anterior.
+    expect(patternRange(member("team-04"), day)).toEqual(range);
   });
 
   test("antes de guardar, dice qué citas por atender quedarían fuera del turno", async () => {

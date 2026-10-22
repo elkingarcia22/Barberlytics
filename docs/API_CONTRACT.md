@@ -656,6 +656,17 @@ turno de una fecha; el barbero de renta, el suyo; el de comisión, nada (`403`: 
 | PUT | `/team/schedule/weekday` | `{ memberId, from, range \| null }`: «este y los siguientes» — el horario fijo del día de la semana de `from` cambia; la excepción de `from` se quita y las de fechas posteriores se conservan. Dueño, administrador o el barbero de renta (el suyo); recepción `403`. |
 | POST | `/team/schedule/impact` | `{ memberId, date, range \| null, scope: "day" \| "following" }`: las citas por atender (agendadas, llegó, en silla) que quedarían fuera del turno nuevo, `{ items: [{ id, date, start, durationMin, clientName, serviceName }] }`. Con `following`, ese día de la semana las próximas 8 semanas, sin las fechas que tienen su propia excepción. No bloquea: la pantalla avisa y deja guardar. |
 | POST | `/team/schedule/copy-week` | `{ branchId, from, to }` (lunes): el turno que rige cada día de `from` pasa a `to` como excepción (si difiere del fijo); las excepciones de `to` se reemplazan. `{ changed, members }`. |
+| GET | `/team/schedule/plans?branchId` | Los horarios con vigencia: `{ items: [{ id, memberId, from, to \| null, cycleWeeks, weeks: [{ "0".."6": range \| null }], templateName }] }`. Rige el que empezó más tarde de los que cubren la fecha; sin ninguno, el `schedule` de la ficha. La semana del ciclo se cuenta desde el lunes de `from`. |
+| POST | `/team/schedule/plans` | `{ memberIds, from, to?, weeks (1–4), templateName?, saveAsTemplate?, notify?, branchId }`. El que regía se corta el día anterior y, si el nuevo tiene `to`, vuelve después en la misma fase de su ciclo. Lo pasado no cambia. Dueño, administrador o el barbero de renta (el suyo). `201 { created }`. |
+| DELETE | `/team/schedule/plans/:id` | Solo uno que aún no empieza (`409` si ya empezó). `204`. |
+| GET · POST · DELETE | `/team/schedule/templates[/:id]` | Plantillas por sede `{ id, branchId, name, cycleWeeks, weeks }`; crear y borrar, dueño o administrador. |
+| GET | `/team/schedule/closures?branchId&year` | `{ country, year, holidays: [{ date, name, closed }], closures: [{ id, branchId, date, name, open \| null }] }`. Festivos del país de la sede (`src/lib/holidays`: Colombia por Ley Emiliani, Estados Unidos federales); por defecto se trabaja. |
+| PUT | `/team/schedule/holidays` | `{ branchId, date, closed }`: la sede cierra (o vuelve a abrir) ese festivo. Dueño o administrador. |
+| POST · DELETE | `/team/schedule/closures[/:id]` | `{ branchId, date, name, open: { start, end } \| null }`: cierre del día entero o con horario reducido. Recorta el turno de todo el equipo de la sede (`hoursOn`). Dueño o administrador. |
+| POST | `/team/schedule/closures/impact` | Lo mismo que el cierre: las citas por atender de la sede que quedarían fuera, con `barberName`. |
+| GET | `/team/schedule/log?branchId` | Los últimos cambios de horario `{ items: [{ memberId, memberName, at, by, kind: "day" \| "following" \| "plan" \| "template" \| "copy" \| "closure", date, notify }] }`; el barbero ve los suyos. |
+
+Todo cambio acepta `notify` (por defecto `true`): con él, al barbero le llega el aviso `scheduleChanged` («Cambió tu horario») en su bandeja, salvo que el cambio lo hizo él.
 
 ### Fichaje
 

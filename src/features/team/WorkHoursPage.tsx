@@ -38,7 +38,14 @@ import {
 } from "@/components/scheduling";
 import { EditShiftDrawer } from "./EditShiftDrawer";
 import { hoursAccess } from "./hours/shiftEditing";
-import { useClearOverride, useCopyWeek, useSetOverride, useWeekQuery } from "./queries";
+import { SchedulePlansView } from "./hours/SchedulePlansView";
+import { ClosuresView } from "./hours/ClosuresView";
+import {
+  useClearOverride,
+  useCopyWeek,
+  useSetOverride,
+  useWeekQuery,
+} from "./queries";
 import type { WeekRow } from "./types";
 import { useBranchId } from "./teamUtils";
 import { TimesheetView } from "./operations/TimesheetView";
@@ -89,8 +96,11 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
   const week = useWeekQuery(branchId, weekKey);
   // «Fichajes»: lo que marcó cada empleado esa semana, contra su horario (solo quien gestiona).
   const manages = access.role === "owner" || access.role === "admin";
-  const view =
-    manages && searchParams.get("vista") === "fichajes" ? "fichajes" : "turnos";
+  const views = manages
+    ? ["turnos", "horarios", "cierres", "fichajes"]
+    : ["turnos", "horarios", "cierres"];
+  const requested = searchParams.get("vista") ?? "turnos";
+  const view = views.includes(requested) ? requested : "turnos";
   const setView = (next: string) =>
     setSearchParams(
       (current) => {
@@ -166,79 +176,93 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
         }
       />
 
-      {manages && (
-        <ThemaTabs
-          className="mb-0"
-          variant="page"
-          fitContent
-          tabs={[
-            { id: "turnos", label: t("teamHours.tab.shifts") },
-            { id: "fichajes", label: t("teamHours.tab.clock") },
-          ]}
-          activeTabId={view}
-          onTabChange={setView}
-        />
-      )}
-      <div
-        className="flex flex-wrap items-center gap-2"
-        data-testid="hours-toolbar"
-      >
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={t("teamHours.prevWeek")}
-          onClick={() => setWeek(addWeeks(weekStart, -1))}
+      <ThemaTabs
+        className="mb-0"
+        variant="page"
+        fitContent
+        tabs={[
+          { id: "turnos", label: t("teamHours.tab.shifts") },
+          { id: "horarios", label: t("hours.tab.plans") },
+          { id: "cierres", label: t("hours.tab.closures") },
+          ...(manages
+            ? [{ id: "fichajes", label: t("teamHours.tab.clock") }]
+            : []),
+        ]}
+        activeTabId={view}
+        onTabChange={setView}
+      />
+      {(view === "turnos" || view === "fichajes") && (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          data-testid="hours-toolbar"
         >
-          <ChevronLeft />
-        </Button>
-        <span className="min-w-[10rem] text-center text-sm font-semibold text-text-primary">
-          {capitalize(rangeLabel)}
-        </span>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={t("teamHours.nextWeek")}
-          onClick={() => setWeek(addWeeks(weekStart, 1))}
-        >
-          <ChevronRight />
-        </Button>
-        {weekKey !== format(thisWeek, "yyyy-MM-dd") && (
-          <Button variant="outline" onClick={() => setWeek(thisWeek)}>
-            {t("teamHours.thisWeek")}
-          </Button>
-        )}
-        {/* Repetir la semana pasada tal cual (con sus cambios de día), como en las apps de turnos. */}
-        {canEdit && view === "turnos" && (
           <Button
             variant="outline"
-            className="ml-auto"
-            disabled={copyWeek.isPending}
-            onClick={() =>
-              copyWeek.mutate(
-                {
-                  branchId,
-                  from: format(addWeeks(weekStart, -1), "yyyy-MM-dd"),
-                  to: weekKey,
-                },
-                {
-                  onSuccess: (result) =>
-                    toast.success(
-                      result.changed > 0
-                        ? t("hours.week.copied", { count: result.changed })
-                        : t("hours.week.copiedNone"),
-                    ),
-                  onError: fail,
-                },
-              )
-            }
-            data-testid="hours-copy-week"
+            size="icon"
+            aria-label={t("teamHours.prevWeek")}
+            onClick={() => setWeek(addWeeks(weekStart, -1))}
           >
-            <Copy /> {t("hours.week.copyPrevious")}
+            <ChevronLeft />
           </Button>
-        )}
-      </div>
+          <span className="min-w-[10rem] text-center text-sm font-semibold text-text-primary">
+            {capitalize(rangeLabel)}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={t("teamHours.nextWeek")}
+            onClick={() => setWeek(addWeeks(weekStart, 1))}
+          >
+            <ChevronRight />
+          </Button>
+          {weekKey !== format(thisWeek, "yyyy-MM-dd") && (
+            <Button variant="outline" onClick={() => setWeek(thisWeek)}>
+              {t("teamHours.thisWeek")}
+            </Button>
+          )}
+          {/* Repetir la semana pasada tal cual (con sus cambios de día), como en las apps de turnos. */}
+          {canEdit && view === "turnos" && (
+            <Button
+              variant="outline"
+              className="ml-auto"
+              disabled={copyWeek.isPending}
+              onClick={() =>
+                copyWeek.mutate(
+                  {
+                    branchId,
+                    from: format(addWeeks(weekStart, -1), "yyyy-MM-dd"),
+                    to: weekKey,
+                  },
+                  {
+                    onSuccess: (result) =>
+                      toast.success(
+                        result.changed > 0
+                          ? t("hours.week.copied", { count: result.changed })
+                          : t("hours.week.copiedNone"),
+                      ),
+                    onError: fail,
+                  },
+                )
+              }
+              data-testid="hours-copy-week"
+            >
+              <Copy /> {t("hours.week.copyPrevious")}
+            </Button>
+          )}
+        </div>
+      )}
 
-      {view === "fichajes" ? (
+      {view === "horarios" ? (
+        <SchedulePlansView
+          branchId={branchId}
+          rows={week.data?.rows ?? []}
+          access={hours}
+          manages={manages}
+          today={today}
+        />
+      ) : view === "cierres" ? (
+        <ClosuresView branchId={branchId} manages={manages} today={today} />
+      ) : view === "fichajes" ? (
         <TimesheetView
           branchId={branchId}
           from={weekKey}
@@ -347,6 +371,13 @@ export function WorkHoursPage({ now }: { now?: Date } = {}) {
         day={editing?.day ?? null}
         onOpenAppointment={(item) =>
           navigate(`/calendario?fecha=${item.date}&cita=${item.id}`)
+        }
+        closure={
+          editing
+            ? (week.data?.closures?.find(
+                (item) => item.date === format(editing.day.date, "yyyy-MM-dd"),
+              ) ?? null)
+            : null
         }
       />
     </div>

@@ -1,10 +1,11 @@
 import * as React from "react";
 import { format } from "date-fns";
-import { CalendarClock, Coffee, Plus, TriangleAlert, X } from "lucide-react";
+import { CalendarClock, Coffee, PartyPopper, Plus, TriangleAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { describeError } from "@/lib/api";
+import { useAccess } from "@/features/access";
 import { calendarLocale } from "@/components/date/calendarLocale";
 import { Chip } from "@/components/ai-interaction";
 import { PanelFooter } from "@/components/overlays";
@@ -17,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { MAX_BREAKS, rangesOf } from "../shiftRanges";
 import { useClearOverride, useScheduleImpact, useSetOverride, useSetWeekday } from "../queries";
-import type { ScheduleImpact, ShiftScope, WorkingRange } from "../types";
+import type { DayClosure, ScheduleImpact, ShiftScope, WorkingRange } from "../types";
 import { DEFAULT_SHIFT, SHIFT_PRESETS, applyPreset, clockOptions, minutesOf, newBreak, sameShift, shiftHours, shiftProblem, type HoursAccess, type ShiftPreset } from "./shiftEditing";
 
 /**
@@ -42,19 +43,24 @@ export interface ShiftEditorProps {
   onDone: () => void;
   /** Abrir una cita que quedaría fuera (en el calendario). */
   onOpenAppointment?: (item: ScheduleImpact) => void;
+  /** Un festivo o cierre de la sede ese día. */
+  closure?: DayClosure | null;
 }
 
 const OPTIONS = clockOptions();
 const LONG_DATE = "EEEE d 'de' MMMM";
 const PRESET_KEYS = { late: "hours.editor.preset.late", early: "hours.editor.preset.early", lunch: "hours.editor.preset.lunch", off: "hours.editor.preset.off" } as const;
 
-export function ShiftEditor({ memberId, memberName, date, current, fixed, overridden, access, onDone, onOpenAppointment }: ShiftEditorProps) {
+export function ShiftEditor({ memberId, memberName, date, current, fixed, overridden, access, onDone, onOpenAppointment, closure = null }: ShiftEditorProps) {
   const t = useAppT();
   const { locale, current: lang, formatNumber } = useLocale();
   const dateLocale = calendarLocale(locale);
   const [draft, setDraft] = React.useState<WorkingRange | null>(current);
   const canPattern = access.canEditPattern(memberId);
   const [scope, setScope] = React.useState<ShiftScope>("day");
+  // Si cambia el turno de otra persona, se le avisa (se puede apagar); el propio, no.
+  const self = useAccess().member?.id === memberId;
+  const [notify, setNotify] = React.useState(!self);
   const dateKey = format(date, "yyyy-MM-dd");
   const firstName = memberName.split(" ")[0];
   const weekday = format(date, "EEEE", { locale: dateLocale });
@@ -84,18 +90,18 @@ export function ShiftEditor({ memberId, memberName, date, current, fixed, overri
   const save = () => {
     if (problem) return;
     if (scope === "following") {
-      setWeekday.mutate({ memberId, from: dateKey, range: draft }, finish(t("hours.editor.savedFollowing", { name: firstName, date: longDate })));
+      setWeekday.mutate({ memberId, from: dateKey, range: draft, notify }, finish(t("hours.editor.savedFollowing", { name: firstName, date: longDate })));
       return;
     }
     // Igual al horario fijo: no hace falta guardar una excepción (y si la había, se quita).
     if (sameShift(draft, fixed)) {
       if (!overridden) return onDone();
-      clearOverride.mutate({ memberId, date: dateKey }, finish(t("hours.editor.saved", { name: firstName })));
+      clearOverride.mutate({ memberId, date: dateKey, notify }, finish(t("hours.editor.saved", { name: firstName })));
       return;
     }
-    setOverride.mutate({ memberId, date: dateKey, range: draft }, finish(t("hours.editor.saved", { name: firstName })));
+    setOverride.mutate({ memberId, date: dateKey, range: draft, notify }, finish(t("hours.editor.saved", { name: firstName })));
   };
-  const restore = () => clearOverride.mutate({ memberId, date: dateKey }, finish(t("hours.editor.restored", { name: firstName })));
+  const restore = () => clearOverride.mutate({ memberId, date: dateKey, notify }, finish(t("hours.editor.restored", { name: firstName })));
 
   const preset = (id: ShiftPreset) => {
     const next = applyPreset(draft, id);
@@ -107,6 +113,7 @@ export function ShiftEditor({ memberId, memberName, date, current, fixed, overri
 
   return (
     <div className="flex flex-col gap-5" data-testid="shift-editor">
+      {closure && <ClosureNotice closure={closure} clock={clock} />}
       <Text size="sm" tone="secondary">
         {fixed ? t("hours.editor.fixedIs", { weekday, range: rangeText(fixed) }) : t("hours.editor.fixedOff", { weekday })}
       </Text>
@@ -198,12 +205,37 @@ export function ShiftEditor({ memberId, memberName, date, current, fixed, overri
         </Button>
       )}
 
+      {!self && (
+        <label className="flex items-center justify-between gap-3">
+          <Text as="span" size="sm">
+            {t("hours.editor.notify", { name: firstName })}
+          </Text>
+          <Switch checked={notify} onCheckedChange={setNotify} data-testid="shift-notify" />
+        </label>
+      )}
+
       <PanelFooter>
         <Button size="lg" className="w-full" disabled={Boolean(problem) || saving} onClick={save} data-testid="shift-save">
           {affected.length > 0 ? t("hours.editor.saveAnyway") : t("hours.editor.save")}
         </Button>
       </PanelFooter>
     </div>
+  );
+}
+
+/** El festivo o cierre de la sede ese día: si cierra, el turno no cuenta; si abre menos, lo recorta. */
+export function ClosureNotice({ closure, clock }: { closure: DayClosure; clock: (value: string) => string }) {
+  const t = useAppT();
+  const text = closure.closed
+    ? t("hours.closure.closed", { name: closure.name })
+    : closure.open
+      ? t("hours.closure.reduced", { name: closure.name, from: clock(closure.open.start), to: clock(closure.open.end) })
+      : t("hours.closure.holidayOpen", { name: closure.name });
+  return (
+    <Alert variant={closure.closed || closure.open ? "warning" : "info"} data-testid="shift-closure">
+      <PartyPopper />
+      <AlertDescription>{text}</AlertDescription>
+    </Alert>
   );
 }
 

@@ -1,3 +1,4 @@
+import { workingRangesOn } from "../team/scheduleModel";
 import { rangesOf } from "@/features/team/shiftRanges";
 import { delay, http, HttpResponse, type DefaultBodyType } from "msw";
 import { promoDiscount } from "@/features/booking/pricing";
@@ -105,13 +106,12 @@ function fixedHours(member: MockTeamMember): MockBarber["workingHours"] {
   );
 }
 
-/** Las franjas de una persona un día concreto: la excepción de esa fecha o su horario fijo. */
-export function hoursOn(member: MockTeamMember, day: string): { start: string; end: string }[] {
-  const override = db.team.overrides.find((item) => item.memberId === member.id && item.date === day);
-  if (override) return override.range ? rangesOf(override.range) : [];
-  const range = member.schedule[String(new Date(`${day}T00:00:00`).getDay())];
-  // Un turno partido son varias franjas: los descansos no se agendan.
-  return range ? rangesOf(range) : [];
+/**
+ * Las franjas de una persona un día concreto: el plan que rige (con su ciclo) o su horario fijo, la
+ * excepción de esa fecha y el cierre de la sede (festivo cerrado o cierre propio). Ver team/scheduleModel.
+ */
+export function hoursOn(member: MockTeamMember, day: string, branchId?: string): { start: string; end: string }[] {
+  return workingRangesOn(member, day, branchId);
 }
 
 /** Los barberos activos de la sucursal, en su orden de calendario, como los ve la agenda. */
@@ -138,7 +138,7 @@ function generateDay(branchId: string, day: string): MockAppointment[] {
   const weekday = new Date(`${day}T00:00:00`).getDay();
   const barbers = barbersIn(branchId).map((barber) => {
     const member = db.team.members.find((item) => item.id === barber.id);
-    return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day) : [] } };
+    return { ...barber, workingHours: { [weekday]: member ? hoursOn(member, day, branchId) : [] } };
   });
   return seedDay({ branchId, day, barbers, clients: db.calendar.clients, now: new Date(), blocks: db.calendar.blocks.filter((block) => block.branchId === branchId && blockAppliesOn(block, day)), resources: db.services.resources ?? seedResources() });
 }
@@ -477,7 +477,7 @@ export const calendarHandlers = [
     if (!DAY_KEY.test(day)) return error(422, "validation", "La fecha debe ser AAAA-MM-DD.", { fields: { date: ["Fecha inválida."] } });
     // Un barbero recibe su columna: sus citas, sus bloqueos y su horario.
     const own = barberOf(request);
-    const hours = Object.fromEntries(barbersIn(branchId).filter((barber) => !own || barber.id === own).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day)]));
+    const hours = Object.fromEntries(barbersIn(branchId).filter((barber) => !own || barber.id === own).map((barber) => [barber.id, hoursOn(db.team.members.find((member) => member.id === barber.id)!, day, branchId)]));
     // Cada cita por atender lleva su riesgo de no venir (ver risk.ts).
     const now = new Date();
     return HttpResponse.json({ date: day, appointments: ownAppointments(appointmentsOn(branchId, day), own).map((item) => withRisk(item, now)), blocks: ownBlocks(blocksOn(branchId, day), own), hours });

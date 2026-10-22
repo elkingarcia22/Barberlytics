@@ -22,6 +22,8 @@ export interface ScheduleFormProps {
   value: WeekSchedule;
   onChange: (value: WeekSchedule) => void;
   error?: string;
+  /** Sin la tarjeta ni su título (dentro de otro panel, como el de un horario nuevo). */
+  bare?: boolean;
 }
 
 const HOURS = halfHours(5, 24);
@@ -36,18 +38,14 @@ function newBreak(range: WorkingRange): { start: string; end: string } {
 
 const clock = (value: string, intl: string) => formatClock(new Date(2000, 0, 1, Math.floor(parseClock(value) / 60), parseClock(value) % 60), intl);
 
-export function ScheduleForm({ value, onChange, error }: ScheduleFormProps) {
+export function ScheduleForm({ value, onChange, error, bare = false }: ScheduleFormProps) {
   const t = useAppT();
   const { locale, current, formatNumber } = useLocale();
   const dateLocale = calendarLocale(locale);
   const setDay = (day: string, range: WorkingRange | null) => onChange({ ...value, [day]: range });
   const firstRange = orderedWeekdays().map((day) => value[day]).find((range): range is WorkingRange => Boolean(range));
 
-  return (
-    <InfoCard
-      title={t("teamMember.schedule.title")}
-      description={t("teamMember.schedule.hint")}
-      actions={
+  const actions = (
         <span className="flex items-center gap-2">
           <Text variant="small" tone="secondary">
             {t("teamMember.schedule.weekHours", { hours: formatNumber(weeklyHours(value)) })}
@@ -56,8 +54,8 @@ export function ScheduleForm({ value, onChange, error }: ScheduleFormProps) {
             <Copy /> {t("teamMember.schedule.copyToAll")}
           </Button>
         </span>
-      }
-    >
+  );
+  const days = (
       <div className="space-y-2" data-testid="schedule-form">
         {orderedWeekdays().map((day) => {
           const range = value[day];
@@ -99,6 +97,18 @@ export function ScheduleForm({ value, onChange, error }: ScheduleFormProps) {
         })}
         {error && <Text tone="negative">{error}</Text>}
       </div>
+  );
+  if (bare) {
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-end">{actions}</div>
+        {days}
+      </div>
+    );
+  }
+  return (
+    <InfoCard title={t("teamMember.schedule.title")} description={t("teamMember.schedule.hint")} actions={actions}>
+      {days}
     </InfoCard>
   );
 }

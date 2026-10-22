@@ -420,6 +420,21 @@ export function seedOrders(members: readonly MockTeamMember[]): MockBranchOrder[
   });
 }
 
+/** Las plantillas de partida de cada sede: lo que más se repite en una barbería. */
+export function seedTemplates(): import("./scheduleModel").MockScheduleTemplate[] {
+  const week = (range: MockWorkingRange | null, saturday: MockWorkingRange | null, sunday: MockWorkingRange | null = null) => ({ "0": sunday, "1": range, "2": range, "3": range, "4": range, "5": range, "6": saturday });
+  const morning = { start: "08:00", end: "14:00" };
+  const afternoon = { start: "13:00", end: "20:00" };
+  const split = { start: "09:00", end: "19:00", breaks: [{ start: "13:00", end: "14:00" }] };
+  return ["ma", "mb"].flatMap((branchId) => [
+    { id: `tpl_${branchId}_morning`, branchId, name: "Mañana", cycleWeeks: 1, weeks: [week(morning, morning)] },
+    { id: `tpl_${branchId}_afternoon`, branchId, name: "Tarde", cycleWeeks: 1, weeks: [week(afternoon, afternoon)] },
+    { id: `tpl_${branchId}_split`, branchId, name: "Turno partido", cycleWeeks: 1, weeks: [week(split, { start: "09:00", end: "15:00" })] },
+    // Rotación de dos semanas: una de mañana con sábado y otra de tarde con el sábado libre.
+    { id: `tpl_${branchId}_rotation`, branchId, name: "Rotación mañana / tarde", cycleWeeks: 2, weeks: [week(morning, morning), week(afternoon, null)] },
+  ]);
+}
+
 /** Una semana con dos excepciones para que se vean. */
 export function seedOverrides(): MockScheduleOverride[] {
   return [

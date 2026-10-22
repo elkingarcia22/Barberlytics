@@ -8,7 +8,7 @@ import type { AppMessageKey } from "@/app/i18n";
  * cada rol ve los suyos. Se piden cada minuto mientras hay sesión.
  */
 
-const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked", "payrollApproved", "payAdjustment", "rentDue", "payDispute", "payDisputeAnswered", "shiftRequested", "shiftSwapAsked", "shiftDecided", "unpaidAccounts", "payableDue"]);
+const kindSchema = z.enum(["onlineBooking", "cancelled", "noShow", "whatsappFailed", "whatsappReply", "clientArrived", "lowStock", "outOfStock", "registerDifference", "registerOpen", "payrollDue", "payrollPaid", "lowReview", "absenceRequested", "absenceDecided", "waitlistJoined", "rescheduled", "newDevice", "accessLocked", "payrollApproved", "payAdjustment", "rentDue", "payDispute", "payDisputeAnswered", "shiftRequested", "shiftSwapAsked", "shiftDecided", "unpaidAccounts", "payableDue", "scheduleChanged"]);
 export type NotificationKind = z.infer<typeof kindSchema>;
 
 const notificationSchema = z.object({
@@ -51,6 +51,7 @@ export const NOTIFICATION_KEYS: Readonly<Record<NotificationKind, { title: AppMe
   shiftRequested: { title: "notifications.shiftRequested.title", body: "notifications.shiftRequested.body" },
   shiftSwapAsked: { title: "notifications.shiftSwapAsked.title", body: "notifications.shiftSwapAsked.body" },
   shiftDecided: { title: "notifications.shiftDecided.title", body: "notifications.shiftDecided.body" },
+  scheduleChanged: { title: "notifications.scheduleChanged.title", body: "notifications.scheduleChanged.body" },
   unpaidAccounts: { title: "notifications.unpaidAccounts.title", body: "notifications.unpaidAccounts.body" },
   payableDue: { title: "notifications.payableDue.title", body: "notifications.payableDue.body" },
 };
@@ -104,6 +105,7 @@ function formatParams(params: AppNotification["params"], deps: ShellNotification
   for (const key of ["day", "from", "to", "withDay"] as const) if (typeof params[key] === "string") out[key] = deps.formatDate(new Date(`${params[key]}T12:00:00`), DAY_FORMAT);
   if (typeof params.amount === "number") out.amount = deps.formatMoney(Math.abs(params.amount));
   if (params.status === "approved" || params.status === "rejected") out.status = deps.t(params.status === "approved" ? "notifications.absenceApproved" : "notifications.absenceRejected");
+  if (typeof params.change === "string") out.change = deps.t(`notifications.scheduleChanged.kind.${params.change}` as AppMessageKey);
   if (typeof params.amount === "number") out.direction = deps.t(params.amount < 0 ? "notifications.missing" : "notifications.over");
   return out;
 }

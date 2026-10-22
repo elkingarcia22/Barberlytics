@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWeekQuery } from "@/features/team/queries";
 import { useBranchId } from "@/features/team/teamUtils";
 import { rangesOf } from "@/features/team/shiftRanges";
-import { ShiftEditor } from "@/features/team/hours/ShiftEditor";
+import { ClosureNotice, ShiftEditor } from "@/features/team/hours/ShiftEditor";
 import { hoursAccess, minutesOf, shiftHours } from "@/features/team/hours/shiftEditing";
 import type { ScheduleImpact, WeekRow, WorkingRange } from "@/features/team/types";
 import { PersonAvatar } from "./calendarShared";
@@ -67,6 +67,7 @@ function WorkHoursBody({ date, ownBarberId, focusBarberId, onOpenAppointment, on
   const week = useWeekQuery(branchId, weekKey);
   const rows = (week.data?.rows ?? []).filter((row) => !ownBarberId || row.memberId === ownBarberId);
   const dayOf = (row: WeekRow) => row.days.find((item) => item.date === dayKey);
+  const closure = week.data?.closures?.find((item) => item.date === dayKey) ?? null;
   const clock = (value: string) => formatClock(new Date(2000, 0, 1, Math.floor(minutesOf(value) / 60), minutesOf(value) % 60), current.intl);
   const rangeText = (range: WorkingRange) => rangesOf(range).map((piece) => `${clock(piece.start)} – ${clock(piece.end)}`).join(" · ");
   const hours = (value: number) => formatNumber(value, { maximumFractionDigits: 1 });
@@ -88,6 +89,7 @@ function WorkHoursBody({ date, ownBarberId, focusBarberId, onOpenAppointment, on
           access={can}
           onDone={() => setEditing(null)}
           onOpenAppointment={(item: ScheduleImpact) => onOpenAppointment(new Date(`${item.date}T00:00:00`), item.id)}
+          closure={closure}
         />
       </PanelSubpage>
     );
@@ -99,7 +101,8 @@ function WorkHoursBody({ date, ownBarberId, focusBarberId, onOpenAppointment, on
 
   return (
     <div className="flex flex-col gap-4" data-testid="work-hours-drawer">
-      <DayStrip first={weekStart} count={7} value={day} onChange={setDay} ariaLabel={t("hours.drawer.dayLabel")} />
+      <DayStrip first={weekStart} count={7} value={day} onChange={setDay} marked={new Set((week.data?.closures ?? []).map((item) => item.date))} ariaLabel={t("hours.drawer.dayLabel")} />
+      {closure && <ClosureNotice closure={closure} clock={clock} />}
       {week.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : rows.length === 0 ? (

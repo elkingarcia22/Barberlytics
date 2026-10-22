@@ -134,19 +134,70 @@ export type BranchOrder = z.infer<typeof branchOrderSchema>;
 export const scheduleDaySchema = z.object({ date: z.string(), range: workingRangeSchema.nullable(), overridden: z.boolean(), fixed: workingRangeSchema.nullable().optional() });
 export type ScheduleDay = z.infer<typeof scheduleDaySchema>;
 
+/** El horario con vigencia que rige una semana: desde/hasta, el ciclo y en qué semana del ciclo va. */
+export const planSummarySchema = z.object({ id: z.string(), from: z.string(), to: z.string().nullable(), cycleWeeks: z.number(), cycleWeek: z.number(), templateName: z.string().nullable() });
+export type PlanSummary = z.infer<typeof planSummarySchema>;
+
+/** Lo que pasa en la sede un día: un festivo (abierto o cerrado) o un cierre propio (entero o con horario reducido). */
+export const dayClosureSchema = z.object({ date: z.string(), kind: z.enum(["holiday", "closure"]), name: z.string(), closed: z.boolean(), open: z.object({ start: z.string(), end: z.string() }).nullable(), id: z.string().nullable() });
+export type DayClosure = z.infer<typeof dayClosureSchema>;
+
 export const weekResponseSchema = z.object({
   weekStart: z.string(),
   days: z.array(z.string()),
-  rows: z.array(z.object({ memberId: z.string(), name: z.string(), avatarUrl: z.string().nullable(), days: z.array(scheduleDaySchema) })),
+  rows: z.array(z.object({ memberId: z.string(), name: z.string(), avatarUrl: z.string().nullable(), plan: planSummarySchema.nullable().optional(), days: z.array(scheduleDaySchema) })),
+  closures: z.array(dayClosureSchema).optional(),
 });
 export type WeekResponse = z.infer<typeof weekResponseSchema>;
 export type WeekRow = WeekResponse["rows"][number];
 
 /** Una cita por atender que quedaría fuera del horario nuevo (antes de guardar, para moverla o avisar). */
 export const scheduleImpactSchema = z.object({
-  items: z.array(z.object({ id: z.string(), date: z.string(), start: z.string(), durationMin: z.number(), clientName: z.string(), serviceName: z.string() })),
+  items: z.array(z.object({ id: z.string(), date: z.string(), start: z.string(), durationMin: z.number(), clientName: z.string(), serviceName: z.string(), barberName: z.string().optional() })),
 });
 export type ScheduleImpact = z.infer<typeof scheduleImpactSchema>["items"][number];
+
+/** Una semana del horario: `"0".."6"` (domingo = 0), cada día su franja o `null`. */
+export const weekPatternSchema = z.record(z.string(), workingRangeSchema.nullable());
+
+export const schedulePlanSchema = z.object({ id: z.string(), memberId: z.string(), from: z.string(), to: z.string().nullable(), cycleWeeks: z.number(), weeks: z.array(weekPatternSchema), templateName: z.string().nullable().optional() });
+export type SchedulePlan = z.infer<typeof schedulePlanSchema>;
+
+export const scheduleTemplateSchema = z.object({ id: z.string(), branchId: z.string(), name: z.string(), cycleWeeks: z.number(), weeks: z.array(weekPatternSchema) });
+export type ScheduleTemplate = z.infer<typeof scheduleTemplateSchema>;
+
+export const closuresResponseSchema = z.object({
+  country: z.string(),
+  year: z.number(),
+  holidays: z.array(z.object({ date: z.string(), name: z.string(), closed: z.boolean() })),
+  closures: z.array(z.object({ id: z.string(), branchId: z.string(), date: z.string(), name: z.string(), open: z.object({ start: z.string(), end: z.string() }).nullable() })),
+});
+export type ClosuresResponse = z.infer<typeof closuresResponseSchema>;
+
+export const scheduleChangeKindSchema = z.enum(["day", "following", "plan", "template", "copy", "closure"]);
+export const scheduleLogSchema = z.object({
+  items: z.array(z.object({ id: z.string(), memberId: z.string(), memberName: z.string(), at: z.string(), by: z.string(), kind: scheduleChangeKindSchema, date: z.string(), notify: z.boolean() })),
+});
+export type ScheduleChange = z.infer<typeof scheduleLogSchema>["items"][number];
+
+export interface PlanInput {
+  memberIds: string[];
+  from: string;
+  to: string | null;
+  weeks: WeekSchedule[];
+  templateName?: string | null;
+  saveAsTemplate?: string;
+  notify: boolean;
+  branchId: string;
+}
+
+export interface ClosureInput {
+  branchId: string;
+  date: string;
+  name: string;
+  open: { start: string; end: string } | null;
+  notify?: boolean;
+}
 
 /** Hasta dónde llega un cambio de turno: solo esa fecha, o ese día de la semana desde esa fecha («este y los siguientes»). */
 export type ShiftScope = "day" | "following";

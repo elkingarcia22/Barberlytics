@@ -321,7 +321,6 @@ export const calendarPanelEn: Record<keyof typeof calendarPanelEs, string> = {
   "calendar.conduct.tag": "Behavior reported",
   "calendar.conduct.count": "{count} behavior report(s)",
   "calendar.conduct.meta": "{by} · {date}",
-  "calendar.conduct.tile": "Behavior",
 
   // ── Client: summary and full page ──
   "calendar.panel.client.contact": "Contact",

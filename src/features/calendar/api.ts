@@ -23,6 +23,7 @@ import {
   type CalendarRange,
   type CheckoutInput,
   type Client,
+  type ConductInput,
   type NoteInput,
   type Sale,
   type SaleInput,
@@ -62,6 +63,9 @@ export const calendarApi = {
   addClientNote: (clientId: string, input: NoteInput) => api.post<Client>(`/clients/${clientId}/notes`, input, { schema: clientSchema }),
   updateClientNote: (clientId: string, noteId: string, input: Partial<NoteInput>) => api.patch<Client>(`/clients/${clientId}/notes/${noteId}`, input, { schema: clientSchema }),
   removeClientNote: (clientId: string, noteId: string) => api.delete<Client>(`/clients/${clientId}/notes/${noteId}`, { schema: clientSchema }),
+  /** Reportar la actitud del cliente (o retirar un reporte hecho por error). */
+  reportConduct: (clientId: string, input: ConductInput) => api.post<Client>(`/clients/${clientId}/conduct`, input, { schema: clientSchema }),
+  removeConduct: (clientId: string, reportId: string) => api.delete<Client>(`/clients/${clientId}/conduct/${reportId}`, { schema: clientSchema }),
   createBlock: (input: BlockInput) => api.post<TimeBlock>("/blocks", input, { schema: timeBlockSchema }),
   removeBlock: (id: string) => api.delete<void>(`/blocks/${id}`),
   updateBlock: (id: string, input: BlockInput) => api.patch<TimeBlock>(`/blocks/${id}`, input, { schema: timeBlockSchema }),

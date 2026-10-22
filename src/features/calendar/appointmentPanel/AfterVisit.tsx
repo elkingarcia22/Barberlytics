@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Ban, CreditCard, ReceiptText, Repeat, Send, ShieldOff, Trash2, Undo2 } from "lucide-react";
+import { Ban, CreditCard, Flag, ReceiptText, Repeat, Send, ShieldOff, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { formatClock } from "@/components/scheduling";
@@ -50,6 +50,8 @@ export interface AfterVisitProps extends Pick<AppointmentLinkProps, "linked" | "
   onOpenSendReceipt: () => void;
   /** Ver el recibo: una página dentro del panel (no se sale del calendario). */
   onOpenReceipt: () => void;
+  /** Reportar la actitud del cliente: una página dentro del panel. */
+  onReportConduct: () => void;
 }
 
 /** El tinte de la tarjeta según cómo se cerró: verde cobrada; rojo cancelada o si no asistió. */
@@ -60,7 +62,7 @@ const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-de
  * canceló, llamar y escribir y —para quien puede (dueño, administrador,
  * recepción, renta)— pedirle pago por adelantado o bloquearlo.
  */
-function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void, onReceipt: () => void): Tile[] {
+function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void, onReceipt: () => void, onConduct: () => void): Tile[] {
   const t = useAppT();
   const restrict = useRestrictClient();
   const access = useAccess();
@@ -115,16 +117,18 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
       );
     }
   }
+  // Al cerrar la cita, cobrada o no, quien lo atendió puede dejar cómo se portó: avisa en sus próximas citas.
+  if (model.known) tiles.push({ id: "conduct", icon: <Flag className="size-5 text-destructive" />, label: t("calendar.conduct.tile"), title: t("calendar.conduct.report"), onClick: onConduct });
   return tiles;
 }
 
 
 /** La tarjeta grande con quién vino, lo que se hizo y sus atajos dentro; lo demás, debajo. */
-export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenRebook, onOpenSendReceipt, onOpenReceipt, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
+export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenRebook, onOpenSendReceipt, onOpenReceipt, onReportConduct, linked = [], onSelectAppointment, onUnlink, onShowLinked }: AfterVisitProps) {
   const t = useAppT();
   // Fijar la cita se abre debajo de la tarjeta; reagendar y enviar el recibo son páginas del panel.
   const [pinning, setPinning] = React.useState(false);
-  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt, onOpenReceipt);
+  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt, onOpenReceipt, onReportConduct);
   const [voiding, setVoiding] = React.useState(false);
   // Borrar una venta hecha por error: del dueño y del administrador.
   const canVoid = ctx.access?.canVoidSales ?? true;

@@ -42,6 +42,17 @@ export interface MockClientNote {
   createdAt: string;
 }
 
+export type MockConductReason = "rude" | "disrespect" | "intoxicated" | "haggles" | "hygiene" | "other";
+
+export interface MockConductReport {
+  id: string;
+  reasons: MockConductReason[];
+  text: string;
+  appointmentId: string | null;
+  by: string;
+  createdAt: string;
+}
+
 export interface MockClient {
   id: string;
   name: string;
@@ -59,6 +70,8 @@ export interface MockClient {
   avatarUrl: string | null;
   /** Su correo, para el recibo y los avisos; no todos lo dejan. */
   email?: string | null;
+  /** Lo que el equipo reportó de su actitud, el más reciente primero. */
+  conduct?: MockConductReport[];
 }
 
 export interface MockService {
@@ -345,6 +358,18 @@ function uniqueName(name: string, taken: Set<string>): string {
   return candidate;
 }
 
+const CONDUCT_SAMPLES: readonly Omit<MockConductReport, "id" | "createdAt">[] = [
+  { reasons: ["rude"], text: "Le habló feo a la recepcionista cuando le tocó esperar.", appointmentId: null, by: "Recepción" },
+  { reasons: ["haggles", "disrespect"], text: "Pidió descuento al cobrar y no quiso pagar el diseño de barba.", appointmentId: null, by: "Recepción" },
+];
+
+/** Uno de cada nueve (desde el quinto) trae un reporte; siempre los mismos. */
+function conductSample(index: number, base: number): MockConductReport[] {
+  if (index % 9 !== 4) return [];
+  const sample = CONDUCT_SAMPLES[Math.floor(index / 9) % CONDUCT_SAMPLES.length];
+  return [{ ...sample, id: `conduct_seed_${index}`, createdAt: new Date(base - (12 + index) * 86_400_000).toISOString() }];
+}
+
 export function seedClients(count = 44, seed = 11): MockClient[] {
   const rand = seededRandom(seed);
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
@@ -370,6 +395,8 @@ export function seedClients(count = 44, seed = 11): MockClient[] {
       notes,
       avatarUrl: clientPhoto(index + 1, name),
       email: demoEmail(name, index),
+      // Sin tocar el azar de la semilla: unos pocos con un reporte de actitud, para verlo en la demo.
+      conduct: conductSample(index, base),
     } satisfies MockClient;
   });
   return [WALK_IN_CLIENT, ...clients];

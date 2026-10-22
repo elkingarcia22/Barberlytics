@@ -142,6 +142,7 @@ function detail(client: MockClient) {
       leadTimeDays: client.visits === 0 ? 0 : 1 + (h % 9),
     },
     notes: client.notes,
+    conduct: client.conduct ?? [],
     guests: profile.guests,
     appointments: history.map((item) => ({ id: item.id, service: item.service, start: item.start, barber: barberName(item.barberId), barberId: item.barberId, source: item.source, requestedBarber: item.requestedBarber, status: item.status, total: item.total })),
     lastAppointmentId: past[0]?.id ?? null,

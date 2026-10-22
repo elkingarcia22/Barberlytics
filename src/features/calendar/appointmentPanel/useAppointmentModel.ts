@@ -7,7 +7,7 @@ import { appointmentInsights, type AppointmentInsight } from "../appointmentInsi
 import { ACTION_LABEL } from "../appointmentActions";
 import { appointmentBill } from "../checkoutMath";
 import type { CreateAppointmentInitial } from "../CreateAppointmentDrawer";
-import { PAYMENT_METHOD_KEYS, type Appointment, type AppointmentStatus, type Barber, type Client, type ClientNote, type Service } from "../types";
+import { PAYMENT_METHOD_KEYS, type Appointment, type AppointmentStatus, type Barber, type Client, type ClientNote, type ConductReport, type Service } from "../types";
 
 /**
  * Lo que todas las versiones del panel de una cita saben de ella: quién es,
@@ -43,6 +43,8 @@ export interface AppointmentModel {
   /** Alergias y medicación: lo que no se puede pasar por alto. */
   critical: ClientNote[];
   notes: ClientNote[];
+  /** Lo que el equipo reportó de su actitud, el más reciente primero. */
+  conduct: ConductReport[];
   /** Solo dígitos, para `tel:` y `sms:`; vacío si no hay o el rol no deja contactar. */
   phone: string;
   /** Su correo, si lo dejó y el rol deja contactar; vacío si no. */
@@ -164,6 +166,7 @@ export function useAppointmentModel(appointment: Appointment, ctx: ModelContext,
     unpaid: isUnpaid(appointment),
     critical: client?.notes.filter((note) => note.kind !== "note") ?? [],
     notes: client?.notes.filter((note) => note.kind === "note") ?? [],
+    conduct: known?.conduct ?? [],
     phone,
     email,
     writeLinks,

@@ -9,15 +9,20 @@ import { AppointmentNotesTab } from "../appointmentTabs/AppointmentNotesTab";
 import { JOURNEY, type ModelContext } from "../calendarModel";
 import { CLIENT_TYPE_KEYS } from "../types";
 import { ActionButton, CriticalAlerts, LoyaltyStrip } from "./PanelParts";
+import { ConductAlert, ConductSection } from "./ClientConduct";
+import { LoyaltyFacts, VisitGaps, VisitList } from "./ClientHistory";
+import { useClientVisits } from "./clientVisits";
 import { NavRow } from "./bookingStyle";
 import { LOYALTY_EVERY, type AppointmentModel } from "./useAppointmentModel";
 
 /**
  * El cliente dentro del panel (la tarjeta de la cita está en `ClientField`):
  * la fila que resume quién es y lleva a su página; la página agrupa lo demás por lo que
- * se pregunta: su membresía, cada cuánto viene, si cumple, en qué punto del
- * recorrido va (nuevo → VIP), lo que hay que cuidar, sus notas (dejar,
- * corregir, borrar), sus preferencias y contacto, y al final la ficha completa.
+ * se pregunta: su membresía, lo que hay que cuidar (alergias, medicamentos y
+ * la actitud reportada), sus notas (dejar, corregir, borrar), cada cuánto
+ * viene (con los días entre sus últimas visitas), si cumple, su fidelidad con
+ * el barbero, en qué punto del recorrido va (nuevo → VIP), todas sus visitas,
+ * su contacto y al final la ficha completa.
  */
 
 const LONG_DATE: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" };
@@ -83,13 +88,21 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "ne
   );
 }
 
-export function ClientPageContent({ model, ctx, onOpenClient }: { model: AppointmentModel; ctx: ModelContext; onOpenClient: (clientId: string) => void }) {
+export interface ClientPageContentProps {
+  model: AppointmentModel;
+  ctx: ModelContext;
+  onOpenClient: (clientId: string) => void;
+  /** Reportar su actitud: una página del panel. */
+  onReportConduct: () => void;
+}
+
+export function ClientPageContent({ model, ctx, onOpenClient, onReportConduct }: ClientPageContentProps) {
   const t = useAppT();
   const { formatDate } = useLocale();
   const { known } = model;
+  const visits = useClientVisits(known?.id);
   if (!known) return <Text tone="muted">{t("calendar.notes.walkIn")}</Text>;
   const today = ctx.now ?? new Date();
-  const preferred = known.preferredBarberId ? ctx.catalog.barbers.find((barber) => barber.id === known.preferredBarberId) : undefined;
   const daysSince = model.lastVisit ? differenceInCalendarDays(today, model.lastVisit) : null;
 
   return (
@@ -97,11 +110,24 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
       {/* La membresía ya trae su rótulo: sin título encima. */}
       <LoyaltyStrip model={model} />
 
+      {(model.critical.length > 0 || model.conduct.length > 0) && (
+        <Group title={t("calendar.panel.client.careTitle")}>
+          <ConductAlert model={model} compact />
+          <CriticalAlerts model={model} compact />
+        </Group>
+      )}
+
+      {/* Las notas del cliente: verlas por tipo, dejar una nueva y corregir o borrar cada una, como en la pestaña «Notas». */}
+      <AppointmentNotesTab client={known} />
+
       <Group title={t("calendar.panel.client.rhythmTitle")}>
         <div className="rounded-2xl border border-border bg-surface px-4 py-2">
           <Fact label={t("calendar.panel.client.comesEvery")} value={known.visitEveryDays ? t("calendar.client.every", { days: known.visitEveryDays }) : t("calendar.client.noRhythm")} />
           <Fact label={t("calendar.client.lastVisit")} value={model.lastVisit ? `${formatDate(model.lastVisit, LONG_DATE)}${daysSince !== null ? ` · ${t("calendar.panel.client.lastValue", { days: daysSince })}` : ""}` : "—"} />
           <Fact label={t("calendar.panel.client.nextVisit")} value={model.nextVisit ? formatDate(model.nextVisit, LONG_DATE) : "—"} />
+          <div className="pb-2">
+            <VisitGaps appointments={visits.appointments} />
+          </div>
         </div>
       </Group>
 
@@ -113,23 +139,25 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
         </div>
       </Group>
 
+      <Group title={t("calendar.panel.client.loyaltyTitle")}>
+        <LoyaltyFacts model={model} ctx={ctx} appointments={visits.appointments} />
+      </Group>
+
+      <Group title={t("calendar.conduct.title")}>
+        <ConductSection model={model} onReport={onReportConduct} />
+      </Group>
+
       <Group title={t("calendar.panel.client.journey")}>
         <Stepper size="sm" aria-label={t("calendar.panel.client.journey")} current={Math.max(0, JOURNEY.indexOf(known.type))} steps={JOURNEY.map((type) => ({ id: type, label: t(CLIENT_TYPE_KEYS[type]) }))} />
       </Group>
 
-      {model.critical.length > 0 && (
-        <Group title={t("calendar.panel.client.careTitle")}>
-          <CriticalAlerts model={model} compact />
-        </Group>
-      )}
+      <Group title={t("calendar.panel.client.visitsTitle")}>
+        <VisitList ctx={ctx} appointments={visits.appointments} isLoading={visits.isLoading} isError={visits.isError} />
+      </Group>
 
-      {/* Las notas del cliente: verlas por tipo, dejar una nueva y corregir o borrar cada una, como en la pestaña «Notas». */}
-      <AppointmentNotesTab client={known} />
-
-      <Group title={t("calendar.panel.client.preferences")}>
-        <div className="rounded-2xl border border-border bg-surface px-4 py-2">
-          <Fact label={t("calendar.panel.client.usualBarberLabel")} value={preferred?.name ?? t("calendar.loyalty.noPreference")} />
-          {model.phone && (
+      {model.phone && (
+        <Group title={t("calendar.panel.client.contact")}>
+          <div className="rounded-2xl border border-border bg-surface px-4 py-2">
             <div className="flex items-center justify-between gap-4 py-1.5">
               <span className="flex min-w-0 flex-col">
                 <Text size="sm" tone="secondary" tabular>
@@ -144,9 +172,9 @@ export function ClientPageContent({ model, ctx, onOpenClient }: { model: Appoint
                 <ActionButton model={model} action="message" variant="ghost" size="sm" iconOnly />
               </span>
             </div>
-          )}
-        </div>
-      </Group>
+          </div>
+        </Group>
+      )}
 
       <Button variant="outline" onClick={() => onOpenClient(known.id)}>
         {t("calendar.client.openProfile")}

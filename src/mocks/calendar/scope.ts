@@ -26,7 +26,7 @@ export function ownClientIds(memberId: string): Set<string> {
 }
 
 /** Un cliente ajeno: el nombre y la foto para encontrarlo; sin teléfono, correo, notas de salud ni historial. */
-export const redactClient = (client: MockClient): MockClient => ({ ...client, phone: "", email: null, notes: [], visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null, preferredBarberId: null, visitEveryDays: null });
+export const redactClient = (client: MockClient): MockClient => ({ ...client, phone: "", email: null, notes: [], conduct: [], visits: 0, cancellations: 0, noShows: 0, lastVisitAt: null, preferredBarberId: null, visitEveryDays: null });
 
 export const ownAppointments = <T extends Pick<MockAppointment, "barberId">>(items: readonly T[], memberId: string | null): T[] => (memberId ? items.filter((item) => item.barberId === memberId) : [...items]);
 export const ownBlocks = (blocks: readonly MockTimeBlock[], memberId: string | null): MockTimeBlock[] => (memberId ? blocks.filter((block) => block.barberId === memberId) : [...blocks]);

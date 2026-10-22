@@ -36,6 +36,8 @@ import {
   type MockBlockRepeat,
   type MockClient,
   type MockClientNote,
+  type MockConductReason,
+  type MockConductReport,
   type MockHistoryEntry,
   type MockPaymentMethod,
   type MockProduct,
@@ -320,6 +322,8 @@ const sellableIn = (branchId: string): MockProduct[] => db.products.items.filter
 const bookableIn = (branchId: string): MockService[] => db.services.items.filter((item) => item.activeBranchIds.includes(branchId)).map((item) => ({ ...toAgenda(item), price: servicePriceIn(item.id, branchId), taxPercent: itemTaxPercent(item.taxRate, branchId) }));
 
 /** Un barbero escribe en la ficha de sus clientes; los demás roles, en cualquiera. */
+const CONDUCT_REASONS = ["rude", "disrespect", "intoxicated", "haggles", "hygiene", "other"] as const;
+
 function canTouchClient(request: Request, clientId: string): boolean {
   const own = barberOf(request);
   return !own || ownClientIds(own).has(clientId);
@@ -842,6 +846,41 @@ export const calendarHandlers = [
     if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
     if (kind !== "note" && !hasHealthConsent(client)) return healthConsentRequired();
     const updated = { ...client, notes: client.notes.map((note) => (note.id === current.id ? { ...note, kind, text: body } : note)) };
+    db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
+    db.persist();
+    return HttpResponse.json(updated);
+  }),
+
+  // La actitud del cliente: uno o más motivos y, si hace falta, lo que pasó. Lo reporta quien lo atendió o la barbería.
+  http.post(`${BASE}/clients/:id/conduct`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    const account = requireAuth(request);
+    if (!account) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = db.calendar.clients.find((item) => item.id === params.id);
+    if (!client || client.id === WALK_IN_CLIENT.id) return error(404, "not_found", "Ese cliente no existe.");
+    if (!canTouchClient(request, client.id)) return forbidden("Ese cliente no es tuyo.");
+    const input = asRecord(await request.json().catch(() => ({})));
+    const reasons = (Array.isArray(input.reasons) ? input.reasons : []).filter((reason): reason is MockConductReason => typeof reason === "string" && (CONDUCT_REASONS as readonly string[]).includes(reason));
+    const body = text(input.text);
+    const fields: Record<string, string[]> = {};
+    if (reasons.length === 0) fields.reasons = ["Elige al menos un motivo."];
+    if (reasons.includes("other") && body.length < 3) fields.text = ["Cuenta qué pasó."];
+    if (Object.keys(fields).length > 0) return error(422, "validation", "Revisa los campos marcados.", { fields });
+    const appointmentId = text(input.appointmentId) || null;
+    const report: MockConductReport = { id: `conduct_${Date.now().toString(36)}`, reasons: [...new Set(reasons)], text: body, appointmentId, by: account.user.name, createdAt: new Date().toISOString() };
+    const updated = { ...client, conduct: [report, ...(client.conduct ?? [])] };
+    db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
+    db.persist();
+    return HttpResponse.json(updated, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/clients/:id/conduct/:reportId`, async ({ request, params }) => {
+    await delay(LATENCY_MS);
+    if (!requireAuth(request)) return error(401, "unauthorized", "Tu sesión expiró.");
+    const client = db.calendar.clients.find((item) => item.id === params.id);
+    if (!client || !(client.conduct ?? []).some((report) => report.id === params.reportId)) return error(404, "not_found", "Ese reporte no existe.");
+    if (!canTouchClient(request, client.id)) return forbidden("Ese cliente no es tuyo.");
+    const updated = { ...client, conduct: (client.conduct ?? []).filter((report) => report.id !== params.reportId) };
     db.calendar.clients = db.calendar.clients.map((item) => (item.id === updated.id ? updated : item));
     db.persist();
     return HttpResponse.json(updated);

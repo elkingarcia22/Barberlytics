@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { customerSourceSchema, cutRecordSchema, referralSummarySchema } from "./loyalty";
 import type { AppMessageKey } from "@/app/i18n/types";
-import { clientNoteSchema } from "@/features/calendar/types";
+import { clientNoteSchema, conductReportSchema } from "@/features/calendar/types";
 
 /**
  * En qué momento de la relación está un cliente. Los cuatro primeros dicen
@@ -95,6 +95,8 @@ export const customerDetailSchema = customerSchema.extend({
     leadTimeDays: z.number(),
   }),
   notes: z.array(clientNoteSchema),
+  /** Los reportes de actitud que dejó el equipo al cerrar sus citas. */
+  conduct: z.array(conductReportSchema).default([]),
   guests: z.array(customerGuestSchema),
   appointments: z.array(customerAppointmentSchema),
   lastAppointmentId: z.string().nullable(),

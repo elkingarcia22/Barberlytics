@@ -95,6 +95,15 @@ export function usePaymentController() {
   const usesCard = method === "card" || deposit > 0;
   /** Va a pagar con tarjeta, tiene guardadas y aún no confirmó el código: se le pide antes de mostrarlas. */
   const needsCardCode = usesCard && !state.verified && Boolean(customer?.hasSavedCards) && !skipSavedCards;
+  // El código va en su ventana: se abre sola al elegir tarjeta y se cierra sola al confirmarlo.
+  const [codeAsked, setCodeAsked] = React.useState(false);
+  const [neededCode, setNeededCode] = React.useState(needsCardCode);
+  if (needsCardCode !== neededCode) {
+    setNeededCode(needsCardCode);
+    setCodeAsked(needsCardCode);
+  }
+  const codeOpen = codeAsked && needsCardCode;
+  const setCodeOpen = setCodeAsked;
 
   const serverCardError = isApiError(reserve.error) ? reserve.error.fieldErrors?.card?.[0] : undefined;
   const payLabel =
@@ -104,7 +113,7 @@ export function usePaymentController() {
   const validate = () => {
     if (!customer || !state.branchId || !method) return false;
     if (needsCardCode) {
-      toastMissing(t, [t("booking.payment.codeMissing")]);
+      setCodeAsked(true);
       return false;
     }
     if (usesCard && !chosenSaved && !card) {
@@ -203,6 +212,8 @@ export function usePaymentController() {
     depositPercent,
     usesCard,
     needsCardCode,
+    codeOpen,
+    setCodeOpen,
     skipSavedCards,
     setSkipSavedCards,
     coveredByGift,

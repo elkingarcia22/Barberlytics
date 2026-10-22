@@ -138,18 +138,14 @@ export function PaymentPanel({ payment, showOrder = true, compact = false, onCha
             <AlertDescription>{t("booking.payment.deposit.body", { percent: depositPercent ?? 0, rest: fmt.money(Math.max(0, totals.total - deposit)), hours: shop.cancelHours })}</AlertDescription>
           </Alert>
         )}
+        {/* Cerró la ventana del código sin confirmarlo: volver a ella o pagar con otra tarjeta. */}
         {payment.needsCardCode && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
-            <div className="flex flex-col gap-1">
-              <Text size="sm" weight="semibold">
-                {t("booking.payment.savedCode.title")}
-              </Text>
-              <Text size="sm" tone="secondary">
-                {t("booking.payment.savedCode.lead")}
-              </Text>
-            </div>
-            <CodeGate />
-            <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => payment.setSkipSavedCards(true)}>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => payment.setCodeOpen(true)}>
+              <ThemaIcon name="lock" />
+              {t("booking.payment.savedCode.useSaved")}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => payment.setSkipSavedCards(true)}>
               <ThemaIcon name="plus" />
               {t("booking.payment.savedCode.newCard")}
             </Button>
@@ -253,7 +249,7 @@ export function PaymentPanel({ payment, showOrder = true, compact = false, onCha
 }
 
 /** Las hojas del cobro: cómo se paga en el local con varias citas y la tarjeta nueva. */
-export function PaymentSheets({ payment }: { payment: PaymentController }) {
+export function PaymentSheets({ payment, askCodeHere = true }: { payment: PaymentController; /** La conversación pide el código en el hilo, no en una ventana. */ askCodeHere?: boolean }) {
   const t = useAppT();
   const { state } = useBookingFlow();
   const { reserve, sheet, setSheet, card, saveCard } = payment;
@@ -292,6 +288,30 @@ export function PaymentSheets({ payment }: { payment: PaymentController }) {
         </div>
       </BookingSheet>
       <TipSheet payment={payment} />
+      {/* Ya tiene tarjetas guardadas: el código, en su ventana, antes de mostrarlas. */}
+      <BookingSheet
+        open={askCodeHere && payment.codeOpen}
+        onOpenChange={payment.setCodeOpen}
+        title={t("booking.payment.savedCode.title")}
+        description={t("booking.payment.savedCode.lead")}
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              payment.setSkipSavedCards(true);
+              payment.setCodeOpen(false);
+            }}
+          >
+            <ThemaIcon name="plus" />
+            {t("booking.payment.savedCode.newCard")}
+          </Button>
+        }
+      >
+        {askCodeHere && payment.codeOpen && <CodeGate />}
+      </BookingSheet>
       {payment.cardManager.sheets}
       <NewCardSheet
         key={`${sheet.open}-${sheet.prefill}`}

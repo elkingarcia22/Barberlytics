@@ -456,8 +456,8 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
 
-  // Lo que el rol no puede hacer no se ofrece: bloquear sin permiso, ir a los horarios sin ver Equipo.
-  const hiddenRailActions = React.useMemo(() => new Set([...(can.canCreateBlock ? [] : ["block"]), ...(can.canViewTeam ? [] : ["work-hours"])]), [can.canCreateBlock, can.canViewTeam]);
+  // Lo que el rol no puede hacer no se ofrece: ir a los horarios sin ver Equipo.
+  const hiddenRailActions = React.useMemo(() => new Set(can.canViewTeam ? [] : ["work-hours"]), [can.canViewTeam]);
   const railActions = React.useMemo(
     () =>
       calendarRailActions(t, {
@@ -467,13 +467,12 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
         waitlist: () => openPanel({ kind: "waitlist" }),
-        block: () => openPanel({ kind: "timeOff", focus: { type: "add", kind: "block", barberId: ownBarberId } }),
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
         timeOff: () => openPanel({ kind: "timeOff", focus: null }),
       }).filter((action) => !hiddenRailActions.has(action.id)),
-    [hiddenRailActions, navigate, openPanel, ownBarberId, t]
+    [hiddenRailActions, navigate, openPanel, t]
   );
 
   useCalendarShortcuts({

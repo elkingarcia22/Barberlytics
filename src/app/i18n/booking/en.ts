@@ -457,7 +457,6 @@ export const bookingEn: Readonly<Record<keyof typeof bookingEs, string>> = {
   "booking.payment.savedCode.lead": "You already have saved cards: confirm it's you with the code and pick one.",
   "booking.payment.savedCode.newCard": "Pay with another card",
   "booking.payment.savedCode.useSaved": "Use my saved cards",
-  "booking.payment.codeMissing": "Enter the code to use your saved cards.",
   "booking.payment.shopDepositHint": "You leave a {percent}% deposit by card and pay the rest when you arrive.",
   "booking.payment.payDeposit": "Pay {amount} deposit and book",
   "booking.payment.deposit.title": "To pay at the shop, you leave a {amount} deposit",

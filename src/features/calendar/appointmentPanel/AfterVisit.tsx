@@ -18,7 +18,7 @@ import { ConfirmContent, VoidSaleContent } from "./StatusConfirm";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { ClientField } from "./ClientField";
 import { PinSeries } from "./PinSeries";
-import { ClientTags, MoreActionsMenu } from "./PanelParts";
+import { ClientTags, MoreActionsMenu, type MenuExtra } from "./PanelParts";
 import { LinkedField, PanelStepper } from "./PanelShared";
 import { writeMenu } from "./writeChannels";
 import { SourceLine } from "./SourceLine";
@@ -62,7 +62,7 @@ const MOMENT_TINT = { paid: "from-success/15 via-success/5", cancelled: "from-de
  * canceló, llamar y escribir y —para quien puede (dueño, administrador,
  * recepción, renta)— pedirle pago por adelantado o bloquearlo.
  */
-function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void, onReceipt: () => void, onConduct: () => void): Tile[] {
+function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => void, onRefund: () => void, onSendReceipt: () => void, onReceipt: () => void): Tile[] {
   const t = useAppT();
   const restrict = useRestrictClient();
   const access = useAccess();
@@ -117,8 +117,6 @@ function useAfterTiles(model: AppointmentModel, ctx: ModelContext, onPin: () => 
       );
     }
   }
-  // Al cerrar la cita, cobrada o no, quien lo atendió puede dejar cómo se portó: avisa en sus próximas citas.
-  if (model.known) tiles.push({ id: "conduct", icon: <Flag className="size-5 text-destructive" />, label: t("calendar.conduct.tile"), title: t("calendar.conduct.report"), onClick: onConduct });
   return tiles;
 }
 
@@ -128,7 +126,7 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenReboo
   const t = useAppT();
   // Fijar la cita se abre debajo de la tarjeta; reagendar y enviar el recibo son páginas del panel.
   const [pinning, setPinning] = React.useState(false);
-  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt, onOpenReceipt, onReportConduct);
+  const tiles = useAfterTiles(model, ctx, () => setPinning((current) => !current), onOpenRefund, onOpenSendReceipt, onOpenReceipt);
   const [voiding, setVoiding] = React.useState(false);
   // Borrar una venta hecha por error: del dueño y del administrador.
   const canVoid = ctx.access?.canVoidSales ?? true;
@@ -138,6 +136,8 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenReboo
     const product = ctx.catalog.products.find((entry) => entry.id === line.productId);
     return product ? [`${product.name} × ${line.qty}`] : [];
   });
+  // Reportar la actitud al cerrar la cita (cobrada o no): avisa en sus próximas citas. Vive en el «⋯» junto a reagendar.
+  const conductExtra: MenuExtra[] = model.known ? [{ id: "conduct", label: t("calendar.conduct.report"), icon: Flag, onSelect: onReportConduct }] : [];
   return (
     <div className="flex flex-col gap-5" data-testid="panel-after">
       {paid && <PanelStepper model={model} ctx={ctx} />}
@@ -168,12 +168,14 @@ export function AfterVisit({ model, ctx, onOpenClient, onOpenRefund, onOpenReboo
             {t("calendar.panel.after.rebook")}
           </Button>
           {/* Cancelada o no asistió por error: se reactiva (vuelve a pendiente). Cobrada por error: se borra la venta. */}
-          {!paid && <MoreActionsMenu model={model} actions={[]} extra={[{ id: "undo", label: t("calendar.panel.reactivate"), icon: Undo2, onSelect: () => model.setStatus("scheduled") }]} />}
+          {!paid && <MoreActionsMenu model={model} actions={[]} extra={[...conductExtra, { id: "undo", label: t("calendar.panel.reactivate"), icon: Undo2, onSelect: () => model.setStatus("scheduled") }]} />}
+          {/* Cobrada pero sin permiso para borrar la venta: el «⋯» queda solo con la actitud. */}
+          {paid && !canVoid && <MoreActionsMenu model={model} actions={[]} extra={conductExtra} />}
           {paid && canVoid && (
             <Popover open={voiding} onOpenChange={setVoiding}>
               <PopoverAnchor asChild>
                 <span>
-                  <MoreActionsMenu model={model} actions={[]} extra={[{ id: "void", label: t("calendar.void.action"), icon: Trash2, onSelect: () => requestAnimationFrame(() => setVoiding(true)) }]} />
+                  <MoreActionsMenu model={model} actions={[]} extra={[...conductExtra, { id: "void", label: t("calendar.void.action"), icon: Trash2, onSelect: () => requestAnimationFrame(() => setVoiding(true)) }]} />
                 </span>
               </PopoverAnchor>
               <PopoverContent align="end" className="w-80" onFocusOutside={(event) => event.preventDefault()}>

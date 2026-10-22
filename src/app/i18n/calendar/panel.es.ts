@@ -336,7 +336,6 @@ export const calendarPanelEs = {
   "calendar.conduct.tag": "Actitud reportada",
   "calendar.conduct.count": "{count} reporte(s) de actitud",
   "calendar.conduct.meta": "{by} · {date}",
-  "calendar.conduct.tile": "Actitud",
 
   // ── El cliente: resumen y página completa ──
   "calendar.panel.client.contact": "Contacto",

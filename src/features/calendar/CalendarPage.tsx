@@ -53,6 +53,7 @@ import { useBlocksQuery, useCatalogQuery, useDayQuery, useRemoveBlock, useRhythm
 import { Palmtree, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalendarWeekView } from "./CalendarWeekView";
+import { CalendarWeekBarberView } from "./CalendarWeekBarberView";
 import { moveStart, reflowPlan, type ReflowPlan } from "./reflowModel";
 import type { SlotSuggestion } from "./slotSuggestions";
 import { BLOCK_CATEGORY_KEYS } from "./types";
@@ -93,8 +94,9 @@ import {
   newLinkId,
   isUnpaid,
   isUnconfirmed,
+  teamIds,
 } from "./calendarModel";
-import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TeamFilter, type TimeBlock, type WaitlistEntry } from "./types";
+import { CLIENT_TYPE_KEYS, STATUS_KEYS, type Appointment, type AppointmentPatch, type AppointmentStatus, type Barber, type CalendarDay, type TargetDay, type TeamFilter, type TimeBlock, type WaitlistEntry } from "./types";
 
 /**
  * El calendario de la barbería: el día por barbero, la agenda como lista y
@@ -165,7 +167,7 @@ export interface CalendarPageProps {
 export function CalendarPage({ now }: CalendarPageProps = {}) {
   const t = useAppT();
   const navigate = useNavigate();
-  const { current } = useLocale();
+  const { current, formatDate } = useLocale();
   const formatMoney = useMoney();
   const { activeCompanyId } = useShellConfig();
   // Lo que el rol deja ver y hacer aquí. Los barberos ven solo su columna y agendan con las
@@ -455,6 +457,9 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   // Lo que el layout pone junto a las acciones de toda pantalla (el agente): sin PageHeader, lo pinta la barra.
   const headerExtras = usePageHeaderExtras();
   const isDayView = state.view === "day" || state.view === "agenda";
+  // Con un solo barbero a la vista, la semana es su agenda por horas, no la tabla de ocupación del equipo.
+  const weekBarberIds = teamIds(team);
+  const weekBarber = weekBarberIds.length === 1 ? (ctx?.catalog.barbers.find((barber) => barber.id === weekBarberIds[0]) ?? null) : null;
 
   // Lo que el rol no puede hacer no se ofrece: ir a los horarios sin ver Equipo.
   const hiddenRailActions = React.useMemo(() => new Set(can.canViewTeam ? [] : ["work-hours"]), [can.canViewTeam]);
@@ -466,7 +471,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInSale: () => openPanel({ kind: "walkInSale" }),
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
-        waitlist: () => openPanel({ kind: "waitlist" }),
         workHours: () => navigate("/usuarios"),
         assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
@@ -504,54 +508,68 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   /** Si una tarjeta cabe donde se quiere soltar. Alargarla sobre citas que se pueden correr sí vale: se ofrece reacomodar. */
   // La cita como quedaría tras soltarla (otra hora, otro barbero u otra duración), contra los recursos especiales.
   const resources = resourcesQuery.data?.items;
-  const dropConflict = React.useCallback(
-    (id: string, drop: ScheduleDrop) => {
-      const anchor = day.data?.appointments.find((item) => item.id === id);
-      if (!anchor || !ctx || !day.data || !resources?.length) return null;
-      const moved = { ...anchor, start: toLocalIso(drop.start), barberId: drop.resourceId, durationMin: differenceInMinutes(drop.end, drop.start) };
-      return resourceConflict(resources, day.data.appointments, ctx.catalog, moved);
+  // Todo cambio se valida contra el día donde cae: el abierto en la agenda o, en la semana de un barbero, el día donde se suelta.
+  const openDay = React.useMemo<TargetDay | null>(() => (day.data ? { data: day.data, date: state.date } : null), [day.data, state.date]);
+  /** El barbero con el horario de ese día (sus excepciones de horario incluidas). */
+  const barberOn = React.useCallback(
+    (barberId: string, target: TargetDay): Barber | undefined => {
+      const barber = ctx ? findBarber(ctx.catalog, barberId) : undefined;
+      return barber ? applyDayHours([barber], target.date, target.data.hours)[0] : undefined;
     },
-    [ctx, day.data, resources]
+    [ctx]
   );
 
-  const validateDrop = React.useCallback(
-    (event: ScheduleEvent, drop: ScheduleDrop): string | null => {
+  const dropConflict = React.useCallback(
+    (anchor: Appointment, drop: ScheduleDrop, target: TargetDay) => {
+      if (!ctx || !resources?.length) return null;
+      const moved = { ...anchor, start: toLocalIso(drop.start), barberId: drop.resourceId, durationMin: differenceInMinutes(drop.end, drop.start) };
+      return resourceConflict(resources, target.data.appointments, ctx.catalog, moved);
+    },
+    [ctx, resources]
+  );
+
+  const validateDropOn = React.useCallback(
+    (event: ScheduleEvent, drop: ScheduleDrop, target: TargetDay | null, anchor?: Appointment): string | null => {
       // Un barbero no pasa citas a la columna de otro, ni aunque la viera.
       if (ownBarberId && drop.resourceId !== ownBarberId) return t("calendar.clash.otherBarber");
-      if (!enforceRules || !ctx || !day.data) return null;
-      const barber = findBarber(ctx.catalog, drop.resourceId);
+      if (!enforceRules || !ctx || !target) return null;
+      const barber = barberOn(drop.resourceId, target);
       if (!barber) return null;
       const from = minutesOfDay(drop.start);
       const to = minutesOfDay(drop.end);
-      const problem = placementProblem(day.data, barber, state.date, from, to, event.id);
+      const problem = placementProblem(target.data, barber, target.date, from, to, event.id);
+      const original = anchor ?? target.data.appointments.find((item) => item.id === event.id);
       const isResize = drop.resourceId === event.resourceId && drop.start.getTime() === event.start.getTime();
       if (isResize && problem?.kind === "appointment") {
-        const anchor = day.data.appointments.find((item) => item.id === event.id);
-        const plan = anchor ? reflowPlan(day.data, barber, state.date, { ...anchor, durationMin: to - from }, to) : null;
+        const plan = original ? reflowPlan(target.data, barber, target.date, { ...original, durationMin: to - from }, to) : null;
         // Si todo lo que pisa se puede correr, el plan lo resuelve; si no, no cabe.
-        if (plan && clashingAppointments(day.data.appointments, barber.id, state.date, from, to, event.id).every((item) => plan.moves.some((move) => move.appointment.id === item.id))) return null;
+        if (plan && clashingAppointments(target.data.appointments, barber.id, target.date, from, to, event.id).every((item) => plan.moves.some((move) => move.appointment.id === item.id))) return null;
       }
-      return placementReason(problem, ctx, barber) ?? resourceReason(dropConflict(event.id, drop), ctx);
+      return placementReason(problem, ctx, barber) ?? (original ? resourceReason(dropConflict(original, drop, target), ctx) : null);
     },
-    [ctx, day.data, dropConflict, enforceRules, ownBarberId, state.date, t]
+    [barberOn, ctx, dropConflict, enforceRules, ownBarberId, t]
   );
+  const validateDrop = React.useCallback((event: ScheduleEvent, drop: ScheduleDrop) => validateDropOn(event, drop, openDay), [validateDropOn, openDay]);
 
   /** Sin reglas el cambio entra igual, pero se avisa de sobre qué quedó. */
-  const overlapNote = (barberId: string, from: number, to: number, excludeId: string): string | null => {
-    if (enforceRules || !ctx || !day.data) return null;
-    const barber = findBarber(ctx.catalog, barberId);
-    const drop: ScheduleDrop = { resourceId: barberId, start: atMinutes(state.date, from), end: atMinutes(state.date, to) };
-    return barber ? (placementReason(placementProblem(day.data, barber, state.date, from, to, excludeId), ctx, barber) ?? resourceReason(dropConflict(excludeId, drop), ctx)) : null;
+  const overlapNote = (appointment: Appointment, barberId: string, from: number, to: number, target: TargetDay): string | null => {
+    if (enforceRules || !ctx) return null;
+    const barber = barberOn(barberId, target);
+    const drop: ScheduleDrop = { resourceId: barberId, start: atMinutes(target.date, from), end: atMinutes(target.date, to) };
+    return barber ? (placementReason(placementProblem(target.data, barber, target.date, from, to, appointment.id), ctx, barber) ?? resourceReason(dropConflict(appointment, drop, target), ctx)) : null;
   };
 
   const onDropRejected = (_event: ScheduleEvent, _drop: ScheduleDrop, reason: string) => toast.error(t("calendar.clash.title"), { description: reason });
 
-  const onMove = (appointment: Appointment, drop: ScheduleDrop) => {
+  const onMoveTo = (appointment: Appointment, drop: ScheduleDrop, target: TargetDay | null) => {
     if (!ctx) return;
     const barber = findBarber(ctx.catalog, drop.resourceId);
     const client = findClient(ctx.catalog, appointment.clientId);
-    const note = overlapNote(drop.resourceId, minutesOfDay(drop.start), minutesOfDay(drop.end), appointment.id);
-    const moved = t("calendar.movedHint", { client: client?.name ?? "", barber: barber?.name ?? "", time: formatClockRange(drop.start, drop.end, ctx.intl) });
+    const note = target ? overlapNote(appointment, drop.resourceId, minutesOfDay(drop.start), minutesOfDay(drop.end), target) : null;
+    // Si cambió de día, el aviso dice cuál: «jueves 23, 10:00 – 10:30».
+    const range = formatClockRange(drop.start, drop.end, ctx.intl);
+    const time = isSameDay(drop.start, appointmentStart(appointment)) ? range : `${formatDate(drop.start, { weekday: "long", day: "numeric" })}, ${range}`;
+    const moved = t("calendar.movedHint", { client: client?.name ?? "", barber: barber?.name ?? "", time });
     patchWithUndo(
       appointment,
       { start: toLocalIso(drop.start), barberId: drop.resourceId, force: !enforceRules },
@@ -560,25 +578,29 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
       note ? `${moved} ${note}.` : moved
     );
   };
+  const onMove = (appointment: Appointment, drop: ScheduleDrop) => onMoveTo(appointment, drop, openDay);
 
-  const onResize = (appointment: Appointment, drop: ScheduleDrop) => {
-    if (!ctx || !day.data) return;
+  const onResizeOn = (appointment: Appointment, drop: ScheduleDrop, target: TargetDay | null) => {
+    if (!ctx || !target) return;
     const minutes = differenceInMinutes(drop.end, parseLocal(appointment.start));
-    const barber = findBarber(ctx.catalog, appointment.barberId);
+    const barber = barberOn(appointment.barberId, target);
     const from = minutesOfDay(appointmentStart(appointment));
     const client = findClient(ctx.catalog, appointment.clientId);
     // Si al alargarse pisa a quien viene después, se propone correr la cola en vez de rechazar.
-    const pisa = barber ? clashingAppointments(day.data.appointments, barber.id, state.date, from, from + minutes, appointment.id) : [];
+    const pisa = barber ? clashingAppointments(target.data.appointments, barber.id, target.date, from, from + minutes, appointment.id) : [];
     // Quien agenda sin reglas alarga y ya; a quien las sigue se le propone correr la cola.
-    const plan = enforceRules && barber && pisa.length > 0 ? reflowPlan(day.data, barber, state.date, { ...appointment, durationMin: minutes }, from + minutes) : null;
+    const plan = enforceRules && barber && pisa.length > 0 ? reflowPlan(target.data, barber, target.date, { ...appointment, durationMin: minutes }, from + minutes) : null;
     if (plan) {
+      // El aviso del reacomodo sale sobre el día que se reacomoda.
+      if (!isSameDay(target.date, state.date)) state.setDate(target.date);
       setReflow({ plan, anchorPatch: { durationMin: minutes } });
       return;
     }
-    const note = overlapNote(appointment.barberId, from, from + minutes, appointment.id);
+    const note = overlapNote(appointment, appointment.barberId, from, from + minutes, target);
     const resized = t("calendar.resizedHint", { client: client?.name ?? "", minutes });
     patchWithUndo(appointment, { durationMin: minutes, force: !enforceRules }, { durationMin: appointment.durationMin, force: true }, t("calendar.resized"), note ? `${resized} ${note}.` : resized);
   };
+  const onResize = (appointment: Appointment, drop: ScheduleDrop) => onResizeOn(appointment, drop, openDay);
 
   /* ------------------------------------------------------------ reacomodo */
 
@@ -972,7 +994,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
   const confirm = panel?.kind === "confirm" ? panel : null;
   const confirmClient = confirm && ctx ? (findClient(ctx.catalog, confirm.appointment.clientId)?.name ?? "") : "";
   const revenue = pulse ? { collected: formatMoney(pulse.collected), total: formatMoney(pulse.expected) } : null;
-  const showReflow = reflow !== null && ctx !== null && state.view === "day" && isSameDay(reflow.plan.date, state.date);
+  const showReflow = reflow !== null && ctx !== null && (state.view === "day" || (state.view === "week" && weekBarber !== null)) && isSameDay(reflow.plan.date, state.date);
 
   return (
     // Columna flex a todo el alto: en la vista Día la rejilla se queda con lo
@@ -1118,7 +1140,34 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                   onSelectDay={openDayPanel}
                 />
               ) : state.view === "week" ? (
-                <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} selectedDay={dayPanelDate} rhythm={rhythm.data} onSelectDay={openDayPanel} />
+                weekBarber ? (
+                  <CalendarWeekBarberView
+                    branchId={branchId}
+                    date={state.date}
+                    barber={weekBarber}
+                    ctx={ctx}
+                    now={nowDate}
+                    filters={filters}
+                    slotHeight={slotHeight}
+                    hideBlock={hideBlock}
+                    onSlotClick={onSlotClick}
+                    onOpenAppointment={(appointment) => {
+                      setPanel(null);
+                      state.openAppointmentKeepingView(parseLocal(appointment.start), appointment.id);
+                    }}
+                    onOpenBlock={(block, blockDate) => {
+                      state.setDate(blockDate);
+                      openBlock(block);
+                    }}
+                    appointmentActions={(appointment) => appointmentContextActions(appointment, ctx, contextHandlers)}
+                    validateDrop={(event, drop, target, appointment) => validateDropOn(event, drop, target, appointment)}
+                    onDropRejected={onDropRejected}
+                    onMove={onMoveTo}
+                    onResize={onResizeOn}
+                  />
+                ) : (
+                  <CalendarWeekView branchId={branchId} date={state.date} team={team} ctx={ctx} today={nowDate} selectedDay={dayPanelDate} rhythm={rhythm.data} onSelectDay={openDayPanel} />
+                )
               ) : (
                 <QueryBoundary query={day} loading={<GridSkeleton />}>
                   {(data: CalendarDay) =>
@@ -1329,6 +1378,7 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
                 date={state.date}
                 day={day.data}
                 waitlist={waitlistItems}
+                onOpenWaitlist={() => openPanel({ kind: "waitlist" })}
                 onBook={(gap) => openPanel({ kind: "create", initial: { barberId: gap.barber.id, start: gap.start } })}
                 onOffer={(gap, entry) => openPanel({ kind: "create", initial: { clientId: entry.clientId, serviceId: entry.serviceId, barberId: gap.barber.id, start: gap.start } })}
               />

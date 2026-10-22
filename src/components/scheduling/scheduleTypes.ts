@@ -39,6 +39,13 @@ export interface ScheduleResource {
   progress?: number;
   /** Algo que la columna pide mirar ahora: se pinta como chip bajo el nombre. */
   alert?: ScheduleResourceAlert;
+  /**
+   * El día que enseña la columna cuando no es el de la rejilla: la semana de una
+   * sola persona, una columna por día. La cabecera pasa a ser el día (semana y
+   * número, hoy resaltado) en vez del avatar, y las citas, los huecos y la línea
+   * de «ahora» son los de ese día.
+   */
+  date?: Date;
 }
 
 export type ScheduleEventKind = "appointment" | "block";

@@ -1,5 +1,5 @@
 {
-  "sourceHash": "707797633029cba3",
+  "sourceHash": "43b57662c9ff845e",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -5658,6 +5658,12 @@
           "description": "Oculta el pill flotante inferior 'Haz clic donde quieras comentar' en modo comentar."
         },
         {
+          "name": "locate",
+          "type": "(point: { x: number; y: number }) => CommentLocation | undefined",
+          "default": null,
+          "description": "Describe dónde cayó el clic (ruta, módulo, sección y elemento) a partir de sus coordenadas en la ventana; queda en el hilo (`thread.location`) y el panel lo muestra. En la app se usa `locateCommentPoint` de `@/lib/comments/locate`, que salta la capa de clics (`data-comment-overlay`) para leer lo que hay debajo."
+        },
+        {
           "name": "className",
           "type": "string",
           "default": null,
@@ -5692,7 +5698,7 @@
       "id": "comments-panel",
       "name": "CommentsPanel",
       "group": "comments",
-      "description": "Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.",
+      "description": "Panel lateral derecho para la gestión de comentarios colaborativos tipo Figma. Si el hilo trae `location`, la lista muestra la sección y el elemento, y el detalle, módulo, sección y elemento. Permite filtrar por estado (pendientes, resueltos, todos) y por lectura (leídos, no leídos), explorar hilos con sus respuestas y responder directamente.",
       "import": "import { CommentsPanel } from \"@/components/comments\"",
       "source": "src/components/comments/CommentsPanel.tsx",
       "status": "stable",
@@ -14617,7 +14623,7 @@
           "name": "resources",
           "type": "ScheduleResource[]",
           "default": null,
-          "description": "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo."
+          "description": "Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. Con `date`, la columna es ese día (la semana de una persona) y la cabecera pasa a ser el día."
         },
         {
           "name": "events",
@@ -14747,6 +14753,12 @@
           "title": "El día por barbero",
           "description": "Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se oscurece y se raya. Tomás no tiene horario y su columna lo dice. Las citas cuentan el cliente, el servicio y el siguiente paso; el bloqueo del almuerzo va tachado y no se toca.",
           "code": "<ResourceDayGrid\n  date={hoy}\n  resources={[\n    { id: \"andres\", name: \"Andrés Beltrán\", workingHours: [{ start: \"09:00\", end: \"19:00\" }] },\n    { id: \"tomas\", name: \"Tomás Peña\", workingHours: [] },\n  ]}\n  events={[\n    { id: \"e1\", resourceId: \"andres\", start, end, title: \"Marcela Gómez\", subtitle: \"Corte clásico · US$ 35\", badge: { label: \"VIP\", tone: \"warning\" }, action: { label: \"Ingresar\", onClick } },\n    { id: \"b1\", resourceId: \"andres\", start, end, title: \"Almuerzo\", kind: \"block\", locked: true },\n  ]}\n  startHour={8}\n  endHour={20}\n/>"
+        },
+        {
+          "id": "week",
+          "title": "La semana de una persona",
+          "description": "Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Arrastrar una tarjeta a otra columna la lleva a ese día: `onEventMove` y `validateDrop` reciben la fecha de la columna destino. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.",
+          "code": "<ResourceDayGrid\n  date={lunes}\n  resources={diasDeLaSemana.map((dia) => ({ id: clave(dia), name: nombreLargo(dia), subtitle: \"3 citas\", date: dia, workingHours: horario(dia) }))}\n  events={citas.map((cita) => ({ ...cita, resourceId: clave(cita.start) }))}\n  onSlotClick={({ start }) => crearCita({ barberId: andres.id, start })}\n/>"
         },
         {
           "id": "drag",

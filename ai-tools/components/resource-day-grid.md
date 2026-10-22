@@ -13,7 +13,7 @@ import { ResourceDayGrid } from "@/components/scheduling"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `date` | `Date` |  | El día que se muestra. |
-| `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. |
+| `resources` | `ScheduleResource[]` |  | Una columna por elemento: id, nombre, avatar, subtítulo y sus franjas de trabajo («HH:mm»). `progress` (0 a 1) pinta una barra de ocupación bajo el nombre; `alert` ({ label, tone?, onClick? }) un chip de aviso debajo. Con `date`, la columna es ese día (la semana de una persona) y la cabecera pasa a ser el día. |
 | `events` | `ScheduleEvent[]` |  | Citas y bloqueos con `resourceId`, `start`, `end`, título, tono, badge, acción y aviso. `tone` es el color de la tarjeta y `status` ({ label, tone }) la píldora que dice en qué va. `kind: "block"` tacha la franja; `locked` impide arrastrar; `flexible` pone el borde discontinuo; `markers` ({ id, icon, label }[]) son iconos de detalle que salen junto al nombre desde dos líneas de alto; `hideTime` quita la línea de la hora; `ghost` dibuja una propuesta translúcida con su `note` y tocarla llama a `onEventClick`; `group` ({ id, index, size, color, highlight, joinTop, joinBottom }) marca las citas enlazadas con un icono de su color y, resaltadas, un borde discontinuo de ese color; `segments` ({ id, label, minutes }[]) parte por dentro una sola cita de varios servicios y `meta` pone su total en la fila de abajo. `urgent` («12 min tarde») sale como pastilla roja —un punto en las tarjetas cortas— y `faded` apaga la tarjeta cuando queda fuera de un filtro. `fill` decide el relleno: `neutral` (sobrio, el `color` solo en el punto), `category` (el pastel de `color`) o `tone` (el pastel de `tone`); los pasteles mezclan el color con la card del tema según `--schedule-pastel-strength` y `--schedule-chroma`, que da cada tema. |
 | `startHour / endHour` | `number` | `6 / 24` | Primera y última hora visibles (la última exclusiva). |
 | `slotMinutes` | `number` | `30` | Minutos por franja; también el paso al arrastrar. |
@@ -63,6 +63,19 @@ Cada recurso trae sus franjas de trabajo; fuera de ellas la columna se oscurece 
   ]}
   startHour={8}
   endHour={20}
+/>
+```
+
+### La semana de una persona
+
+Con `date` en cada recurso, cada columna es un día: la cabecera enseña el día de la semana y el número (hoy resaltado), y las citas, los huecos y la línea de «ahora» son los de ese día. Arrastrar una tarjeta a otra columna la lleva a ese día: `onEventMove` y `validateDrop` reciben la fecha de la columna destino. Es la vista Semana del calendario cuando se mira a un solo barbero. En pantalla angosta los días se recorren a lo ancho y la rejilla abre en hoy.
+
+```tsx
+<ResourceDayGrid
+  date={lunes}
+  resources={diasDeLaSemana.map((dia) => ({ id: clave(dia), name: nombreLargo(dia), subtitle: "3 citas", date: dia, workingHours: horario(dia) }))}
+  events={citas.map((cita) => ({ ...cita, resourceId: clave(cita.start) }))}
+  onSlotClick={({ start }) => crearCita({ barberId: andres.id, start })}
 />
 ```
 

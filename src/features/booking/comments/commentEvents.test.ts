@@ -25,6 +25,15 @@ describe("diffThreads", () => {
     expect(events[0]).toMatchObject({ action: "create", threadId: "t1", messageId: "m1", authorName: "Ana", body: "El botón no se ve", x: 10, y: 20, context: "mixed:tablet" });
   });
 
+  test("la ubicación del hilo viaja en el «create» y vuelve al leer el registro", () => {
+    const location = { route: "/metricas", module: "Métricas", section: "Métricas › Negocio", element: "Bloque «Ticket promedio»" };
+    const [created] = diffThreads([], [thread({ context: "app:/metricas", location })], ana, at(0));
+    expect(created).toMatchObject({ route: "/metricas", module: "Métricas", section: "Métricas › Negocio", element: "Bloque «Ticket promedio»" });
+    expect(reduceEvents([created])[0].location).toEqual(location);
+    // Sin ubicación (la reserva de antes) el hilo no la inventa.
+    expect(reduceEvents(diffThreads([], [thread()], ana, at(0)))[0].location).toBeUndefined();
+  });
+
   test("responder, resolver, reabrir y eliminar son acciones aparte", () => {
     const base = thread();
     const replied = thread({ messages: [...base.messages, { id: "m2", author: luis, body: "Ya lo arreglo", createdAt: at(1) }] });

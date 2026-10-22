@@ -82,6 +82,12 @@ export const commentLayerEntry = defineEntry({
   ],
   props: [
     { name: "hideHint", type: "boolean", default: "false", description: "Oculta el pill flotante inferior 'Haz clic donde quieras comentar' en modo comentar." },
+    {
+      name: "locate",
+      type: "(point: { x: number; y: number }) => CommentLocation | undefined",
+      description:
+        "Describe dónde cayó el clic (ruta, módulo, sección y elemento) a partir de sus coordenadas en la ventana; queda en el hilo (`thread.location`) y el panel lo muestra. En la app se usa `locateCommentPoint` de `@/lib/comments/locate`, que salta la capa de clics (`data-comment-overlay`) para leer lo que hay debajo.",
+    },
     { name: "className", type: "string", description: "Clases para el contenedor relativo envolvente." },
   ],
   guidelines: {

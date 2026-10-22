@@ -992,6 +992,15 @@ describe("Calendario", () => {
     expect(within(grid).queryByText("Nicolás Duarte")).toBeNull();
   });
 
+  test("con un solo barbero, la vista Semana es su agenda por horas: un día por columna", async () => {
+    mount("/calendario?vista=week&equipo=team-04");
+    const grid = await screen.findByRole("region", { name: "Agenda del día por barbero" }, { timeout: 5000 });
+    expect(screen.queryByRole("table", { name: "Ocupación de la semana por barbero" })).toBeNull();
+    // Siete columnas, de lunes 21 a domingo 27; hoy (viernes 25) marcado.
+    expect(grid.querySelectorAll("[data-resource-id]")).toHaveLength(7);
+    expect(within(grid).getByText("25")).toHaveAttribute("aria-current", "date");
+  });
+
   test("el asistente agenda desde una frase y abre el alta con lo entendido", async () => {
     const user = userEvent.setup();
     setActionsPlacement("inline");

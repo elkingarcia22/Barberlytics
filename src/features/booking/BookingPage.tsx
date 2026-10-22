@@ -13,6 +13,8 @@ import { ThemaIcon } from "@/icons";
 import { LocaleProvider } from "@/i18n";
 import { useTheme } from "@/themes";
 import { useBookingAppearance } from "./useBookingAppearance";
+import { locateCommentPoint } from "@/lib/comments/locate";
+import { isBookingThread } from "@/lib/comments/scope";
 import { BookingFlow } from "./BookingFlow";
 import { ReviewerNameDialog } from "./comments/ReviewerNameDialog";
 import { useReviewer, useSharedComments } from "./comments/useSharedComments";
@@ -68,7 +70,8 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
   const [isWidgetOpen, setIsWidgetOpen] = React.useState(true);
   // Los comentarios de revisión sobre la vista previa: compartidos y guardados en la hoja de Google.
   const { author: reviewer, isAsking, askName, saveName } = useReviewer();
-  const { threads: commentThreads, onThreadsChange: onCommentsChange } = useSharedComments(reviewer);
+  // La hoja es compartida con la plataforma: aquí solo los de la reserva.
+  const { threads: commentThreads, onThreadsChange: onCommentsChange } = useSharedComments(reviewer, { include: isBookingThread });
   // La reserva se ve como la configuró la barbería, no como tiene personalizada la app quien la mira.
   const { resolvedMode } = useTheme();
   // En la vista previa se puede mirar en el otro modo sin cambiar lo configurado.
@@ -192,7 +195,11 @@ export function BookingPage({ standalone = false }: { /** La reserva sola (el re
         </header>
 
         <div className="flex min-h-0 flex-1">
-          <CommentLayer className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <CommentLayer
+            className="flex min-h-0 min-w-0 flex-1 flex-col"
+            // En la hoja: módulo «Agendamiento online», la versión y el dispositivo, y la sección y el elemento bajo el clic.
+            locate={(point) => locateCommentPoint(point, { module: t("booking.preview.title"), sectionPrefix: commentContextLabel })}
+          >
             <main className="relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
               <Grain scope="container" />
               {/* Los controles de la vista previa, centrados bajo la cabecera: la experiencia y, si hay marcos, el dispositivo. */}

@@ -82,6 +82,23 @@ describe("filas de la hoja", () => {
     expect(fromRow(toRow(original))).toEqual(original);
   });
 
+  test("la ubicación del comentario va en sus columnas y vuelve igual", () => {
+    const original = event({
+      context: "app:/configuracion/agendamiento?vista=apariencia",
+      route: "/configuracion/agendamiento?vista=apariencia",
+      module: "Configuración › Negocio › Reservas online",
+      section: "Reservas online › Apariencia › Apariencia de la reserva",
+      element: "Opción «Usar la apariencia general»",
+    });
+    const row = toRow(original);
+    expect(row.slice(-4)).toEqual([original.route, original.module, original.section, original.element]);
+    expect(fromRow(row)).toEqual(original);
+  });
+
+  test("una fila de antes, sin las columnas de ubicación, se sigue leyendo", () => {
+    expect(fromRow(toRow(event()).slice(0, 12))).toEqual(event());
+  });
+
   test("una fila rota o con una acción desconocida se descarta", () => {
     expect(fromRow(["", "create"])).toBeNull();
     expect(fromRow(["2026-10-16", "inventar", "t1", "", "a", "Ana", "", "", "", "", "", "e1"])).toBeNull();

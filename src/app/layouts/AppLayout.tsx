@@ -21,6 +21,8 @@ import { AccessProvider, buildAccess, canViewAs, isBarberRole, readViewAs, ROLE_
 import type { TeamRole } from "@/features/team/types";
 import { BrandLogoSection, useBrandingQuery, useSaveBranding } from "@/features/branding";
 import { PersonalizationPanel } from "@/features/personalization";
+import { CommentsToggle } from "@/components/comments";
+import { PlatformCommentLayer, PlatformCommentsPanel, PlatformCommentsProvider } from "@/features/comments";
 import { BARBERLYTICS_DEFAULT_LOGO } from "@/components/ui/barberlyticsBrandColors";
 import { ACTIVE_FEEDBACK_CAMPAIGN, FeedbackHost, findNavLabel } from "@/features/feedback";
 import { DEFAULT_BRANCH_ID, readInitialBranch, useBranches } from "@/features/branches";
@@ -195,6 +197,8 @@ export function AppLayout() {
   const branchName = branches.find((branch) => branch.id === branchId)?.name ?? "";
   const memberId = access.member?.id ?? null;
   const userName = user?.name ?? "";
+  // Quien comenta en la revisión es quien inició sesión: su nombre firma cada comentario en la hoja.
+  const commentAuthor = React.useMemo(() => ({ id: user?.id ?? "anon", name: user?.name || "Revisor" }), [user?.id, user?.name]);
   const chatBackend = React.useMemo(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -345,7 +349,13 @@ export function AppLayout() {
       navigation,
       roles,
       // Fichar: el botón se esconde solo para quien no ficha.
-      headerActions: <ClockInButton />,
+      // Comentar cualquier pantalla (queda en la hoja con dónde se dejó) y fichar.
+      headerActions: (
+        <>
+          <CommentsToggle />
+          <ClockInButton />
+        </>
+      ),
       notifications: notificationItems,
       onMarkAllNotificationsRead: () => markRead.mutate(notificationItems.filter((item) => item.unread).map((item) => item.id)),
       // Novedades se apaga hasta tener notas de versión propias: las de ejemplo eran de otro producto.
@@ -441,12 +451,16 @@ export function AppLayout() {
   return (
     <AccessProvider value={access}>
     <ChatProvider value={chatContext}>
+    <PlatformCommentsProvider author={commentAuthor} pageLabel={findNavLabel(navigation, activeNavId)}>
       <AdminShell config={config} showFooter={showsLegalFooter(location.pathname)}>
         <RailAgentProvider value={agentRailAction}>
           <PageHeaderExtrasProvider value={agentButton}>
-            <React.Suspense fallback={<PageLoader />}>
-              <Outlet />
-            </React.Suspense>
+            <PlatformCommentLayer>
+              <React.Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </React.Suspense>
+            </PlatformCommentLayer>
+            <PlatformCommentsPanel />
             <PersonalizationPanel
               open={personalizationOpen}
               onOpenChange={setPersonalizationOpen}
@@ -485,6 +499,7 @@ export function AppLayout() {
         onSend={(text) => chatStore.send(text, answeringBackend)}
         appearance="page"
       />
+    </PlatformCommentsProvider>
     </ChatProvider>
     </AccessProvider>
   );

@@ -13,6 +13,7 @@ import { CommentLayer } from "@/components/comments"
 | Prop | Tipo | Default | Qué hace |
 |---|---|---|---|
 | `hideHint` | `boolean` | `false` | Oculta el pill flotante inferior 'Haz clic donde quieras comentar' en modo comentar. |
+| `locate` | `(point: { x: number; y: number }) => CommentLocation \| undefined` |  | Describe dónde cayó el clic (ruta, módulo, sección y elemento) a partir de sus coordenadas en la ventana; queda en el hilo (`thread.location`) y el panel lo muestra. En la app se usa `locateCommentPoint` de `@/lib/comments/locate`, que salta la capa de clics (`data-comment-overlay`) para leer lo que hay debajo. |
 | `className` | `string` |  | Clases para el contenedor relativo envolvente. |
 
 ## Guías

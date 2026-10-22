@@ -1152,7 +1152,6 @@ export const appEs = {
   "agent.metrics.2": "¿Qué servicio deja más dinero?",
   "agent.metrics.3": "¿Cuántos clientes nuevos volvieron?",
   "agent.metrics.4": "¿Qué significa la tasa de retención?",
-  "calendar.action.assistant": "Resumen del día con Clipper",
   "agent.name": "Clipper",
   "calendar.pulse.allStates": "Todos los estados",
   "calendar.pulse.toCollect": "Por cobrar",

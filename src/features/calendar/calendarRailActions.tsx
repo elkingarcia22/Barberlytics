@@ -1,5 +1,4 @@
 import { CalendarPlus, CalendarSearch, Clock, ListChecks, Footprints, Palmtree, ShoppingBag, UsersRound } from "lucide-react";
-import { ClipperIcon } from "@/components/ai-interaction";
 import type { RailActionSpec } from "@/components/action-rail";
 import type { AppMessageKey } from "@/app/i18n/types";
 
@@ -19,7 +18,6 @@ export interface CalendarRailHandlers {
   walkInQueue: () => void;
   collections: () => void;
   workHours: () => void;
-  assistant: () => void;
   gaps: () => void;
   /** Ausencias y bloqueos del equipo, con lo que falta aprobar. */
   timeOff: () => void;
@@ -34,7 +32,6 @@ export function calendarRailActions(t: (key: AppMessageKey) => string, on: Calen
     { id: "gaps", label: t("calendar.action.gaps"), icon: <CalendarSearch className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.gaps },
     { id: "time-off", label: t("calendar.action.timeOff"), icon: <Palmtree className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.timeOff },
     { id: "work-hours", label: t("calendar.action.workHours"), icon: <Clock className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.workHours },
-    { id: "assistant", label: t("calendar.action.assistant"), icon: <ClipperIcon className="size-5" strokeWidth={2} />, scope: ["screen"], overflow: true, onSelect: on.assistant },
     { id: "create", label: t("calendar.action.create"), icon: <CalendarPlus className="size-4" strokeWidth={2.5} />, scope: ["screen"], primary: true, onSelect: on.create },
   ];
 }

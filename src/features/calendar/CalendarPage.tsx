@@ -472,7 +472,6 @@ export function CalendarPage({ now }: CalendarPageProps = {}) {
         walkInQueue: () => openPanel({ kind: "walkInQueue" }),
         collections: () => openPanel({ kind: "collections" }),
         workHours: () => navigate("/usuarios"),
-        assistant: () => openPanel({ kind: "assistant" }),
         gaps: () => openPanel({ kind: "gaps" }),
         timeOff: () => openPanel({ kind: "timeOff", focus: null }),
       }).filter((action) => !hiddenRailActions.has(action.id)),

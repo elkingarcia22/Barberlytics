@@ -1008,9 +1008,11 @@ describe("Calendario", () => {
     setActionsPlacement("inline");
     mount();
     await screen.findByRole("region", { name: "Agenda del día por barbero" });
-    // El resumen del día está con las demás acciones de la pantalla, plegado en «Más acciones».
+    // El resumen del día ya no está en «Más acciones»: se abre con la tecla I.
     await user.click(screen.getByRole("button", { name: "Más acciones" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Resumen del día con Clipper" }));
+    expect(screen.queryByRole("menuitem", { name: /Resumen del día/ })).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.keyboard("i");
     const assistant = await screen.findByTestId("calendar-assistant");
     expect(within(assistant).getByText("Hoy conviene mirar")).toBeInTheDocument();
 

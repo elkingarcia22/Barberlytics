@@ -24,7 +24,7 @@ const client = { id: "c1", name: "Marcela Gómez", type: "frequent", visits: 12,
 function model(overrides: Partial<AppointmentModel> = {}): AppointmentModel {
   // phone vacío: sin contacto, salvo que la prueba lo ponga.
   const playbook: AppointmentPlaybook = { stage: "late", primary: ["call", "message", "checkIn"], secondary: ["noShow", "edit"], more: ["cancel"] };
-  return { appointment, client, known: client, requested: undefined, playbook, loyaltyProgress: 3, phone: "", stepTimes: { arrived: null, seated: null, paid: null }, ...overrides } as unknown as AppointmentModel;
+  return { appointment, client, known: client, requested: undefined, playbook, loyaltyProgress: 3, phone: "", conduct: [], stepTimes: { arrived: null, seated: null, paid: null }, ...overrides } as unknown as AppointmentModel;
 }
 
 describe("mainAction and restActions", () => {
@@ -39,6 +39,12 @@ describe("clientTags", () => {
   test("shows no-shows and membership progress; where it came from goes in the origin line", () => {
     const ids = clientTags(model(), t).map((tag) => tag.id);
     expect(ids).toEqual(["noShows", "member"]);
+  });
+
+  test("warns about reported behavior before anything else about the client", () => {
+    const report = { id: "r1", reasons: ["rude"], text: "", appointmentId: null, by: "Recepción", createdAt: "2026-10-01T10:00:00.000Z" } as const;
+    const tag = clientTags(model({ conduct: [{ ...report, reasons: [...report.reasons] }] }), t).find((item) => item.id === "conduct");
+    expect(tag?.tone).toBe("danger");
   });
 
   test("marks a ready reward when the membership is full", () => {

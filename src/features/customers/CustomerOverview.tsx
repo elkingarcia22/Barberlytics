@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Cake, CalendarClock, CreditCard, HeartPulse, Mail, MapPin, Megaphone, Pencil, Phone, Plus, Store, UserRound } from "lucide-react";
+import { Cake, CalendarClock, CreditCard, Flag, HeartPulse, Mail, MapPin, Megaphone, Pencil, Phone, Plus, Store, UserRound } from "lucide-react";
 import { useAppT } from "@/app/i18n";
 import { useLocale } from "@/i18n";
 import { MetricCard } from "@/components/charts";
@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/data-display/StatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/typography";
-import { NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calendar/types";
+import { CONDUCT_REASON_KEYS, NOTE_KIND_KEYS, noteKindSchema, type NoteKind } from "@/features/calendar/types";
 import { ClientNoteList, NoteKindChips } from "@/features/calendar/clientNotes/ClientNotes";
 import { InfoCard, InfoRow, Stat } from "@/features/team/teamShared";
 import { CustomerContactLog, CustomerWallet } from "./CustomerRelationship";
@@ -40,7 +40,7 @@ export interface CustomerOverviewProps {
 
 /**
  * El resumen de un cliente: lo que hay que saber antes de atenderle arriba
- * —alergias y medicamentos—, cuánto vale y cómo se porta con sus citas, qué
+ * —alergias, medicamentos y la actitud que reportó el equipo—, cuánto vale y cómo se porta con sus citas, qué
  * viene ahora, sus notas y sus datos. Todo en una pantalla: el perfil ya no
  * es una pestaña aparte. Lo reservado (contacto, notas médicas, dinero) se
  * omite según el rol de quien mira.
@@ -66,6 +66,24 @@ export function CustomerOverview({ customer, formatMoney, onAddNote, onEdit, onS
               {medical.map((note) => (
                 <li key={note.id}>
                   <span className="font-medium text-text-primary">{t(NOTE_KIND_KEYS[note.kind])}:</span> {note.text}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {customer.conduct.length > 0 && (
+        <Alert variant="destructive" data-testid="customer-conduct">
+          <Flag />
+          <AlertTitle>{customer.conduct.length > 1 ? t("calendar.conduct.count", { count: customer.conduct.length }) : t("calendar.conduct.tag")}</AlertTitle>
+          <AlertDescription>
+            <ul className="space-y-1">
+              {customer.conduct.map((report) => (
+                <li key={report.id}>
+                  <span className="font-medium">{report.reasons.map((reason) => t(CONDUCT_REASON_KEYS[reason])).join(" · ")}</span>
+                  {report.text && <> — {report.text}</>}
+                  <span className="text-text-muted"> · {t("calendar.conduct.meta", { by: report.by, date: formatDate(new Date(report.createdAt), DATE_LONG) })}</span>
                 </li>
               ))}
             </ul>

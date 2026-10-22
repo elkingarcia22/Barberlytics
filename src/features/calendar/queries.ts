@@ -11,6 +11,7 @@ import type {
   Client,
   CheckoutInput,
   ClientRestriction,
+  ConductInput,
   NoteInput,
   SaleInput,
   WaitlistInput,
@@ -195,9 +196,9 @@ function useRefreshClientNotes() {
     // La respuesta ya trae las notas al día: se escriben donde se ven para que el cambio
     // aparezca al instante, y después se recarga por si algo más cambió en el servidor.
     queryClient.setQueriesData<CalendarCatalog>({ queryKey: [...calendarKeys.all, "catalog"] }, (old) =>
-      old ? { ...old, clients: old.clients.map((item) => (item.id === client.id ? { ...item, notes: client.notes } : item)) } : old
+      old ? { ...old, clients: old.clients.map((item) => (item.id === client.id ? { ...item, notes: client.notes, conduct: client.conduct } : item)) } : old
     );
-    queryClient.setQueriesData<{ notes: Client["notes"] }>({ queryKey: ["customers", "detail", client.id] }, (old) => (old ? { ...old, notes: client.notes } : old));
+    queryClient.setQueriesData<{ notes: Client["notes"]; conduct?: Client["conduct"] }>({ queryKey: ["customers", "detail", client.id] }, (old) => (old ? { ...old, notes: client.notes, conduct: client.conduct } : old));
     void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     void queryClient.invalidateQueries({ queryKey: ["customers"] });
   };
@@ -223,6 +224,23 @@ export function useRemoveClientNote() {
   const refresh = useRefreshClientNotes();
   return useMutation({
     mutationFn: ({ clientId, noteId }: { clientId: string; noteId: string }) => calendarApi.removeClientNote(clientId, noteId),
+    onSuccess: refresh,
+  });
+}
+
+/** Reportar la actitud del cliente: se guarda en su ficha y se ve en sus próximas citas. */
+export function useReportConduct() {
+  const refresh = useRefreshClientNotes();
+  return useMutation({
+    mutationFn: ({ clientId, input }: { clientId: string; input: ConductInput }) => calendarApi.reportConduct(clientId, input),
+    onSuccess: refresh,
+  });
+}
+
+export function useRemoveConduct() {
+  const refresh = useRefreshClientNotes();
+  return useMutation({
+    mutationFn: ({ clientId, reportId }: { clientId: string; reportId: string }) => calendarApi.removeConduct(clientId, reportId),
     onSuccess: refresh,
   });
 }

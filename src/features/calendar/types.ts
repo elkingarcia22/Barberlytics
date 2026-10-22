@@ -36,6 +36,24 @@ export type NoteKind = z.infer<typeof noteKindSchema>;
 export const clientNoteSchema = z.object({ id: z.string(), kind: noteKindSchema, text: z.string(), createdAt: z.string() });
 export type ClientNote = z.infer<typeof clientNoteSchema>;
 
+/**
+ * Lo que el equipo reporta de la actitud del cliente al cerrar una cita (grosero,
+ * llegó tomado, regatea…): no es una nota más, se cuenta aparte y avisa en sus próximas citas.
+ */
+export const conductReasonSchema = z.enum(["rude", "disrespect", "intoxicated", "haggles", "hygiene", "other"]);
+export type ConductReason = z.infer<typeof conductReasonSchema>;
+
+export const conductReportSchema = z.object({
+  id: z.string(),
+  reasons: z.array(conductReasonSchema),
+  text: z.string(),
+  /** La cita en la que pasó, si se reportó desde una. */
+  appointmentId: z.string().nullable(),
+  by: z.string(),
+  createdAt: z.string(),
+});
+export type ConductReport = z.infer<typeof conductReportSchema>;
+
 export const clientSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -56,6 +74,8 @@ export const clientSchema = z.object({
   blocked: z.boolean().optional(),
   /** Solo puede reservar pagando en línea por adelantado (para quien falla seguido). */
   onlineOnly: z.boolean().optional(),
+  /** Los reportes de actitud del equipo, el más reciente primero. */
+  conduct: z.array(conductReportSchema).optional(),
 });
 export type Client = z.infer<typeof clientSchema>;
 
@@ -384,6 +404,12 @@ export interface NoteInput {
   text: string;
 }
 
+export interface ConductInput {
+  reasons: ConductReason[];
+  text: string;
+  appointmentId: string | null;
+}
+
 /* --------------------------------------------------------------- claves */
 
 export type CalendarView = "agenda" | "day" | "week" | "month";
@@ -448,4 +474,13 @@ export const NOTE_KIND_KEYS: Record<NoteKind, AppMessageKey> = {
   note: "calendar.notes.note",
   medication: "calendar.notes.medication",
   allergy: "calendar.notes.allergies",
+};
+
+export const CONDUCT_REASON_KEYS: Record<ConductReason, AppMessageKey> = {
+  rude: "calendar.conduct.reason.rude",
+  disrespect: "calendar.conduct.reason.disrespect",
+  intoxicated: "calendar.conduct.reason.intoxicated",
+  haggles: "calendar.conduct.reason.haggles",
+  hygiene: "calendar.conduct.reason.hygiene",
+  other: "calendar.conduct.reason.other",
 };

@@ -526,6 +526,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **VisitPartNote.tsx** — Al armar una parte de una visita, un `TicketCard` del sistema: qué parte es («2 de 3»), de qué servicio, qué… · `VisitPartNote` · piezas: Button, Text, TicketCard · usa: @/app/i18n, @/icons
 - **WaitlistCard.tsx** — La lista de espera: siempre a mano, haya horas o no —puede que ninguna de las libres le sirva—. · `WaitlistCard` · piezas: ActionTile, Button, Heading, IconTile, SegmentedControl, Text · usa: @/app/i18n, @/icons
 - **WaitlistSignIn.tsx** — La lista de espera en Paso a paso, igual que en la Agenda: con cuenta, la tarjeta para apuntarse; sin confirm… · `WaitlistSignIn` · piezas: Button · usa: @/app/i18n, @/icons
+- **WindowAlternatives.tsx** — El barbero elegido tiene horas ese día, pero no en todas las franjas: en la que le falta (mañana, tarde o noc… · `WindowAlternatives` · piezas: Avatar, AvatarFallback, AvatarImage, Button, Heading, Text · usa: @/app/i18n, @/lib/utils
 - **asideSlot.ts** — Lo que va al pie del cierre: con panel lateral se lleva a él (`portal`) y la página queda sin barra; sin pane… · `AsideSlotProvider`, `useAsideFooter`
 - **bookingSkin.ts** — Con qué cara se pintan los pasos: «guided» (Paso a paso) o «agenda» (la de Agenda en lista: foto arriba con e… · `BookingSkin`, `BookingSkinContext`, `useBookingSkin`
 - **bookingToast.ts** — Los avisos de la reserva salen dentro de su propia pantalla (el marco del celular, la tablet o el monitor de… · `BOOKING_TOASTER_ID`, `toast`
@@ -594,7 +595,7 @@ Una carpeta por dominio: pantalla, tipos, api, queries.
 - **AgendaSelectFields.tsx** — Las preguntas de la Agenda, en filas y de a una: dónde, qué y con quién. · `AgendaSelectFields` · piezas: Button, Text · usa: @/app/i18n, @/icons, @/lib/utils
 - **AgendaServicePicker.tsx** — «Qué te vas a hacer» en la Agenda: un campo que se lee como un select —lo elegido, cuánto dura y desde cuánto… · `AgendaServiceField` · piezas: Badge, Button, EmptyState, Skeleton, Text · usa: @/app/i18n, @/lib/utils
 - **HeldAppointments.tsx** — Las citas ya apartadas mientras se arma otra: una tarjeta que dice cuántas hay y cuándo es la última, y al to… · `HeldAppointments` · piezas: IconTile, Text · usa: @/app/i18n, @/icons
-- **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`
+- **agendaModel.ts** — Las cuentas de la agenda, sin interfaz: qué horas tiene cada barbero el día que se mira, cómo se reparten en… · `DayWindow`, `DAY_WINDOWS`, `windowOf`, `defaultServiceId`, `ableBarbers`, `TimeOption`, `timesByWindow`, `windowAlternatives`
 - **useInlineLists.ts** — ¿Las listas se abren en su sitio? Fuera del celular y el widget: debajo de su fila, en vez de en una hoja o u… · `useInlineLists`
 
 ### booking/variants/chat

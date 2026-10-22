@@ -6,7 +6,7 @@ import { BookingFlow } from "../BookingFlow";
 import { requestVoiceOnArrival } from "../flow/versionSwitch";
 import { bookingReducer, initialBookingState } from "../bookingState";
 import type { BookingBarber, BookingService, Slot } from "../types";
-import { ableBarbers, defaultServiceId, timesByWindow, windowOf } from "./agenda/agendaModel";
+import { ableBarbers, defaultServiceId, timesByWindow, windowAlternatives, windowOf } from "./agenda/agendaModel";
 import { codeFromText, numberWordsToDigits, parseBookingText, phoneFromText } from "./chat/parseBookingText";
 import { makeQuestion, matchOption, matchOptionLoosely } from "./chat/chatQuestions";
 import { detectAside } from "./chat/chatIntents";
@@ -305,6 +305,37 @@ describe("cuentas de la agenda", () => {
     expect(groups[1]?.options).toEqual([{ time: "12:30", barberIds: [], taken: true }]);
     expect(windowOf("11:59")).toBe("morning");
     expect(windowOf("18:00")).toBe("evening");
+  });
+});
+
+describe("otros barberos en la franja que le falta al elegido", () => {
+  // Todos ese día: «b1» (el elegido) solo en la tarde; b2 y b3 en la mañana, b3 también de noche.
+  const day: Slot[] = [
+    { time: "09:00", barberIds: ["b2", "b3"] },
+    { time: "09:30", barberIds: ["b2"] },
+    { time: "10:00", barberIds: ["b2", "b3"] },
+    { time: "15:00", barberIds: ["b1", "b2"] },
+    { time: "19:00", barberIds: ["b3"] },
+  ];
+
+  test("en cada franja vacía del elegido salen los demás con sus horas, primero quien tiene más", () => {
+    const offers = windowAlternatives(day, "b1", ["afternoon"]);
+    expect(offers.map((offer) => offer.window)).toEqual(["morning", "evening"]);
+    expect(offers[0].barbers).toEqual([
+      { barberId: "b2", times: ["09:00", "09:30", "10:00"] },
+      { barberId: "b3", times: ["09:00", "10:00"] },
+    ]);
+    expect(offers[1].barbers).toEqual([{ barberId: "b3", times: ["19:00"] }]);
+  });
+
+  test("las franjas que el elegido sí tiene, o donde nadie más tiene horas, no salen", () => {
+    expect(windowAlternatives(day, "b1", ["morning", "afternoon", "evening"])).toEqual([]);
+    expect(windowAlternatives([{ time: "15:00", barberIds: ["b1"] }], "b1", ["afternoon"])).toEqual([]);
+  });
+
+  test("no ofrece las horas que esa persona ya tiene ocupadas ni pasa del tope de barberos", () => {
+    const offers = windowAlternatives(day, "b1", ["afternoon"], (time) => time === "09:00", 1);
+    expect(offers[0].barbers).toEqual([{ barberId: "b2", times: ["09:30", "10:00"] }]);
   });
 });
 

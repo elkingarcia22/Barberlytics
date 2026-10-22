@@ -1,5 +1,5 @@
 import * as React from "react";
-import { DoorOpen, Footprints, Monitor, Plus, UsersRound } from "lucide-react";
+import { DoorOpen, Footprints, Globe, Plus, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAppT } from "@/app/i18n";
 import { describeError } from "@/lib/api";
@@ -19,6 +19,8 @@ import { useQueueActions, useWalkInQueue, type QueueEntry } from "./api";
  * La fila de quien llega sin cita, en recepción: quién espera, en qué orden, cuánto le falta (aprox.) y
  * con quién le tocaría. «Llamar» lo pasa a la agenda como «Llegó» con ese barbero; «Se fue» lo saca y
  * cuenta como cliente que no se atendió. Se puede sumar a alguien desde aquí (además del kiosco).
+ * Cada uno dice por dónde llegó: en línea (se unió desde el enlace y puede venir de camino) o en el
+ * local (caminando, por el kiosco o en recepción).
  */
 
 export interface WalkInQueueDrawerProps {
@@ -32,6 +34,24 @@ export interface WalkInQueueDrawerProps {
 
 const NO_PREFERENCE = "__any";
 const MINUTE_MS = 60_000;
+
+/** En línea o en el local: lo primero que recepción necesita saber para llamar a alguien. */
+function SourceBadge({ source }: { source: QueueEntry["source"] }) {
+  const t = useAppT();
+  if (source === "online")
+    return (
+      <Badge variant="info" className="gap-1" data-testid="queue-source-online">
+        <Globe className="size-3" aria-hidden />
+        {t("frontDesk.queue.source.online")}
+      </Badge>
+    );
+  return (
+    <Badge variant="neutral" className="gap-1" data-testid="queue-source-walkin">
+      <Footprints className="size-3" aria-hidden />
+      {t(source === "kiosk" ? "frontDesk.queue.source.kiosk" : "frontDesk.queue.source.reception")}
+    </Badge>
+  );
+}
 
 function WaitRange({ entry }: { entry: QueueEntry }) {
   const t = useAppT();
@@ -55,12 +75,7 @@ function QueueRow({ entry, now, canManage, onCall, onLeave, busy }: { entry: Que
             <Text as="span" weight="medium" className="truncate">
               {entry.firstName}
             </Text>
-            {entry.source === "kiosk" && (
-              <Badge variant="outline" className="gap-1">
-                <Monitor className="size-3" aria-hidden />
-                {t("frontDesk.queue.fromKiosk")}
-              </Badge>
-            )}
+            <SourceBadge source={entry.source} />
           </div>
           <Text as="p" size="sm" tone="muted" className="truncate">
             {entry.services.join(" + ")} · {entry.barberName ? t("frontDesk.queue.asked", { name: entry.barberName }) : t("frontDesk.queue.anyBarber")}
@@ -70,7 +85,7 @@ function QueueRow({ entry, now, canManage, onCall, onLeave, busy }: { entry: Que
             {entry.suggestedBarberName && !entry.barberName && <span className="text-text-muted"> · {t("frontDesk.queue.with", { name: entry.suggestedBarberName })}</span>}
           </Text>
           <Text as="p" size="xs" tone="muted">
-            {t("frontDesk.queue.waited", { minutes: waited })}
+            {t(entry.source === "online" ? "frontDesk.queue.joinedOnline" : "frontDesk.queue.waited", { minutes: waited })}
           </Text>
         </div>
       </div>
@@ -166,6 +181,7 @@ export function WalkInQueueDrawer({ open, onOpenChange, branchId, ctx, canManage
   const { call, leave } = useQueueActions(branchId);
   const [adding, setAdding] = React.useState(false);
   const waiting = queue.data?.waiting ?? [];
+  const online = waiting.filter((entry) => entry.source === "online").length;
   const busy = call.isPending || leave.isPending;
   const onError = (error: unknown) => toast.error(describeError(error).title, { description: describeError(error).description });
 
@@ -180,7 +196,7 @@ export function WalkInQueueDrawer({ open, onOpenChange, branchId, ctx, canManage
         icon={UsersRound}
         tone="brand"
         title={t("frontDesk.queue.title")}
-        hint={t("frontDesk.queue.hint")}
+        hint={waiting.length > 0 ? t("frontDesk.queue.split", { here: waiting.length - online, online }) : t("frontDesk.queue.hint")}
         action={
           canManage && !adding ? (
             <Button type="button" size="sm" variant="outline" onClick={() => setAdding(true)} data-testid="queue-add">

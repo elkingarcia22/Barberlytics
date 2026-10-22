@@ -719,7 +719,7 @@ la mueven recepción, dueño y administrador (`403` para un barbero).
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/front-desk/queue?branchId` | `{ branchId, waiting: [{ id, firstName, clientId, hasPhone, services, serviceIds, barberId, barberName, joinedAt, source: "kiosk" \| "reception", position, waitMin, waitMax, suggestedBarberId, suggestedBarberName }], served, left }` de hoy en la sede. |
+| GET | `/front-desk/queue?branchId` | `{ branchId, waiting: [{ id, firstName, clientId, hasPhone, services, serviceIds, barberId, barberName, joinedAt, source: "online" \| "kiosk" \| "reception", position, waitMin, waitMax, suggestedBarberId, suggestedBarberName }], served, left }` de hoy en la sede. |
 | POST | `/front-desk/queue` | `{ branchId, firstName, phone?, serviceIds, barberId? }`: recepción suma a alguien. `201` la fila. |
 | POST | `/front-desk/queue/:id/call` | `{ barberId? }` → `{ appointment, queue }`: crea una cita `walkIn` en estado `arrived` ahora, con el barbero elegido, el que pidió, el que le tocaba según la espera o el siguiente de la fila de Equipo. `409 no_barber` si no hay nadie. |
 | POST | `/front-desk/queue/:id/leave` | `{ reason: "left" \| "removed" }`: se fue sin atender (cuenta en `left`) o se quitó. |

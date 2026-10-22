@@ -33,7 +33,7 @@ export const queueEntrySchema = z.object({
   barberId: z.string().nullable(),
   barberName: z.string().nullable(),
   joinedAt: z.string(),
-  source: z.enum(["kiosk", "reception"]),
+  source: z.enum(["online", "kiosk", "reception"]),
   position: z.number(),
   waitMin: z.number().nullable(),
   waitMax: z.number().nullable(),

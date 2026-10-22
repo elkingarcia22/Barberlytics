@@ -1317,6 +1317,7 @@ MSW: implementa docs/API_CONTRACT.md.
 
 ### frontDesk
 
+- **demoQueue.ts** · `enableDemoQueue`, `seedDemoQueue`
 - **estimate.ts** — La espera de cada persona que sigue en la fila, en su orden. · `QueueEstimate`, `estimateQueue`, `estimateIfJoined`
 - **handlers.ts** — Para las pruebas: cada una empieza sin consultas acumuladas. · `resetKioskLimits`, `frontDeskHandlers` · usa: @/features/legal
 - **state.ts** — Una tablet de recepción atada a una sede. · `MockKioskDevice`, `MockQueueStatus`, `MockQueueEntry`, `MockFrontDeskState`, `emptyFrontDesk`

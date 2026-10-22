@@ -36,9 +36,9 @@ export interface MockQueueEntry {
   /** `null` = sin preferencia: lo toma a quien le toque. */
   barberId: string | null;
   status: MockQueueStatus;
-  /** Cuándo se unió y por dónde. */
+  /** Cuándo se unió y por dónde: en línea (desde el enlace, aún de camino) o ya en el local (kiosco o recepción). */
   joinedAt: string;
-  source: "kiosk" | "reception";
+  source: "online" | "kiosk" | "reception";
   /** Cuando se le llamó: con quién y en qué cita quedó. */
   calledAt: string | null;
   appointmentId: string | null;
@@ -51,6 +51,8 @@ export interface MockQueueEntry {
 export interface MockFrontDeskState {
   devices: MockKioskDevice[];
   queue: MockQueueEntry[];
+  /** «sede:día» con la fila de muestra ya sembrada (solo en la demo del navegador). */
+  demoDays?: string[];
 }
 
 export const emptyFrontDesk = (): MockFrontDeskState => ({ devices: [], queue: [] });

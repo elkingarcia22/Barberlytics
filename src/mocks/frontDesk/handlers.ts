@@ -11,6 +11,7 @@ import { forbidden, isBarber, isManager, sessionOf, unauthorized, type MockSessi
 import { memberName } from "../team/seed";
 import { lineupTurn } from "../team/workforce";
 import { estimateIfJoined, estimateQueue } from "./estimate";
+import { seedDemoQueue } from "./demoQueue";
 import type { MockOutboxMessage } from "../booking/state";
 import type { MockKioskDevice, MockQueueEntry } from "./state";
 
@@ -108,6 +109,7 @@ const kioskUnauthorized = () => error(401, "kiosk_unauthorized", "Este kiosco no
 
 const queueToday = (branchId: string, at = new Date()) => {
   const day = branchNow(branchId, at).slice(0, 10);
+  seedDemoQueue(branchId, day, at);
   return db.frontDesk.queue.filter((entry) => entry.branchId === branchId && entry.day === day);
 };
 

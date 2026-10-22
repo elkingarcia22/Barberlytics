@@ -191,7 +191,7 @@ export function ChatPanel({ open, onOpenChange, title, subtitle, onMore }: ChatP
                         key={suggestion}
                         type="button"
                         onClick={() => actions.send(suggestion)}
-                        className="rounded-2xl border border-border/70 bg-surface p-3 text-left text-xs font-medium leading-snug text-text-secondary transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-text-primary hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                        className="rounded-2xl border border-border/70 bg-surface p-3 text-left text-xs font-medium leading-snug text-text-secondary transition-colors hover:border-primary/40 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                       >
                         {suggestion}
                       </button>

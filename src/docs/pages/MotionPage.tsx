@@ -60,7 +60,7 @@ const ATMOSPHERE_UTILS = [
   { name: ".marquee", use: "Ticker en bucle con los extremos fundidos; se pausa en hover y envuelve con reduced-motion." },
   { name: ".tilt", use: "Perspectiva hacia el puntero; useTilt escribe el transform y .tilt-reset lo devuelve." },
   { name: ".grain / .vignette / .halo", use: "Fondos con material: ruido, bordes hundidos y resplandor del primario. Sin coste de scroll." },
-  { name: ".brand-ring / .panel-sheen / .barber-stripes / .btn-sweep", use: "Acabados de panel: borde con gradiente de marca, filo de luz, la diagonal del poste y el barrido de luz de un botón." },
+  { name: ".brand-ring / .panel-sheen / .barber-stripes", use: "Acabados de panel: borde con gradiente de marca, filo de luz y la diagonal del poste. Los botones no llevan brillo ni barrido: son planos." },
 ] as const;
 
 const FRAMER_CODE = `import { motion } from "framer-motion";

@@ -89,7 +89,7 @@ export function RecoveryPanel({ onBack, onCreateTicket }: RecoveryPanelProps) {
           </Button>
         </div>
 
-        <Button type="button" size="lg" className="btn-sweep mt-7 w-full" onClick={onBack}>
+        <Button type="button" size="lg" className="mt-7 w-full" onClick={onBack}>
           <ThemaIcon name="arrowRight" size="sm" tone="inverse" />
           {t("auth.recovery.back")}
         </Button>

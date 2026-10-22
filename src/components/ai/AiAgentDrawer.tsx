@@ -175,7 +175,7 @@ export function AiAgentDrawer({ open, onOpenChange, context = "dashboard", custo
                       <Plus className="h-4 w-4" strokeWidth={2} />
                     </button>
                     <button
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-all hover:-translate-y-0.5 hover:brightness-110"
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-all hover:brightness-110"
                       style={{ background: AI_GRADIENT }}
                       title="Enviar"
                       aria-label="Enviar"

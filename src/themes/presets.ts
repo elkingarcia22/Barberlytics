@@ -22,8 +22,8 @@ export type DarkDepth = "standard" | "deep";
 
 /**
  * Nivel del tema. `premium` activa la hoja `src/styles/themes/premium.css`
- * (sombras con filo de luz, barniz sobre las cards, brillo del botón primario,
- * halo en el ítem activo) a través de `data-tier` en <html>. Es una capa de
+ * (sombras con filo de luz, barniz sobre las cards y halo en el ítem activo;
+ * los botones son planos en todos los temas) a través de `data-tier` en <html>. Es una capa de
  * acabado, no de color: el color sigue saliendo de los tokens.
  */
 export type ThemeTier = "standard" | "premium";
@@ -230,15 +230,6 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     neutralHue: 350,
     // Rojo → naranja → ámbar: la IA se calienta en vez de irse al verde.
     ai: { start: "#EF4444", end: "#F59E0B", stops: ["#EF4444", "#F0653A", "#F58A2A", "#F58A2A", "#F5B01B"] },
-  },
-  {
-    id: "graphite",
-    name: "Grafito",
-    description: "Monocromo: primario casi negro y neutros puros.",
-    primary: { light: "#1F2937", dark: "#E5E7EB" },
-    neutral: "gray",
-    neutralHue: 220,
-    fonts: { body: "geist", heading: "fraunces" },
   },
 ];
 

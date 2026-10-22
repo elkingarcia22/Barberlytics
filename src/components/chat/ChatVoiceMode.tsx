@@ -251,7 +251,7 @@ function VoiceSession({ onClose, onWrite, onSend, ask: askProp, lang: langProp, 
             data-testid="chat-voice-send"
             className={cn(
               "flex size-11 shrink-0 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              canSend ? "bg-ai-gradient text-text-inverse hover:-translate-y-0.5 hover:brightness-110" : "cursor-not-allowed border border-border/70 bg-transparent text-text-muted"
+              canSend ? "bg-ai-gradient text-text-inverse hover:brightness-110" : "cursor-not-allowed border border-border/70 bg-transparent text-text-muted"
             )}
           >
             <ThemaIcon className="text-current" name="send" size="sm" decorative />

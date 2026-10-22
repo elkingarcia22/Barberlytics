@@ -4,8 +4,8 @@ import { useAppT } from "@/app/i18n";
 import { SidePanelShell } from "@/components/overlays";
 import { ListItem, ListItemGroup } from "@/components/data-display/ListItem";
 import { EmptyState } from "@/components/feedback";
-import { Chip } from "@/components/ai-interaction";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SegmentedControl } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { formatClockRange } from "@/components/scheduling";
@@ -74,17 +74,25 @@ export function GapsDrawer({ open, onOpenChange, ctx, date, day, waitlist, onOpe
           {showTotals && <Stat label={t("calendar.gaps.stat.potential")} value={ctx.formatMoney(summary.potential)} />}
         </dl>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div role="group" aria-label={t("calendar.gaps.min")} className="flex flex-wrap items-center gap-1.5">
-            <Text as="span" variant="caption">
-              {t("calendar.gaps.min")}
-            </Text>
-            {MIN_OPTIONS.map((option) => (
-              <Chip key={option} size="sm" label={t("calendar.gaps.minutes", { minutes: option })} selected={min === option} tone={min === option ? "primary" : "default"} onClick={() => setMin(option)} />
-            ))}
-          </div>
+        {/* Los dos controles en una línea: desde cuántos minutos cuenta un hueco (un selector, no cuatro chips) y cómo agruparlos. */}
+        <div className="flex items-center justify-between gap-2" data-testid="calendar-gaps-controls">
+          <Select value={String(min)} onValueChange={(value) => setMin(Number(value))}>
+            <SelectTrigger size="sm" className="w-auto gap-1.5" aria-label={t("calendar.gaps.min")} data-testid="calendar-gaps-min">
+              <Text as="span" size="sm" tone="muted">
+                {t("calendar.gaps.min")}
+              </Text>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MIN_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)}>
+                  {t("calendar.gaps.minutes", { minutes: option })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <SegmentedControl
-            className="w-auto"
+            className="w-auto shrink-0"
             size="sm"
             ariaLabel={t("calendar.gaps.byBarber")}
             options={[

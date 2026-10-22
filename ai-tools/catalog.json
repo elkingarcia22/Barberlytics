@@ -1,5 +1,5 @@
 {
-  "sourceHash": "0748753794c0bce4",
+  "sourceHash": "707797633029cba3",
   "source": "src/docs/registry (npm run catalog)",
   "rules": "AGENTS.md",
   "groups": [
@@ -14356,6 +14356,80 @@
       "ficha": "ai-tools/components/template-catalog-drawer.md"
     },
     {
+      "id": "truncation-tooltip",
+      "name": "TruncationTooltip",
+      "group": "overlays",
+      "description": "La regla del sistema para el texto cortado: todo texto que se corta con elipsis muestra el texto completo en un tooltip al pasar el ratón o al llegar con el teclado. Se monta una sola vez junto al `TooltipProvider` global (app, centro de ayuda y reserva) y vigila el documento entero, así que vale para `<Text truncate>`, `truncate`, `text-ellipsis` y `line-clamp-*` en cualquier componente o pantalla, sin envolver nada. Solo aparece cuando el texto no cabe: en móvil, al angostar la ventana o con nombres largos.",
+      "import": "import { TruncationTooltip } from \"@/components/overlays\"",
+      "source": "src/components/overlays/TruncationTooltip.tsx",
+      "status": "stable",
+      "tags": [
+        "tooltip",
+        "truncate",
+        "line-clamp",
+        "global",
+        "a11y"
+      ],
+      "props": [
+        {
+          "name": "(sin props)",
+          "type": "—",
+          "default": null,
+          "description": "Se monta una vez en los providers globales. No se usa en pantallas ni componentes."
+        },
+        {
+          "name": "data-truncation-tooltip=\"off\"",
+          "type": "atributo",
+          "default": null,
+          "description": "En el elemento cortado o en un padre: no muestra el tooltip ahí."
+        },
+        {
+          "name": "isTextTruncated(element)",
+          "type": "(element: HTMLElement) => boolean",
+          "default": null,
+          "description": "La comprobación que usa: elipsis o `line-clamp` en el estilo calculado y texto que de verdad sobra."
+        }
+      ],
+      "guidelines": {
+        "do": [
+          "Corta con `truncate` o `line-clamp-N` cuando el espacio manda: el texto completo queda a un hover o un Tab.",
+          "Dale al texto cortado un ancho que lo limite (`min-w-0` en flex, un ancho de columna): sin eso no se corta y no hay nada que mostrar.",
+          "Lo imprescindible, además, en la ficha o el detalle: en táctil no hay hover."
+        ],
+        "dont": [
+          "No pongas un `Tooltip` o un `title` a mano solo para enseñar el texto completo: ya lo hace esta capa.",
+          "No montes un segundo `TruncationTooltip`: con uno global basta.",
+          "No apagues la regla por estética; solo cuando el texto completo ya se ve en otro lugar inmediato."
+        ]
+      },
+      "related": [
+        "tooltip",
+        "text"
+      ],
+      "examples": [
+        {
+          "id": "line-clamp",
+          "title": "Varias líneas",
+          "description": "Con `line-clamp-N` pasa lo mismo: si sobran líneas, el tooltip enseña el texto entero.",
+          "code": "<Text size=\"sm\" className=\"line-clamp-2\">{appointment.note}</Text>"
+        },
+        {
+          "id": "fits",
+          "title": "Si cabe, no hay tooltip",
+          "description": "La misma clase `truncate` sobre un texto corto no muestra nada: el tooltip depende de si el texto se corta, no de la clase.",
+          "code": "<Text truncate>Corte clásico</Text>"
+        },
+        {
+          "id": "opt-out",
+          "title": "Apagarlo en un caso concreto",
+          "description": "`data-truncation-tooltip=\"off\"` en el elemento o en un padre lo apaga, para cuando el texto completo ya se ve al lado o el elemento ya trae su propio tooltip con más contexto. Si ya lleva `Tooltip` o `title`, no hace falta: no se duplica.",
+          "code": "<div data-truncation-tooltip=\"off\">\n  <Text truncate>{LONG_NAME}</Text>\n</div>"
+        }
+      ],
+      "docs": "/docs#/components/truncation-tooltip",
+      "ficha": "ai-tools/components/truncation-tooltip.md"
+    },
+    {
       "id": "day-strip",
       "name": "DayStrip",
       "group": "scheduling",
@@ -15966,7 +16040,7 @@
           "name": "truncate",
           "type": "boolean",
           "default": "false",
-          "description": "Una sola línea con elipsis."
+          "description": "Una sola línea con elipsis. Si se corta, el texto completo sale en un tooltip sin hacer nada más."
         },
         {
           "name": "tabular",
@@ -16032,7 +16106,7 @@
         {
           "id": "truncate",
           "title": "Párrafo con truncado",
-          "description": "`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`.",
+          "description": "`truncate` corta en una línea con elipsis. Para varias líneas usa `line-clamp-N` por `className`. En los dos casos, si el texto no cabe, pasar el ratón o llegar con el teclado muestra el texto completo en un tooltip (`TruncationTooltip`, global).",
           "code": "<Text truncate className=\"w-64\">\n  Ana María Ospina completó la autoevaluación y envió comentarios a tres pares.\n</Text>\n<Text className=\"w-64 line-clamp-2\">\n  Ana María Ospina completó la autoevaluación y envió comentarios a tres pares.\n</Text>"
         }
       ],
@@ -20217,7 +20291,8 @@
         "dont": [
           "No pongas información imprescindible solo en un tooltip: en móvil no hay hover.",
           "No metas enlaces ni botones dentro; el contenido no es interactivo.",
-          "No montes otro `TooltipProvider` global; ya existe en la app."
+          "No montes otro `TooltipProvider` global; ya existe en la app.",
+          "No añadas un tooltip a mano para enseñar un texto cortado con elipsis: lo hace `TruncationTooltip` en toda la app."
         ]
       },
       "related": [

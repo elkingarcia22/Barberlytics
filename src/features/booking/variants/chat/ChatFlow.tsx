@@ -50,7 +50,7 @@ function PaymentBridge({ controllerRef, onEvent }: { controllerRef: React.RefObj
   React.useEffect(() => {
     if (error) onEventRef.current({ kind: "failed", message: describeError(error).description });
   }, [error]);
-  return <PaymentSheets payment={payment} />;
+  return <PaymentSheets payment={payment} askCodeHere={false} />;
 }
 
 /** Un mensaje del asistente: su marca, lo que dice y, si es la pregunta abierta, su lista para responder. */

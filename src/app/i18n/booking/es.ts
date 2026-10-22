@@ -477,7 +477,6 @@ export const bookingEs = {
   "booking.payment.savedCode.lead": "Ya tienes tarjetas guardadas: confirma que eres tú con el código y elige una.",
   "booking.payment.savedCode.newCard": "Pagar con otra tarjeta",
   "booking.payment.savedCode.useSaved": "Usar mis tarjetas guardadas",
-  "booking.payment.codeMissing": "Escribe el código para usar tus tarjetas guardadas.",
   "booking.payment.shopDepositHint": "Dejas un anticipo del {percent} % con tarjeta y pagas el resto al llegar.",
   "booking.payment.payDeposit": "Pagar anticipo {amount} y reservar",
   "booking.payment.deposit.title": "Para pagar en la barbería dejas un anticipo de {amount}",

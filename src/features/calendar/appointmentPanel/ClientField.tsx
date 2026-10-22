@@ -1,7 +1,5 @@
 import * as React from "react";
-import { differenceInCalendarDays } from "date-fns";
 import { useAppT } from "@/app/i18n";
-import { useLocale } from "@/i18n";
 import { SelectableRow } from "@/components/selection";
 import { Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
@@ -11,16 +9,20 @@ import type { ModelContext } from "../calendarModel";
 import { ClientAvatar } from "../calendarShared";
 import { matchesPerson } from "@/lib/search/personSearch";
 import { CLIENT_TYPE_KEYS, type Appointment, type AppointmentPatch } from "../types";
-import { ClientSummaryRow, Fact } from "./ClientPage";
+import { ClientSummaryRow } from "./ClientPage";
+import { ClientHighlights } from "./ClientHighlights";
+import type { ClientTab } from "./clientHighlightsModel";
 import { ActionButton } from "./PanelParts";
 import { InlineList, PanelField } from "./bookingStyle";
 import type { AppointmentModel } from "./useAppointmentModel";
 
 /**
  * El cliente como una tarjeta más de la cita, como el servicio o el barbero:
- * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» es su resumen: su
- * última nota (la actitud y la salud ya van en las etiquetas de arriba), luego lo que se pregunta en el mostrador (membresía y ritmo, visitas,
- * barbero de siempre, contacto) y el paso a su página, donde está todo. Se puede cambiar de cliente (se agendó a
+ * foto, nombre, tipo y celular. Abierta, «Sobre {nombre}» es su resumen: la
+ * membresía y, en orden, lo que el barbero y el negocio deben saber antes de
+ * atenderlo (actitud, alergias, si cumple, si se está perdiendo, la última vez,
+ * su nota, su barbero), cada punto como entrada a su pestaña de la página, y el
+ * contacto. Se puede cambiar de cliente (se agendó a
  * otro, o a nombre de quien llamó) hasta cobrar; el barbero de comisión, solo
  * mientras no ha llegado.
  */
@@ -33,7 +35,8 @@ type Mode = "about" | "change";
 export interface ClientFieldProps {
   model: AppointmentModel;
   ctx: ModelContext;
-  onOpenPage: () => void;
+  /** Abre su página en una pestaña (sin ella, en «Resumen»). */
+  onOpenPage: (tab?: ClientTab) => void;
   /** Sin él (la cita cobrada o cerrada), el cliente no se cambia. */
   onPatch?: (appointment: Appointment, patch: AppointmentPatch) => void;
 }
@@ -67,12 +70,9 @@ export function ClientField({ model, ctx, onOpenPage, onPatch }: ClientFieldProp
   );
 }
 
-function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: AppointmentModel; ctx: ModelContext; onOpenPage: () => void; onChange?: () => void; onClose: () => void }) {
+function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: AppointmentModel; ctx: ModelContext; onOpenPage: (tab?: ClientTab) => void; onChange?: () => void; onClose: () => void }) {
   const t = useAppT();
-  const { formatDate } = useLocale();
   const known = model.known!;
-  const preferred = known.preferredBarberId ? ctx.catalog.barbers.find((barber) => barber.id === known.preferredBarberId) : undefined;
-  const daysSince = model.lastVisit ? differenceInCalendarDays(ctx.now ?? new Date(), model.lastVisit) : null;
   return (
     <InlineList
       title={t("calendar.panel.client.about", { name: model.firstName })}
@@ -80,24 +80,21 @@ function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: App
       footer={
         <>
           {onChange && (
-            <Button variant="outline" className="flex-1" onClick={onChange} data-testid="panel-client-change">
+            <Button variant="outline" className="min-w-fit flex-1" onClick={onChange} data-testid="panel-client-change">
               <ThemaIcon name="refresh" />
               {t("calendar.panel.client.change")}
             </Button>
           )}
-          <Button variant="outline" className="flex-1" onClick={onOpenPage} data-testid="panel-client-more">
+          <Button variant="outline" className="min-w-fit flex-1" onClick={() => onOpenPage()} data-testid="panel-client-more">
             {t("calendar.panel.client.seeAll")}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3" data-testid="panel-client-who">
-        <ClientSummaryRow model={model} onOpen={onOpenPage} />
-        <ClientLatestNote model={model} />
+        <ClientSummaryRow model={model} onOpen={() => onOpenPage("summary")} />
+        <ClientHighlights model={model} ctx={ctx} onOpen={onOpenPage} />
         <div className="px-1">
-          <Fact label={t("calendar.panel.client.visits")} value={String(known.visits)} />
-          <Fact label={t("calendar.client.lastVisit")} value={model.lastVisit ? `${formatDate(model.lastVisit, { day: "numeric", month: "short" })}${daysSince !== null ? ` · ${t("calendar.panel.client.lastValue", { days: daysSince })}` : ""}` : "—"} />
-          <Fact label={t("calendar.panel.client.usualBarberLabel")} value={preferred?.name ?? t("calendar.loyalty.noPreference")} />
           {model.phone && (
             <div className="flex items-center justify-between gap-4 py-1.5">
               <span className="flex min-w-0 flex-col">
@@ -117,31 +114,6 @@ function ClientAbout({ model, ctx, onOpenPage, onChange, onClose }: { model: App
         </div>
       </div>
     </InlineList>
-  );
-}
-
-/**
- * Su última nota (el resto, en su página). La actitud, alergias y medicamentos
- * no se repiten aquí: ya van en las etiquetas y alertas de arriba de la cita.
- */
-function ClientLatestNote({ model }: { model: AppointmentModel }) {
-  const t = useAppT();
-  const [latest, ...older] = model.notes;
-  if (!latest) return null;
-  return (
-    <section aria-label={t("calendar.panel.client.latestNote")} className="flex flex-col gap-0.5 rounded-xl bg-surface-subtle px-3 py-2" data-testid="panel-client-important">
-      <Text size="xs" tone="muted">
-        {t("calendar.panel.client.latestNote")}
-      </Text>
-      <Text size="sm" className="line-clamp-2">
-        {latest.text}
-      </Text>
-      {older.length > 0 && (
-        <Text size="xs" tone="muted">
-          {t("calendar.panel.client.moreNotes", { count: older.length })}
-        </Text>
-      )}
-    </section>
   );
 }
 

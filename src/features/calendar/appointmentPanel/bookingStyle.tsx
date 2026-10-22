@@ -100,7 +100,7 @@ export function InlineList({ title, description, onClose, footer, children }: { 
         </Button>
       </header>
       <div className="max-h-[26rem] overflow-y-auto overscroll-contain p-3">{children}</div>
-      {footer && <footer className="flex items-center gap-3 border-t border-border bg-muted/30 px-4 py-3">{footer}</footer>}
+      {footer && <footer className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/30 px-4 py-3">{footer}</footer>}
     </section>
   );
 }

@@ -27,6 +27,15 @@ export function completedVisits(appointments: readonly CustomerAppointment[]): C
   return appointments.filter((item) => item.status === "completed").sort((a, b) => b.start.localeCompare(a.start));
 }
 
+/**
+ * Su última visita: la atendida más reciente del historial y, sin historial, la que trae su ficha
+ * de la agenda. Así «hace N días» y «la última vez» no se contradicen.
+ */
+export function lastVisitOf(appointments: readonly CustomerAppointment[], fallback: Date | null): Date | null {
+  const [latest] = completedVisits(appointments);
+  return latest ? new Date(latest.start) : fallback;
+}
+
 /** Los días entre visitas atendidas, de la más vieja a la más reciente (las últimas `GAPS_SHOWN`). */
 export function visitGaps(appointments: readonly CustomerAppointment[]): number[] {
   const visits = completedVisits(appointments).reverse();

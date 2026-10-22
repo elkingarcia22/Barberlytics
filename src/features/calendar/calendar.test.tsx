@@ -854,9 +854,11 @@ describe("Calendario", () => {
     const cards = await within(grid).findAllByRole("button", { name: /^Abrir / });
     await user.click(cards.find((card) => !/Sin cita|Cliente de paso/i.test(card.getAttribute("aria-label") ?? "")) as HTMLElement);
     const drawer = await screen.findByTestId("appointment-drawer");
-    // El cliente es una tarjeta de la cita; abierta («¿Quién viene?») lleva a su página, donde viven las notas.
+    // El cliente es una tarjeta de la cita; en «Sobre…» la nota es una entrada: lleva a la pestaña «Cuidado», donde viven las notas.
     await user.click(within(drawer).getByTestId("panel-field-client"));
-    await user.click(await within(drawer).findByRole("button", { name: /Cliente ·/ }));
+    const note = await within(drawer).findByTestId("panel-client-highlight-note");
+    await user.click(note.querySelector("button") ?? note);
+    expect(await within(drawer).findByTestId("panel-client-tab-care")).toBeInTheDocument();
 
     await user.click(await within(drawer).findByRole("button", { name: "Acciones de Prefiere tijera arriba" }));
     await user.click(await screen.findByRole("menuitem", { name: "Editar" }));

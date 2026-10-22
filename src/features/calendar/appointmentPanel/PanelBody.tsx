@@ -9,6 +9,7 @@ import { AppointmentMessages } from "../appointmentTabs/AppointmentMessages";
 import type { Appointment, AppointmentPatch } from "../types";
 import { AppointmentFields } from "./AppointmentFields";
 import { ClientPageContent } from "./ClientPage";
+import type { ClientTab } from "./clientHighlightsModel";
 import { ClientField } from "./ClientField";
 import { ConductPage } from "./ClientConduct";
 import { HistoryTimeline } from "./HistoryTimeline";
@@ -56,13 +57,13 @@ export interface PanelBodyProps extends AppointmentLinkProps {
 export type PanelPage = "client" | "history" | "refund" | "rebook" | "sendReceipt" | "receipt" | "deposit" | "conduct";
 
 /** Las páginas a las que se navega dentro del panel: el cliente y el historial. */
-function Subpage({ page, back, props }: { page: PanelPage; back: () => void; props: PanelBodyProps }) {
+function Subpage({ page, back, props, clientTab }: { page: PanelPage; back: () => void; props: PanelBodyProps; clientTab: ClientTab }) {
   const t = useAppT();
   const { model, ctx, onOpenClient } = props;
   if (page === "client") {
     return (
       <PanelSubpage title={model.clientName} onBack={back}>
-        <ClientPageContent model={model} ctx={ctx} onOpenClient={onOpenClient} onReportConduct={() => props.pages.open("conduct")} />
+        <ClientPageContent model={model} ctx={ctx} onOpenClient={onOpenClient} onReportConduct={() => props.pages.open("conduct")} initialTab={clientTab} />
       </PanelSubpage>
     );
   }
@@ -151,9 +152,15 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
   // cuadro después de cerrarse el menú.
   const [confirming, setConfirming] = React.useState<ClosingAction | null>(null);
   const fieldsRef = React.useRef<HTMLDivElement>(null);
-  if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} />;
+  // La pestaña de la página del cliente: la del punto que se tocó en «Sobre {nombre}».
+  const [clientTab, setClientTab] = React.useState<ClientTab>("summary");
+  const openClient = (tab: ClientTab = "summary") => {
+    setClientTab(tab);
+    pages.open("client");
+  };
+  if (pages.page) return <Subpage page={pages.page} back={pages.back} props={props} clientTab={clientTab} />;
   // Cobrada o cerrada sin atender: lo que sigue con el cliente, no la cita.
-  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => pages.open("client")} onOpenRefund={() => pages.open("refund")} onOpenRebook={() => pages.open("rebook")} onOpenSendReceipt={() => pages.open("sendReceipt")} onOpenReceipt={() => pages.open("receipt")} onReportConduct={() => pages.open("conduct")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
+  if (isClosed(model)) return <AfterVisit model={model} ctx={ctx} onOpenClient={() => openClient()} onOpenRefund={() => pages.open("refund")} onOpenRebook={() => pages.open("rebook")} onOpenSendReceipt={() => pages.open("sendReceipt")} onOpenReceipt={() => pages.open("receipt")} onReportConduct={() => pages.open("conduct")} linked={props.linked} onSelectAppointment={props.onSelectAppointment} onUnlink={props.onUnlink} onShowLinked={props.onShowLinked} />;
   const { appointment } = model;
   const stage = model.playbook.stage;
   // Al «⋯» va lo que no está ya en los atajos (cancelar, no asistió… cuando ya está en la barbería).
@@ -181,7 +188,7 @@ export function AppointmentPanelBody(props: PanelBodyProps) {
         <StageHeading model={model} ctx={ctx} size="lg" badge={!appointment.walkIn && <ConfirmationBadge appointment={appointment} />} />
         <VisitContext model={model} />
         <PanelQuestion title={t("calendar.panel.cards.who")}>
-          <ClientField model={model} ctx={ctx} onOpenPage={() => pages.open("client")} onPatch={onPatch} />
+          <ClientField model={model} ctx={ctx} onOpenPage={openClient} onPatch={onPatch} />
         </PanelQuestion>
         <PanelQuestion title={t("calendar.panel.cards.what")}>
           <div ref={fieldsRef} className="scroll-mt-4">

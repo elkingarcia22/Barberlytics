@@ -24,7 +24,7 @@ import type { AppointmentModel } from "./useAppointmentModel";
 
 const SHORT_DATE: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
 
-function useReasonsLine() {
+export function useReasonsLine() {
   const t = useAppT();
   return (report: ConductReport) => report.reasons.map((reason) => t(CONDUCT_REASON_KEYS[reason])).join(" · ");
 }

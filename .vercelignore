@@ -1,0 +1,4 @@
+# Las pruebas no se despliegan: dentro de api/ Vercel contaría cada una como una función más
+# (el plan Hobby admite 12 por despliegue).
+**/*.test.ts
+**/*.test.tsx

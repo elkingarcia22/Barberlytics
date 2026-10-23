@@ -1,6 +1,6 @@
-import { jsonError, readJsonBody } from "../../server/http/request.js";
-import { guardPaid, type PaidGuard } from "../../server/auth/guard.js";
-import { MAX_BATCH, cancel, enqueue, readOutboxStore, statusOf, type OutboxStore } from "../../server/whatsapp/queue.js";
+import { jsonError, readJsonBody } from "../../http/request.js";
+import { guardPaid, type PaidGuard } from "../../auth/guard.js";
+import { MAX_BATCH, cancel, enqueue, readOutboxStore, statusOf, type OutboxStore } from "../../whatsapp/queue.js";
 
 /**
  * /api/whatsapp/queue — la cola de WhatsApp del servidor (ver server/whatsapp/queue). Con sesión del

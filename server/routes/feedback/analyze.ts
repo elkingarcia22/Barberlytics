@@ -1,7 +1,7 @@
-import { ACTIVE_CAMPAIGN_DEFINITION } from "../../src/features/feedback/campaignRegistry.js";
-import { readConfig } from "../../server/feedback/config.js";
-import { isAuthorized, toResponse } from "../../server/feedback/http.js";
-import { createFeedbackService } from "../../server/feedback/service.js";
+import { ACTIVE_CAMPAIGN_DEFINITION } from "../../../src/features/feedback/campaignRegistry.js";
+import { readConfig } from "../../feedback/config.js";
+import { isAuthorized, toResponse } from "../../feedback/http.js";
+import { createFeedbackService } from "../../feedback/service.js";
 
 async function run(request: Request): Promise<Response> {
   const config = readConfig();

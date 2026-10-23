@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { ACTIVE_CAMPAIGN_DEFINITION } from "../../src/features/feedback/campaignRegistry.js";
+import { ACTIVE_CAMPAIGN_DEFINITION } from "../../../src/features/feedback/campaignRegistry.js";
 import { POST as activate } from "./activate.js";
 import { GET as analyzeCron, POST as analyzeManual } from "./analyze.js";
-import { POST as submit } from "./index.js";
+import { POST as submit } from "../../../api/feedback/index.js";
 
 const URL_BASE = "https://app.barberlytics.com/api/feedback";
 const call = (handler: (request: Request) => Promise<Response>, init: { headers?: Record<string, string>; body?: unknown; method?: string } = {}) =>

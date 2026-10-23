@@ -43,7 +43,7 @@
     }
   ],
   "functions": {
-    "api/feedback/analyze.ts": {
+    "api/feedback/[route].ts": {
       "maxDuration": 60
     }
   },

@@ -1,6 +1,6 @@
-import { jsonError } from "../../server/http/request.js";
-import { handleWebhook, verifySignature, verifySubscription } from "../../server/whatsapp/inbound.js";
-import { readOutboxStore } from "../../server/whatsapp/queue.js";
+import { jsonError } from "../../http/request.js";
+import { handleWebhook, verifySignature, verifySubscription } from "../../whatsapp/inbound.js";
+import { readOutboxStore } from "../../whatsapp/queue.js";
 
 /**
  * /api/whatsapp/webhook — lo que manda Meta (ver server/whatsapp/inbound).

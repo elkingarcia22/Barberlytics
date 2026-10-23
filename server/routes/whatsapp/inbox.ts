@@ -1,6 +1,6 @@
-import { jsonError } from "../../server/http/request.js";
-import { guardPaid } from "../../server/auth/guard.js";
-import { readOutboxStore } from "../../server/whatsapp/queue.js";
+import { jsonError } from "../../http/request.js";
+import { guardPaid } from "../../auth/guard.js";
+import { readOutboxStore } from "../../whatsapp/queue.js";
 
 /**
  * GET /api/whatsapp/inbox?after=N — las respuestas de los clientes que llegaron por WhatsApp después

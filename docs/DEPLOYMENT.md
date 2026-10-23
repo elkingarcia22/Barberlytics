@@ -20,6 +20,13 @@ La CSP se aplica a todo menos a `mockServiceWorker.js`: el service worker de MSW
 que no simula (fotos, fuentes) y con `connect-src 'self'` las bloqueaba. Es la misma regla que usa la
 reserva exportada a `booking-flow`.
 
+**Doce funciones como mucho.** El plan Hobby admite 12 funciones por despliegue y Vercel cuenta cada
+archivo de `api/`, pruebas incluidas. Por eso `.vercelignore` deja fuera los `*.test.ts`, y las rutas de un
+mismo grupo comparten función: `/api/whatsapp/{queue,inbox,webhook}` y `/api/feedback/{activate,analyze,attachments}`
+viven en `server/routes/<grupo>/` y las reparte `api/<grupo>/[route].ts` (`server/http/routeGroup.ts`).
+Una ruta nueva de esos grupos se suma ahí, no como archivo suelto en `api/`; antes de crear una función
+nueva, cuenta: `find api -name '*.ts' ! -name '*.test.ts' | wc -l` no debe pasar de 12.
+
 ## Cabeceras y CSP
 
 `vercel.json` define HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` y una CSP. Ajusta `connect-src` a la URL real de la API y, si el backend usa cookies, sirve API y front bajo el mismo sitio o configura CORS con `credentials`.

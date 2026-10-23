@@ -28,7 +28,8 @@ const VERCEL_JSON = (source) => {
     const csp = rule.headers.filter((header) => header.key === "Content-Security-Policy");
     const rest = rule.headers.filter((header) => header.key !== "Content-Security-Policy");
     return [{ ...rule, headers: rest }, ...(csp.length > 0 ? [{ source: `/((?!${SERVICE_WORKER}).*)`, headers: csp }] : [])];
-  });
+    // El vercel.json de la app ya trae la CSP aparte: sin esto quedaba una regla sin cabeceras.
+  }).filter((rule) => rule.headers.length > 0);
   return {
     $schema: "https://openapi.vercel.sh/vercel.json",
     framework: "vite",

@@ -9,6 +9,17 @@ VITE_API_URL=https://api.tu-dominio.com/v1 npm run build
 
 `dist/` es estático: cualquier CDN o servidor de archivos sirve. La app usa rutas limpias (`/usuarios`), así que el servidor debe reescribir todo a `index.html`. `vercel.json` ya lo hace y añade cabeceras de seguridad.
 
+### En Vercel: la demo con datos simulados
+
+Mientras no haya backend real, en Vercel la app se despliega como demo: `vercel.json` construye con
+`VITE_USE_MOCKS=${VITE_USE_MOCKS:-true} npm run build`, así que el backend simulado (MSW) viene encendido
+salvo que la variable `VITE_USE_MOCKS=false` diga otra cosa. Se entra con la cuenta de prueba (celular
+`3001234567`, código `246810`). Cuando exista la API real: `VITE_USE_MOCKS=false` y `VITE_API_URL`.
+
+La CSP se aplica a todo menos a `mockServiceWorker.js`: el service worker de MSW reenvía las peticiones
+que no simula (fotos, fuentes) y con `connect-src 'self'` las bloqueaba. Es la misma regla que usa la
+reserva exportada a `booking-flow`.
+
 ## Cabeceras y CSP
 
 `vercel.json` define HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` y una CSP. Ajusta `connect-src` a la URL real de la API y, si el backend usa cookies, sirve API y front bajo el mismo sitio o configura CORS con `credentials`.
@@ -31,7 +42,7 @@ depender de terceros, autoaloja los `woff2` y sustituye la URL de `stylesheet` e
 | Variable | Descripción |
 |---|---|
 | `VITE_API_URL` | Base de la API. |
-| `VITE_USE_MOCKS` | `false` en producción (es el valor por defecto en build). |
+| `VITE_USE_MOCKS` | En un build a mano, `false` por defecto. En Vercel, `true` por defecto (demo, ver arriba); `false` cuando haya API real. |
 | `VITE_SAMPLE_DATA` | `false` apaga los datos de ejemplo de la demo (reseñas de barberos, embudo de la reserva). Encendidos por defecto; siempre van marcados y nunca se suman a los reales. |
 
 Se leen en tiempo de build: cambiarlas requiere reconstruir.
@@ -87,8 +98,10 @@ compartido; sin él, en Vercel responde 501 y los mensajes quedan como simulados
 Las plantillas deberían llevar botones de respuesta rápida con payload `CONFIRM`, `RESCHEDULE` y `CANCEL`: se
 entienden sin adivinar. El texto libre también se clasifica (reglas en `server/whatsapp/inbound.ts`).
 
-En el plan Hobby de Vercel los crons corren como mucho una vez al día: para recordatorios a tiempo
-hace falta Pro (o un cron externo que llame a la ruta con el `CRON_SECRET`).
+En el plan Hobby de Vercel los crons corren como mucho una vez al día, así que `vercel.json` programa
+`/api/cron/whatsapp` a diario (`0 13 * * *`, 8:00 en Colombia) para que el despliegue no falle. Para
+recordatorios a tiempo, en Pro vuelve a ponerlo cada 5 minutos (`*/5 * * * *`) o usa un cron externo
+que llame a la ruta con el `CRON_SECRET`.
 
 ## Service worker de mocks
 

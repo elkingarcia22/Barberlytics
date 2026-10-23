@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useLocation, useNavigate } from "react-router";
-import { CommentLayer, CommentsPanel, CommentsProvider, useComments, type CommentAuthor, type CommentThread } from "@/components/comments";
+import { CommentLayer, CommentsPanel, CommentsProvider, useComments, type CommentThread } from "@/components/comments";
 import { SidePanelShell } from "@/components/overlays";
-import { useSharedComments } from "@/features/booking/comments/useSharedComments";
+import { ReviewerNameDialog } from "@/features/booking/comments/ReviewerNameDialog";
+import { useReviewer, useSharedComments } from "@/features/booking/comments/useSharedComments";
 import { locateCommentPoint } from "@/lib/comments/locate";
 import { isPlatformThread, platformContextOf, PLATFORM_CONTEXT_PREFIX } from "@/lib/comments/scope";
 
@@ -17,13 +18,20 @@ const locate = (point: { x: number; y: number }) => locateCommentPoint(point);
  * queda en la hoja con dónde se dejó (ruta, módulo, sección y elemento). Los pins de cada pantalla
  * solo salen en ella; el panel lleva a la de cada comentario.
  *
- * Firma la persona que inició sesión. El atajo «C» solo funciona con el panel abierto: en el resto
- * de la app la letra es de cada pantalla.
+ * Firma con su nombre quien comenta, no la cuenta con la que entró: en la demo todos entran con la
+ * misma. Se pide la primera vez que se abren los comentarios (el mismo diálogo de la reserva) y queda
+ * guardado en el navegador; no se vuelve a pedir. El atajo «C» solo funciona con el panel abierto: en
+ * el resto de la app la letra es de cada pantalla.
  */
-export function PlatformCommentsProvider({ author, pageLabel, children }: { author: CommentAuthor; pageLabel?: string; children: React.ReactNode }) {
+export function PlatformCommentsProvider({ pageLabel, children }: { pageLabel?: string; children: React.ReactNode }) {
   const location = useLocation();
   const [open, setOpen] = React.useState(false);
+  const { author, isAsking, askName, saveName } = useReviewer();
   const { threads, onThreadsChange } = useSharedComments(author, { include: isPlatformThread });
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    if (next) askName();
+  };
 
   return (
     <CommentsProvider
@@ -33,10 +41,11 @@ export function PlatformCommentsProvider({ author, pageLabel, children }: { auth
       context={platformContextOf(`${location.pathname}${location.search}`)}
       contextLabel={pageLabel}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={changeOpen}
       shortcuts={open}
     >
       {children}
+      <ReviewerNameDialog open={isAsking} onSubmit={saveName} />
     </CommentsProvider>
   );
 }

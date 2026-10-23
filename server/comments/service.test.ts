@@ -16,6 +16,9 @@ function memoryStore(initial: CommentEvent[] = []): CommentsStore & { rows: Comm
     append: async (events) => {
       rows.push(...events);
     },
+    removeThreads: async (threadIds) => {
+      for (let index = rows.length - 1; index >= 0; index -= 1) if (threadIds.includes(rows[index].threadId)) rows.splice(index, 1);
+    },
   };
 }
 
@@ -23,15 +26,29 @@ describe("servicio de comentarios", () => {
   test("guarda las acciones y las devuelve en orden", async () => {
     const store = memoryStore();
     const service = createCommentsService({ config, store });
-    expect((await service.record({ events: [event(), event({ id: "e2", action: "reply", messageId: "m2", body: "Respuesta" })] })).body).toEqual({ saved: 2 });
+    expect((await service.record({ events: [event(), event({ id: "e2", action: "reply", messageId: "m2", body: "Respuesta" })] })).body).toEqual({ saved: 2, removed: 0 });
     expect(((await service.list()).body.events as CommentEvent[]).map((item) => item.action)).toEqual(["create", "reply"]);
   });
 
   test("reintentar un envío no duplica filas", async () => {
     const store = memoryStore([event()]);
     const service = createCommentsService({ config, store });
-    expect((await service.record({ events: [event(), event({ id: "e2", action: "resolve", messageId: undefined, body: undefined })] })).body).toEqual({ saved: 1 });
+    expect((await service.record({ events: [event(), event({ id: "e2", action: "resolve", messageId: undefined, body: undefined })] })).body).toEqual({ saved: 1, removed: 0 });
     expect(store.rows).toHaveLength(2);
+  });
+
+  test("eliminar quita de la hoja todas las filas del hilo, no agrega una fila «delete»", async () => {
+    const store = memoryStore([event(), event({ id: "e2", action: "reply", messageId: "m2", body: "Respuesta" }), event({ id: "e3", threadId: "t2", messageId: "m3" })]);
+    const service = createCommentsService({ config, store });
+    expect((await service.record({ events: [event({ id: "e4", action: "delete", messageId: undefined, body: undefined })] })).body).toEqual({ saved: 0, removed: 1 });
+    expect(store.rows.map((row) => row.id)).toEqual(["e3"]);
+  });
+
+  test("un comentario creado y borrado antes de llegar no deja nada en la hoja", async () => {
+    const store = memoryStore();
+    const service = createCommentsService({ config, store });
+    await service.record({ events: [event(), event({ id: "e2", action: "delete", messageId: undefined, body: undefined })] });
+    expect(store.rows).toHaveLength(0);
   });
 
   test("rechaza lo que no tiene el formato y los textos demasiado largos", async () => {
@@ -160,5 +177,27 @@ describe("abrir la hoja al enlace", () => {
     const calls: { url: string; body: unknown }[] = [];
     await createSheetStore(fakeClient(calls), { sheetId: "hoja1" }).read();
     expect(calls.some((call) => call.url.includes("/permissions"))).toBe(false);
+  });
+});
+
+describe("eliminar en la hoja", () => {
+  test("borra las filas del hilo de abajo hacia arriba, en la pestaña «Acciones»", async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    const client: GoogleClient = {
+      raw: async () => new Response(),
+      json: async <T,>(url: string, init?: { method?: string; body?: unknown }) => {
+        calls.push({ url, body: init?.body });
+        if (url.includes("fields=sheets.properties")) return { sheets: [{ properties: { sheetId: 7, title: "Acciones" } }] } as T;
+        if (url.includes(encodeURIComponent("Acciones!C:C"))) return { values: [["hilo"], ["t1"], ["t2"], ["t1"]] } as T;
+        return { values: [["cabecera"]] } as T;
+      },
+    };
+    await createSheetStore(client, { sheetId: "hoja1" }).removeThreads?.(["t1"]);
+    const update = calls.find((call) => call.url.endsWith(":batchUpdate") && JSON.stringify(call.body).includes("deleteDimension"));
+    const ranges = (update?.body as { requests: { deleteDimension: { range: { sheetId: number; startIndex: number } } }[] }).requests.map((request) => request.deleteDimension.range);
+    expect(ranges.map((range) => [range.sheetId, range.startIndex])).toEqual([
+      [7, 3],
+      [7, 1],
+    ]);
   });
 });

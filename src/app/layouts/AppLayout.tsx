@@ -198,7 +198,6 @@ export function AppLayout() {
   const memberId = access.member?.id ?? null;
   const userName = user?.name ?? "";
   // Quien comenta en la revisión es quien inició sesión: su nombre firma cada comentario en la hoja.
-  const commentAuthor = React.useMemo(() => ({ id: user?.id ?? "anon", name: user?.name || "Revisor" }), [user?.id, user?.name]);
   const chatBackend = React.useMemo(() => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -451,7 +450,7 @@ export function AppLayout() {
   return (
     <AccessProvider value={access}>
     <ChatProvider value={chatContext}>
-    <PlatformCommentsProvider author={commentAuthor} pageLabel={findNavLabel(navigation, activeNavId)}>
+    <PlatformCommentsProvider pageLabel={findNavLabel(navigation, activeNavId)}>
       <AdminShell config={config} showFooter={showsLegalFooter(location.pathname)}>
         <RailAgentProvider value={agentRailAction}>
           <PageHeaderExtrasProvider value={agentButton}>

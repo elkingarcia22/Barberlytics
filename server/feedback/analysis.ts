@@ -1,4 +1,4 @@
-import type { CommentRow, SummaryRow } from "./campaignSheet";
+import type { CommentRow, SummaryRow } from "./campaignSheet.js";
 
 /**
  * El resumen de una campaña: arma la petición a Claude con los comentarios,

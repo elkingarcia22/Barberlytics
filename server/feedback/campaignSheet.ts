@@ -1,4 +1,4 @@
-import type { GoogleClient } from "./google";
+import type { GoogleClient } from "./google.js";
 
 /**
  * La hoja de cálculo de una campaña: una por campaña, con dos pestañas,

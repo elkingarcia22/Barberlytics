@@ -13,8 +13,8 @@ export const HELP_BASE_URL = env.helpBaseUrl;
 
 /**
  * Los idiomas en que está escrito el contenido. El español es la fuente y se
- * publica en la raíz; cada traducción en su carpeta (`/en/index.json`…). Las
- * capturas son las mismas para todos y viven en la raíz.
+ * publica en la raíz; cada traducción en su carpeta (`/en/index.json`…). Cada
+ * idioma trae sus capturas (`/assets/en/…`); la que falte llega en español.
  */
 export const HELP_LOCALES = ["es", "en"] as const satisfies readonly LocaleId[];
 export type HelpLocale = (typeof HELP_LOCALES)[number];

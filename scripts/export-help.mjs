@@ -9,7 +9,7 @@
 import { exportStandalone, indexHtml, outFromArgs, readRoot } from "./lib/export-standalone.mjs";
 
 const ENTRY = "src/help-app/main.tsx";
-const PUBLIC_FILES = ["public/favicon.svg", "public/apple-touch-icon.png"];
+const PUBLIC_FILES = ["public/favicon.svg", "public/apple-touch-icon.png", "public/theme-init.js"];
 /** De donde sale el contenido por defecto (`env.helpBaseUrl`); si se cambia `VITE_HELP_BASE_URL`, cambia aquí también. */
 const CONTENT_ORIGIN = "https://barberlytics.github.io";
 
@@ -21,7 +21,7 @@ const VERCEL_JSON = (source) => {
   const headers = config.headers.map((rule) => ({
     ...rule,
     headers: rule.headers.map((header) =>
-      header.key === "Content-Security-Policy" ? { ...header, value: header.value.replace("connect-src 'self'", `connect-src 'self' ${CONTENT_ORIGIN}`) } : header
+      header.key === "Content-Security-Policy" && !header.value.includes(CONTENT_ORIGIN) ? { ...header, value: header.value.replace("connect-src 'self'", `connect-src 'self' ${CONTENT_ORIGIN}`) } : header
     ),
   }));
   return {

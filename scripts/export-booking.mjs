@@ -12,7 +12,7 @@ import { exportStandalone, indexHtml, outFromArgs, readRoot, TSCONFIG_SERVER } f
 
 const ENTRY = "src/booking-app/main.tsx";
 const SERVER_ENTRIES = ["api/tts/index.ts", "api/session/guest.ts", "api/comments/index.ts", "server/http/devServer.ts"];
-const PUBLIC_FILES = ["public/mockServiceWorker.js", "public/favicon.svg", "public/apple-touch-icon.png"];
+const PUBLIC_FILES = ["public/mockServiceWorker.js", "public/favicon.svg", "public/apple-touch-icon.png", "public/theme-init.js"];
 
 const out = outFromArgs("Uso: npm run export:booking -- <carpeta destino>");
 

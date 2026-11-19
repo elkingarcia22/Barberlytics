@@ -34,10 +34,11 @@ import {
   type LucideIcon, CalendarClock } from "lucide-react";
 import type { NavChild, NavEntry } from "@/components/app-shell";
 import { SOURCE_LOCALE, resolveLocalized, type LocaleId, type Localized } from "@/i18n";
-import { DOC_GROUPS, entriesByGroup } from "./registry";
+import { DOC_GROUPS, entriesByGroup, findEntry } from "./registry";
 import { FOUNDATION_PAGES } from "./foundationPages";
 import { GUIDE_SECTIONS, guidesBySection } from "./guidePages";
 import { routeToHash, type DocsRoute } from "./router";
+import { SHOWCASE_COMPONENT_IDS, SHOWCASE_FOUNDATION_IDS, SHOWCASE_GROUP_LABEL } from "./showcase";
 
 /**
  * Un icono por grupo. No es decoración: plegado, el sidebar se convierte en
@@ -235,13 +236,50 @@ function guideSectionEntry(sectionId: "start" | "patterns", locale: LocaleId): N
   };
 }
 
+/** El acordeón único de la vitrina. */
+export const SHOWCASE_NAV_ID = "section:showcase";
+
+/**
+ * El árbol de la vitrina (ver `showcase.ts`): Inicio, Marca y un solo
+ * acordeón con la selección de componentes. Nada más: ni guías, ni el resto
+ * de fundamentos, ni las familias.
+ */
+function buildShowcaseNavigation(locale: LocaleId): readonly NavEntry[] {
+  const tr = <T,>(value: Parameters<typeof resolveLocalized<T>>[0]) => resolveLocalized(value, locale);
+  const foundations = FOUNDATION_PAGES.filter((page) => SHOWCASE_FOUNDATION_IDS.includes(page.id));
+  const components = SHOWCASE_COMPONENT_IDS.map(findEntry).filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
+  return [
+    { kind: "item", id: HOME_NAV_ID, label: tr(NAV_LABELS.home), icon: House, path: routeToHash({ kind: "home" }) },
+    ...foundations.map<NavEntry>((page) => ({
+      kind: "item",
+      id: `foundation:${page.id}`,
+      label: tr(page.label),
+      icon: page.icon,
+      path: routeToHash({ kind: "foundation", id: page.id }),
+    })),
+    {
+      kind: "item",
+      id: SHOWCASE_NAV_ID,
+      label: tr(SHOWCASE_GROUP_LABEL),
+      icon: Shapes,
+      children: components.map((entry) => ({
+        id: `component:${entry.id}`,
+        label: entry.name,
+        description: tr(entry.description),
+        path: routeToHash({ kind: "component", id: entry.id }),
+      })),
+    },
+  ];
+}
+
 /**
  * El árbol: Inicio, las guías de arranque, los fundamentos agrupados en un
  * acordeón, los patrones y cada familia de componentes en el suyo. El primer hijo de cada familia abre su página de
  * resumen, que de otro modo quedaría sin puerta de entrada: en este modelo
  * una raíz con hijos despliega en vez de navegar.
  */
-export function buildDocsNavigation(locale: LocaleId): readonly NavEntry[] {
+export function buildDocsNavigation(locale: LocaleId, options: { showcase?: boolean } = {}): readonly NavEntry[] {
+  if (options.showcase) return buildShowcaseNavigation(locale);
   const tr = <T,>(value: Parameters<typeof resolveLocalized<T>>[0]) => resolveLocalized(value, locale);
   return [
     { kind: "item", id: HOME_NAV_ID, label: tr(NAV_LABELS.home), icon: House, path: routeToHash({ kind: "home" }) },

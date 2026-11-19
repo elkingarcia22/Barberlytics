@@ -14,6 +14,7 @@ import {
 import { useLocalizer } from "@/i18n";
 import { ALL_ENTRIES, DOC_GROUPS, entriesByGroup } from "../registry";
 import { routeToHash } from "../router";
+import { SHOWCASE_COMPONENT_IDS, useShowcaseMode } from "../showcase";
 
 /**
  * Atmósfera del hero, en tres capas que se suman sobre la superficie:
@@ -150,6 +151,7 @@ function HeroStat({ value, label }: { value: React.ReactNode; label: string }) {
 export function HomeHero() {
   const { tokens } = useTheme();
   const tr = useLocalizer();
+  const showcase = useShowcaseMode();
   const familyCount = DOC_GROUPS.filter((group) => entriesByGroup(group.id).length > 0).length;
 
   return (
@@ -188,16 +190,19 @@ export function HomeHero() {
 
           <div className="mt-7 flex flex-wrap gap-inline">
             <Button asChild size="lg">
-              <a href={routeToHash({ kind: "group", id: "ui" })}>
+              {/* En la vitrina no hay familias: «Explorar» abre el primer componente de la selección. */}
+              <a href={routeToHash(showcase ? { kind: "component", id: SHOWCASE_COMPONENT_IDS[0] } : { kind: "group", id: "ui" })}>
                 {tr(HERO_COPY.explore)} <ArrowRight />
               </a>
             </Button>
             {/* `link` y no `outline`: sobre la superficie teñida del hero el filo
                 del outline cae casi en el color del fondo y el botón desaparecía.
                 Como enlace se lee de lejos y no compite con el primario. */}
-            <Button asChild variant="link" size="lg">
-              <a href={routeToHash({ kind: "guide", id: "como-usar" })}>{tr(HERO_COPY.howTo)}</a>
-            </Button>
+            {!showcase && (
+              <Button asChild variant="link" size="lg">
+                <a href={routeToHash({ kind: "guide", id: "como-usar" })}>{tr(HERO_COPY.howTo)}</a>
+              </Button>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,16 @@
 import { describe, expect, test } from "vitest";
-import { DOCS_NAVIGATION, FOUNDATIONS_NAV_ID, HOME_NAV_ID, hashFromNavId, navIdFromRoute, routeFromNavId } from "./docsNavigation";
+import {
+  DOCS_NAVIGATION,
+  FOUNDATIONS_NAV_ID,
+  HOME_NAV_ID,
+  SHOWCASE_NAV_ID,
+  buildDocsNavigation,
+  hashFromNavId,
+  navIdFromRoute,
+  routeFromNavId,
+} from "./docsNavigation";
+import { docsSearchDestinations, docsSearchObjects } from "./docsSearchIndex";
+import { SHOWCASE_COMPONENT_IDS, SHOWCASE_GROUP_LABEL, isRouteInShowcase } from "./showcase";
 import { FOUNDATION_PAGES } from "./foundationPages";
 import { GUIDE_PAGES, GUIDE_SECTIONS } from "./guidePages";
 import { ALL_ENTRIES, DOC_GROUPS } from "./registry";
@@ -131,5 +142,48 @@ describe("ruta ⇄ nodo", () => {
     const section = DOCS_NAVIGATION.find((item) => item.kind === "item" && item.id === `section:${entry.group}`);
     if (!section || section.kind !== "item") throw new Error("sección no encontrada");
     expect(findDescendant(section.children, navIdFromRoute({ kind: "component", id: entry.id }))).toBe(true);
+  });
+});
+
+describe("vitrina", () => {
+  const tree = buildDocsNavigation(SOURCE_LOCALE, { showcase: true });
+
+  test("solo quedan Inicio, Marca y el grupo de ejemplos", () => {
+    expect(tree.map((entry) => (entry.kind === "item" ? entry.id : entry.kind))).toEqual([HOME_NAV_ID, "foundation:brand", SHOWCASE_NAV_ID]);
+    const group = tree[2];
+    if (group.kind !== "item") throw new Error("falta el grupo de la vitrina");
+    expect(group.label).toBe(inSource(SHOWCASE_GROUP_LABEL));
+  });
+
+  test("el grupo lista cada componente de la selección, en orden, hacia su página", () => {
+    const group = tree[2];
+    if (group.kind !== "item") throw new Error("falta el grupo de la vitrina");
+    expect(group.children?.map((child) => child.path)).toEqual(
+      SHOWCASE_COMPONENT_IDS.map((id) => routeToHash({ kind: "component", id }))
+    );
+  });
+
+  test("todos los ids de la selección existen en el registro", () => {
+    const known = new Set(ALL_ENTRIES.map((entry) => entry.id));
+    expect(SHOWCASE_COMPONENT_IDS.filter((id) => !known.has(id))).toEqual([]);
+    expect(SHOWCASE_COMPONENT_IDS.length).toBeGreaterThanOrEqual(15);
+  });
+
+  test("las rutas fuera de la selección no se abren", () => {
+    expect(isRouteInShowcase({ kind: "home" })).toBe(true);
+    expect(isRouteInShowcase({ kind: "foundation", id: "brand" })).toBe(true);
+    expect(isRouteInShowcase({ kind: "foundation", id: "colors" })).toBe(false);
+    expect(isRouteInShowcase({ kind: "guide", id: "como-usar" })).toBe(false);
+    expect(isRouteInShowcase({ kind: "group", id: "ai" })).toBe(false);
+    expect(isRouteInShowcase({ kind: "component", id: SHOWCASE_COMPONENT_IDS[0] })).toBe(true);
+    const hidden = ALL_ENTRIES.find((entry) => !SHOWCASE_COMPONENT_IDS.includes(entry.id));
+    expect(isRouteInShowcase({ kind: "component", id: hidden!.id })).toBe(false);
+  });
+
+  test("la búsqueda solo ofrece destinos y componentes permitidos", () => {
+    expect(docsSearchDestinations(SOURCE_LOCALE, true).map((item) => item.id)).toEqual(["home", "foundation-brand"]);
+    expect(docsSearchObjects(SOURCE_LOCALE, true).map((item) => item.id).sort()).toEqual([...SHOWCASE_COMPONENT_IDS].sort());
+    // Fuera de la vitrina, todo sigue ahí.
+    expect(docsSearchObjects(SOURCE_LOCALE)).toHaveLength(ALL_ENTRIES.length);
   });
 });

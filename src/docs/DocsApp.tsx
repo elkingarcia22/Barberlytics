@@ -1,4 +1,6 @@
+import * as React from "react";
 import { DocsShell } from "./DocsShell";
+import { isRouteInShowcase, useShowcaseMode } from "./showcase";
 import { useHashRoute } from "./router";
 import { findEntry, findGroup } from "./registry";
 import { ComponentPage } from "./components/ComponentPage";
@@ -24,6 +26,18 @@ import { FormulariosPage } from "./pages/guides/FormulariosPage";
 
 function RouteView() {
   const { route } = useHashRoute();
+  const showcase = useShowcaseMode();
+  const isHidden = showcase && !isRouteInShowcase(route);
+
+  // En la vitrina, lo que no está en la selección vuelve al inicio. `replace`
+  // y no una entrada nueva: «atrás» no debe devolver a la ruta escondida.
+  React.useEffect(() => {
+    if (isHidden) window.location.replace("#/");
+  }, [isHidden]);
+
+  // Mientras llega el cambio de hash se pinta ya el inicio, nunca la página escondida.
+  if (isHidden) return <HomePage />;
+
   switch (route.kind) {
     case "home":
       return <HomePage />;

@@ -12,6 +12,7 @@ import { PropsTable } from "./PropsTable";
 import { DOC_GROUPS, type ControlValue, type DocEntry, type DocExample, type DocPlayground } from "../registry/types";
 import { findEntry } from "../registry";
 import { routeToHash } from "../router";
+import { SHOWCASE_COMPONENT_IDS, SHOWCASE_GROUP_LABEL, useShowcaseMode } from "../showcase";
 import { useLocalizer, useT } from "@/i18n";
 
 function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
@@ -74,7 +75,12 @@ const STATUS_LABEL: Record<NonNullable<DocEntry["status"]>, string> = {
 
 export function ComponentPage({ entry }: { entry: DocEntry }) {
   const group = DOC_GROUPS.find((item) => item.id === entry.group);
-  const related = (entry.related ?? []).map(findEntry).filter((item): item is DocEntry => Boolean(item));
+  // En la vitrina solo se enlaza a lo que la vitrina deja abrir.
+  const showcase = useShowcaseMode();
+  const related = (entry.related ?? [])
+    .map(findEntry)
+    .filter((item): item is DocEntry => Boolean(item))
+    .filter((item) => !showcase || SHOWCASE_COMPONENT_IDS.includes(item.id));
 
   const tr = useLocalizer();
   const t = useT();
@@ -83,7 +89,9 @@ export function ComponentPage({ entry }: { entry: DocEntry }) {
     <div className="cascade-enter space-y-section" key={entry.id}>
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-inline">
-          {group && (
+          {showcase ? (
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{tr(SHOWCASE_GROUP_LABEL)}</span>
+          ) : group && (
             <a href={routeToHash({ kind: "group", id: group.id })} className="text-xs font-semibold uppercase tracking-[0.14em] text-primary hover:underline">
               {tr(group.label)}
             </a>

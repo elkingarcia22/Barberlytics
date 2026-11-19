@@ -2,13 +2,14 @@ import * as React from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { DOC_GROUPS, entriesByGroup } from "../registry";
+import { DOC_GROUPS, entriesByGroup, findEntry } from "../registry";
 import { GROUP_ICONS } from "../docsNavigation";
 import { routeToHash } from "../router";
 import { FOUNDATION_PAGES } from "../foundationPages";
 import { GUIDE_SECTIONS, guidesBySection } from "../guidePages";
 import { useLocalizer, useT } from "@/i18n";
 import { HomeHero } from "./HomeHero";
+import { SHOWCASE_COMPONENT_IDS, SHOWCASE_FOUNDATION_IDS, SHOWCASE_GROUP_DESCRIPTION, SHOWCASE_GROUP_LABEL, useShowcaseMode } from "../showcase";
 
 /**
  * El encabezado de cada tramo de la portada: rótulo en versalitas, título y
@@ -74,16 +75,47 @@ function LinkCard({
   );
 }
 
+/**
+ * La rejilla de la vitrina (ver `showcase.ts`): en lugar de las familias, los
+ * componentes de la selección, cada uno hacia su propia página.
+ */
+function ShowcaseComponents() {
+  const tr = useLocalizer();
+  const t = useT();
+  const entries = SHOWCASE_COMPONENT_IDS.map(findEntry).filter((entry): entry is NonNullable<typeof entry> => entry !== undefined);
+  return (
+    <section className="space-y-5">
+      <SectionHeader eyebrow={t("docs.components")} title={tr(SHOWCASE_GROUP_LABEL)} description={tr(SHOWCASE_GROUP_DESCRIPTION)} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {entries.map((entry) => (
+          <LinkCard
+            key={entry.id}
+            href={routeToHash({ kind: "component", id: entry.id })}
+            icon={GROUP_ICONS[entry.group]}
+            title={entry.name}
+            description={tr(entry.description)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const groupsWithEntries = DOC_GROUPS.filter((group) => entriesByGroup(group.id).length > 0);
   const tr = useLocalizer();
   const t = useT();
+  // En la vitrina la portada no enlaza a nada escondido: sin guías, solo la
+  // marca entre los fundamentos y la selección en vez de las familias.
+  const showcase = useShowcaseMode();
+  const guideSections = showcase ? [] : GUIDE_SECTIONS;
+  const foundationPages = showcase ? FOUNDATION_PAGES.filter((page) => SHOWCASE_FOUNDATION_IDS.includes(page.id)) : FOUNDATION_PAGES;
 
   return (
     <div className="cascade-enter space-y-section">
       <HomeHero />
 
-      {GUIDE_SECTIONS.map((section) => (
+      {guideSections.map((section) => (
         <section key={section.id} className="space-y-5">
           <SectionHeader
             eyebrow={t("docs.guides")}
@@ -118,8 +150,8 @@ export function HomePage() {
         />
         {/* Siete fundamentos en una rejilla de cuatro: el primero —Temas, que es
             de lo que va este sistema— ocupa dos y la última fila queda llena. */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {FOUNDATION_PAGES.map((page, index) => (
+        <div className={cn("grid gap-3 sm:grid-cols-2", showcase ? "lg:grid-cols-2" : "lg:grid-cols-4")}>
+          {foundationPages.map((page, index) => (
             <LinkCard
               key={page.id}
               href={routeToHash({ kind: "foundation", id: page.id })}
@@ -132,28 +164,32 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="space-y-5">
-        <SectionHeader
-          eyebrow={t("docs.components")}
-          title={tr({ es: "Familias", en: "Families" })}
-          description={tr({
-            es: "Cada familia trae sus piezas documentadas, con playground, props y guías de uso.",
-            en: "Each family brings its pieces documented, with a playground, props and usage guidance.",
-          })}
-        />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {groupsWithEntries.map((group) => (
-            <LinkCard
-              key={group.id}
-              href={routeToHash({ kind: "group", id: group.id })}
-              icon={GROUP_ICONS[group.id]}
-              title={tr(group.label)}
-              description={tr(group.description)}
-              meta={<Badge variant="neutral">{entriesByGroup(group.id).length}</Badge>}
-            />
-          ))}
-        </div>
-      </section>
+      {showcase ? (
+        <ShowcaseComponents />
+      ) : (
+        <section className="space-y-5">
+          <SectionHeader
+            eyebrow={t("docs.components")}
+            title={tr({ es: "Familias", en: "Families" })}
+            description={tr({
+              es: "Cada familia trae sus piezas documentadas, con playground, props y guías de uso.",
+              en: "Each family brings its pieces documented, with a playground, props and usage guidance.",
+            })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groupsWithEntries.map((group) => (
+              <LinkCard
+                key={group.id}
+                href={routeToHash({ kind: "group", id: group.id })}
+                icon={GROUP_ICONS[group.id]}
+                title={tr(group.label)}
+                description={tr(group.description)}
+                meta={<Badge variant="neutral">{entriesByGroup(group.id).length}</Badge>}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

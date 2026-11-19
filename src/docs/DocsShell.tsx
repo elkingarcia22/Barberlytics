@@ -50,6 +50,19 @@ function breadcrumb(route: DocsRoute, locale: LocaleId, navigate: (route: DocsRo
  * dos rastros de migas y esconder uno con CSS: dos `nav` con la misma
  * etiqueta son dos navegaciones para un lector de pantalla.
  */
+/**
+ * ¿La doc se ve dentro de otra página (un iframe, como el portafolio)? Ahí no tiene
+ * sentido salir a la aplicación: el botón se oculta y la doc queda como vitrina.
+ */
+function isEmbedded(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
 function useIsCompact(): boolean {
   const query = "(max-width: 639px)";
   const subscribe = React.useCallback((onChange: () => void) => {
@@ -129,12 +142,14 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
             pestaña, y la ruta está tras la guarda de sesión, así que sin
             sesión pasa antes por el login y vuelve aquí al entrar.
           */}
-          <Button asChild className="gap-inline">
-            <Link to="/metricas" title={t("docs.openAppTitle")}>
-              <AppWindow className="size-3.5" />
-              {t("docs.openApp")}
-            </Link>
-          </Button>
+          {!isEmbedded() && (
+            <Button asChild className="gap-inline">
+              <Link to="/metricas" title={t("docs.openAppTitle")}>
+                <AppWindow className="size-3.5" />
+                {t("docs.openApp")}
+              </Link>
+            </Button>
+          )}
         </>
       ),
       // La vista del sistema de diseño no tiene empresas que cambiar, ni
